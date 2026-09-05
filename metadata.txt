@@ -1,0 +1,53 @@
+[general]
+name=AI Agent by TerraLab
+qgisMinimumVersion=3.28
+supportsQt6=True
+qgisMaximumVersion=4.99
+description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 250+ tools and nearly 40 open data connectors.
+about=
+    It works on your own layers, in the project you already have open, and shows each step as it goes.
+
+    • 250+ tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
+
+    • Nearly 40 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 31 more, with 300 ready datasets and each one's licence
+
+    • 30+ national and city portals across 11 countries, plus the EU-wide and global ones
+
+    • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
+
+    • Fits your habits: one conversation per project, and attach files, layers, selections or the map view to a message
+
+    • Works with AI Edit and AI Segmentation when those TerraLab plugins are installed
+
+    • 12 languages: English, French, Spanish, Portuguese, German, Italian, Dutch, Polish, Indonesian, Japanese, Chinese (simplified and traditional)
+
+    • Answers come from an AI model. It can be wrong; review what it changes
+
+    • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
+version=1.0.1
+author=TerraLab
+email=yvann.barbot@terra-lab.ai
+homepage=https://terra-lab.ai/ai-agent
+repository=https://github.com/TerraLabAI/QGIS_AI-Agent
+tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
+license=GPL-2.0-or-later
+changelog=
+    1.0.1
+    - The panel follows a light QGIS theme: bubbles, cards, code blocks and buttons keep their shape and contrast
+    - The history sheet opens at the height it needs, one readable line per group, and says when there is more below
+    - Going back to an earlier step no longer holds the window, and keeps the conversation it restores
+
+    1.0.0
+    - First public release, after three months of daily use inside TerraLab on our own QGIS work
+    - Hand it a task and it does the work: finds the data, runs the analysis, styles the map, builds the layout
+    - You see every step before it runs, changes wait for your approval, and one click undoes anything it changed
+    - Open data by theme and place: nearly 40 connectors, 300 datasets with their licence, 30+ public portals, and Overture Maps for a bounding box
+    - One conversation per project, and attach files, layers, selections or the map view to a message
+tags=ai,artificial intelligence,agent,assistant,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
+category=Plugins
+icon=icons/icon.png
+experimental=False
+deprecated=False
+hasProcessingProvider=no
+server=False
+plugin_dependencies=
