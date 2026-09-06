@@ -1,0 +1,198 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from __future__ import annotations
+
+from collections import OrderedDict, deque
+
+from qgis.PyQt.QtCore import QObject, pyqtSignal
+
+from . import background, follow, layer_order, scratch, stalls
+from .checkpoints import CheckpointHistory
+from .executor_calls import _ExecutorCalls
+from .executor_code import _ExecutorCode
+from .executor_deliver import _ExecutorDeliver
+from .executor_execute import _ExecutorExecute
+from .executor_guards import _ExecutorGuards
+from .executor_hold import _ExecutorHold
+from .executor_idempotency import IdempotencyTable
+from .executor_runs import _ExecutorRuns
+from .executor_undo import _ExecutorUndo
+from .snapshot import RunSnapshot
+from .watchdog import MainThreadWatchdog
+
+
+__all__ = ["ToolExecutor", "background"]
+
+
+class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, _ExecutorExecute,
+                   _ExecutorDeliver, _ExecutorGuards, _ExecutorHold, QObject):
+    tool_started = pyqtSignal(object)
+
+
+
+    tool_finished = pyqtSignal(str, bool, str, float, str, object)
+    permission_needed = pyqtSignal(str, str, str, object)
+    permission_resolved = pyqtSignal(str, str)
+
+    question_needed = pyqtSignal(str, str, str, object, bool, int, str)
+    question_resolved = pyqtSignal(str, str)
+    project_changed = pyqtSignal(int)
+
+    def __init__(self, registry, session, settings, parent=None):
+        super().__init__(parent)
+        self._registry = registry
+        self._session = session
+        self._settings = settings
+        self._closed = False
+        self._executing: set[str] = set()
+        self._table = IdempotencyTable()
+        self._waiting_for_history: dict[str, dict] = {}
+
+        self._resolving: dict[str, dict] = {}
+
+
+
+        self._queued: dict[str, dict[str, tuple[dict, float]]] = {}
+
+
+
+
+        self._main_depth = 0
+        self._main_line: deque = deque()
+        self._main_line_due = False
+        self._pending: dict[str, dict] = {}
+        self._questions: dict[str, dict] = {}
+
+
+
+
+        self._refused_costly: dict[str, set[str]] = {}
+        self._run_mode: dict[str, tuple[str, str]] = {}
+
+
+
+
+
+
+
+
+        self._cancelled: OrderedDict[str, None] = OrderedDict()
+        self._touched: dict[str, set] = {}
+
+        self._layouts: dict[str, str] = {}
+        self._journal: dict[str, list[dict]] = {}
+        self._snapshots: dict[str, RunSnapshot] = {}
+        self._written: dict[str, list[str]] = {}
+
+        self._own_files: dict[str, set[str]] = {}
+
+
+
+        self._output_files: dict[str, list[dict]] = {}
+        self._call_warnings: dict[str, list[dict]] = {}
+
+        self._ended_run: tuple = ("", (), ())
+        self._budgets: dict[str, object] = {}
+        self._background: dict[str, tuple] = {}
+        self._task_ids: dict[str, set] = {}
+        self._threads: dict[str, str] = {}
+        self._run_index: dict[str, int] = {}
+        self._prompts: dict[str, str] = {}
+
+
+
+
+        self._inflight: dict[str, tuple[str, str, float, bool]] = {}
+
+
+        self._dialog_waits: dict[str, tuple[float, str]] = {}
+        self._dialog_tick: float | None = None
+
+
+        self._answered: OrderedDict[str, None] = OrderedDict()
+
+        self._blocked: dict[str, str] = {}
+
+        self._replaced: set[str] = set()
+
+
+
+
+
+
+
+
+
+
+
+
+        self._run_allowed: dict[str, set[str]] = {}
+
+        self._code_run_grants: set[str] = set()
+
+        self._code_run_unknown: dict[str, set[str]] = {}
+
+
+
+
+
+
+
+        self._run_denied: dict[str, set[str]] = {}
+
+
+        self._code_escalated: dict[str, str] = {}
+
+
+        self._held: dict[str, tuple] = {}
+        self._hold_listening = False
+        self.last_snapshot: RunSnapshot | None = None
+
+
+        self._after_pending: tuple | None = None
+        self.history = CheckpointHistory()
+
+
+
+        self.watchdog = MainThreadWatchdog(describe=self._inflight_description,
+                                           on_blocked=self._on_main_thread_blocked,
+                                           on_tick=self._sweep_deadlines,
+                                           on_stall=self._on_main_thread_stalled,
+                                           on_thaw=self._on_main_thread_thawed)
+        self.watchdog.start()
+        self.tool_finished.connect(self._turn_over)
+        stalls.add_context_provider(self._inflight_description)
+
+
+
+        self.follower = follow.Follower()
+
+
+
+
+        self.scratch = scratch.ScratchLedger()
+
+
+
+        self.stacker = layer_order.Stacker()
+
+
+        self.stacker.in_call = lambda: bool(self._inflight)
+        self._refresh_proxy()
