@@ -1,0 +1,1360 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+from __future__ import annotations
+
+import math
+
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsField,
+    QgsLayerTreeGroup,
+    QgsLayerTreeLayer,
+    QgsPointXY,
+    QgsProject,
+    QgsRectangle,
+    QgsVectorFileWriter,
+    QgsVectorLayer,
+)
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
+from qgis.utils import iface
+
+from ..core import layer_order, output_paths
+from ..core.context import view_area_km2
+from ..core.follow import hold_view
+from ..core.host_platform import remove_quietly
+from ..core.provider_uri import crs_problem  # noqa: E402
+from ..core.qt_compat import enum_member, field_type
+from ..core.security import validate_path
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import guards
+from ._layers import closest_layers, closest_names, match_names
+from .core_tools import _layer_not_found_error
+from .layer_lookup import _find_layer_note
+
+
+
+_WEB_MERCATOR_MAX = 20037508.34
+
+
+
+
+def _memory_layer_table(args: dict, path: str) -> str:
+    return str(args.get("name") or "").strip()
+
+
+def _saved_layer_table(args: dict, path: str) -> str:
+    return guards.layer_table_name(args.get("layer"), strip=True)
+
+
+def register_layer_tools(registry: ToolRegistry):
+    registry.register(Tool(
+        name="set_layers_visibility",
+        danger="write",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "visible": {"type": "boolean"},
+                "layers": {"type": "array", "items": {"type": "string"}, "maxItems": 5000},
+                "pattern": {"type": "string"},
+                "group": {"type": "string"},
+            },
+            "required": ["visible"],
+        },
+        handler=_set_layers_visibility,
+    ))
+
+    registry.register(Tool(
+        name="set_active_layer",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Select {layer_name} in the layer panel"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "layer_name": {"type": "string"},
+            },
+            "required": ["layer_name"],
+        },
+        handler=_set_active_layer,
+    ))
+
+    registry.register(Tool(
+        name="get_active_layer",
+        danger="read",
+        input_schema={"type": "object", "properties": {}, "required": []},
+        handler=_get_active_layer,
+    ))
+
+    registry.register(Tool(
+        name="set_layer_visibility",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Show or hide {layer_name}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "layer_name": {"type": "string"},
+                "visible": {"type": "boolean"},
+            },
+            "required": ["layer_name", "visible"],
+        },
+        handler=_set_layer_visibility,
+    ))
+
+    registry.register(Tool(
+        name="create_memory_layer",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Create the layer {name}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "geometry_type": {
+                    "type": "string",
+                    "enum": ["Point", "LineString", "Polygon", "MultiPoint", "MultiLineString", "MultiPolygon"],
+                },
+                "crs": {"type": "string"},
+                "fields": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "type": {"type": "string", "enum": ["string", "integer", "double", "date"]},
+                        },
+                        "required": ["name", "type"],
+                    },
+                },
+                "permanent": {
+                    "type": "boolean",
+                },
+                "gpkg_path": {
+                    "type": "string",
+                },
+                "overwrite": {"type": "boolean"},
+            },
+            "required": ["name", "geometry_type"],
+        },
+        handler=_create_memory_layer,
+        gpkg_table=_memory_layer_table,
+    ))
+
+    registry.register(Tool(
+        name="save_layer_to_gpkg",
+        danger="destructive",
+        card="gpkg",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Save {layer} to {gpkg_path}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "layer": {"type": "string"},
+                "gpkg_path": {
+                    "type": "string",
+                },
+                "keep_style": {
+                    "type": "boolean",
+                },
+                "overwrite": {"type": "boolean"},
+            },
+            "required": ["layer"],
+        },
+        handler=_save_layer_to_gpkg,
+        gpkg_table=_saved_layer_table,
+    ))
+
+    registry.register(Tool(
+        name="get_layer_tree",
+        danger="read",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Read the layer tree"),
+        input_schema={"type": "object", "properties": {}, "required": []},
+        handler=_get_layer_tree,
+    ))
+
+    registry.register(Tool(
+        name="create_layer_group",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Create the group {name}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "parent_group": {"type": "string"},
+            },
+            "required": ["name"],
+        },
+        handler=_create_layer_group,
+    ))
+
+    registry.register(Tool(
+        name="move_layer_to_group",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Move {layer_name} to {group_name}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "layer_name": {"type": "string"},
+                "group_name": {"type": "string"},
+            },
+            "required": ["layer_name", "group_name"],
+        },
+        handler=_move_layer_to_group,
+    ))
+
+    registry.register(Tool(
+        name="transform_coordinates",
+        danger="read",
+        xy_crs=("source_crs",),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Convert coordinates to {target_crs}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number",
+                },
+                "y": {
+                    "type": "number",
+                },
+                "source_crs": {"type": "string"},
+                "target_crs": {"type": "string"},
+                "coordinates": {"type": "array", "maxItems": 100000, "items": {
+                    "type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}},
+            },
+            "required": ["source_crs", "target_crs"],
+        },
+        handler=_transform_coordinates,
+    ))
+
+    registry.register(Tool(
+        name="get_canvas_extent",
+        danger="read",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Read the map view"),
+        input_schema={"type": "object", "properties": {}, "required": []},
+        handler=_get_canvas_extent,
+    ))
+
+    registry.register(Tool(
+        name="set_canvas_extent",
+        sets_view=True,
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Move the map view"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "xmin": {"type": "number"},
+                "ymin": {"type": "number"},
+                "xmax": {"type": "number"},
+                "ymax": {"type": "number"},
+                "crs": {"type": "string"},
+            },
+            "required": ["xmin", "ymin", "xmax", "ymax"],
+        },
+        handler=_set_canvas_extent,
+    ))
+
+    registry.register(Tool(
+        name="set_project_crs",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Set the project CRS to {crs}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "crs": {"type": "string"},
+            },
+            "required": ["crs"],
+        },
+        handler=_set_project_crs,
+    ))
+
+    registry.register(Tool(
+        name="save_project",
+        danger="destructive",
+        visible=10,
+        label=QT_TRANSLATE_NOOP("AIAgent", "Save the project[ to {path}]"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "overwrite": {
+                    "type": "boolean",
+                },
+            },
+            "required": [],
+        },
+        handler=_save_project,
+        saves_open_project=True,
+    ))
+
+    registry.register(Tool(
+        name="load_project",
+        danger="destructive",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Open the project {path}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+            },
+            "required": ["path"],
+        },
+        handler=_load_project,
+    ))
+
+    registry.register(Tool(
+        name="create_new_project",
+        danger="destructive",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Start a new project"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "crs": {"type": "string"},
+                "overwrite": {"type": "boolean"},
+            },
+            "required": [],
+        },
+        handler=_create_new_project,
+    ))
+
+
+def _set_active_layer(args: dict) -> dict:
+    layer, note = _find_layer_note(args["layer_name"])
+    if not layer:
+        return _layer_not_found_error(args["layer_name"])
+    iface.setActiveLayer(layer)
+    out = {"active_layer": layer.name(), "layer_id": layer.id()}
+    if note:
+        out["note"] = note
+    return out
+
+
+def _get_active_layer(args: dict) -> dict:
+    from ..core.context import layer_kind
+
+    layer = iface.activeLayer()
+    if not layer:
+        return {"active_layer": None}
+    return {
+        "active_layer": {
+            "name": layer.name(),
+            "type": layer_kind(layer),
+            "layer_id": layer.id(),
+        }
+    }
+
+
+def _visibility_candidates(missing: list[str], limit: int = 4) -> list[dict]:
+
+
+
+
+
+
+
+
+    layers = [layer for layer in QgsProject.instance().mapLayers().values() if layer is not None]
+    out: list[dict] = []
+    seen: set[str] = set()
+    for name in missing:
+        for candidate in closest_layers(str(name), layers):
+            if candidate["id"] in seen:
+                continue
+            seen.add(candidate["id"])
+            out.append(candidate)
+            if len(out) >= limit:
+                return out
+    return out
+
+
+def _set_layers_visibility(args: dict) -> dict:
+    visible = bool(args.get("visible"))
+    root = QgsProject.instance().layerTreeRoot()
+    targets: dict[str, object] = {}
+
+
+    missing: list[str] = []
+    notes: list[str] = []
+    for name in args.get("layers") or []:
+        layer, note = _find_layer_note(str(name))
+        if layer is None:
+            missing.append(str(name))
+            continue
+        targets[layer.id()] = layer
+        if note:
+            notes.append(note)
+    pattern = str(args.get("pattern") or "").strip().lower()
+    if pattern:
+        for layer in QgsProject.instance().mapLayers().values():
+            if pattern in layer.name().lower():
+                targets[layer.id()] = layer
+    group_name = str(args.get("group") or "").strip()
+    if group_name:
+        group = _find_group(root, group_name)
+        if group is None:
+            return _group_not_found(root, group_name)
+        for node in group.findLayers():
+            if node.layer() is not None:
+                targets[node.layer().id()] = node.layer()
+    if not targets:
+        if len(missing) == 1:
+            return _layer_not_found_error(missing[0])
+        listed = ", ".join(repr(name) for name in missing)
+        close = _visibility_candidates(missing) if missing else []
+        if close:
+            listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in close)
+            return tool_error(
+                f"No layer matched: {listed}. Did you mean: {listing}?", "LAYER_NOT_FOUND",
+                f"Call the tool again with those ids, starting with {close[0]['id']!r}, "
+                f"which is {close[0]['name']!r}.")
+        return tool_error(
+            f"No layer matched{': ' + listed if listed else ''}.",
+            "LAYER_NOT_FOUND" if missing else "INVALID_ARGS",
+            "Call list_layers and pass the names or ids it gives, or a pattern or group that exists.")
+    changed: list[str] = []
+    for layer_id, layer in targets.items():
+        node = root.findLayer(layer_id)
+        if node is None or node.isVisible() == visible and node.itemVisibilityChecked() == visible:
+            continue
+        node.setItemVisibilityChecked(visible)
+        if visible:
+            parent = node.parent()
+            while parent is not None and parent is not root:
+                if isinstance(parent, QgsLayerTreeGroup) and not parent.itemVisibilityChecked():
+                    parent.setItemVisibilityChecked(True)
+                parent = parent.parent()
+        changed.append(layer.name())
+    out = {"visible": visible, "matched": len(targets), "changed": changed,
+           "unchanged": len(targets) - len(changed)}
+    if missing:
+        out["not_found"] = missing
+        note = "No layer answers to " + ", ".join(repr(name) for name in missing) + "."
+        close = _visibility_candidates(missing)
+        if close:
+            out["_candidates"] = close
+            note += " Closest: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in close) + "."
+        notes.append(note + " The rest were set, so do not send the whole call again.")
+    if notes:
+        out["note"] = " ".join(notes)
+    return out
+
+
+def _set_layer_visibility(args: dict) -> dict:
+    layer, note = _find_layer_note(args["layer_name"])
+    if not layer:
+        return _layer_not_found_error(args["layer_name"])
+
+    root = QgsProject.instance().layerTreeRoot()
+    node = root.findLayer(layer.id())
+    unhidden_groups: list[str] = []
+    if node is not None:
+        node.setItemVisibilityChecked(args["visible"])
+        if args["visible"]:
+            parent = node.parent()
+            while parent is not None and parent is not root:
+                if isinstance(parent, QgsLayerTreeGroup) and not parent.isVisible():
+                    parent.setItemVisibilityChecked(True)
+                    unhidden_groups.append(parent.name())
+                parent = parent.parent()
+    out = {
+        "layer": layer.name(),
+        "layer_id": layer.id(),
+        "visible": args["visible"],
+        "effective_visible": node.isVisible() if node is not None else args["visible"],
+        "unhidden_parent_groups": unhidden_groups,
+    }
+    if note:
+        out["note"] = note
+    return out
+
+
+def _default_gpkg_path(layer_name: str = "") -> str | None:
+
+
+
+
+
+
+    import os
+    fname = QgsProject.instance().fileName()
+    if not fname:
+        folder = output_paths.exports_folder()
+        stem = output_paths.safe_file_name(layer_name, "layers")
+        path, number = os.path.join(folder, f"{stem}.gpkg"), 2
+        while os.path.exists(path):
+            path, number = os.path.join(folder, f"{stem}_{number}.gpkg"), number + 1
+        os.makedirs(folder, exist_ok=True)
+        return path
+    directory = os.path.dirname(fname)
+    stem = os.path.splitext(os.path.basename(fname))[0]
+    return os.path.join(directory, f"{stem}_data.gpkg")
+
+
+def _same_gpkg_table(layer, gpkg_path: str, table: str) -> bool:
+
+
+
+
+
+
+    import os
+
+    try:
+        from qgis.core import QgsProviderRegistry
+
+        if layer.providerType() != "ogr":
+            return False
+        parts = QgsProviderRegistry.instance().decodeUri("ogr", layer.source())
+    except Exception:  # noqa: BLE001
+        return False
+    path = str(parts.get("path") or "")
+    if not path or os.path.normcase(os.path.abspath(path)) != os.path.normcase(os.path.abspath(gpkg_path)):
+        return False
+    name = str(parts.get("layerName") or "")
+    return bool(name) and name.casefold() == str(table or "").casefold()
+
+
+def _write_layer_to_gpkg(layer, gpkg_path: str, layer_name: str):
+
+
+
+
+
+
+
+
+    import os
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.layerName = layer_name
+    options.fileEncoding = "UTF-8"
+    if os.path.exists(gpkg_path):
+        options.actionOnExistingFile = enum_member(
+            QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
+
+    result = QgsVectorFileWriter.writeAsVectorFormatV3(
+        layer, gpkg_path, QgsProject.instance().transformContext(), options
+    )
+    error_code = result[0]
+    if error_code != enum_member(QgsVectorFileWriter, "WriterError", "NoError"):
+        error_msg = result[1] if len(result) > 1 else str(error_code)
+        return None, f"GeoPackage write failed: {error_msg}"
+
+    new_layer = QgsVectorLayer(f"{gpkg_path}|layername={layer_name}", layer_name, "ogr")
+    if not new_layer.isValid():
+        return None, f"Wrote GeoPackage but could not reopen layer '{layer_name}' from {gpkg_path}"
+    return new_layer, None
+
+
+def _create_memory_layer(args: dict) -> dict:
+    geom_type = args["geometry_type"]
+    crs = args.get("crs", "EPSG:4326")
+    name = str(args["name"]).strip()
+    if not name:
+        return {"_error": "Layer name cannot be empty.", "_code": "INVALID_ARGS"}
+    fields_def = args.get("fields", [])
+    permanent = args.get("permanent", False)
+
+    problem = crs_problem(crs)
+    if problem:
+        return {"_error": problem, "_code": "INVALID_ARGS",
+                "_suggestion": "Pass the CRS on its own, for example EPSG:4326."}
+    uri = f"{geom_type}?crs={crs}"
+    field_specs = []
+    seen_fields = set()
+    for field in fields_def:
+        field_name = str(field["name"]).strip()
+        folded = field_name.casefold()
+        if not field_name:
+            return {"_error": "Field names cannot be empty.", "_code": "INVALID_ARGS"}
+        if folded in seen_fields:
+            return {"_error": f"Duplicate field name: {field_name}", "_code": "INVALID_ARGS"}
+        seen_fields.add(folded)
+        type_map = {"string": "String", "integer": "LongLong", "double": "Double", "date": "Date"}
+        field_specs.append(QgsField(field_name, field_type(type_map[field["type"]])))
+
+    layer = QgsVectorLayer(uri, name, "memory")
+    if not layer.isValid():
+        return {"_error": "Failed to create memory layer"}
+    if field_specs:
+        provider = layer.dataProvider()
+        if not provider.addAttributes(field_specs):
+            return {"_error": "Failed to add fields to the memory layer"}
+        layer.updateFields()
+
+    if not permanent:
+        QgsProject.instance().addMapLayer(layer)
+        return {
+            "name": layer.name(), "layer_id": layer.id(), "crs": crs,
+            "geometry_type": geom_type, "storage": "memory",
+        }
+
+    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
+    if not gpkg_path:
+        return {
+            "_error": "Project is unsaved, pass gpkg_path explicitly for a permanent layer, or save the project first."
+        }
+
+    path_error = validate_path(gpkg_path, write=True)
+    if path_error:
+        return {"_error": path_error}
+
+    output_paths.make_exports_folder(gpkg_path)
+    new_layer, error = _write_layer_to_gpkg(layer, gpkg_path, name)
+    if error:
+        return {"_error": error}
+
+    QgsProject.instance().addMapLayer(new_layer)
+    return {
+        "name": new_layer.name(), "layer_id": new_layer.id(), "crs": crs,
+        "geometry_type": geom_type, "storage": "gpkg", "gpkg_path": gpkg_path,
+    }
+
+
+def _save_layer_to_gpkg(args: dict) -> dict:
+    layer, note = _find_layer_note(args["layer"])
+    if not layer:
+        return _layer_not_found_error(args["layer"])
+    if not isinstance(layer, QgsVectorLayer):
+        return {"_error": f"Layer '{args['layer']}' is not a vector layer"}
+
+    keep_style = args.get("keep_style", True)
+    name = layer.name()
+    source = str(layer.source() or "")
+    if "/vsicurl/" in source and any(ext in source.lower() for ext in (".fgb", ".parquet", ".gpkg")):
+
+
+
+        return tool_error(
+            f"'{name}' streams a remote file in place; saving it copies the whole tile, not the area on the map, "
+            "and holds QGIS for minutes.",
+            "INVALID_ARGS",
+            'Fetch a local copy of the area first, with the same theme and bbox and mode "clip" (fetch_overture) '
+            "or a bbox on add_data, then save that layer.")
+    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
+    if not gpkg_path:
+        return {"_error": "Project is unsaved, pass gpkg_path explicitly, or save the project first."}
+
+    path_error = validate_path(gpkg_path, write=True)
+    if path_error:
+        return {"_error": path_error}
+
+    if _same_gpkg_table(layer, gpkg_path, name):
+        out = {"name": name, "layer_id": layer.id(), "storage": "gpkg", "gpkg_path": gpkg_path,
+               "already_saved": True,
+               "note": (f"'{name}' is already table {name!r} of {gpkg_path}: nothing was copied, the layer "
+                        "and its style stay as they are.")}
+        if layer.isEditable() and layer.isModified():
+            committed = layer.commitChanges(False)
+            out["edits_committed"] = bool(committed)
+            if not committed:
+                out["commit_errors"] = [str(line) for line in layer.commitErrors()][:5]
+        if note:
+            out["layer_note"] = note
+        return out
+
+    output_paths.make_exports_folder(gpkg_path)
+    new_layer, error = _write_layer_to_gpkg(layer, gpkg_path, name)
+    if error:
+        return {"_error": error}
+
+
+
+    style_ok = False
+    style_error = ""
+    if keep_style:
+        try:
+            new_layer.setRenderer(layer.renderer().clone())
+            style_ok = True
+        except Exception as exc:  # noqa: BLE001
+            style_error = str(exc)
+
+
+
+    project = QgsProject.instance()
+    root = project.layerTreeRoot()
+    old_node = root.findLayer(layer.id())
+    parent = old_node.parent() if old_node else root
+    index = parent.children().index(old_node) if old_node else -1
+
+
+    was_checked = old_node.itemVisibilityChecked() if old_node else True
+    try:
+        was_active = iface.activeLayer() is layer
+    except Exception:  # noqa: BLE001
+        was_active = False
+
+
+
+    layer_order.keep_place(new_layer)
+    project.addMapLayer(new_layer, False)
+    if index >= 0:
+        parent.insertLayer(index, new_layer)
+    else:
+        root.addLayer(new_layer)
+    new_node = root.findLayer(new_layer.id())
+    if new_node is not None:
+        new_node.setItemVisibilityChecked(was_checked)
+
+    old_id = layer.id()
+    project.removeMapLayer(old_id)
+    if was_active:
+        try:
+            iface.setActiveLayer(new_layer)
+        except Exception:  # nosec B110
+            pass
+
+    out = {
+        "name": new_layer.name(),
+        "layer_id": new_layer.id(),
+        "replaced_layer_id": old_id,
+        "storage": "gpkg",
+        "gpkg_path": gpkg_path,
+        "kept_style": style_ok,
+    }
+    if keep_style and not style_ok:
+        out["style_warning"] = (f"The data was saved but the style could not be copied: "
+                                f"{style_error or 'the layer has no renderer to clone'}. "
+                                f"Restyle the saved layer if it matters.")
+    if note:
+        out["note"] = note
+    return out
+
+
+def _get_layer_tree(args: dict) -> dict:
+    from ..core.context import layer_kind
+
+    root = QgsProject.instance().layerTreeRoot()
+
+    def _tree_node(node):
+        if isinstance(node, QgsLayerTreeGroup):
+            children = [_tree_node(child) for child in node.children()]
+            return {"type": "group", "name": node.name(), "visible": node.isVisible(), "children": children}
+        if isinstance(node, QgsLayerTreeLayer):
+            layer = node.layer()
+            return {
+                "type": "layer",
+                "name": layer.name() if layer else "(invalid)",
+                "visible": node.isVisible(),
+                "layer_type": layer_kind(layer) if layer else "unknown",
+            }
+        return {"type": "unknown"}
+
+    children = [_tree_node(child) for child in root.children()]
+    return {"tree": children}
+
+
+def _create_layer_group(args: dict) -> dict:
+    name = args["name"]
+    parent_name = args.get("parent_group")
+    root = QgsProject.instance().layerTreeRoot()
+
+    if parent_name:
+        container = _find_group(root, parent_name)
+        if container is None:
+            return _group_not_found(root, parent_name)
+    else:
+        container = root
+
+
+    for child in container.children():
+        if isinstance(child, QgsLayerTreeGroup) and child.name() == name:
+            return {"created": name, "existed": True}
+
+    container.addGroup(name)
+    return {"created": name, "existed": False}
+
+
+def _group_names(root) -> list[str]:
+
+    out: list[str] = []
+
+    def walk(node):
+        for child in node.children():
+            if isinstance(child, QgsLayerTreeGroup):
+                out.append(child.name())
+                walk(child)
+
+    walk(root)
+    return out
+
+
+def _find_group(root, name: str):
+
+
+
+
+
+
+    wanted = str(name or "").strip()
+    if not wanted:
+        return None
+    group = root.findGroup(wanted)
+    if group is not None:
+        return group
+    names = _group_names(root)
+    matched, _stage = match_names(wanted, names)
+    if len(matched) != 1:
+        return None
+    return root.findGroup(matched[0])
+
+
+def _group_not_found(root, name: str) -> dict:
+
+    names = _group_names(root)
+    message = f"Group not found: {name!r}."
+    if names:
+        close = closest_names(str(name or ""), names) or names[:6]
+        message += " Groups in this project: " + ", ".join(repr(item) for item in close) + "."
+        advice = "Pass one of those group names, or create_layer_group first."
+    else:
+        message += " The project has no group."
+        advice = "Call create_layer_group first, then move the layer into it."
+    return tool_error(message, "INVALID_ARGS", advice)
+
+
+def _move_layer_to_group(args: dict) -> dict:
+    layer, note = _find_layer_note(args["layer_name"])
+    if not layer:
+        return _layer_not_found_error(args["layer_name"])
+
+    root = QgsProject.instance().layerTreeRoot()
+    wanted = str(args.get("group_name") or "").strip()
+    created = False
+    group = _find_group(root, wanted)
+    if group is None:
+
+
+
+
+        if not wanted or match_names(wanted, _group_names(root))[0]:
+            return _group_not_found(root, wanted)
+        group = root.insertGroup(0, wanted)
+        created = True
+
+    node = root.findLayer(layer.id())
+    if node is None:
+
+
+
+        group.insertChildNode(0, QgsLayerTreeLayer(layer))
+    else:
+        clone = node.clone()
+        group.insertChildNode(0, clone)
+        node.parent().removeChildNode(node)
+
+    out = {"moved": layer.name(), "layer_id": layer.id(), "to_group": group.name()}
+    if created:
+        out["group_created"] = True
+    if node is None:
+        out["added_to_tree"] = True
+    if note:
+        out["note"] = note
+    return out
+
+
+
+
+
+
+
+_CRS_AUTHORITIES = ("EPSG", "ESRI", "IGNF")
+
+
+def _resolve_crs(text) -> tuple:
+
+
+    given = str(text or "").strip()
+    crs = QgsCoordinateReferenceSystem(given)
+    if crs.isValid() or not given:
+        return crs, given
+    _, _, number = given.rpartition(":")
+    number = number.strip()
+    if not number.isdigit():
+        return crs, given
+    for authority in _CRS_AUTHORITIES:
+        candidate = QgsCoordinateReferenceSystem(f"{authority}:{number}")
+        if candidate.isValid():
+            return candidate, f"{authority}:{number}"
+    return crs, given
+
+
+def _zone_prefixed_easting(crs, x) -> tuple | None:
+
+
+
+
+
+
+
+
+    import re
+
+    match = re.search(r"zone\s*(\d+)", str(crs.description() or ""), re.IGNORECASE)
+    if not match:
+        return None
+    zone = match.group(1)
+    try:
+        digits = str(int(abs(float(x))))
+    except (TypeError, ValueError):
+        return None
+    if not digits.startswith(zone) or len(digits) <= len(zone):
+        return None
+    stripped = float(digits[len(zone):])
+
+    if not 100_000.0 <= stripped <= 900_000.0:
+        return None
+    return stripped, int(zone)
+
+
+def _transform_coordinates(args: dict) -> dict:
+    source, source_used = _resolve_crs(args["source_crs"])
+    target, target_used = _resolve_crs(args["target_crs"])
+
+    if not source.isValid():
+        return {"_error": f"Invalid source CRS: {args['source_crs']}"}
+    if not target.isValid():
+        return {"_error": f"Invalid target CRS: {args['target_crs']}"}
+
+    def _outside(detail: str) -> dict:
+        prefixed = _zone_prefixed_easting(source, args["x"])
+        if prefixed:
+            stripped, zone = prefixed
+            return tool_error(
+                detail, "INVALID_ARGS",
+                f"x {args['x']} carries the zone number in front, as German and Gauss-Kruger data write it: "
+                f"in {source_used} ({source.description()}) that easting is {stripped:,.0f}. Call again with "
+                f"x={stripped:.0f}, and take the leading {zone} off every other easting from the same source.")
+        return tool_error(detail, "INVALID_ARGS",
+                          f"Check that ({args['x']}, {args['y']}) really is in {source_used}: an easting and a "
+                          "northing the wrong way round, or degrees given to a projected CRS, land outside it.")
+
+    coords = args.get("coordinates")
+    if coords is not None:
+        if not isinstance(coords, list) or not coords:
+            return {"_error": "coordinates must be a non-empty array of [x, y] pairs.", "code": "INVALID_ARGS"}
+        try:
+            points = [QgsPointXY(float(pair[0]), float(pair[1])) for pair in coords]
+        except (TypeError, ValueError, IndexError):
+            return {"_error": "Each coordinate must be a numeric [x, y] pair.", "code": "INVALID_ARGS"}
+        try:
+            transform = QgsCoordinateTransform(source, target, QgsProject.instance())
+            converted = [transform.transform(point) for point in points]
+        except Exception as e:
+            return _outside(f"Coordinate transform failed: {e}")
+        if not all(math.isfinite(point.x()) and math.isfinite(point.y()) for point in converted):
+            return _outside("The batch transform produced a coordinate outside the operation domain.")
+        return {"coordinates": [[point.x(), point.y()] for point in converted],
+                "count": len(converted), "crs": target_used}
+
+    if args.get("x") is None or args.get("y") is None:
+        return {"_error": "Pass either x and y, or a non-empty coordinates array.", "code": "INVALID_ARGS"}
+
+    try:
+        transform = QgsCoordinateTransform(source, target, QgsProject.instance())
+        point = transform.transform(QgsPointXY(args["x"], args["y"]))
+    except Exception as e:
+        return _outside(f"Coordinate transform failed: {e}")
+
+    x, y = point.x(), point.y()
+
+
+
+    if not (math.isfinite(x) and math.isfinite(y)):
+        return _outside(f"The transform from {source_used} to {target_used} produced no usable coordinate "
+                        f"for ({args['x']}, {args['y']}): the point is outside the area that operation covers.")
+    out = {"x": x, "y": y, "crs": target_used}
+    if source_used != str(args["source_crs"]).strip() or target_used != str(args["target_crs"]).strip():
+        out["note"] = (f"Read {args['source_crs']} as {source_used} and {args['target_crs']} as {target_used}: "
+                       "that code belongs to another authority. Use those spellings from here on.")
+    return out
+
+
+def _get_canvas_extent(args: dict) -> dict:
+    canvas = iface.mapCanvas()
+    extent = canvas.extent()
+    return {
+        "xmin": extent.xMinimum(),
+        "ymin": extent.yMinimum(),
+        "xmax": extent.xMaximum(),
+        "ymax": extent.yMaximum(),
+        "scale": canvas.scale(),
+        "crs": canvas.mapSettings().destinationCrs().authid(),
+
+        "area_km2": view_area_km2(extent, canvas.mapSettings().destinationCrs(), QgsProject.instance()),
+    }
+
+
+def _set_canvas_extent(args: dict) -> dict:
+    canvas = iface.mapCanvas()
+    canvas_crs = canvas.mapSettings().destinationCrs()
+    xmin, ymin, xmax, ymax = args["xmin"], args["ymin"], args["xmax"], args["ymax"]
+
+
+
+
+
+
+
+
+
+
+    source = args.get("crs")
+    if source:
+        source_crs = QgsCoordinateReferenceSystem(str(source))
+        if not source_crs.isValid():
+            return {"_error": f"Invalid CRS: {source}"}
+        if source_crs != canvas_crs:
+            try:
+                transform = QgsCoordinateTransform(source_crs, canvas_crs, QgsProject.instance())
+                box = transform.transformBoundingBox(QgsRectangle(xmin, ymin, xmax, ymax))
+            except Exception as exc:  # noqa: BLE001
+                return {"_error": f"Cannot transform the extent from {source_crs.authid()} to "
+                                  f"{canvas_crs.authid()}: {exc}"}
+            if box.isEmpty():
+                return {"_error": f"The extent is empty once transformed from {source_crs.authid()} "
+                                  f"to {canvas_crs.authid()}. Check the coordinate order (x is "
+                                  f"longitude or easting)."}
+            xmin, ymin, xmax, ymax = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
+
+
+    assumed = None
+    assumed_note = None
+    if not source and canvas_crs.isGeographic():
+        if abs(xmin) > 180 or abs(xmax) > 180 or abs(ymin) > 90 or abs(ymax) > 90:
+
+
+
+
+
+
+
+
+            if max(abs(xmin), abs(xmax), abs(ymin), abs(ymax)) > _WEB_MERCATOR_MAX:
+                return {
+                    "_error": f"Coordinates look like meters but canvas CRS is {canvas_crs.authid()} (degrees), "
+                    f"and they fall outside the Web Mercator world too. Pass crs= with the CRS they "
+                    f"are measured in, or transform them first."
+                }
+            assumed_source = QgsCoordinateReferenceSystem("EPSG:3857")
+            try:
+                transform = QgsCoordinateTransform(assumed_source, canvas_crs, QgsProject.instance())
+                box = transform.transformBoundingBox(QgsRectangle(xmin, ymin, xmax, ymax))
+            except Exception as exc:  # noqa: BLE001
+                return {"_error": f"Coordinates look like meters but canvas CRS is {canvas_crs.authid()} "
+                                  f"(degrees), and reading them as EPSG:3857 failed: {exc}"}
+            if box.isEmpty():
+                return {"_error": f"Coordinates look like meters but canvas CRS is {canvas_crs.authid()} "
+                                  f"(degrees), and read as EPSG:3857 they give an empty extent. Check "
+                                  f"the coordinate order (x is easting)."}
+            xmin, ymin, xmax, ymax = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
+            assumed = "EPSG:3857"
+            assumed_note = (f"No crs was given and the numbers cannot be degrees, so they were read as "
+                            f"EPSG:3857 metres and transformed to {canvas_crs.authid()}. Pass crs= to say "
+                            f"so outright.")
+    elif not source and not canvas_crs.isGeographic():
+        if abs(xmax) < 180 and abs(ymax) < 90 and abs(xmin) < 180 and abs(ymin) < 90:
+            return {
+                "_error": f"Coordinates look like degrees (lat/lon) but canvas CRS is {canvas_crs.authid()} (meters). "
+                f"Pass crs='EPSG:4326' and these numbers again, and they will be transformed for you."
+            }
+
+    extent = QgsRectangle(xmin, ymin, xmax, ymax)
+    canvas.setExtent(extent)
+    canvas.refresh()
+    reprojected = hold_view(canvas, prefer=QgsCoordinateReferenceSystem(str(source)) if source else None)
+    if reprojected:
+        canvas_crs = canvas.mapSettings().destinationCrs()
+        extent = canvas.extent()
+    out = {"extent_set": True, "canvas_crs": canvas_crs.authid(), "scale": canvas.scale()}
+    if reprojected:
+        out["project_crs_changed"] = reprojected
+    if assumed:
+        out["assumed_crs"] = assumed
+        out["note"] = assumed_note
+
+
+
+
+
+    shown = extent
+    try:
+        shown = canvas.extent()
+    except Exception:  # noqa: BLE001
+        pass  # nosec B110
+    out.update(_extent_span(shown, canvas_crs))
+
+
+    try:
+        digits = 6 if canvas_crs.isGeographic() else 2
+        out["extent"] = {"xmin": round(shown.xMinimum(), digits), "ymin": round(shown.yMinimum(), digits),
+                         "xmax": round(shown.xMaximum(), digits), "ymax": round(shown.yMaximum(), digits)}
+    except Exception:  # noqa: BLE001
+        pass  # nosec B110
+    return out
+
+
+def _extent_span(box, crs) -> dict:
+
+    try:
+        width, height = box.width(), box.height()
+    except Exception:  # noqa: BLE001
+        return {}
+    if crs is not None and crs.isGeographic():
+
+
+        import math
+        middle = math.radians((box.yMinimum() + box.yMaximum()) / 2.0)
+        width = width * 111320.0 * max(0.0, math.cos(middle))
+        height = height * 111320.0
+    return {"width_m": round(width), "height_m": round(height),
+            "area_km2": round(width * height / 1e6, 2)}
+
+
+def _set_project_crs(args: dict) -> dict:
+    crs, used = _resolve_crs(args["crs"])
+    if not crs.isValid():
+        return tool_error(
+            f"Invalid CRS: {args['crs']}", "INVALID_ARGS",
+            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "IGNF:LAMB93. A code copied out of ArcGIS is usually an ESRI one.")
+    QgsProject.instance().setCrs(crs)
+    out = {"project_crs": used}
+    if used != str(args["crs"]).strip():
+        out["note"] = (f"{args['crs']} is not an EPSG code; {used} is the same system under the authority "
+                       f"that publishes it ({crs.description()}). Use {used} from here on.")
+    return out
+
+
+def _write_failure(project, path: str) -> str:
+
+
+
+
+
+
+
+    import os
+    import tempfile
+
+    try:
+        reason = (project.error() or "").strip()
+    except Exception:  # noqa: BLE001
+        reason = ""
+    folder = os.path.dirname(path) or "."
+    if not os.path.isdir(folder):
+
+
+        reason = f"no such folder: {folder}" + (f" ({reason})" if reason else "")
+    elif not reason:
+
+
+
+
+        try:
+            handle, probe = tempfile.mkstemp(prefix=".qgis-write-", dir=folder)
+        except OSError as exc:
+            reason = f"folder is not writable: {folder} ({exc.strerror or exc})"
+        else:
+            os.close(handle)
+
+
+            remove_quietly(probe)
+            if os.path.exists(path) and not os.access(path, os.W_OK):
+                reason = "the file exists and is not writable"
+    return f"Failed to save project to {path}" + (f": {reason}" if reason else "")
+
+
+def _scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]]:
+
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsRasterLayer
+
+    def entry(layer) -> dict:
+        if not isinstance(layer, QgsVectorLayer):
+            if isinstance(layer, QgsRasterLayer):
+                return {"name": layer.name(), "layer_type": "raster"}
+            return {"name": layer.name()}
+        try:
+            count = layer.featureCount()
+        except Exception:  # noqa: BLE001
+            count = None
+        return {"name": layer.name(), "feature_count": count}
+
+    memory_layers, temporary_layers = scratch_layers(project)
+    return [entry(layer) for layer in memory_layers], [entry(layer) for layer in temporary_layers]
+
+
+def scratch_layers(project: QgsProject) -> tuple[list, list]:
+
+
+
+    from ..core import policy
+    from ._layers import _source_key
+
+
+    scratch_prefix = _source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"
+    memory_layers: list = []
+    temporary_layers: list = []
+    for layer in project.mapLayers().values():
+        if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory":
+            memory_layers.append(layer)
+        elif _source_key(str(layer.source() or "")).startswith(scratch_prefix):
+            temporary_layers.append(layer)
+    return memory_layers, temporary_layers
+
+
+def _new_project_path() -> str:
+
+
+
+
+
+
+
+
+    import os
+    from datetime import datetime
+
+    folder = output_paths.exports_folder()
+    title = str(QgsProject.instance().title() or "").strip()
+    stem = output_paths.safe_file_name(title or f"QGIS project {datetime.now():%Y-%m-%d}", "QGIS project")
+    path, number = os.path.join(folder, f"{stem}.qgz"), 2
+    while os.path.exists(path):
+        path, number = os.path.join(folder, f"{stem}_{number}.qgz"), number + 1
+    os.makedirs(folder, exist_ok=True)
+    return path
+
+
+def _save_project(args: dict) -> dict:
+    from ..core.security import validate_path
+    project = QgsProject.instance()
+    path = args.get("path")
+    chosen = ""
+    if path:
+        path_error = validate_path(path, write=True)
+        if path_error:
+            return {"_error": path_error}
+        output_paths.make_exports_folder(path)
+        ok = project.write(path)
+    elif not project.fileName():
+        chosen = _new_project_path()
+        path_error = validate_path(chosen, write=True)
+        if path_error:
+            return {"_error": path_error}
+        ok = project.write(chosen)
+    else:
+        path_error = validate_path(project.fileName(), write=True)
+        if path_error:
+            return {"_error": path_error}
+        ok = project.write()
+
+    if not ok:
+        return {"_error": _write_failure(project, path or chosen or project.fileName())}
+
+    result: dict = {"saved": project.fileName() or path or chosen}
+    if chosen:
+        result["path_chosen"] = chosen
+        result["note"] = (f"This project had never been saved and the call named no path, so it was written to "
+                          f"{chosen}. Tell the user where it is; save_project with a path moves it elsewhere.")
+    memory_layers, temporary_layers = _scratch_layers_summary(project)
+    if memory_layers:
+        result["memory_layers"] = memory_layers
+    if temporary_layers:
+        result["temporary_layers"] = temporary_layers
+
+    return result
+
+
+
+
+
+
+
+_FOREIGN_PROJECTS = {
+    ".ppkx": "an ArcGIS Pro project package",
+    ".aprx": "an ArcGIS Pro project",
+    ".mxd": "an ArcMap document",
+    ".mpkx": "an ArcGIS Pro map package",
+    ".mpk": "an ArcMap map package",
+    ".lpkx": "an ArcGIS Pro layer package",
+    ".lpk": "an ArcMap layer package",
+    ".qpt": "a QGIS print layout template, not a project",
+}
+
+
+def _load_project(args: dict) -> dict:
+    import os
+
+    from ..core.security import validate_path
+    path = args["path"]
+    path_error = validate_path(path, write=False)
+    if path_error:
+        return {"_error": path_error}
+    if not os.path.exists(path):
+        return {"_error": f"File not found: {path}"}
+    foreign = _FOREIGN_PROJECTS.get(os.path.splitext(path)[1].lower())
+    if foreign:
+        return tool_error(
+            f"{path} is {foreign}; QGIS opens .qgz and .qgs projects only. Nothing was read.",
+            "INVALID_ARGS",
+            "Ask the user for the .qgz or .qgs file. The data inside such a package is not reachable "
+            "from here; a shapefile or GeoPackage extracted from it can be added with add_data.")
+
+    project = QgsProject.instance()
+
+
+
+    from qgis.core import QgsSettings
+    settings = QgsSettings()
+    previous = settings.value("qgis/enableMacros", None)
+    settings.setValue("qgis/enableMacros", 0)
+    try:
+        ok = project.read(path)
+    finally:
+        if previous is None:
+            settings.remove("qgis/enableMacros")
+        else:
+            settings.setValue("qgis/enableMacros", previous)
+    if not ok:
+        return {"_error": f"Failed to load project: {path}"}
+    result = {"loaded": path, "layer_count": len(project.mapLayers())}
+    macro, has_macro = project.readEntry("Macros", "/pythonCode", "")
+    if has_macro and str(macro).strip():
+        result["note"] = "This project carries Python macros. They did not run; the user can enable them in QGIS."
+    return result
+
+
+def _create_new_project(args: dict) -> dict:
+    from ..core.security import validate_path
+    project = QgsProject.instance()
+
+
+
+    crs_obj, crs = _resolve_crs(args.get("crs", "EPSG:4326"))
+    if not crs_obj.isValid():
+        return tool_error(
+            f"Invalid CRS: {args.get('crs')}", "INVALID_ARGS",
+            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "IGNF:LAMB93. Nothing was cleared; the project is as it was.")
+
+    path = args.get("path")
+    if path:
+        path_error = validate_path(path, write=True)
+        if path_error:
+            return {"_error": path_error}
+
+    project.clear()
+    project.setCrs(crs_obj)
+
+    if path:
+        output_paths.make_exports_folder(path)
+        if not project.write(path):
+            return {"_error": _write_failure(project, path)}
+        return {"created": path, "crs": crs}
+    return {"created": "(unsaved)", "crs": crs}
