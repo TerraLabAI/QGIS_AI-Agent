@@ -1,0 +1,1280 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+
+
+
+
+
+
+
+
+from __future__ import annotations
+
+import math
+import os
+import re
+import shutil
+
+from qgis.core import (
+    QgsApplication,
+    QgsMapLayer,
+    QgsProcessingAlgorithm,
+    QgsProcessingException,
+    QgsProcessingFeedback,
+    QgsProject,
+    QgsRasterLayer,
+    QgsRasterRange,
+    QgsReferencedRectangle,
+    QgsVectorLayer,
+)
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
+
+from ..core.host_platform import remove_quietly
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._compat import is_raster
+from .data_tools import _avoid_reserved_name
+from .harvest_analysis import _expand, _field_error, _raster, _units, _vector
+from .postconditions import compute_checks
+from .processing_guards import _nodata_sentinel, fitting_pixel_size
+
+ZONAL_STATS = {
+    0: "count", 1: "sum", 2: "mean", 3: "median", 4: "stdev", 5: "min",
+    6: "max", 7: "range", 8: "minority", 9: "majority", 10: "variety", 11: "variance",
+}
+JOIN_PREDICATES = {0: "intersects", 1: "contains", 2: "equals", 3: "touches", 4: "overlaps", 5: "within", 6: "crosses"}
+JOIN_METHODS = {0: "one-to-many", 1: "first match", 2: "largest overlap"}
+
+
+_RASTER_CALC_ERRORS = {
+    1: "could not create the output file",
+    2: "an input layer is invalid",
+    3: "cancelled",
+    4: "the expression does not parse",
+    5: "out of memory",
+    6: "a band number is out of range",
+    7: "the calculation failed",
+}
+
+
+def register_harvest_processing_tools(registry: ToolRegistry):
+    registry.register(Tool(
+        name="zonal_statistics",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Zonal statistics of {raster_layer} in {polygon_layer}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "polygon_layer": {"type": "string"},
+                "raster_layer": {"type": "string"},
+                "band": {"type": "integer", "minimum": 1},
+                "nodata": {
+                    "type": "number",
+                },
+                "prefix": {"type": "string"},
+                "stats": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "maxItems": 20,
+                },
+                "output_path": {
+                    "type": "string",
+                },
+                "name": {"type": "string"},
+                "overwrite": {"type": "boolean"},
+            },
+            "required": ["polygon_layer", "raster_layer"],
+        },
+        handler=_zonal_statistics,
+    ))
+
+    registry.register(Tool(
+        name="spatial_join",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Join {join_layer} onto {target_layer}"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "target_layer": {"type": "string"},
+                "join_layer": {"type": "string"},
+                "predicates": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "maxItems": 20,
+                },
+                "join_fields": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 1000,
+                },
+                "method": {
+                    "oneOf": [
+                        {"type": "integer"},
+                        {"type": "string", "enum": ["one_to_many", "first_match", "largest_overlap"]},
+                    ],
+                },
+                "prefix": {"type": "string"},
+                "output_path": {"type": "string"},
+                "name": {"type": "string"},
+                "overwrite": {"type": "boolean"},
+            },
+            "required": ["target_layer", "join_layer"],
+        },
+        handler=_spatial_join,
+    ))
+
+    registry.register(Tool(
+        name="raster_calculator",
+        danger="write",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Raster calculation[ as {name}]"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "description": {"type": "string", "maxLength": 80},
+                "expression": {
+                    "type": "string",
+                },
+                "output_path": {"type": "string"},
+                "reference_layer": {
+                    "type": "string",
+                },
+                "bbox": {
+                    "type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
+                },
+                "name": {"type": "string"},
+                "overwrite": {"type": "boolean"},
+            },
+            "required": ["expression", "output_path"],
+        },
+        handler=_raster_calculator,
+    ))
+
+    registry.register(Tool(
+        name="find_processing_algorithm",
+        danger="read",
+        label=QT_TRANSLATE_NOOP("AIAgent", "Search the processing tools[ for {query}]"),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "keywords": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "provider": {
+                    "type": "string",
+                },
+                "limit": {"type": "integer", "minimum": 1, "maximum": 5000},
+
+
+
+
+                "refresh": {"type": "boolean"},
+            },
+            "required": ["query"],
+        },
+        handler=_find_processing_algorithm,
+    ))
+
+
+
+
+
+def _run_alg(alg_id: str, params: dict):
+    import processing
+
+    if QgsApplication.processingRegistry().algorithmById(alg_id) is None:
+        return None, tool_error(
+            f"Algorithm not found: {alg_id}",
+            "INVALID_ARGS",
+            "find_processing_algorithm gives the right id from a description of the task.",
+        )
+    feedback = QgsProcessingFeedback()
+    try:
+        result = processing.run(alg_id, params, feedback=feedback)
+    except Exception as e:
+        return None, tool_error(
+            f"{alg_id} failed: {e}",
+            "PROCESSING_FAILED",
+            "get_layer_crs gives the layer CRS; get_algorithm_help gives the parameters.",
+        )
+    return result, None
+
+
+def _run_or_defer(alg_id: str, params: dict, output_name: str):
+
+
+
+
+
+
+
+
+
+
+
+
+
+    from .processing_run import _heavy_inputs, _start_async_processing
+
+    if _heavy_inputs(params):
+        alg = QgsApplication.processingRegistry().algorithmById(alg_id)
+        if alg is not None:
+            return None, None, _start_async_processing(alg, alg_id, params, output_name,
+                                                       destination_paths=_new_file(params.get("OUTPUT")))
+    result, error = _run_alg(alg_id, params)
+    return result, error, None
+
+
+def _new_file(target) -> list:
+
+
+
+
+    if not isinstance(target, str) or not target or target.startswith("memory:") or os.path.exists(target):
+        return []
+    return [target]
+
+
+def _register_output(out, name: str) -> dict:
+
+    layer = None
+    if isinstance(out, QgsMapLayer):
+        layer = out
+        layer.setName(name)
+    elif isinstance(out, str) and os.path.exists(out):
+        layer = QgsVectorLayer(out, name, "ogr")
+        if not layer.isValid():
+            layer = QgsRasterLayer(out, name)
+    if layer is None or not layer.isValid():
+        return {"output": out if isinstance(out, str) else str(out), "added_to_project": False}
+    from ._layers import take_layer_name
+
+    final_name, renamed = take_layer_name(name, keep_id=layer.id())
+    layer.setName(final_name)
+    QgsProject.instance().addMapLayer(layer)
+    info = {
+        "layer_id": layer.id(),
+        "name": layer.name(),
+        "crs": layer.crs().authid(),
+        "units": _units(layer.crs()),
+        "added_to_project": True,
+    }
+    if renamed:
+        info["renamed_intermediates"] = renamed
+    if isinstance(layer, QgsVectorLayer):
+        info["feature_count"] = layer.featureCount()
+        info["fields"] = [f.name() for f in layer.fields()]
+    if isinstance(out, str):
+        info["path"] = out
+    return info
+
+
+_TEMPORARY_SPELLINGS = frozenset({"temporary_output", "temporary", "temp", "memory", "memory:"})
+
+
+def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
+
+
+
+    text = str(output_path or "").strip()
+    if not text or text.lower() in _TEMPORARY_SPELLINGS or text.lower().startswith("memory:"):
+        return f"memory:{memory_name}"
+    from ..core import output_paths
+
+    path = _expand(output_paths.resolve(text)[0])
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    if os.path.isfile(path):
+
+
+
+
+
+        from .layer_io_tools import _release_layers_at_path, _same_file
+
+        sources = [(layer.source() or "").split("|", 1)[0] for layer in inputs if layer is not None]
+        if not any(source and _same_file(source, path) for source in sources):
+            _release_layers_at_path(path, skip_ids={layer.id() for layer in inputs if layer is not None},
+                                    delete_existing=True)
+    return path
+
+
+
+
+
+def _zonal_statistics(args: dict) -> dict:
+    poly, error = _vector(args["polygon_layer"])
+    if error:
+        return error
+    rast, error = _raster(args["raster_layer"])
+    if error:
+        return error
+    band = int(args.get("band") or 1)
+    if not 1 <= band <= rast.bandCount():
+        return tool_error(
+            f"band={band} is out of range: {rast.name()!r} has {rast.bandCount()} band(s).",
+            "INVALID_ARGS",
+            f"band is between 1 and {rast.bandCount()}.",
+        )
+    stats = [int(s) for s in (args.get("stats") or [0, 1, 2])]
+    bad = [s for s in stats if s not in ZONAL_STATS]
+    if bad:
+        return tool_error(
+            f"Unknown stat code(s): {bad}.",
+            "INVALID_ARGS",
+            "codes are 0-11: " + ", ".join(f"{k}={v}" for k, v in ZONAL_STATS.items()) + ".",
+        )
+
+
+    provider = rast.dataProvider()
+    declared = provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)
+    declared = declared or bool(provider.userNoDataValues(band))
+    values_raster = rast
+    nodata = args.get("nodata")
+    if nodata is not None:
+        try:
+            nodata = float(nodata)
+        except (TypeError, ValueError):
+            return tool_error(f"nodata={args.get('nodata')!r} is not a number.", "INVALID_ARGS",
+                              "nodata marks missing data, e.g. -9999.")
+
+
+        values_raster = rast.clone()
+        values_raster.dataProvider().setUserNoDataValue(band, [QgsRasterRange(nodata, nodata)])
+    elif not declared:
+        sentinel = _nodata_sentinel(rast, band)
+        if sentinel is not None:
+            return tool_error(
+                f"{rast.name()!r} band {band} declares no NoData, and its minimum is {sentinel:g}, the usual "
+                f"missing-data marker: a mean would count those cells as {sentinel:g}.",
+                "INVALID_ARGS",
+                f"nodata={sentinel:g} leaves them out; native:zonalstatisticsfb through run_processing with "
+                f"confirm_large true reads {sentinel:g} as real.",
+            )
+
+
+    prefix = args.get("prefix") or "_"
+    params = {
+        "INPUT": poly,
+        "INPUT_RASTER": values_raster,
+        "RASTER_BAND": band,
+        "COLUMN_PREFIX": prefix,
+        "STATISTICS": stats,
+        "OUTPUT": _output_target(args.get("output_path"), "zonal_stats", (poly, values_raster)),
+    }
+    name = args.get("name") or "zonal_stats"
+    result, error, deferred = _run_or_defer("native:zonalstatisticsfb", params, name)
+    if deferred is not None:
+        deferred["new_columns"] = [f"{prefix}{ZONAL_STATS[s]}" for s in stats]
+        deferred["raster_band"] = band
+        deferred["value_units"] = (f"raster band {band} values; the count statistic is the number of valid "
+                                   f"raster cells inside each zone, not a number of features")
+        return deferred
+    if error:
+        return error
+    out = _register_output(result.get("OUTPUT"), name)
+    out["stats"] = [ZONAL_STATS[s] for s in stats]
+    out["new_columns"] = [f"{prefix}{ZONAL_STATS[s]}" for s in stats]
+    out["raster_band"] = band
+    out["value_units"] = (f"raster band {band} values of {rast.name()!r}; the count statistic is the number "
+                          f"of valid raster cells inside each zone, not a number of features")
+    out["zone_count"] = out.get("feature_count")
+    return out
+
+
+def _discard_partial_raster(path: str) -> bool:
+
+
+
+
+
+
+    gone = False
+    for candidate in (path, f"{path}.aux.xml"):
+        if os.path.isfile(candidate) and remove_quietly(candidate):
+            gone = gone or candidate == path
+    return gone
+
+
+def _spatial_join(args: dict) -> dict:
+    target, error = _vector(args["target_layer"])
+    if error:
+        return error
+    join, error = _vector(args["join_layer"])
+    if error:
+        return error
+    predicates = [int(p) for p in (args.get("predicates") or [0])]
+    bad = [p for p in predicates if p not in JOIN_PREDICATES]
+    if bad:
+        return tool_error(
+            f"Unknown predicate code(s): {bad}.",
+            "INVALID_ARGS",
+            "codes are 0-6: " + ", ".join(f"{k}={v}" for k, v in JOIN_PREDICATES.items()) + ".",
+        )
+    raw_method = args.get("method", 1)
+    names = {"one_to_many": 0, "first_match": 1, "largest_overlap": 2}
+
+
+
+
+
+    try:
+        method = int(names.get(raw_method, raw_method))
+    except (TypeError, ValueError):
+        method = None
+    if method not in JOIN_METHODS:
+        return tool_error(
+            f"method {raw_method!r} is not one of {sorted(names)} or {sorted(JOIN_METHODS)}.",
+            "INVALID_ARGS",
+            "method is 'one_to_many' (0), 'first_match' (1) or 'largest_overlap' (2).")
+    join_fields = args.get("join_fields") or []
+    missing = [f for f in join_fields if join.fields().indexOf(f) < 0]
+    if missing:
+        return _field_error(join, missing[0])
+    note = None
+    if target.crs() != join.crs():
+        note = (
+            f"target CRS {target.crs().authid()} and join CRS {join.crs().authid()} differ; "
+            "QGIS reprojects on the fly for the predicate test"
+        )
+    params = {
+        "INPUT": target,
+        "JOIN": join,
+        "PREDICATE": predicates,
+        "JOIN_FIELDS": join_fields,
+        "METHOD": method,
+        "PREFIX": args.get("prefix", ""),
+        "OUTPUT": _output_target(args.get("output_path"), "joined", (target, join)),
+    }
+    name = args.get("name") or "joined"
+    result, error, deferred = _run_or_defer("native:joinattributesbylocation", params, name)
+    if deferred is not None:
+        deferred["predicates"] = [JOIN_PREDICATES[p] for p in predicates]
+        deferred["method"] = JOIN_METHODS[method]
+        if note:
+            deferred["crs_note"] = note
+        return deferred
+    if error:
+        return error
+    out = _register_output(result.get("OUTPUT"), name)
+    out["predicates"] = [JOIN_PREDICATES[p] for p in predicates]
+    out["method"] = JOIN_METHODS[method]
+    if "JOINED_COUNT" in result:
+        out["joined_count"] = result["JOINED_COUNT"]
+        out["count_units"] = "features"
+    if out.get("layer_id"):
+        checks = compute_checks("native:joinattributesbylocation", params,
+                                {"OUTPUT": out, "JOINED_COUNT": result.get("JOINED_COUNT")})
+        if checks:
+            out["checks"] = checks
+    if note:
+        out["crs_note"] = note
+    return out
+
+
+
+
+
+_REF_RE = re.compile(r'"([^"]+)@(\d+)"|([A-Za-z0-9_.\-]+)@(\d+)')
+
+
+
+
+
+
+_CALC_MAX_PIXELS = 60_000_000
+
+
+def _calc_window(grid, bbox):
+
+
+
+
+
+
+
+
+    from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle
+
+    full = grid.extent()
+    cols, rows = int(grid.width()), int(grid.height())
+    if cols <= 0 or rows <= 0:
+        return None
+    size_x, size_y = full.width() / cols, full.height() / rows
+    west, south, east, north = bbox
+    box = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), grid.crs(),
+                                 QgsProject.instance().transformContext()).transformBoundingBox(
+        QgsRectangle(west, south, east, north))
+    box = box.intersect(full)
+    if box.isEmpty() or box.width() <= 0 or box.height() <= 0:
+        return None
+    first_col = max(0, math.floor((box.xMinimum() - full.xMinimum()) / size_x + 1e-9))
+    last_col = min(cols, math.ceil((box.xMaximum() - full.xMinimum()) / size_x - 1e-9))
+    first_row = max(0, math.floor((full.yMaximum() - box.yMaximum()) / size_y + 1e-9))
+    last_row = min(rows, math.ceil((full.yMaximum() - box.yMinimum()) / size_y - 1e-9))
+    if last_col <= first_col or last_row <= first_row:
+        return None
+    window = QgsRectangle(full.xMinimum() + first_col * size_x, full.yMaximum() - last_row * size_y,
+                          full.xMinimum() + last_col * size_x, full.yMaximum() - first_row * size_y)
+    return window, last_col - first_col, last_row - first_row
+
+
+def _remote_input_too_large(referenced: list, refs: dict, pixels: int, grid=None, extent=None):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if pixels <= _CALC_MAX_PIXELS:
+        return None
+    remote = sorted({
+        refs[ref].name() for ref in referenced
+        if ref in refs and ("/vsicurl" in str(refs[ref].source() or "")
+                            or str(refs[ref].source() or "").startswith(("http://", "https://")))
+    })
+    if not remote:
+        return None
+    view = None
+    try:
+        from .stac_tools import _canvas_bbox_4326
+
+        canvas = None if extent is not None else _canvas_bbox_4326()
+        window = _calc_window(grid, canvas) if canvas else None
+        if window and window[1] * window[2] <= _CALC_MAX_PIXELS and window[1] * window[2] < pixels:
+            view = (canvas, window[1] * window[2])
+    except Exception:  # noqa: BLE001
+        view = None
+    size = 0.0
+    try:
+        box = extent if extent is not None else grid.extent()
+        size = fitting_pixel_size(box.width(), box.height(), _CALC_MAX_PIXELS)
+        units = "degrees" if grid.crs().isGeographic() else "map units"
+    except Exception:  # noqa: BLE001
+        units = ""
+    if view:
+        west, south, east, north = view[0]
+        advice = (f"bbox [{west:g}, {south:g}, {east:g}, {north:g}] is the map "
+                  f"view: {view[1] / 1e6:,.1f} million pixels at the file's own pixel size, read straight from "
+                  "where it is published; a named place's own box works too.")
+    else:
+        resample = (f"TARGET_RESOLUTION {size:g} ({units}; it reads the file's overviews)" if size > 0 else
+                    "a coarser TARGET_RESOLUTION (it reads the file's overviews)")
+        advice = (("a smaller bbox, or run_processing "
+                   f"gdal:warpreproject, {resample}, on each remote input first, then calculate on the copies.")
+                  if extent is not None else
+                  ("bbox, the area asked about, computes it at the file's own pixel size. For "
+                   f"the whole grid, run_processing gdal:warpreproject, "
+                   f"{resample}, on each remote input first, then calculate on the copies."))
+    return tool_error(
+        f"{', '.join(remote)} is read over HTTP where it is published, and this calculation covers "
+        f"{pixels / 1e6:,.0f} million pixels; every block would be fetched across the network, which takes "
+        f"minutes whichever thread it runs on.",
+        "INVALID_ARGS",
+        advice)
+
+
+def _disk_room_for(directory: str, pixels: int):
+
+
+
+
+
+
+    needed = pixels * 4
+    try:
+        free = shutil.disk_usage(directory or ".").free
+    except OSError:  # nosec B110
+        return None
+    if free >= needed * 1.1:
+        return None
+    return tool_error(
+        f"The result would be {needed / 1e6:,.0f} MB (Float32 over {pixels / 1e6:,.0f} million pixels) and the "
+        f"drive holding the output folder has {free / 1e6:,.0f} MB free.",
+        "INVALID_ARGS",
+        "bbox, the study area, computes only that part; output_path can point to a drive with room.")
+
+
+def _band_references(rasters: list, entry_class):
+
+
+
+
+
+
+
+
+    owners: dict = {}
+    entries = []
+    for layer in rasters:
+        for number in range(1, layer.bandCount() + 1):
+            text = f"{layer.name()}@{number}"
+            owners.setdefault(text, []).append(layer)
+            entry = entry_class()
+            entry.ref, entry.raster, entry.bandNumber = text, layer, number
+            entries.append(entry)
+    refs = {text: layers[-1] for text, layers in owners.items()}
+    ambiguous = {text: [layer.id() for layer in layers] for text, layers in owners.items() if len(layers) > 1}
+    return entries, refs, ambiguous
+
+
+class _RasterGridCalculator(QgsProcessingAlgorithm):
+
+
+
+
+
+
+
+    def __init__(self, template, cols: int, rows: int):
+        super().__init__()
+        self.template, self.cols, self.rows = template, cols, rows
+        self.layers = []
+
+    def name(self):
+        return "rastercalc_grid"
+
+    def displayName(self):
+        return self.template.displayName()
+
+    def group(self):
+        return self.template.group()
+
+    def groupId(self):
+        return self.template.groupId()
+
+    def createInstance(self):
+        return _RasterGridCalculator(self.template, self.cols, self.rows)
+
+    def initAlgorithm(self, config=None):
+        for parameter in self.template.parameterDefinitions():
+            if parameter.name() != "CELL_SIZE":
+                self.addParameter(parameter.clone())
+
+    def prepareAlgorithm(self, parameters, context, feedback):
+        try:
+            for layer in self.parameterAsLayerList(parameters, "LAYERS", context):
+                clone = layer.clone()
+                self.layers.append(clone)
+                clone.moveToThread(None)
+        except Exception as exc:
+
+
+            for clone in self.layers:
+                sip.delete(clone)
+            self.layers.clear()
+            raise QgsProcessingException(f"Could not prepare raster inputs: {exc}") from exc
+        if not self.layers:
+            feedback.reportError("No raster layers selected.")
+            return False
+        return True
+
+    def processAlgorithm(self, parameters, context, feedback):
+        from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
+        from qgis.PyQt.QtCore import QThread
+
+        calc = None
+        entries = []
+        try:
+            for layer in self.layers:
+                layer.moveToThread(QThread.currentThread())
+            crs = self.parameterAsCrs(parameters, "CRS", context)
+            extent = self.parameterAsExtent(parameters, "EXTENT", context, crs)
+            output = self.parameterAsOutputLayer(parameters, "OUTPUT", context)
+            expression = self.parameterAsString(parameters, "EXPRESSION", context)
+            entries, _, _ = _band_references(self.layers, QgsRasterCalculatorEntry)
+            calc = QgsRasterCalculator(expression, output, "GTiff", extent, crs, self.cols, self.rows,
+                                       entries, context.transformContext())
+            options = self.parameterAsString(parameters, "CREATION_OPTIONS", context).strip()
+            if options:
+                calc.setCreationOptions(options.split("|"))
+            code = int(calc.processCalculation(feedback))
+            if code:
+                detail = calc.lastError() or _RASTER_CALC_ERRORS.get(code, f"error code {code}")
+                raise QgsProcessingException(f"Raster calculation failed: {detail}.")
+            return {"OUTPUT": output}
+        finally:
+
+
+            calc = None
+            entries.clear()
+            for layer in self.layers:
+                sip.delete(layer)
+            self.layers.clear()
+
+
+def _raster_calculator(args: dict) -> dict:
+    from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
+
+    expression = str(args.get("expression") or "").strip()
+    if not expression:
+        return tool_error("expression is empty.", "INVALID_ARGS", 'band math, e.g. "dem@1" * 2.')
+    wanted_path = str(args.get("output_path") or "").strip()
+    temp_words = ("TEMPORARY_OUTPUT", "TEMP", "MEMORY")
+    if not wanted_path or wanted_path.upper() in temp_words or wanted_path.startswith("memory:"):
+
+
+        import tempfile
+
+
+
+        stem = re.sub(r"[^A-Za-z0-9_-]+", "_", str(args.get("name") or "calc")).strip("_") or "calc"
+        stem = _avoid_reserved_name(stem)
+        wanted_path = os.path.join(tempfile.mkdtemp(prefix="calc-"), f"{stem}.tif")
+    output_path = _expand(wanted_path)
+    project = QgsProject.instance()
+
+    rasters = [layer for layer in project.mapLayers().values() if is_raster(layer)]
+    entries, refs, ambiguous = _band_references(rasters, QgsRasterCalculatorEntry)
+    if not rasters:
+        return tool_error(
+            "No raster layers loaded to compute from.", "INVALID_ARGS", "add_data loads a raster."
+        )
+
+    referenced = []
+    for quoted_name, quoted_band, bare_name, bare_band in _REF_RE.findall(expression):
+        referenced.append(f"{quoted_name}@{quoted_band}" if quoted_name else f"{bare_name}@{bare_band}")
+
+
+
+
+
+
+
+
+    clashing = {ref: ids for ref, ids in ambiguous.items() if ref in referenced}
+    if clashing:
+        names = sorted({ref.rsplit("@", 1)[0] for ref in clashing})
+        return tool_error(
+            f"More than one loaded raster is named {', '.join(repr(n) for n in names)}, so a band "
+            f"reference cannot say which one to read.",
+            "INVALID_ARGS",
+            f"The layer ids involved are {sorted({i for ids in clashing.values() for i in ids})}.",
+        )
+    unknown = [r for r in referenced if r not in refs]
+    if unknown:
+        return tool_error(
+            f"Unknown raster reference(s): {unknown}.",
+            "INVALID_ARGS",
+            f'Available references: {sorted(refs)[:20]}; quote a name with spaces: "S2 B04 Red@1".',
+        )
+
+    if args.get("reference_layer"):
+        ref_layer, error = _raster(args["reference_layer"])
+        if error:
+            return error
+    elif referenced:
+        ref_layer = refs[referenced[0]]
+    else:
+        ref_layer = rasters[0]
+
+
+
+
+    from .processing_decisions import calculator_inputs_on_grid
+
+    warped = calculator_inputs_on_grid([refs[r] for r in dict.fromkeys(referenced)], ref_layer)
+
+
+    reprojected = sorted({refs[r].name() for r in referenced if refs[r].crs() != ref_layer.crs()})
+    reprojected_note = (
+        f"{', '.join(reprojected)} not in {ref_layer.crs().authid()}: resampled onto {ref_layer.name()}'s grid "
+        "(nearest neighbour). Continuous data needs warping first (gdal:warpreproject, bilinear)."
+    ) if reprojected else ""
+    if warped:
+        names = sorted(layer.name() for layer in rasters if layer.id() in warped)
+        reprojected_note = (reprojected_note + " " if reprojected_note else "") + (
+            f"Cells of {ref_layer.name()}'s grid that {', '.join(names)} "
+            f"{'does' if len(names) == 1 else 'do'} not cover are NoData in the result.")
+
+    directory = os.path.dirname(output_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    extent = ref_layer.extent()
+    cols, rows = ref_layer.width(), ref_layer.height()
+
+
+
+    windowed = args.get("bbox") not in (None, [], "")
+    if windowed:
+        from .stac_tools import _parse_bbox
+
+        bbox = _parse_bbox(args.get("bbox"))
+        if bbox is None:
+            return tool_error("That bbox is not a usable box.", "INVALID_ARGS",
+                              "[west, south, east, north] in EPSG:4326, west below east, south below north.")
+        window = _calc_window(ref_layer, bbox)
+        if window is None:
+            return tool_error(
+                f"The bbox {bbox} does not overlap {ref_layer.name()}.", "INVALID_ARGS",
+                "bbox must sit inside the reference layer (get_layer_info gives its extent); another scene "
+                "may cover this place.")
+        extent, cols, rows = window
+
+
+    from .processing_run import _ASYNC_PIXELS, _start_async_processing
+
+    pixels = cols * rows
+
+
+
+
+
+
+
+    if pixels > _ASYNC_PIXELS:
+        blocked = _remote_input_too_large(referenced, refs, pixels, ref_layer, extent if windowed else None)
+        if blocked:
+            return blocked
+        room = _disk_room_for(directory, pixels)
+        if room:
+            return room
+        alg = QgsApplication.processingRegistry().algorithmById("native:rastercalc")
+        if alg is not None:
+            alg = _RasterGridCalculator(alg, cols, rows)
+            alg.initAlgorithm()
+            crs = ref_layer.crs()
+            params = {
+                "LAYERS": [warped.get(layer.id(), layer.id()) for layer in rasters],
+                "EXPRESSION": expression,
+                "EXTENT": QgsReferencedRectangle(extent, crs),
+                "CRS": crs,
+                "OUTPUT": output_path,
+            }
+
+            name = args.get("name") or os.path.splitext(os.path.basename(output_path))[0]
+            started = _start_async_processing(alg, "rastercalc_grid", params, name,
+                                              destination_paths=_new_file(output_path))
+            started["note"] = (
+                f"{'The bbox window of ' if windowed else ''}{ref_layer.name()} is {cols:,} by {rows:,} pixels "
+                f"({pixels / 1e6:,.0f} million), too many for the interface thread, so the calculation runs in the "
+                "background with the reference grid; poll get_task_status. "
+                + ("That window" if windowed else "The whole grid")
+                + " is computed at full resolution, nothing is sampled, "
+                f"and the GeoTIFF is about {pixels * 4 / 1e6:,.0f} MB. It is running, not waiting silently, "
+                "and Stop cancels it.")
+            started["computed"] = {"width": cols, "height": rows, "pixels": pixels, "sampled": False}
+            if reprojected_note:
+                started["crs_note"] = reprojected_note
+            return started
+
+
+
+    if pixels > _CALC_MAX_PIXELS:
+        return tool_error(
+            f"This calculation is {cols:,} by {rows:,} pixels ({pixels / 1e6:,.0f} million); this QGIS has no "
+            f"native:rastercalc to run it in the background, and on the interface thread the cap is "
+            f"{_CALC_MAX_PIXELS / 1e6:,.0f} million.",
+            "INVALID_ARGS",
+            "bbox, the study area ([west, south, east, north] in EPSG:4326), computes only that part.")
+    replaced = []
+    if os.path.isfile(output_path):
+
+
+
+
+
+        from .layer_io_tools import _release_layers_at_path, _same_file
+
+        inputs = [refs[r] for r in dict.fromkeys(referenced)] + [ref_layer]
+        if not any(_same_file((layer.source() or "").split("|", 1)[0], output_path) for layer in inputs):
+
+
+            leaving = {layer.id() for layer in rasters
+                       if _same_file((layer.source() or "").split("|", 1)[0], output_path)}
+            entries = [entry for entry in entries if entry.raster.id() not in leaving]
+            replaced = _release_layers_at_path(output_path, delete_existing=True)
+
+
+
+    output_existed = os.path.isfile(output_path)
+
+
+
+    crs = ref_layer.crs()
+
+    warped_layers = {}
+    for entry in entries:
+        path = warped.get(entry.raster.id())
+        if path:
+            if path not in warped_layers:
+                warped_layers[path] = QgsRasterLayer(path, entry.raster.name(), "gdal")
+            if warped_layers[path].isValid():
+                entry.raster = warped_layers[path]
+    try:
+        calc = QgsRasterCalculator(
+            expression, output_path, "GTiff", extent, crs, cols, rows, entries, project.transformContext()
+        )
+    except TypeError:
+        try:
+            calc = QgsRasterCalculator(
+                expression, output_path, "GTiff", extent, cols, rows, entries, project.transformContext()
+            )
+        except TypeError:
+            calc = QgsRasterCalculator(expression, output_path, "GTiff", extent, cols, rows, entries)
+    code = int(calc.processCalculation())
+    if code != 0:
+        reason = _RASTER_CALC_ERRORS.get(code, f"error code {code}")
+        suggestion = "the expression or a band number is wrong."
+        if code == 4:
+
+
+
+            parser = str(getattr(calc, "lastError", lambda: "")() or "").strip()
+            if parser:
+                reason += f" ({parser})"
+            suggestion = (
+                'Bands are "Layer name@1", double-quoted. The calculator knows + - * / ^, '
+                "comparisons, AND, OR, abs, min, max, sqrt, ln, log10, sin, cos, tan, asin, acos, atan and "
+                "if(condition, then, else); a function outside that list does not parse."
+            )
+        elif code == 1:
+            suggestion = "output_path needs a writable folder and a .tif extension."
+        elif code == 5:
+
+
+            suggestion = (
+                "QGIS could not allocate memory for this grid. bbox, the study area, computes only "
+                "that part."
+            )
+
+
+
+        removed = False if output_existed else _discard_partial_raster(output_path)
+        if removed:
+            suggestion += " The partly written output was removed."
+        elif output_existed:
+            suggestion += (f" {os.path.basename(output_path)} was already there before this run and was left "
+                           f"alone; it may now hold the previous result or a partial write.")
+        return tool_error(f"Raster calculation failed: {reason}.", "RASTER_CALC_FAILED", suggestion)
+
+
+
+
+    from .processing_run import raster_file_problem
+
+    problem = raster_file_problem(output_path)
+    if problem:
+        free = ""
+        try:
+            free_mb = shutil.disk_usage(directory or ".").free / 1e6
+            free = f" The drive holding it has {free_mb:,.1f} MB free."
+        except OSError:  # nosec B110
+            pass
+        removed = False if output_existed else _discard_partial_raster(output_path)
+        suggestion = "output_path TEMPORARY_OUTPUT or a folder on another drive avoids it."
+        if removed:
+            suggestion += " The partial file was removed."
+        return tool_error(
+            f"The calculation wrote an incomplete file: GDAL cannot read {os.path.basename(output_path)} back "
+            f"({problem[:200]}). QGIS reports success when a write fails.{free}",
+            "RASTER_CALC_FAILED", suggestion)
+
+    name = args.get("name") or os.path.splitext(os.path.basename(output_path))[0]
+    layer = QgsRasterLayer(output_path, name)
+    if not layer.isValid():
+        return {"path": output_path, "reference_layer": ref_layer.name(), "added_to_project": False}
+    project.addMapLayer(layer)
+    out = {
+        "layer_id": layer.id(),
+        "name": layer.name(),
+        "path": output_path,
+        "reference_layer": ref_layer.name(),
+        "band_count": layer.bandCount(),
+        "width": layer.width(),
+        "height": layer.height(),
+        "size_units": "pixels",
+        "crs": layer.crs().authid(),
+        "units": _units(layer.crs()),
+        "extent": {
+            "xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
+            "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),
+        },
+        "added_to_project": True,
+    }
+    if reprojected_note:
+        out["crs_note"] = reprojected_note
+    if replaced:
+        out["replaced_layers"] = replaced
+    return out
+
+
+
+
+_algorithm_catalog_cache: dict = {"catalog": None}
+
+
+_STOPWORDS = frozenset([
+    "a", "all", "an", "and", "by", "create", "data", "each", "file", "for", "from", "in", "layer",
+    "layers", "make", "map", "my", "new", "of", "on", "or", "that", "the", "this", "to", "using",
+    "with",
+])
+
+
+
+
+
+_TASK_VOCABULARY = {
+
+    "merge": "merge union dissolve",
+    "combine": "union merge dissolve",
+    "join": "join union",
+    "intersect": "intersection clip overlay",
+    "erase": "difference erase",
+    "clip": "clip mask extract",
+    "crop": "clip mask",
+    "cut": "clip",
+    "split": "split explode",
+    "dissolve": "dissolve aggregate",
+
+    "average": "mean statistics zonal",
+    "statistics": "statistics stats zonal",
+    "stats": "statistics zonal",
+    "count": "count points polygon",
+    "area": "area geometry attributes",
+    "field": "field attribute calculator",
+
+    "reproject": "reproject warp crs transform",
+    "projection": "reproject crs",
+
+    "distance": "distance buffer proximity",
+    "nearest": "nearest neighbour neighbor hub distance",
+
+    "simplify": "simplify generalize smooth",
+    "smooth": "smooth simplify",
+    "centroid": "centroid center",
+    "grid": "grid fishnet tessellation",
+
+    "elevation": "dem terrain elevation",
+    "slope": "slope terrain",
+    "hillshade": "hillshade shaded relief",
+    "viewshed": "viewshed visibility",
+    "watershed": "watershed basin catchment hydrology",
+    "fill": "fill sink nodata",
+    "interpolate": "interpolate idw tin",
+    "classify": "reclassify classify",
+    "reclass": "reclassify",
+
+    "raster": "raster rasterize gdal",
+    "vector": "vector polygonize vectorize",
+    "convert": "convert translate export",
+}
+
+
+def _algorithm_texts(alg) -> tuple[str, list[str], str]:
+
+    try:
+        name = alg.displayName() or ""
+    except Exception:
+        name = ""
+    try:
+        tags = [str(t).lower() for t in (alg.tags() or [])]
+    except Exception:
+        tags = []
+    try:
+        description = alg.shortDescription() or ""
+    except Exception:
+        description = ""
+    return name, tags, description
+
+
+def _source_texts(algorithms) -> dict:
+
+
+
+
+
+
+
+
+
+
+
+    from qgis.PyQt.QtCore import QCoreApplication, QEvent, QLocale, QTranslator
+
+    locale = str(QgsApplication.locale() or QLocale().name() or "")
+    if not locale or locale.lower().startswith("en"):
+        return {}
+
+    class _SourceText(QTranslator):
+        def translate(self, context, source_text, disambiguation=None, n=-1):  # noqa: N802
+            return source_text
+
+    app = QCoreApplication.instance()
+    if app is None:
+        return {}
+    source = _SourceText()
+    texts = {}
+    app.installTranslator(source)
+    try:
+        for alg in algorithms:
+            texts[alg.id()] = _algorithm_texts(alg)
+    finally:
+        app.removeTranslator(source)
+        QCoreApplication.removePostedEvents(None, QEvent.Type.LanguageChange)
+    return texts
+
+
+def _algorithm_catalog(refresh: bool = False) -> list[dict]:
+
+
+
+
+
+    if refresh or _algorithm_catalog_cache["catalog"] is None:
+        algorithms = list(QgsApplication.processingRegistry().algorithms())
+        english = _source_texts(algorithms)
+        _algorithm_catalog_cache["catalog"] = [_catalog_entry(alg, english.get(alg.id())) for alg in algorithms]
+    return _algorithm_catalog_cache["catalog"]
+
+
+def _catalog_entry(alg, english) -> dict:
+
+    name, tags, description = _algorithm_texts(alg)
+    try:
+        provider_id = alg.provider().id()
+    except Exception:
+        provider_id = ""
+    entry = {"id": alg.id(), "name": name, "provider": provider_id, "tags": tags, "description": description}
+    if english and english != (name, tags, description):
+        entry["source"] = english
+    return entry
+
+
+
+
+_UNSPACED_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]+")
+
+
+def _unspaced_tokens(query: str) -> list[str]:
+
+    out = []
+    for run in _UNSPACED_RE.findall(query or ""):
+        out.append(run)
+        for start in range(len(run) - 1):
+            out.append(run[start:start + 2])
+    return out
+
+
+def _query_tokens(query: str) -> list[str]:
+
+
+
+
+
+
+
+
+
+
+    latin = re.findall(r"[a-z]+", (query or "").lower())
+    words = [word for word in latin if len(word) > 2 and word not in _STOPWORDS]
+    ordered: dict = dict.fromkeys(words)
+    for word in words:
+        ordered.update(dict.fromkeys(_TASK_VOCABULARY.get(word, "").split()))
+    ordered.update(dict.fromkeys(_unspaced_tokens(query)))
+    return list(ordered)
+
+
+def _title_weight(token: str, title: str, title_words: set) -> float:
+
+    if token in title_words:
+        return 3.0
+    if any(token in word for word in title_words):
+        return 1.5
+
+
+    return 2.0 if token in title else 0.0
+
+
+def _text_score(tokens: list[str], name: str, tags: list[str], description: str) -> float:
+
+    title = name.lower()
+    title_words = set(re.findall(r"[a-z]+", title))
+    about = description.lower()
+    total = 0.0
+    for token in tokens:
+        total += _title_weight(token, title, title_words)
+        total += 2.0 if any(token in tag for tag in tags) else 0.0
+        total += 0.5 if about and token in about else 0.0
+    return total
+
+
+def _score_algorithm(tokens: list[str], entry: dict) -> float:
+
+
+
+
+
+
+
+    texts = [(entry["name"], entry["tags"], entry["description"])]
+    if entry.get("source"):
+        texts.append(entry["source"])
+    best = max(_text_score(tokens, *text) for text in texts)
+    alg_id = entry["id"].lower()
+    best += 1.5 * len([token for token in tokens if token in alg_id])
+    if best > 0 and entry["provider"] == "native":
+        best += 0.5
+    return best
+
+
+def _search_terms(args: dict) -> list[str]:
+
+    terms = _query_tokens(str(args.get("query") or ""))
+    for keyword in args.get("keywords") or []:
+        terms += [token for token in _query_tokens(str(keyword)) if token not in terms]
+    return terms
+
+
+def _find_processing_algorithm(args: dict) -> dict:
+    query = str(args.get("query") or "")
+    candidates = _algorithm_catalog(refresh=bool(args.get("refresh")))
+    wanted_provider = (args.get("provider") or "").strip().lower()
+    if wanted_provider:
+        candidates = [entry for entry in candidates if entry["provider"].lower() == wanted_provider]
+    tokens = _search_terms(args)
+    if not tokens:
+        return tool_error(
+            "The query has no searchable words.",
+            "INVALID_ARGS",
+            "Describe the task, for example 'buffer polygons by 50 m'.",
+        )
+    size = max(1, min(int(args.get("limit") or 15), 50))
+    ranked = []
+    for entry in candidates:
+        score = _score_algorithm(tokens, entry)
+        if score > 0:
+            ranked.append((score, entry))
+
+    ranked.sort(key=lambda pair: -pair[0])
+    matches = []
+    for score, entry in ranked[:size]:
+        shown = {key: value for key, value in entry.items() if key != "source"}
+        shown["score"] = round(score, 1)
+        matches.append(shown)
+    out = {
+        "query": query,
+        "tokens": tokens,
+        "matches": matches,
+        "count": len(matches),
+        "total": len(_algorithm_catalog()),
+        "next": "get_algorithm_help gives the parameters for run_processing.",
+    }
+    if not matches:
+        out["suggestion"] = "Nothing scored; other words may match, list_algorithms lists all."
+    return out
