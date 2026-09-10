@@ -1,0 +1,8935 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="nl">
+    <context>
+        <name>AIAgent</name>
+        <message>
+            <location filename="src/ui/library/dialog.py" />
+            <source>%n examples</source>
+            <translation>%n voorbeelden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>%n layers changed</source>
+            <translation>%n lagen gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>%n ready sources</source>
+            <translation>%n beschikbare bronnen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/dialog.py" />
+            <source>1 example</source>
+            <translation>1 voorbeeld</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>1 layer changed</source>
+            <translation>1 laag gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>1 ready source</source>
+            <translation>1 beschikbare bron</translation>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py" />
+            <source>1. Copy diagnostics</source>
+            <translation>1. Diagnosegegevens kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>A buffer band, and what sits inside it, counted.</source>
+            <translation>Een bufferstrook, met een telling van wat erin valt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>AI Agent and your data</source>
+            <translation>AI Agent en je gegevens</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Adds a basemap when the canvas has nothing on it</source>
+            <translation>Voegt een basiskaart toe als het kaartvenster leeg is</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Adds title, legend, scale bar, north arrow, credits</source>
+            <translation>Voegt titel, legenda, schaalbalk, noordpijl en bronvermelding toe</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Allow / Skip</source>
+            <translation>Toestaan / Overslaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
+            <translation>Een A4-blad met titel, legenda, schaalbalk en noordpijl.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Analyse</source>
+            <translation>Analyseren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Answer a permission card</source>
+            <translation>Een toestemmingsvraag beantwoorden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Asked {source} for data</source>
+            <translation>{source} om gegevens gevraagd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Asked {source} for {what}</source>
+            <translation>{source} om {what} gevraagd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Asked {source} for {what} in the current view</source>
+            <translation>{source} om {what} in het huidige kaartvenster gevraagd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Before you start</source>
+            <translation>Voordat je begint</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Book a video call</source>
+            <translation>Een videogesprek boeken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Bring back the last message you sent</source>
+            <translation>Het laatste verzonden bericht terughalen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
+            <translation>Maak een buffer van 100 m rond een lijnlaag in een metrisch CRS, tel hoeveel punten er in elke buffer vallen, en geef me de tien met de meeste, als een tabel die ik kan lezen. Gebruik mijn eigen lagen als het project een lijn- en een puntlaag bevat; download anders de wegen en de winkels van een wijk naar keuze, en zeg welke.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Buffers the lines by 100 m</source>
+            <translation>Maakt een buffer van 100 m rond de lijnen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Bug, question, feature request?</source>
+            <translation>Bug, vraag of functieverzoek?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Build a print map and export it</source>
+            <translation>Maak een afdruklay-out en exporteer die</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
+            <translation>Maak een liggende A4-lay-out van het huidige kaartvenster met een titel, een legenda, een schaalbalk in meters, een noordpijl en een bronregel met de databronnen, en exporteer die naar PDF op 300 dpi. Als het kaartvenster leeg is, voeg dan eerst een basiskaart toe voor een plek naar keuze, zodat er een kaart op het blad staat.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/delete_account_dialog.py" />
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Chats</source>
+            <translation>Chats</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Close the list, or stop the run</source>
+            <translation>De lijst sluiten of de uitvoering stoppen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Composer</source>
+            <translation>Berichtvak</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Contact us</source>
+            <translation>Neem contact op</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Continue</source>
+            <translation>Doorgaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Continuing accepts the {terms} and the {privacy}.</source>
+            <translation>Doorgaan betekent dat je akkoord gaat met de {terms} en het {privacy}.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py" />
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Copy email address</source>
+            <translation>E-mailadres kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>Copy the address below and paste it into a browser.</source>
+            <translation>Kopieer het onderstaande adres en plak het in een browser.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py" />
+            <source>Copy the diagnostics, then send them to support.</source>
+            <translation>Kopieer de diagnosegegevens en stuur ze naar support.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>Copy the folder below and paste it into your file manager.</source>
+            <translation>Kopieer de onderstaande map en plak deze in je bestandsbeheer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>Copy the support address below into your email app.</source>
+            <translation>Kopieer het onderstaande supportadres naar je e-mailapp.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Count what falls within a distance</source>
+            <translation>Tel wat binnen een afstand valt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Counts the points inside each buffer</source>
+            <translation>Telt de punten in elke buffer</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Creates an A4 landscape layout with a map frame</source>
+            <translation>Maakt een liggende A4-lay-out met een kaartframe</translation>
+        </message>
+        <message>
+            <location filename="src/ui/delete_account_dialog.py" />
+            <source>Delete my account</source>
+            <translation>Account verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/delete_account_dialog.py" />
+            <source>Delete your TerraLab account</source>
+            <translation>Je TerraLab-account verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Done</source>
+            <translation>Klaar</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
+            <translation>Download alle scholen, parken en bushaltes uit OpenStreetMap voor één wijk. Werk in het gebied waar mijn kaartvenster op staat, of kies een wijk van een goed in kaart gebrachte stad en zeg welke. Zet ze in drie lagen, de parken als polygonen, geef elk een eigen stijl, en vertel me hoeveel objecten elk bevat. Bevraag de drie één voor één.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>During a run</source>
+            <translation>In uitvoering</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Everything the panel does without leaving the keyboard.</source>
+            <translation>Alles wat het paneel doet zonder het toetsenbord te verlaten.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/dialog.py" />
+            <source>Examples</source>
+            <translation>Voorbeelden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Explore</source>
+            <translation>Verkennen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Exports the sheet to PDF at 300 dpi</source>
+            <translation>Exporteert het blad naar PDF op 300 dpi</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Go back to an earlier state of your project</source>
+            <translation>Ga terug naar een eerdere staat van je project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Go forward one step</source>
+            <translation>Ga een stap vooruit</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>History</source>
+            <translation>Geschiedenis</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>History button</source>
+            <translation>Geschiedenisknop</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>In this chat</source>
+            <translation>In deze chat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Keeps the parks as polygons, the rest as points</source>
+            <translation>Houdt de parken als polygonen, de rest als punten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Keyboard shortcuts</source>
+            <translation>Sneltoetsen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Loads each answer as its own layer</source>
+            <translation>Laadt elk antwoord als eigen laag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Map</source>
+            <translation>Kaart</translation>
+        </message>
+        <message>
+            <location filename="src/ui/terralab_menu.py" />
+            <source>More from TerraLab...</source>
+            <translation>Meer van TerraLab...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>New chat, history, settings</source>
+            <translation>Nieuwe chat, geschiedenis, instellingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>New line</source>
+            <translation>Nieuwe regel</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/dialog.py" />
+            <source>No example matches that.</source>
+            <translation>Geen voorbeeld komt daarmee overeen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>No longer available</source>
+            <translation>Niet langer beschikbaar</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Open a recent chat</source>
+            <translation>Een recente chat openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>Open it yourself</source>
+            <translation>Zelf openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Open or close AI Agent</source>
+            <translation>AI Agent openen of sluiten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Open the command list</source>
+            <translation>Open de opdrachtenlijst</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Or drag it from the Layers panel</source>
+            <translation>Of sleep de laag uit het paneel Lagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Panel</source>
+            <translation>Paneel</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Pencil button</source>
+            <translation>Potloodknop</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Privacy Policy</source>
+            <translation>privacybeleid</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Project changed</source>
+            <translation>Project gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Pull OpenStreetMap data for an area</source>
+            <translation>Haal OpenStreetMap-data op voor een gebied</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>QGIS could not open a browser.</source>
+            <translation>QGIS kon geen browser openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>QGIS could not open a file manager.</source>
+            <translation>QGIS kon geen bestandsbeheer openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>QGIS could not open your email app.</source>
+            <translation>QGIS kon je e-mailapp niet openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Ran a Python script of {count} lines</source>
+            <translation>Een Python-script van {count} regels uitgevoerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Ran a processing algorithm</source>
+            <translation>Een Processing-algoritme uitgevoerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Ran the {algorithm} algorithm</source>
+            <translation>Het algoritme {algorithm} uitgevoerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>Ran the {algorithm} algorithm on {layer}</source>
+            <translation>Het algoritme {algorithm} op {layer} uitgevoerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py" />
+            <source>Report a problem</source>
+            <translation>Een probleem melden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Report and share</source>
+            <translation>Rapporteren en delen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Reports the feature count of the three</source>
+            <translation>Rapporteert het aantal objecten van de drie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Reprojects to a metric CRS before measuring</source>
+            <translation>Projecteert opnieuw naar een metrisch CRS vóór het meten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Returns the ten highest as a readable table</source>
+            <translation>Geeft de tien hoogste als leesbare tabel terug</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Runs in Europe, stored in France.</source>
+            <translation>Draait in Europa, opgeslagen in Frankrijk.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Schools, parks and stops for one district, as three layers.</source>
+            <translation>Scholen, parken en haltes voor één wijk, als drie lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/dialog.py" />
+            <source>Search examples…</source>
+            <translation>Voorbeelden zoeken…</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Send the message</source>
+            <translation>Het bericht verzenden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
+            <translation>Stuurt drie Overpass-query's achter elkaar: scholen, parken, haltes</translation>
+        </message>
+        <message>
+            <location filename="src/ui/delete_account_dialog.py" />
+            <source>Signed in as {email}</source>
+            <translation>Ingelogd als {email}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Start a new chat</source>
+            <translation>Een nieuwe chat starten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Stop button</source>
+            <translation>Stopknop</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Stop the run</source>
+            <translation>De uitvoering stoppen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Takes the area from the canvas, or picks one</source>
+            <translation>Neemt het gebied van het kaartvenster, of kiest er een</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Terms</source>
+            <translation>Voorwaarden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Terrain and imagery</source>
+            <translation>Terrein en beelden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>The address is copied to your clipboard: paste it into a browser to continue.</source>
+            <translation>Het adres is naar je klembord gekopieerd. Plak het in een browser om door te gaan.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>The agent wants to run this action.</source>
+            <translation>De agent wil deze actie uitvoeren.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>The folder is copied to your clipboard: paste it into your file manager.</source>
+            <translation>De map is naar je klembord gekopieerd. Plak deze in je bestandsbeheer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/detail.py" />
+            <source>The prompt</source>
+            <translation>De prompt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/external_links.py" />
+            <source>The support address is copied to your clipboard: paste it into your email app.</source>
+            <translation>Het supportadres is naar je klembord gekopieerd. Plak het in je e-mailapp.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
+            <translation>Ze helpen ons bugs op te lossen. Je kunt ze in Instellingen uitzetten wanneer je maar wilt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/delete_account_dialog.py" />
+            <source>Type that address to confirm.</source>
+            <translation>Typ dat adres om te bevestigen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Usage stats are on.</source>
+            <translation>Gebruiksstatistieken staan aan.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/detail.py" />
+            <source>Use this prompt</source>
+            <translation>Gebruik deze prompt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/use_cases.py" />
+            <source>Uses my lines and points, or downloads both</source>
+            <translation>Gebruikt mijn lijnen en punten, of downloadt beide</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>We read every message.</source>
+            <translation>We lezen elk bericht.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/detail.py" />
+            <source>Where the data comes from</source>
+            <translation>Waar de gegevens vandaan komen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Your history stays on your computer.</source>
+            <translation>Je geschiedenis blijft op je computer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/privacy_notice_dialog.py" />
+            <source>Your message and your layer names, never your files. No model is trained on them.</source>
+            <translation>Je bericht en je laagnamen, nooit je bestanden. Geen enkel model wordt erop getraind.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>did not work</source>
+            <translation>mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>into a new layer</source>
+            <translation>naar een nieuwe laag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>into the layer {name}</source>
+            <translation>naar de laag {name}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>into {layer}</source>
+            <translation>naar {layer}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>or</source>
+            <translation>of</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>still running</source>
+            <translation>loopt nog</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_describe.py" />
+            <source>{count} found</source>
+            <translation>{count} gevonden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>{product} {version}</source>
+            <translation>{product} {version}</translation>
+        </message>
+        <message>
+            <source>Your account and the data attached to it are erased. Every TerraLab plugin stops working right away, on this computer and on any other, and a paid subscription stops renewing.
+
+The erasure is final once the grace period ends. Until then you can cancel it by signing in on terra-lab.ai.</source>
+            <translation>Je account en de eraan gekoppelde gegevens worden gewist. Elke TerraLab-plugin stopt onmiddellijk met werken, op deze computer en op elke andere, en een betaald abonnement wordt niet langer automatisch verlengd.
+
+De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tijd kun je deze annuleren door in te loggen op terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>%n layers keep the data they have now</source>
+            <translation>%n lagen behouden hun huidige gegevens</translation>
+        </message>
+        <message>
+            <source>Add a layer from the project</source>
+            <translation>Een laag uit het project toevoegen</translation>
+        </message>
+        <message>
+            <source>Back to examples</source>
+            <translation>Terug naar voorbeelden</translation>
+        </message>
+        <message>
+            <source>Check for updates</source>
+            <translation>Controleren op updates</translation>
+        </message>
+        <message>
+            <source>Go back one step in the agent's work</source>
+            <translation>Eén stap terug in het werk van de agent</translation>
+        </message>
+        <message>
+            <source>Restoring brings the project and every backed-up layer back.</source>
+            <translation>Herstellen zet het project en elke geback-upte laag terug.</translation>
+        </message>
+        <message>
+            <source>Run a panel command</source>
+            <translation>Een paneelopdracht uitvoeren</translation>
+        </message>
+        <message>
+            <source>Start of this chat</source>
+            <translation>Begin van deze chat</translation>
+        </message>
+        <message>
+            <source>These layers keep the data they have now:</source>
+            <translation>Deze lagen behouden hun huidige gegevens:</translation>
+        </message>
+        <message>
+            <source>backup failed</source>
+            <translation>back-up mislukt</translation>
+        </message>
+        <message>
+            <source>it lives in a database or a service, not in a file</source>
+            <translation>staat in een database of service, niet in een bestand</translation>
+        </message>
+        <message>
+            <source>its backup could not be written</source>
+            <translation>de back-up kon niet worden geschreven</translation>
+        </message>
+        <message>
+            <source>its file was over the backup limit</source>
+            <translation>het bestand overschreed de back-uplimiet</translation>
+        </message>
+        <message>
+            <source>no backup was made</source>
+            <translation>geen back-up gemaakt</translation>
+        </message>
+        <message>
+            <source>not a file</source>
+            <translation>geen bestand</translation>
+        </message>
+        <message>
+            <source>too large</source>
+            <translation>te groot</translation>
+        </message>
+        <message>
+            <source>{layer} keeps the data it has now</source>
+            <translation>{layer} behoudt zijn huidige gegevens</translation>
+        </message>
+        <message>
+            <source>1. Copy the whole session</source>
+            <translation>1. De hele sessie kopiëren</translation>
+        </message>
+        <message>
+            <source>2. Save it as a file</source>
+            <translation>2. Opslaan als bestand</translation>
+        </message>
+        <message>
+            <source>Copied: {runs} runs, {calls} tool calls</source>
+            <translation>Gekopieerd: uitvoeringen {runs}, toolaanroepen {calls}</translation>
+        </message>
+        <message>
+            <source>Could not copy</source>
+            <translation>Kopiëren mislukt</translation>
+        </message>
+        <message>
+            <source>Saved. Open {name}</source>
+            <translation>Opgeslagen. Open {name}</translation>
+        </message>
+        <message>
+            <source>The file could not be written</source>
+            <translation>Het bestand kon niet worden geschreven</translation>
+        </message>
+        <message>
+            <source>The report holds this whole session: your messages, every tool the agent ran with its arguments and what came back, the plan it followed and the recent log lines. Your activation key, your passwords and the contents of your files are never in it.</source>
+            <translation>Het rapport bevat deze hele sessie: je berichten, elke tool die de agent uitvoerde met argumenten en resultaten, het gevolgde plan en de recente logregels. Je activeringssleutel, je wachtwoorden en de inhoud van je bestanden staan er nooit in.</translation>
+        </message>
+        <message>
+            <source>There is no session to save</source>
+            <translation>Er is geen sessie om op te slaan</translation>
+        </message>
+        <message>
+            <source>This link does not point to a web page, so it was not opened.</source>
+            <translation>Deze link verwijst niet naar een webpagina en is niet geopend.</translation>
+        </message>
+        <message>
+            <source>This link was not opened</source>
+            <translation>Deze link is niet geopend</translation>
+        </message>
+        <message>
+            <source>{step}. Open an email to {email}</source>
+            <translation>{step}. E-mail aan {email} openen</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days to make AI Agent better. On {pro}, no copy at all.</source>
+            <translation>Het bericht dat je verstuurt is het deel dat ons bereikt: we bewaren het 90 dagen om AI Agent beter te maken. Op {pro}, helemaal geen kopie.</translation>
+        </message>
+        <message>
+            <source>After this run</source>
+            <translation>Na deze run</translation>
+        </message>
+        <message>
+            <source>Before this run</source>
+            <translation>Vóór deze run</translation>
+        </message>
+        <message>
+            <source>Before you continued</source>
+            <translation>Voordat je verderging</translation>
+        </message>
+        <message>
+            <source>Made in QGIS, outside the agent</source>
+            <translation>Gemaakt in QGIS, buiten de agent</translation>
+        </message>
+        <message>
+            <source>Nothing had been changed yet</source>
+            <translation>Er was nog niets gewijzigd</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Herstellen</translation>
+        </message>
+        <message>
+            <source>Run {n}</source>
+            <translation>Run {n}</translation>
+        </message>
+        <message>
+            <source>The first thing this chat did</source>
+            <translation>Het eerste wat deze chat deed</translation>
+        </message>
+        <message>
+            <source>You are here</source>
+            <translation>Je bent hier</translation>
+        </message>
+        <message>
+            <source>Your own changes</source>
+            <translation>Je eigen wijzigingen</translation>
+        </message>
+        <message>
+            <source>Your own edits</source>
+            <translation>Je eigen bewerkingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Belongs to a closed project</source>
+            <translation>Hoort bij een gesloten project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Belongs to {name}</source>
+            <translation>Hoort bij {name}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Undo puts back: {changes}</source>
+            <translation>Ongedaan maken herstelt: {changes}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>What this run changed:</source>
+            <translation>Wat deze uitvoering heeft gewijzigd:</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>another project</source>
+            <translation>een ander project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>changed without a backup</source>
+            <translation>gewijzigd zonder back-up</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>earlier project file</source>
+            <translation>eerder projectbestand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>emptied by a restart</source>
+            <translation>geleegd door een herstart</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was a temporary layer held in memory, and QGIS has restarted since</source>
+            <translation>het was een tijdelijke laag die in het geheugen werd bewaard, en QGIS is sindsdien opnieuw gestart</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was changed in place and no copy was made first</source>
+            <translation>het werd rechtstreeks gewijzigd zonder dat er eerst een kopie werd gemaakt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was changed while another project was open</source>
+            <translation>het werd gewijzigd terwijl een ander project openstond</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>new file</source>
+            <translation>nieuw bestand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>the project is saved under another file now, and a restore writes only that one</source>
+            <translation>het project is nu in een ander bestand opgeslagen en bij het herstellen wordt alleen dat bestand geschreven</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>the run wrote this file, and a restore deletes no file</source>
+            <translation>de uitvoering heeft dit bestand geschreven en bij het herstellen worden geen bestanden verwijderd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{change}, not put back: {why}</source>
+            <translation>{change}, niet hersteld: {why}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} added</source>
+            <translation>{name} toegevoegd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} changed</source>
+            <translation>{name} gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} removed</source>
+            <translation>{name} verwijderd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} written</source>
+            <translation>{name} geschreven</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name}: {before} to {after} features</source>
+            <translation>{name}: {before} tot {after} objecten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name}: {fields}</source>
+            <translation>{name}: {fields}</translation>
+        </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Toestaan / Weigeren</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Voor: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Gewijzigd: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Knop voor chatgeschiedenis</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Knop voor nieuwe chat</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Geen overeenkomende voorbeelden</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Nu</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Verzoek {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>Het project na dit verzoek</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>Het project vóór het eerste verzoek</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>Het project vóór dit verzoek</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Deze laag staat niet meer in het project.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>na verzoek {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>na “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vóór verzoek {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>verzoek {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>het begin van deze chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>je eigen wijzigingen</translation>
+        </message>
+        <message>
+            <source>AI Edit: {action}</source>
+            <translation>AI Edit: {action}</translation>
+        </message>
+        <message>
+            <source>AI Segmentation[: detect {object_class}][ ({action})]</source>
+            <translation>AI Segmentation[: {object_class} detecteren][ ({action})]</translation>
+        </message>
+        <message>
+            <source>Add a coordinate grid to the layout</source>
+            <translation>Een kaartraster toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add a label to the layout</source>
+            <translation>Een label toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add a legend to the layout</source>
+            <translation>Een legenda toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add a map to the layout</source>
+            <translation>Een kaart toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add a north arrow to the layout</source>
+            <translation>Een noordpijl toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add a scale bar to the layout</source>
+            <translation>Een schaalbalk toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add an elevation profile to the layout</source>
+            <translation>Een hoogteprofiel toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add features to {layer_name}</source>
+            <translation>Objecten toevoegen aan {layer_name}</translation>
+        </message>
+        <message>
+            <source>Add the 3D view to the layout</source>
+            <translation>De 3D-weergave toevoegen aan de lay-out</translation>
+        </message>
+        <message>
+            <source>Add the ArcGIS layer[ {name}]</source>
+            <translation>De ArcGIS-laag[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the Earth Engine dataset[ {name}]</source>
+            <translation>De Earth Engine-dataset[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the WFS layer[ {name}]</source>
+            <translation>De WFS-laag[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the WMS layer[ {name}]</source>
+            <translation>De WMS-laag[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the basemap[ {name}]</source>
+            <translation>De basiskaart[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the bookmark {name}</source>
+            <translation>De favoriete plaats {name} toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the field {field_name} to {layer_name}</source>
+            <translation>Het veld {field_name} toevoegen aan {layer_name}</translation>
+        </message>
+        <message>
+            <source>Add the raster[ {name}]</source>
+            <translation>Het raster[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the satellite image[ {name}]</source>
+            <translation>Het satellietbeeld[ {name}] toevoegen</translation>
+        </message>
+        <message>
+            <source>Add the tiles[ {name}]</source>
+            <translation>Voeg de tegels toe[ {name}]</translation>
+        </message>
+        <message>
+            <source>Add {path}[ as {name}]</source>
+            <translation>{path} toevoegen[ als {name}]</translation>
+        </message>
+        <message>
+            <source>Add {source}[ as {name}]</source>
+            <translation>{source} toevoegen[ als {name}]</translation>
+        </message>
+        <message>
+            <source>Add {table} from {connection}</source>
+            <translation>{table} toevoegen vanuit {connection}</translation>
+        </message>
+        <message>
+            <source>Add {url}[ as {layer_name}]</source>
+            <translation>{url} toevoegen[ als {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Animate {layer_name} over time[ by {field}]</source>
+            <translation>{layer_name} in de tijd animeren[ op {field}]</translation>
+        </message>
+        <message>
+            <source>Apply the style {path} to {layer_name}</source>
+            <translation>De stijl {path} toepassen op {layer_name}</translation>
+        </message>
+        <message>
+            <source>Build the report {name}</source>
+            <translation>Het rapport {name} samenstellen</translation>
+        </message>
+        <message>
+            <source>Calculate {field_name} in {layer_name}</source>
+            <translation>{field_name} berekenen in {layer_name}</translation>
+        </message>
+        <message>
+            <source>Cancel the running task</source>
+            <translation>De lopende taak annuleren</translation>
+        </message>
+        <message>
+            <source>Change the layout legend</source>
+            <translation>De legenda van de lay-out wijzigen</translation>
+        </message>
+        <message>
+            <source>Chart {x_field}[ and {y_field}] of {layer}</source>
+            <translation>Een grafiek maken van {x_field}[ en {y_field}] uit {layer}</translation>
+        </message>
+        <message>
+            <source>Check an expression</source>
+            <translation>Een expressie controleren</translation>
+        </message>
+        <message>
+            <source>Check the geometries of {layer_name}</source>
+            <translation>De geometrieën van {layer_name} controleren</translation>
+        </message>
+        <message>
+            <source>Check the optional dependencies</source>
+            <translation>De optionele afhankelijkheden controleren</translation>
+        </message>
+        <message>
+            <source>Check the running task</source>
+            <translation>De lopende taak controleren</translation>
+        </message>
+        <message>
+            <source>Clear the selection[ of {layer_name}]</source>
+            <translation>De selectie[ van {layer_name}] opheffen</translation>
+        </message>
+        <message>
+            <source>Compare raster compatibility</source>
+            <translation>Rastercompatibiliteit vergelijken</translation>
+        </message>
+        <message>
+            <source>Compute a route</source>
+            <translation>Een route berekenen</translation>
+        </message>
+        <message>
+            <source>Compute an index with Earth Engine</source>
+            <translation>Een index berekenen met Earth Engine</translation>
+        </message>
+        <message>
+            <source>Compute relief images[ of {dem}]</source>
+            <translation>Reliëfbeelden[ van {dem}] berekenen</translation>
+        </message>
+        <message>
+            <source>Compute the wetness index[ of {area}]</source>
+            <translation>De natheidsindex[ van {area}] berekenen</translation>
+        </message>
+        <message>
+            <source>Configure temporal layers and playback</source>
+            <translation>Configureer temporele lagen en afspelen</translation>
+        </message>
+        <message>
+            <source>Configure the attribute form of {layer_name}</source>
+            <translation>Het attributenformulier van {layer_name} configureren</translation>
+        </message>
+        <message>
+            <source>Convert coordinates to {target_crs}</source>
+            <translation>Coördinaten converteren naar {target_crs}</translation>
+        </message>
+        <message>
+            <source>Create a hillshade[ from {layer_name}]</source>
+            <translation>Een heuvelschaduw maken[ van {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Create a {geometry_type} feature[ in {target_layer}]</source>
+            <translation>Een {geometry_type}-object maken[ in {target_layer}]</translation>
+        </message>
+        <message>
+            <source>Create the group {name}</source>
+            <translation>De groep {name} maken</translation>
+        </message>
+        <message>
+            <source>Create the layer {name}</source>
+            <translation>De laag {name} maken</translation>
+        </message>
+        <message>
+            <source>Create the layout {name}</source>
+            <translation>De lay-out {name} maken</translation>
+        </message>
+        <message>
+            <source>Create the layout {name} from a template</source>
+            <translation>De lay-out {name} maken op basis van een sjabloon</translation>
+        </message>
+        <message>
+            <source>Delete features from {layer_name}</source>
+            <translation>Objecten verwijderen uit {layer_name}</translation>
+        </message>
+        <message>
+            <source>Delete the field {field_name} from {layer_name}</source>
+            <translation>Het veld {field_name} verwijderen uit {layer_name}</translation>
+        </message>
+        <message>
+            <source>Duplicate {layer_name}[ as {new_name}]</source>
+            <translation>{layer_name}[ als {new_name}] dupliceren</translation>
+        </message>
+        <message>
+            <source>Evaluate an expression</source>
+            <translation>Een expressie evalueren</translation>
+        </message>
+        <message>
+            <source>Export a document report</source>
+            <translation>Een documentrapport exporteren</translation>
+        </message>
+        <message>
+            <source>Export the animation frames as PNG[ to {out_dir}]</source>
+            <translation>De animatieframes als PNG exporteren[ naar {out_dir}]</translation>
+        </message>
+        <message>
+            <source>Export the layout</source>
+            <translation>De lay-out exporteren</translation>
+        </message>
+        <message>
+            <source>Export {layer_name} as a 3D model to {path}</source>
+            <translation>{layer_name} als 3D-model exporteren naar {path}</translation>
+        </message>
+        <message>
+            <source>Export {layer_name} to {path}</source>
+            <translation>{layer_name} exporteren naar {path}</translation>
+        </message>
+        <message>
+            <source>Fetch OpenStreetMap data[ as {layer_name}]</source>
+            <translation>OpenStreetMap-gegevens ophalen[ als {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Fetch OpenStreetMap {theme}[ as {layer_name}]</source>
+            <translation>OpenStreetMap {theme} ophalen[ als {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Fetch Overture {theme}[ as {layer_name}]</source>
+            <translation>Overture {theme} ophalen[ als {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Fetch building footprints[ as {layer_name}]</source>
+            <translation>Gebouwcontouren ophalen[ als {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Filter the map by elevation</source>
+            <translation>De kaart filteren op hoogte</translation>
+        </message>
+        <message>
+            <source>Filter {layer_name}[: {filter}]</source>
+            <translation>{layer_name} filteren[: {filter}]</translation>
+        </message>
+        <message>
+            <source>Find duplicate project layers</source>
+            <translation>Dubbele lagen in het project zoeken</translation>
+        </message>
+        <message>
+            <source>Find the address at a point</source>
+            <translation>Het adres op een punt zoeken</translation>
+        </message>
+        <message>
+            <source>Find {query} on the map</source>
+            <translation>{query} zoeken op de kaart</translation>
+        </message>
+        <message>
+            <source>Flow lines from {origin_field} to {destination_field} of {table_layer}</source>
+            <translation>Stroomlijnen maken van {origin_field} naar {destination_field} uit {table_layer}</translation>
+        </message>
+        <message>
+            <source>Georeference {raster}</source>
+            <translation>{raster} georefereren</translation>
+        </message>
+        <message>
+            <source>Get a Sentinel image</source>
+            <translation>Een Sentinel-beeld ophalen</translation>
+        </message>
+        <message>
+            <source>Get an elevation model</source>
+            <translation>Een hoogtemodel ophalen</translation>
+        </message>
+        <message>
+            <source>Hans van der Kwast's review, recorded in QGIS.</source>
+            <translation>De review van Hans van der Kwast, opgenomen in QGIS.</translation>
+        </message>
+        <message>
+            <source>Identify a CRS from WKT or a .prj file</source>
+            <translation>Een CRS identificeren uit WKT of een .prj-bestand</translation>
+        </message>
+        <message>
+            <source>Identify features at a point</source>
+            <translation>Objecten op een punt identificeren</translation>
+        </message>
+        <message>
+            <source>Import from the QGIS Hub</source>
+            <translation>Importeren uit de QGIS Hub</translation>
+        </message>
+        <message>
+            <source>Import {layer_name} into PostGIS[ table {table}]</source>
+            <translation>{layer_name} importeren in PostGIS[ tabel {table}]</translation>
+        </message>
+        <message>
+            <source>Inspect or configure a mesh layer</source>
+            <translation>Een laag met mazen inspecteren of configureren</translation>
+        </message>
+        <message>
+            <source>Inspect {layer_name}</source>
+            <translation>{layer_name} inspecteren</translation>
+        </message>
+        <message>
+            <source>Inspect {url}</source>
+            <translation>{url} inspecteren</translation>
+        </message>
+        <message>
+            <source>Install {name}</source>
+            <translation>Installeer {name}</translation>
+        </message>
+        <message>
+            <source>Join a table to {layer_name}</source>
+            <translation>Een tabel koppelen aan {layer_name}</translation>
+        </message>
+        <message>
+            <source>Join {join_layer} onto {target_layer}</source>
+            <translation>{join_layer} koppelen aan {target_layer}</translation>
+        </message>
+        <message>
+            <source>Label {layer_name}[ by {field}]</source>
+            <translation>{layer_name} labelen[ op {field}]</translation>
+        </message>
+        <message>
+            <source>List the layers</source>
+            <translation>De lagen tonen</translation>
+        </message>
+        <message>
+            <source>List the layouts</source>
+            <translation>De lay-outs tonen</translation>
+        </message>
+        <message>
+            <source>List the plugins</source>
+            <translation>De plugins tonen</translation>
+        </message>
+        <message>
+            <source>List the satellite catalogs</source>
+            <translation>De satellietcatalogi tonen</translation>
+        </message>
+        <message>
+            <source>Load 3D Tiles[ from {url}]</source>
+            <translation>3D Tiles[ van {url}] laden</translation>
+        </message>
+        <message>
+            <source>Load GTFS feed {source}</source>
+            <translation>GTFS-feed {source} laden</translation>
+        </message>
+        <message>
+            <source>Lock a layout item</source>
+            <translation>Een lay-outitem vergrendelen</translation>
+        </message>
+        <message>
+            <source>Look at the QGIS window</source>
+            <translation>Het QGIS-venster bekijken</translation>
+        </message>
+        <message>
+            <source>Look at the interface</source>
+            <translation>De interface bekijken</translation>
+        </message>
+        <message>
+            <source>Look for data on the web[ for {query}]</source>
+            <translation>Gegevens zoeken op het web[ over {query}]</translation>
+        </message>
+        <message>
+            <source>Look for data on this computer</source>
+            <translation>Gegevens zoeken op deze computer</translation>
+        </message>
+        <message>
+            <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
+            <translation>Naar reliëfanomalieën zoeken[ in {lrm_layer}][ in {dem}]</translation>
+        </message>
+        <message>
+            <source>Look up the place[ {query}]</source>
+            <translation>De plaats opzoeken[ {query}]</translation>
+        </message>
+        <message>
+            <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
+            <translation>De tijdelijke lagen permanent maken[ in {gpkg_path}]</translation>
+        </message>
+        <message>
+            <source>Map decoration[ {decoration}]</source>
+            <translation>Kaartdecoratie[ {decoration}]</translation>
+        </message>
+        <message>
+            <source>Map the watershed and streams[ of {area}]</source>
+            <translation>Het stroomgebied en de waterlopen[ van {area}] karteren</translation>
+        </message>
+        <message>
+            <source>Measure a distance</source>
+            <translation>Een afstand meten</translation>
+        </message>
+        <message>
+            <source>More on the blog</source>
+            <translation>Meer op de blog</translation>
+        </message>
+        <message>
+            <source>Move the map view</source>
+            <translation>Het kaartvenster verplaatsen</translation>
+        </message>
+        <message>
+            <source>Move {layer_name} to {group_name}</source>
+            <translation>{layer_name} verplaatsen naar {group_name}</translation>
+        </message>
+        <message>
+            <source>Open or configure a 3D map view[ with {dem_layer}]</source>
+            <translation>Een 3D-kaartweergave[ met {dem_layer}] openen of configureren</translation>
+        </message>
+        <message>
+            <source>Open the Plugin Manager on {plugin_name}</source>
+            <translation>“Plug-ins beheren en installeren” openen voor {plugin_name}</translation>
+        </message>
+        <message>
+            <source>Open the attribute table[ of {layer_name}]</source>
+            <translation>De attributentabel[ van {layer_name}] openen</translation>
+        </message>
+        <message>
+            <source>Open the project {path}</source>
+            <translation>Het project {path} openen</translation>
+        </message>
+        <message>
+            <source>Open the {plugin_name} panel</source>
+            <translation>Het paneel van {plugin_name} openen</translation>
+        </message>
+        <message>
+            <source>Project relations[: {child_layer} to {parent_layer}]</source>
+            <translation>Projectrelaties[: {child_layer} naar {parent_layer}]</translation>
+        </message>
+        <message>
+            <source>Raster calculation[ as {name}]</source>
+            <translation>Rasterberekening[ als {name}]</translation>
+        </message>
+        <message>
+            <source>Read a NASA Earthdata collection[ {short_name}]</source>
+            <translation>Een NASA Earthdata-collectie uitlezen[ {short_name}]</translation>
+        </message>
+        <message>
+            <source>Read a coordinate from the map</source>
+            <translation>Een coördinaat op de kaart uitlezen</translation>
+        </message>
+        <message>
+            <source>Read features of {layer_name}</source>
+            <translation>Objecten van {layer_name} lezen</translation>
+        </message>
+        <message>
+            <source>Read the AI Agent documentation[ on {query}]</source>
+            <translation>De documentatie van AI Agent lezen[ over {query}]</translation>
+        </message>
+        <message>
+            <source>Read the CRS of {layer_name}</source>
+            <translation>Het CRS van {layer_name} uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the Python errors</source>
+            <translation>De Python-fouten lezen</translation>
+        </message>
+        <message>
+            <source>Read the QGIS documentation[ on {query}]</source>
+            <translation>De QGIS-documentatie lezen[ over {query}]</translation>
+        </message>
+        <message>
+            <source>Read the extent of {layer_name}</source>
+            <translation>Het bereik van {layer_name} uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the help of {algorithm_id}</source>
+            <translation>De hulp van {algorithm_id} lezen</translation>
+        </message>
+        <message>
+            <source>Read the interface</source>
+            <translation>De interface lezen</translation>
+        </message>
+        <message>
+            <source>Read the labels of {layer_name}</source>
+            <translation>De labels van {layer_name} uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the layer tree</source>
+            <translation>De laagstructuur uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the map scale</source>
+            <translation>De kaartschaal uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the map view</source>
+            <translation>Het kaartvenster uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the network log</source>
+            <translation>Het netwerklog lezen</translation>
+        </message>
+        <message>
+            <source>Read the project</source>
+            <translation>Het project lezen</translation>
+        </message>
+        <message>
+            <source>Read the project details</source>
+            <translation>De projectdetails lezen</translation>
+        </message>
+        <message>
+            <source>Read the selection[ of {layer_name}]</source>
+            <translation>De selectie[ van {layer_name}] uitlezen</translation>
+        </message>
+        <message>
+            <source>Read the style of {layer_name}</source>
+            <translation>De stijl van {layer_name} uitlezen</translation>
+        </message>
+        <message>
+            <source>Remove {layer_name}</source>
+            <translation>{layer_name} verwijderen</translation>
+        </message>
+        <message>
+            <source>Rename {old_name} to {new_name} in {layer_name}</source>
+            <translation>{old_name} hernoemen naar {new_name} in {layer_name}</translation>
+        </message>
+        <message>
+            <source>Render the map</source>
+            <translation>De kaart renderen</translation>
+        </message>
+        <message>
+            <source>Reorder the layers</source>
+            <translation>De lagen herordenen</translation>
+        </message>
+        <message>
+            <source>Reshape a feature of {layer_name}</source>
+            <translation>Een object van {layer_name} hervormen</translation>
+        </message>
+        <message>
+            <source>Run Python code[: {description}]</source>
+            <translation>Python-code uitvoeren[: {description}]</translation>
+        </message>
+        <message>
+            <source>Run a SQL query</source>
+            <translation>Een SQL-query uitvoeren</translation>
+        </message>
+        <message>
+            <source>Run several commands</source>
+            <translation>Voer meerdere opdrachten uit</translation>
+        </message>
+        <message>
+            <source>Sample several rasters at points</source>
+            <translation>Meerdere rasters bemonsteren op punten</translation>
+        </message>
+        <message>
+            <source>Sample {layer_name} at a point</source>
+            <translation>{layer_name} bemonsteren op een punt</translation>
+        </message>
+        <message>
+            <source>Save the Processing script {name}</source>
+            <translation>Sla het Processing-script {name} op</translation>
+        </message>
+        <message>
+            <source>Save the custom CRS {name}</source>
+            <translation>Het aangepaste CRS {name} opslaan</translation>
+        </message>
+        <message>
+            <source>Save the layout as a template</source>
+            <translation>De lay-out als sjabloon opslaan</translation>
+        </message>
+        <message>
+            <source>Save the project[ to {path}]</source>
+            <translation>Het project opslaan[ in {path}]</translation>
+        </message>
+        <message>
+            <source>Save the style of {layer_name}</source>
+            <translation>De stijl van {layer_name} opslaan</translation>
+        </message>
+        <message>
+            <source>Save {layer} to {gpkg_path}</source>
+            <translation>{layer} opslaan in {gpkg_path}</translation>
+        </message>
+        <message>
+            <source>Saved a Processing script</source>
+            <translation>Een Processing-script opgeslagen</translation>
+        </message>
+        <message>
+            <source>Search Copernicus images[ of {collection}]</source>
+            <translation>Copernicus-beelden zoeken[ van {collection}]</translation>
+        </message>
+        <message>
+            <source>Search NASA Earthdata files</source>
+            <translation>NASA Earthdata-bestanden zoeken</translation>
+        </message>
+        <message>
+            <source>Search NASA Earthdata[ for {query}]</source>
+            <translation>Zoeken in NASA Earthdata[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search open data[ for {query}]</source>
+            <translation>Open data zoeken[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search satellite images</source>
+            <translation>Satellietbeelden zoeken</translation>
+        </message>
+        <message>
+            <source>Search statistics[ on {topic}]</source>
+            <translation>Statistieken zoeken[ over {topic}]</translation>
+        </message>
+        <message>
+            <source>Search the Earth Engine catalog[ for {query}]</source>
+            <translation>Zoeken in de Earth Engine-catalogus[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search the QGIS Hub[ for {query}]</source>
+            <translation>Zoeken in de QGIS Hub[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search the data catalog[ for {query}]</source>
+            <translation>Zoeken in de datacatalogus[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search the processing tools[ for {query}]</source>
+            <translation>Zoeken in de Processing-tools[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Search the web[ for {query}]</source>
+            <translation>Op het web zoeken[ naar {query}]</translation>
+        </message>
+        <message>
+            <source>Select features in {layer_name}</source>
+            <translation>Objecten selecteren in {layer_name}</translation>
+        </message>
+        <message>
+            <source>Select in {layer_name} by shape</source>
+            <translation>Objecten in {layer_name} selecteren op vorm</translation>
+        </message>
+        <message>
+            <source>Select in {layer_name} where {field_name} {operator} {value}</source>
+            <translation>Objecten in {layer_name} selecteren waar {field_name} {operator} {value}</translation>
+        </message>
+        <message>
+            <source>Select {layer_name} in the layer panel</source>
+            <translation>{layer_name} selecteren in het paneel Lagen</translation>
+        </message>
+        <message>
+            <source>Set NoData on {layer_name}</source>
+            <translation>NoData instellen op {layer_name}</translation>
+        </message>
+        <message>
+            <source>Set legend image for {layer_name}</source>
+            <translation>Legendaafbeelding instellen voor {layer_name}</translation>
+        </message>
+        <message>
+            <source>Set the CRS of {layer_name} to {crs}</source>
+            <translation>Het CRS van {layer_name} instellen op {crs}</translation>
+        </message>
+        <message>
+            <source>Set the elevation of {layer_name}[, extruded by {height_from}]</source>
+            <translation>De hoogte van {layer_name} instellen[, geëxtrudeerd met {height_from}]</translation>
+        </message>
+        <message>
+            <source>Set the map scale</source>
+            <translation>De kaartschaal instellen</translation>
+        </message>
+        <message>
+            <source>Set the project CRS to {crs}</source>
+            <translation>Het project-CRS instellen op {crs}</translation>
+        </message>
+        <message>
+            <source>Set the raster attribute table on {layer_name}</source>
+            <translation>De rasterattributentabel instellen op {layer_name}</translation>
+        </message>
+        <message>
+            <source>Set {property} on {layer_name}</source>
+            <translation>{property} instellen op {layer_name}</translation>
+        </message>
+        <message>
+            <source>Show or hide {layer_name}</source>
+            <translation>{layer_name} tonen of verbergen</translation>
+        </message>
+        <message>
+            <source>Spatial statistics of {layer}[: {field}]</source>
+            <translation>Ruimtelijke statistieken van {layer}[: {field}]</translation>
+        </message>
+        <message>
+            <source>Split a parcel of {layer} into lots</source>
+            <translation>Een perceel van {layer} splitsen in kavels</translation>
+        </message>
+        <message>
+            <source>Start a new project</source>
+            <translation>Een nieuw project starten</translation>
+        </message>
+        <message>
+            <source>Statistics of {field} in {layer_name}</source>
+            <translation>Statistieken van {field} in {layer_name}</translation>
+        </message>
+        <message>
+            <source>Statistics of {layer_name}[, band {band}]</source>
+            <translation>Statistieken van {layer_name}[, band {band}]</translation>
+        </message>
+        <message>
+            <source>Style raster classes on {layer_name}</source>
+            <translation>Rasterklassen opmaken op {layer_name}</translation>
+        </message>
+        <message>
+            <source>Style the point cloud {layer_name}</source>
+            <translation>De puntenwolk {layer_name} opmaken</translation>
+        </message>
+        <message>
+            <source>Style {layer_name}</source>
+            <translation>{layer_name} opmaken</translation>
+        </message>
+        <message>
+            <source>Take a screenshot</source>
+            <translation>Maak een schermafbeelding</translation>
+        </message>
+        <message>
+            <source>The complete AI Agent guide</source>
+            <translation>De volledige handleiding van AI Agent</translation>
+        </message>
+        <message>
+            <source>The panel from the first prompt to the finished map.</source>
+            <translation>Het paneel van de eerste prompt tot de voltooide kaart.</translation>
+        </message>
+        <message>
+            <source>Trim or extend a line endpoint</source>
+            <translation>Een eindpunt van een lijn inkorten of verlengen</translation>
+        </message>
+        <message>
+            <source>Turn {frames_folder} into a GIF</source>
+            <translation>{frames_folder} omzetten naar een GIF</translation>
+        </message>
+        <message>
+            <source>Unique values of {field} in {layer_name}</source>
+            <translation>Unieke waarden van {field} in {layer_name}</translation>
+        </message>
+        <message>
+            <source>Update features of {layer_name}</source>
+            <translation>Objecten van {layer_name} bijwerken</translation>
+        </message>
+        <message>
+            <source>What it can do, what it asks before doing, and how to undo a run.</source>
+            <translation>Wat het kan doen, wat het vraagt voordat het iets doet, en hoe je een uitvoering ongedaan maakt.</translation>
+        </message>
+        <message>
+            <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
+            <translation>Gebiedsstatistieken van {raster_layer} in {polygon_layer}</translation>
+        </message>
+        <message>
+            <source>Zonal statistics with Earth Engine</source>
+            <translation>Gebiedsstatistieken met Earth Engine</translation>
+        </message>
+        <message>
+            <source>Area of interest[: {label}][ from {layer_name}]</source>
+            <translation>Interessegebied[: {label}][ van {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Zoom to the selection[ of {layer_name}]</source>
+            <translation>Zoomen naar de selectie[ van {layer_name}]</translation>
+        </message>
+        <message>
+            <source>Zoom to {layer_name}</source>
+            <translation>Zoomen naar {layer_name}</translation>
+        </message>
+        <message>
+            <source>{count} ms</source>
+            <translation>{count} ms</translation>
+        </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} s</translation>
+        </message>
+        <message>
+            <source>{minutes} min</source>
+            <translation>{minutes} min</translation>
+        </message>
+        <message>
+            <source>{minutes} min {seconds} s</source>
+            <translation>{minutes} min {seconds} s</translation>
+        </message>
+        <message>
+            <source>It adds the layer to the existing GeoPackage {path}.</source>
+            <translation>Het voegt de laag toe aan de bestaande GeoPackage {path}.</translation>
+        </message>
+        <message>
+            <source>It creates the GeoPackage {path}.</source>
+            <translation>Het maakt de GeoPackage {path} aan.</translation>
+        </message>
+        <message>
+            <source>It creates the file {path}.</source>
+            <translation>Het maakt het bestand {path} aan.</translation>
+        </message>
+        <message>
+            <source>It replaces the file {path}.</source>
+            <translation>Het vervangt het bestand {path}.</translation>
+        </message>
+        <message>
+            <source>It replaces the layer's table in the existing GeoPackage {path}.</source>
+            <translation>Het vervangt de tabel van de laag in de bestaande GeoPackage {path}.</translation>
+        </message>
+        <message>
+            <source>It writes the layer into the project's GeoPackage.</source>
+            <translation>Het schrijft de laag naar de GeoPackage van het project.</translation>
+        </message>
+        <message>
+            <source>That file is also its input: the original is overwritten.</source>
+            <translation>Dat bestand is ook de invoer ervan: het origineel wordt overschreven.</translation>
+        </message>
+        <message>
+            <source>The input is only read, not changed.</source>
+            <translation>De invoer wordt alleen gelezen, niet gewijzigd.</translation>
+        </message>
+        <message>
+            <source>The project then uses the saved copy; the original file is not changed.</source>
+            <translation>Het project gebruikt vervolgens de opgeslagen kopie; het originele bestand wordt niet gewijzigd.</translation>
+        </message>
+        <message>
+            <source>The result is a new temporary layer; no file is written.</source>
+            <translation>Het resultaat is een nieuwe tijdelijke laag; er wordt geen bestand geschreven.</translation>
+        </message>
+        <message>
+            <source>This algorithm has no output of its own: it changes its input in place.</source>
+            <translation>Dit algoritme heeft geen eigen uitvoer: het past de invoer direct aan.</translation>
+        </message>
+        <message>
+            <location filename="src/tools/harvest_project.py" />
+            <source>Run SQL on {connection}</source>
+            <translation>SQL uitvoeren op {connection}</translation>
+        </message>
+        <message>
+            <source>%n results</source>
+            <translation>%n resultaten</translation>
+        </message>
+        <message>
+            <source>1 layer won't come back: {names}</source>
+            <translation>1 laag komt niet terug: {names}</translation>
+        </message>
+        <message>
+            <source>1 result</source>
+            <translation>1 resultaat</translation>
+        </message>
+        <message>
+            <source>Categories</source>
+            <translation>Categorieën</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS, outside the agent.</source>
+            <translation>Wijzigingen die in QGIS zijn gemaakt, buiten de agent.</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Databronnen</translation>
+        </message>
+        <message>
+            <source>Data: {names}</source>
+            <translation>Gegevens: {names}</translation>
+        </message>
+        <message>
+            <source>Go back to an earlier version of your project</source>
+            <translation>Terug naar een eerdere versie van je project</translation>
+        </message>
+        <message>
+            <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
+            <translation>Teruggaan brengt het project en elke laag met een back-up terug. Deze lagen houden de gegevens die ze nu hebben:</translation>
+        </message>
+        <message>
+            <source>Good to know</source>
+            <translation>Goed om te weten</translation>
+        </message>
+        <message>
+            <source>Information</source>
+            <translation>Informatie</translation>
+        </message>
+        <message>
+            <source>Inspect {raster} for georeferencing</source>
+            <translation>{raster} inspecteren op georeferentie</translation>
+        </message>
+        <message>
+            <source>Next</source>
+            <translation>Volgende</translation>
+        </message>
+        <message>
+            <source>Previous</source>
+            <translation>Vorige</translation>
+        </message>
+        <message>
+            <source>Put back brings the project to where this request left it.</source>
+            <translation>Terugzetten brengt het project terug naar waar dit verzoek het achterliet.</translation>
+        </message>
+        <message>
+            <source>Put it back</source>
+            <translation>Terugzetten</translation>
+        </message>
+        <message>
+            <source>Read a web page</source>
+            <translation>Een webpagina lezen</translation>
+        </message>
+        <message>
+            <source>Read data from a web page</source>
+            <translation>Gegevens van een webpagina lezen</translation>
+        </message>
+        <message>
+            <source>Real tasks the agent runs from one sentence. Open one to see its prompt.</source>
+            <translation>Echte taken die de agent uitvoert op basis van één zin. Open er een om de prompt te zien.</translation>
+        </message>
+        <message>
+            <source>Restore puts the project back as this request left it.</source>
+            <translation>Herstellen zet het project terug zoals dit verzoek het achterliet.</translation>
+        </message>
+        <message>
+            <source>Sample data included</source>
+            <translation>Voorbeelddata inbegrepen</translation>
+        </message>
+        <message>
+            <source>Sample file</source>
+            <translation>Voorbeeldbestand</translation>
+        </message>
+        <message>
+            <source>Search examples</source>
+            <translation>Voorbeelden zoeken</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>Alles zien</translation>
+        </message>
+        <message>
+            <source>Steps</source>
+            <translation>Stappen</translation>
+        </message>
+        <message>
+            <source>Undo puts the project back as it was before this request.</source>
+            <translation>Ongedaan maken zet het project terug zoals het was vóór dit verzoek.</translation>
+        </message>
+        <message>
+            <source>Undo the agent's last request</source>
+            <translation>Het laatste verzoek van de agent ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Use this example</source>
+            <translation>Dit voorbeeld gebruiken</translation>
+        </message>
+        <message>
+            <source>Write the report {title}</source>
+            <translation>Het rapport {title} schrijven</translation>
+        </message>
+        <message>
+            <source>{layer} ({reason})</source>
+            <translation>{layer} ({reason})</translation>
+        </message>
+        <message>
+            <source>{n} layers won't come back: {names}</source>
+            <translation>{n} lagen komen niet terug: {names}</translation>
+        </message>
+        <message>
+            <source>• {layer}: {reason}</source>
+            <translation>• {layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>Een label van de lay-out {layout_name} wijzigen</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>Een kaart van de lay-out {layout_name} wijzigen</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>Een noordpijl van de lay-out {layout_name} wijzigen</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>Een schaalbalk van de lay-out {layout_name} wijzigen</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>Het laatste bericht in de wachtrij bewerken</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>In een leeg vak</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>Een bericht in de wachtrij zetten</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>Eén item uit de lay-out {layout_name} verwijderen</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>Wordt verzonden wanneer de agent klaar is</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} is geïnstalleerd.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} is geïnstalleerd. Start QGIS opnieuw om het te gebruiken.</translation>
+        </message>
+        <message>
+            <location filename="src/tools/core_tools.py" />
+            <source>Search the processing tools[ for {search}]</source>
+            <translation>Zoeken in de Processing-tools[ naar {search}]</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {feature}</source>
+            <translation>{feature} installeren</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {package}</source>
+            <translation>{package} installeren</translation>
+        </message>
+        <message>
+            <source>1 feature</source>
+            <translation>1 object</translation>
+        </message>
+        <message>
+            <source>1 field</source>
+            <translation>1 veld</translation>
+        </message>
+        <message>
+            <source>1 file</source>
+            <translation>1 bestand</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 laag</translation>
+        </message>
+        <message>
+            <source>1 row</source>
+            <translation>1 rij</translation>
+        </message>
+        <message>
+            <source>Add {name}[ from {source}]</source>
+            <translation>{name} toevoegen[ uit {source}]</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed.</source>
+            <translation>Herstel wat dit verzoek heeft gewijzigd.</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} around {INPUT}</source>
+            <translation>Buffer van {DISTANCE} rond {INPUT}</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} on one side of {INPUT}</source>
+            <translation>Buffer van {DISTANCE} aan één kant van {INPUT}</translation>
+        </message>
+        <message>
+            <source>Centroids of {INPUT}</source>
+            <translation>Centroïden van {INPUT}</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to an extent</source>
+            <translation>{INPUT} bijsnijden tot een extent</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {MASK}</source>
+            <translation>{INPUT} bijsnijden tot {MASK}</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {OVERLAY}</source>
+            <translation>{INPUT} bijsnijden tot {OVERLAY}</translation>
+        </message>
+        <message>
+            <source>Compute {FIELD_NAME} in {INPUT}</source>
+            <translation>{FIELD_NAME} berekenen in {INPUT}</translation>
+        </message>
+        <message>
+            <source>Contours of {INPUT}[ every {INTERVAL}]</source>
+            <translation>Hoogtelijnen van {INPUT}[ om de {INTERVAL}]</translation>
+        </message>
+        <message>
+            <source>Copy a report of this problem, then paste it into an email to us.</source>
+            <translation>Kopieer een rapport van dit probleem en plak het in een e-mail aan ons.</translation>
+        </message>
+        <message>
+            <source>Copy report</source>
+            <translation>Rapport kopiëren</translation>
+        </message>
+        <message>
+            <source>Count {POINTS} in each feature of {POLYGONS}</source>
+            <translation>Tel {POINTS} in elk object van {POLYGONS}</translation>
+        </message>
+        <message>
+            <source>Dissolve {INPUT}[ by {FIELD}]</source>
+            <translation>{INPUT} oplossen[ op {FIELD}]</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}</source>
+            <translation>Objecten van {INPUT} extraheren</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT} by location</source>
+            <translation>Objecten van {INPUT} extraheren op locatie</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}[ by {FIELD}]</source>
+            <translation>Objecten van {INPUT} extraheren[ op {FIELD}]</translation>
+        </message>
+        <message>
+            <source>Fix the geometries of {INPUT}</source>
+            <translation>Geometrieën van {INPUT} repareren</translation>
+        </message>
+        <message>
+            <source>Get {what}</source>
+            <translation>{what} ophalen</translation>
+        </message>
+        <message>
+            <source>Heatmap of {INPUT}[ with a radius of {RADIUS}]</source>
+            <translation>Heatmap van {INPUT}[ met een straal van {RADIUS}]</translation>
+        </message>
+        <message>
+            <source>Hillshade of {INPUT}</source>
+            <translation>Schaduwrelief van {INPUT}</translation>
+        </message>
+        <message>
+            <source>Intersect {INPUT} with {OVERLAY}</source>
+            <translation>{INPUT} snijden met {OVERLAY}</translation>
+        </message>
+        <message>
+            <source>Join {INPUT_2} to {INPUT}</source>
+            <translation>{INPUT_2} koppelen aan {INPUT}</translation>
+        </message>
+        <message>
+            <source>Join {JOIN} to {INPUT} by location</source>
+            <translation>{JOIN} op locatie koppelen aan {INPUT}</translation>
+        </message>
+        <message>
+            <source>Merge {LAYERS}</source>
+            <translation>{LAYERS} samenvoegen</translation>
+        </message>
+        <message>
+            <source>Open an email</source>
+            <translation>Open een e-mail</translation>
+        </message>
+        <message>
+            <source>Polygonize {INPUT}</source>
+            <translation>{INPUT} omzetten naar polygonen</translation>
+        </message>
+        <message>
+            <source>Rasterize {INPUT}</source>
+            <translation>{INPUT} rasteriseren</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map.</source>
+            <translation>Verwijder wat dit verzoek op de kaart heeft gewijzigd.</translation>
+        </message>
+        <message>
+            <source>Remove {OVERLAY} from {INPUT}</source>
+            <translation>{OVERLAY} verwijderen uit {INPUT}</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT} to {TARGET_CRS}</source>
+            <translation>{INPUT} herprojecteren naar {TARGET_CRS}</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT}[ to {TARGET_CRS}]</source>
+            <translation>{INPUT} herprojecteren[ naar {TARGET_CRS}]</translation>
+        </message>
+        <message>
+            <source>Run processing</source>
+            <translation>Verwerking uitvoeren</translation>
+        </message>
+        <message>
+            <source>Save it as a file</source>
+            <translation>Opslaan als bestand</translation>
+        </message>
+        <message>
+            <source>Simplify {INPUT}[ with a tolerance of {TOLERANCE}]</source>
+            <translation>{INPUT} vereenvoudigen[ met een tolerantie van {TOLERANCE}]</translation>
+        </message>
+        <message>
+            <source>Slope of {INPUT}</source>
+            <translation>Helling van {INPUT}</translation>
+        </message>
+        <message>
+            <source>Smooth {INPUT}</source>
+            <translation>{INPUT} afvlakken</translation>
+        </message>
+        <message>
+            <source>Split {INPUT} into single parts</source>
+            <translation>{INPUT} splitsen in enkelvoudige delen</translation>
+        </message>
+        <message>
+            <source>Statistics of {INPUT_RASTER} in each feature of {INPUT}</source>
+            <translation>Statistieken van {INPUT_RASTER} in elk object van {INPUT}</translation>
+        </message>
+        <message>
+            <source>The agent reads it at its next step</source>
+            <translation>De agent leest het bij zijn volgende stap</translation>
+        </message>
+        <message>
+            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
+            <translation>Dit gesprek: je berichten, elke stap die de AI zette en wat die vond, en technische details over QGIS en de plug-in. Nooit je wachtwoorden, je aanmelding of de inhoud van je bestanden.</translation>
+        </message>
+        <message>
+            <source>Turn {INPUT} into lines</source>
+            <translation>{INPUT} omzetten naar lijnen</translation>
+        </message>
+        <message>
+            <source>Union of {INPUT}[ and {OVERLAY}]</source>
+            <translation>Unie van {INPUT}[ en {OVERLAY}]</translation>
+        </message>
+        <message>
+            <source>Voronoi polygons of {INPUT}</source>
+            <translation>Voronoi-polygonen van {INPUT}</translation>
+        </message>
+        <message>
+            <source>What is included</source>
+            <translation>Wat is inbegrepen</translation>
+        </message>
+        <message>
+            <source>{algorithm} on {layer}</source>
+            <translation>{algorithm} op {layer}</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} objecten</translation>
+        </message>
+        <message>
+            <source>{n} fields</source>
+            <translation>{n} velden</translation>
+        </message>
+        <message>
+            <source>{n} files</source>
+            <translation>{n} bestanden</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} lagen</translation>
+        </message>
+        <message>
+            <source>{n} results</source>
+            <translation>{n} resultaten</translation>
+        </message>
+        <message>
+            <source>{n} rows</source>
+            <translation>{n} rijen</translation>
+        </message>
+        <message>
+            <source>{tool} on {layer}</source>
+            <translation>{tool} op {layer}</translation>
+        </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 laag toegevoegd</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 laag verwijderd</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Beschikbaar zodra de agent klaar is</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Wijzigingen gemaakt in QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>E-mailadres gekopieerd</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Categorieën verbergen</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Rapport gekopieerd</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Stuur ons een rapport, dan zoeken we het uit en lossen we het op.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Categorieën tonen</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Vertel ons wat er misging</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Plak het daarna in een e-mail aan:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>bestand dat de run schreef</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>geen back-up</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>ander project</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>tijdelijke laag</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} kan niet worden hersteld ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} en {n} meer</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} lagen toegevoegd</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} lagen kunnen niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} lagen gewijzigd</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} lagen verwijderd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/pictures.py" />
+            <source>After</source>
+            <translation>Na</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>Ask the agent</source>
+            <translation>Vraag het de agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/pictures.py" />
+            <source>Before</source>
+            <translation>Voor</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/slider.py" />
+            <source>Before and after comparison</source>
+            <translation>Vergelijking voor en na</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>Browse {group}</source>
+            <translation>{group} bekijken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>Clear search</source>
+            <translation>Zoekopdracht wissen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/slider.py" />
+            <source>Divider at {n}%</source>
+            <translation>Scheidingslijn op {n}%</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/slider.py" />
+            <source>Enlarge</source>
+            <translation>Vergroten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>No example matches these words. The agent may still do it.</source>
+            <translation>Geen voorbeeld past bij deze woorden. De agent kan het misschien toch doen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/parts.py" />
+            <source>No results for “{q}”</source>
+            <translation>Geen resultaten voor “{q}”</translation>
+        </message>
+        <message>
+            <location filename="src/ui/markdown_view.py" />
+            <source>Open this link?</source>
+            <translation>Deze link openen?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/markdown_view.py" />
+            <source>This link opens a page on {host}.</source>
+            <translation>Deze link opent een pagina op {host}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Add an OpenStreetMap basemap</source>
+            <translation>Een OpenStreetMap-basiskaart toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Buffer {layer} by 100 m into a new layer</source>
+            <translation>{layer} met 100 m bufferen naar een nieuwe laag</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Check the geometry validity of {layer}</source>
+            <translation>De geometrische geldigheid van {layer} controleren</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Clip {layer} to the selection</source>
+            <translation>{layer} op de selectie uitsnijden</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Count {points} per {polygons}</source>
+            <translation>{points} per {polygons} tellen</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Describe the layers in this project</source>
+            <translation>De lagen in dit project beschrijven</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Describe the raster bands and their value range</source>
+            <translation>De rasterbanden en hun waardebereik beschrijven</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Detect buildings with AI Segmentation</source>
+            <translation>Gebouwen detecteren met AI Segmentation</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Export a map layout of the current view</source>
+            <translation>Een kaartlay-out van de huidige weergave exporteren</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Load a dataset from a file or a URL</source>
+            <translation>Een dataset uit een bestand of URL laden</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Load a vector dataset to work with</source>
+            <translation>Een vectordataset laden om mee te werken</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Raster</source>
+            <translation>Raster</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Sample the elevation at the selected points</source>
+            <translation>De hoogte op de geselecteerde punten bemonsteren</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Style {layer} by {field}</source>
+            <translation>{layer} op basis van {field} opmaken</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Style {layer} with a categorized renderer</source>
+            <translation>{layer} met een gecategoriseerde renderer opmaken</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>Table</source>
+            <translation>Tabel</translation>
+        </message>
+        <message>
+            <location filename="src/core/context.py" />
+            <source>What can you do in this project?</source>
+            <translation>Wat kun je in dit project doen?</translation>
+        </message>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGIS draait niet</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>Tonen in QGIS</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>Getoond in QGIS</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentDock</name>
+        <message>
+            <location filename="src/ui/dock/widget.py" />
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLayerMime</name>
+        <message>
+            <location filename="src/core/layer_mime.py" />
+            <source>Layer</source>
+            <translation>Laag</translation>
+        </message>
+        <message>
+            <location filename="src/core/layer_mime.py" />
+            <source>{geometry} layer</source>
+            <translation>{geometry}laag</translation>
+        </message>
+        <message>
+            <location filename="src/core/layer_mime.py" />
+            <source>{kind}, 1 feature</source>
+            <translation>{kind}, 1 object</translation>
+        </message>
+        <message>
+            <location filename="src/core/layer_mime.py" />
+            <source>{kind}, {count} features</source>
+            <translation>{kind}, {count} objecten</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLocatorFilter</name>
+        <message>
+            <location filename="src/ui/locator.py" />
+            <source>Ask AI Agent</source>
+            <translation>Vraag AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/locator.py" />
+            <source>Ask AI Agent: {text}</source>
+            <translation>Vraag AI Agent: {text}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/locator.py" />
+            <source>Opens the panel with this question ready to send</source>
+            <translation>Opent het paneel met deze vraag klaar om te verzenden</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentOptionsPage</name>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>AI Agent by TerraLab drives QGIS in plain language: load data, style layers, run analyses, build layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent by TerraLab bestuurt QGIS in gewone taal: gegevens laden, lagen opmaken, analyses uitvoeren, layouts maken. Hij vraagt eerst om toestemming bij risicovolle wijzigingen en je kunt een run ongedaan maken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>AI Agent settings...</source>
+            <translation>Instellingen van AI Agent...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>Open AI Agent</source>
+            <translation>AI Agent openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
+            <translation>Open het paneel met Ctrl+Alt+A, of typ “ai” gevolgd door een vraag in de locatiebalk (Ctrl+K). Klik met rechts op een laag, een object of de kaart om er een vraag over te stellen.</translation>
+        </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent van TerraLab is je AI-agent in QGIS: hij laadt gegevens, maakt lagen op, voert analyses uit en stelt lay-outs samen. Hij vraagt toestemming vóór risicovolle wijzigingen en je kunt een uitvoering ongedaan maken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/options_page.py" />
+            <source>Open the panel with {key}, or type "ai" followed by a question in the locator bar ({locator}). Right-click a layer, a feature or the map to ask about it.</source>
+            <translation>Open het paneel met {key}, of typ “ai” gevolgd door een vraag in de locatiebalk ({locator}). Klik met rechts op een laag, een object of de kaart om er een vraag over te stellen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentPlugin</name>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>AI Agent could not open its panel: {error}</source>
+            <translation>AI Agent kon het paneel niet openen: {error}</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>Drive QGIS in plain language</source>
+            <translation>QGIS in gewone taal bedienen</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>Open the AI Agent panel and drive QGIS in plain language.</source>
+            <translation>Open het AI Agent-paneel en bedien QGIS in gewone taal.</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>QGIS could not open that layer: {error}</source>
+            <translation>QGIS kon die laag niet openen: {error}</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>Refreshing AI Agent settings</source>
+            <translation>De instellingen van AI Agent vernieuwen</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>Sign in to see your account.</source>
+            <translation>Log in om je account te bekijken.</translation>
+        </message>
+        <message>
+            <location filename="src/plugin.py" />
+            <source>This layer is no longer in the project.</source>
+            <translation>Deze laag staat niet meer in het project.</translation>
+        </message>
+        <message>
+            <source>AI Agent could not open its settings: {error}</source>
+            <translation>AI Agent kon de instellingen niet openen: {error}</translation>
+        </message>
+        <message>
+            <source>AI Agent was updated while QGIS was running. Restart QGIS to open its settings.</source>
+            <translation>AI Agent is bijgewerkt terwijl QGIS actief was. Start QGIS opnieuw om de instellingen te openen.</translation>
+        </message>
+        <message>
+            <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
+            <translation>QGIS heeft het thema gewijzigd. Laad AI Agent opnieuw of start QGIS opnieuw, zodat het paneel het nieuwe thema overneemt.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Open het paneel van AI Agent: vraag om wat je maar wilt in QGIS en de agent doet het werk.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>De agent wacht op je goedkeuring.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Je AI-agent in QGIS</translation>
+        </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>De agent is klaar.</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>De agent wacht op je antwoord.</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>De agent is gestopt voordat hij klaar was.</translation>
+        </message>
+    </context>
+    <context>
+        <name>Account</name>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Cancelling sign-in</source>
+            <translation>Inloggen annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Checking your AI Agent subscription</source>
+            <translation>Je abonnement op AI Agent controleren</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Could not check your AI Agent account. If this lasts, sign out and sign in again.</source>
+            <translation>Je account voor AI Agent kon niet worden gecontroleerd. Blijft dit gebeuren, log dan uit en weer in.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Could not delete your account. Try again, or delete it from terra-lab.ai.</source>
+            <translation>Je account kon niet worden verwijderd. Probeer het opnieuw, of verwijder het op terra-lab.ai.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Deleting your TerraLab account</source>
+            <translation>Je TerraLab-account verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Loading the TerraLab account</source>
+            <translation>Het TerraLab-account laden</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Opening your TerraLab account</source>
+            <translation>Je TerraLab-account openen</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>QGIS could not open a browser. Open this address to finish signing in, then come back here. It works once:
+{}</source>
+            <translation>QGIS kon geen browser openen. Open dit adres om het inloggen af te ronden en kom daarna hier terug. Het adres werkt maar één keer:
+{}</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>QGIS could not open a browser. The sign-in address is copied to your clipboard: paste it into a browser to finish, then come back here. It works once.</source>
+            <translation>QGIS kon geen browser openen. Het inlogadres is naar je klembord gekopieerd. Plak het in een browser om het inloggen af te ronden en kom daarna hier terug. Het adres werkt maar één keer.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Session expired. Sign in again to continue.</source>
+            <translation>De sessie is verlopen. Log opnieuw in om door te gaan.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Sign in first, then you can delete your account.</source>
+            <translation>Log eerst in, daarna kun je je account verwijderen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Sign in to see your account.</source>
+            <translation>Log in om je account te bekijken.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Sign-in timed out. Click Sign in to try again.</source>
+            <translation>Time-out bij het inloggen. Klik op “Inloggen” om het opnieuw te proberen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Signed in.</source>
+            <translation>Ingelogd.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Still waiting for the sign-in page. If no browser opened, or the page shows an error, click Cancel and try again.</source>
+            <translation>Nog steeds wachten op de inlogpagina. Als er geen browser is geopend of de pagina een fout toont, klik dan op “Annuleren” en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>That address does not match the account. Nothing was deleted.</source>
+            <translation>Dat adres hoort niet bij dit account. Er is niets verwijderd.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>There's a problem with your subscription. Open your TerraLab dashboard to update your payment method.</source>
+            <translation>Er is een probleem met je abonnement. Open je TerraLab-dashboard om je betaalmethode bij te werken.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>This account is already scheduled for deletion. Everything is erased for good on {date}. Sign in on terra-lab.ai to cancel it.</source>
+            <translation>Dit account staat al gepland voor verwijdering. Alles wordt definitief gewist op {date}. Log in op terra-lab.ai om het te annuleren.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>This account is already scheduled for deletion. Sign in on terra-lab.ai to cancel it.</source>
+            <translation>Dit account staat al gepland voor verwijdering. Log in op terra-lab.ai om het te annuleren.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>This computer is not signed in to that account. Sign in again, then delete it.</source>
+            <translation>Op deze computer ben je niet ingelogd met dat account. Log opnieuw in en verwijder het daarna.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>This sign-in code has expired. Click Cancel, then Sign in to get a new one.</source>
+            <translation>Deze inlogcode is verlopen. Klik op “Annuleren” en daarna op “Inloggen” om een nieuwe code te krijgen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Too many attempts. Wait a moment, then try again.</source>
+            <translation>Te veel pogingen. Wacht even en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Too many attempts. Wait {n} seconds, then try again.</source>
+            <translation>Te veel pogingen. Wacht {n} seconden en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Waiting for the sign-in page in your browser...</source>
+            <translation>Wachten op de aanmeldpagina in je browser...</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password.</source>
+            <translation>Je bent aangemeld op deze computer, maar QGIS kan je aanmelding pas lezen nadat je het hoofdwachtwoord hebt ingevoerd.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>You can also open this address by hand:
+{}</source>
+            <translation>Je kunt dit adres ook handmatig openen:
+{}</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Your account is scheduled for deletion. Everything is erased for good on {date}. Until then, sign in on terra-lab.ai to cancel it.</source>
+            <translation>Je account staat gepland voor verwijdering. Alles wordt definitief gewist op {date}. Tot die tijd kun je op terra-lab.ai inloggen om de verwijdering te annuleren.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Your account is scheduled for deletion. Until the grace period ends, sign in on terra-lab.ai to cancel it.</source>
+            <translation>Je account staat gepland voor verwijdering. Zolang de wachtperiode loopt, kun je op terra-lab.ai inloggen om de verwijdering te annuleren.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Your plan is already running on its maximum number of computers. Close AI Agent on one of them, then try again.</source>
+            <translation>Je abonnement wordt al gebruikt op het maximale aantal computers. Sluit AI Agent op een van die computers en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
+            <translation>Je abonnement is niet actief. Open je TerraLab-dashboard en probeer het daarna opnieuw.</translation>
+        </message>
+        <message>
+            <source>Could not load account usage.</source>
+            <translation>Het laden van het accountgebruik is niet gelukt.</translation>
+        </message>
+        <message>
+            <source>Unexpected response from the server. Please try again.</source>
+            <translation>Onverwachte reactie van de server. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password. Click Sign in to enter it.</source>
+            <translation>Je bent op deze computer ingelogd, maar QGIS kan je inloggegevens pas lezen nadat je het hoofdwachtwoord hebt ingevoerd. Klik op “Inloggen” om het in te voeren.</translation>
+        </message>
+        <message>
+            <source>Opening the checkout</source>
+            <translation>De afrekenpagina openen</translation>
+        </message>
+        <message>
+            <source>Signed in (from {}).</source>
+            <translation>Ingelogd (via {}).</translation>
+        </message>
+        <message>
+            <source>Signed in as {} (from {}).</source>
+            <translation>Ingelogd als {} (via {}).</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>Geen verbinding met terra-lab.ai. Nog steeds aan het proberen...</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Kan TerraLab niet bereiken. Nieuwe poging.</translation>
+        </message>
+        <message>
+            <source>Link copied: paste it in your browser.</source>
+            <translation>Link gekopieerd: plak hem in je browser.</translation>
+        </message>
+        <message>
+            <source>Still waiting for the sign-in page. No browser? Click Open browser: it also copies the link, to paste in your browser.</source>
+            <translation>Nog steeds wachten op de aanmeldpagina. Geen browser? Klik op Browser openen: dat kopieert ook de link, om in je browser te plakken.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountSettingsDialog</name>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Account settings</source>
+            <translation>Accountinstellingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Book a call</source>
+            <translation>Een gesprek boeken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Copy email</source>
+            <translation>E-mail kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Could not load your account. Try again in a moment.</source>
+            <translation>Je account kon niet worden geladen. Probeer het over enkele ogenblikken opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
+            <translation>TerraLab kon niet worden bereikt. Controleer je internetverbinding en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Custom quota, team seats, invoices, or a custom AI solution.</source>
+            <translation>Aangepaste quota, teamplaatsen, facturen of een aangepaste AI-oplossing.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, lifecycle and counts only, no content.</source>
+            <translation>Fouten, versies en welke functies je gebruikt, gekoppeld aan je account. Nooit je prompts, je lagen, je coördinaten of je bestanden. Op Pro alleen levenscyclus en aantallen, geen inhoud.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Free plan</source>
+            <translation>Gratis abonnement</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Loading account info...</source>
+            <translation>Accountgegevens laden...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Manage account</source>
+            <translation>Account beheren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Need more than Pro?</source>
+            <translation>Meer nodig dan Pro?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Opens terra-lab.ai in your browser.</source>
+            <translation>Opent terra-lab.ai in je browser.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Opens your terra-lab.ai account in the browser.</source>
+            <translation>Opent je terra-lab.ai-account in de browser.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Opens your terra-lab.ai dashboard in the browser.</source>
+            <translation>Opent je terra-lab.ai-dashboard in de browser.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Opens your terra-lab.ai dashboard: your plan, your runs and your payment details.</source>
+            <translation>Opent je terra-lab.ai-dashboard met je abonnement, uitvoeringen en betaalgegevens.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Personal, non-commercial use. A paid plan adds commercial use for one person.</source>
+            <translation>Persoonlijk, niet-commercieel gebruik. Een betaald abonnement voegt commercieel gebruik voor één persoon toe.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Privacy</source>
+            <translation>Privacy</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Pro plan</source>
+            <translation>Pro-abonnement</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Resets {date}</source>
+            <translation>Wordt opnieuw ingesteld op {date}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Retry</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Share usage statistics with TerraLab</source>
+            <translation>Gebruiksstatistieken delen met TerraLab</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Sign out</source>
+            <translation>Afmelden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Sign out of AI Agent?</source>
+            <translation>Afmelden bij AI Agent?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Terms</source>
+            <translation>Voorwaarden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>There's a problem with your subscription. Your last payment may have failed. Open your account to update your payment method or review your plan.</source>
+            <translation>Er is een probleem met je abonnement. Je laatste betaling is mogelijk mislukt. Open je account om je betaalmethode bij te werken of je abonnement te bekijken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
+            <translation>Deze computer is niet meer aangemeld. Meld je af en daarna opnieuw aan om de verbinding te herstellen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Update payment method</source>
+            <translation>Betaalmethode bijwerken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>Working in a team?</source>
+            <translation>Werk je in een team?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>You can sign back in anytime from QGIS.</source>
+            <translation>Je kunt je op elk moment opnieuw aanmelden vanuit QGIS.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>{used} of {limit} runs used this month</source>
+            <translation>{used} van {limit} uitvoeringen deze maand gebruikt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/account_settings_dialog.py" />
+            <source>{used} runs this month</source>
+            <translation>{used} uitvoeringen deze maand</translation>
+        </message>
+    </context>
+    <context>
+        <name>ActivationCard</name>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Account</source>
+            <translation>Account</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Did nothing open? Open the sign-in page again</source>
+            <translation>Is er niets geopend? Open de inlogpagina opnieuw</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Drive QGIS in plain language</source>
+            <translation>QGIS in gewone taal bedienen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Finish the sign-in in your browser, then come back here.</source>
+            <translation>Rond het inloggen af in je browser en kom daarna hier terug.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Open browser</source>
+            <translation>Browser openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Sign in / Sign up to start</source>
+            <translation>Inloggen / Account aanmaken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Sign in again</source>
+            <translation>Opnieuw inloggen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Sign in via your browser to start using AI Agent</source>
+            <translation>Log in via je browser om AI Agent te gaan gebruiken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
+            <translation>Vraag de AI daarna van alles: gegevens laden, lagen opmaken, analyses uitvoeren, objecten bewerken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Type this code in the browser if it asks for one</source>
+            <translation>Voer deze code in de browser in als daarom wordt gevraagd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Waiting for your browser sign-in...</source>
+            <translation>Wachten tot je inlogt in je browser...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>You are signed in.</source>
+            <translation>Je bent ingelogd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Your browser asks for this code.</source>
+            <translation>Je browser vraagt om deze code.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py" />
+            <source>Your sign-in is no longer valid on this computer.</source>
+            <translation>Je login is niet meer geldig op deze computer.</translation>
+        </message>
+        <message>
+            <source>Signing up is free and takes 15 seconds, in your browser.</source>
+            <translation>Een account aanmaken is gratis en duurt 15 seconden in je browser.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Je AI-agent in QGIS</translation>
+        </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>De browserpagina zou de code {code} moeten tonen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ActivityRow</name>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>1 feature</source>
+            <translation>1 object</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>did not work</source>
+            <translation>mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>{n} features</source>
+            <translation>{n} objecten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>denied</source>
+            <translation>geweigerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>stopped</source>
+            <translation>gestopt</translation>
+        </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} van {total} mislukt</translation>
+        </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>1 result</source>
+            <translation>1 resultaat</translation>
+        </message>
+        <message>
+            <source>{n} results</source>
+            <translation>{n} resultaten</translation>
+        </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} s</translation>
+        </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Verberg de poging die niet werkte</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Verberg de {n} pogingen die niet werkten</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Toon de poging die niet werkte</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Toon de {n} pogingen die niet werkten</translation>
+        </message>
+    </context>
+    <context>
+        <name>AgentBubble</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Agent</source>
+            <translation>Agent</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Ongedaan gemaakt</translation>
+        </message>
+        <message>
+            <source>Put back</source>
+            <translation>Terugzetten</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
+        </message>
+        <message>
+            <source>Also undoes the later request</source>
+            <translation>Maakt ook het latere verzoek ongedaan</translation>
+        </message>
+        <message>
+            <source>Also undoes the {n} later requests</source>
+            <translation>Maakt ook de {n} latere verzoeken ongedaan</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>Ga hier terug</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Wijzigingen opnieuw toepassen</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Wijzigingen ongedaan maken</translation>
+        </message>
+    </context>
+    <context>
+        <name>AgentController</name>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>A run is in progress. Stop it or wait for it to finish.</source>
+            <translation>Er loopt een uitvoering. Stop die of wacht tot ze klaar is.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>AI Agent run failed.</source>
+            <translation>De uitvoering van AI Agent is mislukt.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>AI Agent run finished.</source>
+            <translation>De uitvoering van AI Agent is voltooid.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Add a data file</source>
+            <translation>Bestand toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Back to after run {n}</source>
+            <translation>Terug naar na uitvoering {n}</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Back to before run {n}</source>
+            <translation>Terug naar voor uitvoering {n}</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Back to your edits after run {n}</source>
+            <translation>Terug naar jouw bewerkingen na uitvoering {n}</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Connection lost. Reconnecting...</source>
+            <translation>Verbinding verbroken. Opnieuw verbinden...</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Data files (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;All files (*)</source>
+            <translation>Databestanden (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;Alle bestanden (*)</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>No layer, feature or file changed</source>
+            <translation>Geen laag, object of bestand gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>Volgorde van lagen of groepen gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Not connected to the agent service yet. Reconnecting, retry in a moment.</source>
+            <translation>Nog niet verbonden met de agents service. Opnieuw verbinden. Probeer het over enkele ogenblikken opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Nothing to add: open a layer first.</source>
+            <translation>Niets toe te voegen: open eerst een laag.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Nothing to discard: this chat changed nothing yet.</source>
+            <translation>Niets te verwerpen: deze chat heeft nog niets gewijzigd.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Nothing to undo.</source>
+            <translation>Niets om ongedaan te maken.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Sign-in page open, waiting for you...</source>
+            <translation>Inlogpagina geopend. Wachten op jou...</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Sign-in timed out. Try again.</source>
+            <translation>Time-out bij het inloggen. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Signed in to TerraLab.</source>
+            <translation>Ingelogd bij TerraLab.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Stop the current run before going back.</source>
+            <translation>Stop de huidige uitvoering voordat je teruggaat.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Stop the current run before starting a new chat.</source>
+            <translation>Stop de huidige uitvoering voordat je een nieuwe chat start.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Stop the current run before switching chats.</source>
+            <translation>Stop de huidige uitvoering voordat je van chat wisselt.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Stopping...</source>
+            <translation>Stoppen...</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>The agent service reported an error.</source>
+            <translation>De agentservice heeft een fout gemeld.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>The agent service stopped answering. The run was ended, you can retry it.</source>
+            <translation>De agentservice reageert niet meer. De uitvoering is beëindigd. Je kunt het opnieuw proberen.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>The message could not be sent.</source>
+            <translation>Het bericht kon niet worden verzonden.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>The user dismissed the proposal.</source>
+            <translation>De gebruiker heeft het voorstel afgewezen.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This chat is gone.</source>
+            <translation>Deze chat is verdwenen.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>This plugin build cannot show that card.</source>
+            <translation>Deze build van de plugin kan dat onderdeel niet tonen.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This state is no longer available.</source>
+            <translation>Deze status is niet langer beschikbaar.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>You have used every run of this period.</source>
+            <translation>Je hebt alle uitvoeringen voor deze periode gebruikt.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Retry once the connection is back.</source>
+            <translation>Niet verbonden met de agentservice. Probeer het opnieuw zodra de verbinding terug is.</translation>
+        </message>
+        <message>
+            <source>Reconnected. Waiting for the agent service to resume the run...</source>
+            <translation>Opnieuw verbonden. Wachten tot de agentservice de uitvoering hervat...</translation>
+        </message>
+        <message>
+            <source>The connection dropped and the agent service no longer has this run. You can retry it.</source>
+            <translation>De verbinding is verbroken en de agentservice heeft deze uitvoering niet meer. Je kunt het opnieuw proberen.</translation>
+        </message>
+        <message>
+            <source>The run ended without a summary from the agent service.</source>
+            <translation>De uitvoering eindigde zonder samenvatting van de agentservice.</translation>
+        </message>
+        <message>
+            <source>{name} could not be loaded. Check the file and try again.</source>
+            <translation>{name} kon niet worden geladen. Controleer het bestand en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Deleted 1 working layer</source>
+            <translation>1 werklaag verwijderd</translation>
+        </message>
+        <message>
+            <source>Deleted {n} working layers</source>
+            <translation>{n} werklagen verwijderd</translation>
+        </message>
+        <message>
+            <source>Kept 1 working layer</source>
+            <translation>1 werklaag behouden</translation>
+        </message>
+        <message>
+            <source>Kept {n} working layers</source>
+            <translation>{n} werklagen behouden</translation>
+        </message>
+        <message>
+            <source>The service is updating. Resuming...</source>
+            <translation>De service wordt bijgewerkt. Hervatten...</translation>
+        </message>
+        <message>
+            <source>Thinking...</source>
+            <translation>Nadenken...</translation>
+        </message>
+        <message>
+            <source>Tidied 1 working layer away</source>
+            <translation>1 werklaag opgeruimd</translation>
+        </message>
+        <message>
+            <source>Tidied {n} working layers away</source>
+            <translation>{n} werklagen opgeruimd</translation>
+        </message>
+        <message>
+            <source>Working layers</source>
+            <translation>Werklagen</translation>
+        </message>
+        <message>
+            <source>Basemaps here are limited without QuickMapServices.</source>
+            <translation>De basemaps zijn hier beperkt zonder QuickMapServices.</translation>
+        </message>
+        <message>
+            <source>Install it</source>
+            <translation>Installeer het</translation>
+        </message>
+        <message>
+            <source>It is the free QGIS plugin that carries the basemaps people mean by name, Google, Bing, Esri, CartoDB and about two hundred more. Installed, I use it on my own.</source>
+            <translation>Het is de gratis QGIS-plugin die de basemaps levert waar mensen bij naam naar verwijzen, Google, Bing, Esri, CartoDB en nog ongeveer tweehonderd andere. Eenmaal geïnstalleerd gebruik ik het zelf.</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Niet nu</translation>
+        </message>
+        <message>
+            <source>Opened the plugin manager</source>
+            <translation>Pluginmanager geopend</translation>
+        </message>
+        <message>
+            <source>Opened the plugin's page</source>
+            <translation>De pagina van de plugin geopend</translation>
+        </message>
+        <message>
+            <source>The plugin manager would not open</source>
+            <translation>De pluginmanager kon niet worden geopend</translation>
+        </message>
+        <message>
+            <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
+            <translation>Je wijzigingen vanaf dit punt konden niet worden opgeslagen, dus er is niets hersteld. Sla het project op en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Opnieuw verbonden. Controleren hoe de uitvoering is geëindigd...</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_frames.py" />
+            <source>QGIS stopped responding for a while during this run.</source>
+            <translation>QGIS reageerde een tijdje niet meer tijdens deze uitvoering.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_frames.py" />
+            <source>QGIS stopped responding for {n} seconds during this run.</source>
+            <translation>QGIS reageerde {n} seconden niet meer tijdens deze uitvoering.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>Stopped before the agent answered.</source>
+            <translation>Gestopt voordat de agent antwoordde.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Stopped: QGIS closed during this run.</source>
+            <translation>Gestopt: QGIS werd tijdens deze uitvoering gesloten.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_account.py" />
+            <source>Stopped: signed out.</source>
+            <translation>Gestopt: uitgelogd.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_projects.py" />
+            <source>Stopped: the project this run worked on was closed.</source>
+            <translation>Gestopt: het project waaraan deze uitvoering werkte, is gesloten.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_projects.py" />
+            <source>The AI Agent run stopped because its project was closed.</source>
+            <translation>De uitvoering van AI Agent is gestopt omdat het project is gesloten.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>The connection to the agent service was lost and did not come back. The run was ended, you can retry it once you are online.</source>
+            <translation>De verbinding met de agentservice is verbroken en niet hersteld. De uitvoering is beëindigd, je kunt het opnieuw proberen zodra je online bent.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>The message could not be sent. Retry, or reload the plugin if it keeps failing.</source>
+            <translation>Het bericht kon niet worden verzonden. Probeer het opnieuw, of laad de plugin opnieuw als dit blijft mislukken.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>This message can no longer be sent again.</source>
+            <translation>Dit bericht kan niet opnieuw worden verzonden.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
+            <translation>Dit punt hoort bij een niet-opgeslagen project dat is gesloten, dus het kan hier niet worden hersteld.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This point belongs to the project {name}. Open that project to go back to it.</source>
+            <translation>Dit punt hoort bij het project {name}. Open dat project om ernaar terug te gaan.</translation>
+        </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer in het project</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Terug naar {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Terug naar {point} is niet helemaal gelukt. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Geen resultaten</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Niet verbonden met de agentservice, dus er is niets verzonden. Er wordt nu opnieuw verbinding gemaakt: je bericht blijft bewaard en met “Opnieuw proberen” wordt het verzonden zodra de verbinding terug is.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>Toestemmingsmodus gewijzigd. Deze geldt vanaf de volgende actie.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>Toestemmingsmodus gewijzigd. Deze geldt vanaf de volgende actie; de openstaande vraag wacht nog op je antwoord.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>Het bericht kon niet worden verzonden: de verbinding met de agentservice is verbroken.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>na verzoek {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>na “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vóór verzoek {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>gegevens teruggezet in {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>het begin van deze chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>je eigen wijzigingen</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layers in het project</translation>
+        </message>
+        <message>
+            <source>Back to after “{request}”.</source>
+            <translation>Terug naar na “{request}”.</translation>
+        </message>
+        <message>
+            <source>Back to before “{request}”.</source>
+            <translation>Terug naar vóór “{request}”.</translation>
+        </message>
+        <message>
+            <source>Back to your own changes.</source>
+            <translation>Terug naar je eigen wijzigingen.</translation>
+        </message>
+        <message>
+            <source>Forward to after “{request}”.</source>
+            <translation>Vooruit naar na “{request}”.</translation>
+        </message>
+        <message>
+            <source>Forward to before “{request}”.</source>
+            <translation>Vooruit naar vóór “{request}”.</translation>
+        </message>
+        <message>
+            <source>Forward to your own changes.</source>
+            <translation>Vooruit naar je eigen wijzigingen.</translation>
+        </message>
+        <message>
+            <source>Put back</source>
+            <translation>Terugzetten</translation>
+        </message>
+        <message>
+            <source>Signed in (from {}).</source>
+            <translation>Ingelogd (via {}).</translation>
+        </message>
+        <message>
+            <source>Signed in as {} (from {}).</source>
+            <translation>Ingelogd als {} (via {}).</translation>
+        </message>
+        <message>
+            <source>Stop the current run before deleting this chat.</source>
+            <translation>Stop de huidige uitvoering voordat je deze chat verwijdert.</translation>
+        </message>
+        <message>
+            <source>Stopped. The run had not changed the project.</source>
+            <translation>Gestopt. De uitvoering had het project niet gewijzigd.</translation>
+        </message>
+        <message>
+            <source>Stopped. The version before this request is no longer kept, so nothing was put back.</source>
+            <translation>Gestopt. De versie vóór dit verzoek wordt niet langer bewaard, dus er is niets teruggezet.</translation>
+        </message>
+        <message>
+            <source>This file is no longer where the run wrote it.</source>
+            <translation>Dit bestand staat niet meer op de plek waar de uitvoering het heeft opgeslagen.</translation>
+        </message>
+        <message>
+            <source>This version is no longer kept.</source>
+            <translation>Deze versie wordt niet langer bewaard.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
+            <translation>Je niet-opgeslagen bewerkingen op {layer} konden niet worden opgeslagen, dus er is niets hersteld. Sla ze op of verwerp ze in QGIS en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>verzoek {n}</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} en nog {n} andere</translation>
+        </message>
+        <message>
+            <source>{names} didn't come back ({reason}).</source>
+            <translation>Niet teruggekomen: {names} ({reason}).</translation>
+        </message>
+        <message>
+            <source>{names} didn't come back.</source>
+            <translation>Niet teruggekomen: {names}.</translation>
+        </message>
+        <message>
+            <source>Brought back everything up to “{request}”.</source>
+            <translation>Alles tot en met “{request}” is hersteld.</translation>
+        </message>
+        <message>
+            <source>Brought back what “{request}” changed.</source>
+            <translation>Wat “{request}” wijzigde is hersteld.</translation>
+        </message>
+        <message>
+            <source>Moved 1 layer into {group}</source>
+            <translation>1 laag verplaatst naar {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} lagen verplaatst naar {group}</translation>
+        </message>
+        <message>
+            <source>No internet connection. Retrying.</source>
+            <translation>Geen internetverbinding. Nieuwe poging.</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Niet verbonden met TerraLab, dus er is niets verzonden. Er wordt nu opnieuw verbonden: je bericht blijft bewaard en Opnieuw proberen verstuurt het zodra de verbinding terug is.</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. Retry once the connection is back.</source>
+            <translation>Niet verbonden met TerraLab. Probeer opnieuw zodra de verbinding terug is.</translation>
+        </message>
+        <message>
+            <source>Reconnected. Waiting for TerraLab to resume the run...</source>
+            <translation>Opnieuw verbonden. Wachten tot TerraLab de run hervat...</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Removed what came after “{request}”.</source>
+            <translation>Wat na “{request}” kwam is verwijderd.</translation>
+        </message>
+        <message>
+            <source>Removed what “{request}” changed.</source>
+            <translation>Wat “{request}” wijzigde is verwijderd.</translation>
+        </message>
+        <message>
+            <source>Stopped. The version before this request is no longer kept, so nothing was undone.</source>
+            <translation>Gestopt. De versie van vóór dit verzoek wordt niet meer bewaard, dus er is niets ongedaan gemaakt.</translation>
+        </message>
+        <message>
+            <source>TerraLab is restarting. Your task will resume.</source>
+            <translation>TerraLab start opnieuw op. Je taak wordt hervat.</translation>
+        </message>
+        <message>
+            <source>TerraLab reported an error.</source>
+            <translation>TerraLab meldde een fout.</translation>
+        </message>
+        <message>
+            <source>TerraLab stopped answering. The run was ended, you can retry it.</source>
+            <translation>TerraLab antwoordt niet meer. De run is beëindigd, je kunt hem opnieuw proberen.</translation>
+        </message>
+        <message>
+            <source>The connection dropped and TerraLab no longer has this run. You can retry it.</source>
+            <translation>De verbinding viel weg en TerraLab heeft deze run niet meer. Je kunt hem opnieuw proberen.</translation>
+        </message>
+        <message>
+            <source>The connection to TerraLab was lost and did not come back. The run was ended, you can retry it once you are online.</source>
+            <translation>De verbinding met TerraLab is verbroken en kwam niet terug. De run is beëindigd, je kunt hem opnieuw proberen zodra je online bent.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to TerraLab is down.</source>
+            <translation>Het bericht kon niet worden verzonden: de verbinding met TerraLab ligt eruit.</translation>
+        </message>
+        <message>
+            <source>The run ended without a summary from TerraLab.</source>
+            <translation>De run eindigde zonder samenvatting van TerraLab.</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Afdruklay-outs gewijzigd</translation>
+        </message>
+    </context>
+    <context>
+        <name>AgentSession</name>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>A gateway blocked the connection (HTTP {code}). If this network shows a sign-in page, open it in your browser first.</source>
+            <translation>Een gateway heeft de verbinding geblokkeerd (HTTP {code}). Als dit netwerk een inlogpagina toont, open die dan eerst in je browser.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The agent service is unavailable right now (HTTP {code}).</source>
+            <translation>De agentservice is momenteel niet beschikbaar (HTTP {code}).</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The proxy asks for a login. Set the proxy user and password in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>De proxy vraagt om inloggegevens. Stel de gebruikersnaam en het wachtwoord voor de proxy in bij QGIS (Extra &gt; Opties &gt; Netwerk).</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The proxy refused the connection to the agent service.</source>
+            <translation>De proxy heeft de verbinding met de agentservice geweigerd.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The proxy set in QGIS (Settings &gt; Options &gt; Network) cannot be reached.</source>
+            <translation>De proxy die in QGIS is ingesteld (Extra &gt; Opties &gt; Netwerk) is niet bereikbaar.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server URL in the plugin settings is not valid.</source>
+            <translation>De server-URL in de instellingen van de plugin is ongeldig.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server certificate could not be verified. If your network inspects secure traffic, add its certificate in QGIS (Settings &gt; Options &gt; Authentication).</source>
+            <translation>Het servercertificaat kon niet worden geverifieerd. Als je netwerk beveiligd verkeer inspecteert, voeg het certificaat toe in QGIS (Extra &gt; Opties &gt; Authenticatie).</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server closed the connection ({code}).</source>
+            <translation>De server heeft de verbinding gesloten ({code}).</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server did not answer in time.</source>
+            <translation>De server heeft niet op tijd geantwoord.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server name could not be resolved. Check your internet connection.</source>
+            <translation>De servernaam kon niet worden omgezet naar een adres. Controleer je internetverbinding.</translation>
+        </message>
+        <message>
+            <location filename="src/core/session.py" />
+            <source>The server redirected the connection (HTTP {code}). Check the server URL in the plugin settings.</source>
+            <translation>De server heeft de verbinding omgeleid (HTTP {code}). Controleer de server-URL in de instellingen van de plugin.</translation>
+        </message>
+        <message>
+            <source>Session expired. Sign in again to continue.</source>
+            <translation>Sessie verlopen. Log opnieuw in om door te gaan.</translation>
+        </message>
+        <message>
+            <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
+            <translation>Deze versie van AI Agent wordt niet meer ondersteund. Werk de plugin bij om verder te gaan.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>De server van TerraLab reageert niet. We proberen het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Kan TerraLab niet bereiken. Nieuwe poging.</translation>
+        </message>
+        <message>
+            <source>TerraLab is unavailable right now (HTTP {code}).</source>
+            <translation>TerraLab is nu niet beschikbaar (HTTP {code}).</translation>
+        </message>
+        <message>
+            <source>The proxy refused the connection to TerraLab.</source>
+            <translation>De proxy weigerde de verbinding met TerraLab.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AttachCard</name>
+        <message>
+            <location filename="src/ui/attach_card.py" />
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
+        </message>
+    </context>
+    <context>
+        <name>AttachPopover</name>
+        <message>
+            <location filename="src/ui/attach_menu.py" />
+            <source>Add photos &amp; files</source>
+            <translation>Foto's &amp; bestanden toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/attach_menu.py" />
+            <source>Attach a layer of this project</source>
+            <translation>Een laag van dit project toevoegen</translation>
+        </message>
+        <message>
+            <source>No layers in this project yet.</source>
+            <translation>Nog geen lagen in dit project.</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Bestanden van je computer toevoegen</translation>
+        </message>
+    </context>
+    <context>
+        <name>AttachmentTag</name>
+        <message>
+            <location filename="src/ui/attachments.py" />
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/attachments.py" />
+            <source>{name}. Click to open.</source>
+            <translation>{name}. Klik om te openen.</translation>
+        </message>
+        <message>
+            <source>Data files</source>
+            <translation>Databestanden</translation>
+        </message>
+        <message>
+            <source>File</source>
+            <translation>Bestand</translation>
+        </message>
+        <message>
+            <source>Files and photos</source>
+            <translation>Bestanden en foto's</translation>
+        </message>
+        <message>
+            <source>Image</source>
+            <translation>Afbeelding</translation>
+        </message>
+        <message>
+            <source>Images</source>
+            <translation>Afbeeldingen</translation>
+        </message>
+        <message>
+            <source>This picture cannot be opened any more.</source>
+            <translation>Deze afbeelding kan niet meer worden geopend.</translation>
+        </message>
+        <message>
+            <source>{type} file</source>
+            <translation>{type}-bestand</translation>
+        </message>
+        <message>
+            <source>All files</source>
+            <translation>Alle bestanden</translation>
+        </message>
+        <message>
+            <source>Documents</source>
+            <translation>Documenten</translation>
+        </message>
+        <message>
+            <source>{type} document</source>
+            <translation>{type}-document</translation>
+        </message>
+    </context>
+    <context>
+        <name>ChatPanel</name>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Give the AI agent a task in QGIS...</source>
+            <translation>Geef de AI-agent een taak in QGIS...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Gesprek ingekort</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>De agent houdt een samenvatting van de eerdere uitwisselingen bij. Je berichten blijven zichtbaar.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>More runs next month</source>
+            <translation>Meer uitvoeringen volgende maand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Noted for later: {0}. You can remove it in Settings &gt; Memory.</source>
+            <translation>Genoteerd voor later: {0}. Je kunt dit verwijderen in Instellingen &gt; Geheugen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Nothing was sent. Send again to read the notice.</source>
+            <translation>Er is niets verzonden. Verzend opnieuw om de melding te lezen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Thinking</source>
+            <translation>Nadenken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Thinking...</source>
+            <translation>Nadenken...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Upgrade to Pro to keep going</source>
+            <translation>Upgrade naar Pro om door te gaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel.py" />
+            <source>Waiting for your answer...</source>
+            <translation>Wachten op je antwoord...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_runs.py" />
+            <source>%n runs left</source>
+            <translation>%n runs over</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_runs.py" />
+            <source>1 run left</source>
+            <translation>1 run over</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Add a few words: what should the agent do with it?</source>
+            <translation>Voeg een paar woorden toe: wat moet de agent ermee doen?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Keep working with Pro</source>
+            <translation>Blijf werken met Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n stappen</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 stap</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Er kon niets worden toegevoegd uit wat je hebt gesleept.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Opnieuw: vooruit naar {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>Het bericht kon niet worden verzonden. Het staat hier nog; probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Ongedaan maken: terug naar {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Wachten op je goedkeuring: kies hieronder Toestaan of Weigeren.</translation>
+        </message>
+        <message>
+            <source>%n actions</source>
+            <translation>%n acties</translation>
+        </message>
+        <message>
+            <source>1 action</source>
+            <translation>1 actie</translation>
+        </message>
+        <message>
+            <source>Back to before this request</source>
+            <translation>Terug naar vóór dit verzoek</translation>
+        </message>
+        <message>
+            <source>Back to before “{request}”</source>
+            <translation>Terug naar vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>Forward to after this request</source>
+            <translation>Vooruit naar na dit verzoek</translation>
+        </message>
+        <message>
+            <source>Forward to after “{request}”</source>
+            <translation>Vooruit naar na “{request}”</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval</source>
+            <translation>Wachten op je goedkeuring</translation>
+        </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>Aan geheugen toegevoegd: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>Je laatste bericht bewerken.</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>Niet beantwoord</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>Niet verbonden met de agentservice. Het bericht blijft in de wachtrij staan.</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>Gepauzeerd · er wordt niets verzonden tot je kiest</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>In de wachtrij</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Dit bericht nu verzenden</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>De agent leest de eerdere berichten nu als een korter overzicht van je verzoeken en wat hij heeft gemaakt.</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>Ongedaan maken wat dit bericht deed</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · wordt verzonden wanneer de agent klaar is</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · de agent leest het bij zijn volgende stap</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} in de wachtrij</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed</source>
+            <translation>Herstel wat dit verzoek heeft gewijzigd</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. The message stays queued.</source>
+            <translation>Niet verbonden met TerraLab. Het bericht blijft in de wachtrij.</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map</source>
+            <translation>Verwijder wat dit verzoek op de kaart heeft gewijzigd</translation>
+        </message>
+        <message>
+            <source>Waiting for your answer</source>
+            <translation>Wachten op je antwoord</translation>
+        </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 laag kon niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Terug naar de oudste bewaarde versie.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Terug naar het project zoals deze chat het aantrof.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Brengt terug: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Brengt de wijzigingen van dit verzoek terug</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Wijzigingen hersteld</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Wijzigingen ongedaan gemaakt</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Herstellen mislukt. Zie het logboek.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Terug naar het begin van de chat?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Verwijdert de wijzigingen van dit verzoek van de kaart</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Verwijdert: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Hersteld tot hier</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Hersteld naar het begin van de chat</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Hiermee verdwijnen ook de wijzigingen van 1 later verzoek.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Hiermee verdwijnen ook de wijzigingen van {n} latere verzoeken.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Wijzigingen ongedaan maken?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>{n} verzoeken ongedaan maken?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Je handmatige bewerkingen worden eerst in de geschiedenis bewaard.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} lagen konden niet worden hersteld</translation>
+        </message>
+    </context>
+    <context>
+        <name>ChatSidebar</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Collapse the sidebar</source>
+            <translation>Zijbalk inklappen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Expand the sidebar</source>
+            <translation>Zijbalk uitklappen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Home</source>
+            <translation>Home</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>New chat</source>
+            <translation>Nieuwe chat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Recents</source>
+            <translation>Recent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Search chats</source>
+            <translation>Chats zoeken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Unsaved project</source>
+            <translation>Niet-opgeslagen project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Untitled chat</source>
+            <translation>Naamloze chat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Upgrade</source>
+            <translation>Upgraden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Do more with Pro</source>
+            <translation>Meer doen met Pro</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro nemen</translation>
+        </message>
+    </context>
+    <context>
+        <name>CheckpointSheet</name>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Back to the project as it was before the first run</source>
+            <translation>Terug naar het project zoals het was voor de eerste uitvoering</translation>
+        </message>
+        <message>
+            <source>Discard everything from this chat</source>
+            <translation>Alles uit deze chat weggooien</translation>
+        </message>
+        <message>
+            <source>Back to the oldest state still kept</source>
+            <translation>Terug naar de oudste nog bewaarde status</translation>
+        </message>
+        <message>
+            <source>Go back in this chat</source>
+            <translation>Ga terug in deze chat</translation>
+        </message>
+        <message>
+            <source>Nothing is deleted. You can always come back.</source>
+            <translation>Er wordt niets verwijderd. Je kunt altijd terugkomen.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Terug naar het project zoals het was vóór het eerste verzoek</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept</source>
+            <translation>Terug naar de oudste nog bewaarde versie</translation>
+        </message>
+        <message>
+            <source>Going back never deletes anything.</source>
+            <translation>Teruggaan verwijdert nooit iets.</translation>
+        </message>
+        <message>
+            <source>In a closed project</source>
+            <translation>In een gesloten project</translation>
+        </message>
+        <message>
+            <source>In {project}</source>
+            <translation>In {project}</translation>
+        </message>
+        <message>
+            <source>No longer kept</source>
+            <translation>Niet meer bewaard</translation>
+        </message>
+        <message>
+            <source>Put back</source>
+            <translation>Terugzetten</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Verzoek {n}</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Herstellen</translation>
+        </message>
+        <message>
+            <source>Stop and go back to before this request</source>
+            <translation>Stoppen en teruggaan naar vóór dit verzoek</translation>
+        </message>
+        <message>
+            <source>Stop and go back to before “{request}”</source>
+            <translation>Stoppen en teruggaan naar vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the project back as it was before this request.</source>
+            <translation>Stopt de uitvoering en zet het project terug zoals het was vóór dit verzoek.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Undo everything in this chat</source>
+            <translation>Alles in deze chat ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Versions of this project</source>
+            <translation>Versies van dit project</translation>
+        </message>
+        <message>
+            <source>Your own changes</source>
+            <translation>Je eigen wijzigingen</translation>
+        </message>
+        <message>
+            <source>Also undoes 1 later request</source>
+            <translation>Maakt ook 1 later verzoek ongedaan</translation>
+        </message>
+        <message>
+            <source>Also undoes {n} later requests</source>
+            <translation>Maakt ook {n} latere verzoeken ongedaan</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>Ga hier terug</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Hoort bij een gesloten project</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Hoort bij het project {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Kaartgeschiedenis</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Begin van de chat</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Stoppen</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Stoppen en dit verzoek ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Stopt de run en zet de kaart daarna terug</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>De kaart zoals die was vóór het eerste verzoek</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>De oudste bewaarde versie</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Je bewerkingen</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeBlock</name>
+        <message>
+            <location filename="src/ui/code_block.py" />
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/code_block.py" />
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/code_block.py" />
+            <source>No changes</source>
+            <translation>Geen wijzigingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/code_block.py" />
+            <source>changes</source>
+            <translation>wijzigingen</translation>
+        </message>
+        <message>
+            <source>Collapse</source>
+            <translation>Inklappen</translation>
+        </message>
+        <message>
+            <source>Expand</source>
+            <translation>Uitklappen</translation>
+        </message>
+    </context>
+    <context>
+        <name>Composer</name>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>A few more words, please: what to do, and on which layer.</source>
+            <translation>Nog een paar woorden graag: wat moet er gebeuren, en op welke laag?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Add files or photos</source>
+            <translation>Bestanden of foto's toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Add photos, files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Voeg foto's, bestanden of een van de lagen van dit project toe. Een laag kun je ook uit het paneel Lagen slepen; Ctrl+V plakt een afbeelding.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Give the AI agent a task in QGIS...</source>
+            <translation>Geef de AI-agent een taak in QGIS...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>No image in the clipboard.</source>
+            <translation>Geen afbeelding op het klembord.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Offline. Reconnecting...</source>
+            <translation>Offline. Opnieuw verbinden...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Send (Enter). Shift+Enter for a new line.</source>
+            <translation>Verzenden (Enter). Shift+Enter voor een nieuwe regel.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Stop</source>
+            <translation>Stoppen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Stop the run</source>
+            <translation>De uitvoering stoppen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>That does not read like a task yet. Say what you want in a sentence.</source>
+            <translation>Dat leest nog niet als een taak. Zeg in één zin wat je wilt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>This effort comes with Pro. See the plans.</source>
+            <translation>Deze inspanning hoort bij Pro. Bekijk de abonnementen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <source>You can attach up to {n} items.</source>
+            <translation>Je kunt maximaal {n} items toevoegen.</translation>
+        </message>
+        <message>
+            <source>Cmd</source>
+            <translation>Cmd</translation>
+        </message>
+        <message>
+            <source>Ctrl</source>
+            <translation>Ctrl</translation>
+        </message>
+        <message>
+            <source>Send ({mod}+Enter). Enter for a new line.</source>
+            <translation>Verzenden ({mod}+Enter). Enter voor een nieuwe regel.</translation>
+        </message>
+        <message>
+            <source>could not be read: {names}</source>
+            <translation>kon niet worden gelezen: {names}</translation>
+        </message>
+        <message>
+            <source>not a supported file: {names}</source>
+            <translation>geen ondersteund bestand: {names}</translation>
+        </message>
+        <message>
+            <source>{n} left out, {total} at most</source>
+            <translation>{n} weggelaten, maximaal {total}</translation>
+        </message>
+        <message>
+            <source>{level} effort needs Pro. Pick Low, or upgrade.</source>
+            <translation>{level} inspanning vereist Pro. Kies Low, of upgrade.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Not connected to the agent service. Reconnecting now, your message is kept.</source>
+            <translation>Niet verbonden met de agentservice. Opnieuw verbinden, je bericht wordt bewaard.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Pro unlocks {level} effort. Or pick Low.</source>
+            <translation>Pro ontgrendelt {level}-inspanning. Of kies Low.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Send anyway</source>
+            <translation>Toch verzenden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>These attachments are too large to send in one message. Remove {name} or another one.</source>
+            <translation>Deze bijlagen zijn te groot om in één bericht te verzenden. Verwijder {name} of een andere.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>This message is {n} characters long, over the {cap} one message can carry. Shorten it.</source>
+            <translation>Dit bericht is {n} tekens lang, meer dan de {cap} die één bericht kan bevatten. Maak het korter.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Unlock this effort level with Pro.</source>
+            <translation>Ontgrendel dit inspanningsniveau met Pro.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Unlock with Pro</source>
+            <translation>Ontgrendelen met Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>the largest one</source>
+            <translation>de grootste</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>De verbinding is hersteld. Je bericht is verzonden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Niet verbonden met de agentservice. Klik om het nu opnieuw te proberen; je bericht blijft behouden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Niet verbonden met de agentservice. Er wordt nu opnieuw verbinding gemaakt.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Niet verbonden met de agentservice. Er wordt opnieuw verbinding gemaakt; typ maar, het wordt verzonden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Niet verbonden met de agentservice. Je bericht blijft hier en wordt verzonden zodra de verbinding is hersteld.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Klik om het nu opnieuw te proberen; je bericht blijft behouden.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Typ maar, het wordt verzonden.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Je bericht blijft hier en wordt verzonden zodra de verbinding is hersteld.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Verbinding opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Add photos &amp; files</source>
+            <translation>Foto's en bestanden toevoegen</translation>
+        </message>
+        <message>
+            <source>a folder cannot be added, drop its files: {names}</source>
+            <translation>een map kan niet worden toegevoegd, sleep de bestanden erin: {names}</translation>
+        </message>
+        <message>
+            <source>too large, {mb} MB at most: {names}</source>
+            <translation>te groot, maximaal {mb} MB: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>Wachtrij</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>In de wachtrij: de agent leest dit bij zijn volgende stap (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>De wachtrij kan 5 berichten bevatten. Verzend of verwijder er eerst een.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Je bericht blijft hier staan en wordt verzonden zodra de verbinding er weer is.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Press to retry now; your message is kept.</source>
+            <translation>Kan TerraLab niet bereiken. Druk om nu opnieuw te proberen; je bericht blijft bewaard.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying now.</source>
+            <translation>Kan TerraLab niet bereiken. Nu opnieuw proberen.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Kan TerraLab niet bereiken. Nieuwe poging.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Kan TerraLab niet bereiken. Nieuwe poging. Je bericht blijft hier staan en wordt verzonden zodra de verbinding terug is.</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab. Your message goes out as soon as the connection is up.</source>
+            <translation>Verbinden met TerraLab. Je bericht wordt verzonden zodra de verbinding er is.</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab...</source>
+            <translation>Verbinden met TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Bestanden van je computer toevoegen</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Voeg bestanden of een laag van dit project toe. Je kunt ook een laag uit het paneel Lagen slepen; met Ctrl+V plak je een afbeelding.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerInput</name>
+        <message>
+            <location filename="src/ui/composer_input.py" />
+            <source>Connectors</source>
+            <translation>Connectoren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer_input.py" />
+            <source>QGIS plugins</source>
+            <translation>QGIS-plugins</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer_input.py" />
+            <source>Layers</source>
+            <translation>Lagen</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Databronnen</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectorPage</name>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>%n commands the agent can run</source>
+            <translation>%n opdrachten die de agent kan uitvoeren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>%n ready sources</source>
+            <translation>%n beschikbare bronnen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>1 command the agent can run</source>
+            <translation>1 opdracht die de agent kan uitvoeren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>1 ready source</source>
+            <translation>1 beschikbare bron</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Attribution</source>
+            <translation>Bronvermelding</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Author</source>
+            <translation>Auteur</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Basemaps</source>
+            <translation>Basiskaarten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Biodiversity</source>
+            <translation>Biodiversiteit</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Boundaries</source>
+            <translation>Grenzen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Buildings</source>
+            <translation>Gebouwen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Cadastre</source>
+            <translation>Kadaster</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Category</source>
+            <translation>Categorie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Climate</source>
+            <translation>Klimaat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Connectors</source>
+            <translation>Connectoren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Coverage</source>
+            <translation>Dekking</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Elevation</source>
+            <translation>Hoogte</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Enable</source>
+            <translation>Inschakelen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Extracts</source>
+            <translation>Extracten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Folder</source>
+            <translation>Map</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Good to know</source>
+            <translation>Goed om te weten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Hazards</source>
+            <translation>Gevaren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Imagery</source>
+            <translation>Beeldmateriaal</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Information</source>
+            <translation>Informatie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Installed but switched off in the QGIS plugin manager</source>
+            <translation>Geïnstalleerd maar uitgeschakeld in de QGIS plugin manager</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Land cover</source>
+            <translation>Landbedekking</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Licence</source>
+            <translation>Licentie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>No menu commands. The agent reads it but cannot drive it.</source>
+            <translation>Geen menuopdrachten. De agent leest het, maar kan het niet aansturen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Not installed on this machine</source>
+            <translation>Niet geïnstalleerd op deze machine</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Nothing. Open data, no account and no key.</source>
+            <translation>Niets. Open data, geen account en geen sleutel.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Points of interest</source>
+            <translation>Bezienswaardigheden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Population</source>
+            <translation>Bevolking</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Portals</source>
+            <translation>Portalen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Ready sources</source>
+            <translation>Beschikbare bronnen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Skills</source>
+            <translation>Vaardigheden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Status</source>
+            <translation>Status</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Terms</source>
+            <translation>Voorwaarden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Transport</source>
+            <translation>Transport</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Version</source>
+            <translation>Versie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Water</source>
+            <translation>Water</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Website</source>
+            <translation>Website</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>What is inside</source>
+            <translation>Wat erin zit</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>What it needs</source>
+            <translation>Wat je nodig hebt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>What the agent can trigger</source>
+            <translation>Wat de agent kan activeren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>Your own account with the provider: it will ask for a key.</source>
+            <translation>Je eigen account bij de provider: die vraagt om een sleutel.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>and %n more</source>
+            <translation>en %n meer</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connector_page.py" />
+            <source>and 1 more</source>
+            <translation>en nog 1</translation>
+        </message>
+        <message>
+            <source>%s is not installed on this machine. Install it to send this example.</source>
+            <translation>%s is niet op deze computer geïnstalleerd. Installeer het om dit voorbeeld te verzenden.</translation>
+        </message>
+        <message>
+            <source>%s is switched off in the QGIS plugin manager. Enable it to send this example.</source>
+            <translation>%s is uitgeschakeld in de QGIS plugin manager. Schakel het in om dit voorbeeld te verzenden.</translation>
+        </message>
+        <message>
+            <source>Nothing, but it is run by volunteers. Expect it to be slower or stricter about how much you can ask for.</source>
+            <translation>Niets, maar het wordt door vrijwilligers beheerd. Reken op een lagere snelheid of strengere limieten voor wat je kunt opvragen.</translation>
+        </message>
+        <message>
+            <source>%n ready datasets</source>
+            <translation>%n datasets klaar</translation>
+        </message>
+        <message>
+            <source>1 ready dataset</source>
+            <translation>1 dataset klaar</translation>
+        </message>
+        <message>
+            <source>About</source>
+            <translation>Over</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Databronnen</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>Datasets</translation>
+        </message>
+        <message>
+            <source>Examples</source>
+            <translation>Voorbeelden</translation>
+        </message>
+        <message>
+            <source>Puts @{name} in the chat box, for a question of your own.</source>
+            <translation>Zet @{name} in het berichtveld, voor een eigen vraag.</translation>
+        </message>
+        <message>
+            <source>Show all %n examples</source>
+            <translation>Alle %n voorbeelden tonen</translation>
+        </message>
+        <message>
+            <source>The logo belongs to its owner, who does not endorse AI Agent.</source>
+            <translation>Het logo is van de eigenaar, die AI Agent niet onderschrijft.</translation>
+        </message>
+        <message>
+            <source>Use in chat</source>
+            <translation>Gebruiken in chat</translation>
+        </message>
+        <message>
+            <source>Fewer details</source>
+            <translation>Minder details</translation>
+        </message>
+        <message>
+            <source>More details</source>
+            <translation>Meer details</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectorsPage</name>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>All</source>
+            <translation>Alle</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Connectors</source>
+            <translation>Connectoren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Data sources</source>
+            <translation>Databronnen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Inside QGIS</source>
+            <translation>Binnen QGIS</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Nothing matches that.</source>
+            <translation>Niets komt daarmee overeen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>On</source>
+            <translation>Aan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Popular</source>
+            <translation>Populair</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>QGIS plugins</source>
+            <translation>QGIS plugins</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Search connectors</source>
+            <translation>Zoek connectoren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Show all {total}</source>
+            <translation>Toon alle {total}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Show less</source>
+            <translation>Toon minder</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>The list arrives when the panel connects.</source>
+            <translation>De lijst verschijnt zodra het paneel verbinding maakt.</translation>
+        </message>
+        <message>
+            <source>%n data sources</source>
+            <translation>%n databronnen</translation>
+        </message>
+        <message>
+            <source>%n ready datasets</source>
+            <translation>%n datasets klaar</translation>
+        </message>
+        <message>
+            <source>, {n} ready datasets</source>
+            <translation>, {n} datasets klaar</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <source>Not installed on this machine.</source>
+            <translation>Niet op deze computer geïnstalleerd.</translation>
+        </message>
+        <message>
+            <source>Switched off in the QGIS plugin manager.</source>
+            <translation>Uitgeschakeld in de QGIS plugin manager.</translation>
+        </message>
+        <message>
+            <source>Enable</source>
+            <translation>Inschakelen</translation>
+        </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Geen connectors komen overeen</translation>
+        </message>
+        <message>
+            <source>, free with no account or key</source>
+            <translation>, gratis zonder account of sleutel</translation>
+        </message>
+        <message>
+            <source>No data sources match</source>
+            <translation>Geen overeenkomende databronnen</translation>
+        </message>
+        <message>
+            <source>Search data sources</source>
+            <translation>Databronnen zoeken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>Ask the agent</source>
+            <translation>Vraag het de agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>Browse Popular</source>
+            <translation>Populair bekijken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/library/home.py" />
+            <source>Clear search</source>
+            <translation>Zoekopdracht wissen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/connectors_page.py" />
+            <source>No data source matches these words. The agent may still find the data.</source>
+            <translation>Geen gegevensbron past bij deze woorden. De agent kan de gegevens misschien toch vinden.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DiffTableCard</name>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Applied {n} change</source>
+            <translation>{n} wijziging toegepast</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Applied {n} changes</source>
+            <translation>{n} wijzigingen toegepast</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Apply {n} change</source>
+            <translation>{n} wijziging toepassen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Apply {n} changes</source>
+            <translation>{n} wijzigingen toepassen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Click changed rows to toggle</source>
+            <translation>Klik op gewijzigde rijen om ze in of uit te schakelen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>No change selected</source>
+            <translation>Geen wijziging geselecteerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Proposed changes</source>
+            <translation>Voorgestelde wijzigingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>applied {n}</source>
+            <translation>{n} toegepast</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>{n} addition</source>
+            <translation>{n} toevoeging</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>{n} additions</source>
+            <translation>{n} toevoegingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>{n} removal</source>
+            <translation>{n} verwijdering</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>{n} removals</source>
+            <translation>{n} verwijderingen</translation>
+        </message>
+    </context>
+    <context>
+        <name>DropOverlay</name>
+        <message>
+            <location filename="src/ui/drop_overlay.py" />
+            <source>Drop a layer or a file here</source>
+            <translation>Zet hier een laag of een bestand neer</translation>
+        </message>
+        <message>
+            <source>Add to the chat</source>
+            <translation>Aan de chat toevoegen</translation>
+        </message>
+        <message>
+            <source>Drop to add to the chat</source>
+            <translation>Laat los om toe te voegen</translation>
+        </message>
+        <message>
+            <source>Photos, files, or a layer of this project</source>
+            <translation>Foto's, bestanden of een laag van dit project</translation>
+        </message>
+    </context>
+    <context>
+        <name>EffortChip</name>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Deeper planning, research and independent direction for harder tasks.</source>
+            <translation>Dieper plannen, onderzoeken en zelfstandig aansturen voor moeilijkere taken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Effort</source>
+            <translation>Inspanning</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>How hard the agent works on the next message</source>
+            <translation>Hoe hard de agent aan het volgende bericht werkt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
+            <translation>Slimme agent die plant, zijn resultaten controleert en algoritmen en documentatie opzoekt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
+            <translation>Begint zo snel mogelijk. Het best voor snelle bewerkingen en vragen. Plant en onderzoekt niets.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <source>Pro only: this message runs on Low</source>
+            <translation>Alleen Pro: dit bericht draait op Low</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Unlock with Pro</source>
+            <translation>Ontgrendelen met Pro</translation>
+        </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>Je kunt de inspanning wijzigen nadat deze uitvoering is afgelopen</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Inbegrepen in Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>{level} needs Pro. Pick Low to send.</source>
+            <translation>{level} vereist Pro. Kies Low om te verzenden.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Applies from the next step.</source>
+            <translation>Geldt vanaf de volgende stap.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Applies from your next message.</source>
+            <translation>Geldt vanaf je volgende bericht.</translation>
+        </message>
+    </context>
+    <context>
+        <name>EmptyState</name>
+        <message>
+            <location filename="src/ui/empty_state.py" />
+            <source>Got it</source>
+            <translation>Begrepen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/empty_state.py" />
+            <source>What are we working on?</source>
+            <translation>Waaraan werken we?</translation>
+        </message>
+        <message>
+            <source>Examples</source>
+            <translation>Voorbeelden</translation>
+        </message>
+        <message>
+            <source>Tutorial</source>
+            <translation>Tutorial</translation>
+        </message>
+        <message>
+            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
+            <translation>Je praat met een AI-systeem. Het kan fouten maken: controleer de wijzigingen.</translation>
+        </message>
+        <message>
+            <source>Asks before it acts.</source>
+            <translation>Vraagt het eerst voordat het iets doet.</translation>
+        </message>
+        <message>
+            <source>Deleting, overwriting or spending. One click undoes a run.</source>
+            <translation>Verwijderen, overschrijven of uitgaven. Met één klik maak je een run ongedaan.</translation>
+        </message>
+        <message>
+            <source>Does the work.</source>
+            <translation>Doet het werk.</translation>
+        </message>
+        <message>
+            <source>Knows your project.</source>
+            <translation>Kent je project.</translation>
+        </message>
+        <message>
+            <source>Layers, fields, CRS, selection, view.</source>
+            <translation>Lagen, velden, CRS, selectie, weergave.</translation>
+        </message>
+        <message>
+            <source>Loads data, styles layers, runs analyses, builds maps.</source>
+            <translation>Laadt gegevens, stylet lagen, voert analyses uit, bouwt kaarten.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ErrorCard</name>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Continue</source>
+            <translation>Doorgaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Error</source>
+            <translation>Fout</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Report</source>
+            <translation>Melden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Retry</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Update the plugin</source>
+            <translation>Plugin bijwerken</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>Ongedaan maken en opnieuw proberen</translation>
+        </message>
+    </context>
+    <context>
+        <name>Header</name>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Try Pro free</source>
+            <translation>Try Pro free</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Account</source>
+            <translation>Account</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Chat history</source>
+            <translation>Chatgeschiedenis</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Close this panel</source>
+            <translation>Dit paneel sluiten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Dock or undock this panel</source>
+            <translation>Dit paneel vastzetten of losmaken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>New chat</source>
+            <translation>Nieuwe chat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Open the AI Agent page</source>
+            <translation>De pagina van AI Agent openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Settings</source>
+            <translation>Instellingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/header.py" />
+            <source>Undo the agent's changes: back to an earlier state of this project</source>
+            <translation>Wijzigingen van de agent ongedaan maken: terug naar een eerdere staat van dit project</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Bekijk wat Pro ontgrendelt</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>door TerraLab</translation>
+        </message>
+        <message>
+            <source>Go back to an earlier version ({key})</source>
+            <translation>Terug naar een eerdere versie ({key})</translation>
+        </message>
+        <message>
+            <source>Settings ({email})</source>
+            <translation>Instellingen ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Kaartgeschiedenis ({key})</translation>
+        </message>
+    </context>
+    <context>
+        <name>HistoryPopup</name>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Delete chat</source>
+            <translation>Chat verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Just now</source>
+            <translation>Zojuist</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>No chats match</source>
+            <translation>Geen overeenkomende chats</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>No chats yet</source>
+            <translation>Nog geen chats</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Older</source>
+            <translation>Ouder</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Other projects</source>
+            <translation>Andere projecten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Previous 30 days</source>
+            <translation>Afgelopen 30 dagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Previous 7 days</source>
+            <translation>Afgelopen 7 dagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Search chats...</source>
+            <translation>Chats zoeken...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Today</source>
+            <translation>Vandaag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Unsaved project</source>
+            <translation>Niet-opgeslagen project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Untitled chat</source>
+            <translation>Naamloze chat</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Yesterday</source>
+            <translation>Gisteren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>{n} days ago</source>
+            <translation>{n} dagen geleden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>{n} h ago</source>
+            <translation>{n} u geleden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>{n} min ago</source>
+            <translation>{n} min geleden</translation>
+        </message>
+        <message>
+            <source>Show older chats</source>
+            <translation>Oudere chats tonen</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Delete chat?</source>
+            <translation>Chat verwijderen?</translation>
+        </message>
+        <message>
+            <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
+            <translation>Dit verwijdert "{title}" en de projectversies die erbij zijn opgeslagen. Dit kan niet ongedaan worden gemaakt.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ImagePreview</name>
+        <message>
+            <location filename="src/ui/image_preview.py" />
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+    </context>
+    <context>
+        <name>LayerCard</name>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Data source</source>
+            <translation>Databron</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Field</source>
+            <translation>Veld</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>File</source>
+            <translation>Bestand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Layout</source>
+            <translation>Lay-out</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Map extent</source>
+            <translation>Kaartbereik</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Selection</source>
+            <translation>Selectie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>{name}
+CRS: {crs}
+Click to show it in the Layers panel.</source>
+            <translation>{name}
+CRS: {crs}
+Klik om deze weer te geven in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>{name}
+Click to show it in the Layers panel.</source>
+            <translation>{name}
+Klik om deze weer te geven in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>{name}. This layer is no longer in the project.</source>
+            <translation>{name}. Deze laag staat niet meer in het project.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Not in the project</source>
+            <translation>Niet in het project</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <source>{name}
+Click to open its page.</source>
+            <translation>{name}
+Klik om de pagina te openen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>LearnCard</name>
+        <message>
+            <location filename="src/ui/learn_page.py" />
+            <source>Guide</source>
+            <translation>Handleiding</translation>
+        </message>
+        <message>
+            <location filename="src/ui/learn_page.py" />
+            <source>Video</source>
+            <translation>Video</translation>
+        </message>
+    </context>
+    <context>
+        <name>LearnPage</name>
+        <message>
+            <location filename="src/ui/learn_page.py" />
+            <source>The tutorials arrive when the panel connects.</source>
+            <translation>De tutorials verschijnen zodra het paneel verbinding maakt.</translation>
+        </message>
+        <message>
+            <source>Tutorials</source>
+            <translation>Tutorials</translation>
+        </message>
+        <message>
+            <source>Videos and guides to get started. They open in your browser.</source>
+            <translation>Video's en handleidingen om aan de slag te gaan. Ze openen in je browser.</translation>
+        </message>
+    </context>
+    <context>
+        <name>MapHooks</name>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about group {name} ({n} layers)</source>
+            <translation>AI Agent vragen over groep {name} ({n} lagen)</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about the selected feature</source>
+            <translation>AI Agent vragen over het geselecteerde object</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about the {n} selected features</source>
+            <translation>AI Agent vragen over de {n} geselecteerde objecten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about these {n} layers</source>
+            <translation>AI Agent vragen over deze {n} lagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about this feature</source>
+            <translation>AI Agent vragen over dit object</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about this layer</source>
+            <translation>AI Agent vragen over deze laag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>Ask AI Agent about this view</source>
+            <translation>AI Agent vragen over dit kaartvenster</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>current extent</source>
+            <translation>huidig bereik</translation>
+        </message>
+        <message>
+            <location filename="src/ui/map_hooks.py" />
+            <source>selection ({n} features)</source>
+            <translation>selectie ({n} objecten)</translation>
+        </message>
+        <message>
+            <source>Ask AI Agent about group {name} (1 layer)</source>
+            <translation>AI Agent vragen over groep {name} (1 laag)</translation>
+        </message>
+        <message>
+            <source>selection (1 feature)</source>
+            <translation>selectie (1 object)</translation>
+        </message>
+    </context>
+    <context>
+        <name>MessageList</name>
+        <message>
+            <location filename="src/ui/message_list.py" />
+            <source>Scroll to bottom</source>
+            <translation>Naar beneden scrollen</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingPollTask</name>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>Connecting AI Agent</source>
+            <translation>AI Agent verbinden</translation>
+        </message>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>No connection to the sign-in service. Check your internet connection, then click Sign in to try again.</source>
+            <translation>Geen verbinding met de inlogservice. Controleer je internetverbinding en klik op “Inloggen” om het opnieuw te proberen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>Sign-in failed unexpectedly. Click Sign in to try again.</source>
+            <translation>Inloggen is onverwacht mislukt. Klik op “Inloggen” om het opnieuw te proberen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>Het inloggen is in de browser geannuleerd. Klik op “Inloggen” om het opnieuw te proberen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>Dit account heeft geen actief abonnement op AI Agent. Activeer het op terra-lab.ai en klik daarna op “Opnieuw inloggen”.</translation>
+        </message>
+        <message>
+            <location filename="src/api/pairing_poll_task.py" />
+            <source>Unexpected response from the server. Please try again.</source>
+            <translation>Onverwachte reactie van de server. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Check your internet connection, then click Sign in to try again.</source>
+            <translation>Kan TerraLab niet bereiken. Controleer je internetverbinding en klik op Aanmelden om het opnieuw te proberen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>PermissionCard</name>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Allow</source>
+            <translation>Toestaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Deny</source>
+            <translation>Weigeren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Edit values</source>
+            <translation>Waarden bewerken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Hide values</source>
+            <translation>Waarden verbergen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Needs your approval</source>
+            <translation>Heeft je goedkeuring nodig</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Permission</source>
+            <translation>Toestemming</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Show {n} more</source>
+            <translation>{n} meer tonen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+        <message>
+            <source>Allowed</source>
+            <translation>Toegestaan</translation>
+        </message>
+        <message>
+            <source>Allowed for this project</source>
+            <translation>Toegestaan voor dit project</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Geweigerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Show all {n} lines</source>
+            <translation>Alle {n} regels tonen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Show fewer lines</source>
+            <translation>Minder regels tonen</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>expressie</translation>
+        </message>
+        <message>
+            <source>Allow file writes in this project</source>
+            <translation>Bestanden schrijven toestaan in dit project</translation>
+        </message>
+        <message>
+            <source>Hide the address</source>
+            <translation>Adres verbergen</translation>
+        </message>
+        <message>
+            <source>Hide the addresses</source>
+            <translation>Adressen verbergen</translation>
+        </message>
+        <message>
+            <source>Show the address</source>
+            <translation>Adres tonen</translation>
+        </message>
+        <message>
+            <source>Show the {n} addresses</source>
+            <translation>{n} adressen tonen</translation>
+        </message>
+        <message>
+            <source>{hosts} were not named by you or by a known catalog.</source>
+            <translation>{hosts} zijn niet door jou of door een bekende catalogus genoemd.</translation>
+        </message>
+        <message>
+            <source>{host} was not named by you or by a known catalog.</source>
+            <translation>{host} is niet door jou of door een bekende catalogus genoemd.</translation>
+        </message>
+        <message>
+            <source>Hide the code</source>
+            <translation>Code verbergen</translation>
+        </message>
+        <message>
+            <source>View the code ({n} lines)</source>
+            <translation>Code tonen ({n} regels)</translation>
+        </message>
+        <message>
+            <source>{action}, {n} times.</source>
+            <translation>{action}, {n} keer.</translation>
+        </message>
+        <message>
+            <source>{n} actions wait for your approval.</source>
+            <translation>{n} acties wachten op je goedkeuring.</translation>
+        </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Toestaan voor deze uitvoering</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Toegestaan voor deze uitvoering</translation>
+        </message>
+        <message>
+            <source>Your answer also counts for the next calls of this kind in this answer.</source>
+            <translation>Je antwoord geldt ook voor de volgende aanroepen van dit soort in dit antwoord.</translation>
+        </message>
+        <message>
+            <source>{action}, {n} times</source>
+            <translation>{action}, {n} keer</translation>
+        </message>
+        <message>
+            <source>{hosts}: sites you did not name, in no known catalog</source>
+            <translation>{hosts}: sites die je niet noemde, in geen enkele bekende catalogus</translation>
+        </message>
+        <message>
+            <source>{host}: a site you did not name, in no known catalog</source>
+            <translation>{host}: een site die je niet noemde, in geen enkele bekende catalogus</translation>
+        </message>
+        <message>
+            <source>{n} actions</source>
+            <translation>{n} acties</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Allow for this run also covers later scripts that make the same calls. Removing layers or features still asks.</source>
+            <translation>Allow for this run geldt ook voor latere scripts die dezelfde aanroepen doen. Voor het verwijderen van lagen of objecten wordt nog steeds toestemming gevraagd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
+            <translation>Allow for this run geldt ook voor latere scripts die {libs} gebruiken, inclusief bestanden die ze schrijven of verwijderen. Voor het verwijderen van lagen of objecten wordt nog steeds toestemming gevraagd.</translation>
+        </message>
+    </context>
+    <context>
+        <name>PermissionChip</name>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>AI permissions</source>
+            <translation>AI-toestemmingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Ask first</source>
+            <translation>Eerst vragen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Asks before deleting or overwriting.</source>
+            <translation>Vraagt eerst voordat er iets wordt verwijderd of overschreven.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Asks your permission for every change.</source>
+            <translation>Vraagt om je toestemming voor elke wijziging.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Autopilot</source>
+            <translation>Autopilot</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Balanced</source>
+            <translation>Gebalanceerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Never asks. Works on its own.</source>
+            <translation>Vraagt nooit. Werkt zelfstandig.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Permission mode</source>
+            <translation>Toestemmingsmodus</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Switch</source>
+            <translation>Wisselen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Switch to Autopilot?</source>
+            <translation>Overschakelen naar Autopilot?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Upgrade</source>
+            <translation>Upgraden</translation>
+        </message>
+        <message>
+            <source>AI Agent will delete layers and overwrite files without asking. Running code and anything that spends credits still ask. Undo covers the project, not every file on disk. The next chat starts in Balanced again.</source>
+            <translation>AI Agent verwijdert lagen en overschrijft bestanden zonder te vragen. Voor het uitvoeren van code en alles wat credits kost, wordt nog steeds toestemming gevraagd. Ongedaan maken geldt voor het project, niet voor elk bestand op schijf. De volgende chat start weer in Gebalanceerd.</translation>
+        </message>
+        <message>
+            <source>What AI Agent may do without asking</source>
+            <translation>Wat AI Agent zonder te vragen mag doen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Deletes layers and overwrites files without asking.</source>
+            <translation>Verwijdert lagen en overschrijft bestanden zonder te vragen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Running code and spending credits still ask first.</source>
+            <translation>Voor het uitvoeren van code en het uitgeven van credits wordt nog steeds vooraf toestemming gevraagd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>The next chat starts in Balanced again.</source>
+            <translation>De volgende chat start weer in Gebalanceerd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Turn on Autopilot</source>
+            <translation>Autopilot inschakelen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Turn on Autopilot?</source>
+            <translation>Autopilot inschakelen?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Undo covers the project, not every file on disk.</source>
+            <translation>Ongedaan maken geldt voor het project, niet voor elk bestand op schijf.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>With Pro</source>
+            <translation>Met Pro</translation>
+        </message>
+        <message>
+            <source>Asks before deleting, overwriting, installing or reaching an unknown site.</source>
+            <translation>Vraagt voordat het verwijdert, overschrijft, installeert of een onbekende site bereikt.</translation>
+        </message>
+        <message>
+            <source>Deletes layers, overwrites files and runs Python code without asking.</source>
+            <translation>Verwijdert lagen, overschrijft bestanden en voert Python-code uit zonder te vragen.</translation>
+        </message>
+        <message>
+            <source>Spending credits still asks first.</source>
+            <translation>Voor het uitgeven van credits wordt nog steeds eerst gevraagd.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs and other plugins.</source>
+            <translation>Werkt zelfstandig. Vraagt alleen over credits, installaties en andere plugins.</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Inbegrepen in Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Credits besteden of een onbekende site bereiken vraagt nog steeds eerst om je toestemming.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Werkt zelfstandig. Vraagt alleen toestemming voor credits, installaties, andere plugins en onbekende sites.</translation>
+        </message>
+        <message>
+            <source>{mode}: what AI Agent may do without asking</source>
+            <translation>{mode}: wat AI Agent mag doen zonder te vragen</translation>
+        </message>
+    </context>
+    <context>
+        <name>PlanCard</name>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Plan</source>
+            <translation>Plan</translation>
+        </message>
+        <message>
+            <source>{done} of {total}</source>
+            <translation>{done} van {total}</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProCard</name>
+        <message>
+            <location filename="src/ui/settings_pages.py" />
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro nemen</translation>
+        </message>
+        <message>
+            <source>What Pro adds</source>
+            <translation>Wat Pro toevoegt</translation>
+        </message>
+    </context>
+    <context>
+        <name>QuestionCard</name>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Continue</source>
+            <translation>Doorgaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Next question</source>
+            <translation>Volgende vraag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Previous question</source>
+            <translation>Vorige vraag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Question</source>
+            <translation>Vraag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Skip</source>
+            <translation>Overslaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>auto</source>
+            <translation>auto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>skipped</source>
+            <translation>overgeslagen</translation>
+        </message>
+    </context>
+    <context>
+        <name>QuotaCard</name>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Didn't finish upgrading?</source>
+            <translation>Didn't finish upgrading?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Your plan is still Free. If something got in the way:</source>
+            <translation>Your plan is still Free. If something got in the way:</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Back to the Pro page</source>
+            <translation>Back to the Pro page</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Write to us</source>
+            <translation>Write to us</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Close</source>
+            <translation>Close</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Try Pro free for {n} days</source>
+            <translation>Try Pro free for {n} days</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>No commitment, cancel in one click</source>
+            <translation>No commitment, cancel in one click</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>My company pays by quote</source>
+            <translation>My company pays by quote</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>1 free run left.</source>
+            <translation>Nog 1 gratis uitvoering.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Copy email</source>
+            <translation>E-mail kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Custom needs? Write to us: {email}</source>
+            <translation>Aangepaste behoeften? Schrijf ons: {email}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Keep the agent working on your projects.</source>
+            <translation>Houd de agent aan het werk aan je projecten.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Need more this month? Write to us and we set up a custom quota.</source>
+            <translation>Meer nodig deze maand? Schrijf ons, dan stellen we een aangepaste limiet voor je in.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>They come back on {date}.</source>
+            <translation>Ze zijn weer beschikbaar op {date}.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>You used all {n} free runs this month. They come back on your renewal date.</source>
+            <translation>Je hebt alle {n} gratis runs deze maand gebruikt. Ze komen terug op je verlengdatum.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>You used all {n} free runs this month. They come back on {date}.</source>
+            <translation>Je hebt alle {n} gratis runs deze maand gebruikt. Ze komen terug op {date}.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Your free runs are used up</source>
+            <translation>Je gratis uitvoeringen zijn op</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Your runs are used up</source>
+            <translation>Je uitvoeringen zijn op</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>a month</source>
+            <translation>per maand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>{n} free runs left.</source>
+            <translation>Nog {n} gratis uitvoeringen.</translation>
+        </message>
+        <message>
+            <source>You used all {n} runs this month.</source>
+            <translation>Je hebt alle {n} uitvoeringen van deze maand gebruikt.</translation>
+        </message>
+        <message>
+            <source>You used all {n} runs this month. They come back on {date}.</source>
+            <translation>Je hebt alle {n} uitvoeringen van deze maand gebruikt. Ze zijn op {date} weer beschikbaar.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Get more runs</source>
+            <translation>Meer runs krijgen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Keep working with Pro</source>
+            <translation>Blijf werken met Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>{n} runs a month, higher effort levels and Autopilot.</source>
+            <translation>{n} runs per maand, hogere inspanningsniveaus en Autopilot.</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} uitvoeringen per maand en hogere inspanningsniveaus.</translation>
+        </message>
+        <message>
+            <source>Invoice for my company</source>
+            <translation>Factuur voor mijn bedrijf</translation>
+        </message>
+        <message>
+            <source>Pro gives you {n} runs a month for {amount}.</source>
+            <translation>Pro geeft je {n} runs per maand voor {amount}.</translation>
+        </message>
+        <message>
+            <source>Pro gives you {n} runs a month.</source>
+            <translation>Pro geeft je {n} runs per maand.</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>Autopilot</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>Altijd opzegbaar</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>Free is voor persoonlijk gebruik en studie. Met Pro mag je voor klanten en werkgevers werken.</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>Gratis uitvoeringen komen terug bij je maandelijkse reset.</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>Gratis uitvoeringen komen terug op {date}.</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>Medium- en High-inspanning voor moeilijkere taken</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>Geheugen en je instructies</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: meer en beter</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>Je hebt deze maand {n} taken uitgevoerd.</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/maand</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/maand excl. btw</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>{n} uitvoeringen per maand</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · altijd opzegbaar</translation>
+        </message>
+        <message>
+            <source>What Pro includes</source>
+            <translation>Wat Pro omvat</translation>
+        </message>
+    </context>
+    <context>
+        <name>QuotaPauseCard</name>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Paused</source>
+            <translation>Gepauzeerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Resume</source>
+            <translation>Hervatten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>The run is paused.</source>
+            <translation>De uitvoering is gepauzeerd.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RecommendationCard</name>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Accept</source>
+            <translation>Accepteren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Accepted</source>
+            <translation>Geaccepteerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Alternative</source>
+            <translation>Alternatief</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Alternatives</source>
+            <translation>Alternatieven</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Dismiss</source>
+            <translation>Afwijzen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Dismissed</source>
+            <translation>Afgewezen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>High confidence</source>
+            <translation>Hoge zekerheid</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Low confidence</source>
+            <translation>Lage zekerheid</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Medium confidence</source>
+            <translation>Gemiddelde zekerheid</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Proposal</source>
+            <translation>Voorstel</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>Want me to run this?</source>
+            <translation>Zal ik dit uitvoeren?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_proposal.py" />
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+    </context>
+    <context>
+        <name>RestoreWarningCard</name>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Discard</source>
+            <translation>Verwerpen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Manual changes since this point will be lost.</source>
+            <translation>Handmatige wijzigingen sinds dit punt gaan verloren.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Restore</source>
+            <translation>Herstellen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>This drops everything the agent did in this chat, and your own changes since.</source>
+            <translation>Dit verwijdert alles wat de agent in deze chat heeft gedaan, en je eigen wijzigingen sindsdien.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>This drops everything the agent did in this chat.</source>
+            <translation>Dit verwijdert alles wat de agent in deze chat heeft gedaan.</translation>
+        </message>
+        <message>
+            <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
+            <translation>Dit gaat terug naar de oudste nog bewaarde status, niet naar het allereerste begin: de eerdere zijn gewist om schijfruimte te besparen.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Teruggaan naar {point}? Je eigen wijzigingen sindsdien gaan verloren.</translation>
+        </message>
+        <message>
+            <source>Go back</source>
+            <translation>Teruggaan</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
+            <translation>Terug naar {point}? Je wijzigingen sindsdien blijven bewaard als een versie waarnaar je kunt terugkeren.</translation>
+        </message>
+        <message>
+            <source>Go back? Your edits since then are kept as a version you can return to.</source>
+            <translation>Teruggaan? Je wijzigingen sindsdien blijven bewaard als een versie waarnaar je kunt terugkeren.</translation>
+        </message>
+        <message>
+            <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
+            <translation>Alles wat de agent in deze chat deed ongedaan maken, terug naar de oudste nog bewaarde versie? Je kunt het terugzetten.</translation>
+        </message>
+        <message>
+            <source>Undo everything the agent did in this chat? You can put it back.</source>
+            <translation>Alles wat de agent in deze chat deed ongedaan maken? Je kunt het terugzetten.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RunTrace</name>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>%n failed</source>
+            <translation>%n mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>%n steps</source>
+            <translation>%n stappen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>1 step</source>
+            <translation>1 stap</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>Done</source>
+            <translation>Klaar</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>Failed</source>
+            <translation>Mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py" />
+            <source>Thinking</source>
+            <translation>Nadenken</translation>
+        </message>
+        <message>
+            <source>%n earlier actions</source>
+            <translation>%n eerdere acties</translation>
+        </message>
+        <message>
+            <source>Failed after {time}</source>
+            <translation>Mislukt na {time}</translation>
+        </message>
+        <message>
+            <source>Stopped after {time}</source>
+            <translation>Gestopt na {time}</translation>
+        </message>
+        <message>
+            <source>Thought for {time}</source>
+            <translation>Nagedacht gedurende {time}</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>QGIS is gesloten voordat dit klaar was</translation>
+        </message>
+        <message>
+            <source>denied</source>
+            <translation>geweigerd</translation>
+        </message>
+        <message>
+            <source>{step} and {n} more</source>
+            <translation>{step} en nog {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>SettingsDialog</name>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>1 minute</source>
+            <translation>1 minuut</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>2 minutes</source>
+            <translation>2 minuten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>30 seconds</source>
+            <translation>30 seconden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>A short summary of the changes once a task is done.</source>
+            <translation>Een korte samenvatting van de wijzigingen zodra een taak klaar is.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>AI Agent settings</source>
+            <translation>Instellingen van AI Agent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>About you</source>
+            <translation>Over jou</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Account</source>
+            <translation>Account</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Add</source>
+            <translation>Toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Added by you</source>
+            <translation>Door jou toegevoegd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Advanced</source>
+            <translation>Geavanceerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Answer a question for me after</source>
+            <translation>Een vraag voor mij beantwoorden na</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Answers</source>
+            <translation>Antwoorden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Auto</source>
+            <translation>Auto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Balanced</source>
+            <translation>Gebalanceerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Beginner</source>
+            <translation>Beginner</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Billing</source>
+            <translation>Facturering</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Concise</source>
+            <translation>Beknopt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Connectors</source>
+            <translation>Connectoren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Contact us</source>
+            <translation>Neem contact op</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
+            <translation>Context die de AI aan het begin van elk gesprek leest, en de notities die tussen gesprekken bewaard blijven.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Could not load your account. Try again in a moment.</source>
+            <translation>Kon je account niet laden. Probeer het zo opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
+            <translation>Kon TerraLab niet bereiken. Controleer je internetverbinding en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Danger zone</source>
+            <translation>Gevarenzone</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Delete my account</source>
+            <translation>Account verwijderen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Detailed</source>
+            <translation>Gedetailleerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Each step with its inputs and results, under the answer.</source>
+            <translation>Elke stap met zijn invoer en resultaten, onder het antwoord.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Everything the panel does without leaving the keyboard.</source>
+            <translation>Alles wat het paneel doet, zonder het toetsenbord te verlaten.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Expert</source>
+            <translation>Expert</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Explain what it did after each run</source>
+            <translation>Na elke uitvoering uitleggen wat de AI deed</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Free plan</source>
+            <translation>Free-abonnement</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>GIS experience</source>
+            <translation>GIS-ervaring</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Help improve AI Agent</source>
+            <translation>Help AI Agent verbeteren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
+            <translation>Hoe het moet werken. Bijvoorbeeld: antwoord altijd in het Frans, noem nieuwe lagen in snake_case, verwijder nooit een laag zonder te vragen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>How much the AI explains.</source>
+            <translation>Hoeveel de AI uitlegt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>How often the AI asks before acting.</source>
+            <translation>Hoe vaak de AI vraagt voordat die iets doet</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>How the AI names the layers it creates.</source>
+            <translation>Hoe de AI nieuwe lagen een naam geeft.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>How you work</source>
+            <translation>Hoe je werkt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>I work in EPSG:2154</source>
+            <translation>Ik werk in EPSG:2154</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Imperial</source>
+            <translation>Imperiaal</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Included with Pro</source>
+            <translation>Inbegrepen in Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Instructions for the AI</source>
+            <translation>Instructies voor de AI</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Keyboard shortcuts</source>
+            <translation>Sneltoetsen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Layer names</source>
+            <translation>Laagnamen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Let the AI add its own notes</source>
+            <translation>De AI zelf notities laten toevoegen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Loading account info...</source>
+            <translation>Accountinfo laden...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Loading your plan...</source>
+            <translation>Je abonnement laden...</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Manage account</source>
+            <translation>Account beheren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Manage account in browser</source>
+            <translation>Account beheren in de browser</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Memory</source>
+            <translation>Geheugen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Metres and hectares, or feet, miles and acres.</source>
+            <translation>Meters en hectaren, of voeten, mijlen en acres.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Metric</source>
+            <translation>Metrisch</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Need more than {n} runs a month? Write to {email}.</source>
+            <translation>Meer dan {n} uitvoeringen per maand nodig? Schrijf naar {email}.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>No notes yet.</source>
+            <translation>Nog geen notities.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>No runs counted yet this month.</source>
+            <translation>Deze maand nog geen uitvoeringen geteld.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Noted by the AI</source>
+            <translation>Genoteerd door de AI</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Often</source>
+            <translation>Vaak</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Open terra-lab.ai</source>
+            <translation>terra-lab.ai openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Open the AI Agent page</source>
+            <translation>De pagina van AI Agent openen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Opens the Billing page.</source>
+            <translation>Opent de facturatiepagina.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Personal, non-commercial use.</source>
+            <translation>Persoonlijk, niet-commercieel gebruik.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Personalisation</source>
+            <translation>Personalisatie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Plain words</source>
+            <translation>Eenvoudige woorden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Privacy</source>
+            <translation>Privacy</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Pro follows your standing rules in every run: the language it answers in, how it names layers, and what it must never do without asking.</source>
+            <translation>Pro volgt je vaste regels in elke uitvoering: de taal waarin het antwoordt, hoe het lagen benoemt en wat het nooit zonder te vragen mag doen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Pro plan</source>
+            <translation>Pro-abonnement</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Pro reads this before every run, so your job, your city and your usual CRS do not have to be typed into each prompt.</source>
+            <translation>Pro leest dit vóór elke uitvoering, zodat je werk, je stad en je gebruikelijke CRS niet in elke prompt hoeven te worden getypt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Pro reads your notes at the start of every conversation.</source>
+            <translation>Pro leest je notities aan het begin van elk gesprek.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Questions</source>
+            <translation>Vragen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Rarely</source>
+            <translation>Zelden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Regular</source>
+            <translation>Gevorderd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Report a problem</source>
+            <translation>Een probleem melden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Reset</source>
+            <translation>Reset</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Reset all settings</source>
+            <translation>Alle instellingen resetten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Reset all settings?</source>
+            <translation>Alle instellingen resetten?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Resets {date}</source>
+            <translation>Reset op {date}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Response language</source>
+            <translation>Antwoordtaal</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Response style</source>
+            <translation>Antwoordstijl</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Retry</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Same as QGIS</source>
+            <translation>Hetzelfde als QGIS</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Saved</source>
+            <translation>Opgeslagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Share usage statistics with TerraLab</source>
+            <translation>Gebruiksstatistieken delen met TerraLab</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Short answers, a balance, or the full reasoning.</source>
+            <translation>Korte antwoorden, een balans, of de volledige redenering.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Show tool details in the trace</source>
+            <translation>Tooldetails tonen in het stappenoverzicht</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Sign in first: deleting an account needs the address it was opened with.</source>
+            <translation>Log eerst in: een account verwijderen vraagt het adres waarmee het is aangemaakt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Sign in to see your account.</source>
+            <translation>Log in om je account te bekijken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Sign out</source>
+            <translation>Uitloggen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Sign out of AI Agent?</source>
+            <translation>Uitloggen bij AI Agent?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Signed in</source>
+            <translation>Aangemeld</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Terms</source>
+            <translation>Voorwaarden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>TerraLab</source>
+            <translation>TerraLab</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>The AI takes the option it recommended and carries on.</source>
+            <translation>De AI kiest de optie die het aanraadde en gaat verder.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>The language the AI writes its answers in.</source>
+            <translation>De taal waarin de AI antwoordt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>The plan this copy of QGIS is signed in on.</source>
+            <translation>Het abonnement waarop deze QGIS-installatie is ingelogd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>The shortcuts could not be listed.</source>
+            <translation>De sneltoetsen konden niet worden getoond.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
+            <translation>Deze computer is niet meer aangemeld. Meld je af en meld je daarna opnieuw aan om hem opnieuw te verbinden.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>This plugin would not start.</source>
+            <translation>Deze plugin wilde niet starten.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>This project</source>
+            <translation>Dit project</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Tutorials</source>
+            <translation>Tutorials</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Units</source>
+            <translation>Eenheden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Update payment method</source>
+            <translation>Betaalmethode bijwerken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Urban planner</source>
+            <translation>Stedenbouwkundige</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Used in its answers. Empty: it uses no name.</source>
+            <translation>Wordt in de antwoorden gebruikt. Leeg: er wordt geen naam gebruikt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>What the AI should call you</source>
+            <translation>Hoe de AI jou moet noemen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>What you do</source>
+            <translation>Wat je doet</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>When needed</source>
+            <translation>Wanneer nodig</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Who is signed in, and how this copy of the plugin behaves.</source>
+            <translation>Wie er ingelogd is, en hoe deze installatie van de plugin zich gedraagt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Who you are</source>
+            <translation>Wie je bent</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
+            <translation>Wie je bent en waaraan je werkt. Bijvoorbeeld: stedenbouwkundige bij de stad Lyon, ik werk vooral met kadaster- en PLU-lagen in EPSG:2154.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>You can sign back in anytime from QGIS.</source>
+            <translation>Je kunt altijd opnieuw inloggen vanuit QGIS.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Your first name</source>
+            <translation>Je voornaam</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
+            <translation>Je werk in een paar woorden. Het bepaalt naar welke data en welke methode het eerst grijpt.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>by TerraLab</source>
+            <translation>door TerraLab</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>runs left of {limit} this month</source>
+            <translation>van {limit} uitvoeringen over deze maand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>runs this month</source>
+            <translation>uitvoeringen deze maand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>{count} / {limit}</source>
+            <translation>{count} / {limit}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>{used} runs this month</source>
+            <translation>Uitvoeringen deze maand: {used}</translation>
+        </message>
+        <message>
+            <source>Always wait for me</source>
+            <translation>Altijd op mij wachten</translation>
+        </message>
+        <message>
+            <source>Compare plans</source>
+            <translation>Abonnementen vergelijken</translation>
+        </message>
+        <message>
+            <source>Computer-style names</source>
+            <translation>Computerachtige namen</translation>
+        </message>
+        <message>
+            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, only that you used the app and when, never what you did in it.</source>
+            <translation>Fouten, versies en welke functies je gebruikt, gekoppeld aan je account. Nooit je prompts, lagen, coördinaten of bestanden. Op Pro alleen dat je de app hebt gebruikt en wanneer, nooit wat je erin deed.</translation>
+        </message>
+        <message>
+            <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
+            <translation>Taal, stijl, toestemmingen, je profiel en je geheugennotities gaan terug naar de beginwaarden. Je blijft ingelogd.</translation>
+        </message>
+        <message>
+            <source>Lets us read a conversation only when we are fixing a wrong answer or something that broke. Turn it off any time, with no other effect.</source>
+            <translation>Laat ons een gesprek alleen lezen wanneer we een fout antwoord of iets dat niet werkt herstellen. Schakel dit op elk moment uit, zonder ander effect.</translation>
+        </message>
+        <message>
+            <source>Manage</source>
+            <translation>Beheren</translation>
+        </message>
+        <message>
+            <source>More plugins</source>
+            <translation>Meer plugins</translation>
+        </message>
+        <message>
+            <source>Open the dashboard</source>
+            <translation>Dashboard openen</translation>
+        </message>
+        <message>
+            <source>Payment happens on the TerraLab website, never inside QGIS. Your plan here updates on its own.</source>
+            <translation>Betaling gebeurt op de TerraLab-website, nooit in QGIS. Je abonnement hier wordt automatisch bijgewerkt.</translation>
+        </message>
+        <message>
+            <source>Plans and prices, on the TerraLab website.</source>
+            <translation>Abonnementen en prijzen op de TerraLab-website.</translation>
+        </message>
+        <message>
+            <source>See pricing</source>
+            <translation>Prijzen bekijken</translation>
+        </message>
+        <message>
+            <source>Short reminders it keeps between conversations.</source>
+            <translation>Korte herinneringen die het tussen gesprekken bewaart.</translation>
+        </message>
+        <message>
+            <source>There's a problem with your subscription: your last payment may have failed. Update your payment method to fix it.</source>
+            <translation>Er is een probleem met je abonnement: je laatste betaling is mogelijk mislukt. Werk je betaalmethode bij om dit op te lossen.</translation>
+        </message>
+        <message>
+            <source>Your TerraLab account and its data are erased, and every TerraLab plugin stops working. To confirm, type your email address again.</source>
+            <translation>Je TerraLab-account en de bijbehorende gegevens worden gewist en elke TerraLab-plugin stopt met werken. Typ je e-mailadres opnieuw ter bevestiging.</translation>
+        </message>
+        <message>
+            <source>Your plan already turns this off. What you write is never read to improve the product, no matter how this switch is set.</source>
+            <translation>Je abonnement schakelt dit al uit. Wat je schrijft wordt nooit gelezen om het product te verbeteren, ongeacht deze instelling.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices are on the TerraLab dashboard.</source>
+            <translation>Je abonnement, betaalmethode en facturen staan op het TerraLab-dashboard.</translation>
+        </message>
+        <message>
+            <source>{left} runs left of {limit} this month</source>
+            <translation>deze maand nog {left} van {limit} uitvoeringen</translation>
+        </message>
+        <message>
+            <source>Another project</source>
+            <translation>Een ander project</translation>
+        </message>
+        <message>
+            <source>Move the map to what it changes</source>
+            <translation>Verplaats de kaart naar wat het verandert</translation>
+        </message>
+        <message>
+            <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
+            <translation>Het kaartvenster gaat naar elke bewerking zodra die gebeurt. Uit laat je kaartvenster staan waar je het hebt neergezet.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Geheugenmap</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Je notities als Markdown-bestanden op deze computer. Pas er een aan of verwijder er een, en het volgende gesprek houdt daar rekening mee.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Back to defaults, memory notes included. You stay signed in.</source>
+            <translation>Terug naar de beginwaarden, geheugennotities inbegrepen. Je blijft ingelogd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Check your internet connection, then retry.</source>
+            <translation>Controleer je internetverbinding en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Could not load your account</source>
+            <translation>Je account laden is niet gelukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Could not reach TerraLab</source>
+            <translation>TerraLab bereiken is niet gelukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Do more with Pro</source>
+            <translation>Meer doen met Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Erases your account and its data. All TerraLab plugins stop.</source>
+            <translation>Wist je account en de bijbehorende gegevens. Alle TerraLab-plugins werken niet meer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Errors, versions and which features you use, linked to your account. On Pro, only that you used the app and when.</source>
+            <translation>Fouten, versies en welke functies je gebruikt, gekoppeld aan je account. Op Pro alleen dat je de app hebt gebruikt en wanneer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Language, style, permissions, your profile and your memory notes go back to their defaults.</source>
+            <translation>Taal, stijl, toestemmingen, je profiel en je geheugennotities gaan terug naar de beginwaarden.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
+            <translation>Laat ons een chat alleen lezen om een verkeerd antwoord of een bug te verhelpen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Never your prompts, layers, coordinates or files.</source>
+            <translation>Nooit je prompts, lagen, coördinaten of bestanden.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Off on your plan: chats are never read to improve it.</source>
+            <translation>Uitgeschakeld voor je abonnement: chats worden nooit gelezen om het te verbeteren.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Plus memory, your instructions and higher effort.</source>
+            <translation>Plus geheugen, je instructies en hogere inspanning.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Pro: commercial use and more runs</source>
+            <translation>Pro: commercieel gebruik en meer uitvoeringen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_billing.py" />
+            <source>See what Pro unlocks</source>
+            <translation>Bekijk wat Pro ontgrendelt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Share usage statistics</source>
+            <translation>Gebruiksstatistieken delen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Sign in first to delete your account.</source>
+            <translation>Log eerst in om je account te verwijderen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Sign out, then sign in again.</source>
+            <translation>Log uit en log daarna opnieuw in.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>This computer is no longer signed in</source>
+            <translation>Deze computer is niet meer ingelogd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>To confirm, you type your email address again.</source>
+            <translation>Ter bevestiging typ je je e-mailadres opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Try again in a moment.</source>
+            <translation>Probeer het over enkele ogenblikken opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Turn it off any time, with no other effect.</source>
+            <translation>Schakel het op elk moment uit, zonder ander effect.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py" />
+            <source>Unlock with Pro</source>
+            <translation>Ontgrendelen met Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Update your payment method to fix it.</source>
+            <translation>Werk je betaalmethode bij om dit op te lossen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>What Pro unlocks, on the TerraLab website.</source>
+            <translation>Wat Pro ontgrendelt, op de TerraLab-website.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>What you write is never read to improve the product, no matter how this switch is set.</source>
+            <translation>Wat je schrijft wordt nooit gelezen om het product te verbeteren, ongeacht hoe deze schakelaar staat.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Your last payment may have failed</source>
+            <translation>Je laatste betaling is mogelijk mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Your sign-in, your plan and your privacy.</source>
+            <translation>Je login, je abonnement en je privacy.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>{left} of {limit} runs left</source>
+            <translation>{left} van {limit} uitvoeringen over</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>{plan} · Personal, non-commercial use</source>
+            <translation>{plan} · Persoonlijk, niet-commercieel gebruik</translation>
+        </message>
+        <message>
+            <source>Delete</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Upgraden</translation>
+        </message>
+        <message>
+            <source>Commercial use and more runs with Pro</source>
+            <translation>Commercieel gebruik en meer runs met Pro</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro nemen</translation>
+        </message>
+        <message>
+            <source>Manage plan</source>
+            <translation>Abonnement beheren</translation>
+        </message>
+        <message>
+            <source>Memory between conversations</source>
+            <translation>Geheugen tussen gesprekken</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Meer</translation>
+        </message>
+        <message>
+            <source>Opens a window</source>
+            <translation>Opent een venster</translation>
+        </message>
+        <message>
+            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
+            <translation>Pro leest wie je bent en je vaste regels vóór elke run: je beroep, je stad, je gebruikelijke CRS, de taal waarin het antwoordt, hoe het lagen een naam geeft en wat het nooit mag doen zonder te vragen.</translation>
+        </message>
+        <message>
+            <source>Show the steps it takes</source>
+            <translation>Toon de stappen die het zet</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Aanmelden</translation>
+        </message>
+        <message>
+            <source>Sign in to see your account</source>
+            <translation>Meld je aan om je account te zien</translation>
+        </message>
+        <message>
+            <source>The list of steps above each answer.</source>
+            <translation>De lijst met stappen boven elk antwoord.</translation>
+        </message>
+        <message>
+            <source>This computer was signed out</source>
+            <translation>Deze computer is afgemeld</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on the TerraLab website. Payment never happens inside QGIS.</source>
+            <translation>Je abonnement, betaalmethode en facturen, op de TerraLab-website. Betalen gebeurt nooit in QGIS.</translation>
+        </message>
+        <message>
+            <source>Your plan, runs and settings appear here once you sign in.</source>
+            <translation>Je abonnement, runs en instellingen verschijnen hier zodra je je aanmeldt.</translation>
+        </message>
+        <message>
+            <source>Your profile and instructions, read before every run</source>
+            <translation>Je profiel en instructies, gelezen vóór elke run</translation>
+        </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Notitie toevoegen</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Toegevoegd door de AI</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>Het vraagt eerst om toestemming.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>Markdown-bestanden op deze computer</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>OPGESLAGEN NOTITIES · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>De AI kan notities voorstellen</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>bijv. Ik werk in EPSG:2154</translation>
+        </message>
+    </context>
+    <context>
+        <name>SourcesButton</name>
+        <message>
+            <location filename="src/ui/source_marks.py" />
+            <source>1 source</source>
+            <translation>1 bron</translation>
+        </message>
+        <message>
+            <location filename="src/ui/source_marks.py" />
+            <source>Sources of this answer</source>
+            <translation>Bronnen van dit antwoord</translation>
+        </message>
+        <message>
+            <location filename="src/ui/source_marks.py" />
+            <source>{n} sources</source>
+            <translation>{n} bronnen</translation>
+        </message>
+    </context>
+    <context>
+        <name>SourcesPopover</name>
+        <message>
+            <location filename="src/ui/source_marks.py" />
+            <source>1 source</source>
+            <translation>1 bron</translation>
+        </message>
+        <message>
+            <location filename="src/ui/source_marks.py" />
+            <source>{n} sources</source>
+            <translation>{n} bronnen</translation>
+        </message>
+        <message>
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <source>Copy credits</source>
+            <translation>Bronvermelding kopiëren</translation>
+        </message>
+        <message>
+            <source>Copy one credit line per source, for a print layout</source>
+            <translation>Kopieer één bronvermelding per bron, voor een printlay-out</translation>
+        </message>
+        <message>
+            <source>{n} scenes, {span}</source>
+            <translation>{n} scènes, {span}</translation>
+        </message>
+        <message>
+            <source>Access</source>
+            <translation>Toegang</translation>
+        </message>
+        <message>
+            <source>Credit</source>
+            <translation>Bronvermelding</translation>
+        </message>
+        <message>
+            <source>Date</source>
+            <translation>Datum</translation>
+        </message>
+        <message>
+            <source>Dates</source>
+            <translation>Datums</translation>
+        </message>
+        <message>
+            <source>Files</source>
+            <translation>Bestanden</translation>
+        </message>
+        <message>
+            <source>Licence</source>
+            <translation>Licentie</translation>
+        </message>
+        <message>
+            <source>Resolution</source>
+            <translation>Resolutie</translation>
+        </message>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>Geleverd door TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Adres</translation>
+        </message>
+    </context>
+    <context>
+        <name>StatusLine</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Thinking</source>
+            <translation>Nadenken</translation>
+        </message>
+    </context>
+    <context>
+        <name>StepLine</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>for {n}s</source>
+            <translation>{n}s</translation>
+        </message>
+    </context>
+    <context>
+        <name>TerraLabClient</name>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Authentication failed. Please sign in again.</source>
+            <translation>Authenticatie mislukt. Log opnieuw in.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Cannot reach the server. Check your internet connection.</source>
+            <translation>De server kan niet worden bereikt. Controleer je internetverbinding.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Network error. Check your internet connection.</source>
+            <translation>Netwerkfout. Controleer je internetverbinding.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Proxy connection failed. Check QGIS proxy settings (Settings &gt; Options &gt; Network).</source>
+            <translation>Proxyverbinding mislukt. Controleer de proxyinstellingen van QGIS (Extra &gt; Opties &gt; Netwerk).</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Request timed out. Check your connection or try again.</source>
+            <translation>Time-out bij de aanvraag. Controleer je verbinding of probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>SSL certificate error. Your network may be blocking secure connections.</source>
+            <translation>Fout met SSL-certificaat. Je netwerk blokkeert mogelijk beveiligde verbindingen.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>Server refused the connection.</source>
+            <translation>De server heeft de verbinding geweigerd.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>The connection to the server was interrupted. Please try again.</source>
+            <translation>De verbinding met de server is onderbroken. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>The reply did not come from the service. If this network shows a sign-in page, open it in your browser first, then try again.</source>
+            <translation>Het antwoord kwam niet van de service. Als dit netwerk een inlogpagina toont, open die dan eerst in je browser en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>The server returned an unexpected response. Please try again.</source>
+            <translation>De server gaf een onverwacht antwoord. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/api/terralab_client.py" />
+            <source>The service is temporarily unavailable (server error). Your connection is fine, please try again in a few minutes.</source>
+            <translation>De service is tijdelijk niet beschikbaar door een serverfout. Je verbinding werkt. Probeer het over enkele minuten opnieuw.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolCard</name>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>1 feature</source>
+            <translation>1 object</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Copy as script</source>
+            <translation>Als script kopiëren</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Hide the code</source>
+            <translation>Code verbergen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Show the code</source>
+            <translation>Code tonen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>did not work</source>
+            <translation>werkte niet</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>expression</source>
+            <translation>expressie</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>failed</source>
+            <translation>mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>{line} ({n} times)</source>
+            <translation>{line} ({n} keer)</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>{n} features</source>
+            <translation>{n} objecten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>{what} in the area</source>
+            <translation>{what} in het gebied</translation>
+        </message>
+        <message>
+            <source>Copy the code with the setup lines it needs, ready to paste into the console.</source>
+            <translation>Kopieer de code met de benodigde instelregels, klaar om in de console te plakken.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>denied</source>
+            <translation>geweigerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>never finished</source>
+            <translation>nooit voltooid</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>not run, permission denied</source>
+            <translation>niet uitgevoerd, toestemming geweigerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>stopped</source>
+            <translation>gestopt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>stopped before it finished</source>
+            <translation>gestopt voordat het klaar was</translation>
+        </message>
+        <message>
+            <source>Open AI Edit</source>
+            <translation>Open AI Edit</translation>
+        </message>
+        <message>
+            <source>Open AI Segmentation</source>
+            <translation>Open AI Segmentation</translation>
+        </message>
+        <message>
+            <source>Show that plugin's panel again. Nothing is run and nothing is spent.</source>
+            <translation>Toon het paneel van die plugin opnieuw. Er wordt niets uitgevoerd en niets verbruikt.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show the whole message</source>
+            <translation>Toon het hele bericht</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>Poging {n} werkte niet: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>geen reden opgegeven</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolExecutor</name>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>Allowing also covers the other code this answer runs.</source>
+            <translation>Toestemming geldt ook voor de andere code die dit antwoord uitvoert.</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>Question mode is read only: {tool} would modify the project.</source>
+            <translation>De vraagmodus is alleen-lezen: {tool} zou het project wijzigen.</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>Run {tool}</source>
+            <translation>{tool} uitvoeren</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>The run was cancelled by the user.</source>
+            <translation>De gebruiker heeft de uitvoering geannuleerd.</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>The user dismissed the question.</source>
+            <translation>De gebruiker heeft de vraag gesloten.</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>done</source>
+            <translation>klaar</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>done ({n} fields)</source>
+            <translation>klaar (aantal velden: {n})</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>done ({n} items)</source>
+            <translation>klaar (aantal items: {n})</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>done, result cut to {n} characters</source>
+            <translation>klaar, resultaat ingekort tot {n} tekens</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>running in the background (task {id})</source>
+            <translation>op de achtergrond actief (taak {id})</translation>
+        </message>
+        <message>
+            <location filename="src/core/executor.py" />
+            <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
+            <translation>{what} op “{layer}” waarvan het CRS {crs} geografisch is: de afstand zou in graden zijn, niet in meters.</translation>
+        </message>
+        <message>
+            <source>This run has ended; the call was not executed.</source>
+            <translation>Deze uitvoering is beëindigd; de aanroep is niet uitgevoerd.</translation>
+        </message>
+        <message>
+            <source>Your answer covers the other code this answer runs.</source>
+            <translation>Je antwoord dekt de andere code die dit antwoord uitvoert.</translation>
+        </message>
+        <message>
+            <source>Your answer covers the other {tool} calls this answer makes.</source>
+            <translation>Je antwoord geldt ook voor de andere {tool}-aanroepen in dit antwoord.</translation>
+        </message>
+        <message>
+            <source>Question mode is read only: the snippet {what}.</source>
+            <translation>De vraagmodus is alleen-lezen: het fragment bevat code die {what}.</translation>
+        </message>
+        <message>
+            <source>Run Python code</source>
+            <translation>Python-code uitvoeren</translation>
+        </message>
+        <message>
+            <source>Run Python code that {what}.</source>
+            <translation>Python-code uitvoeren die {what}.</translation>
+        </message>
+        <message>
+            <source>could not be saved first, so Undo could not take it back</source>
+            <translation>die vooraf niet kon worden opgeslagen, zodat “Ongedaan maken” het niet kon terugdraaien</translation>
+        </message>
+        <message>
+            <source>deletes features from {files}</source>
+            <translation>objecten uit {files} verwijdert</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}</source>
+            <translation>een bewerking in {files} opslaat</translation>
+        </message>
+        <message>
+            <source>ran with unsaved edits open on {layers}, so nothing was put back</source>
+            <translation>is uitgevoerd terwijl er niet-opgeslagen bewerkingen openstonden op {layers}, waardoor er niets is teruggezet</translation>
+        </message>
+        <message>
+            <source>Run Python code ({what}).</source>
+            <translation>Python-code uitvoeren ({what}).</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolGroup</name>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>%n messages</source>
+            <translation>%n berichten</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>%n tools</source>
+            <translation>%n tools</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>1 message</source>
+            <translation>1 bericht</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>1 tool</source>
+            <translation>1 tool</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolStack</name>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>%n calls</source>
+            <translation>%n aanroepen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/tool_rows.py" />
+            <source>1 call</source>
+            <translation>1 aanroep</translation>
+        </message>
+    </context>
+    <context>
+        <name>TraceSteps</name>
+        <message>
+            <location filename="src/ui/trace_rows.py" />
+            <source>Plan</source>
+            <translation>Plan</translation>
+        </message>
+    </context>
+    <context>
+        <name>UpdateBanner</name>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Later</source>
+            <translation>Later</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>Update now</source>
+            <translation>Nu bijwerken</translation>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py" />
+            <source>{product} {version} is out</source>
+            <translation>{product} {version} is beschikbaar</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Bijwerken…</translation>
+        </message>
+    </context>
+    <context>
+        <name>UserBubble</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Context</source>
+            <translation>Context</translation>
+        </message>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>You</source>
+            <translation>Jij</translation>
+        </message>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>{name}. Click to open.</source>
+            <translation>{name}. Klik om te openen.</translation>
+        </message>
+        <message>
+            <source>Edit message</source>
+            <translation>Bericht bewerken</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerChip</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>CRS</source>
+            <translation>CRS</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Click to open it in QGIS.</source>
+            <translation>Klik om het te openen in QGIS.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its CRS changed. Click to open it in QGIS.</source>
+            <translation>Het CRS is gewijzigd. Klik om de laag in QGIS te openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its file was written on disk. Click to open it in QGIS.</source>
+            <translation>Het bestand is op schijf geschreven. Klik om de laag in QGIS te openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>New layer. Click to open it in QGIS.</source>
+            <translation>Nieuwe laag. Klik om deze te openen in QGIS.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Show in Layers panel</source>
+            <translation>Weergeven in paneel Lagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>This layer was removed from the project.</source>
+            <translation>Deze laag is uit het project verwijderd.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Zoom to layer</source>
+            <translation>Zoomen naar laag</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>hidden</source>
+            <translation>verborgen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>new</source>
+            <translation>nieuw</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>removed</source>
+            <translation>verwijderd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>saved</source>
+            <translation>opgeslagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>shown</source>
+            <translation>getoond</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>styled</source>
+            <translation>opgemaakt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>{n:+d} features. Click to open it in QGIS.</source>
+            <translation>{n:+d} objecten. Klik om het te openen in QGIS.</translation>
+        </message>
+        <message>
+            <source>{n:+d} feature. Click to open it in QGIS.</source>
+            <translation>{n:+d} object. Klik om het in QGIS te openen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Click to select it in the Layers panel.</source>
+            <translation>Klik om deze te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Credit: {credit}</source>
+            <translation>Bronvermelding: {credit}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its CRS changed. Click to select it in the Layers panel.</source>
+            <translation>Het CRS is gewijzigd. Klik om de laag te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its file was written on disk. Click to select it in the Layers panel.</source>
+            <translation>Het bestand is op schijf geschreven. Klik om de laag te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Licence: {licence}</source>
+            <translation>Licentie: {licence}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>New layer. Click to select it in the Layers panel.</source>
+            <translation>Nieuwe laag. Klik om deze te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>{n:+d} feature. Click to select it in the Layers panel.</source>
+            <translation>{n:+d} object. Klik om deze te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>{n:+d} features. Click to select it in the Layers panel.</source>
+            <translation>{n:+d} objecten. Klik om deze te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Deze laag staat niet meer in het project.</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>hernoemd</translation>
+        </message>
+        <message>
+            <source>New layer, %n features. Click to select it in the Layers panel.</source>
+            <translation>Nieuwe laag, %n objecten. Klik om hem te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
+            <translation>Nieuwe laag, 1 object. Klik om hem te selecteren in het paneel Lagen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreLabel</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Page</name>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Skip</source>
+            <translation>Overslaan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Type your answer</source>
+            <translation>Typ je antwoord</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>auto</source>
+            <translation>auto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>skipped</source>
+            <translation>overgeslagen</translation>
+        </message>
+        <message>
+            <source>Something else</source>
+            <translation>Iets anders</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Answers itself in %n seconds</source>
+            <translation>Wordt automatisch beantwoord over %n seconden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Answers itself in 1 second</source>
+            <translation>Wordt automatisch beantwoord over 1 seconde</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StepRow</name>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>%n tools</source>
+            <translation>%n tools</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>1 tool</source>
+            <translation>1 tool</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Failed</source>
+            <translation>Mislukt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>Running</source>
+            <translation>Bezig</translation>
+        </message>
+        <message>
+            <source>Done</source>
+            <translation>Gereed</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoticeBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>Read more</source>
+            <translation>Meer lezen</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingCard</name>
+        <message>
+            <source>Install in QGIS</source>
+            <translation>In QGIS installeren</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Geïnstalleerd</translation>
+        </message>
+        <message>
+            <source>Open in QGIS</source>
+            <translation>In QGIS openen</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Opent in QGIS het venster “Plug-ins beheren en installeren” voor deze plugin.</translation>
+        </message>
+        <message>
+            <source>Read the guide</source>
+            <translation>Handleiding lezen</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Het paneel van de plugin tonen.</translation>
+        </message>
+        <message>
+            <source>The written tutorial, on the TerraLab blog.</source>
+            <translation>De geschreven tutorial op de TerraLab-blog.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsPage</name>
+        <message>
+            <source>Detect objects in a raster and get them back as real polygons: building footprints, trees, water, solar panels, anything you can point at. Runs on your machine or on our servers, and exports to GeoPackage, Shapefile or GeoJSON.</source>
+            <translation>Detecteer objecten in een raster en krijg ze terug als echte polygonen: gebouwomtrekken, bomen, water, zonnepanelen, alles wat je kunt aanwijzen. Draait op je computer of op onze servers en exporteert naar GeoPackage, Shapefile of GeoJSON.</translation>
+        </message>
+        <message>
+            <source>Repaint the imagery you already have open, from a sentence: a redevelopment before it is built, a street planted with trees, a flood, an orthophoto redrawn as a clean site plan. The result comes back georeferenced, on the source's own extent and CRS.</source>
+            <translation>Beschilder de beeldlaag die al openstaat vanuit één zin: een herontwikkeling voordat die is gebouwd, een straat met bomen, een overstroming, een orthofoto als helder terreinplan. Het resultaat komt gegeorefereerd terug, met de extent en CRS van de bron.</translation>
+        </message>
+        <message>
+            <source>More plugins</source>
+            <translation>Meer plugins</translation>
+        </message>
+        <message>
+            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
+            <translation>De twee andere TerraLab-plugins voor QGIS. Je kunt ze hier installeren.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/siblings_page.py" />
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Bewerk je beelden met één zin.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/siblings_page.py" />
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Verander gebouwen, bomen of water in polygonen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>UpdateGate</name>
+        <message>
+            <source>Update now</source>
+            <translation>Nu bijwerken</translation>
+        </message>
+        <message>
+            <source>Update required</source>
+            <translation>Update vereist</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click in the QGIS Plugin Manager; the plugin reloads on its own.</source>
+            <translation>Werk bij om {product} te blijven gebruiken. Eén klik in de QGIS Plugin Manager volstaat; de plugin wordt vanzelf opnieuw geladen.</translation>
+        </message>
+        <message>
+            <source>You have {installed}.</source>
+            <translation>Je hebt {installed}.</translation>
+        </message>
+        <message>
+            <source>{product} {version} is out</source>
+            <translation>{product} {version} is beschikbaar</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Werk bij om {product} te blijven gebruiken. Het kost één klik en de plugin herlaadt vanzelf.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Bijwerken…</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Body</name>
+        <message>
+            <source>… {n} more lines</source>
+            <translation>… nog {n} regels</translation>
+        </message>
+    </context>
+    <context>
+        <name>CleanupCard</name>
+        <message>
+            <source>Delete</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <source>Deleted {n} working layer</source>
+            <translation>{n} werklaag verwijderd</translation>
+        </message>
+        <message>
+            <source>Deleted {n} working layers</source>
+            <translation>{n} werklagen verwijderd</translation>
+        </message>
+        <message>
+            <source>I left {n} working layer behind.</source>
+            <translation>Ik heb {n} werklaag laten staan.</translation>
+        </message>
+        <message>
+            <source>I left {n} working layers behind.</source>
+            <translation>Ik heb {n} werklagen laten staan.</translation>
+        </message>
+        <message>
+            <source>Keep them</source>
+            <translation>Bewaren</translation>
+        </message>
+        <message>
+            <source>Kept {n} working layer</source>
+            <translation>{n} werklaag behouden</translation>
+        </message>
+        <message>
+            <source>Kept {n} working layers</source>
+            <translation>{n} werklagen behouden</translation>
+        </message>
+        <message>
+            <source>Tidied {n} working layer away</source>
+            <translation>{n} werklaag opgeruimd</translation>
+        </message>
+        <message>
+            <source>Tidied {n} working layers away</source>
+            <translation>{n} werklagen opgeruimd</translation>
+        </message>
+        <message>
+            <source>Tidy up</source>
+            <translation>Opruimen</translation>
+        </message>
+        <message>
+            <source>Working layers</source>
+            <translation>Werklagen</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>en nog {n} andere</translation>
+        </message>
+        <message>
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+        <message>
+            <source>Group and hide</source>
+            <translation>Groeperen en verbergen</translation>
+        </message>
+        <message>
+            <source>Keep them where they are</source>
+            <translation>Laat ze waar ze zijn</translation>
+        </message>
+        <message>
+            <source>Move them into a hidden, collapsed group named {group}</source>
+            <translation>Verplaats ze naar een verborgen, ingeklapte groep met de naam {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layer into {group}</source>
+            <translation>{n} laag verplaatst naar {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} lagen verplaatst naar {group}</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layer behind</source>
+            <translation>De agent liet {n} werklaag achter</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layers behind</source>
+            <translation>De agent liet {n} werklagen achter</translation>
+        </message>
+    </context>
+    <context>
+        <name>PluginOfferCard</name>
+        <message>
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Niet nu</translation>
+        </message>
+        <message>
+            <source>Opened the plugin manager</source>
+            <translation>Pluginmanager geopend</translation>
+        </message>
+        <message>
+            <source>pending</source>
+            <translation>in afwachting</translation>
+        </message>
+    </context>
+    <context>
+        <name>RunSummaryCard</name>
+        <message>
+            <source>Done</source>
+            <translation>Klaar</translation>
+        </message>
+        <message>
+            <source>Ended</source>
+            <translation>Beëindigd</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Mislukt</translation>
+        </message>
+        <message>
+            <source>Out of runs</source>
+            <translation>Uitvoeringen op</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackRow</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Bad answer</source>
+            <translation>Slecht antwoord</translation>
+        </message>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Good answer</source>
+            <translation>Goed antwoord</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FileChip</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Click to show it in its folder.</source>
+            <translation>Klik om het te tonen in zijn map.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_WarningsChip</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>%n warnings</source>
+            <translation>%n waarschuwingen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>1 warning</source>
+            <translation>1 waarschuwing</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>What QGIS found when it read the result back. Click to read it.</source>
+            <translation>Wat QGIS aantrof toen het resultaat opnieuw werd ingelezen. Klik om het te lezen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Datasetpagina</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Datum onbekend</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Live, geladen op {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Je eigen bestand</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Je eigen bron</translation>
+        </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>Datasetpagina en licentievoorwaarden</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>bereik: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>invoer: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>parameters: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>bron: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>tool: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC, toegevoegd door AI Agent by TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Toon één regel met lagen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verifiëren</translation>
+        </message>
+    </context>
+    <context>
+        <name>ChatLabel</name>
+        <message>
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
+        </message>
+        <message>
+            <source>Select All</source>
+            <translation>Alles selecteren</translation>
+        </message>
+    </context>
+    <context>
+        <name>FileOutputCard</name>
+        <message>
+            <source>Add to map</source>
+            <translation>Aan kaart toevoegen</translation>
+        </message>
+        <message>
+            <source>File</source>
+            <translation>Bestand</translation>
+        </message>
+        <message>
+            <source>Image</source>
+            <translation>Afbeelding</translation>
+        </message>
+        <message>
+            <source>Not on disk any more</source>
+            <translation>Niet meer op schijf</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
+        <message>
+            <source>Open in the browser</source>
+            <translation>Openen in de browser</translation>
+        </message>
+        <message>
+            <source>PDF</source>
+            <translation>PDF</translation>
+        </message>
+        <message>
+            <source>Raster data</source>
+            <translation>Rasterdata</translation>
+        </message>
+        <message>
+            <source>Show in folder</source>
+            <translation>In map weergeven</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>Tabel</translation>
+        </message>
+        <message>
+            <source>Vector data</source>
+            <translation>Vectordata</translation>
+        </message>
+        <message>
+            <source>Web page</source>
+            <translation>Webpagina</translation>
+        </message>
+        <message>
+            <source>{path}
+This file is no longer where the run wrote it.</source>
+            <translation>{path}
+Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FilePreview</name>
+        <message>
+            <source>1 page</source>
+            <translation>1 pagina</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>No preview for this kind of file.</source>
+            <translation>Geen voorbeeld voor dit soort bestand.</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
+        <message>
+            <source>Show in folder</source>
+            <translation>In map weergeven</translation>
+        </message>
+        <message>
+            <source>The first {shown} of {total} pages. Open the file to read the rest.</source>
+            <translation>De eerste {shown} van {total} pagina's. Open het bestand om de rest te lezen.</translation>
+        </message>
+        <message>
+            <source>This file is no longer at {path}.</source>
+            <translation>Dit bestand staat niet meer op {path}.</translation>
+        </message>
+        <message>
+            <source>[The first 512 KB. Open the file to read the rest.]</source>
+            <translation>[De eerste 512 KB. Open het bestand om de rest te lezen.]</translation>
+        </message>
+        <message>
+            <source>{count} pages</source>
+            <translation>{count} pagina's</translation>
+        </message>
+    </context>
+    <context>
+        <name>RunsLeftLine</name>
+        <message>
+            <source>1 free run left</source>
+            <translation>Nog 1 gratis uitvoering</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>Get more runs</source>
+            <translation>Meer runs kopen</translation>
+        </message>
+        <message>
+            <source>{n} free runs left</source>
+            <translation>Nog {n} gratis uitvoeringen</translation>
+        </message>
+        <message>
+            <source>{n} runs a month with Pro</source>
+            <translation>{n} runs per maand met Pro</translation>
+        </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>Neem Pro voor High-inspanning</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: {n} uitvoeringen per maand, Medium- en High-inspanning voor moeilijkere taken, Autopilot</translation>
+        </message>
+        <message>
+            <source>Get more runs with Pro</source>
+            <translation>Krijg meer runs met Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SourceCard</name>
+        <message>
+            <source>%n examples</source>
+            <translation>%n voorbeelden</translation>
+        </message>
+        <message>
+            <source>1 example</source>
+            <translation>1 voorbeeld</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreRow</name>
+        <message>
+            <source>+%n more</source>
+            <translation>+%n meer</translation>
+        </message>
+    </context>
+    <context>
+        <name>_NowLine</name>
+        <message>
+            <source>Now</source>
+            <translation>Nu</translation>
+        </message>
+        <message>
+            <source>Current</source>
+            <translation>Huidig</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>Heeft niet gedaan wat ik vroeg</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Stuur</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>Bedankt</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Te traag</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>Wat ging er mis? (optioneel)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Fout resultaat</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>{n} meer tonen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>Dit bericht bewerken</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>Uit de wachtrij verwijderen</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Dit bericht nu verzenden</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FilesMore</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Toon één regel met lagen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceDetails</name>
+        <message>
+            <source>Open dataset page</source>
+            <translation>Datasetpagina openen</translation>
+        </message>
+        <message>
+            <source>Open page</source>
+            <translation>Pagina openen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceRow</name>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>Geleverd door TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Toevoegen</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Toegevoegd aan het geheugen</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Geheugen</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>Nee, bedankt</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Dit onthouden voor de volgende keer?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Vervangt: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Instellingen</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>De hele notitie tonen</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Beschikbaar zodra de agent klaar is</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Betrokken lagen</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Verwijderd</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Hersteld</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Huidig</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Herstellen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_WorkingMore</name>
+        <message>
+            <location filename="src/ui/file_card.py" />
+            <source>1 working file</source>
+            <translation>1 werkbestand</translation>
+        </message>
+        <message>
+            <location filename="src/ui/file_card.py" />
+            <source>{n} working files</source>
+            <translation>{n} werkbestanden</translation>
+        </message>
+    </context>
+    <context>
+        <name>RetentionRow</name>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>1 year</source>
+            <translation>1 jaar</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>30 days</source>
+            <translation>30 dagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>6 months</source>
+            <translation>6 maanden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>90 days</source>
+            <translation>90 dagen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Could not save. Try again.</source>
+            <translation>Opslaan is niet gelukt. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Free plan. Pro lets you choose 30 days to 1 year.</source>
+            <translation>Gratis abonnement. Met Pro kies je tussen 30 dagen en 1 jaar.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>History retention</source>
+            <translation>Bewaartermijn van geschiedenis</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>How long your run records stay on our servers, for all TerraLab plugins. Your chats stay on this computer.</source>
+            <translation>Hoe lang de gegevens van je runs op onze servers blijven, voor alle TerraLab-plugins. Je chats blijven op deze computer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Keep until I delete it</source>
+            <translation>Bewaren tot ik het verwijder</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Loading history retention</source>
+            <translation>Bewaartermijn van geschiedenis laden</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>No copies (0 days)</source>
+            <translation>Geen kopieën (0 dagen)</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>No copy of your work is written. Your chats stay on this computer.</source>
+            <translation>Er wordt geen kopie van je werk opgeslagen. Je chats blijven op deze computer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Older history will be deleted for good, files included, within two days. Continue?</source>
+            <translation>Oudere geschiedenis wordt binnen twee dagen definitief verwijderd, bestanden inbegrepen. Doorgaan?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Set by your contract</source>
+            <translation>Ingesteld door je contract</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Shorten history retention?</source>
+            <translation>Bewaartermijn van geschiedenis verkorten?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Until I delete it</source>
+            <translation>Tot ik het verwijder</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Until you delete it</source>
+            <translation>Tot je het verwijdert</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>Zero data retention: no copy of your work is kept beyond what your contract allows.</source>
+            <translation>Zero data retention: er wordt geen kopie van je werk bewaard buiten wat je contract toestaat.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_retention.py" />
+            <source>{n} days</source>
+            <translation>{n} dagen</translation>
+        </message>
+    </context>
+    <context>
+        <name>FileCardStack</name>
+        <message>
+            <location filename="src/ui/file_card.py" />
+            <source>Working files</source>
+            <translation>Werkbestanden</translation>
+        </message>
+    </context>
+</TS>
