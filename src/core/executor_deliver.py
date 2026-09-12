@@ -1,0 +1,540 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+from __future__ import annotations
+
+import json
+import os
+import time
+
+from qgis.core import QgsProject
+from qgis.PyQt.QtCore import QCoreApplication
+
+from . import layout_show, licence, limits, postcondition, scratch, security, stalls, tuning
+from .checkpoints import KIND_BEFORE
+from .context import stamp_thread
+from .executor_code import CODE_TOOL
+from .log_scrub import scrub_result
+from .logger import log_warning
+from .protocol import ClientErrorCode as Err
+from .protocol import Danger
+from .run_report import MAX_CALL_WARNINGS, MAX_OUTPUT_FILES, call_warnings, result_files, written_paths
+from .serialization import bound_result, dump_json, error_details, neutralise_result, reads_the_outside_world
+from .snapshot import RunSnapshot
+from .tool_registry import spec
+
+try:
+    from ..tools import guards
+except ImportError:
+    guards = None
+
+
+
+_TASK_READS = scratch.TASK_READS
+
+
+def _task_ids_started(name: str, result) -> set:
+
+    if name in _TASK_READS or not isinstance(result, dict) or not result.get("task_id") \
+            or str(result.get("status") or "").lower() != "running":
+        return set()
+    return {str(result["task_id"])}
+
+
+_LAYER_KEYS = ("layer_name", "layer", "layer_id", "input", "INPUT", "target_layer", "output_name", "name")
+
+
+
+
+_INPUT_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
+
+_NAMES_A_NEW_LAYER = {"execute_sql": ("layer_name",)}
+
+
+def _resolved_layer_note(name: str, args: dict, result) -> str:
+
+
+
+
+
+
+
+
+
+    if not isinstance(result, dict) or "_error" in result:
+        return ""
+    if result.get("empty") is True and not result.get("layer_id"):
+
+
+
+        return ""
+    skip = _NAMES_A_NEW_LAYER.get(name, ())
+    notes: list[str] = []
+    for key in _INPUT_LAYER_KEYS:
+        if key in skip:
+            continue
+        value = args.get(key)
+        if not isinstance(value, str) or not value.strip():
+            continue
+
+
+
+
+        if result.get("asked_for") == value and result.get("layer_id"):
+            continue
+        try:
+            from ..tools._layers import resolve_layer_note
+
+            _layer, note = resolve_layer_note(value)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Layer note for {name} not read: {exc}")
+            continue
+        if note and note not in notes:
+            notes.append(note)
+    text = " ".join(notes)
+    if not text:
+        return ""
+
+    said = " ".join(str(result.get(key) or "") for key in ("note", "_note", "message"))
+    return "" if text in said else text
+
+
+def tr(text: str) -> str:
+    return QCoreApplication.translate("ToolExecutor", text)
+
+
+
+_CHECK_NOTE_CHARS = 90
+
+
+def _first_check_warning(result) -> str:
+
+
+
+
+
+
+
+
+    if not isinstance(result, dict):
+        return ""
+    checks = result.get("checks")
+    warnings = checks.get("warnings") if isinstance(checks, dict) else None
+    if not isinstance(warnings, (list, tuple)) or not warnings:
+
+
+        verified = result.get("verified")
+        note = verified.get("warning") if isinstance(verified, dict) else None
+        if not note:
+            return ""
+        warnings = [note]
+    first = " ".join(str(warnings[0]).split())
+    return first[:_CHECK_NOTE_CHARS - 1] + "\u2026" if len(first) > _CHECK_NOTE_CHARS else first
+
+
+class _ExecutorDeliver:
+    def _deliver(self, call: dict, result, started: float) -> None:
+
+        if self._closed:
+            return
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+        name, args = str(call.get("name")), call.get("args") or {}
+        danger = call.get("danger", Danger.READ)
+        duration = time.monotonic() - started
+        in_background = self._inflight.pop(tool_call_id, (None, None, None, False))[3]
+
+
+
+
+        started_task_ids = _task_ids_started(name, result)
+        if started_task_ids:
+            if run_id in self._cancelled:
+
+
+
+
+                for task_id in started_task_ids:
+                    try:
+                        self._registry.execute("cancel_task", {"task_id": task_id})
+                    except Exception as exc:  # noqa: BLE001
+                        log_warning(f"Task {task_id} not cancelled on late Stop: {exc}")
+            else:
+                self._task_ids.setdefault(run_id, set()).update(started_task_ids)
+        if tool_call_id in self._answered:
+            self._executing.discard(tool_call_id)
+
+
+            log_warning(f"{name} answered after its deadline ({duration:.0f}s); the late result is dropped.")
+            return
+        if not in_background and duration > limits.main_budget(name):
+            self._note_slow_main_thread(run_id, name, duration)
+        if name == CODE_TOOL and isinstance(result, dict):
+            if result.get("needs_permission") and run_id not in self._cancelled:
+                self._code_tripped(call, result)
+                return
+            if result.get("_code") == "PERMISSION_DENIED" and result.get("executed") is False:
+
+                self._code_roll_back(call)
+            else:
+                self._code_release(call)
+        if run_id in self._cancelled:
+
+
+
+
+            self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
+                       "Stop here and wait for the next user message.", duration)
+            return
+
+
+
+
+
+        name = str(call.get("name") or "")
+        registered = self._registry.get_tool(name)
+
+
+
+        declared = getattr(registered, "open_world", None)
+        outside = reads_the_outside_world(name) if declared is None else bool(declared)
+
+
+
+
+
+
+
+
+        with stalls.probe("layer_cap"):
+            past_cap = self._withdraw_past_cap(run_id, name, args)
+        if past_cap and isinstance(result, dict):
+            result["layers_not_added"] = past_cap
+        with stalls.probe("licence.credit"):
+            added = self.stacker.take_added()
+            licence.credit_added(added, result, tool=name)
+
+            stamp_thread(added, self._threads.get(run_id, ""))
+        with stalls.probe("result.scrub"):
+            result = neutralise_result(scrub_result(result), name, open_world=outside)
+
+
+
+        with stalls.probe("layer_order.place"):
+            stacked = self.stacker.place_pending()
+            grouped = self.stacker.take_grouped()
+        if stacked and isinstance(result, dict) and "_error" not in result:
+            result["drawn_under"] = stacked
+
+
+
+        if grouped and isinstance(result, dict) and "_error" not in result:
+            result["grouped_into"] = grouped
+
+
+
+        if call.get("prepared") and isinstance(result, dict) and "_error" not in result:
+            result["prepared"] = call["prepared"]
+
+
+
+        if call.get("user_edits") and isinstance(result, dict):
+            result["edited_by_user"] = {
+                "values": call["user_edits"],
+                "note": ("The user changed these values on the permission card before the call ran; it ran "
+                         "with the 'after' values. Report what was really done with them, not what was asked."),
+            }
+
+
+
+        with stalls.probe("layer.note"):
+            resolved = _resolved_layer_note(name, args, result)
+        if resolved:
+            result["layer_note"] = resolved
+        error = self._error_of(result)
+        if error is not None:
+            code, message, suggestion = error
+            detail = result.get("traceback", "") if isinstance(result, dict) else ""
+
+
+            self._fail(call, code, message, suggestion, duration, detail, details=error_details(result))
+            if danger != Danger.READ:
+                self._journal_note(run_id, call, result, False)
+            return
+
+
+
+
+        if danger != Danger.READ and isinstance(result, dict):
+            with stalls.probe("postcondition.verify"):
+                verified = postcondition.verify(name, args, result)
+            if verified:
+                result["verified"] = verified
+
+
+
+
+        if danger != Danger.READ or (isinstance(args, dict)
+                                     and str(args.get("task_id") or "") in self._task_ids.get(run_id, ())):
+            found = call_warnings(name, result)
+            if found:
+                kept = self._call_warnings.setdefault(run_id, [])
+                most = tuning.ceiling("run_report_max_call_warnings", MAX_CALL_WARNINGS, 5)
+                kept.extend(found[:max(0, most - len(kept))])
+
+
+        shown = result
+        with stalls.probe("result.serialise"):
+            result, detail, text = self._bounded(result, registered)
+        self._table.put(tool_call_id, "result", result, payload_json=text)
+        self._executing.discard(tool_call_id)
+        if getattr(registered, "catalog", False):
+
+
+            security.vouch_for_urls(shown)
+        self._session.send_tool_result(tool_call_id, run_id, result)
+        self.tool_finished.emit(tool_call_id, True, self._summary(name, result), duration, detail, shown)
+
+
+
+        with stalls.probe("scratch.note"):
+            self.scratch.note_call(name, args, call.get("scratch_mark"), shown)
+
+
+
+
+        written = written_paths(name, args, shown)
+        if written:
+            self._written.setdefault(run_id, []).extend(written)
+
+        created = [path for path in call.get("creates") or () if os.path.isfile(path)]
+        if created:
+            self._own_files.setdefault(run_id, set()).update(created)
+
+
+        security.note_own_paths(list(written or ()) + created)
+
+
+
+
+        declared = result_files(shown)
+        if declared:
+            kept = self._output_files.setdefault(run_id, [])
+            known = {entry["path"] for entry in kept}
+            kept.extend(entry for entry in declared[:MAX_OUTPUT_FILES] if entry["path"] not in known)
+            del kept[MAX_OUTPUT_FILES:]
+        if danger != Danger.READ:
+            named = self._note_touched(run_id, args, result)
+            self._journal_note(run_id, call, shown, True)
+
+
+
+            self.follower.request(named)
+            if getattr(spec(name), "sets_view", False):
+                self.follower.chose_view()
+
+            if layout_show.removed_layout(name, args) == self._layouts.get(run_id):
+                self._layouts.pop(run_id, None)
+            built = layout_show.built_layout(name, args)
+            if built:
+                self._layouts[run_id] = built
+
+    def _prepare_snapshot(self, run_id: str, name: str, args: dict, danger: str, overwrites: list):
+        snapshot = self._snapshots.get(run_id)
+        if snapshot is None:
+            snapshot = RunSnapshot(run_id or "run")
+            self._snapshots[run_id] = snapshot
+        with stalls.probe("snapshot.capture"):
+            if not snapshot.captured and snapshot.capture():
+                thread_id = self._threads.get(run_id, "")
+                index = self.history.next_run_index(thread_id)
+                self._run_index[run_id] = index
+
+
+
+                self.history.add(thread_id, KIND_BEFORE, run_id, index, snapshot,
+                                 prompt=self._prompts.get(run_id, ""), fork=False)
+        with stalls.probe("snapshot.backups"):
+            mutates = guards is not None and name in guards.DATA_MUTATORS
+            if danger == Danger.DESTRUCTIVE or mutates:
+                snapshot.backup_targets(args)
+            if name == CODE_TOOL:
+
+
+                snapshot.backup_project_files()
+            if overwrites:
+                snapshot.backup_files(overwrites)
+        return snapshot
+
+    @staticmethod
+    def _error_of(result) -> tuple[str, str, str] | None:
+        if not isinstance(result, dict):
+            return None
+        message = result.get("_error")
+        if message is None and result.get("isError") and result.get("error"):
+            message = result.get("error")
+        if message is None:
+            return None
+        message = str(message)
+
+
+
+
+
+
+
+        code = str(result.get("code") or result.get("_code") or "")
+        if not code:
+            lowered = message.lower()
+            if "layer" in lowered and ("not found" in lowered or "no layer" in lowered):
+                code = Err.LAYER_NOT_FOUND
+            elif any(word in lowered for word in ("invalid", "required", "must be", "unknown parameter", "missing")):
+                code = Err.INVALID_ARGS
+            else:
+                code = Err.EXECUTION_FAILED
+        suggestion = str(result.get("suggestion") or "")
+        if not suggestion:
+            suggestion = {
+                Err.LAYER_NOT_FOUND: "Call list_layers and use the exact layer name or id.",
+                Err.INVALID_ARGS: "Check the tool's parameter schema and fix the arguments.",
+                Err.CANCELLED: "Stop and wait for the next user message.",
+            }.get(code, "Read the message, adjust the approach, and try a different call if needed.")
+        return code, message, suggestion
+
+    @staticmethod
+    def _bounded(result, registered=None) -> tuple[object, str, str | None]:
+
+
+
+
+
+
+
+
+
+        schema = getattr(registered, "input_schema", None) if registered is not None else None
+        properties = schema.get("properties") if isinstance(schema, dict) else None
+        return bound_result(result, narrow_with=list(properties) if isinstance(properties, dict) else None)
+
+    @staticmethod
+    def _summary(name: str, result) -> str:
+        if isinstance(result, dict):
+            if result.get("task_id") and str(result.get("status", "")).lower() == "running":
+                return tr("running in the background (task {id})").format(id=result["task_id"])
+            if result.get("_truncated"):
+                return tr("done, result cut to {n} characters").format(
+                    n=int(result.get("total_chars", 0)) - int(result.get("cut_chars", 0)))
+            parts = []
+
+
+
+
+
+            warning = _first_check_warning(result)
+            if warning:
+                parts.append(f"check: {warning}")
+            for key in ("message", "layer_name", "name", "count", "feature_count", "status", "path"):
+                if key in result and result[key] not in (None, "", [], {}):
+                    parts.append(f"{key}: {str(result[key])[:60]}")
+                if len(parts) == 3:
+                    break
+            if parts:
+                return ", ".join(parts)
+            return tr("done ({n} fields)").format(n=len(result))
+        if isinstance(result, list):
+            return tr("done ({n} items)").format(n=len(result))
+        return tr("done")
+
+    @staticmethod
+    def _call_key(name: str, args: dict) -> str:
+
+
+
+
+
+        try:
+            return name + "|" + json.dumps(args, sort_keys=True, default=str)
+        except Exception:  # noqa: BLE001
+            return name + "|" + str(sorted(args.items()))
+
+    @staticmethod
+    def _args_digest(args: dict) -> str:
+        try:
+            return dump_json(scrub_result(args))[:300]
+        except Exception:
+            return str(args)[:300]
+
+    def _call_layers(self, args: dict, result) -> list[str]:
+
+
+
+
+
+
+        values = [args.get(key) for key in _LAYER_KEYS]
+        params = args.get("parameters")
+        if isinstance(params, dict):
+            values += [params.get(key) for key in ("INPUT", "OUTPUT", "LAYER")]
+        if isinstance(result, dict):
+            values += [result.get(key) for key in ("layer_id", "layer_name", "layer", "output_layer")]
+            layers = result.get("layers")
+            if isinstance(layers, list):
+                values += [item.get("id") for item in layers[:50] if isinstance(item, dict)]
+        project = QgsProject.instance()
+        out: list[str] = []
+        for value in values:
+            if not isinstance(value, str) or not value:
+                continue
+
+            layer = project.mapLayer(value)
+            if layer is None:
+                named = project.mapLayersByName(value)
+                layer = named[0] if named else None
+            resolved = layer.id() if layer is not None else value
+            if resolved not in out:
+                out.append(resolved)
+        return out
+
+    def _note_touched(self, run_id: str, args: dict, result) -> list[str]:
+        touched = self._touched.setdefault(run_id, set())
+        named = self._call_layers(args, result)
+        touched.update(named)
+        self.project_changed.emit(len(touched))
+        return named
+
+    def _journal_before(self, run_id: str, name: str, args: dict):
+
+        from . import journal
+
+        try:
+            layer_ids = self._call_layers(args, None)
+            if name == CODE_TOOL:
+
+
+                layer_ids += journal.file_layer_ids(QgsProject.instance())
+            paths = written_paths(name, args, None)
+            return journal.before_call(QgsProject.instance(), layer_ids, paths, self._snapshots.get(run_id))
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Run log not started for {name}: {exc}")
+            return None
+
+    def _journal_note(self, run_id: str, call: dict, result, ok: bool) -> None:
+
+        before = call.pop("journal_before", None)
+        if before is None or run_id not in self._journal:
+            return
+        from . import journal
+
+        name, args = str(call.get("name") or ""), call.get("args") or {}
+        try:
+            layer_ids = self._call_layers(args, result)
+            paths = written_paths(name, args, result)
+            entry = journal.after_call(QgsProject.instance(), name, args, before, layer_ids, paths, ok)
+            cap = int(limits.current("CHECKPOINT_LOG_CALLS"))
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Run log entry for {name} not kept: {exc}")
+            return
+        if entry is not None and len(self._journal[run_id]) < cap:
+            self._journal[run_id].append(entry)
