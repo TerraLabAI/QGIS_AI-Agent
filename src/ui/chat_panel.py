@@ -940,6 +940,19 @@ class ChatPanel(QWidget):
 
         QTimer.singleShot(0, self.message_list.scroll_to_bottom)
 
+    def reset_answer(self, run_id: str) -> None:
+        """Empty the bubble the run is streaming into, before a replayed answer."""
+
+
+
+
+
+        run = self._live_run(run_id)
+        if run is None or run.bubble is None:
+            return
+        run.bubble.set_text("")
+        run.segment_break = False
+
     def append_token(self, run_id: str, text: str) -> None:
         if not isinstance(text, str) or not text:
             return

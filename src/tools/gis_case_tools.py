@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import uuid
 import zipfile
@@ -58,7 +57,6 @@ MAX_TOPOLOGY_FEATURES = 20_000
 
 _REPAIR_MAX_FOLDERS = 20_000
 _REPAIR_MAX_DEPTH = 12
-_GEOCODE_CACHE_TTL = 24 * 3600.0
 _GEOCODE_LAYER_TASKS: dict[str, dict] = {}
 
 
@@ -788,6 +786,7 @@ class _GeocodeLayerTask(QgsTask):
         self.task_id = task_id
         self.addresses = addresses
         self.results: list[dict] = []
+        self.skipped = 0
         self.error = None
 
     def run(self):
@@ -796,16 +795,36 @@ class _GeocodeLayerTask(QgsTask):
 
 
 
-        from .data_tools import _PHOTON_URL, _http_get, _photon_forward_url, _photon_hit, _service
 
+
+
+
+
+
+
+        from .data_tools import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
+
+        own_host, through_backend = True, 0
         for number, address in enumerate(self.addresses, 1):
             if self.isCanceled():
                 return False
+            if not own_host and through_backend >= _BACKEND_GEOCODE_BATCH_MAX:
+
+
+
+                self.skipped += 1
+                reason = (
+                    "not geocoded: the geocoding service was unreachable and the fallback is "
+                    f"limited to {_BACKEND_GEOCODE_BATCH_MAX} addresses per run"
+                )
+                self.results.append({"address": address, "error": reason})
+                continue
             try:
-                url = _photon_forward_url(_service("photon", _PHOTON_URL), address, 1, None, None)
-                payload = json.loads(_http_get(url, timeout=25, cache_ttl=_GEOCODE_CACHE_TTL))
-                features = payload.get("features") if isinstance(payload, dict) else None
-                hit = _photon_hit(features[0], False) if features else None
+                hit, own_failed = _geocode_one_address(address, own_host)
+                if own_failed:
+                    own_host = False
+                if not own_host:
+                    through_backend += 1
                 if hit:
                     self.results.append({"address": address, "lat": hit["lat"], "lon": hit["lon"],
                                          "display_name": hit.get("display_name")})
@@ -851,6 +870,14 @@ class _GeocodeLayerTask(QgsTask):
         provider.addFeatures(rows)
         QgsProject.instance().addMapLayer(layer)
         state.update({"status": "complete", "layer_name": layer.name(), "matched": len(rows), "results": self.results})
+        if self.skipped:
+
+
+
+            state["skipped"] = self.skipped
+            state["note"] = (f"{len(rows)} of {len(self.results)} addresses were geocoded: the geocoding "
+                             f"service was unreachable and the fallback carried {self.skipped} fewer rows. "
+                             "Call geocode_layer again on the rows with no coordinates in a few minutes.")
 
 
 def _geocode_layer(args: dict) -> dict:

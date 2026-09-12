@@ -1682,6 +1682,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Vos changements depuis ce point n'ont pas pu être enregistrés, donc rien n'a été restauré. Enregistrez le projet et réessayez.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Reconnecté. Vérification de la fin de l'exécution...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Cliquez pour l'afficher dans le panneau Couches.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>La vue se rend sur chaque édition au fur et à mesure. Désactivé, votre vue reste là où vous l'avez placée.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Dossier mémoire</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Ouvrir</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Vos notes en fichiers Markdown sur cet ordinateur. Reformulez-en une ou supprimez-la, la conversation suivante en tiendra compte.</translation>
         </message>
     </context>
     <context>

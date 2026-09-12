@@ -490,6 +490,12 @@ def _raster_sample(args: dict) -> dict:
     return {"layer": layer.name(), "band": band, "value": value, "x": point.x(), "y": point.y()}
 
 
+
+
+
+COVERAGE_FULL_PCT = 98.0
+
+
 def _get_raster_band_stats(args: dict) -> dict:
     layer = _find_layer(args["layer_name"])
     if not layer:
@@ -525,9 +531,27 @@ def _get_raster_band_stats(args: dict) -> dict:
     out["pixels_counted"] = counted
 
 
+
+
+
+
+
+    read = int(getattr(stats, "width", 0) or 0) * int(getattr(stats, "height", 0) or 0)
+    if read <= 0:
+        read = int(layer.width() or 0) * int(layer.height() or 0)
+    coverage = round(100.0 * counted / read, 1) if read > 0 and counted <= read else None
+    if coverage is not None:
+        out["coverage_pct"] = coverage
+
+
     if counted == 0 or not math.isfinite(float(stats.mean)):
         out["note"] = ("No valid pixel: every cell of this band is nodata. The raster was written empty "
                        "(wrong extent or CRS at creation); do not reproject it, recreate it.")
+    elif coverage is not None and coverage < COVERAGE_FULL_PCT:
+        out["note"] = (f"{coverage}% of the cells carry a value; the rest is nodata, from a clip, a cloud "
+                       "mask, or the edge of the source. Every number above describes those cells only. "
+                       "Two rasters of the same area whose coverage differs were not measured on the same "
+                       "pixels: say so rather than reading the difference as change on the ground.")
     if args.get("class_counts"):
         out.update(_class_counts(layer, provider, band))
     return out

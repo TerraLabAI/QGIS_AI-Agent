@@ -43,6 +43,7 @@
 from __future__ import annotations
 
 import re
+import time
 
 from ..core import limits, tuning
 from ..core.logger import log_warning
@@ -415,6 +416,38 @@ def hosted_ceiling(name: str, args: dict) -> tuple[list, float]:
     return (themes, hosted_cap_km2(themes)) if themes else ([], 0.0)
 
 
+
+
+
+
+
+
+
+
+OWN_OVERPASS_DOWN_S = 300.0
+_own_overpass_down_since: float | None = None
+
+
+def note_own_overpass_down() -> None:
+    """Remember that our own Overpass did not answer, as of now."""
+    global _own_overpass_down_since
+    _own_overpass_down_since = time.monotonic()
+    log_warning("Own Overpass instance unreachable; the wider own-host ceilings "
+                f"are closed for {OWN_OVERPASS_DOWN_S:.0f}s.")
+
+
+def own_overpass_down() -> bool:
+    """Is our own Overpass inside the window of a failure we have just seen?"""
+    since = _own_overpass_down_since
+    return since is not None and (time.monotonic() - since) < OWN_OVERPASS_DOWN_S
+
+
+def forget_own_overpass_down() -> None:
+    """Drop the memo. For the suite, and for a session that wants to try again."""
+    global _own_overpass_down_since
+    _own_overpass_down_since = None
+
+
 def own_overpass() -> bool:
     """True when the first Overpass mirror this build would ask is our own instance."""
 
@@ -422,6 +455,10 @@ def own_overpass() -> bool:
 
 
 
+
+
+    if own_overpass_down():
+        return False
     try:
         from ..core import catalog
 

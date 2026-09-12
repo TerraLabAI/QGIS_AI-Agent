@@ -1682,6 +1682,10 @@ Usunięcie jest ostateczne po zakończeniu okresu karencji. Do tego czasu możes
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Twoich zmian od tego momentu nie udało się zapisać, więc nic nie zostało przywrócone. Zapisz projekt i spróbuj ponownie.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Połączono ponownie. Sprawdzam, jak zakończyło się uruchomienie...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Kliknij, aby pokazać w panelu Warstwy.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>Widok przechodzi do każdej zmiany, gdy się pojawia. Wyłączone zostawia widok tam, gdzie go ustawisz.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Folder pamięci</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Otwórz</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Twoje notatki jako pliki Markdown na tym komputerze. Zmień treść lub usuń jedną, a następna rozmowa to uwzględni.</translation>
         </message>
     </context>
     <context>

@@ -387,7 +387,20 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         if _is_url(source):
             if _arcgis_parse(source) is not None:
                 return _add_arcgis_rest_layer({"url": source, "name": name, "crs": crs, "kind": "map"})
-            return _stac._add_cog_layer({"url": source.replace("/vsicurl/", "", 1), "name": name})
+            address = source.replace("/vsicurl/", "", 1)
+            streamed = _stac._add_cog_layer({"url": address, "name": name})
+
+
+
+
+
+
+
+            if streamed.get("_error") and streamed.get("_code") != "PERMISSION_DENIED":
+                downloaded = _stac.add_raster_downloaded(address, name)
+                if not downloaded.get("_error"):
+                    return downloaded
+            return streamed
         return _core._add_raster_layer({"path": source, "name": name})
     if kind == "cog":
         return _stac._add_cog_layer({"url": source.replace("/vsicurl/", "", 1), "name": name})

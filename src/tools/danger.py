@@ -226,7 +226,15 @@ DANGER: dict[str, str] = {
     "execute_sql": "write",
     "zonal_statistics": "write",
     "spatial_join": "write",
-    "raster_calculator": "destructive",
+
+
+
+
+
+
+
+
+    "raster_calculator": "write",
     "field_calculator": "write",
     "get_unique_values": "read",
     "identify_features": "read",
@@ -357,6 +365,7 @@ _OPTIONAL_PATH_ARGS = {
     "get_3d_screenshot": ("save_path",),
     "zonal_statistics": ("output_path",),
     "spatial_join": ("output_path",),
+    "raster_calculator": ("output_path",),
 }
 
 

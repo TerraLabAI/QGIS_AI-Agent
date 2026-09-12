@@ -23,6 +23,8 @@
 
 from __future__ import annotations
 
+import re
+
 
 
 
@@ -344,6 +346,70 @@ def stack_slot(rank: int, area: float, others: list[tuple[int | None, float]]) -
 
 
 
+
+
+
+
+
+_SERIES_NUMBER = re.compile(r"(?<![\w.])(\d{1,4})(?![\w.])")
+
+SERIES_GROUP_MIN = 3
+
+
+def series_key(name: str) -> tuple[str, float] | None:
+    """``("ndvi brut", 2021.0)`` for "NDVI 2021 brut", ``None`` without a number."""
+
+
+
+
+
+
+    text = str(name or "")
+    matches = list(_SERIES_NUMBER.finditer(text))
+    if not matches:
+        return None
+    last = matches[-1]
+    rest = (text[:last.start()] + " " + text[last.end():]).lower()
+    stem = " ".join(part for part in re.split(r"[^a-z0-9]+", rest) if part)
+    return (stem, float(last.group(1))) if stem else None
+
+
+def series_label(name: str) -> str:
+    """The family's name as a person wrote it: "NDVI 2021 brut" gives "NDVI brut"."""
+    text = str(name or "")
+    matches = list(_SERIES_NUMBER.finditer(text))
+    if not matches:
+        return text.strip()
+    last = matches[-1]
+    return " ".join((text[:last.start()] + " " + text[last.end():]).split()).strip(" -_,")
+
+
+def series_slot(rank: int, key: tuple[str, float] | None,
+                others: list[tuple[int | None, tuple[str, float] | None]], default_index: int) -> int:
+    """Where a numbered layer goes so its family stays together, highest number on top."""
+
+
+
+
+
+
+
+    if key is None:
+        return default_index
+    stem, number = key
+    family = [(index, other[1][1]) for index, other in enumerate(others)
+              if other[0] == rank and other[1] is not None and other[1][0] == stem]
+    if not family:
+        return default_index
+    for index, other_number in family:
+        if other_number < number:
+            return index
+    return family[-1][0] + 1
+
+
+
+
+
 KEEP_PLACE_PROPERTY = "ai_agent/keep_place"
 
 
@@ -413,10 +479,18 @@ def place_new(layer, root=None) -> dict:
     parent = node.parent() or root
     others = [child for child in parent.children() if child is not node]
     ranked = []
+    keyed = []
     for child in others:
         other = _node_layer(child)
-        ranked.append((stack_rank(other), _extent_area(other)) if other is not None else (None, 0.0))
+        if other is None:
+            ranked.append((None, 0.0))
+            keyed.append((None, None))
+            continue
+        other_rank = stack_rank(other)
+        ranked.append((other_rank, _extent_area(other)))
+        keyed.append((other_rank, series_key(other.name())))
     target = stack_slot(rank, _extent_area(layer), ranked)
+    target = series_slot(rank, series_key(layer.name()), keyed, target)
     moved = move_to_index(node, parent, target)
     if parent is not root and _lift_over_backdrops(parent, root):
         moved = True
@@ -459,6 +533,61 @@ def _lift_over_backdrops(group, root) -> bool:
     return lifted
 
 
+def reset_insertion_point(root=None) -> None:
+    """Put QGIS's insertion point back at the root of the layer tree."""
+
+
+
+
+
+
+
+
+
+    if root is None:
+        root = _root()
+    if root is None:
+        return
+    try:
+        from qgis.core import QgsLayerTreeRegistryBridge, QgsProject
+
+        bridge = QgsProject.instance().layerTreeRegistryBridge()
+        if bridge is None:
+            return
+        point = getattr(QgsLayerTreeRegistryBridge, "InsertionPoint", None)
+        if point is not None:
+            bridge.setLayerInsertionPoint(point(root, 0))
+        else:
+            bridge.setLayerInsertionPoint(root, 0)
+    except Exception:  # nosec B110 - noqa: BLE001 - an insertion point we cannot set stays QGIS's to choose
+        pass
+
+
+def _group_alive(group) -> bool:
+    """Whether a group node is still in the tree rather than deleted under us."""
+    try:
+        group.name()
+        return True
+    except RuntimeError:
+        return False
+
+
+def _move_into_group(group, node, number: float) -> None:
+    """Move a layer node into *group*, keeping the group ordered by number, highest first."""
+    index = 0
+    for child in group.children():
+        other = _node_layer(child)
+        key = series_key(other.name()) if other is not None else None
+        if key is not None and key[1] < number:
+            break
+        index += 1
+    clone = node.clone()
+    group.insertChildNode(index, clone)
+    parent = node.parent()
+    if parent is not None:
+        parent.removeChildNode(node)
+
+
 class Stacker:
     """Places every layer a run adds, once its tree node exists."""
 
@@ -472,6 +601,9 @@ class Stacker:
     def __init__(self):
         self._pending: list = []
         self._project = None
+        self._placed: list = []
+        self._series_groups: dict = {}
+        self._grouped: dict = {}
 
     def begin(self) -> None:
         self.end()
@@ -481,6 +613,7 @@ class Stacker:
             project = QgsProject.instance()
             project.layersAdded.connect(self._on_layers_added)
             self._project = project
+            reset_insertion_point()
         except Exception as exc:  # noqa: BLE001 - the run goes on with QGIS's own order
             from .logger import log_warning
 
@@ -494,6 +627,9 @@ class Stacker:
                 pass
             self._project = None
         self._pending = []
+        self._placed = []
+        self._series_groups = {}
+        self._grouped = {}
 
     def _on_layers_added(self, layers) -> None:
         for layer in layers or ():
@@ -514,4 +650,67 @@ class Stacker:
                 from .logger import log_warning
 
                 log_warning(f"Layer order: new layer not placed: {exc}")
+        self._placed.extend(pending)
+        try:
+            self._file_series()
+        except Exception as exc:  # noqa: BLE001 - a layer outside a group is still a layer
+            from .logger import log_warning
+
+            log_warning(f"Layer order: series not grouped: {exc}")
+        reset_insertion_point()
         return out
+
+    def take_grouped(self) -> dict:
+        """``{layer name: group name}`` for what was filed since the last read."""
+        grouped, self._grouped = self._grouped, {}
+        return grouped
+
+    def _file_series(self) -> None:
+        """Put a numbered family this run added into a group of its own."""
+
+
+
+
+
+
+
+        root = _root()
+        if root is None:
+            return
+        alive = []
+        for layer in self._placed:
+            try:
+                node = root.findLayer(layer.id())
+            except Exception:  # noqa: BLE001 - a layer removed mid-run is not filed
+                node = None
+            if node is not None:
+                alive.append((layer, node))
+        self._placed = [layer for layer, _ in alive]
+        families: dict = {}
+        for layer, node in alive:
+            if keeps_place(layer):
+                continue
+            key = series_key(layer.name())
+            if key is None:
+                continue
+            parent = node.parent()
+            if parent is not None and parent is not root and parent is not self._series_groups.get(key[0]):
+                continue
+            families.setdefault(key[0], []).append((key[1], layer, node))
+        for stem, members in families.items():
+            members.sort(key=lambda item: -item[0])
+            group = self._series_groups.get(stem)
+            if group is not None and not _group_alive(group):
+                group = None
+                self._series_groups.pop(stem, None)
+            if group is None:
+                if len(members) < SERIES_GROUP_MIN:
+                    continue
+                group = root.addGroup(series_label(members[0][1].name()) or stem)
+                self._series_groups[stem] = group
+            for number, layer, node in members:
+                if node.parent() is group:
+                    continue
+                _move_into_group(group, node, number)
+                self._grouped[layer.name()] = group.name()
+            _lift_over_backdrops(group, root)

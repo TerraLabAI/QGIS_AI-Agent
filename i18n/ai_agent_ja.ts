@@ -1682,6 +1682,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>この時点以降の変更を保存できなかったため、何も復元されませんでした。プロジェクトを保存して、もう一度お試しください。</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>再接続しました。実行がどのように終了したか確認しています...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>各編集が行われるたびにビューが移動します。オフにするとビューはそのままの位置に保たれます。</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>メモリフォルダ</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開く</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>このコンピューター上の Markdown ファイルとしてのメモです。そこで書き換えたり削除したりすると、次の会話に反映されます。</translation>
         </message>
     </context>
     <context>

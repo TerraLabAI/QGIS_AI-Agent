@@ -1682,6 +1682,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Suas alterações desde este ponto não puderam ser salvas, então nada foi restaurado. Salve o projeto e tente novamente.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Reconectado. Verificando como a execução terminou...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Clique para mostrá-lo no painel Camadas.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>A visualização vai até cada edição conforme acontece. Desligado, mantém sua visualização onde você a colocou.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Pasta de memória</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Abrir</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Suas notas como arquivos Markdown neste computador. Reescreva ou exclua uma lá e a próxima conversa segue.</translation>
         </message>
     </context>
     <context>

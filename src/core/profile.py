@@ -28,12 +28,19 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
 import hashlib
 import os
 import re
 from datetime import datetime, timezone
+
+from . import memory_store
 
 PROFILE_MAX_CHARS = 1500
 
@@ -297,16 +304,44 @@ def similar_note(notes: list, text: str, threshold: float = NOTE_SIMILARITY) -> 
 
 def load_memory_notes(settings) -> list:
     """The stored notes, cleaned and deduplicated, oldest first."""
+
+
+
+
+
+
+
+
+
     try:
-        return _dedup(settings.memory_notes)[-MEMORY_MAX_NOTES:]
+        stored = _dedup(settings.memory_notes)[-MEMORY_MAX_NOTES:]
     except Exception:  # noqa: BLE001 - a broken store reads as no memory
-        return []
+        stored = []
+    try:
+        edited = memory_store.read_notes()
+    except Exception:  # noqa: BLE001 - the folder never breaks the memory
+        edited = None
+    if edited is None:
+        return stored
+    kept = _dedup(edited)[-MEMORY_MAX_NOTES:]
+    try:
+        settings.memory_notes = kept
+    except Exception:  # noqa: BLE001  # nosec B110 - a read-only store still reads what the folder says
+        pass
+    memory_store.write_notes(kept)
+    return kept
 
 
 def save_memory_notes(settings, notes: list) -> list:
     """Persist ``notes`` (cleaned, deduplicated, capped); returns what was stored."""
+
+
+
+
+
     kept = _dedup(notes)[-MEMORY_MAX_NOTES:]
     settings.memory_notes = kept
+    memory_store.write_notes(kept)
     return kept
 
 
@@ -428,6 +463,7 @@ def remove_memory_note(settings, text: str) -> bool:
 
 def clear_memory_notes(settings) -> None:
     settings.memory_notes = []
+    memory_store.write_notes([])
 
 
 

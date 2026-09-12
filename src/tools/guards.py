@@ -406,10 +406,27 @@ def _with_expected_extension(name: str, path: str) -> str:
     return path
 
 
+
+
+
+
+
+_TEMPORARY_OUTPUT_TOOLS = frozenset({"raster_calculator"})
+_TEMPORARY_SPELLINGS = frozenset({"temporary_output", "temp", "memory"})
+
+
+def _names_a_temporary(name: str, value: str) -> bool:
+    text = value.strip()
+    return name in _TEMPORARY_OUTPUT_TOOLS and (
+        text.lower() in _TEMPORARY_SPELLINGS or text.startswith("memory:"))
+
+
 def _write_targets(name: str, args: dict) -> list[str]:
     """Paths this call will create or replace on disk."""
     targets = [_with_expected_extension(name, args[k])
-               for k in WRITE_PATH_ARGS.get(name, ()) if isinstance(args.get(k), str) and args[k].strip()]
+               for k in WRITE_PATH_ARGS.get(name, ())
+               if isinstance(args.get(k), str) and args[k].strip()
+               and not _names_a_temporary(name, args[k])]
     if name in _PROCESSING_TOOLS:
         algorithm = str(args.get("algorithm_id") or args.get("algorithm") or args.get("model") or "")
         outputs = _processing_output_params(algorithm)

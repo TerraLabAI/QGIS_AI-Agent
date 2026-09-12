@@ -1682,6 +1682,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Je wijzigingen vanaf dit punt konden niet worden opgeslagen, dus er is niets hersteld. Sla het project op en probeer het opnieuw.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Opnieuw verbonden. Controleren hoe de run is geëindigd...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>De weergave gaat naar elke bewerking zodra die gebeurt. Uit houdt je weergave waar je hem hebt gezet.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Geheugenmap</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Je aantekeningen als Markdown-bestanden op deze computer. Pas er daar een aan of verwijder hem, en het volgende gesprek volgt dat op.</translation>
         </message>
     </context>
     <context>

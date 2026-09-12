@@ -300,6 +300,13 @@ def _osrm_base(profile: str) -> str:
 
 
 _GEOCODE_TIMEOUT = 25
+
+
+
+
+
+
+_OWN_GEOCODE_TIMEOUT = 6
 _OVERPASS_TIMEOUT = 45
 _ROUTE_TIMEOUT = 30
 _DOWNLOAD_TIMEOUT = 45
@@ -1513,6 +1520,20 @@ def _backend_geo(path: str, params: dict, cache_ttl: float = 0.0) -> dict | None
         return None
 
 
+def _is_own_geocode(url: str) -> bool:
+    """Is this URL our own Photon instance, rather than somebody else's service?"""
+
+
+
+
+    try:
+        own = urllib.parse.urlsplit(_service("photon", _PHOTON_URL)).hostname or ""
+        here = urllib.parse.urlsplit(url).hostname or ""
+    except ValueError:
+        return False
+    return bool(own) and here.lower() == own.lower()
+
+
 def _geocode_fetch(url: str):
     """Fetch a geocoder answer, parsed, or None when the body is empty."""
 
@@ -1520,11 +1541,49 @@ def _geocode_fetch(url: str):
 
 
 
+
+
+
+
+
     budget = tuning.limit("net", "geocode_timeout_s", _GEOCODE_TIMEOUT)
+    if _is_own_geocode(url):
+        budget = min(budget, tuning.limit("net", "own_geocode_timeout_s", _OWN_GEOCODE_TIMEOUT))
     data = _http_get(url, timeout=budget, cache_ttl=_CACHE_GEOCODE_S)
     if not data.strip():
         return None
     return json.loads(data)
+
+
+
+
+
+
+
+
+_BACKEND_GEOCODE_BATCH_MAX = 50
+
+
+def _geocode_one_address(address: str, own_host: bool = True) -> tuple:
+    """One address for a batch: ``(hit, own_host_failed)``."""
+
+
+
+
+
+    own_failed = False
+    if own_host:
+        try:
+            url = _photon_forward_url(_service("photon", _PHOTON_URL), address, 1, None, None)
+            payload = _geocode_fetch(url)
+            features = payload.get("features") if isinstance(payload, dict) else None
+            return (_photon_hit(features[0], False) if features else None), False
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            log_warning(f"geocode host failed on a batch, falling back to the backend: {exc}")
+            own_failed = True
+    answer = _backend_geo("/geo/geocode", {"q": address, "limit": 1}, cache_ttl=_CACHE_GEOCODE_S)
+    hits = (answer or {}).get("results") or []
+    return (dict(hits[0]) if hits else None), own_failed
 
 
 def _geocode(args: dict) -> dict:
@@ -1713,15 +1772,24 @@ def _reverse_geocode(args: dict) -> dict:
     try:
         payload = _geocode_fetch(url)
     except (urllib.error.URLError, OSError) as e:
-        return {"_error": f"Reverse geocoding failed: {e}"}
+        payload, failure = None, {"_error": f"Reverse geocoding failed: {e}"}
     except ValueError:
-        return {"_error": "Reverse geocoding returned an unreadable answer. Try again in a moment."}
+        payload = None
+        failure = {"_error": "Reverse geocoding returned an unreadable answer. Try again in a moment."}
+    else:
+        failure = None
 
-    if payload is None:
-        return {"_error": f"{provider['name']} found no address at that point."}
-    out = provider["parse_reverse"](payload)
+    out = provider["parse_reverse"](payload) if payload is not None else None
     if out is None:
-        return {"_error": f"{provider['name']} found no address at that point."}
+
+
+
+
+
+        answer = _backend_geo("/geo/reverse", {"lat": lat, "lon": lon}, cache_ttl=_CACHE_GEOCODE_S)
+        if not (answer or {}).get("display_name"):
+            return failure or {"_error": f"{provider['name']} found no address at that point."}
+        out, provider_id = dict(answer), "azure_maps"
     out["provider"] = provider_id
 
 
@@ -1831,6 +1899,34 @@ def _osm_road_classes(query: str) -> list:
             if value and value not in found:
                 found.append(value)
     return found
+
+
+def _osm_endpoints_beyond(used: list) -> list:
+    """The served mirrors this call has not asked yet, in the served order."""
+    asked = {str(url).strip() for url in used}
+    return [url for url in catalog.overpass_mirrors() if str(url).strip() not in asked]
+
+
+
+
+
+
+_OVERPASS_UNREACHABLE = ("502", "503", "504", "timed out", "timeout", "refused",
+                         "name or service not known", "nodename nor servname",
+                         "temporary failure in name resolution", "unreachable",
+                         "connection reset", "no route to host", "bad gateway")
+
+
+def _own_overpass_unreachable(errors) -> bool:
+    """True when our own instance is the one that never answered."""
+
+
+
+
+
+    host = volume_guard.own_overpass_host().lower()
+    ours = [str(item).lower() for item in (errors or []) if host and host in str(item).lower()]
+    return bool(ours) and all(any(word in text for word in _OVERPASS_UNREACHABLE) for text in ours)
 
 
 def _osm_endpoints(km2: float) -> list:
@@ -3282,6 +3378,27 @@ def _fetch_osm_data(args: dict) -> dict:
                     "suggestion": (f"Ask for at most {volume_guard.dense_max_km2():,.0f} km\u00b2, or call "
                                    "fetch_overture with the matching theme, which is served from our tiles.")}
         endpoint_used, raw, errors = net.race([(url, lambda u=url: ask(u)) for url in endpoints])
+        if raw is None and _own_overpass_unreachable(errors):
+
+
+
+
+
+
+
+
+            volume_guard.note_own_overpass_down()
+            fallen: list = []
+            for url in _osm_endpoints_beyond(endpoints):
+                try:
+                    raw, endpoint_used = ask(url), url
+                    break
+                except Exception as exc:  # noqa: BLE001 - reported, not raised
+                    fallen.append(f"{url}: {exc}")
+
+
+
+            errors = fallen if (fallen and _overpass_rejection(fallen)) else errors + fallen
         if raw is not None:
             _osm_remember(final_query, endpoint_used, raw)
 
@@ -3925,6 +4042,27 @@ def _withdrawn_basemap(*urls) -> dict | None:
     return None
 
 
+_BASEMAP_BRANDS = ("carto", "positron", "stamen", "toner", "mapbox", "google", "bing", "esri", "osm", "openstreetmap")
+
+
+def _honest_basemap_name(name, ds):
+    """The display name the model chose, unless it names a brand the resolved source is not."""
+
+
+
+
+
+
+    if not name:
+        return name
+    own = f"{getattr(ds, 'id', '')} {getattr(ds, 'alias', '') or ''}".lower()
+    low = str(name).lower()
+    for brand in _BASEMAP_BRANDS:
+        if brand in low and brand not in own:
+            return getattr(ds, "alias", None) or name
+    return name
+
+
 def _add_xyz_layer(args: dict) -> dict:
     source = args["source"]
     name = args.get("name")
@@ -3978,6 +4116,7 @@ def _add_xyz_layer(args: dict) -> dict:
                     "Adding it twice would make the name ambiguous for every later tool.",
                 }
 
+            name = _honest_basemap_name(name, ds)
             if name and added:
                 added[0].setName(name)
             out = {

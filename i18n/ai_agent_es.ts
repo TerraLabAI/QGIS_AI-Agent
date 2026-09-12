@@ -1682,6 +1682,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Tus cambios desde este punto no pudieron guardarse, así que no se restauró nada. Guarda el proyecto e inténtalo de nuevo.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Reconectado. Comprobando cómo terminó la ejecución...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Clic para mostrarlo en el panel Capas.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>La vista va a cada edición a medida que ocurre. Desactivado, mantiene tu vista donde la pusiste.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Carpeta de memoria</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Abrir</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Tus notas como archivos Markdown en este equipo. Reescribe o elimina una allí y la siguiente conversación lo tendrá en cuenta.</translation>
         </message>
     </context>
     <context>

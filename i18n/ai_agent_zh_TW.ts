@@ -1682,6 +1682,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>自此之後你的變更無法儲存，因此沒有還原任何內容。請儲存專案後再試一次。</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>已重新連線。正在檢查這次執行如何結束……</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>每次編輯發生時，檢視畫面會跟著移動。關閉後，檢視畫面會留在你放置的位置。</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>記憶資料夾</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開啟</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>你的筆記以 Markdown 檔案存在這台電腦上。在那裡改寫或刪除，下一次對話就會跟著更新。</translation>
         </message>
     </context>
     <context>

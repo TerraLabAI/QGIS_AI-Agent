@@ -1620,6 +1620,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller.py"/>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/controller.py"/>
             <source>Reconnected. Waiting for the agent service to resume the run...</source>
             <translation type="unfinished"/>
         </message>
@@ -3896,6 +3901,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py"/>
+            <source>Memory folder</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py"/>
             <source>Metres and hectares, or feet, miles and acres.</source>
             <translation type="unfinished"/>
         </message>
@@ -3937,6 +3947,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_dialog.py"/>
             <source>Often</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py"/>
+            <source>Open</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4257,6 +4272,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_dialog.py"/>
             <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py"/>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
             <translation type="unfinished"/>
         </message>
         <message>

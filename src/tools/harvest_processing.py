@@ -546,6 +546,17 @@ def _raster_calculator(args: dict) -> dict:
             )
         elif code == 1:
             suggestion = "Pass an output_path in a writable folder with a .tif extension."
+        elif code == 4:
+
+
+
+
+
+            suggestion = (
+                "Cut the area, not the expression: the calculator holds every input band of the whole "
+                "extent in memory at once. Clip the inputs with gdal:cliprasterbymasklayer, or pass a "
+                "smaller extent, and calculate on the clips."
+            )
 
 
 

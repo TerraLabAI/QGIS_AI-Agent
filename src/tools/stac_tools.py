@@ -407,6 +407,140 @@ def _prefetch_vsicurl(url: str) -> None:
         pass
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+_ONE_SHOT_PATH = "/eodata/file"
+
+_ONE_SHOT_MAX_BYTES = 128 * 1024 * 1024
+_ONE_SHOT_TIMEOUT = 60
+
+
+def _is_one_shot_result(url: str) -> bool:
+    """True for a URL that our own backend serves out of memory, once."""
+    try:
+        return urllib.parse.urlsplit(url).path == _ONE_SHOT_PATH
+    except ValueError:
+        return False
+
+
+def _localise_one_shot(url: str, name: str | None) -> dict | None:
+    """Download a backend-held result and add it from disk, or None to stream."""
+
+
+
+
+
+    if not _is_one_shot_result(url):
+        return None
+    return add_raster_downloaded(url, name, polite=False, one_shot=True)
+
+
+def _declare_nan_nodata(path: str) -> None:
+    """Say in the file that NaN means "nothing was measured here"."""
+
+
+
+
+
+
+
+
+
+    try:
+        from osgeo import gdal
+    except ImportError:  # nosec B110 - GDAL is always there inside QGIS; a stub in a test is not
+        return
+    try:
+        dataset = gdal.Open(path, gdal.GA_Update)
+        if dataset is None:
+            return
+        for index in range(1, dataset.RasterCount + 1):
+            band = dataset.GetRasterBand(index)
+            if band.DataType in (gdal.GDT_Float32, gdal.GDT_Float64) and band.GetNoDataValue() is None:
+                band.SetNoDataValue(float("nan"))
+        dataset = None
+    except Exception as exc:  # noqa: BLE001 - a file we cannot tag is still a readable raster
+        log_warning(f"Downloaded raster: nodata not declared: {exc}")
+
+
+def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
+                          one_shot: bool = False) -> dict:
+    """Read a raster whole and add the copy on disk."""
+
+
+
+
+
+    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    try:
+
+        response = net.fetch(request, timeout=_ONE_SHOT_TIMEOUT, max_bytes=_ONE_SHOT_MAX_BYTES,
+                             total_timeout=_ONE_SHOT_TIMEOUT * _TOTAL_TIMEOUT_FACTOR, polite=polite)
+    except Exception as exc:  # noqa: BLE001 - the reason is the answer
+        if one_shot:
+            return {"_error": f"That result is no longer on the server: {exc}",
+                    "_code": "EXECUTION_FAILED",
+                    "_suggestion": "Run the tool that produced this url again; its answer is held for a "
+                                   "short while only, and the new url loads the same area.",
+                    "url": url}
+        return {"_error": f"Could not download that raster: {exc}", "_code": "EXECUTION_FAILED",
+                "_suggestion": "Check the address serves the file itself, not a page about it.", "url": url}
+    body = response.body
+    if not body:
+        return {"_error": "That address returned an empty file.",
+                "_code": "EXECUTION_FAILED",
+                "_suggestion": "Run the tool that produced this url again." if one_shot
+                               else "Check the address serves the file itself.", "url": url}
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
+    path = os.path.join(create_managed_temp_dir("eodata"), f"{stem[:60]}.tif")
+    try:
+        with open(path, "wb") as handle:
+            handle.write(body)
+    except OSError as exc:
+        return {"_error": f"Could not write the downloaded result to disk: {exc}",
+                "_code": "EXECUTION_FAILED",
+                "_suggestion": "Free some space in the temp folder and run the tool again.", "url": url}
+    _declare_nan_nodata(path)
+
+    def _create():
+        layer = QgsRasterLayer(path, name or "Result", "gdal")
+        if not layer.isValid():
+            return {"_error": "The downloaded file is not a raster QGIS can read.",
+                    "_code": "EXECUTION_FAILED",
+                    "_suggestion": "Run the tool that produced this url again." if one_shot
+                                   else "Check the address serves a GeoTIFF and not a web page.", "url": url}
+        normalised = normalise_crs(layer)
+        QgsProject.instance().addMapLayer(layer)
+        return {
+            "layer_name": layer.name(),
+            "layer_id": layer.id(),
+            "path": path,
+            **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
+            "width": layer.width(),
+            "height": layer.height(),
+            "bands": layer.bandCount(),
+            "crs": _crs_label(layer.crs()),
+            "_note": ("Downloaded to this machine, so the layer keeps working after the server drops the file."
+                      if one_shot else "Downloaded to this machine: this address is not streamable."),
+        }
+
+    return _run_on_main_thread(_create, timeout=60)
+
+
 def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: dict | None = None) -> dict:
 
 
@@ -429,6 +563,11 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
     except Exception as exc:  # noqa: BLE001 - the reason is the answer
         return {"_error": f"This asset address is not fetched: {exc}", "_code": "PERMISSION_DENIED",
                 "_suggestion": "Use a public https address for the asset.", "url": final_url}
+    local = _localise_one_shot(final_url, name)
+    if local is not None:
+        if note and not local.get("_error"):
+            local["_note"] = f"{note} {local.get('_note', '')}".strip()
+        return local
     _prefetch_vsicurl(final_url)
 
     def _create():

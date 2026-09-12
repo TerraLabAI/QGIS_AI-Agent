@@ -62,6 +62,11 @@ RESUME_GRACE_S = 120
 
 
 
+RESUME_OUTCOME_MS = 5_000
+
+
+
+
 
 
 
@@ -169,6 +174,11 @@ class AgentController(PanelActionsMixin, QObject):
 
 
         self._answer_start: dict[str, int] = {}
+
+
+
+
+        self._replay_run: str | None = None
         self._call_runs: dict[str, str] = {}
         self._call_names: dict[str, tuple] = {}
 
@@ -194,6 +204,9 @@ class AgentController(PanelActionsMixin, QObject):
         self._watchdog = QTimer(self)
         self._watchdog.setSingleShot(True)
         self._watchdog.timeout.connect(self._on_server_silent)
+        self._lost_timer = QTimer(self)
+        self._lost_timer.setSingleShot(True)
+        self._lost_timer.timeout.connect(self._on_resume_outcome_missing)
         self._diff_timer = QTimer(self)
         self._diff_timer.setSingleShot(True)
         self._diff_timer.setInterval(_DIFF_SETTLE_MS)
@@ -597,6 +610,20 @@ class AgentController(PanelActionsMixin, QObject):
         """A tool runs here or a card waits for the user: the server is waiting on us."""
         self._watchdog.stop()
 
+    def _on_resume_outcome_missing(self) -> None:
+        """The grace ran out: the server said nothing about the run it does not hold."""
+        run = self._run
+        if run is None:
+            return
+        run_id = run["run_id"]
+        log_warning(f"Run {run_id[:8]}: no outcome after the refused resume, ending the run locally")
+        message = tr("The connection dropped and the agent service no longer has this run. You can retry it.")
+        self._panel_call("show_error", run_id, "LOST", message, True, "")
+        track_plugin_error("resume", "LOST", run_id)
+        telemetry.track(ev.CONNECTION_FAILED, {"stage": "resume", "error_code": "LOST",
+                                               "duration_ms": self._run_age_ms(run)})
+        self._finish_run(run_id, RunStatus.FAILED, message, {}, None)
+
     def _on_server_silent(self) -> None:
         run = self._run
         if run is None:
@@ -640,14 +667,15 @@ class AgentController(PanelActionsMixin, QObject):
 
 
 
+
+
+
             run_id = self._run["run_id"]
-            log_warning(f"Run {run_id[:8]}: the server could not resume the session, ending the run locally")
-            message = tr("The connection dropped and the agent service no longer has this run. You can retry it.")
-            self._panel_call("show_error", run_id, "LOST", message, True, "")
-            track_plugin_error("resume", "LOST", run_id)
-            telemetry.track(ev.CONNECTION_FAILED, {"stage": "resume", "error_code": "LOST",
-                                                   "duration_ms": self._run_age_ms(self._run)})
-            self._finish_run(run_id, RunStatus.FAILED, message, {}, None)
+            log_warning(f"Run {run_id[:8]}: the server did not resume the session, waiting for its outcome")
+            self._panel_call("set_status_line", run_id, tr("Reconnected. Checking how the run ended..."))
+            self._replay_run = run_id
+            self._watchdog.stop()
+            self._lost_timer.start(RESUME_OUTCOME_MS)
         elif self._run is not None:
             self._panel_call("set_status_line", self._run["run_id"],
                              tr("Reconnected. Waiting for the agent service to resume the run..."))
@@ -771,6 +799,14 @@ class AgentController(PanelActionsMixin, QObject):
         if run_id not in self._agent_text:
 
             return
+        if self._replay_run == run_id:
+
+
+            self._replay_run = None
+            self._agent_text[run_id] = ""
+            self._answer_start[run_id] = 0
+            self._text_break.pop(run_id, None)
+            self._panel_optional("reset_answer", run_id)
         self._touch_watchdog()
         self._panel_call("append_token", run_id, text)
         stored = self._agent_text[run_id]
@@ -970,6 +1006,8 @@ class AgentController(PanelActionsMixin, QObject):
     def _finish_run(self, run_id: str, status: str, summary: str, usage: dict, verification) -> None:
         self._end_timer.stop()
         self._resend_timer.stop()
+        self._lost_timer.stop()
+        self._replay_run = None
         self._watchdog.stop()
         self._diff_timer.stop()
         self._session.set_run_open(False)

@@ -1682,6 +1682,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Perubahan Anda sejak titik ini tidak dapat disimpan, jadi tidak ada yang dipulihkan. Simpan proyek dan coba lagi.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Terhubung kembali. Memeriksa bagaimana proses berakhir...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Klik untuk menampilkannya di panel Layers.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>Tampilan berpindah ke setiap edit saat terjadi. Jika nonaktif, tampilan Anda tetap di tempat yang Anda tentukan.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Folder memori</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Buka</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Catatan Anda sebagai file Markdown di komputer ini. Ubah kata atau hapus salah satunya di sana, dan percakapan berikutnya akan mengikuti.</translation>
         </message>
     </context>
     <context>

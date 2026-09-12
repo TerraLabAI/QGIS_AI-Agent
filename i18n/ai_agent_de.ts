@@ -1682,6 +1682,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Deine Änderungen seit diesem Punkt konnten nicht gespeichert werden, daher wurde nichts wiederhergestellt. Speichere das Projekt und versuche es erneut.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Neu verbunden. Prüfe, wie der Lauf geendet hat...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>Die Ansicht springt bei jeder Änderung dorthin, sobald sie passiert. Aus lässt deine Ansicht dort, wo du sie hingestellt hast.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Speicherordner</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Öffnen</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Ihre Notizen als Markdown-Dateien auf diesem Computer. Formulieren Sie eine dort um oder löschen Sie sie, und das nächste Gespräch folgt.</translation>
         </message>
     </context>
     <context>

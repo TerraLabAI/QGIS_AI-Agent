@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.0.1
+version=1.0.2
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.0.2
+    - Satellite imagery arrives as a file on your disk, so a project with several scenes stays responsive
+    - A vegetation index from Sentinel reads the right bands and measures the ground, not the clouds
+    - Only a file you would go looking for asks for approval; a scratch result no longer interrupts the run
+    - Your memory is a folder of Markdown files you can read and edit, and a run survives a reconnection
+
     1.0.1
     - The panel follows a light QGIS theme: bubbles, cards, code blocks and buttons keep their shape and contrast
     - The history sheet opens at the height it needs, one readable line per group, and says when there is more below

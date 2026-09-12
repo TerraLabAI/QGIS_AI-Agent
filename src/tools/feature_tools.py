@@ -495,6 +495,12 @@ def _select_features(args: dict) -> dict:
     expression = args.get("expression")
     fids = args.get("fids")
 
+    if not fids and isinstance(fids, (list, tuple)) and expression:
+
+
+
+
+        fids = None
     if fids is not None and expression:
         return {"_error": "Pass either 'fids' or 'expression', not both: which one wins was never defined.",
                 "_code": "INVALID_ARGS"}

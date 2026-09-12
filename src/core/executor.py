@@ -27,7 +27,7 @@ from collections import OrderedDict
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 
-from . import background, code_guard, follow, layer_order, limits, machine, scratch, stalls, tuning
+from . import background, code_guard, follow, layer_order, limits, machine, postcondition, scratch, stalls, tuning
 from .log_scrub import scrub_result, scrub_secrets
 from .logger import log, log_warning
 from .protocol import KNOWN_CLIENT_CODES, Approval, Danger, Decision, Mode, recommended_index  # noqa: F401  re-exported
@@ -126,11 +126,15 @@ def _first_check_warning(result) -> str:
     if not isinstance(result, dict):
         return ""
     checks = result.get("checks")
-    if not isinstance(checks, dict):
-        return ""
-    warnings = checks.get("warnings")
+    warnings = checks.get("warnings") if isinstance(checks, dict) else None
     if not isinstance(warnings, (list, tuple)) or not warnings:
-        return ""
+
+
+        verified = result.get("verified")
+        note = verified.get("warning") if isinstance(verified, dict) else None
+        if not note:
+            return ""
+        warnings = [note]
     first = " ".join(str(warnings[0]).split())
     return first[:_CHECK_NOTE_CHARS - 1] + "\u2026" if len(first) > _CHECK_NOTE_CHARS else first
 
@@ -1314,6 +1318,15 @@ class ToolExecutor(QObject):
             detail = result.get("traceback", "") if isinstance(result, dict) else ""
             self._fail(call, code, message, suggestion, duration, detail)
             return
+
+
+
+
+        if danger != Danger.READ and isinstance(result, dict):
+            with stalls.probe("postcondition.verify"):
+                verified = postcondition.verify(name, args, result)
+            if verified:
+                result["verified"] = verified
 
 
         shown = result

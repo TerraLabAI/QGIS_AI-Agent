@@ -51,8 +51,10 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QDateTime, QLocale, QSize, Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QColor
+import os
+
+from qgis.PyQt.QtCore import QDateTime, QLocale, QSize, Qt, QTimer, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
@@ -73,6 +75,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.logger import log_warning
+from ..core.memory_store import memory_dir
 from ..core.plan import memory_allowed
 from ..core.profile import (
     MEMORY_NOTE_MAX_CHARS,
@@ -90,6 +93,7 @@ from ..core.profile import (
     profile_context,
     project_key,
     remove_memory_note,
+    save_memory_notes,
 )
 from ..core.settings import Settings
 from .account_settings_dialog import _ACCOUNT_OFFLINE_CODES, format_count, resolve_plan_runs
@@ -1037,6 +1041,20 @@ class SettingsDialog(QDialog):
         self._memory_switch.toggled.connect(self._on_memory_toggled)
         group.add_row(SettingRow(self.tr("Let the AI add its own notes"), "",
                                  self._memory_switch, group))
+
+
+
+
+        folder_btn = QPushButton(self.tr("Open"), group)
+        folder_btn.setStyleSheet(GHOST_BTN_QSS)
+        folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        folder_btn.setAutoDefault(False)
+        folder_btn.clicked.connect(self._on_open_memory_folder)
+        folder_btn.setEnabled(bool(memory_dir()))
+        group.add_row(SettingRow(self.tr("Memory folder"),
+                                 self.tr("Your notes as Markdown files on this computer. "
+                                         "Reword or delete one there and the next conversation follows."),
+                                 folder_btn, group))
         card.add(group)
         self._fill_notes()
 
@@ -1055,8 +1073,9 @@ class SettingsDialog(QDialog):
             self._notes_group.add_row(empty)
             return
         for note in reversed(notes):
-            row = NoteRow(note["text"], self._note_caption(note), self._notes_group)
+            row = NoteRow(note["text"], self._note_caption(note), self._notes_group, note["id"])
             row.removed.connect(self._on_remove_note)
+            row.edited.connect(self._on_edit_note)
             self._notes_group.add_row(row)
         apply_font_scale_to_tree(self._notes_group)
 
@@ -1111,6 +1130,36 @@ class SettingsDialog(QDialog):
             self._fill_notes()
             self._show_saved()
             self._emit_profile()
+
+    def _on_edit_note(self, note_id: str, text: str) -> None:
+        """The user rewords a note in place: same note, new sentence."""
+
+
+
+
+
+
+        note = next((n for n in load_memory_notes(self._store) if n["id"] == note_id), None)
+        if note is None:
+            return
+        if add_memory_note(self._store, text, "user", note["kind"], note["scope"],
+                           note["project"], note_id) is None:
+            return
+        self._fill_notes()
+        self._show_saved()
+        self._emit_profile()
+
+    def _on_open_memory_folder(self) -> None:
+        """Show the notes as what they are: files on this computer."""
+
+
+
+
+
+        save_memory_notes(self._store, load_memory_notes(self._store))
+        path = memory_dir()
+        if path and os.path.isdir(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def _on_memory_toggled(self, on: bool) -> None:
         self._store.memory_enabled = bool(on)

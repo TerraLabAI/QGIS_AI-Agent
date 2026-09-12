@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -25,6 +26,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.profile import MEMORY_NOTE_MAX_CHARS
 from .icons import ink_of, pixmap_for
 from .style import (
     ACCENT,
@@ -463,13 +465,22 @@ class ChoiceRow(QFrame):
 
 
 class NoteRow(QFrame):
-    """One memory note: the text, its source, and an x that removes it."""
+    """One memory note: the text, its source, a pencil that rewords it, an x that removes it."""
+
+
+
+
+
+
+
 
     removed = pyqtSignal(str)
+    edited = pyqtSignal(str, str)
 
-    def __init__(self, text: str, caption: str, parent=None):
+    def __init__(self, text: str, caption: str, parent=None, note_id: str = ""):
         super().__init__(parent)
         self.text = text
+        self.note_id = note_id or text
         self.setObjectName("settingsRow")
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         row = QHBoxLayout(self)
@@ -483,16 +494,54 @@ class NoteRow(QFrame):
         body.setWordWrap(True)
         body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         words.addWidget(body)
+        self._body = body
+        self._field = None
+        self._words = words
         if caption:
             meta = QLabel(caption, self)
             meta.setStyleSheet(ROW_NOTE_QSS)
             words.addWidget(meta)
         row.addLayout(words, 1)
+        pencil = IconButton(self, "pencil", 12, "")
+        pencil.setFixedSize(24, 24)
+        pencil.clicked.connect(self.start_editing)
+        row.addWidget(pencil, 0, Qt.AlignmentFlag.AlignTop)
+        self.edit_button = pencil
         close = IconButton(self, "close", 12, "")
         close.setFixedSize(24, 24)
-        close.clicked.connect(lambda: self.removed.emit(self.text))
+        close.clicked.connect(lambda: self.removed.emit(self.note_id))
         row.addWidget(close, 0, Qt.AlignmentFlag.AlignTop)
         self.close_button = close
+
+    def start_editing(self) -> None:
+        """Put a field where the sentence is, with the sentence in it."""
+        if self._field is not None:
+            return
+        field = QLineEdit(self.text, self)
+        field.setStyleSheet(INPUT_QSS)
+        field.setMaxLength(MEMORY_NOTE_MAX_CHARS)
+        field.returnPressed.connect(self._commit)
+        field.editingFinished.connect(self._commit)
+        self._words.replaceWidget(self._body, field)
+        self._body.hide()
+        self._field = field
+        self.edit_button.setEnabled(False)
+        field.setFocus()
+        field.selectAll()
+
+    def _commit(self) -> None:
+        """Send the new wording once, whether it arrived by Enter or by leaving the field."""
+        field, self._field = self._field, None
+        if field is None:
+            return
+        text = field.text().strip()
+        field.blockSignals(True)
+        self._words.replaceWidget(field, self._body)
+        field.deleteLater()
+        self._body.show()
+        self.edit_button.setEnabled(True)
+        if text and text != self.text:
+            self.edited.emit(self.note_id, text)
 
 
 

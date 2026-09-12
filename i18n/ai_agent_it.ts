@@ -1682,6 +1682,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
             <translation>Impossibile salvare le modifiche da questo punto in poi, quindi non è stato ripristinato nulla. Salva il progetto e riprova.</translation>
         </message>
+        <message>
+            <source>Reconnected. Checking how the run ended...</source>
+            <translation>Riconnesso. Verifico come è terminata l'esecuzione...</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4025,6 +4029,18 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
             <translation>La vista va su ogni modifica mentre avviene. Disattivato mantiene la vista dove l'hai messa.</translation>
+        </message>
+        <message>
+            <source>Memory folder</source>
+            <translation>Cartella memoria</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Apri</translation>
+        </message>
+        <message>
+            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
+            <translation>Le tue note come file Markdown su questo computer. Riformula o elimina una nota lì e la conversazione successiva la segue.</translation>
         </message>
     </context>
     <context>
