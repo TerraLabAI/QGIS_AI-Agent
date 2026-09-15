@@ -16,7 +16,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from . import telemetry
 from . import telemetry_events as ev
 from .checkpoints import KIND_AFTER, KIND_BEFORE, KIND_EDITS
-from .context import build_suggestions, mention_candidates
+from .context import mention_candidates
 from .logger import log, log_warning
 from .protocol import Approval, Effort, Mode
 from .snapshot import diff_changed
@@ -46,8 +46,6 @@ class PanelActionsMixin:
             return
         if self._run is None and self._thread_id is not None:
             self._on_new_thread()
-        else:
-            self._panel_call("set_suggestions", build_suggestions())
 
     def _on_new_thread(self) -> None:
         if self._run is not None:
@@ -62,7 +60,6 @@ class PanelActionsMixin:
         self._panel_call("set_run_changes", 0, False)
 
         self._send_history()
-        self._panel_call("set_suggestions", build_suggestions())
 
     def _on_thread_selected(self, thread_id: str) -> None:
         if self._run is not None:
@@ -114,6 +111,7 @@ class PanelActionsMixin:
 
 
 
+
         if self._restoring:
 
 
@@ -128,6 +126,18 @@ class PanelActionsMixin:
             return
         if self._run is not None:
             self.notice.emit("info", tr("Stop the current run before going back."))
+            return
+        if not history.belongs_here(entry):
+
+
+            name = entry.project_name
+            if name:
+                message = tr("This point belongs to the project {name}. Open that project to go back to it.").format(
+                    name=name)
+            else:
+                message = tr("This point belongs to an unsaved project that was closed, so it cannot be restored here.")
+            self.notice.emit("warning", message)
+            self._send_history()
             return
         current = history.current(thread_id)
         if current is not None and current.id == entry.id and not discard:
@@ -150,9 +160,14 @@ class PanelActionsMixin:
             return
         self._restoring = True
         try:
-            result = entry.snapshot.restore()
+
+
+
+            result = entry.snapshot.restore(file_name=entry.file_to_keep(), project_files=entry.project_files)
         finally:
             self._restoring = False
+
+            history.project_restored()
         log(f"Restore to {entry.kind} run {entry.run_index}: {result.get('message') or result}")
         steps = history.steps_between(thread_id, entry)
         telemetry.track(ev.AGENT_UNDO_USED, {
@@ -306,8 +321,33 @@ class PanelActionsMixin:
         if count:
             log(f"{count} file(s) attached to the composer")
 
-    def _load_file_attachments(self, attachments: list) -> list:
+    @staticmethod
+    def _layer_of_file(path: str):
+        """A project layer read from this file, compared by resolved path (never by name), or None."""
+        from qgis.core import QgsProject
+
+        from .snapshot import layer_file_path
+
+        def key(value: str) -> str:
+            try:
+                return os.path.normcase(os.path.realpath(value))
+            except (OSError, ValueError):
+                return os.path.normcase(os.path.normpath(os.path.abspath(value)))
+
+        wanted = key(path)
+        for layer in QgsProject.instance().mapLayers().values():
+            try:
+                source = layer_file_path(layer)
+            except Exception:  # noqa: BLE001  # nosec B112 - a layer that cannot say its source is not this file
+                continue
+            if source and key(source) == wanted:
+                return layer
+        return None
+
+    def _load_file_attachments(self, attachments: list, reuse: bool = False) -> list:
         """Load every data-file attachment into the project through add_data."""
+
+
 
 
 
@@ -320,6 +360,12 @@ class PanelActionsMixin:
             path = str(att["path"])
             if not os.path.isfile(path):
                 att["error"] = "file not found"
+                continue
+            kept = self._layer_of_file(path) if reuse else None
+            if kept is not None:
+                att["layer_id"] = str(kept.id())
+                att["layer_name"] = str(kept.name() or att.get("name") or "")
+                chips.append({"kind": "layer", "label": att["layer_name"], "value": att["layer_id"]})
                 continue
             result = self._registry.execute("add_data", {"source": path})
             if not isinstance(result, dict) or result.get("_error") or not result.get("layer_id"):

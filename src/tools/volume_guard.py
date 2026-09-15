@@ -39,7 +39,6 @@
 
 
 
-
 from __future__ import annotations
 
 import re
@@ -83,9 +82,6 @@ def dense_max_km2() -> float:
 
 
 
-
-
-
 OWN_OVERPASS_HOST = "overpass.terra-lab.ai"
 
 
@@ -114,11 +110,7 @@ def own_overpass_max_km2() -> float:
 
 
 
-
-
-
-
-SELECTIVE_MAX_KM2 = 20_000.0
+SELECTIVE_MAX_KM2 = limits.SELECTIVE_MAX_KM2
 
 
 
@@ -193,10 +185,6 @@ LOAD_TOOLS = {"add_vector_from_url", "add_arcgis_rest_layer", "add_points_from_j
 
 
 
-
-
-
-
 _DENSE_RE = re.compile(
     r"building|highway|road|street|footway|path|addr|landuse|natural|water|wood|forest|"
     r"parcel|cadast|land_?cover|power=|railway", re.IGNORECASE)
@@ -204,13 +192,9 @@ _DENSE_RE = re.compile(
 
 
 
-
-
 HOSTED_INSTEAD = (
-    ' Or fetch_overture(theme, mode="stream"): no area cap.'
+    ' Or fetch_overture(theme, mode="stream") for a city: 4 tiles, about 1.4 degrees a side.'
 )
-
-
 
 
 
@@ -233,9 +217,11 @@ HOSTED_CAPS = {
     "power": (5000.0, 3.0),
     "railways": (5000.0, 3.0),
     "boundaries": (5000.0, 3.0),
+    "routes": (5000.0, 3.0),
+    "transit_stops": (2000.0, 2.0),
+    "protected_areas": (5000.0, 3.0),
     "divisions": (20000.0, 3.0),
 }
-
 
 
 
@@ -256,28 +242,174 @@ def hosted_quiet_sparse_km2() -> float:
 
 
 
-HOSTED_THEMES = (
-    ("roads", re.compile(r"\bhighway\b", re.IGNORECASE)),
-    ("waterways", re.compile(r"\bwaterway\b", re.IGNORECASE)),
-    ("water_areas", re.compile(r"natural\W*=\W*.?water\b|\bwater\W*=", re.IGNORECASE)),
-    ("buildings", re.compile(r"\bbuilding\b", re.IGNORECASE)),
-    ("landuse", re.compile(r"\blanduse\b", re.IGNORECASE)),
-    ("railways", re.compile(r"\brailway\b", re.IGNORECASE)),
-    ("power", re.compile(r"\bpower\W*=", re.IGNORECASE)),
-    ("boundaries", re.compile(r"\bboundary\W*=", re.IGNORECASE)),
-    ("pois", re.compile(r"\b(amenity|shop|tourism|leisure)\b", re.IGNORECASE)),
-)
+
+
+
+SHIPPED_ROUTING = {
+    "version": 1,
+
+
+
+
+    "theme_keys": {
+        "highway": "roads", "waterway": "waterways", "water": "water_areas", "building": "buildings",
+        "landuse": "landuse", "railway": "railways", "power": "power", "boundary": "boundaries",
+        "amenity": "pois", "shop": "pois", "tourism": "pois", "leisure": "pois",
+    },
+
+
+
+
+
+
+
+
+
+    "value_themes": {
+        "highway": {"theme": "transit_stops", "values": ["bus_stop", "platform"]},
+        "railway": {"theme": "transit_stops", "values": ["station", "halt", "tram_stop", "platform",
+                                                         "subway_entrance"]},
+        "public_transport": {"theme": "transit_stops", "values": ["platform", "stop_position", "station"]},
+        "route": {"theme": "routes", "values": ["hiking", "foot", "walking", "running", "fitness_trail", "bicycle",
+                                                "mtb", "horse", "inline_skates", "canoe", "ski"]},
+        "boundary": {"theme": "protected_areas", "values": ["protected_area", "national_park"]},
+    },
+
+
+
+
+    "fields": {
+        "landuse": ["landuse", "natural", "name", "surface", "leaf_type", "crop", "operator"],
+        "pois": ["amenity", "shop", "tourism", "leisure", "healthcare", "office", "craft", "emergency", "name",
+                 "brand", "operator", "cuisine", "opening_hours", "phone", "website", "wheelchair"],
+        "waterways": ["waterway", "name", "intermittent", "tunnel", "bridge", "boat", "width", "lock", "covered",
+                      "layer"],
+        "water_areas": ["natural", "water", "waterway", "landuse", "name", "intermittent", "salt", "boat"],
+        "power": ["power", "name", "operator", "voltage", "cables", "circuits", "frequency", "wires", "material",
+                  "location", "generator_source", "plant_source", "generator_output"],
+        "boundaries": ["boundary", "admin_level", "name", "name_en", "iso3166_1", "iso3166_2", "population", "ref",
+                       "wikidata"],
+        "railways": ["railway", "name", "operator", "usage", "service", "electrified", "voltage", "gauge",
+                     "maxspeed", "tunnel", "bridge", "layer"],
+        "routes": ["route", "name", "ref", "network", "operator", "symbol", "colour", "distance", "from", "to",
+                   "roundtrip", "website", "wikidata"],
+        "transit_stops": ["public_transport", "highway", "railway", "amenity", "aerialway", "name", "ref",
+                          "local_ref", "network", "operator", "bus", "tram", "train", "subway", "light_rail", "ferry",
+                          "shelter", "bench", "wheelchair", "uic_ref"],
+        "protected_areas": ["boundary", "leisure", "protect_class", "protection_title", "designation", "iucn_level",
+                            "name", "name_en", "operator", "ownership", "access", "start_date", "website",
+                            "wikidata"],
+    },
+
+
+
+
+
+
+
+
+    "mixed_themes": ["landuse", "water_areas"],
+
+
+
+    "road_classes": ["motorway", "trunk", "primary", "secondary", "tertiary", "residential", "living_street",
+                     "unclassified", "service", "pedestrian", "footway", "steps", "path", "track", "cycleway",
+                     "bridleway"],
+
+
+
+
+
+
+
+
+
+
+
+    "key_values": {
+        "railways": {"key": "railway", "bare": True,
+                     "only": ["rail", "tram", "subway", "light_rail", "narrow_gauge", "monorail", "funicular",
+                              "preserved", "disused", "abandoned", "construction", "miniature"]},
+        "boundaries": {"key": "boundary", "bare": False, "only": ["administrative"]},
+        "waterways": {"key": "waterway", "bare": True,
+                      "except": ["riverbank", "dock", "boatyard", "dam", "weir", "lock_gate", "fuel"]},
+    },
+
+
+    "way_themes": ["roads", "waterways", "water_areas", "buildings", "landuse", "railways", "power", "boundaries",
+                   "routes"],
+}
+
+
+class _Routing:
+    """One routing document read into the sets and maps the planner looks things up in."""
+
+    __slots__ = ("theme_keys", "value_themes", "fields", "mixed_themes", "road_classes", "key_values",
+                 "way_themes")
+
+    def __init__(self, doc: dict):
+        self.theme_keys = dict(doc["theme_keys"])
+        self.value_themes = {key: (frozenset(row["values"]), row["theme"])
+                             for key, row in doc["value_themes"].items()}
+        self.fields = {theme: frozenset(names) for theme, names in doc["fields"].items()}
+        self.mixed_themes = frozenset(doc["mixed_themes"])
+        self.road_classes = frozenset(doc["road_classes"])
+
+        self.key_values = {theme: (row["key"], frozenset(row["only"]) if "only" in row else None,
+                                   frozenset(row.get("except") or ()), bool(row["bare"]))
+                           for theme, row in doc["key_values"].items()}
+        self.way_themes = frozenset(doc["way_themes"])
+
+
+def _holds(value, only, left_out) -> bool:
+    """Whether a theme's tiles hold this value of the key that names the theme."""
+    return bool(value) and (value in only if only is not None else value not in left_out)
+
+
+_SHIPPED = _Routing(SHIPPED_ROUTING)
+
+_served: tuple = (None, _SHIPPED)
+
+
+def _routing() -> _Routing:
+    """The served routing document once `core/tuning` accepted one, else the shipped one."""
+    global _served
+    doc = tuning.service_doc("osm_routing")
+    if doc is None:
+        return _SHIPPED
+    seen, tables = _served
+    if seen is not doc:
+        try:
+            tables = _Routing(doc)
+        except (KeyError, TypeError, AttributeError) as exc:
+            log_warning(f"Served osm_routing could not be read ({exc}), the shipped routing stays")
+            tables = _SHIPPED
+        _served = (doc, tables)
+    return tables
+
+
+
+
+
+
+SERVED_ONLY_THEMES = frozenset({"protected_areas"})
+
+ANY_VALUE = "*"
 HOSTED_MAX_THEMES = 3
 
 
 
-HOSTED_WAY_THEMES = frozenset({
-    "roads", "waterways", "water_areas", "buildings", "landuse", "railways", "power", "boundaries",
-})
+_BBOX_STATEMENT = re.compile(
+    r"\b(node|way|relation|rel|nwr|nw|nr|wr)\s*((?:\[[^\]]*\]\s*)+)\(\s*\{\{bbox\}\}\s*\)", re.IGNORECASE)
+
+
+_SELECTOR = re.compile(
+    r'\[\s*(!?)\s*["\']?([A-Za-z_][\w:]*)[\"\']?\s*'
+    r'(?:(=|!=|~|!~)\s*(?:"([^"]*)"|\'([^\']*)\'|([^\],"\']+?))\s*(,\s*i)?)?\s*\]')
+
 
 
 _ELEMENT = re.compile(r"\b(node|way|relation|rel|nwr|nw|nr|wr)\s*[\[(]", re.IGNORECASE)
-
 
 
 
@@ -331,18 +463,239 @@ def selective_max_km2(name: str, args: dict) -> float:
     return min(SELECTIVE_MAX_KM2, tuning.number("limits", "selective_max_km2", SELECTIVE_MAX_KM2))
 
 
-def hosted_themes(query) -> list:
-    """The hosted themes an Overpass query's tags map to, in query order."""
-    text = str(query or "")
-    points = asks_for_points(text)
-    found = []
-    for theme, pattern in HOSTED_THEMES:
-        if points and theme in HOSTED_WAY_THEMES:
+def _theme_of(key: str, values, routing: _Routing) -> str:
+    """The hosted theme one selector names, or "" when it names none."""
+    scoped = routing.value_themes.get(key)
+    if scoped is not None:
+        wanted, theme = scoped
+        if values and all(value in wanted for value in values) and (
+                theme not in SERVED_ONLY_THEMES or theme in tuning.service_list("osm_themes", ())):
+            return theme
+        if key not in routing.theme_keys:
+            return ""
+    if key in routing.theme_keys:
+        return routing.theme_keys[key]
+
+
+    if key == "natural" and values == ["water"]:
+        return "water_areas"
+    return ""
+
+
+def _statement_theme(selectors: list, routing: _Routing) -> str:
+    """The theme of a statement, from its first selector that names one."""
+    for key, values in selectors:
+        theme = _theme_of(key, values, routing)
+        if theme:
+            return theme
+    return ""
+
+
+def _selector(raw: str, routing: _Routing):
+    """``(key, values)`` for one selector, or None when it is not covered."""
+
+
+
+
+
+    match = _SELECTOR.fullmatch(raw)
+    if match is None:
+        return None
+    negated, key, op, quoted, single, bare, flag = match.groups()
+    if negated or flag or op in ("!=", "!~"):
+        return None
+    if op is None:
+        return key.lower(), None
+    value = quoted if quoted is not None else single if single is not None else (bare or "")
+    value = value.strip()
+    if op == "=":
+        return key.lower(), [value]
+
+
+    body = value[1:-1] if value.startswith("^") and value.endswith("$") else None
+    exact = body is not None and ("|" not in body or (body.startswith("(") and body.endswith(")")))
+    if value.startswith("^"):
+        value = value[1:]
+    if value.endswith("$"):
+        value = value[:-1]
+    if value.startswith("(") and value.endswith(")"):
+        value = value[1:-1]
+    parts = [part.strip() for part in value.split("|")]
+    if not all(re.fullmatch(r"[A-Za-z0-9_:\- ]+", part) for part in parts):
+        return None
+    lowered = key.lower()
+    if not exact and lowered not in routing.theme_keys and lowered not in routing.value_themes and lowered != "natural":
+
+
+
+
+
+        return None
+    return key.lower(), parts
+
+
+def _statement_filter(theme: str, selectors: list, routing: _Routing):
+    """The filter the tiles read for one statement, or None when not covered."""
+    if theme == "roads":
+
+
+
+        for key, _ in selectors:
+            if key != "highway":
+                return None
+        wanted: dict = {"subtype": "road"}
+        for _, values in selectors:
+            if values is None:
+                continue
+            if not all(value in routing.road_classes for value in values):
+                return None
+            wanted["class"] = values[0] if len(values) == 1 else values
+        return wanted
+    if theme == "buildings":
+        for key, values in selectors:
+            if key != "building":
+                return None
+            if values is not None and values != ["yes"]:
+                return None
+        return {}
+    fields = routing.fields.get(theme)
+    if fields is None:
+        return None
+    held_key, only, left_out, bare_holds = routing.key_values.get(theme, ("", None, frozenset(), True))
+    wanted = {}
+    for key, values in selectors:
+        if key not in fields:
+            return None
+        if key == held_key and (not bare_holds if values is None
+                                else not all(_holds(value, only, left_out) for value in values)):
+            return None
+        if values is None:
+
+
+
+
+
+
+            if _theme_of(key, None, routing) != theme or theme == "pois":
+                return None
+            if theme in routing.mixed_themes:
+                wanted[key] = ANY_VALUE
             continue
-        match = pattern.search(text)
-        if match:
-            found.append((match.start(), theme))
-    return [theme for _, theme in sorted(found)][:HOSTED_MAX_THEMES]
+        wanted[key] = values[0] if len(values) == 1 else values
+    return wanted
+
+
+def _merge_filters(base: dict, filters: list):
+    """The filter one theme reads when several statements name it."""
+
+
+
+
+
+
+
+
+
+
+
+    if any(wanted == base for wanted in filters):
+        return dict(base)
+    if len({tuple(sorted(wanted)) for wanted in filters}) != 1:
+        disjunction: list = []
+        for wanted in filters:
+            one = dict(wanted)
+            if one not in disjunction:
+                disjunction.append(one)
+        return disjunction
+    first = filters[0]
+    differing = [key for key in first if any(wanted[key] != first[key] for wanted in filters[1:])]
+    if len(differing) > 1:
+        return None
+    merged = dict(first)
+    if differing:
+        key = differing[0]
+        values: list = []
+        for wanted in filters:
+            value = wanted[key]
+            for item in (value if isinstance(value, list) else [value]):
+                if item not in values:
+                    values.append(item)
+        merged[key] = values[0] if len(values) == 1 else values
+    return merged
+
+
+def hosted_plan(query) -> list:
+    """``[(theme, filter), ...]`` when TerraLab's tiles cover the whole query, else []."""
+
+
+
+
+
+
+
+
+
+
+
+
+    routing = _routing()
+    text = str(query or "")
+    if "{{bbox}}" not in text or _AREA_STATEMENT.search(text):
+        return []
+    lowered = text.lower()
+    if any(marker in lowered for marker in ("around", "poly:", "(id:", "if:", "is_in", "pivot", "{{geocode")):
+        return []
+    statements = list(_BBOX_STATEMENT.finditer(text))
+    if not statements:
+        return []
+    starts = {match.start() for match in statements}
+
+
+
+    for element in _ELEMENT.finditer(text):
+        if element.start() not in starts:
+            return []
+    order: list = []
+    filters: dict = {}
+    for match in statements:
+        element = match.group(1).lower()
+        selectors = []
+        for raw in re.findall(r"\[[^\]]*\]", match.group(2)):
+            selector = _selector(raw, routing)
+            if selector is None or any(selector[0] == key for key, _ in selectors):
+                return []
+            selectors.append(selector)
+        theme = _statement_theme(selectors, routing)
+        if not theme:
+            return []
+        if element == "node" and theme in routing.way_themes:
+            return []
+
+
+        if theme != "transit_stops" and _POINT_VALUE.search(match.group(2)):
+            return []
+        wanted = _statement_filter(theme, selectors, routing)
+        if wanted is None:
+            return []
+        if theme not in filters:
+            order.append(theme)
+            filters[theme] = []
+        filters[theme].append(wanted)
+    if len(order) > HOSTED_MAX_THEMES:
+        return []
+    plan = []
+    for theme in order:
+        base = {"subtype": "road"} if theme == "roads" else {}
+        merged = _merge_filters(base, filters[theme])
+        if merged is None:
+            return []
+        plan.append((theme, merged))
+    return plan
+
+
+def hosted_themes(query) -> list:
+    """The hosted themes that cover the whole query, in query order, or []."""
+    return [theme for theme, _ in hosted_plan(query)]
 
 
 def hosted_caps() -> dict:
@@ -491,10 +844,7 @@ def hard_cap_km2(name: str, args: dict) -> float:
 
 
 
-
-
 FIT_MARGIN = 0.95
-
 
 
 
@@ -516,7 +866,7 @@ def clamp_to_cap(name: str, args: dict) -> dict:
 
 
     box = bbox_of(args)
-    if box is None or not isinstance(args, dict):
+    if box is None or not isinstance(args, dict) or lifted(args):
         return {}
     area, hard = zone_km2(args), hard_cap_km2(name, args)
     if area is None or hard <= 0 or area <= hard or area > hard * NEAR_MISS:
@@ -597,14 +947,11 @@ def hosted_fallback(name: str, args: dict) -> list:
     if not themes:
         return []
     area = zone_km2(args)
-    if area is None:
-        return []
-    quiet = quiet_km2() if is_dense(name, args) else quiet_sparse_km2()
-    if area <= quiet or area > cap:
+    if area is None or (area > cap and not lifted(args)):
+
+
         return []
     return themes
-
-
 
 
 
@@ -710,25 +1057,34 @@ def _confirmed(args: dict, area: float) -> bool:
 
 
 
-def _stale_confirm(name: str, args: dict, area: float) -> dict:
-    """The refusal for a confirm_area_km2 that does not match the bbox, or {}."""
-    confirmed = _num(args.get("confirm_area_km2"))
-    if confirmed is None:
-        return {}
-    return {
-        "error": (f"{name}: confirm_area_km2 says {confirmed:,.1f} km² but this bbox measures "
-                  f"{area:,.1f} km²."),
+FULL_EXTENT = "full_extent"
 
-        "suggestion": (f"Both must be the same call: pass confirm_area_km2={area:.1f}, or send back the "
-                       f"bbox whose {confirmed:,.1f} km² you announced."),
-        "code": limits.CEILING_CODE,
-    }
+
+LIFT_HINT = " If the user's own words ask for all of it, call again with full_extent: their words and the place."
+
+
+def lifted(args) -> bool:
+    """True when the call carries the server-verified ``full_extent``."""
+
+
+
+
+
+
+
+    value = args.get(FULL_EXTENT) if isinstance(args, dict) else None
+    return (isinstance(value, dict) and bool(str(value.get("quote") or "").strip())
+            and bool(str(value.get("place") or "").strip()))
 
 
 def check(name: str, args: dict) -> dict:
     """{label, sentence} when the call needs the card, {error, suggestion} when refused, {} when it may run quietly."""
 
     args = args if isinstance(args, dict) else {}
+    if lifted(args):
+
+
+        return {}
     if name in ZONE_TOOLS:
         area = zone_km2(args)
         if area is not None:
@@ -760,7 +1116,7 @@ def check(name: str, args: dict) -> dict:
                 fit = fitting_zone(args, hosted_cap)
                 return {
                     "error": (f"Zone too large for one {name} call: {area:,.1f} km², and TerraLab's tiles "
-                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² in one call."),
+                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² in one call." + LIFT_HINT),
 
 
 
@@ -768,27 +1124,11 @@ def check(name: str, args: dict) -> dict:
                                    + HOSTED_INSTEAD + " Ask the user which part matters most."),
                     "code": limits.CEILING_CODE,
                 }
-            if hosted and area > quiet:
-                quiet = hosted_quiet_km2() if dense else hosted_quiet_sparse_km2()
-                themes = ", ".join(hosted)
-                if area <= quiet:
-                    return {}
-                if not (_confirmed(args, area) or _confirmed(args, asked)):
-                    return _stale_confirm(name, args, asked) or {
-                        "error": (f"{name} over {area:,.1f} km² is served from TerraLab tiles ({themes}), "
-                                  "and the user has not been told the size."),
-                        "suggestion": (f"Say the area ({area:,.1f} km²) to the user, get a yes, and call again "
-                                       f"with confirm_area_km2={area:.1f}. Do not narrow or tile the zone: "
+            if hosted:
 
 
 
-
-                                       f"one call serves up to {hosted_cap:,.0f} km²."),
-                        "code": limits.CEILING_CODE,
-                    }
-                return {"label": LABEL, "area_km2": area,
-                        "sentence": (f"Load {themes} over {area:,.1f} km² from TerraLab tiles with {name}? "
-                                     "The layer can slow QGIS down.")}
+                return {}
             if area > hard:
                 fit = fitting_zone(args, hard)
                 return {
@@ -822,12 +1162,17 @@ def check(name: str, args: dict) -> dict:
                 }
             if area > quiet:
                 if not (_confirmed(args, area) or _confirmed(args, asked)):
-                    return _stale_confirm(name, args, asked) or {
-                        "error": (f"{name} over {area:,.1f} km² loads more than a district's worth of "
-                                  f"{'dense ' if dense else ''}features, and the user has not been told the size."),
-                        "suggestion": ZONE_ARGUMENTS.format(quiet=quiet),
-                        "code": limits.CEILING_CODE,
-                    }
+                    if _num(args.get("confirm_area_km2")) is None:
+                        return {
+                            "error": (f"{name} over {area:,.1f} km² loads more than a district's worth of "
+                                      f"{'dense ' if dense else ''}features, and the user has not been told the size."),
+                            "suggestion": ZONE_ARGUMENTS.format(quiet=quiet),
+                            "code": limits.CEILING_CODE,
+                        }
+
+
+
+                    args["confirm_area_km2"] = round(float(asked), 1)
                 return {"label": LABEL, "area_km2": area,
                         "sentence": (f"Load {'dense ' if dense else ''}data over {area:,.1f} km² with {name}? "
                                      "This can take a while and slow QGIS down.")}
@@ -877,8 +1222,6 @@ def _cap_fitting_sentence(count: int, args: dict, cap: int) -> str:
 
 
 
-
-
     area = zone_km2(args)
     if area is None or area <= 0 or count <= 0 or cap <= 0 or count <= cap:
         return ""
@@ -893,8 +1236,11 @@ def _cap_fitting_sentence(count: int, args: dict, cap: int) -> str:
             "Use it or a smaller one; do not guess your way down.")
 
 
-def too_many(count: int, args: dict, what: str = "this source") -> dict | None:
+def too_many(count: int, args: dict, what: str = "this source", on_disk: bool = False) -> dict | None:
     """The refusal to put ``count`` features into the project, or None when they may go in."""
+
+
+
 
 
 
@@ -906,6 +1252,8 @@ def too_many(count: int, args: dict, what: str = "this source") -> dict | None:
     except (TypeError, ValueError):
         return None
     if count < 0:
+        return None
+    if lifted(args) and (on_disk or count <= hard_max_features()):
         return None
     if count > hard_max_features():
         return {
@@ -930,10 +1278,10 @@ def too_many(count: int, args: dict, what: str = "this source") -> dict | None:
     return None
 
 
-def too_many_features(layer, args: dict, what: str = "this source") -> dict | None:
+def too_many_features(layer, args: dict, what: str = "this source", on_disk: bool = False) -> dict | None:
     """``too_many`` for a layer already built: the count is read from it."""
     try:
         count = int(layer.featureCount())
     except Exception:  # noqa: BLE001
         return None
-    return too_many(count, args, what)
+    return too_many(count, args, what, on_disk=on_disk)

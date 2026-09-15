@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 from ..core.tool_registry import Tool, ToolRegistry
+from .isolated_centerlines import register_isolated_centerline_tools
 from .layer_io_tools import (  # noqa: F401 - _sublayer_names/describe_sublayers re-exported
     _add_field,
     _add_point_cloud_layer,
@@ -243,6 +244,8 @@ def register_core_tools(registry: ToolRegistry):
         },
         handler=_run_processing,
     ))
+
+    register_isolated_centerline_tools(registry)
 
     registry.register(Tool(
         name="get_task_status",
@@ -547,6 +550,7 @@ def register_core_tools(registry: ToolRegistry):
                 "path": {
                     "type": "string",
                 },
+                "layer_name_in_file": {"type": "string", "minLength": 1},
                 "crs": {"type": "string"},
                 "selected_only": {"type": "boolean"},
                 "geometryless": {
@@ -575,6 +579,11 @@ def register_core_tools(registry: ToolRegistry):
 
                     "enum": ["string", "text", "int", "integer", "long", "double", "float", "real",
                              "bool", "boolean", "date", "datetime"],
+                },
+                "measurement_mode": {
+                    "type": "string",
+                    "enum": ["ground", "planar_project"],
+                    "default": "ground",
                 },
                 "expression": {
                     "type": "string",

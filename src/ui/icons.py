@@ -1146,6 +1146,66 @@ def _draw_puzzle(p: QPainter, c: QColor) -> None:
     p.drawPath(path)
 
 
+def _draw_thumbs_up(p: QPainter, c: QColor) -> None:
+    """A good answer: a stylised thumb, cuff at the wrist."""
+    p.setPen(_pen(c, 1.5))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawRoundedRect(QRectF(3.0, 9.5, 3.4, 7.0), 1.0, 1.0)
+    path = QPainterPath()
+    path.moveTo(7.4, 16.5)
+    path.lineTo(7.4, 10.2)
+    path.lineTo(10.3, 4.2)
+    path.cubicTo(11.6, 3.5, 12.8, 4.6, 12.3, 6.0)
+    path.lineTo(11.2, 9.2)
+    path.lineTo(15.6, 9.2)
+    path.cubicTo(16.7, 9.2, 17.3, 10.4, 16.7, 11.3)
+    path.lineTo(14.7, 15.3)
+    path.cubicTo(14.3, 16.1, 13.5, 16.5, 12.7, 16.5)
+    path.closeSubpath()
+    p.drawPath(path)
+
+
+def _draw_thumbs_down(p: QPainter, c: QColor) -> None:
+    """A bad answer: the same thumb, turned about the box's centre."""
+    p.save()
+    p.translate(10.0, 10.0)
+    p.rotate(180)
+    p.translate(-10.0, -10.0)
+    _draw_thumbs_up(p, c)
+    p.restore()
+
+
+def _draw_thumbs_up_filled(p: QPainter, c: QColor) -> None:
+    """The vote cast: the same thumb, solid."""
+
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(c)
+    p.drawRoundedRect(QRectF(2.6, 9.2, 3.4, 7.7), 1.0, 1.0)
+    path = QPainterPath()
+    path.moveTo(7.4, 16.5)
+    path.lineTo(7.4, 10.2)
+    path.lineTo(10.3, 4.2)
+    path.cubicTo(11.6, 3.5, 12.8, 4.6, 12.3, 6.0)
+    path.lineTo(11.2, 9.2)
+    path.lineTo(15.6, 9.2)
+    path.cubicTo(16.7, 9.2, 17.3, 10.4, 16.7, 11.3)
+    path.lineTo(14.7, 15.3)
+    path.cubicTo(14.3, 16.1, 13.5, 16.5, 12.7, 16.5)
+    path.closeSubpath()
+    p.setPen(_pen(c, 1.1))
+    p.drawPath(path)
+
+
+def _draw_thumbs_down_filled(p: QPainter, c: QColor) -> None:
+    """The bad vote cast: the solid thumb, turned about the box's centre."""
+    p.save()
+    p.translate(10.0, 10.0)
+    p.rotate(180)
+    p.translate(-10.0, -10.0)
+    _draw_thumbs_up_filled(p, c)
+    p.restore()
+
+
 _GLYPHS = {
     "send": _draw_send,
     "bolt": _draw_bolt,
@@ -1229,6 +1289,10 @@ _GLYPHS = {
     "sparkles": _draw_sparkles,
     "polyline": _draw_polyline,
     "puzzle": _draw_puzzle,
+    "thumbs_up": _draw_thumbs_up,
+    "thumbs_down": _draw_thumbs_down,
+    "thumbs_up_filled": _draw_thumbs_up_filled,
+    "thumbs_down_filled": _draw_thumbs_down_filled,
 }
 
 ICON_NAMES = tuple(_GLYPHS)

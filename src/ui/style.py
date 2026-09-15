@@ -264,6 +264,22 @@ _BTN_SEND = (
 
 
 
+def _vote_qss(tint: str) -> str:
+    return (
+        "QToolButton { background: transparent; border: none; padding: 3px;"
+        f" border-radius: {RADIUS_CONTROL}px; }}"
+        f"QToolButton:hover, QToolButton:pressed {{ background: {tint}; }}"
+        f'QToolButton[active="true"] {{ background: {tint}; }}'
+        "QToolButton:disabled { background: transparent; }"
+    )
+
+
+_BTN_VOTE_UP = _vote_qss(GREEN_TINT)
+_BTN_VOTE_DOWN = _vote_qss(RED_TINT)
+
+
+
+
 _BTN_MODE = (
     f"QToolButton {{ background: transparent; border: 1px solid {LINE};"
     f" border-radius: {RADIUS_CONTROL}px; padding: 3px 8px; font-size: {FONT_BODY}px;"
@@ -669,6 +685,93 @@ def muted_ink(ink=None):
     return qcolor(INK_2)
 
 
+def _shadow_level(level: str) -> tuple:
+    """``(blur, offset, alpha)`` of one step of the site's elevation stack."""
+    return {
+        "card": (6, 2, 0.20 if DARK else 0.06),
+        "raised": (10, 2, 0.22 if DARK else 0.08),
+        "overlay": (28, 8, 0.34 if DARK else 0.10),
+    }.get(level, (28, 8, 0.34 if DARK else 0.10))
+
+
+
+_SHADOW_PIXMAPS: dict = {}
+_SHADOW_PIXMAPS_KEPT = 8
+
+
+def _shadow_pixmap(width: int, height: int, radius: float, level: str, ratio: float):
+    """The blurred shape alone, ``blur`` px of margin on every side, built once per size."""
+    key = (width, height, radius, level, ratio)
+    cached = _SHADOW_PIXMAPS.pop(key, None)
+    if cached is None:
+        from qgis.PyQt.QtCore import QRectF, Qt
+        from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPixmap
+        from qgis.PyQt.QtWidgets import QGraphicsBlurEffect, QGraphicsPixmapItem, QGraphicsScene
+
+        blur, _offset, alpha = _shadow_level(level)
+        pad = blur * ratio
+        size_w, size_h = int(round(width * ratio + 2 * pad)), int(round(height * ratio + 2 * pad))
+        shape = QImage(size_w, size_h, QImage.Format.Format_ARGB32_Premultiplied)
+        shape.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(shape)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setPen(Qt.PenStyle.NoPen)
+            color = QColor(0, 0, 0)
+            color.setAlphaF(alpha)
+            painter.setBrush(color)
+            painter.drawRoundedRect(QRectF(pad, pad, width * ratio, height * ratio),
+                                    radius * ratio, radius * ratio)
+        finally:
+            painter.end()
+
+        scene = QGraphicsScene()
+        scene.setSceneRect(0, 0, size_w, size_h)
+        item = QGraphicsPixmapItem(QPixmap.fromImage(shape))
+        effect = QGraphicsBlurEffect()
+        effect.setBlurRadius(blur * ratio)
+        item.setGraphicsEffect(effect)
+        scene.addItem(item)
+        out = QImage(size_w, size_h, QImage.Format.Format_ARGB32_Premultiplied)
+        out.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(out)
+        try:
+            scene.render(painter, QRectF(0, 0, size_w, size_h), QRectF(0, 0, size_w, size_h))
+        finally:
+            painter.end()
+        cached = QPixmap.fromImage(out)
+        cached.setDevicePixelRatio(ratio)
+        while len(_SHADOW_PIXMAPS) >= _SHADOW_PIXMAPS_KEPT:
+            _SHADOW_PIXMAPS.pop(next(iter(_SHADOW_PIXMAPS)))
+    _SHADOW_PIXMAPS[key] = cached
+    return cached
+
+
+def paint_shadow(host, rect, radius: float, level: str = "overlay") -> None:
+    """The popover's elevation painted by its translucent host, under ``rect``."""
+
+
+
+
+
+
+
+    from qgis.PyQt.QtGui import QPainter
+
+    ratio_of = getattr(host, "devicePixelRatioF", None) or host.devicePixelRatio
+    ratio = max(1.0, float(ratio_of()))
+    try:
+        pixmap = _shadow_pixmap(rect.width(), rect.height(), float(radius), level, ratio)
+    except Exception:  # noqa: BLE001 - a popover without its shadow still works
+        return
+    blur, offset, _alpha = _shadow_level(level)
+    painter = QPainter(host)
+    try:
+        painter.drawPixmap(rect.x() - blur, rect.y() - blur + offset, pixmap)
+    finally:
+        painter.end()
+
+
 def drop_shadow(widget, level: str = "overlay") -> None:
     """The site's elevation on a top-level popover, as a drop shadow effect."""
 
@@ -683,11 +786,7 @@ def drop_shadow(widget, level: str = "overlay") -> None:
         from qgis.PyQt.QtWidgets import QGraphicsDropShadowEffect
     except Exception:  # noqa: BLE001 - no Qt here
         return
-    blur, offset, alpha = {
-        "card": (6, 2, 0.20 if DARK else 0.06),
-        "raised": (10, 2, 0.22 if DARK else 0.08),
-        "overlay": (28, 8, 0.34 if DARK else 0.10),
-    }.get(level, (28, 8, 0.34 if DARK else 0.10))
+    blur, offset, alpha = _shadow_level(level)
     effect = QGraphicsDropShadowEffect(widget)
     effect.setBlurRadius(blur)
     effect.setOffset(0, offset)

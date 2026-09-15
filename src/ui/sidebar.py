@@ -36,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, logo_pixmap, pixmap_for
+from .shared import event_pos
 from .style import (
     _BTN_ICON,
     ACCENT_INK,
@@ -188,7 +189,7 @@ class _Row(QWidget):
             repolish(self._text)
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
 
@@ -372,7 +373,7 @@ class ChatSidebar(QWidget):
         self._rule.setFrameShape(QFrame.Shape.NoFrame)
         col.addWidget(self._rule)
         col.addSpacing(_PAD)
-        self._upgrade_row = _Row("sparkles", self.tr("Upgrade"), "sidebarUpgrade", self, accent_color())
+        self._upgrade_row = _Row("sparkles", self.tr("Do more with Pro"), "sidebarUpgrade", self, accent_color())
         self._upgrade_row.clicked.connect(self.upgrade_requested.emit)
         self._copy.append(self._upgrade_row)
         col.addWidget(self._upgrade_row)

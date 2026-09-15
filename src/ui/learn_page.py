@@ -32,8 +32,8 @@ import hashlib
 import os
 import tempfile
 
-from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QObject, QSize, Qt, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPixmap
+from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QObject, QRectF, QSize, Qt, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QFrame,
@@ -48,7 +48,7 @@ from ..core.host_platform import retry_file_op
 from .font_scale import scale_px_length
 from .icons import pixmap_for
 from .settings_pages import HAIRLINE, MUTED, ROW_NOTE_QSS, Page
-from .shared import PLUGIN_CACHE_DIR, get_learn_items, resolve_qt_enum
+from .shared import PLUGIN_CACHE_DIR, event_pos, get_learn_items, resolve_qt_enum
 from .style import ACCENT_BORDER, ACCENT_TINT, FONT_BASE, FONT_HINT, RADIUS_CARD
 
 
@@ -288,7 +288,11 @@ class Thumbnail(QLabel):
                                         Qt.TransformationMode.SmoothTransformation)
             pixmap = QPixmap.fromImage(scaled)
             pixmap.setDevicePixelRatio(ratio)
-            painter.setClipRect(path_rect)
+
+
+            clip = QPainterPath()
+            clip.addRoundedRect(QRectF(path_rect), radius, radius)
+            painter.setClipPath(clip)
             painter.drawPixmap(
                 rect.x() - max(0, (int(scaled.width() / ratio) - rect.width())) // 2,
                 rect.y() - max(0, (int(scaled.height() / ratio) - rect.height())) // 2,
@@ -357,7 +361,7 @@ class LearnCard(QFrame):
         return self._url
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        if self.rect().contains(event.pos()):
+        if self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
 

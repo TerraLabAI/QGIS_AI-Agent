@@ -15,19 +15,27 @@ from typing import Any
 
 from .provider_uri import REDACTED, scrub_uri_secrets
 
-_USER_PATH_RE = re.compile(r"(?i)([/\\](?:Users|home)[/\\])[^/\\]+")
+_USER_PATH_RE = re.compile(r"(?i)([/\\](?:Users|home)[/\\])[^/\\\s\"']+")
 
 _ACTIVATION_KEY_RE = re.compile(r"\btl_[0-9a-f]{32}\b")
 _BEARER_RE = re.compile(r"(?i)\b(bearer|basic|token)\s+[A-Za-z0-9\-._~+/]{16,}=*")
 _KNOWN_TOKEN_RE = re.compile(
-    r"\b(?:sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[abpr]-[A-Za-z0-9-]{20,}"
+    r"\b(?:sk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}"
+    r"|xox[abpr]-[A-Za-z0-9-]{20,}|hf_[A-Za-z0-9]{30,}|glpat-[A-Za-z0-9_-]{20,}"
+    r"|(?:AccountKey|SharedAccessKey)=[A-Za-z0-9+/]{20,}={0,2}"
     r"|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|ya29\.[0-9A-Za-z\-_]+"
     r"|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,})"
 )
 
+_PRIVATE_KEY_RE = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?"
+                             r"-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
+_COLON_SECRET_RE = re.compile(
+    r"(?i)(\b(?:password|passwd|api[-_]?key|activation_?key|client_?secret)\s*:\s*)"
+    r"(?:\"[^\"]*\"|'[^']*'|[^\s,;}\"']+)")
+
 _SECRET_KEY_RE = re.compile(
-    r"(?i)^(?:.*(?:password|passwd|secret|token|api_?key|access_?key|private_?key|credential|authorization"
-    r"|activation_?key|client_?secret).*|environ|environment|env|pwd|pass)$"
+    r"(?i)^(?:.*(?:password|passwd|secret|token|api[-_]?key|access_?key|private_?key|credential|authorization"
+    r"|activation_?key|client_?secret).*|environ|environment|env|pwd|pass|cookie|set-cookie)$"
 )
 
 
@@ -58,6 +66,8 @@ def scrub_secrets(text: str) -> str:
     """Remove keys, tokens and URI passwords from free text; paths stay readable."""
     if not text:
         return text or ""
+    text = _PRIVATE_KEY_RE.sub(REDACTED, text)
+    text = _COLON_SECRET_RE.sub(lambda m: m.group(1) + REDACTED, text)
     text = _ACTIVATION_KEY_RE.sub(REDACTED, text)
     text = _KNOWN_TOKEN_RE.sub(REDACTED, text)
     text = _BEARER_RE.sub(lambda m: f"{m.group(1)} {REDACTED}", text)

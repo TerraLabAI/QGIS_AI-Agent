@@ -26,7 +26,6 @@ except ImportError:
 
 
 
-
 _STYLE_CACHE: dict[str, str | None] = {}
 
 

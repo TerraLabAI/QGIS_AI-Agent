@@ -110,6 +110,9 @@ def _basemap_url(name: str) -> str:
         log_warning(f"Basemap catalog unreadable, keeping the shipped list: {exc}")
         return shipped
     for row_id, row in rows:
+
+        if row.get("kind") == "vectortile":
+            continue
         if str(row_id).strip().lower() == key or str(row.get("name") or "").strip().lower() == key:
             url = str(row.get("url") or "")
             if url:

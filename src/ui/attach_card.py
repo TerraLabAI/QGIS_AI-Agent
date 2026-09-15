@@ -19,7 +19,7 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidge
 
 from .icons import pixmap_for
 from .shared import event_pos
-from .style import _BTN_THUMB_CLOSE, HAIRLINE_STRONG, HOVER
+from .style import _BTN_THUMB_CLOSE, HAIRLINE_STRONG, HOVER, repolish
 from .widgets import ElidedLabel, IconButton
 
 CARD_RADIUS = 12
@@ -228,6 +228,28 @@ class AttachCard(QWidget):
         self._frame.setToolTip(tip)
         self._name_label.setToolTip(tip)
         self._kind_label.setToolTip(tip)
+
+    def set_name(self, name: str) -> None:
+        """The name line after the card is built (a layer renamed in QGIS)."""
+
+        self._name = str(name or "")
+        self._name_label.setText(self._name)
+        self.setAccessibleName(self._name)
+        self.updateGeometry()
+
+    def set_clickable(self, clickable: bool) -> None:
+        """Turn the click on or off after the card is built: a card whose layer left the project loses the pointing hand and the hover."""
+
+        clickable = bool(clickable)
+        if clickable == self._clickable:
+            return
+        self._clickable = clickable
+        self._frame.setProperty("clickable", clickable)
+        if clickable:
+            self._frame.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self._frame.unsetCursor()
+        repolish(self._frame)
 
     def name(self) -> str:
         return self._name

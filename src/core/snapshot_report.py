@@ -93,3 +93,103 @@ def changed_layer_items(diff: dict) -> list[dict]:
     for entry in diff.get("layers_removed") or []:
         add(entry, "removed")
     return items
+
+
+
+_CHIP_ORDER = ("added", "features", "crs", "style", "visibility", "file", "removed")
+
+
+def _whole(value) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def run_change_items(report, touched=None) -> dict:
+    """What the chips under a run's answer show, as plain JSON a thread file keeps."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    try:
+        return _run_change_items(report if isinstance(report, dict) else {},
+                                 [x for x in touched if isinstance(x, dict)]
+                                 if isinstance(touched, (list, tuple)) else [])
+    except Exception:  # noqa: BLE001 - chips that cannot be built are no chips, never a failed run end
+        return {}
+
+
+def _run_change_items(report: dict, touched: list) -> dict:
+    def listed(key: str) -> list:
+        value = report.get(key)
+        return [x for x in value if isinstance(x, dict)] if isinstance(value, list) else []
+
+    has_report = any(isinstance(report.get(key), list)
+                     for key in ("layers_added", "layers_changed", "layers_removed", "files_written"))
+    counted = {str(x.get("id") or ""): x for x in touched if x.get("what") == "features"}
+    buckets: dict[str, list] = {what: [] for what in _CHIP_ORDER}
+    seen: set[str] = set()
+
+    def add(entry: dict, what: str, **extra) -> None:
+        lid = str(entry.get("id") or "")
+        name = str(entry.get("name") or lid or "?")
+        if (lid or name) in seen:
+            return
+        seen.add(lid or name)
+        buckets[what].append({"id": lid, "name": name, "what": what,
+                              **{key: value for key, value in extra.items() if value is not None}})
+
+    for entry in listed("layers_added"):
+        add(entry, "added", kind=entry.get("kind") if isinstance(entry.get("kind"), str) else None,
+            features=_whole(entry.get("features")))
+    for entry in listed("layers_changed"):
+        before, after = _whole(entry.get("features_before")), _whole(entry.get("features_after"))
+        if before is not None and after is not None:
+            fine = counted.get(str(entry.get("id") or ""), {})
+            add(entry, "features", delta=after - before,
+                **{key: _whole(fine.get(key)) for key in ("added", "removed", "changed")})
+        elif entry.get("crs_before") or entry.get("crs_after"):
+            add(entry, "crs")
+    for entry in listed("layers_removed"):
+        add(entry, "removed")
+    for entry in touched:
+        what = str(entry.get("what") or "")
+        if what not in buckets or (has_report and what == "file"):
+            continue
+        extra = {key: entry[key] for key in ("delta", "added", "removed", "changed")
+                 if _whole(entry.get(key)) is not None}
+        if what == "visibility":
+            extra["visible"] = bool(entry.get("visible"))
+        add(entry, what, **extra)
+
+    files: list[dict] = []
+    paths: set[str] = set()
+    for entry in listed("files_written"):
+        path = entry.get("path")
+        if not isinstance(path, str) or not path or entry.get("exists") is False or path in paths:
+            continue
+        paths.add(path)
+        item: dict = {"path": path}
+        if _whole(entry.get("size_bytes")) is not None:
+            item["size_bytes"] = entry["size_bytes"]
+        files.append(item)
+    raw = report.get("warnings")
+    warnings = [text for text in raw if isinstance(text, str) and text.strip()] if isinstance(raw, list) else []
+
+    out: dict = {}
+    layers = [item for what in _CHIP_ORDER for item in buckets[what]]
+    if layers:
+        out["layers"] = layers
+    if files:
+        out["files"] = files
+    if warnings:
+        out["warnings"] = warnings
+    return out

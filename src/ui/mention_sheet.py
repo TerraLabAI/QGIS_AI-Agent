@@ -46,6 +46,7 @@ from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for
 from .layer_icons import layer_icon
 from .mention_search import FILES
+from .shared import event_pos
 from .style import (
     _COMPLETER_POPUP_QSS,
     FONT_BASE,
@@ -62,8 +63,8 @@ from .style import (
     RADIUS_CARD,
     RADIUS_CONTROL,
     SURFACE,
-    drop_shadow,
     hover_pill,
+    paint_shadow,
     qcolor,
 )
 
@@ -240,7 +241,7 @@ class _SheetView(QListView):
         self.setSelectionMode(QListView.SelectionMode.SingleSelection)
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        index = self.indexAt(event.pos())
+        index = self.indexAt(event_pos(event))
         if event.button() == Qt.MouseButton.LeftButton and index.isValid():
             self.picked.emit(index)
             return
@@ -249,10 +250,6 @@ class _SheetView(QListView):
 
 class MentionSheet(QWidget):
     """The sheet above the composer: the rows, a hairline, the footer line."""
-
-
-
-
 
 
 
@@ -279,7 +276,7 @@ class MentionSheet(QWidget):
         self._frame.setObjectName("mentionSheet")
         self._frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._frame.setStyleSheet(_SHEET_QSS)
-        drop_shadow(self._frame, "overlay")
+
         outer.addWidget(self._frame)
         col = QVBoxLayout(self._frame)
         col.setContentsMargins(_SHEET_PAD, _SHEET_PAD, _SHEET_PAD, _SHEET_PAD)
@@ -484,6 +481,10 @@ class MentionSheet(QWidget):
         self._pop.setStartValue(0.0)
         self._pop.setEndValue(1.0)
         self._pop.start()
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_shadow(self, self._frame.geometry(), RADIUS_CARD, "overlay")
+        super().paintEvent(event)
 
     def _on_pop(self, value) -> None:
         try:

@@ -77,6 +77,8 @@ _COG_PROFILE_HINT = "cloud-optimized"
 
 _PMTILES_MAGIC = b"PMTiles"
 _PMTILES_VERSION = 3
+
+_PMTILES_MAX_ZOOM_OFFSET = 101
 _PMTILES_PROBE_BYTES = 16 * 1024
 _PMTILES_PROBE_TIMEOUT = 20
 
@@ -421,8 +423,6 @@ def _prefetch_vsicurl(url: str) -> None:
 
 
 
-
-
 _ONE_SHOT_PATH = "/eodata/file"
 
 _ONE_SHOT_MAX_BYTES = 128 * 1024 * 1024
@@ -451,8 +451,6 @@ def _localise_one_shot(url: str, name: str | None) -> dict | None:
 
 def _declare_nan_nodata(path: str) -> None:
     """Say in the file that NaN means "nothing was measured here"."""
-
-
 
 
 
@@ -515,6 +513,8 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                 "_code": "EXECUTION_FAILED",
                 "_suggestion": "Free some space in the temp folder and run the tool again.", "url": url}
     _declare_nan_nodata(path)
+    from .elevation_style import apply_elevation_style, elevation_stretch
+    stretch = elevation_stretch(path, name)
 
     def _create():
         layer = QgsRasterLayer(path, name or "Result", "gdal")
@@ -524,11 +524,13 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                     "_suggestion": "Run the tool that produced this url again." if one_shot
                                    else "Check the address serves a GeoTIFF and not a web page.", "url": url}
         normalised = normalise_crs(layer)
+        styled = apply_elevation_style(layer, stretch)
         QgsProject.instance().addMapLayer(layer)
         return {
             "layer_name": layer.name(),
             "layer_id": layer.id(),
             "path": path,
+            **({"styled": styled} if styled else {}),
             **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
             "width": layer.width(),
             "height": layer.height(),
@@ -569,6 +571,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             local["_note"] = f"{note} {local.get('_note', '')}".strip()
         return local
     _prefetch_vsicurl(final_url)
+    from .elevation_style import apply_elevation_style, elevation_stretch
+    stretch = elevation_stretch(f"/vsicurl/{final_url}", name)
 
     def _create():
         layer = QgsRasterLayer(f"/vsicurl/{final_url}", name or "COG", "gdal")
@@ -587,7 +591,6 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
 
 
-
                 "_suggestion": (
                     'Call add_data again with kind "raster": a plain TIFF, or a server that ignores '
                     "range requests, has to be downloaded rather than streamed."
@@ -595,11 +598,13 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
                 "url": final_url,
             }
         normalised = normalise_crs(layer)
+        styled = apply_elevation_style(layer, stretch)
         QgsProject.instance().addMapLayer(layer)
         return {
             "layer_name": layer.name(),
             "layer_id": layer.id(),
             "url": final_url,
+            **({"styled": styled} if styled else {}),
             **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
             "width": layer.width(),
             "height": layer.height(),
@@ -697,6 +702,29 @@ def _is_raster_asset(asset: object) -> bool:
     return any(hint in media for hint in _RASTER_MEDIA_HINTS)
 
 
+
+
+_S2_BAND_NAMES = {"B01": "coastal", "B02": "blue", "B03": "green", "B04": "red", "B05": "rededge1",
+                  "B06": "rededge2", "B07": "rededge3", "B08": "nir", "B8A": "nir08", "B09": "nir09",
+                  "B11": "swir16", "B12": "swir22", "SCL": "scl", "TCI": "visual", "AOT": "aot", "WVP": "wvp"}
+
+
+def _asset_alias(assets: dict, asset_key: str) -> str | None:
+    """The key *assets* holds for *asset_key* under another case or its other band spelling, or None."""
+    wanted = str(asset_key or "").strip()
+    by_lower = {str(key).lower(): key for key in assets}
+    if wanted.lower() in by_lower:
+        return by_lower[wanted.lower()]
+    band = wanted.upper()
+    if len(band) == 2 and band[0] == "B" and band[1].isdigit():
+        band = "B0" + band[1]
+    candidates = [_S2_BAND_NAMES.get(band)] + [key for key, name in _S2_BAND_NAMES.items() if name == wanted.lower()]
+    for candidate in candidates:
+        if candidate and candidate.lower() in by_lower:
+            return by_lower[candidate.lower()]
+    return None
+
+
 def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, str | None, str | None, str | None]:
     """Return (href, chosen_key, note, error): the data first, a picture of it last."""
 
@@ -713,6 +741,10 @@ def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, s
     if asset_key:
         asset = assets.get(asset_key)
         if not asset or not asset.get("href"):
+            alias = _asset_alias(assets, asset_key)
+            aliased = assets.get(alias) if alias else None
+            if isinstance(aliased, dict) and aliased.get("href"):
+                return aliased["href"], alias, f"Asset '{asset_key}' is named '{alias}' in this catalog.", None
             return None, None, None, f"Asset '{asset_key}' not found. Available: {', '.join(assets.keys())}"
         return asset["href"], asset_key, None, None
 
@@ -813,6 +845,9 @@ def _probe_pmtiles(url: str) -> dict:
 
 
 
+
+
+
     request = urllib.request.Request(
         url,
         headers={"User-Agent": _USER_AGENT, "Range": f"bytes=0-{_PMTILES_PROBE_BYTES - 1}"},
@@ -852,6 +887,11 @@ def _probe_pmtiles(url: str) -> dict:
             "code": "INVALID_ARGS",
             "suggestion": "Ask for a version 3 archive, or for the data in another cloud-native format.",
         }
+
+
+
+    if len(head) > _PMTILES_MAX_ZOOM_OFFSET:
+        return {"max_zoom": head[_PMTILES_MAX_ZOOM_OFFSET]}
     return {}
 
 
@@ -985,7 +1025,8 @@ def _safe_file_stem(text: str) -> str:
     return _avoid_reserved_name(stem[:60] or "pmtiles")
 
 
-def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | None) -> dict:
+def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | None,
+                     max_zoom: int | None = None) -> dict:
     """Cut *bbox* out of the remote archive into a local GeoPackage."""
 
 
@@ -1015,10 +1056,12 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
 
 
 
+
+    zoom = _PMTILES_EXTRACT_ZOOM if max_zoom is None else max(0, min(_PMTILES_EXTRACT_ZOOM, int(max_zoom)))
     with vsi.scoped_read(gdal):
         try:
             dataset = gdal.OpenEx(f"/vsicurl/{url}", gdal.OF_VECTOR,
-                                  open_options=[f"ZOOM_LEVEL={_PMTILES_EXTRACT_ZOOM}"])
+                                  open_options=[f"ZOOM_LEVEL={zoom}"])
         except RuntimeError as exc:
             return {"_error": f"GDAL could not open the PMTiles archive at {url}: {exc}",
                     "code": "EXECUTION_FAILED",
@@ -1036,7 +1079,7 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
             if layer is not None:
                 available.append(layer.GetName())
         if not available:
-            return {"_error": f"The archive at {url} carries no vector layer at zoom {_PMTILES_EXTRACT_ZOOM}.",
+            return {"_error": f"The archive at {url} carries no vector layer at zoom {zoom}.",
                     "code": "EXECUTION_FAILED",
                     "suggestion": "Ask for another source for this data.",
                     "url": url}
@@ -1076,10 +1119,227 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
         del written
         del dataset
 
-    return {"path": path, "layer": chosen, "layers_available": available, "feature_count": count}
+        rescue = _rescue_oversized_tiles(gdal, url, bbox, chosen, zoom, path)
+        if rescue["tiles_rescued"]:
+            reopened = gdal.OpenEx(path, gdal.OF_VECTOR)
+            out_layer = reopened.GetLayerByName(chosen) if reopened is not None else None
+            if out_layer is not None:
+                count = int(out_layer.GetFeatureCount())
+            del out_layer
+            del reopened
+
+    return {"path": path, "layer": chosen, "layers_available": available, "feature_count": count, **rescue}
 
 
-def _add_pmtiles_extract(url: str, name: str | None, args: dict) -> dict:
+
+
+
+
+
+
+
+_MVT_GDAL_MAX_BYTES = 10 * 1024 * 1024
+_MVT_PIECE_BUDGET = 8 * 1024 * 1024
+
+
+_MVT_RESCUE_MIN_STORED = 512 * 1024
+
+_MVT_RESCUE_MAX_TILES = 2048
+
+
+def _mvt_varint(buf, pos: int) -> tuple[int, int]:
+    result = shift = 0
+    while True:
+        byte = buf[pos]
+        pos += 1
+        result |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return result, pos
+        shift += 7
+
+
+def _mvt_varint_bytes(value: int) -> bytes:
+    out = bytearray()
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        if value:
+            out.append(byte | 0x80)
+        else:
+            out.append(byte)
+            return bytes(out)
+
+
+def _mvt_fields(buf):
+    """``(field, wire type, value, raw bytes)`` for each field of a protobuf message."""
+    pos, end = 0, len(buf)
+    while pos < end:
+        start = pos
+        key, pos = _mvt_varint(buf, pos)
+        number, wire = key >> 3, key & 7
+        if wire == 0:
+            value, pos = _mvt_varint(buf, pos)
+        elif wire == 2:
+            length, pos = _mvt_varint(buf, pos)
+            value = buf[pos:pos + length]
+            pos += length
+        elif wire == 5:
+            value, pos = buf[pos:pos + 4], pos + 4
+        elif wire == 1:
+            value, pos = buf[pos:pos + 8], pos + 8
+        else:
+            raise ValueError(f"protobuf wire type {wire}")
+        if pos > end:
+            raise ValueError("protobuf field runs past the message")
+        yield number, wire, value, buf[start:pos]
+
+
+def _mvt_message(number: int, payload: bytes) -> bytes:
+    return _mvt_varint_bytes((number << 3) | 2) + _mvt_varint_bytes(len(payload)) + payload
+
+
+def _mvt_piece(chunk: list, name_raw: bytes, keys: list, values: list, tail: list) -> bytes:
+    """One MVT tile holding *chunk* of a layer's features, with only the keys and values they use."""
+    key_index, value_index, chunk_keys, chunk_values, encoded = {}, {}, [], [], []
+    for feature in chunk:
+        record = bytearray()
+        for field, _wire, value, raw in _mvt_fields(feature):
+            if field != 2:
+                record += raw
+                continue
+            tags, pos = bytearray(), 0
+            while pos < len(value):
+                key, pos = _mvt_varint(value, pos)
+                val, pos = _mvt_varint(value, pos)
+                if key not in key_index:
+                    key_index[key] = len(chunk_keys)
+                    chunk_keys.append(keys[key])
+                if val not in value_index:
+                    value_index[val] = len(chunk_values)
+                    chunk_values.append(values[val])
+                tags += _mvt_varint_bytes(key_index[key]) + _mvt_varint_bytes(value_index[val])
+            record += _mvt_message(2, bytes(tags))
+        encoded.append(_mvt_message(2, bytes(record)))
+    body = (name_raw + b"".join(encoded) + b"".join(_mvt_message(3, k) for k in chunk_keys)
+            + b"".join(_mvt_message(4, v) for v in chunk_values) + b"".join(tail))
+    return _mvt_message(3, body)
+
+
+def _mvt_pieces_under_limit(chunk: list, parts: tuple):
+    piece = _mvt_piece(chunk, *parts)
+    if len(piece) <= _MVT_GDAL_MAX_BYTES or len(chunk) == 1:
+        yield piece
+        return
+    half = len(chunk) // 2
+    yield from _mvt_pieces_under_limit(chunk[:half], parts)
+    yield from _mvt_pieces_under_limit(chunk[half:], parts)
+
+
+def _mvt_layer_pieces(tile: bytes, layer_name: str):
+    """Whole MVT tiles, each holding part of *layer_name* and decoding under GDAL's limit."""
+    tile = memoryview(tile)
+    for number, wire, layer, _raw in _mvt_fields(tile):
+        if number != 3 or wire != 2:
+            continue
+        name, name_raw, tail, features, keys, values = None, b"", [], [], [], []
+        for field, _wire, value, raw in _mvt_fields(layer):
+            if field == 1:
+                name, name_raw = bytes(value).decode("utf-8", "replace"), bytes(raw)
+            elif field == 2:
+                features.append(value)
+            elif field == 3:
+                keys.append(bytes(value))
+            elif field == 4:
+                values.append(bytes(value))
+            else:
+                tail.append(bytes(raw))
+        if name != layer_name:
+            continue
+        parts = (name_raw, keys, values, tail)
+        chunk, size = [], 0
+        for feature in features:
+            if chunk and size + len(feature) > _MVT_PIECE_BUDGET:
+                yield from _mvt_pieces_under_limit(chunk, parts)
+                chunk, size = [], 0
+            chunk.append(feature)
+            size += len(feature)
+        if chunk:
+            yield from _mvt_pieces_under_limit(chunk, parts)
+        return
+
+
+def _tiles_in_bbox(bbox: list, zoom: int) -> list:
+    import math
+
+    west, south, east, north = bbox
+    n = 2 ** zoom
+
+    def column(lon):
+        return min(n - 1, max(0, int((lon + 180.0) / 360.0 * n)))
+
+    def row(lat):
+        lat = math.radians(max(-85.0511, min(85.0511, lat)))
+        return min(n - 1, max(0, int((1.0 - math.asinh(math.tan(lat)) / math.pi) / 2.0 * n)))
+
+    return [(x, y) for x in range(column(west), column(east) + 1) for y in range(row(north), row(south) + 1)]
+
+
+def _rescue_oversized_tiles(gdal, url: str, bbox: list, layer: str, zoom: int, path: str) -> dict:
+    """Append the features of the tiles GDAL skipped for their size. Worker thread only."""
+    import gzip
+
+    rescued, unread = 0, []
+    tiles = _tiles_in_bbox(bbox, zoom)
+    if len(tiles) > _MVT_RESCUE_MAX_TILES:
+        return {"tiles_rescued": 0, "tiles_unread": []}
+    for x, y in tiles:
+        if _pmtiles_cancelled():
+            break
+        address = f"/vsipmtiles//vsicurl/{url}/{zoom}/{x}/{y}.mvt"
+        stat = gdal.VSIStatL(address)
+        if stat is None or stat.size < _MVT_RESCUE_MIN_STORED:
+            continue
+        handle = gdal.VSIFOpenL(address, "rb")
+        if handle is None:
+            unread.append(f"{zoom}/{x}/{y}")
+            continue
+        try:
+            stored = bytes(gdal.VSIFReadL(1, stat.size, handle) or b"")
+        finally:
+            gdal.VSIFCloseL(handle)
+        try:
+            raw = gzip.decompress(stored) if stored[:2] == b"\x1f\x8b" else stored
+        except (OSError, EOFError):
+            unread.append(f"{zoom}/{x}/{y}")
+            continue
+        if len(raw) <= _MVT_GDAL_MAX_BYTES:
+            continue
+        try:
+            for index, piece in enumerate(_mvt_layer_pieces(raw, layer)):
+                memory = f"/vsimem/pmtiles_piece_{zoom}_{x}_{y}_{index}.pbf"
+                gdal.FileFromMemBuffer(memory, piece)
+                try:
+                    source = gdal.OpenEx("MVT:" + memory, gdal.OF_VECTOR, allowed_drivers=["MVT"],
+                                         open_options=[f"X={x}", f"Y={y}", f"Z={zoom}"])
+                    if source is None or source.GetLayerByName(layer) is None:
+                        raise RuntimeError("piece not readable")
+                    appended = gdal.VectorTranslate(
+                        path, source, accessMode="append", addFields=True, layerName=layer,
+                        spatFilter=list(bbox), spatSRS="EPSG:4326", dstSRS="EPSG:4326", layers=[layer],
+                    )
+                    if appended is None:
+                        raise RuntimeError("piece not appended")
+                    del appended
+                    del source
+                finally:
+                    gdal.Unlink(memory)
+            rescued += 1
+        except (RuntimeError, ValueError, IndexError):
+            unread.append(f"{zoom}/{x}/{y}")
+    return {"tiles_rescued": rescued, "tiles_unread": unread}
+
+
+def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int | None = None) -> dict:
     """The default route: extract the area of interest, then add a local file."""
     bbox, origin = _bbox_4326(args)
     if bbox is None:
@@ -1104,7 +1364,7 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict) -> dict:
         }
 
     started = time.monotonic()
-    extract = _extract_pmtiles(url, bbox, args.get("layer"), name)
+    extract = _extract_pmtiles(url, bbox, args.get("layer"), name, max_zoom)
     if extract.get("_error"):
         return extract
     if _pmtiles_cancelled():
@@ -1145,7 +1405,16 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict) -> dict:
                   f"({bbox[0]:.4f}, {bbox[1]:.4f}, {bbox[2]:.4f}, {bbox[3]:.4f}) and written to a local "
                   "GeoPackage. The archive itself was never downloaded."),
     })
-    if count == 0:
+    if extract.get("tiles_rescued"):
+        result["tiles_rescued"] = extract["tiles_rescued"]
+    unread = extract.get("tiles_unread") or []
+    if unread:
+        result["tiles_unread"] = unread
+        result["coverage"] = "partial"
+        result["warning"] = (f"{len(unread)} tile(s) of this box could not be read, so the layer lacks their "
+                             "features.")
+        result["suggestion"] = "Say the result is partial, or ask for a smaller box around what is missing."
+    elif count == 0:
         result["warning"] = "The archive has no feature of this layer inside that box."
         result["suggestion"] = "Check the area, or try another layer of the archive."
     return result
@@ -1257,13 +1526,16 @@ def _add_pmtiles_layer(args: dict) -> dict:
                 "code": "INVALID_ARGS",
                 "suggestion": "Use mode='extract' (the default) or mode='tiles'."}
 
-    refusal = _pmtiles_unreadable_here() or _probe_pmtiles(url)
+    refusal = _pmtiles_unreadable_here()
     if refusal:
         return refusal
+    header = _probe_pmtiles(url)
+    if header.get("_error"):
+        return header
     if _pmtiles_cancelled():
         return _pmtiles_stopped(url)
 
     result = (_add_pmtiles_as_tiles(url, name, args) if mode == "tiles"
-              else _add_pmtiles_extract(url, name, args))
+              else _add_pmtiles_extract(url, name, args, header.get("max_zoom")))
     dataset_docs.attach(result, url)
     return result

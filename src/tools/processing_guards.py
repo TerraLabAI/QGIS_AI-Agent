@@ -32,7 +32,8 @@ from qgis.core import (
     QgsRectangle,
 )
 
-from ..core import ground
+from ..core import ground, limits, tuning, vsi
+from ..core.policy import create_managed_temp_dir
 from .layer_lookup import _find_layer
 
 
@@ -62,18 +63,14 @@ def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
 
 
 
+
+
         "_error": (
             f"DISTANCE_SUSPICIOUS: DISTANCE {distance:g} {unit} is far beyond the input layer, whose "
             f"extent spans {span:g} {unit}. This looks like a unit or CRS mistake."
         ),
         "code": "INVALID_ARGS",
-        "suggestion": (
-            "Check the layer CRS (reproject a geographic layer to metres first) or confirm the distance "
-            "with ask_user, then call run_processing again with confirm_large true."
-        ),
     }
-
-
 
 
 
@@ -168,12 +165,7 @@ def _grid_sanity(parameters: dict, confirmed: bool) -> dict | None:
             f"xmin,ymin,xmax,ymax.{hint}"
         ),
         "code": "INVALID_ARGS",
-        "suggestion": (
-            "Rewrite EXTENT as xmin,xmax,ymin,ymax for the box you mean, or widen the spacing. "
-            "Pass confirm_large true only if a grid this size is really wanted."
-        ),
     }
-
 
 
 
@@ -183,17 +175,12 @@ _REMOTE_RASTER_PIXELS_MAX = 60_000_000
 _RASTER_INPUT_KEYS = ("INPUT", "INPUT_RASTER", "INPUT_A", "INPUT_B", "RASTER", "GRID", "ELEVATION", "DEM")
 
 
-
-
 _RASTER_LIST_KEYS = ("LAYERS", "INPUT_LAYERS", "INPUTS")
 
 
 
 
-
 _WINDOW_KEYS = ("PROJWIN", "EXTENT", "TARGET_EXTENT", "MASK", "MASK_LAYER")
-
-
 
 
 
@@ -250,13 +237,109 @@ def _raster_size_sanity(parameters: dict, confirmed: bool, algorithm_id: str = "
                 f"takes minutes."
             ),
             "code": "INVALID_ARGS",
-            "suggestion": (
-                f"Clip it to the study area first: run_processing gdal:cliprasterbyextent with INPUT "
-                f"'{value}' and PROJWIN set to the canvas extent (get_canvas_extent, in the layer's CRS), "
-                f"then run this algorithm on the clip. Pass confirm_large true only if the whole tile is wanted."
-            ),
         }
     return None
+
+
+
+
+
+
+
+
+
+
+_EXTERNAL_PROVIDERS = frozenset({"grass", "grass7", "saga", "sagang", "otb"})
+
+
+
+_STREAMED_COPY_MAX_BYTES = 32 * 1024 * 1024
+_STREAMED_COPIES: dict[str, str] = {}
+
+
+def _is_streamed(layer) -> bool:
+    source = str(layer.source() or "")
+    return any(prefix in source for prefix in vsi.STREAMED_PREFIXES) or source.startswith(("http://", "https://"))
+
+
+def _sample_bytes(layer) -> int:
+    try:
+        from qgis.core import QgsRasterBlock
+
+        size = int(QgsRasterBlock.typeSize(layer.dataProvider().dataType(1)))
+        return size if size > 0 else 8
+    except Exception:  # noqa: BLE001 - an unknown type is sized as the largest
+        return 8
+
+
+def _local_copy(layer, algorithm_id: str, key: str) -> dict:
+    """A GeoTIFF on this disk holding what the layer streams, or the refusal."""
+    source = str(layer.source() or "")
+    cached = _STREAMED_COPIES.get(source)
+    if cached and os.path.exists(cached):
+        return {"path": cached, "megabytes": os.path.getsize(cached) / 1e6}
+    raw = int(layer.width()) * int(layer.height()) * max(1, int(layer.bandCount())) * _sample_bytes(layer)
+    cap = min(_STREAMED_COPY_MAX_BYTES, int(limits.current("MAX_DOWNLOAD_BYTES")))
+    provider = algorithm_id.split(":", 1)[0]
+
+
+    if raw > cap:
+        return {
+            "_error": (f"{key} is {layer.name()}, streamed over HTTP, and {provider} only reads files; a local copy "
+                       f"would be {raw / 1e6:,.0f} MB, over the {cap / 1e6:,.0f} MB copied before a call."),
+            "code": "INVALID_ARGS",
+        }
+    try:
+        from osgeo import gdal
+    except ImportError:
+        return {"_error": "GDAL is missing, so the streamed raster cannot be copied.", "code": "EXECUTION_FAILED"}
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", layer.name())[:60] or "raster"
+    path = os.path.join(create_managed_temp_dir("streamed_inputs"), f"{stem}.tif")
+    reason = ""
+    try:
+        with vsi.scoped_read(gdal):
+            dataset = gdal.Translate(path, source, format="GTiff",
+                                     creationOptions=["COMPRESS=DEFLATE", "TILED=YES", "BIGTIFF=IF_SAFER"])
+            copied = dataset is not None
+            dataset = None
+    except Exception as exc:  # noqa: BLE001 - GDAL raises once UseExceptions is on
+        copied, reason = False, " ".join(str(exc).split())[:200]
+    if not copied or not os.path.exists(path):
+        return {"_error": f"{layer.name()} could not be copied from where it is streamed. {reason}".strip(),
+                "code": "EXECUTION_FAILED"}
+    _STREAMED_COPIES[source] = path
+    return {"path": path, "megabytes": os.path.getsize(path) / 1e6}
+
+
+def localise_streamed_rasters(algorithm_id: str, parameters: dict) -> tuple[dict, list[str], dict | None]:
+    """Hand a GRASS, SAGA or OTB algorithm a local copy of every raster it would otherwise stream."""
+
+
+
+
+    provider = str(algorithm_id or "").split(":", 1)[0].lower()
+    if provider not in _EXTERNAL_PROVIDERS:
+        return parameters, [], None
+    project = QgsProject.instance()
+    out, notes = dict(parameters), []
+    for key, value in parameters.items():
+        items = list(value) if isinstance(value, (list, tuple)) else [value]
+        changed = False
+        for index, item in enumerate(items):
+            layer = item if isinstance(item, QgsRasterLayer) else (
+                project.mapLayer(item) if isinstance(item, str) and item else None)
+            if not isinstance(layer, QgsRasterLayer) or not _is_streamed(layer):
+                continue
+            copied = _local_copy(layer, algorithm_id, key)
+            if "_error" in copied:
+                return parameters, [], copied
+            items[index] = copied["path"]
+            changed = True
+            notes.append(f"{key}: {layer.name()} is streamed over HTTP and {provider} reads files, so it ran on a "
+                         f"local copy ({copied['megabytes']:.1f} MB)")
+        if changed:
+            out[key] = items if isinstance(value, (list, tuple)) else items[0]
+    return out, notes, None
 
 
 
@@ -285,7 +368,6 @@ def _raster_input(parameters: dict):
 
 def _window_degrees_repair(parameters: dict) -> list[str]:
     """A window written in degrees for a projected raster, rewritten in place."""
-
 
 
 
@@ -378,13 +460,8 @@ def _window_sanity(parameters: dict) -> dict | None:
                 f"Processing reads {key} as xmin,xmax,ymin,ymax [EPSG:n], not xmin,ymin,xmax,ymax.{hint}"
             ),
             "code": "INVALID_ARGS",
-            "suggestion": (
-                f"Rewrite {key} as xmin,xmax,ymin,ymax in the raster's CRS; get_layer_info gives its "
-                f"extent and crs. Never a box larger than the raster."
-            ),
         }
     return None
-
 
 
 
@@ -463,13 +540,6 @@ def _resolve_layer_inputs(parameters: dict) -> tuple[dict, list[str]]:
 
 
 
-
-
-
-
-
-
-
     resolved = dict(parameters)
     rewritten: list[str] = []
     for key in _INPUT_KEYS:
@@ -496,10 +566,6 @@ def _resolve_layer_inputs(parameters: dict) -> tuple[dict, list[str]]:
 
 def _unresolved_input_check(alg, parameters: dict) -> dict | None:
     """Refuse an INPUT that names no layer, before anything is started."""
-
-
-
-
 
 
 
@@ -542,7 +608,12 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
 
     for key in ("INPUT", "INPUT_LAYER", "LAYER", "SOURCE", "INPUT_VECTOR"):
         source = parameters.get(key)
-        layer = _find_layer(source) if isinstance(source, str) else source
+        if isinstance(source, str) and any(mark in source for mark in _NOT_A_LAYER_NAME):
+
+
+            layer = QgsProject.instance().mapLayer(source)
+        else:
+            layer = _find_layer(source) if isinstance(source, str) else source
         if layer is None or not hasattr(layer, "featureCount"):
             continue
         try:
@@ -726,6 +797,114 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
             ),
         }
     return None
+
+
+
+
+
+_NODATA_SENTINELS = (-9999.0, -99999.0, -32768.0, -32767.0, -3.4028234663852886e38)
+
+
+def _nodata_sentinel(rast, band: int) -> float | None:
+    """The sentinel this band's minimum sits on; None when there is none or it is declared NoData."""
+    try:
+        import qgis.core as _core
+
+        provider = rast.dataProvider()
+        if (provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)) \
+                or provider.userNoDataValues(band):
+            return None
+
+        wanted = getattr(getattr(getattr(_core, "Qgis", None), "RasterBandStatistic", None), "Min", None)
+        if wanted is None:
+            wanted = getattr(_core.QgsRasterBandStats, "Min", None)
+        minimum = float(provider.bandStatistics(band, wanted, rast.extent(), 250000).minimumValue)
+    except Exception:  # noqa: BLE001 - no statistics, no claim about the band
+        return None
+    for sentinel in _NODATA_SENTINELS:
+        if abs(minimum - sentinel) <= abs(sentinel) * 1e-9:
+            return sentinel
+    return None
+
+
+_ZONAL_ALGORITHMS = frozenset({"native:zonalstatisticsfb", "native:zonalstatistics", "qgis:zonalstatistics"})
+
+
+def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
+    """Refuse zonal statistics over a band whose minimum is an undeclared missing-data marker."""
+
+
+
+
+
+    if confirmed or algorithm_id not in tuning.check_algs("zonal_algorithms", _ZONAL_ALGORITHMS):
+        return None
+    source = parameters.get("INPUT_RASTER")
+    layer = source if hasattr(source, "dataProvider") else (_find_layer(source) if isinstance(source, str) else None)
+    if not isinstance(layer, QgsRasterLayer):
+        return None
+    try:
+        band = int(parameters.get("RASTER_BAND") or 1)
+    except (TypeError, ValueError):
+        band = 1
+    sentinel = _nodata_sentinel(layer, band)
+    if sentinel is None:
+        return None
+    return {
+        "_error": (
+            f"UNDECLARED_NODATA: '{layer.name()}' band {band} declares no NoData, and its minimum is {sentinel:g}, "
+            f"the usual missing-data marker: every statistic would count those cells as {sentinel:g}."
+        ),
+        "code": "INVALID_ARGS",
+        "suggestion": (
+            f"Call zonal_statistics with nodata={sentinel:g}, which leaves those cells out without touching the "
+            f"source. Pass confirm_large true only if {sentinel:g} is a real measurement here."
+        ),
+    }
+
+
+
+
+_TERRAIN_BY_CELL = frozenset({
+    "gdal:slope", "gdal:aspect", "gdal:hillshade", "gdal:roughness", "gdal:triterrainruggednessindex",
+    "gdal:tpitopographicpositionindex", "native:slope", "native:aspect", "native:hillshade",
+    "native:ruggednessindex", "qgis:slope", "qgis:aspect", "qgis:hillshade", "qgis:ruggednessindex",
+})
+
+
+def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | None:
+    """Refuse a slope, aspect or hillshade computed on a DEM whose cells are degrees."""
+
+
+
+
+
+
+
+
+    if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL):
+        return None
+    source = parameters.get("INPUT")
+    layer = source if hasattr(source, "crs") else (_find_layer(source) if isinstance(source, str) else None)
+    if layer is None or not hasattr(layer, "crs"):
+        return None
+    crs = layer.crs()
+    if not crs.isValid() or not crs.isGeographic():
+        return None
+    suggested = _suggest_metric_crs(layer)
+    return {
+        "_error": (
+            f"TERRAIN_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while its "
+            f"heights are not; {algorithm_id} on this grid is wrong on at least one axis, whatever SCALE is."
+        ),
+        "code": "CRS_GUARD",
+        "layer_crs": crs.authid(),
+        "suggested_crs": suggested,
+        "suggestion": (
+            f"Reproject the DEM first (gdal:warpreproject with TARGET_CRS {suggested}), then run {algorithm_id} "
+            "on the result with SCALE 1."
+        ),
+    }
 
 
 

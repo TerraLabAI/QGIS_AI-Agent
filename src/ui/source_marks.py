@@ -36,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
 from .external_links import open_external_url
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for, render_pixmap
+from .shared import event_pos
 from .style import (
     FONT_BODY,
     FONT_HINT,
@@ -297,7 +298,7 @@ class SourcesButton(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit()
             self.open_popover()
         super().mouseReleaseEvent(event)
@@ -423,7 +424,7 @@ class _SourceRow(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit(self._url)
         super().mouseReleaseEvent(event)
 

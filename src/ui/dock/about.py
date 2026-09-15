@@ -288,8 +288,6 @@ def shortcut_columns() -> tuple:
         (tr("Send the message"), "", key(enter_key)),
         (tr("New line"), "", key(native("Shift+Return"))),
         (tr("Add a layer from the project"), tr("Or drag it from the Layers panel"), key("@")),
-        (tr("Run a panel command"), tr("New chat, history, settings"), key("/")),
-        (tr("Open the command list"), "", key(native("Ctrl+/"))),
         (tr("Bring back the last message you sent"), "", key(native("Up"))),
         (tr("Close the list, or stop the run"), "", key(esc_key)),
     )

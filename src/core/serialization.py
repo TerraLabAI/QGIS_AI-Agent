@@ -41,6 +41,26 @@ def string_cap() -> int:
     return tuning.limit("results", "max_string_chars", MAX_STRING_CHARS)
 
 
+_QT_TEMPORAL = frozenset({"QDate", "QDateTime", "QTime"})
+
+
+def qt_temporal_text(value) -> str | None:
+    """A Qt date, date-time or time as ISO 8601, None when it is null."""
+
+
+
+
+
+
+    try:
+        from qgis.PyQt.QtCore import Qt
+
+        text = value.toString(Qt.DateFormat.ISODate)
+    except Exception:  # noqa: BLE001 - the repr is what the value was written as before
+        return str(value)
+    return text or None
+
+
 def _json_sanitize(value: Any, _depth: int = 0):
     """Make a tool result safely JSON-serializable and token-lean."""
 
@@ -70,6 +90,8 @@ def _json_sanitize(value: Any, _depth: int = 0):
         if _depth > 40:
             return "[maximum nesting reached]"
         return [_json_sanitize(v, _depth + 1) for v in value]
+    if type(value).__name__ in _QT_TEMPORAL:
+        return qt_temporal_text(value)
     return value
 
 

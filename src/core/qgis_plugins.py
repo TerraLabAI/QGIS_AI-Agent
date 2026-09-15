@@ -426,7 +426,6 @@ def enable_plugin(folder: str) -> tuple[bool, str]:
 
 
 
-
     name = str(folder or "").strip()
     if not name:
         return False, ""

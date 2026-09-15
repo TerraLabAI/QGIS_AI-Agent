@@ -72,12 +72,8 @@ def is_quickmapservices_installed() -> bool:
 
 
 
+
     return _find_installed_plugin(QUICKMAPSERVICES["keys"]) is not None
-
-
-def install_quickmapservices() -> str:
-    """Open the plugin manager on the QuickMapServices card. ``"manager"`` or ``"website"``."""
-    return open_plugin_manager(QUICKMAPSERVICES["name"], QUICKMAPSERVICES["url"])
 
 
 def _find_installed_plugin(keys: tuple[str, ...]):

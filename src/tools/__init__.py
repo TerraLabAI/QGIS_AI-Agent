@@ -26,9 +26,11 @@ from .danger import DANGER, DEFAULT_DANGER
 
 
 def build_registry(include_debug: bool = True, include_dev: bool = False) -> ToolRegistry:
+    from ..core.run_report import register_verify_run_tool
     from .adapters.ai_edit import register_ai_edit_adapter_tools
     from .advanced_tools import register_advanced_tools
     from .aiseg_install_tools import register_aiseg_install_tools
+    from .chart_tools import register_chart_tools
     from .core_tools import register_core_tools
     from .data_tools import register_data_tools
     from .deps_tools import register_deps_tools
@@ -36,6 +38,7 @@ def build_registry(include_debug: bool = True, include_dev: bool = False) -> Too
     from .edit_tools import register_edit_tools
     from .facade import register_facade_tools
     from .feature_tools import register_feature_tools
+    from .georeference_tools import register_georeference_tools
     from .gis_case_tools import register_gis_case_tools
     from .grid_tools import register_grid_tools
     from .hydrology_tools import register_hydrology_tools
@@ -43,9 +46,12 @@ def build_registry(include_debug: bool = True, include_dev: bool = False) -> Too
     from .layer_tools import register_layer_tools
     from .layout_tools import register_layout_tools
     from .memory_tools import register_memory_tools
+    from .native_processing_tools import register_native_processing_tools
     from .plugin_tools import register_plugin_tools
     from .stac_tools import register_stac_tools
     from .statistics_tools import register_statistics_tools
+    from .temporal_tools import register_temporal_tools
+    from .terrain_tools import register_terrain_tools
     from .web_tools import register_web_tools
 
     registry = ToolRegistry()
@@ -65,9 +71,17 @@ def build_registry(include_debug: bool = True, include_dev: bool = False) -> Too
     register_plugin_tools(registry)
     register_gis_case_tools(registry)
     register_hydrology_tools(registry)
+    register_terrain_tools(registry)
+    register_georeference_tools(registry)
+    register_chart_tools(registry)
     register_statistics_tools(registry)
     register_grid_tools(registry)
+    register_temporal_tools(registry)
     register_memory_tools(registry)
+    register_verify_run_tool(registry)
+
+
+    register_native_processing_tools(registry)
     register_ai_edit_adapter_tools(registry, include_dev)
     importlib.import_module(".harvest_analysis", __name__).register_harvest_analysis_tools(registry)
     importlib.import_module(".harvest_layers", __name__).register_harvest_layers_tools(registry)
@@ -102,6 +116,13 @@ def apply_danger(registry: ToolRegistry) -> list[str]:
     for name in registry.tool_names:
         tool = registry.get_tool(name)
         level = DANGER.get(name)
+
+
+
+        generated = (isinstance(tool.input_schema, dict)
+                     and bool(tool.input_schema.get("x-qgis-algorithm-id")))
+        if level is None and generated:
+            continue
         if level is None:
             level = DEFAULT_DANGER
             fallback.append(name)

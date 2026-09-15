@@ -88,6 +88,7 @@ def register_layout_tools(registry: ToolRegistry):
                 "overview_of": {
                     "type": "string",
                 },
+                "scale": {"type": "number", "minimum": 1, "maximum": 1000000000},
             },
             "required": ["layout_name", "x", "y", "width", "height"],
         },
@@ -419,6 +420,16 @@ def _add_layout_map(args: dict) -> dict:
 
     map_item.zoomToExtent(rect)
 
+    scale_note = ""
+    wanted_scale = args.get("scale")
+    if wanted_scale is not None:
+        from .advanced_tools import _apply_scale
+
+        applied = _apply_scale(map_item, wanted_scale, args["layout_name"])
+        if isinstance(applied, dict):
+            return applied
+        scale_note = applied
+
     map_item.setFrameEnabled(bool(args.get("frame", True)))
 
 
@@ -448,7 +459,12 @@ def _add_layout_map(args: dict) -> dict:
             map_item.overviews().addOverview(overview)
         except Exception as exc:
             return {"_error": f"Could not add overview frame: {exc}"}
-    return _with_new_item(layout, map_item)
+    result = _with_new_item(layout, map_item)
+    if wanted_scale is not None:
+        result["scale"] = int(round(map_item.scale()))
+        if scale_note:
+            result["scale_note"] = scale_note
+    return result
 
 
 def _add_layout_label(args: dict) -> dict:

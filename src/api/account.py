@@ -414,7 +414,8 @@ class Account(QObject):
 
         if self._settings.activation_key_is_locked():
             self._set_state(self.LOCKED, tr("You are signed in on this computer, but QGIS cannot "
-                                            "read your sign-in until you enter its master password."))
+                                            "read your sign-in until you enter its master password. "
+                                            "Click Sign in to enter it."))
             return
         if not self.has_activation_key:
             if self._state not in (self.PAIRING, self.SIGNED_OUT):
@@ -437,6 +438,29 @@ class Account(QObject):
         task.failed.connect(self._on_key_revalidate_failed)
         self._revalidate_task = task
         QgsApplication.taskManager().addTask(task)
+
+    def unlock(self) -> bool:
+        """Ask QGIS for its master password, so the key kept in its auth database can be read."""
+
+
+
+
+
+        if not self._settings.activation_key_is_locked():
+            return False
+        try:
+            manager = QgsApplication.authManager()
+            unlocked = bool(manager is not None and manager.setMasterPassword(True))
+        except Exception as exc:  # noqa: BLE001 - a prompt that fails leaves the sign-in as it was
+            log_warning(f"QGIS master password not asked: {exc}")
+            return False
+        if not unlocked or self._settings.activation_key_is_locked() or not self.has_activation_key:
+            return False
+        from ..core.settings import reset_account_tag_cache
+
+        reset_account_tag_cache()
+        self._set_state(self.ACTIVATED, "")
+        return True
 
     def fetch_account_async(self) -> None:
         """Account and usage off the main thread, for the settings dialog."""

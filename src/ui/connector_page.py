@@ -343,7 +343,6 @@ class ConnectorPage(QWidget):
 
 
 
-
         self._clear()
         detail = dict(detail or {})
         self._id = str(detail.get("id") or "")
@@ -520,7 +519,6 @@ class ConnectorPage(QWidget):
 
     def _on_notice_action(self) -> None:
         """The one move the notice named: start the plugin QGIS has switched off."""
-
 
 
 

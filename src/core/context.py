@@ -12,12 +12,21 @@ import os
 import re
 
 import qgis.utils
-from qgis.core import QgsApplication, QgsCoordinateTransform, QgsProject, QgsRasterLayer, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsApplication,
+    QgsCoordinateTransform,
+    QgsProject,
+    QgsRasterLayer,
+    QgsRectangle,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.PyQt.QtCore import QCoreApplication
 
 from . import ground, tuning
 from .layer_order import positions as tree_positions
-from .layer_rank import rank_layers
+from .layer_rank import detailed_ids as choose_detailed
+from .layer_rank import fields_named_in, named_in, offset_from_view, rank_layers, view_of
 
 
 def _cap(name: str, default: int) -> int:
@@ -62,6 +71,7 @@ CHIP_KINDS = ("layer", "selection", "extent", "field", "layout", "file", "source
 AI_EDIT_FOLDERS = ("QGIS_AI-Edit-Team", "QGIS_AI-Edit", "ai_edit", "AI_Edit")
 AI_SEGMENTATION_FOLDERS = ("QGIS_AI-Segmentation-Team", "QGIS_AI-Segmentation",
                            "QGIS_AI_Segmentation_Team", "AI_Segmentation", "ai_segmentation")
+QMS_FOLDERS = ("quick_map_services",)
 
 
 def tr(text: str) -> str:
@@ -156,12 +166,25 @@ def source_kind(layer) -> str:
     return "other"
 
 
+
+
+_COUNTED_REMOTE_PROVIDERS = ("arcgisfeatureserver",)
+
+
 def feature_count(layer, kind: str) -> int | None:
-    """Only for the providers cheap enough to ask: local files, memory, gpkg/shp/geojson."""
+    """Only for the providers cheap enough to ask: local files, memory, gpkg/shp/geojson, and a remote provider that counted its features when it."""
 
 
 
-    if not isinstance(layer, QgsVectorLayer) or kind not in ("memory", "file"):
+
+
+    if not isinstance(layer, QgsVectorLayer):
+        return None
+    try:
+        counted_remote = str(layer.providerType() or "").lower() in _COUNTED_REMOTE_PROVIDERS
+    except Exception:  # noqa: BLE001 - no provider, no count
+        counted_remote = False
+    if kind not in ("memory", "file") and not counted_remote:
         return None
     try:
         n = layer.featureCount()
@@ -348,18 +371,115 @@ def is_editing(layer) -> bool:
         return False
 
 
+MAX_BAND_NAMES = 8
+MAX_BAND_NAME_CHARS = 40
+
+
+def _band_names(provider, count: int) -> list[str]:
+    """What each band holds, as the file describes it ("B04", "Red", "NIR"); [] when no band says."""
+    describe = getattr(provider, "bandDescription", None)
+    if not callable(describe):
+        return []
+    names = []
+    for band in range(1, min(count, MAX_BAND_NAMES) + 1):
+        try:
+            names.append(str(describe(band) or "").strip()[:MAX_BAND_NAME_CHARS])
+        except Exception:  # noqa: BLE001 - an unnamed band
+            names.append("")
+    return names if any(names) else []
+
+
+def _rounded(value) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != number or number in (float("inf"), float("-inf")):
+        return None
+    return float(f"{number:.6g}")
+
+
+def _whole_band_range(renderer) -> bool:
+    """Whether the style took its range from band 1's own minimum and maximum over the whole raster."""
+    try:
+        from qgis.core import Qgis, QgsRasterMinMaxOrigin
+
+
+        limits = getattr(getattr(Qgis, "RasterRangeLimit", None), "MinimumMaximum", None)
+        extent = getattr(getattr(Qgis, "RasterRangeExtent", None), "WholeRaster", None)
+        if limits is None or extent is None:
+
+            limits, extent = QgsRasterMinMaxOrigin.Limits.MinMax, QgsRasterMinMaxOrigin.Extent.WholeRaster
+        origin = renderer.minMaxOrigin()
+        return origin.limits() == limits and origin.extent() == extent
+    except Exception:  # noqa: BLE001 - an origin this build cannot read is only a stretch
+        return False
+
+
+def _band1_span(layer) -> tuple[str, list] | None:
+    """Band 1's range as the style already holds it; no statistic is asked of the provider here."""
+
+
+
+
+
+
+
+
+    try:
+        renderer = layer.renderer()
+        kind = str(renderer.type()) if renderer is not None else ""
+        if kind == "singlebandpseudocolor":
+            span = [_rounded(renderer.classificationMin()), _rounded(renderer.classificationMax())]
+        elif kind == "singlebandgray" and renderer.contrastEnhancement() is not None:
+            enhancement = renderer.contrastEnhancement()
+            span = [_rounded(enhancement.minimumValue()), _rounded(enhancement.maximumValue())]
+        else:
+            return None
+        if None in span:
+            return None
+        return ("band1_values" if _whole_band_range(renderer) else "band1_stretch"), span
+    except Exception:  # noqa: BLE001 - a renderer that answers differently draws no span
+        return None
+
+
+def _data_type_name(provider, band: int) -> str:
+    kind = provider.dataType(band)
+    try:
+        return str(QgsRasterLayer.dataTypeToString(kind))
+    except Exception:  # noqa: BLE001 - QGIS 4 has no dataTypeToString; its enum names itself
+        return str(getattr(kind, "name", kind))
+
+
 def raster_card(layer) -> dict:
+    """Each fact on its own: one QGIS build that cannot answer one of them keeps the others."""
+
+
+
     card: dict = {}
     try:
         card["bands"] = int(layer.bandCount())
         card["pixel_size"] = {"x": round(layer.rasterUnitsPerPixelX(), 4), "y": round(layer.rasterUnitsPerPixelY(), 4)}
-        if layer.bandCount() >= 1:
-            provider = layer.dataProvider()
-            card["band1_type"] = QgsRasterLayer.dataTypeToString(provider.dataType(1))
-            if provider.sourceHasNoDataValue(1):
-                card["nodata"] = provider.sourceNoDataValue(1)
+        provider = layer.dataProvider() if layer.bandCount() >= 1 else None
+    except Exception:  # nosec B110 - optional QGIS context
+        return card
+    if provider is None:
+        return card
+    try:
+        card["band1_type"] = _data_type_name(provider, 1)
     except Exception:  # nosec B110 - optional QGIS context
         pass
+    try:
+        if provider.sourceHasNoDataValue(1):
+            card["nodata"] = provider.sourceNoDataValue(1)
+    except Exception:  # nosec B110 - optional QGIS context
+        pass
+    names = _band_names(provider, card["bands"])
+    if names:
+        card["band_names"] = names
+    span = _band1_span(layer)
+    if span is not None:
+        card[span[0]] = span[1]
     return card
 
 
@@ -498,8 +618,11 @@ def _plugin_present(folders: tuple) -> bool:
 
 
 def plugins_present() -> dict:
+
+
     return {"ai_edit": _plugin_present(AI_EDIT_FOLDERS),
-            "ai_segmentation": _plugin_present(AI_SEGMENTATION_FOLDERS)}
+            "ai_segmentation": _plugin_present(AI_SEGMENTATION_FOLDERS),
+            "quickmapservices": _plugin_present(QMS_FOLDERS)}
 
 
 
@@ -540,6 +663,7 @@ def _recent_processing() -> list[dict]:
     except Exception:  # nosec B110 - optional QGIS context
         return []
     out: list[dict] = []
+    names = _layer_names_by_source(QgsProject.instance())
     for entry in reversed(list(entries)):
         details = getattr(entry, "entry", None) or {}
         if not isinstance(details, dict):
@@ -552,12 +676,110 @@ def _recent_processing() -> list[dict]:
         if isinstance(params, dict) and isinstance(params.get("inputs"), dict):
             params = params["inputs"]
         if isinstance(params, dict) and params:
-            item["parameters"] = {str(k): _short_param(v) for k, v in list(params.items())[:12]}
+            item["parameters"] = history_parameters(params, names)
         stamp = getattr(entry, "timestamp", None)
         if stamp is not None and hasattr(stamp, "toString"):
             item["at"] = stamp.toString("yyyy-MM-dd HH:mm")
         out.append(item)
         if len(out) >= _cap("max_history_entries", MAX_HISTORY_ENTRIES):
+            break
+    return out
+
+
+MAX_HISTORY_PARAMETERS = 12
+
+_EMPTY_PARAMETER_VALUES = ("", "None", "NULL", "[]", "{}")
+_MEMORY_SOURCE = "memory://"
+GONE_MEMORY_LAYER = "memory layer no longer in the project"
+
+
+_BARE_SOURCE_PROVIDERS = ("gdal", "ogr", "mdal")
+
+
+def _processing_identifier(layer, source: str) -> str:
+    """The string Processing writes for a layer (QgsProcessingUtils.layerToStringIdentifier)."""
+
+
+
+
+    rule = source.replace("\\", "/").strip()
+    try:
+        provider = str(layer.providerType() or "")
+    except Exception:  # noqa: BLE001 - a layer that cannot say its provider keeps its source
+        return rule
+    if provider and provider.lower() not in _BARE_SOURCE_PROVIDERS:
+        rule = f"{provider}://{rule}"
+    try:
+        from qgis.core import QgsProcessingUtils
+
+        found = QgsProcessingUtils.layerToStringIdentifier(layer)
+    except Exception:  # noqa: BLE001 - no such function on this build: the same rule
+        return rule
+    return found if isinstance(found, str) and found else rule
+
+
+def _layer_names_by_source(project) -> dict:
+    """Every project layer's source, as Processing writes it into its history, to the layer's name."""
+
+
+
+
+
+
+
+
+    exact: dict = {}
+    by_path: dict = {}
+    try:
+        layers = list(project.mapLayers().values())
+    except Exception:  # nosec B110 - no project, no names
+        return {}
+    for layer in layers:
+        try:
+            source, name = str(layer.source() or ""), str(layer.name() or "")
+        except Exception:  # nosec B112 - a broken layer names nothing
+            continue
+        if not source or not name:
+            continue
+        exact.setdefault(source, name)
+        exact.setdefault(_processing_identifier(layer, source), name)
+        path = source.split("|", 1)[0]
+        if path != source:
+            by_path.setdefault(path, set()).add(name)
+    for path, found in by_path.items():
+        if len(found) == 1 and path not in exact:
+            exact[path] = next(iter(found))
+    return exact
+
+
+def _parameter_source(value) -> str:
+    """The string a parameter value names a layer by: itself, or the source inside a source definition."""
+    if isinstance(value, dict):
+        source = value.get("source")
+        if isinstance(source, dict):
+            source = source.get("val")
+        return str(source) if source is not None else str(value)
+    return "" if value is None else str(value)
+
+
+def history_parameters(params: dict, names: dict) -> dict:
+    """One history entry's parameters as the model can use them."""
+
+
+
+
+
+
+    out: dict = {}
+    for key, value in params.items():
+        text = _parameter_source(value)
+        if value is None or text.strip() in _EMPTY_PARAMETER_VALUES:
+            continue
+        name = names.get(text)
+        if name is None and text.startswith(_MEMORY_SOURCE):
+            name = GONE_MEMORY_LAYER
+        out[str(key)] = name if name is not None else _short_param(value)
+        if len(out) >= MAX_HISTORY_PARAMETERS:
             break
     return out
 
@@ -630,10 +852,6 @@ _NOT_A_PATH = ("http://", "https://", "memory:", "postgres", "wfs:", "wms:", "xy
 
 def _short_param(value) -> str:
     """One Processing parameter, small enough to be worth carrying."""
-
-
-
-
 
 
 
@@ -730,7 +948,75 @@ def _capped_layers(layers: list, places: dict, active_id) -> list:
     return sorted(layers, key=rank)[:cap]
 
 
-def build_context(chips: list | None = None) -> dict:
+THREAD_PROPERTY = "ai_agent/thread"
+
+
+MIN_RICH_LAYERS = 3
+_NO_VIEW_KINDS = ("xyz", "wms")
+
+
+def stamp_thread(layers, thread_id: str) -> None:
+    """Mark the layers a run added with its conversation, saved with the project."""
+
+
+
+
+    if not thread_id:
+        return
+    for layer in layers or ():
+        try:
+            layer.setCustomProperty(THREAD_PROPERTY, thread_id)
+        except Exception:  # nosec B112 - a layer removed meanwhile keeps no mark
+            continue
+
+
+def _made_here(layer, thread_id: str) -> bool:
+    if not thread_id or layer is None:
+        return False
+    try:
+        return str(layer.customProperty(THREAD_PROPERTY, "") or "") == thread_id
+    except Exception:  # noqa: BLE001 - a layer that cannot answer was not made here
+        return False
+
+
+def _field_names(layer) -> list[str]:
+    if not isinstance(layer, QgsVectorLayer):
+        return []
+    try:
+        return [f.name() for f in layer.fields()]
+    except Exception:  # noqa: BLE001 - no fields to match
+        return []
+
+
+def _chip_layer_ids(chips: list) -> set:
+    return {str(chip.get("value") or "") for chip in chips or []
+            if isinstance(chip, dict) and chip.get("kind") in ("layer", "selection")}
+
+
+def _place_against_view(record: dict, rect, extent_rect, canvas_box, canvas_crs, project) -> None:
+    """`view` in, part or out, and for a layer out of view how far and which way from the view's centre."""
+    where = view_of(rect, extent_rect)
+    if not where:
+        return
+    record["view"] = where
+    if where != "out" or not canvas_box or canvas_crs is None:
+        return
+    try:
+        box = view_bbox_4326(QgsRectangle(rect["xmin"], rect["ymin"], rect["xmax"], rect["ymax"]), canvas_crs, project)
+    except Exception:  # noqa: BLE001 - no box, no distance
+        box = None
+    offset = offset_from_view(canvas_box, box)
+    if offset is not None:
+        record["view_km"], record["view_dir"] = offset
+
+
+def build_context(chips: list | None = None, text: str = "", thread_id: str = "") -> dict:
+    """The context object; `text` is the message it travels with and `thread_id` its conversation."""
+
+
+
+
+
     project = QgsProject.instance()
     iface = _iface()
     project_crs = project.crs()
@@ -819,13 +1105,22 @@ def build_context(chips: list | None = None) -> dict:
             if not place["group_visible"]:
                 record["group_visible"] = False
         rect = layer_extent_rect(layer, canvas_crs, project) if layer is not None else None
-        items.append({"id": lid, "layer": layer, "record": record, "extent": rect})
+        items.append({"id": lid, "layer": layer, "record": record, "extent": rect,
+                      "by_agent": _made_here(layer, thread_id)})
 
+
+    chip_ids = _chip_layer_ids(chips)
+    named = named_in(text, [str(it["record"].get("name") or "") for it in items]) if text else set()
+    for index, it in enumerate(items):
+        it["named"] = (index in named or it["id"] in chip_ids
+                       or (bool(text) and fields_named_in(text, _field_names(it["layer"])[:MAX_CARD_FIELDS * 2])))
+    active_id = active.id() if active is not None else None
     ranked = rank_layers(
         [{"id": it["id"], "visible": it["record"].get("visible"),
-          "selected_count": it["record"].get("selected_count", 0), "extent": it["extent"]}
+          "selected_count": it["record"].get("selected_count", 0), "extent": it["extent"],
+          "named": it["named"], "by_agent": it["by_agent"]}
          for it in items],
-        active.id() if active is not None else None,
+        active_id,
         extent_rect,
     )
     by_id = {it["id"]: it for it in items}
@@ -833,14 +1128,23 @@ def build_context(chips: list | None = None) -> dict:
     detailed = _cap("max_detailed_layers", MAX_DETAILED_LAYERS)
     detailed_ids = order[:detailed]
     rest_ids = order[detailed:]
+    listed = set(detailed_ids)
+    rich_ids = set(choose_detailed([r for r in ranked if r["id"] in listed], active_id,
+                                   _cap("max_rich_layers", RICH_LAYER_COUNT),
+                                   _cap("min_rich_layers", MIN_RICH_LAYERS)))
+    canvas_box = canvas_block.get("extent_4326")
 
     layers_out = []
-    for idx, lid in enumerate(detailed_ids):
+    for lid in detailed_ids:
         it = by_id[lid]
         record = dict(it["record"])
-        if idx < RICH_LAYER_COUNT and it["layer"] is not None:
+        if lid in rich_ids and it["layer"] is not None:
             is_active = active is not None and lid == active.id()
             record.update(rich_card(it["layer"], canvas_crs, project, is_active, it["extent"]))
+        if it["by_agent"]:
+            record["by_agent"] = True
+        if record.get("source_kind") not in _NO_VIEW_KINDS:
+            _place_against_view(record, it["extent"], extent_rect, canvas_box, canvas_crs, project)
         layers_out.append(record)
 
 
@@ -871,6 +1175,8 @@ def build_context(chips: list | None = None) -> dict:
         "active_layer": active_name,
         "plugins": plugins_present(),
         "chips": clean_chips(chips),
+
+        "layer_detail": "relevant",
     }
     measure = project_measure(project)
     if measure:

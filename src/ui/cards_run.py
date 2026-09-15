@@ -55,6 +55,7 @@ from .card_controls import (
     ask_head,
     done_row,
 )
+from .code_block import CodeBlock
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .shared import tr
@@ -69,7 +70,7 @@ from .style import (
     SPACE_OUTER,
     qcolor,
 )
-from .tool_describe import describe_tool_call
+from .tool_describe import describe_tool_call, source_text
 from .transcript import fence
 from .widgets import ElidedLabel
 
@@ -137,6 +138,15 @@ _EDIT_MAX_LEN = 200
 _EDIT_VISIBLE_ROWS = 4
 
 
+
+
+
+_CODE_COLLAPSE_LINES = 12
+
+
+_CODE_EXPANDED_LINES = 30
+
+
 def _is_scalar(value) -> bool:
     if isinstance(value, bool) or value is None:
         return isinstance(value, bool)
@@ -148,19 +158,23 @@ def _is_scalar(value) -> bool:
 def editable_fields(args, sentence: str = "") -> list:
     """[(path, label, value)] the reader may correct, the ones the sentence already names first: those are the ones they are looking at."""
 
+
+
+
+
     if not isinstance(args, dict):
         return []
     found = []
     for key in args:
         value = args[key]
         if _is_scalar(value):
-            found.append(((str(key),), str(key), value))
+            found.append(((str(key),), humanise_tool_name(str(key)), value))
         elif isinstance(value, dict):
             for sub in value:
                 if _is_scalar(value[sub]):
-                    found.append(((str(key), str(sub)), str(sub), value[sub]))
+                    found.append(((str(key), str(sub)), humanise_tool_name(str(sub)), value[sub]))
     lowered = (sentence or "").lower()
-    found.sort(key=lambda row: (row[1].lower().replace("_", " ") not in lowered,))
+    found.sort(key=lambda row: (row[1].lower() not in lowered,))
     return found
 
 
@@ -260,7 +274,6 @@ class PermissionCard(_Card, FoldMixin):
         self.tool_call_id = tool_call_id
         self.sentence = plain_sentence(sentence, args, name)
         self.decision: str | None = None
-        self._closed = False
         self.setToolTip(self.tr("Needs your approval"))
 
         self._body = QWidget(self)
@@ -272,6 +285,17 @@ class PermissionCard(_Card, FoldMixin):
         body.addWidget(head)
 
         self.args = dict(args or {})
+
+
+
+
+        self.code_block: CodeBlock | None = None
+        self._code_expanded = False
+        self._code_toggle_btn = None
+        code, language = source_text(name, self.args)
+        if code:
+            body.addWidget(self._build_code_section(code, language))
+
         self._fields = editable_fields(self.args, self.sentence)
         self._editors: list = []
         self._form = None
@@ -289,6 +313,11 @@ class PermissionCard(_Card, FoldMixin):
                                   lambda: self._decide("deny")))
         self._allow_btn = _pill(self._button(self.tr("Allow"), _BTN_PRIMARY_PILL,
                                              lambda: self._decide("allow")))
+        for button, action in ((deny, "deny"), (self._allow_btn, "allow")):
+            button.setObjectName("agentPermission" + action.capitalize())
+            button.setProperty("agentAction", action)
+            button.setProperty("agentRequestId", self.tool_call_id)
+            button.setProperty("agentCardKind", "permission")
         footer.set_widgets(self._edit_btn, [deny, self._allow_btn])
         body.addWidget(footer)
         self._col.addWidget(self._body)
@@ -297,6 +326,44 @@ class PermissionCard(_Card, FoldMixin):
         self._decision_line = self._decision_row.line_label
         self._decision_row.hide()
         self._col.addWidget(self._decision_row)
+
+
+
+    def _build_code_section(self, code: str, language: str) -> QWidget:
+        """The call's own code, collapsed past ``_CODE_COLLAPSE_LINES`` with a link to see the rest."""
+
+
+
+
+        name = "script.py" if language == "python" else self.tr("expression")
+
+
+        self.code_block = CodeBlock(code, name, language, self._body, line_cap=None)
+
+        host = QWidget(self._body)
+        col = QVBoxLayout(host)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(SPACE_CARD)
+        col.addWidget(self.code_block)
+        self.code_block.set_visible_lines(_CODE_COLLAPSE_LINES)
+
+        total_lines = len(code.splitlines()) or 1
+        if total_lines > _CODE_COLLAPSE_LINES:
+            self._code_toggle_btn = self._button(
+                self.tr("Show all {n} lines").format(n=total_lines), _BTN_QUIET_LINK,
+                lambda: self._toggle_code(total_lines))
+            col.addWidget(self._code_toggle_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        return host
+
+    def _toggle_code(self, total_lines: int) -> None:
+        self._code_expanded = not self._code_expanded
+        if self._code_expanded:
+            self.code_block.set_visible_lines(_CODE_EXPANDED_LINES)
+            self._code_toggle_btn.setText(self.tr("Show fewer lines"))
+        else:
+            self.code_block.set_visible_lines(_CODE_COLLAPSE_LINES)
+            self._code_toggle_btn.setText(
+                self.tr("Show all {n} lines").format(n=total_lines))
 
 
 
@@ -377,19 +444,8 @@ class PermissionCard(_Card, FoldMixin):
                 holder[path[1]] = typed
         return changed
 
-    def stop_asking(self) -> None:
-        """The run that asked has ended: the card no longer decides."""
-
-
-
-
-
-        self._closed = True
-        if self.decision is None:
-            self._body.setEnabled(False)
-
     def _decide(self, decision: str) -> None:
-        if self.decision is not None or getattr(self, "_closed", False):
+        if self.decision is not None:
             return
 
         changed = self.edits() if decision != "deny" else {}

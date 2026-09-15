@@ -113,4 +113,8 @@ def _jsonable_value(value):
         return value
     if isinstance(value, (list, tuple)):
         return [_jsonable_value(v) for v in value]
+    if type(value).__name__ in ("QDate", "QDateTime", "QTime"):
+        from ..core.serialization import qt_temporal_text
+
+        return qt_temporal_text(value)
     return str(value)

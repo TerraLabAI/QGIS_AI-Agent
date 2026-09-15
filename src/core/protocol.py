@@ -50,7 +50,6 @@ class FrameType:
 
 
 
-
     FOLLOWUPS = "followups"
     SOURCES = "sources"
     COUNTS = "counts"
@@ -72,12 +71,17 @@ class ClientErrorCode:
     EXECUTION_FAILED = "EXECUTION_FAILED"
     CANCELLED = "CANCELLED"
     RUN_BUDGET = "RUN_BUDGET"
+    TIMEOUT = "TIMEOUT"
+
+
+    NETWORK_ERROR = "NETWORK_ERROR"
 
 
 KNOWN_CLIENT_CODES = frozenset({
     ClientErrorCode.TOOL_NOT_FOUND, ClientErrorCode.INVALID_ARGS, ClientErrorCode.READ_ONLY_MODE,
     ClientErrorCode.PERMISSION_DENIED, ClientErrorCode.CRS_GUARD, ClientErrorCode.LAYER_NOT_FOUND,
     ClientErrorCode.EXECUTION_FAILED, ClientErrorCode.CANCELLED, ClientErrorCode.RUN_BUDGET,
+    ClientErrorCode.TIMEOUT, ClientErrorCode.NETWORK_ERROR,
 })
 
 
@@ -185,7 +189,7 @@ class ProtocolError(ValueError):
 def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_version: str,
           os_label: str, locale: str, tool_manifest_hash: str,
           tool_manifest: list | None = None, resume_session_id: str | None = None,
-          telemetry: bool = True, improve: bool = True) -> dict:
+          telemetry: bool = True, improve: bool = True, last_seq: int | None = None) -> dict:
     frame = {
         "type": FrameType.HELLO,
         "activation_key": activation_key,
@@ -216,6 +220,11 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
         frame["tool_manifest"] = tool_manifest
     if resume_session_id:
         frame["resume_session_id"] = resume_session_id
+    if last_seq is not None:
+
+
+
+        frame["last_seq"] = max(0, int(last_seq))
     return frame
 
 
@@ -299,7 +308,7 @@ def tool_result(tool_call_id: str, run_id: str, result: Any) -> dict:
 
 
 RETRYABLE_CODES = frozenset({
-    ClientErrorCode.EXECUTION_FAILED,
+    ClientErrorCode.EXECUTION_FAILED, ClientErrorCode.NETWORK_ERROR,
 })
 FIXABLE_CODES = frozenset({
     ClientErrorCode.INVALID_ARGS, ClientErrorCode.LAYER_NOT_FOUND, ClientErrorCode.CRS_GUARD,

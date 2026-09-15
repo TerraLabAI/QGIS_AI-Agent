@@ -26,6 +26,26 @@ def resolve_layer(layer_or_id):
     return layer_or_id
 
 
+def layer_name(layer_id) -> str | None:
+    """The current name of the project layer ``layer_id``, or None when the project no longer holds it."""
+
+
+
+
+
+
+
+
+    layer = resolve_layer(str(layer_id or ""))
+    if layer is None:
+        return None
+    try:
+        return layer.name()
+    except RuntimeError:
+
+        return None
+
+
 def layer_icon(layer_or_id) -> QIcon:
     layer = resolve_layer(layer_or_id)
     if layer is None:

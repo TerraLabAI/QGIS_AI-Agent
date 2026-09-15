@@ -9,6 +9,38 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-15
+
+### Added
+
+- Charts: a histogram, bar, scatter or line chart of a layer's fields, saved as an image.
+- Animation over time: a layer with a date, a year or a start and end field plays on the
+  QGIS time controller, and the frames can be exported.
+- Watersheds and streams traced from an elevation model in one step.
+- Georeferencing: a scanned map or photo is placed from control points, with the error
+  of each point reported.
+- Typing @ in the message box lists the layers of your project.
+
+### Changed
+
+- Undo restores memory layers of any size, shapefiles, MapInfo tables and GeoPackages
+  on a network share, and the history of a project survives a QGIS restart.
+- When a step fails, the panel says why and what to try: a timeout, a dropped
+  connection, a wrong coordinate system or a join that matched nothing.
+- Searching for data works as well in French, German, Spanish, Italian or Portuguese
+  as in English, and more datasets load from hosted copies instead of slow public services.
+- Without the QuickMapServices plugin, the default basemap is a streets map that still
+  loads when one of its tile servers is down.
+
+### Fixed
+
+- Chats are filed under the signed-in account, so a second person on the same computer
+  does not see the first one's conversations.
+- Signing in works when QGIS keeps its credentials behind a master password.
+- On Windows, typing a letter with AltGr no longer triggers a plugin shortcut, and
+  exports survive a file locked by an antivirus or OneDrive.
+- The thumbs up and down under an answer show the vote you cast.
+
 ## [1.0.2] - 2026-09-12
 
 ### Added

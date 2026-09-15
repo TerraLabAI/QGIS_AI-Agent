@@ -32,15 +32,11 @@
 
 
 
-
-
-
-
-
 from __future__ import annotations
 
 import math
 import re
+import time
 from contextlib import contextmanager
 
 from qgis.core import (
@@ -472,7 +468,6 @@ def view_kept(canvas=None):
 
 
 
-
     canvas = canvas if canvas is not None else _canvas()
     before = None
     crs_before = None
@@ -561,7 +556,6 @@ def _undo_first_layer_frame(canvas) -> None:
         log_warning(f"Follow: cannot guard the first layer's framing: {exc}")
         return
     QTimer.singleShot(FIRST_FRAME_GUARD_MS, finish)
-
 
 
 
@@ -670,7 +664,6 @@ def move_to(rect, canvas=None) -> str:
 
 def layers_rect(layer_ids, canvas=None) -> QgsRectangle | None:
     """The canvas-CRS rectangle around these layers, or None when there is none."""
-
 
 
 
@@ -846,6 +839,8 @@ _WKT_RE = re.compile(
 
 _POINT_XY_RE = re.compile(r"QgsPointXY\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)")
 
+_CRS_NAME_RE = re.compile(r"\b(?:EPSG|ESRI|IGNF|OGC|CRS):\s*\w+", re.IGNORECASE)
+
 
 def _wkts(args) -> list:
     """Every geometry an argument tree carries, in text, code included."""
@@ -863,7 +858,7 @@ def _wkts(args) -> list:
                                 "MULTILINE", "MULTIPOLYGON", "GEOMETRYCOLLECTION")):
                 out.append(value)
                 return
-            if len(value) <= 100000:
+            if len(value) <= 100000 and _CRS_NAME_RE.search(value):
                 out.extend(_WKT_RE.findall(value)[:20])
                 for x, y in _POINT_XY_RE.findall(value)[:20]:
                     out.append(f"POINT({x} {y})")
@@ -951,8 +946,18 @@ def _nearer_half(halves: list, crs, canvas) -> QgsRectangle | None:
     return min(rects, key=lambda r: abs(r.center().x() - here))
 
 
+def _is_origin(rect) -> bool:
+    """A point at exactly (0, 0): a default or a placeholder, never a place to go to."""
+    try:
+        return rect.width() == 0 and rect.height() == 0 and rect.xMinimum() == 0 and rect.yMinimum() == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
     """Where a call is about to work, in the canvas CRS, or None."""
+
+
 
 
 
@@ -969,7 +974,7 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
         rect = None
         for text in wkts[:50]:
             one = _wkt_rect(text)
-            if one is None:
+            if one is None or _is_origin(one):
                 continue
             if rect is None:
                 rect = QgsRectangle(one)
@@ -984,6 +989,8 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
             return _rect_from_crs(rect, crs, canvas)
     bbox = _numbers(args.get("bbox") or args.get("extent"), 4)
     if bbox is not None:
+        if all(number == 0 for number in bbox):
+            return None
         rect = QgsRectangle(min(bbox[0], bbox[2]), min(bbox[1], bbox[3]),
                             max(bbox[0], bbox[2]), max(bbox[1], bbox[3]))
         crs = source or (_crs("EPSG:4326") if _looks_like_degrees(rect) else _named_layer_crs(args))
@@ -999,6 +1006,8 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
     if point is None and args.get("x") is not None and args.get("y") is not None:
         point = _numbers([args.get("x"), args.get("y")], 2)
     if point is not None:
+        if point[0] == 0 and point[1] == 0:
+            return None
         rect = QgsRectangle(point[0], point[1], point[0], point[1])
         crs = source or (_crs("EPSG:4326") if _looks_like_degrees(rect) else _named_layer_crs(args))
         return _rect_from_crs(rect, crs, canvas) if crs is not None else None
@@ -1057,9 +1066,15 @@ class Follower:
         self.last_action = ""
         self.last_rect: QgsRectangle | None = None
 
+
+        self._approached_at: float | None = None
+        self._halted = False
+
         self._named: list[str] = []
 
     def begin(self) -> None:
+        self._approached_at = None
+        self._halted = False
         self.watcher.start()
 
 
@@ -1087,6 +1102,19 @@ class Follower:
             pass
         self._cancel_timer()
         self._named = []
+        self._approached_at = None
+
+    def halt(self) -> None:
+        """The user stopped the run: nothing moves the view any more until the next run."""
+
+
+
+
+
+        self._halted = True
+        self._cancel_timer()
+        self.watcher.take()
+        self._named = []
 
     def approach(self, name: str, args) -> str:
         """Go to where the call is about to work, before it runs."""
@@ -1095,7 +1123,17 @@ class Follower:
 
 
 
+
+
         if not self.enabled:
+            return ""
+        if self._halted:
+            return ""
+        if self._approached_at is not None and (
+                self._timer is not None
+                or time.monotonic() - self._approached_at < FEEL["settle_ms"] / 1000.0):
+
+
             return ""
         try:
             rect = target_of(str(name or ""), args)
@@ -1110,6 +1148,7 @@ class Follower:
             log_warning(f"Follow: could not go to {name}'s place: {exc}")
             return ""
         if action == "zoomed":
+            self._approached_at = time.monotonic()
             self.last_rect = QgsRectangle(rect)
             self._flash_rect(rect)
         return action
@@ -1120,6 +1159,10 @@ class Follower:
 
 
 
+        if self._halted:
+            self.watcher.take()
+            self._named = []
+            return
         if not self.enabled:
             self.watcher.take()
             self._named = []
@@ -1145,8 +1188,11 @@ class Follower:
 
 
         self._cancel_timer()
+        self._approached_at = None
         rect = self.watcher.take()
         named, self._named = self._named, []
+        if self._halted:
+            return ""
         if not self.enabled:
             return ""
         if rect is None and named:

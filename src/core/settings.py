@@ -303,8 +303,6 @@ class Settings:
 
 
 
-
-
     @property
     def known_connectors(self) -> list:
         """The last connector list the server sent, as a JSON list of dicts."""
@@ -472,9 +470,6 @@ class Settings:
 
 
 
-
-
-
         value = self._get("effort", "")
 
 
@@ -594,10 +589,12 @@ class Settings:
     def question_timeout_s(self) -> int:
         """Seconds an unanswered question waits before the card takes the recommended option (the first one without a recommendation)."""
 
+
+
         try:
-            value = int(self._get("question_timeout_s", "60") or 60)
+            value = int(self._get("question_timeout_s", "0") or 0)
         except ValueError:
-            return 60
+            return 0
         return max(0, value)
 
     @question_timeout_s.setter
@@ -605,7 +602,7 @@ class Settings:
         try:
             seconds = max(0, int(value))
         except (TypeError, ValueError):
-            seconds = 60
+            seconds = 0
         self._set("question_timeout_s", str(seconds))
 
 

@@ -121,6 +121,8 @@ def register_harvest_layout_tools(registry: ToolRegistry):
                 "output_path": {"type": "string"},
                 "format": {"type": "string", "enum": _ATLAS_FORMATS},
                 "dpi": {"type": "integer", "minimum": 10, "maximum": 600},
+                "scale": {"type": "number", "minimum": 1, "maximum": 1000000000},
+                "meters_per_pixel": {"type": "number", "exclusiveMinimum": 0},
                 "filename_expression": {"type": "string"},
                 "overwrite": {"type": "boolean"},
                 "single_file": {"type": "boolean"},
@@ -390,6 +392,100 @@ def _configure_atlas(args: dict) -> dict:
     return result
 
 
+def _apply_atlas_scale(layout, wanted_scale, layout_name: str):
+    """Set every atlas-driven map to Fixed scaling at exactly 1:wanted_scale, so every page renders at the same scale, centred on its feature."""
+
+
+
+
+
+
+    from .advanced_tools import _apply_scale
+
+    driven = [item for item in layout.items()
+              if isinstance(item, QgsLayoutItemMap) and item.atlasDriven()]
+    if not driven:
+        return [], tool_error(
+            f"Layout '{layout_name}' has no map driven by the atlas, so there is no map to hold "
+            "that scale.",
+            "INVALID_ARGS",
+            "Call configure_atlas with drive_maps true (the default), or add_layout_map then "
+            "configure_atlas, before exporting with scale.",
+        )
+    fixed_mode = qgis_enum(QgsLayoutItemMap, "Fixed", "AtlasScalingMode.Fixed")
+    changed = []
+    for item in driven:
+        prev_mode = item.atlasScalingMode()
+        prev_scale = item.scale()
+        applied = _apply_scale(item, wanted_scale, layout_name)
+        if isinstance(applied, dict):
+            _restore_atlas_scale(changed)
+            return [], applied
+        if fixed_mode is not None:
+            item.setAtlasScalingMode(fixed_mode)
+        changed.append((item, prev_mode, prev_scale))
+    return changed, None
+
+
+def _restore_atlas_scale(changed) -> None:
+    """Undo _apply_atlas_scale's mutation: a refusal after it ran means no export happened, so every map it touched goes back to the scaling mode."""
+
+
+    for item, prev_mode, prev_scale in changed:
+        try:
+            item.setAtlasScalingMode(prev_mode)
+            item.setScale(prev_scale)
+        except (RuntimeError, AttributeError):
+            pass
+
+
+def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
+    """(dpi, ground facts) for *metres* per pixel on every page of the atlas, or the refusal as a dict."""
+
+
+
+
+
+
+    from .advanced_tools import _IMAGE_FORMATS, _dpi_for_ground, _ground_per_pixel
+
+    if fmt not in _IMAGE_FORMATS:
+        return tool_error(f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
+                          "INVALID_ARGS", "Export the atlas to png, jpg or tif for a ground resolution.")
+    reference = layout.referenceMap()
+    if reference is None:
+        return tool_error(f"Layout '{layout.name()}' has no map item, so a pixel size on the ground has no dpi.",
+                          "INVALID_ARGS", "Add a map with add_layout_map, then configure_atlas, before "
+                                          "exporting with meters_per_pixel.")
+    exporter = QgsLayoutExporter(layout)
+    widths = []
+
+    def widest() -> float:
+        if not atlas.beginRender():
+            return 0.0
+        try:
+            for index in range(atlas.count()):
+                if not atlas.seekTo(index):
+                    break
+                size = _ground_per_pixel(exporter, reference, 100)[0]
+                if size > 0:
+                    widths.append(size)
+        finally:
+            atlas.endRender()
+        return max(widths, default=0.0)
+
+    dpi = _dpi_for_ground(exporter, reference, metres, max_dpi, measure=widest)
+    if isinstance(dpi, dict):
+        return dpi
+    finest, coarsest = min(widths) * 100.0 / dpi, max(widths) * 100.0 / dpi
+    facts = {"meters_per_pixel": round(coarsest, 4)}
+    if coarsest > finest * 1.01:
+        facts["meters_per_pixel_range"] = [round(finest, 4), round(coarsest, 4)]
+        facts["meters_per_pixel_note"] = ("Each page fits its own feature: the widest page has meters_per_pixel, "
+                                          "narrower pages finer pixels. Pass scale for one resolution on every page.")
+    return dpi, facts
+
+
 def _export_atlas(args: dict) -> dict:
     layout, error = _layout_or_error(args["layout_name"])
     if error:
@@ -402,7 +498,11 @@ def _export_atlas(args: dict) -> dict:
     fmt = (args.get("format") or "pdf").lower()
 
 
-    dpi = max(10, min(int(args.get("dpi", 300) or 300), limits.MAX_RENDER_DPI))
+
+
+
+    max_dpi = int(limits.current("MAX_RENDER_DPI"))
+    dpi = max(10, min(int(args.get("dpi") or min(300, max_dpi)), max_dpi))
     path_error = validate_path(output_path, write=True)
     if path_error:
         return tool_error(path_error, "INVALID_ARGS", "Pick a writable output_path.")
@@ -418,6 +518,21 @@ def _export_atlas(args: dict) -> dict:
         return tool_error("The atlas has no page: the coverage layer is empty or the filter matches nothing",
                           "INVALID_ARGS", "Check the coverage layer and filter_expression in configure_atlas.")
 
+    wanted_scale = args.get("scale")
+    scale_changed = []
+    if wanted_scale is not None:
+        scale_changed, scale_error = _apply_atlas_scale(layout, wanted_scale, layout.name())
+        if scale_error:
+            return scale_error
+
+    ground = {}
+    if args.get("meters_per_pixel") is not None:
+        planned = _atlas_dpi_for_ground(layout, atlas, fmt, args["meters_per_pixel"], max_dpi)
+        if isinstance(planned, dict):
+            _restore_atlas_scale(scale_changed)
+            return planned
+        dpi, ground = planned
+
     one_pdf_per_page = fmt == "pdf" and args.get("single_file") is False
     if fmt == "pdf" and not one_pdf_per_page:
         parent = os.path.dirname(output_path)
@@ -427,19 +542,26 @@ def _export_atlas(args: dict) -> dict:
         settings.dpi = dpi
         result, detail = QgsLayoutExporter.exportToPdf(atlas, output_path, settings)
         if _export_failed(result):
+            _restore_atlas_scale(scale_changed)
             return tool_error(f"Atlas export failed: {detail or result}")
         if not os.path.exists(output_path):
+            _restore_atlas_scale(scale_changed)
             return tool_error(f"Export reported success but no file was found at {output_path}")
-        return {"exported": output_path, "format": fmt, "dpi": dpi, "pages": atlas.count(),
-                "file_size": os.path.getsize(output_path)}
+        out = {"exported": output_path, "format": fmt, "dpi": dpi, "pages": atlas.count(),
+               "file_size": os.path.getsize(output_path)}
+        if wanted_scale is not None:
+            out["scale"] = int(wanted_scale)
+        return out
 
     if os.path.exists(output_path) and not os.path.isdir(output_path):
+        _restore_atlas_scale(scale_changed)
         return tool_error(f"Atlas {'PDF' if one_pdf_per_page else 'image'} output_path is not a folder: "
                           f"{output_path}", "INVALID_ARGS",
                           "Pick a folder for one file per page.")
     try:
         os.makedirs(output_path, exist_ok=True)
     except OSError as exc:
+        _restore_atlas_scale(scale_changed)
         return tool_error(f"Could not create atlas output folder {output_path}: {exc}", "EXECUTION_FAILED",
                           "Pick another writable folder.")
 
@@ -451,6 +573,7 @@ def _export_atlas(args: dict) -> dict:
 
     names, name_error = _atlas_page_names(atlas)
     if name_error:
+        _restore_atlas_scale(scale_changed)
         return name_error
     before = set(os.listdir(output_path))
 
@@ -473,6 +596,7 @@ def _export_atlas(args: dict) -> dict:
         settings.dpi = dpi
         result, detail = QgsLayoutExporter.exportToImage(atlas, base, fmt, settings)
     if _export_failed(result):
+        _restore_atlas_scale(scale_changed)
         return tool_error(f"Atlas export failed: {detail or result}")
 
     written = sorted(entry for entry in (set(os.listdir(output_path)) - before)
@@ -487,6 +611,9 @@ def _export_atlas(args: dict) -> dict:
 
         out["file_count_note"] = (f"{atlas.count()} pages were rendered and {len(written)} file names are new "
                                   f"in the folder; the rest replaced files that were already there.")
+    if wanted_scale is not None:
+        out["scale"] = int(wanted_scale)
+    out.update(ground)
     return out
 
 
@@ -605,7 +732,12 @@ def _get_3d_screenshot(args: dict) -> dict:
     canvas3d = views[view_index]
 
 
-    dpi = max(10, min(int(args.get("dpi", 96)), limits.MAX_RENDER_DPI))
+
+
+
+
+    max_dpi = int(limits.current("MAX_RENDER_DPI"))
+    dpi = max(10, min(int(args.get("dpi", 96)), max_dpi))
 
 
     map_settings = Qgs3DMapSettings(canvas3d.mapSettings())

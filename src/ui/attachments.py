@@ -25,6 +25,7 @@ from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QRectF, QSize, Qt, 
 from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout
 
+from ..core import limits
 from .attach_card import (
     CARD_HEIGHT,
     CARD_RADIUS,
@@ -87,7 +88,8 @@ MAX_ATTACHMENTS = 24
 
 
 
-ATTACHMENT_BUDGET_BYTES = 12 * 1024 * 1024
+
+ATTACHMENT_BUDGET_BYTES = limits.ATTACHMENTS_TOTAL_BYTES
 MAX_IMAGE_FILE_BYTES = 64 * 1024 * 1024
 
 

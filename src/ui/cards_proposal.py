@@ -258,8 +258,13 @@ class RecommendationCard(_Card, FoldMixin):
         body = QVBoxLayout(self._body)
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(SPACE_OUTER)
-        body.addWidget(ask_head(self._body, self.title, lambda: self._decide("dismiss"),
-                                self.tr("Dismiss"), dismiss_focusable=True))
+        head = ask_head(self._body, self.title, lambda: self._decide("dismiss"),
+                        self.tr("Dismiss"), dismiss_focusable=True)
+        head.dismiss_button.setObjectName("agentProposalDismiss")
+        head.dismiss_button.setProperty("agentAction", "dismiss")
+        head.dismiss_button.setProperty("agentRequestId", self.tool_call_id)
+        head.dismiss_button.setProperty("agentCardKind", "proposal")
+        body.addWidget(head)
         body.addWidget(self._build_proposal())
         body.addWidget(self._build_footer())
         self._col.addWidget(self._body)
@@ -318,8 +323,13 @@ class RecommendationCard(_Card, FoldMixin):
             answers.append(self._alternatives_btn)
         else:
             self._alternatives_btn = None
-        answers.append(_pill(self._button(self.tr("Accept"), _BTN_PRIMARY_PILL,
-                                          lambda: self._decide("accept"))))
+        accept = _pill(self._button(self.tr("Accept"), _BTN_PRIMARY_PILL,
+                                   lambda: self._decide("accept")))
+        accept.setObjectName("agentProposalAccept")
+        accept.setProperty("agentAction", "accept")
+        accept.setProperty("agentRequestId", self.tool_call_id)
+        accept.setProperty("agentCardKind", "proposal")
+        answers.append(accept)
         footer.set_widgets(left, answers)
         return footer
 
@@ -694,6 +704,10 @@ class DiffTableCard(_Card, FoldMixin):
         self._count_label.setStyleSheet(_DIFF_FOOTER_QSS)
         self._count_label.setMinimumHeight(scale_px_length(_DIFF_ROW_PX))
         self._apply_btn = _pill(self._button("", _BTN_PRIMARY_PILL, self._apply))
+        self._apply_btn.setObjectName("agentEditsApply")
+        self._apply_btn.setProperty("agentAction", "apply")
+        self._apply_btn.setProperty("agentRequestId", self.run_id)
+        self._apply_btn.setProperty("agentCardKind", "edits")
         footer.set_widgets(self._count_label, [self._apply_btn])
         return footer
 

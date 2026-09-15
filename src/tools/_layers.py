@@ -23,6 +23,31 @@ _STOPWORDS = {"the", "a", "an", "of", "layer", "in", "for", "data", "dataset"}
 MATCH_THRESHOLD = 0.6
 
 
+def wfs_feature_cap(layer) -> int | None:
+    """The most features a WFS layer downloads (its maxNumFeatures), or None for any other layer."""
+    try:
+        if str(layer.providerType()).lower() != "wfs":
+            return None
+        from qgis.core import QgsDataSourceUri
+
+        cap = str(QgsDataSourceUri(layer.source()).param("maxNumFeatures") or "")
+    except Exception:  # noqa: BLE001 - a layer that cannot be read has no cap we know
+        return None
+    return int(cap) if cap.isdigit() and int(cap) > 0 else None
+
+
+def loaded_feature_count(layer, count):
+    """*count* (``featureCount``) no higher than what the layer holds."""
+
+
+
+
+    cap = wfs_feature_cap(layer)
+    if cap is None or not isinstance(count, int) or count < 0:
+        return count
+    return min(count, cap)
+
+
 def normalize_name(name: str) -> str:
     """Lowercase, fold accents, collapse separators to spaces, drop filler words."""
     name = (name or "").lower()
@@ -141,8 +166,6 @@ def resolve_layer(name_or_id: str):
 
 
 
-
-
         same_source = in_tree or hits
         if len(same_source) > 1 and _one_source(same_source):
             return same_source[0]
@@ -243,6 +266,81 @@ def layer_not_found(name_or_id: str) -> dict:
     return {"_error": msg, "code": "LAYER_NOT_FOUND", "suggestion": suggestion, "_suggestions": suggestions}
 
 
+
+
+
+
+PINNED_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
+
+OUTPUT_LAYER_KEYS = {"execute_sql": ("layer_name",)}
+
+
+def pin_layer_names(args: dict, tool: str = "") -> dict | None:
+    """Point a data-changing call's layer arguments at one layer id, or refuse it."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if not isinstance(args, dict):
+        return None
+    from qgis.core import QgsProject
+
+    project = QgsProject.instance()
+    skipped = OUTPUT_LAYER_KEYS.get(tool, ())
+    for key in PINNED_LAYER_KEYS:
+        if key in skipped:
+            continue
+        value = args.get(key)
+        if not isinstance(value, str) or not value.strip() or project.mapLayer(value) is not None:
+            continue
+        layers = [layer for layer in project.mapLayers().values() if layer is not None]
+        matched, stage = match_names(value, sorted({layer.name() for layer in layers}))
+        if stage in ("none", "exact"):
+            continue
+        if stage in ("case", "normalized"):
+            layer = resolve_layer(value)
+            if layer is not None:
+                args[key] = layer.id()
+                continue
+        candidates = [{"id": layer.id(), "name": layer.name()} for layer in layers if layer.name() in matched]
+        return _loose_name_refusal(value, candidates)
+    return None
+
+
+def _loose_name_refusal(value: str, candidates: list[dict]) -> dict:
+    """LAYER_NOT_FOUND for a name a data-changing call may not guess from."""
+    shown = candidates[:6]
+    listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in shown)
+    if len(candidates) > len(shown):
+        listing += f" and {len(candidates) - len(shown)} more"
+    if len(candidates) == 1:
+        message = (f"No layer is named {value!r}; the closest is {listing}. This call changes layer data, "
+                   "so it does not act on a guessed layer.")
+    else:
+
+        message = (f"Layer {value!r} matches several layers: {listing}. This call changes layer data, "
+                   "so it does not pick one.")
+    return {
+        "_error": message,
+        "code": "LAYER_NOT_FOUND",
+        "suggestion": ("Pass the id of the layer you mean. When the user's request does not say which one, "
+                       "ask them with ask_user before changing anything."),
+        "_ambiguous": len(candidates) > 1,
+        "_candidates": candidates,
+    }
+
+
 def unique_layer_name(name: str, keep_id: str = "") -> str:
     """``name``, or the first "name (2)", "name (3)" no other layer answers to."""
 
@@ -269,3 +367,53 @@ def unique_layer_name(name: str, keep_id: str = "") -> str:
         if candidate not in taken:
             return candidate
     return wanted
+
+
+def is_scratch_layer(layer) -> bool:
+    """A layer holding a run's intermediate: in memory, or a file in a temporary directory."""
+    import tempfile
+
+    from ..core.policy import AGENT_TMP_DIR
+
+    try:
+        if layer.providerType() == "memory":
+            return True
+        source = os.path.realpath(layer.source().split("|", 1)[0])
+    except Exception:  # noqa: BLE001 - a layer we cannot read is not ours to rename
+        return False
+    roots = {os.path.realpath(AGENT_TMP_DIR), os.path.realpath(tempfile.gettempdir())}
+    return any(source.startswith(root + os.sep) for root in roots if root and root != os.sep)
+
+
+def take_layer_name(name: str, keep_id: str) -> tuple[str, list[dict]]:
+    """The name for the layer ``keep_id``, taking it from intermediates that hold it."""
+
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsProject
+
+    wanted = (name or "").strip()
+    if not wanted:
+        return wanted, []
+    try:
+        holders = [layer for layer in QgsProject.instance().mapLayers().values()
+                   if layer is not None and layer.id() != keep_id and layer.name() == wanted]
+    except Exception:  # noqa: BLE001 - no project to collide with
+        return wanted, []
+    if not holders:
+        return wanted, []
+    if not all(is_scratch_layer(layer) for layer in holders):
+        return unique_layer_name(wanted, keep_id=keep_id), []
+    renamed = []
+    for layer in holders:
+        previous = unique_layer_name(f"{wanted} (previous)", keep_id=layer.id())
+        layer.setName(previous)
+        renamed.append({"layer_id": layer.id(), "now_named": previous})
+    return wanted, renamed

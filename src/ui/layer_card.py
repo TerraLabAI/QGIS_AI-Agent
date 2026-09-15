@@ -14,6 +14,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import pyqtSignal
@@ -21,7 +30,7 @@ from qgis.PyQt.QtCore import pyqtSignal
 from ..core.context import layer_geometry_label
 from ..core.layer_mime import card_kind_line, cheap_feature_count
 from .attach_card import TILE_GLYPH, AttachCard
-from .layer_icons import layer_icon, resolve_layer
+from .layer_icons import layer_icon, layer_name, resolve_layer
 
 _KIND_GLYPHS = {
     "layer": "layers",
@@ -79,10 +88,30 @@ class LayerCard(AttachCard):
         self.chip = chip
         self.kind = kind
         self.value = value
-        self.set_kind(layer_kind_line(layer) if kind == "layer" else self._kind_word())
-        self.set_tooltip(self._tooltip(layer))
+        self.in_project = layer is not None
         self.removed.connect(lambda: self.chip_removed.emit(self.kind, self.value))
         self.clicked.connect(lambda: self.layer_clicked.emit(self.value))
+        if kind == "layer":
+            self.follow_project()
+        else:
+            self.set_kind(self._kind_word())
+            self.set_tooltip(self._tooltip(None))
+
+    def follow_project(self, gone=frozenset()) -> None:
+        """Match the layer as the project holds it now: its current name, or a card that reads as removed."""
+
+
+        if self.kind != "layer":
+            return
+        name = None if self.value in gone else layer_name(self.value)
+        layer = resolve_layer(self.value) if name is not None else None
+        self.in_project = layer is not None
+        if name:
+            self.set_name(name)
+        self.set_clickable(self.in_project)
+        self.setEnabled(self.in_project or self._closable)
+        self.set_kind(layer_kind_line(layer) if self.in_project else self.tr("Not in the project"))
+        self.set_tooltip(self._tooltip(layer))
 
     def _kind_word(self) -> str:
         return {
@@ -95,9 +124,10 @@ class LayerCard(AttachCard):
         }.get(self.kind, self.kind)
 
     def _tooltip(self, layer) -> str:
-        name = chip_display(self.chip)
         if self.kind != "layer":
+            name = chip_display(self.chip)
             return f"{self._kind_word()}: {name}" if name else self._kind_word()
+        name = self.name() or chip_display(self.chip)
         if layer is None:
             return self.tr("{name}. This layer is no longer in the project.").format(name=name)
         crs = layer_crs_label(layer)

@@ -17,23 +17,18 @@
 
 
 
+
+
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import os
-import pathlib
-import shutil
 import sqlite3
-import stat
-import tempfile
 import time
 
-from qgis.core import QgsProject, QgsProviderRegistry, QgsVectorLayer
+from qgis.core import QgsProject, QgsVectorLayer
 
-from .host_platform import retry_file_op
 from .logger import log, log_warning
-from .settings import account_dir
 from .snapshot_features import (  # noqa: F401 - shutdown is re-exported for plugin.py
     MAX_CAPTURE_SECONDS,
     MAX_SIGNATURE_TOTAL,
@@ -41,7 +36,64 @@ from .snapshot_features import (  # noqa: F401 - shutdown is re-exported for plu
     _jobs,
     compare_signatures,
     feature_signatures,
+    held_features,
+    is_copy_table,
+    refill_from_copy,
     shutdown,
+)
+from .snapshot_files import (  # noqa: F401 - the names this module moved out are re-exported here
+    MAX_INDEX_BYTES,
+    MAX_SQLITE_BACKUP_SECONDS,
+    ORPHAN_GRACE_SECONDS,
+    _backup_copies,
+    _backup_size,
+    _copies_unchanged,
+    _copy_files,
+    _is_sqlite_file,
+    _remove_tree,
+    _replace_corrupt_sqlite,
+    _restore_file,
+    _restore_sqlite,
+    _sidecars,
+    _sqlite_backup,
+    _sqlite_copy,
+    _unchanged,
+    prune_snapshots,
+    resolve_layers,
+)
+from .snapshot_paths import (  # noqa: F401 - the names this module moved out are re-exported here
+    _canvas_held,
+    _file_hash,
+    _folder_freshness,
+    _map_canvas,
+    _ordered_layers,
+    _project_state,
+    _refresh_canvas,
+    _stamp,
+    checkpoints_dir,
+    folder_bytes,
+    held_snapshots,
+    hold_snapshot,
+    inside,
+    layer_file_path,
+    release_snapshot,
+    snapshots_dir,
+)
+from .snapshot_project import (  # noqa: F401 - the names this module moved out are re-exported here
+    _CORE_SECTIONS,
+    LAYER_SECTIONS_FILE,
+    RESTORE_FILE,
+    SECTIONS_FILE,
+    _children,
+    _core_sections,
+    _dom,
+    _enum_int,
+    _handler_sections,
+    _layer_handler_sections,
+    _layer_sections_by_id,
+    _merged_copy,
+    _put_layer_sections,
+    _signals_blocked,
 )
 from .snapshot_report import (  # noqa: F401 - re-exported: the panel and the executor import them from here
     changed_layer_items,
@@ -61,491 +113,10 @@ INLINE_BACKUP_BYTES = 4 * 1024 * 1024
 
 
 MAX_DIFF_SECONDS = 0.2
-MAX_SQLITE_BACKUP_SECONDS = 60.0
-KEEP_SNAPSHOTS = 12
-_SHAPEFILE_SIDECARS = (".shx", ".dbf", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".qpj")
-_SQLITE_EXTENSIONS = (".gpkg", ".sqlite", ".sqlite3", ".db")
-_LAYER_ARG_KEYS = ("layer_name", "layer", "layer_id", "input", "INPUT", "target_layer",
-                   "output_path", "path", "file_path")
 
 
-_SNAPSHOTS_DIR = ""
 
-
-
-
-
-
-_HELD: set[str] = set()
-
-
-def hold_snapshot(path: str) -> None:
-    """Keep ``path`` out of the pruner's reach until it is released."""
-    if path:
-        _HELD.add(os.path.normpath(str(path)))
-
-
-def release_snapshot(path: str) -> None:
-    _HELD.discard(os.path.normpath(str(path or "")))
-
-
-def held_snapshots() -> set:
-    return set(_HELD)
-
-
-def snapshots_dir() -> str:
-    global _SNAPSHOTS_DIR
-    path = os.path.join(account_dir(), "snapshots")
-    if path != _SNAPSHOTS_DIR:
-        os.makedirs(path, exist_ok=True)
-        _SNAPSHOTS_DIR = path
-    return path
-
-
-def _map_canvas():
-    """The QGIS map canvas, or None outside a running QGIS."""
-    try:
-        import qgis.utils
-
-        return qgis.utils.iface.mapCanvas() if qgis.utils.iface is not None else None
-    except Exception:  # noqa: BLE001 - no iface in tests and in headless runs
-        return None
-
-
-def _refresh_canvas() -> None:
-    canvas = _map_canvas()
-    if canvas is None:
-        return
-    try:
-        canvas.refresh()
-    except Exception:  # nosec B110 - a repaint is best effort
-        pass
-
-
-@contextlib.contextmanager
-def _canvas_held():
-    """Rendering off and the wait cursor on, for the length of a restore."""
-
-
-
-
-
-
-    canvas = _map_canvas()
-    rendering = True
-    if canvas is not None:
-        try:
-            rendering = bool(canvas.renderFlag())
-            canvas.stopRendering()
-            canvas.setRenderFlag(False)
-        except Exception:  # noqa: BLE001 - an old canvas without the flag
-            canvas = None
-    cursor_set = False
-    try:
-        from qgis.PyQt.QtCore import Qt
-        from qgis.PyQt.QtWidgets import QApplication
-
-        if QApplication.instance() is not None:
-            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-            cursor_set = True
-            QApplication.processEvents()
-    except Exception:  # noqa: BLE001 - no application in the tests
-        cursor_set = False
-    try:
-        yield
-    finally:
-        if canvas is not None:
-            try:
-                canvas.setRenderFlag(rendering)
-            except Exception:  # nosec B110 - recovery is best effort
-                pass
-        if cursor_set:
-            try:
-                from qgis.PyQt.QtWidgets import QApplication
-
-                QApplication.restoreOverrideCursor()
-            except Exception:  # nosec B110 - recovery is best effort
-                pass
-
-
-def _stamp(path: str) -> tuple[int, ...] | None:
-    """Main ``(size, mtime_ns)`` plus the same pair for a SQLite WAL when present."""
-
-
-
-
-
-
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None
-    stamp = (int(st.st_size), int(getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))))
-    if os.path.splitext(path)[1].lower() not in _SQLITE_EXTENSIONS:
-        return stamp
-    try:
-        wal = os.stat(path + "-wal")
-        wal_stamp = (int(wal.st_size), int(getattr(wal, "st_mtime_ns", int(wal.st_mtime * 1e9))))
-    except OSError:
-        wal_stamp = (-1, -1)
-    return stamp + wal_stamp
-
-
-def _file_hash(path: str) -> str | None:
-    digest = hashlib.sha256()
-    try:
-        with open(path, "rb") as fh:
-            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-                digest.update(chunk)
-    except OSError:
-        return None
-    return digest.hexdigest()
-
-
-def layer_file_path(layer) -> str | None:
-    """The local file behind a layer, or None for remote and memory sources."""
-    provider = layer.providerType() or ""
-    source = layer.source() or ""
-    if provider in ("memory", "wms", "wfs", "oapif", "postgres", "arcgisfeatureserver"):
-        return None
-    path = None
-    try:
-        parts = QgsProviderRegistry.instance().decodeUri(provider, source)
-        path = parts.get("path") if isinstance(parts, dict) else None
-    except Exception:
-        path = None
-    if not path:
-        path = source.split("|", 1)[0]
-    if path.startswith(("/vsi", "http://", "https://")):
-        return None
-    return path if os.path.isfile(path) else None
-
-
-def _ordered_layers(project) -> list:
-    """The layers a run is most likely to touch first: the active one, then the ones drawn on the map, then the rest."""
-
-
-    layers = dict(project.mapLayers())
-    order: list = []
-    seen: set[str] = set()
-
-    def push(layer_id: str) -> None:
-        layer = layers.get(layer_id)
-        if layer is not None and layer_id not in seen:
-            seen.add(layer_id)
-            order.append((layer_id, layer))
-
-    try:
-        from qgis.utils import iface
-        active = iface.activeLayer() if iface is not None else None
-        if active is not None:
-            push(active.id())
-    except Exception:  # nosec B110 - no iface in a headless run
-        pass
-    try:
-        for node in project.layerTreeRoot().findLayers():
-            if node.isVisible():
-                push(node.layerId())
-    except Exception:  # nosec B110 - a tree that will not walk falls back to the map order
-        pass
-    for layer_id in layers:
-        push(layer_id)
-    return order
-
-
-def _project_state(project) -> dict:
-    """The project-level facts the layer records leave out: the project CRS and the layer tree (order, groups, visibility)."""
-
-
-
-    state: dict = {"crs": "", "tree": []}
-    try:
-        state["crs"] = project.crs().authid() or ""
-    except Exception:  # nosec B110 - a project without a CRS is recorded blank
-        pass
-    try:
-        root = project.layerTreeRoot()
-        for node in getattr(root, "findLayers", lambda: [])():
-            groups = []
-            parent = node.parent()
-            while parent is not None and parent is not root:
-                groups.append(str(parent.name() or ""))
-                parent = parent.parent()
-            state["tree"].append([str(node.layerId()), "/".join(reversed(groups)), bool(node.isVisible())])
-    except Exception:  # nosec B110 - a tree that will not walk is recorded empty
-        pass
-    return state
-
-
-def _sidecars(path: str) -> list[str]:
-    stem, ext = os.path.splitext(path)
-    if ext.lower() != ".shp":
-        return [path]
-    out = [path]
-    for extra in _SHAPEFILE_SIDECARS:
-        for candidate in (stem + extra, stem + extra.upper()):
-            if os.path.isfile(candidate):
-                out.append(candidate)
-                break
-    return out
-
-
-
-
-_COPY_SUFFIX_ROOM = len("-journal") + 2
-
-
-def _backup_copies(folder: str, sources: list) -> list:
-    """``(source, destination)`` for one file and its sidecars, short enough to write."""
-
-
-
-
-
-
-
-
-
-
-
-
-
-    from .security import _MAX_PATH, _long_paths_ok
-
-    plain = [(src, os.path.join(folder, os.path.basename(src))) for src in sources]
-    if _long_paths_ok() or not plain:
-        return plain
-    longest = max(len(dst) for _src, dst in plain) + _COPY_SUFFIX_ROOM
-    if longest < _MAX_PATH:
-        return plain
-    stem = os.path.splitext(os.path.basename(sources[0]))[0]
-    tag = hashlib.sha1(stem.encode("utf-8", "replace"),
-                       usedforsecurity=False).hexdigest()[:8]
-    widest = max(len(os.path.splitext(src)[1]) for src in sources)
-    room = _MAX_PATH - len(folder) - 1 - widest - len(tag) - 1 - _COPY_SUFFIX_ROOM
-    short = (stem[:room] + "-" + tag) if room > 0 else tag
-    return [(src, os.path.join(folder, short + os.path.splitext(src)[1])) for src in sources]
-
-
-def _unchanged(path: str, record: dict) -> bool:
-    """The file still is what the snapshot recorded: by stamp, or by hash for a record an older build wrote."""
-
-    stamp = record.get("stamp")
-    if stamp:
-        return _stamp(path) == tuple(stamp)
-    digest = record.get("hash")
-    return bool(digest) and _file_hash(path) == digest
-
-
-def _is_sqlite_file(path: str) -> bool:
-    return os.path.splitext(path)[1].lower() in _SQLITE_EXTENSIONS
-
-
-def _backup_size(path: str) -> int:
-    """Bytes an online backup must read, including a live SQLite WAL."""
-    size = os.path.getsize(path)
-    if _is_sqlite_file(path):
-        try:
-            size += os.path.getsize(path + "-wal")
-        except OSError:
-            pass
-    return size
-
-
-def _sqlite_copy(source: str, destination: str) -> None:
-    """Copy one committed SQLite state, including transactions still in WAL."""
-    for suffix in ("", "-wal", "-shm", "-journal"):
-        try:
-            retry_file_op(os.remove, destination + suffix)
-        except OSError:
-
-
-
-
-
-            pass
-    source_uri = pathlib.Path(os.path.abspath(source)).as_uri() + "?mode=ro"
-    source_db = sqlite3.connect(source_uri, timeout=5.0, uri=True)
-    try:
-        destination_db = sqlite3.connect(destination, timeout=5.0)
-        try:
-            _sqlite_backup(source_db, destination_db)
-        finally:
-            destination_db.close()
-    finally:
-        source_db.close()
-    try:
-        shutil.copystat(source, destination)
-    except OSError:
-        pass
-
-
-def _sqlite_backup(source_db, destination_db) -> None:
-    """Bounded, cancellable wrapper around SQLite's retrying backup loop."""
-    deadline = time.monotonic() + MAX_SQLITE_BACKUP_SECONDS
-
-    def progress(_status, _remaining, _total):
-        if time.monotonic() >= deadline:
-            raise TimeoutError(f"SQLite backup exceeded {MAX_SQLITE_BACKUP_SECONDS:.0f} seconds")
-        try:
-            from . import net
-            cancelled = net.current_cancel_check()
-        except (ImportError, AttributeError):
-            cancelled = None
-        try:
-            stopped = callable(cancelled) and bool(cancelled())
-        except Exception:  # noqa: BLE001 - a broken optional callback must not corrupt a backup
-            stopped = False
-        if stopped:
-            raise InterruptedError("SQLite backup was stopped")
-
-
-    source_db.backup(destination_db, pages=256, progress=progress, sleep=0.05)
-
-
-def _restore_sqlite(backup: str, target: str) -> None:
-    """Restore live SQLite in place, or replace a corrupt closed destination."""
-    source_uri = pathlib.Path(os.path.abspath(backup)).as_uri() + "?mode=ro"
-    source_db = sqlite3.connect(source_uri, timeout=5.0, uri=True)
-    try:
-        target_is_sqlite = True
-        if os.path.isfile(target):
-            target_uri = pathlib.Path(os.path.abspath(target)).as_uri() + "?mode=ro"
-            try:
-                target_db = sqlite3.connect(target_uri, timeout=5.0, uri=True)
-                try:
-                    target_db.execute("PRAGMA schema_version").fetchone()
-                finally:
-                    target_db.close()
-            except sqlite3.DatabaseError as exc:
-                code = getattr(exc, "sqlite_errorcode", None)
-                corrupt = ((isinstance(code, int) and code & 0xFF in (11, 26))
-                           or str(exc).lower() in (
-                               "database disk image is malformed", "file is not a database"))
-                if not corrupt:
-                    raise
-                target_is_sqlite = False
-        if not target_is_sqlite:
-            _replace_corrupt_sqlite(backup, target)
-            return
-        destination_db = sqlite3.connect(target, timeout=5.0)
-        try:
-            _sqlite_backup(source_db, destination_db)
-        finally:
-            destination_db.close()
-    finally:
-        source_db.close()
-
-
-def _replace_corrupt_sqlite(backup: str, target: str) -> None:
-    """Atomically replace a corrupt database only when no live sidecars exist."""
-    sidecars = ("-wal", "-shm", "-journal")
-    if any(os.path.exists(target + suffix) for suffix in sidecars):
-        raise sqlite3.DatabaseError(
-            "refusing to replace a corrupt SQLite file while transaction sidecars exist"
-        )
-    folder = os.path.dirname(os.path.abspath(target))
-    fd, temporary = tempfile.mkstemp(prefix=".qgis-restore-", dir=folder)
-    os.close(fd)
-    os.remove(temporary)
-    try:
-        _sqlite_copy(backup, temporary)
-
-        if any(os.path.exists(target + suffix) for suffix in sidecars):
-            raise sqlite3.DatabaseError(
-                "refusing to replace a corrupt SQLite file while transaction sidecars exist"
-            )
-
-
-        retry_file_op(os.replace, temporary, target)
-    finally:
-        for suffix in ("",) + sidecars:
-            try:
-                os.remove(temporary + suffix)
-            except FileNotFoundError:
-                pass
-
-
-def _restore_file(backup: str, target: str) -> None:
-    """Put the saved copy back, all of it or none of it."""
-
-
-
-
-
-
-
-
-    if _is_sqlite_file(backup):
-        _restore_sqlite(backup, target)
-        return
-    folder = os.path.dirname(os.path.abspath(target)) or "."
-    try:
-        fd, temporary = tempfile.mkstemp(prefix=".qgis-restore-", dir=folder)
-        os.close(fd)
-    except OSError:
-
-
-        shutil.copy2(backup, target)
-        return
-    try:
-        shutil.copy2(backup, temporary)
-
-
-
-        retry_file_op(os.replace, temporary, target)
-    except OSError:
-        try:
-            os.remove(temporary)
-        except OSError:  # nosec B110 - the temporary is already gone
-            pass
-        raise
-
-
-def _copy_files(folder: str, copies: list, label: str) -> bool:
-    try:
-        os.makedirs(folder, exist_ok=True)
-        for src, dst in copies:
-            if _is_sqlite_file(src):
-                _sqlite_copy(src, dst)
-            else:
-                shutil.copy2(src, dst)
-    except (OSError, sqlite3.Error) as exc:
-        log_warning(f"Backup of {label} failed: {exc}")
-
-
-        for _src, dst in copies:
-            for suffix in ("", "-wal", "-shm", "-journal"):
-                try:
-                    os.remove(dst + suffix)
-                except OSError:
-                    pass
-        return False
-    return True
-
-
-def resolve_layers(args: dict) -> list:
-    """Project layers named or identified by the string values of a tool call."""
-    project = QgsProject.instance()
-    found, seen = [], set()
-    values = []
-    for key in _LAYER_ARG_KEYS:
-        value = args.get(key)
-        if isinstance(value, str) and value:
-            values.append(value)
-    params = args.get("parameters")
-    if isinstance(params, dict):
-        for value in params.values():
-            if isinstance(value, str) and value:
-                values.append(value)
-    for value in values:
-        layer = project.mapLayer(value)
-        candidates = [layer] if layer is not None else project.mapLayersByName(value)
-        for candidate in candidates:
-            if candidate is not None and candidate.id() not in seen:
-                seen.add(candidate.id())
-                found.append(candidate)
-    return found
+REASON_MEMORY_LOST = "memory_lost"
 
 
 class RunSnapshot:
@@ -585,8 +156,176 @@ class RunSnapshot:
         self.copy_errors: list[str] = []
         self.memory_features: dict[str, list] = {}
 
+
+        self.memory_files: dict[str, tuple[str, int]] = {}
+
+
+
+        self.unbacked_reasons: dict[str, str] = {}
+
         self.feature_signatures: dict[str, dict] = {}
         self._pass: _FeaturePass | None = None
+
+
+
+
+
+        self._ready_callbacks: list = []
+
+
+
+        self.quiet = False
+
+
+
+    def to_record(self) -> dict:
+        """The JSON-safe state a restore after a restart needs."""
+
+
+
+
+
+        return {
+            "run_id": self.run_id,
+            "dir": self.dir,
+            "captured": self.captured,
+            "captured_at": self.captured_at,
+            "quiet": self.quiet,
+            "original_file": self.original_file,
+            "was_dirty": self.was_dirty,
+            "layers": self.layers,
+            "layer_ids": sorted(self.layer_ids),
+            "project_state": self.project_state,
+            "backups": {str(lid): [[str(src), str(dst)] for src, dst in copies]
+                        for lid, copies in self.backups.items()},
+            "unbacked": dict(self.unbacked),
+            "unbacked_reasons": dict(self.unbacked_reasons),
+            "file_backups": {str(path): {
+                "copies": [[str(src), str(dst)] for src, dst in (record.get("copies") or [])],
+                "stamp": list(record.get("stamp")) if record.get("stamp") else None,
+                "hash": record.get("hash")}
+                for path, record in self.file_backups.items()},
+
+            "memory_files": {str(lid): [str(copy[0]), int(copy[1]), *[str(table) for table in copy[2:3]]]
+                             for lid, copy in dict(self.memory_files).items()},
+        }
+
+    @classmethod
+    def from_record(cls, record) -> RunSnapshot | None:
+        """The snapshot a chat's index describes, or None when it is malformed."""
+
+
+
+
+
+
+
+        if not isinstance(record, dict):
+            return None
+        run_id = record.get("run_id")
+        if not isinstance(run_id, str) or not run_id:
+            return None
+        folder = record.get("dir")
+        if not isinstance(folder, str) or not inside(snapshots_dir(), folder):
+            return None
+        snap = cls(run_id)
+        snap.dir = os.path.realpath(folder)
+        snap.project_path = os.path.join(snap.dir, "project.qgz")
+        snap.captured = bool(record.get("captured"))
+        snap.quiet = bool(record.get("quiet"))
+        try:
+            snap.captured_at = float(record.get("captured_at") or 0.0)
+        except (TypeError, ValueError):
+            snap.captured_at = 0.0
+        original = record.get("original_file")
+        snap.original_file = original if isinstance(original, str) else ""
+        snap.was_dirty = bool(record.get("was_dirty"))
+        layers = record.get("layers")
+        if isinstance(layers, dict):
+            snap.layers = {}
+            for lid, rec in layers.items():
+                if not isinstance(rec, dict):
+                    continue
+                layer = dict(rec)
+
+
+
+                stamp = layer.get("stamp")
+                try:
+                    layer["stamp"] = (tuple(int(x) for x in stamp)
+                                      if isinstance(stamp, (list, tuple)) else None)
+                except (TypeError, ValueError):
+                    layer["stamp"] = None
+                snap.layers[str(lid)] = layer
+        ids = record.get("layer_ids")
+        if isinstance(ids, (list, tuple, set, frozenset)):
+            snap.layer_ids = {str(lid) for lid in ids}
+        state = record.get("project_state")
+        if isinstance(state, dict):
+            snap.project_state = state
+        backups = record.get("backups")
+        if isinstance(backups, dict):
+            for lid, copies in backups.items():
+                if not isinstance(copies, list):
+                    continue
+                kept = [(pair[0], pair[1]) for pair in copies
+                        if isinstance(pair, (list, tuple)) and len(pair) == 2
+                        and isinstance(pair[0], str) and isinstance(pair[1], str)
+                        and inside(snap.dir, pair[1])]
+                if kept:
+                    snap.backups[str(lid)] = kept
+        for key in ("unbacked", "unbacked_reasons"):
+            values = record.get(key)
+            if not isinstance(values, dict):
+                continue
+            target = getattr(snap, key)
+            for lid, value in values.items():
+                if isinstance(value, str):
+                    target[str(lid)] = value
+        files = record.get("file_backups")
+        if isinstance(files, dict):
+            for path, entry in files.items():
+                if not isinstance(path, str) or not isinstance(entry, dict):
+                    continue
+                copies = [(pair[0], pair[1]) for pair in (entry.get("copies") or [])
+                          if isinstance(pair, (list, tuple)) and len(pair) == 2
+                          and isinstance(pair[0], str) and isinstance(pair[1], str)
+                          and inside(snap.dir, pair[1])]
+                stamp = entry.get("stamp")
+                snap.file_backups[path] = {
+                    "copies": copies,
+                    "stamp": tuple(stamp) if isinstance(stamp, (list, tuple)) else None,
+                    "hash": entry.get("hash")}
+        memory = record.get("memory_files")
+        if isinstance(memory, dict):
+            for lid, pair in memory.items():
+                if not isinstance(pair, (list, tuple)) or len(pair) not in (2, 3):
+                    continue
+                path, count, table = pair[0], pair[1], tuple(pair[2:3])
+                if not isinstance(path, str) or not inside(snap.dir, path):
+                    continue
+
+
+                if table and not is_copy_table(table[0]):
+                    continue
+                try:
+                    count = int(count or 0)
+                except (TypeError, ValueError):
+                    continue
+                snap.memory_files[str(lid)] = (path, count, *table)
+
+
+        for lid, rec in snap.layers.items():
+            if not isinstance(rec, dict) or rec.get("provider") != "memory":
+                continue
+            try:
+                count = int(rec.get("feature_count") or 0)
+            except (TypeError, ValueError):
+                count = 0
+            if count > 0 and lid not in snap.memory_files and lid not in snap.unbacked:
+                snap.unbacked[lid] = str(rec.get("name") or lid)
+                snap.unbacked_reasons[lid] = REASON_MEMORY_LOST
+        return snap
 
 
 
@@ -597,16 +336,51 @@ class RunSnapshot:
             return
         self.feature_signatures = feature_pass.signatures
         self.memory_features = feature_pass.memory_features
+        self.memory_files = feature_pass.memory_files
+        self._note_uncopied(feature_pass)
+        callbacks, self._ready_callbacks = self._ready_callbacks, []
+        for callback in callbacks:
+            try:
+                callback()
+            except Exception as exc:  # noqa: BLE001 - a caller's callback must not break capture
+                log_warning(f"Snapshot features-ready callback failed: {exc}")
+
+    def _note_uncopied(self, feature_pass) -> None:
+        """The memory layers the pass could not copy join ``unbacked``, with their reason."""
+        for lid, (name, reason) in list(feature_pass.unbacked.items()):
+            self.unbacked[lid] = name
+            self.unbacked_reasons[lid] = reason
 
     def wait_for_features(self, timeout: float = 2.0) -> bool:
-        """True once the feature pass of the capture has landed."""
+        """True once the signatures and the small memory layers of the capture are in."""
         feature_pass = self._pass
         if feature_pass is None:
             return True
-        ok = feature_pass.wait(timeout)
-        if ok:
+        if feature_pass.done:
             self._adopt_pass()
+            return True
+        ok = feature_pass.wait_features(timeout)
+        if ok:
+
+
+
+            self.feature_signatures = feature_pass.signatures
+            self.memory_features = feature_pass.memory_features
         return ok
+
+    def on_features_ready(self, callback) -> None:
+        """Call ``callback`` (main thread) once the capture's feature pass, memory-layer copies included, is done."""
+
+
+
+
+
+
+        feature_pass = self._pass
+        if feature_pass is None or feature_pass.done:
+            callback()
+            return
+        self._ready_callbacks.append(callback)
 
     def _record(self, layer, with_hash: bool, with_style: bool = True) -> dict:
         path = layer_file_path(layer)
@@ -615,13 +389,17 @@ class RunSnapshot:
             "provider": layer.providerType() or "", "path": path,
             "crs": layer.crs().authid() or "",
             "feature_count": None, "hash": None, "size": None, "stamp": None,
-            "style": _style_digest(layer) if with_style else None,
+            "style": _style_digest(layer) if with_style else None, "subset": "",
         }
         if isinstance(layer, QgsVectorLayer):
             try:
                 n = layer.featureCount()
                 record["feature_count"] = int(n) if n is not None and n >= 0 else None
             except Exception:  # nosec B110 - snapshot recovery is best effort
+                pass
+            try:
+                record["subset"] = str(layer.subsetString() or "")
+            except Exception:  # nosec B110 - a provider without a subset string
                 pass
         if path and with_hash:
             stamp = _stamp(path)
@@ -642,16 +420,38 @@ class RunSnapshot:
         self.original_file = project.fileName() or ""
         self.was_dirty = project.isDirty()
         ok = False
+
+
+
+        self.quiet = False
         try:
-            ok = bool(project.write(self.project_path))
-        except Exception as exc:
-            log_warning(f"Snapshot write failed: {exc}")
-        finally:
+            sections = _core_sections(project)
+            with open(os.path.join(self.dir, SECTIONS_FILE), "wb") as fh:
+                fh.write(sections)
+            self.quiet = True
+        except Exception as exc:  # noqa: BLE001 - an older QGIS, a stub: the copy keeps them itself
+            log_warning(f"Snapshot relations not kept apart, the copy is written with the project's signals: {exc}")
+        with _signals_blocked(project) if self.quiet else contextlib.nullcontext():
             try:
-                project.setFileName(self.original_file)
-                project.setDirty(self.was_dirty)
-            except Exception:  # nosec B110 - snapshot recovery is best effort
-                pass
+                ok = bool(project.write(self.project_path))
+            except Exception as exc:
+                log_warning(f"Snapshot write failed: {exc}")
+            finally:
+                try:
+                    project.setFileName(self.original_file)
+                    project.setDirty(self.was_dirty)
+                except Exception:  # nosec B110 - snapshot recovery is best effort
+                    pass
+        if self.quiet:
+
+
+            try:
+                layer_sections = _layer_handler_sections(project)
+                if layer_sections:
+                    with open(os.path.join(self.dir, LAYER_SECTIONS_FILE), "wb") as fh:
+                        fh.write(layer_sections)
+            except Exception as exc:  # noqa: BLE001 - a plugin's per-layer XML never fails a capture
+                log_warning(f"Snapshot per-layer plugin sections not kept: {exc}")
         self.layers = {}
         self.layer_ids = set(project.mapLayers().keys())
         self.memory_features = {}
@@ -681,13 +481,29 @@ class RunSnapshot:
         if light:
             log(f"Snapshot over {MAX_CAPTURE_SECONDS:.1f} s: {light} layers recorded without their style.")
         self.project_state = _project_state(project)
-        self._pass = _FeaturePass(project)
+        self._pass = _FeaturePass(project, os.path.join(self.dir, "memory"))
+
+
+        self.memory_files = self._pass.memory_files
+
+        self._note_uncopied(self._pass)
         self._pass.start(self._adopt_pass)
         self.captured = ok
         self.captured_at = time.time()
         log(f"Snapshot {'captured' if ok else 'FAILED'} for run {self.run_id[:8]} in "
             f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers)")
-        _jobs().schedule_job(lambda: prune_snapshots(keep=KEEP_SNAPSHOTS, protect=self.dir))
+
+
+        base = snapshots_dir()
+        index_dir = checkpoints_dir()
+        try:
+            from . import limits
+
+            disk_mb = float(limits.current("CHECKPOINT_DISK_MB"))
+        except Exception:  # noqa: BLE001 - an unread cap only means no disk ceiling
+            disk_mb = 0.0
+        _jobs().schedule_job(lambda: prune_snapshots(protect=self.dir, base=base,
+                                                     index_dir=index_dir, disk_mb=disk_mb))
         return ok
 
 
@@ -714,6 +530,16 @@ class RunSnapshot:
             pass
         path = layer_file_path(layer)
         if not path:
+            try:
+                memory = layer.providerType() == "memory"
+            except Exception:  # noqa: BLE001 - a stub without a provider
+                memory = False
+            if memory:
+
+
+
+
+                return lid not in self.unbacked
 
             self.unbacked[lid] = name
             return False
@@ -722,6 +548,10 @@ class RunSnapshot:
         except (OSError, ValueError):
             canonical = path
         known = self.path_backups.get(canonical)
+        if known is None and canonical in self.file_backups:
+
+
+            known = self.path_backups[canonical] = self.file_backups[canonical]["copies"]
         if known is not None:
 
             self.backups[lid] = known
@@ -753,8 +583,20 @@ class RunSnapshot:
         """Copy existing files (with shapefile sidecars) a call is about to replace. Idempotent per path."""
         count = 0
         for raw in paths or []:
-            path = os.path.realpath(str(raw))
+            try:
+                path = os.path.realpath(str(raw))
+            except (OSError, ValueError):
+
+
+                path = os.path.normpath(os.path.abspath(str(raw)))
             if path in self.file_backups or not os.path.isfile(path):
+                continue
+            if path in self.path_backups:
+
+
+
+                self.file_backups[path] = {"copies": self.path_backups[path], "stamp": None, "hash": None}
+                count += 1
                 continue
 
 
@@ -932,8 +774,15 @@ class RunSnapshot:
 
 
 
-    def restore(self) -> dict:
+    def restore(self, file_name: str | None = None, project_files=()) -> dict:
         """Put the project back, with the canvas held still while it happens."""
+
+
+
+
+
+
+
 
 
 
@@ -948,11 +797,33 @@ class RunSnapshot:
         if not self.captured or not os.path.isfile(self.project_path):
             return {"ok": False, "message": "No snapshot to restore."}
         with _canvas_held():
-            result = self._restore_now()
+            result = self._restore_now(file_name, project_files)
         _refresh_canvas()
         return result
 
-    def _restore_now(self) -> dict:
+    @staticmethod
+    def _path_key(path: str) -> str:
+        """``path`` resolved and case-folded, or only normalised when it cannot be resolved."""
+
+
+
+
+
+        try:
+            return os.path.normcase(os.path.realpath(path))
+        except (OSError, ValueError):
+            return os.path.normcase(os.path.normpath(path))
+
+    def _project_files_left(self, file_name: str | None, project_files) -> set:
+        """The project files a restore never writes: every one it knows but the file the project keeps."""
+        key = self._path_key
+        kept = self.original_file if file_name is None else file_name
+        names = {key(name) for name in (self.original_file, *(project_files or ())) if isinstance(name, str) and name}
+        if kept:
+            names.discard(key(kept))
+        return names
+
+    def _restore_now(self, file_name: str | None = None, project_files=()) -> dict:
         project = QgsProject.instance()
         for layer in list(project.mapLayers().values()):
             try:
@@ -960,11 +831,28 @@ class RunSnapshot:
                     layer.rollBack()
             except Exception:  # nosec B110 - snapshot recovery is best effort
                 pass
+
+        source = self._source_to_read(project)
+
+
+
+        left = self._project_files_left(file_name, project_files)
         project.clear()
         files_restored = []
         file_restore_errors = []
+        files_left = []
         for path, record in self.file_backups.items():
-            if os.path.isfile(path) and _unchanged(path, record):
+
+
+
+
+            copies = record["copies"]
+            if os.path.isfile(path) and _unchanged(path, record) and (
+                    len(copies) < 2 or _copies_unchanged(copies)):
+                continue
+            if self._path_key(path) in left:
+                files_left.append(path)
+                log(f"Restore leaves {os.path.basename(path)} as it is on disk: the project is not that file now.")
                 continue
             for src, dst in record["copies"]:
                 try:
@@ -976,7 +864,8 @@ class RunSnapshot:
         for lid, copies in self.backups.items():
             record = self.layers.get(lid) or {}
             path = record.get("path")
-            if path and os.path.isfile(path) and _unchanged(path, record):
+            if path and os.path.isfile(path) and _unchanged(path, record) and (
+                    len(copies) < 2 or _copies_unchanged(copies)):
                 continue
             for src, dst in copies:
 
@@ -991,20 +880,28 @@ class RunSnapshot:
                     file_restore_errors.append({"path": src, "error": str(exc)})
         project_ok = False
         try:
-            project_ok = bool(project.read(self.project_path))
+            project_ok = bool(project.read(source))
         except Exception as exc:
             log_warning(f"Snapshot read failed: {exc}")
+        finally:
+            if source != self.project_path:
+                try:
+                    os.remove(source)
+                except OSError as exc:
+                    log_warning(f"Restore copy not removed ({source}): {exc}")
         try:
-            project.setFileName(self.original_file)
+            project.setFileName(self.original_file if file_name is None else file_name)
             project.setDirty(True)
         except Exception:  # nosec B110 - snapshot recovery is best effort
             pass
         refilled = 0
         self.wait_for_features(2.0)
         refill_errors: list[str] = []
+        handled: set[str] = set()
         for lid, features in self.memory_features.items():
             layer = project.mapLayer(lid)
             if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory" and layer.featureCount() == 0:
+                handled.add(lid)
                 try:
 
 
@@ -1013,7 +910,7 @@ class RunSnapshot:
                     accepted = layer.dataProvider().addFeatures(features)
                     layer.updateExtents()
                     layer.triggerRepaint()
-                    got = layer.featureCount()
+                    got = held_features(layer)
                     if accepted is False or (got >= 0 and got < len(features)):
                         refill_errors.append(f"{layer.name()} ({max(got, 0)}/{len(features)})")
                     else:
@@ -1021,88 +918,151 @@ class RunSnapshot:
                 except Exception as exc:
                     log_warning(f"Could not refill memory layer {layer.name()}: {exc}")
                     refill_errors.append(str(layer.name()))
+        refilled += self._refill_from_copies(project, refill_errors, handled)
+        self._restore_subsets(project, refill_errors)
+        self._name_unrefilled(project, refill_errors, handled)
         ok = project_ok and not file_restore_errors and not refill_errors
         log(f"Snapshot restored for run {self.run_id[:8]}: project={'ok' if project_ok else 'failed'}, "
-            f"files={len(files_restored)}, file errors={len(file_restore_errors)}, "
+            f"files={len(files_restored)}, file errors={len(file_restore_errors)}, files left={len(files_left)}, "
             f"memory layers refilled={refilled}, memory layers incomplete={len(refill_errors)}")
-        if file_restore_errors and project_ok:
-            message = f"Project restored, but {len(file_restore_errors)} file(s) could not be restored."
-        elif file_restore_errors:
+        if not project_ok and file_restore_errors:
             message = (f"The snapshot project and {len(file_restore_errors)} file(s) "
                        "could not be restored.")
-        elif project_ok and refill_errors:
-            message = ("Project restored, but " + ", ".join(refill_errors[:3])
-                       + " did not take all their features back.")
-        elif project_ok:
-            message = "Project restored."
-        else:
+        elif not project_ok:
             message = "The snapshot project could not be read."
-        return {"ok": ok, "files_restored": files_restored,
+        else:
+
+
+            problems = []
+            if file_restore_errors:
+                problems.append(f"{len(file_restore_errors)} file(s) could not be restored")
+            if refill_errors:
+                named = ", ".join(refill_errors[:3])
+                if len(refill_errors) > 3:
+                    named += f" and {len(refill_errors) - 3} more"
+                problems.append(f"{named} did not take all their features back")
+            message = ("Project restored, but " + "; ".join(problems) + ".") if problems else "Project restored."
+        return {"ok": ok, "files_restored": files_restored, "files_left": files_left,
                 "file_restore_errors": file_restore_errors,
                 "memory_layers_refilled": refilled,
                 "memory_layers_incomplete": refill_errors, "message": message}
 
+    def _source_to_read(self, project) -> str:
+        """The file a restore reads: the copy, or the copy with what a quiet capture left out."""
+
+
+
+
+
+
+
+
+        if not self.quiet:
+            return self.project_path
+        target = os.path.join(self.dir, RESTORE_FILE)
+        try:
+            captured = None
+            path = os.path.join(self.dir, SECTIONS_FILE)
+            if os.path.isfile(path):
+                with open(path, "rb") as fh:
+                    captured = fh.read()
+            layers = None
+            path = os.path.join(self.dir, LAYER_SECTIONS_FILE)
+            if os.path.isfile(path):
+                with open(path, "rb") as fh:
+                    layers = fh.read()
+            if _merged_copy(self.project_path, target, captured, _handler_sections(project), layers):
+                return target
+        except Exception as exc:  # noqa: BLE001 - the copy alone is still a restore
+            log_warning(f"Snapshot sections not put back, the copy is read as it is: {exc}")
+        return self.project_path
+
+    def _name_unrefilled(self, project, refill_errors: list, handled: set) -> None:
+        """Every memory layer the capture saw with features, and that came back short, is named."""
+
+
+
+
+
+        for lid, record in self.layers.items():
+            if lid in handled or not isinstance(record, dict) or record.get("provider") != "memory":
+                continue
+            expected = record.get("feature_count") or 0
+            if expected <= 0:
+                continue
+            layer = project.mapLayer(lid)
+            if not (isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory"):
+                continue
+            got = layer.featureCount()
+            if got is not None and got < expected:
+                refill_errors.append(f"{layer.name()} ({max(got, 0)}/{expected})")
+
+    def _restore_subsets(self, project, refill_errors: list) -> None:
+        """Every memory layer the capture saw filtered gets its subset string back."""
+
+
+
+
+
+        for lid, record in self.layers.items():
+            if not isinstance(record, dict) or record.get("provider") != "memory":
+                continue
+            subset = record.get("subset") or ""
+            if not subset:
+                continue
+            layer = project.mapLayer(lid)
+            if not (isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory"):
+                continue
+            try:
+                if layer.subsetString() == subset:
+                    continue
+                accepted = layer.setSubsetString(subset)
+            except Exception as exc:  # noqa: BLE001 - a provider that raises on the expression
+                log_warning(f"Could not set the filter of memory layer {layer.name()} again: {exc}")
+                accepted = False
+            if accepted is False:
+                log_warning(f"QGIS refused the filter of memory layer {layer.name()}: {subset}")
+                refill_errors.append(f"{layer.name()} (filter not restored)")
+
+    def _refill_from_copies(self, project, refill_errors: list, handled: set) -> int:
+        """Every memory layer with a copy, back from its GeoPackage; used after a restart, when ``memory_features`` (the in-process copy) is empty or."""
+
+
+
+
+
+
+
+        feature_pass = self._pass
+        pending = dict(getattr(feature_pass, "memory_planned", None) or {})
+        uncopied = {lid: name for lid, (name, _reason)
+                    in (getattr(feature_pass, "unbacked", None) or {}).items()}
+        refilled = 0
+        for lid in dict.fromkeys(list(self.memory_files) + list(pending) + list(uncopied)):
+            layer = project.mapLayer(lid)
+            if not (isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory"
+                    and layer.featureCount() == 0):
+                continue
+            handled.add(lid)
+            name = str(layer.name())
+            copy = self.memory_files.get(lid)
+            if copy is None:
+                refill_errors.append(f"{name} (no copy)" if lid in uncopied else f"{name} (copy not finished)")
+                continue
+            path, count = copy[0], copy[1]
+            try:
+                got = refill_from_copy(layer, path, *copy[2:3])
+                layer.triggerRepaint()
+            except Exception as exc:  # noqa: BLE001 - a copy deleted or unreadable
+                log_warning(f"Could not refill memory layer {name}: {exc}")
+                refill_errors.append(name)
+                continue
+            if got < count:
+                refill_errors.append(f"{name} ({max(got, 0)}/{count})")
+            else:
+                refilled += 1
+        return refilled
+
     def discard(self) -> bool:
         """True when the folder is gone. False, and logged, when it is held."""
         return _remove_tree(self.dir, "Snapshot")
-
-
-def _remove_tree(path: str, what: str) -> bool:
-    """Delete a snapshot folder, and say so in the log when Windows refuses."""
-
-
-
-
-
-
-
-
-    if not os.path.exists(path):
-        return True
-    failed = []
-
-    def note(func, target, _exc):
-
-
-
-
-        try:
-            os.chmod(target, stat.S_IWRITE)
-            func(target)
-            return
-        except OSError:
-            pass
-        failed.append(target)
-
-    try:
-        shutil.rmtree(path, onexc=lambda f, t, e: note(f, t, e))
-    except TypeError:
-        shutil.rmtree(path, onerror=note)
-    except OSError as exc:
-        log_warning(f"{what} not removed ({path}): {exc}")
-        return False
-    if failed:
-        log_warning(f"{what} partly left behind: {len(failed)} entries under {path} are held open. "
-                    "Closing the layers that read them, or restarting QGIS, frees it.")
-        return False
-    return True
-
-
-def prune_snapshots(keep: int = KEEP_SNAPSHOTS, protect: str = "") -> None:
-    """Drop the oldest snapshot folders past ``keep``, never a held one."""
-
-
-
-
-
-    base = snapshots_dir()
-    held = held_snapshots()
-    try:
-        entries = [(os.path.getmtime(os.path.join(base, n)), os.path.join(base, n))
-                   for n in os.listdir(base) if os.path.isdir(os.path.join(base, n))]
-    except OSError:
-        return
-    entries.sort(reverse=True)
-    for _, path in entries[keep:]:
-        if path != protect and os.path.normpath(path) not in held:
-            _remove_tree(path, "Old snapshot")

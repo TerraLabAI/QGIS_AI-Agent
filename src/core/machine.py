@@ -100,27 +100,17 @@ REFERENCE_RAM_MB = 16 * 1024
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 _BENCH_ROUNDS = 200_000
 
 
 
 SMALL_CORES = 4
 SMALL_RAM_MB = 8 * 1024
+
+
+
+SMALL_RAM_BOUNDARY_MB = SMALL_RAM_MB * 15 // 16
+REFERENCE_RAM_BOUNDARY_MB = REFERENCE_RAM_MB * 15 // 16
 
 
 
@@ -225,6 +215,32 @@ _SCALED: dict[str, tuple[str, float, bool]] = {
 
     "GEOMETRY_CHECK_MAX_VERTICES": ("down", 50_000, False),
     "GEOMETRY_CHECK_MAX_TOTAL_VERTICES": ("down", 500_000, False),
+
+
+
+    "HYDROLOGY_MAX_CELLS": ("down", 1_000_000, False),
+
+
+
+
+    "TERRAIN_MAX_CELLS": ("down", 16_000_000, False),
+
+
+
+
+    "GEOREFERENCE_MAX_PIXELS": ("down", 40_000_000, False),
+
+
+
+    "CHART_MAX_FEATURES": ("down", 100_000, False),
+
+
+
+    "ANIMATION_MAX_FRAMES": ("down", 250, False),
+
+
+
+    "PROCESSING_BATCH_PARALLEL": ("down", 1, False),
 
     "CALL_MAX_SECONDS_MAIN": ("up", 0.0, False),
     "CALL_MAX_SECONDS_MAIN_LONG": ("up", 0.0, False),
@@ -400,12 +416,9 @@ def resident_memory_mb() -> float | None:
 
     try:
         if IS_WINDOWS:
-            from .host_platform import peak_memory_mb
+            from .host_platform import working_set_mb
 
-
-
-
-            return peak_memory_mb()
+            return working_set_mb()
         if IS_LINUX:
             with open("/proc/self/statm", encoding="ascii") as handle:
                 pages = int(handle.read().split()[1])
@@ -503,9 +516,11 @@ def _class_of(cores: int, ram_mb: int) -> str:
 
 
 
-    if ram_mb < SMALL_RAM_MB or cores < SMALL_CORES:
+
+
+    if ram_mb < SMALL_RAM_BOUNDARY_MB or cores < SMALL_CORES:
         return "small"
-    if ram_mb < REFERENCE_RAM_MB or cores < REFERENCE_CORES:
+    if ram_mb < REFERENCE_RAM_BOUNDARY_MB or cores < REFERENCE_CORES:
         return "normal"
     return "large"
 
@@ -599,7 +614,15 @@ def sample(force: bool = False) -> Sample:
             status.dwLength = ctypes.sizeof(_MemoryStatusEx)
             if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
                 available = int(status.ullAvailPhys // MB)
-                swap_used = int((status.ullTotalPageFile - status.ullAvailPageFile) // MB)
+
+
+
+
+
+
+                committed = status.ullTotalPageFile - status.ullAvailPageFile
+                in_ram = status.ullTotalPhys - status.ullAvailPhys
+                swap_used = int(max(0, committed - in_ram) // MB)
         except Exception:  # nosec B110 - a machine whose memory cannot be read reports None and
             pass
     fresh = Sample(available, total, swap_used, resident_memory_mb(), _os_pressure(), now)
@@ -608,7 +631,11 @@ def sample(force: bool = False) -> Sample:
 
 
 def note_freeze(seconds: float, _who: str = "") -> None:
-    """The watchdog saw the event loop stop for *seconds*."""
+    """Remember *seconds* of freeze, and forget the stale ones."""
+
+
+
+
 
 
 
@@ -689,17 +716,12 @@ def _pressure_override() -> float | None:
         return None
 
 
-def pressure() -> float:
-    """How close this machine is to not coping, 0.0 calm to 1.0 saturated."""
+def _memory_pressure() -> float:
+    """What the live sample says, 0.0 calm to 1.0 saturated."""
 
 
 
 
-
-
-    pinned = _pressure_override()
-    if pinned is not None:
-        return pinned
     now = sample()
     worst = 0.0
     if now.available_mb is not None and now.total_mb:
@@ -729,10 +751,26 @@ def pressure() -> float:
         if now.os_pressure is not None:
             term = min(term, 0.3 + 0.7 * now.os_pressure)
         worst = max(worst, term)
-    frozen = recent_freeze_seconds()
-    if frozen > 0.0:
-        worst = max(worst, min(1.0, frozen / FREEZE_SATURATION_S))
-    return round(worst, 3)
+    return worst
+
+
+def _freeze_pressure() -> float:
+    """What the freeze history says, 0.0 calm to 1.0 saturated, and 0.0 when empty."""
+    return min(1.0, recent_freeze_seconds() / FREEZE_SATURATION_S)
+
+
+def pressure() -> float:
+    """How close this machine is to not coping, 0.0 calm to 1.0 saturated."""
+
+
+
+
+
+
+    pinned = _pressure_override()
+    if pinned is not None:
+        return pinned
+    return round(max(_memory_pressure(), _freeze_pressure()), 3)
 
 
 def factor() -> float:
@@ -849,6 +887,9 @@ def note() -> str:
 
     if who.scale < 1.0:
         what = f"This computer is {who.name} ({who.cores} cores, {who.ram_mb // 1024} GB)"
+    elif _pressure_override() is None and _freeze_pressure() > _memory_pressure():
+
+        what = "This computer is busy right now (QGIS was slow to answer on a recent call)"
     else:
         what = "This computer is busy right now (little free memory)"
     return (f"{what} and is at {share:.0%} of the standard limits. Ask for smaller areas, fewer "

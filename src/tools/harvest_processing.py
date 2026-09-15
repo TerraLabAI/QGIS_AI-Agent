@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 
 from qgis.core import (
     QgsApplication,
@@ -29,6 +30,7 @@ from qgis.core import (
     QgsProcessingFeedback,
     QgsProject,
     QgsRasterLayer,
+    QgsRasterRange,
     QgsVectorLayer,
 )
 
@@ -36,6 +38,8 @@ from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import is_raster
 from .data_tools import _avoid_reserved_name
 from .harvest_analysis import _expand, _field_error, _raster, _units, _vector
+from .postconditions import compute_checks
+from .processing_guards import _nodata_sentinel
 
 ZONAL_STATS = {
     0: "count", 1: "sum", 2: "mean", 3: "median", 4: "stdev", 5: "min",
@@ -43,12 +47,14 @@ ZONAL_STATS = {
 }
 JOIN_PREDICATES = {0: "intersects", 1: "contains", 2: "equals", 3: "touches", 4: "overlaps", 5: "within", 6: "crosses"}
 JOIN_METHODS = {0: "one-to-many", 1: "first match", 2: "largest overlap"}
+
+
 _RASTER_CALC_ERRORS = {
     1: "could not create the output file",
     2: "an input layer is invalid",
-    3: "the expression does not parse",
-    4: "out of memory",
-    5: "cancelled",
+    3: "cancelled",
+    4: "the expression does not parse",
+    5: "out of memory",
     6: "a band number is out of range",
     7: "the calculation failed",
 }
@@ -63,6 +69,9 @@ def register_harvest_processing_tools(registry: ToolRegistry):
                 "polygon_layer": {"type": "string"},
                 "raster_layer": {"type": "string"},
                 "band": {"type": "integer", "minimum": 1},
+                "nodata": {
+                    "type": "number",
+                },
                 "prefix": {"type": "string"},
                 "stats": {
                     "type": "array",
@@ -203,9 +212,20 @@ def _run_or_defer(alg_id: str, params: dict, output_name: str):
     if _heavy_inputs(params):
         alg = QgsApplication.processingRegistry().algorithmById(alg_id)
         if alg is not None:
-            return None, None, _start_async_processing(alg, alg_id, params, output_name)
+            return None, None, _start_async_processing(alg, alg_id, params, output_name,
+                                                       destination_paths=_new_file(params.get("OUTPUT")))
     result, error = _run_alg(alg_id, params)
     return result, error, None
+
+
+def _new_file(target) -> list:
+    """``[target]`` when it names a file this call is about to create, so a Stop removes what it wrote."""
+
+
+
+    if not isinstance(target, str) or not target or target.startswith("memory:") or os.path.exists(target):
+        return []
+    return [target]
 
 
 def _register_output(out, name: str) -> dict:
@@ -220,6 +240,10 @@ def _register_output(out, name: str) -> dict:
             layer = QgsRasterLayer(out, name)
     if layer is None or not layer.isValid():
         return {"output": out if isinstance(out, str) else str(out), "added_to_project": False}
+    from ._layers import take_layer_name
+
+    final_name, renamed = take_layer_name(name, keep_id=layer.id())
+    layer.setName(final_name)
     QgsProject.instance().addMapLayer(layer)
     info = {
         "layer_id": layer.id(),
@@ -228,6 +252,8 @@ def _register_output(out, name: str) -> dict:
         "units": _units(layer.crs()),
         "added_to_project": True,
     }
+    if renamed:
+        info["renamed_intermediates"] = renamed
     if isinstance(layer, QgsVectorLayer):
         info["feature_count"] = layer.featureCount()
         info["fields"] = [f.name() for f in layer.fields()]
@@ -271,10 +297,39 @@ def _zonal_statistics(args: dict) -> dict:
             "INVALID_ARGS",
             "Use codes 0-11: " + ", ".join(f"{k}={v}" for k, v in ZONAL_STATS.items()) + ".",
         )
-    prefix = args.get("prefix", "_")
+
+
+    provider = rast.dataProvider()
+    declared = provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)
+    declared = declared or bool(provider.userNoDataValues(band))
+    values_raster = rast
+    nodata = args.get("nodata")
+    if nodata is not None:
+        try:
+            nodata = float(nodata)
+        except (TypeError, ValueError):
+            return tool_error(f"nodata={args.get('nodata')!r} is not a number.", "INVALID_ARGS",
+                              "Pass the band value that marks missing data, e.g. -9999.")
+
+
+        values_raster = rast.clone()
+        values_raster.dataProvider().setUserNoDataValue(band, [QgsRasterRange(nodata, nodata)])
+    elif not declared:
+        sentinel = _nodata_sentinel(rast, band)
+        if sentinel is not None:
+            return tool_error(
+                f"{rast.name()!r} band {band} declares no NoData, and its minimum is {sentinel:g}, the usual "
+                f"missing-data marker: a mean would count those cells as {sentinel:g}.",
+                "INVALID_ARGS",
+                f"Call zonal_statistics again with nodata={sentinel:g} to leave them out. If {sentinel:g} is a "
+                f"real measurement here, run native:zonalstatisticsfb through run_processing with confirm_large true.",
+            )
+
+
+    prefix = args.get("prefix") or "_"
     params = {
         "INPUT": poly,
-        "INPUT_RASTER": rast,
+        "INPUT_RASTER": values_raster,
         "RASTER_BAND": band,
         "COLUMN_PREFIX": prefix,
         "STATISTICS": stats,
@@ -384,6 +439,11 @@ def _spatial_join(args: dict) -> dict:
     if "JOINED_COUNT" in result:
         out["joined_count"] = result["JOINED_COUNT"]
         out["count_units"] = "features"
+    if out.get("layer_id"):
+        checks = compute_checks("native:joinattributesbylocation", params,
+                                {"OUTPUT": out, "JOINED_COUNT": result.get("JOINED_COUNT")})
+        if checks:
+            out["checks"] = checks
     if note:
         out["crs_note"] = note
     return out
@@ -409,7 +469,6 @@ def _raster_calculator(args: dict) -> dict:
     wanted_path = str(args.get("output_path") or "").strip()
     temp_words = ("TEMPORARY_OUTPUT", "TEMP", "MEMORY")
     if not wanted_path or wanted_path.upper() in temp_words or wanted_path.startswith("memory:"):
-
 
 
         import tempfile
@@ -500,7 +559,10 @@ def _raster_calculator(args: dict) -> dict:
                 "CRS": crs_id,
                 "OUTPUT": output_path,
             }
-            started = _start_async_processing(alg, "native:rastercalc", params, args.get("layer_name"))
+
+            name = args.get("name") or os.path.splitext(os.path.basename(output_path))[0]
+            started = _start_async_processing(alg, "native:rastercalc", params, name,
+                                              destination_paths=_new_file(output_path))
             started["note"] = (f"{ref_layer.name()} is {cols * rows / 1e6:,.0f} million pixels, so the calculation "
                                "runs in the background as native:rastercalc; poll get_task_status.")
             return started
@@ -522,8 +584,6 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-
-
     crs = ref_layer.crs()
     try:
         calc = QgsRasterCalculator(
@@ -540,22 +600,18 @@ def _raster_calculator(args: dict) -> dict:
     if code != 0:
         reason = _RASTER_CALC_ERRORS.get(code, f"error code {code}")
         suggestion = "Check the expression and the band numbers."
-        if code == 3:
+        if code == 4:
             suggestion = (
                 'Reference bands as "Layer name@1" with double quotes; operators are + - * / ^ and comparisons.'
             )
         elif code == 1:
             suggestion = "Pass an output_path in a writable folder with a .tif extension."
-        elif code == 4:
-
-
-
+        elif code == 5:
 
 
             suggestion = (
-                "Cut the area, not the expression: the calculator holds every input band of the whole "
-                "extent in memory at once. Clip the inputs with gdal:cliprasterbymasklayer, or pass a "
-                "smaller extent, and calculate on the clips."
+                "QGIS could not allocate memory for this grid. Clip the inputs to the study area "
+                "(gdal:cliprasterbymasklayer) and run the same expression on the clips."
             )
 
 
@@ -567,6 +623,28 @@ def _raster_calculator(args: dict) -> dict:
             suggestion += (f" {os.path.basename(output_path)} was already there before this run and was left "
                            f"alone; it may now hold the previous result or a partial write.")
         return tool_error(f"Raster calculation failed: {reason}.", "RASTER_CALC_FAILED", suggestion)
+
+
+
+
+    from .processing_tools import raster_file_problem
+
+    problem = raster_file_problem(output_path)
+    if problem:
+        free = ""
+        try:
+            free_mb = shutil.disk_usage(directory or ".").free / 1e6
+            free = f" The drive holding it has {free_mb:,.1f} MB free."
+        except OSError:  # nosec B110 - the unreadable file is the finding, free space only a clue
+            pass
+        removed = False if output_existed else _discard_partial_raster(output_path)
+        suggestion = "Pass output_path TEMPORARY_OUTPUT or a folder on another drive, then run the same expression."
+        if removed:
+            suggestion += " The partial file was removed."
+        return tool_error(
+            f"The calculation wrote an incomplete file: GDAL cannot read {os.path.basename(output_path)} back "
+            f"({problem[:200]}). QGIS reports success when a write fails.{free}",
+            "RASTER_CALC_FAILED", suggestion)
 
     name = args.get("name") or os.path.splitext(os.path.basename(output_path))[0]
     layer = QgsRasterLayer(output_path, name)

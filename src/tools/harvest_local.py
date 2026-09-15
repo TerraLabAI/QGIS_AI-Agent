@@ -39,7 +39,13 @@ _EXTENSIONS = _VECTOR_EXT | _RASTER_EXT
 _SKIP_DIRS = {
     "library", "node_modules", ".venv", "venv", "__pycache__", "site-packages",
     "caches", "cache", ".cache", "trash", ".trash", "applications",
+
+    "appdata", "application data", "local settings", "$recycle.bin", "system volume information",
 }
+
+
+
+_CLOUD_ONLY_ATTRIBUTES = 0x400000 | 0x40000 | 0x1000
 _BUNDLE_SUFFIXES = (".app", ".photoslibrary", ".bundle", ".framework", ".xcodeproj", ".git")
 _MAX_DEPTH = 6
 _MAX_AGE_SECONDS = 24 * 3600
@@ -140,6 +146,15 @@ def _skip_dir(name: str) -> bool:
     return lower.endswith(_BUNDLE_SUFFIXES)
 
 
+def _cloud_only(entry) -> bool:
+    """True for an entry whose content stays in the cloud until something opens it."""
+
+
+
+
+    return bool(getattr(entry.stat(follow_symlinks=False), "st_file_attributes", 0) & _CLOUD_ONLY_ATTRIBUTES)
+
+
 def _walk(root: str, is_canceled):
     """Yield (path, size, mtime, atime, ext) for every candidate file under root."""
     stack = [(root, 0)]
@@ -158,7 +173,7 @@ def _walk(root: str, is_canceled):
                 name = entry.name
                 try:
                     if entry.is_dir(follow_symlinks=False):
-                        if depth < _MAX_DEPTH and not _skip_dir(name):
+                        if depth < _MAX_DEPTH and not _skip_dir(name) and not _cloud_only(entry):
                             stack.append((entry.path, depth + 1))
                         continue
                     if not entry.is_file(follow_symlinks=False):
@@ -173,6 +188,8 @@ def _walk(root: str, is_canceled):
                 try:
                     stat = entry.stat(follow_symlinks=False)
                 except OSError:
+                    continue
+                if getattr(stat, "st_file_attributes", 0) & _CLOUD_ONLY_ATTRIBUTES:
                     continue
                 yield entry.path, stat.st_size, stat.st_mtime, stat.st_atime, ext
 

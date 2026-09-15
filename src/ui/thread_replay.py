@@ -36,14 +36,19 @@ def replay_steps(panel, messages) -> list:
 
 
     steps = []
+
+
+    resendable = {str(m.get("run_id") or "") for m in messages or []
+                  if isinstance(m, dict) and m.get("role") == "user" and str(m.get("text") or "").strip()}
     for m in messages or []:
-        steps.extend(message_steps(panel, m))
+        steps.extend(message_steps(panel, m, resendable))
     steps.append(lambda: finish_replay(panel))
     return steps
 
 
-def message_steps(panel, m) -> list:
+def message_steps(panel, m, resendable=None) -> list:
     """The steps of one stored message; [] for anything that is not one."""
+
     if not isinstance(m, dict):
         return []
     role = str(m.get("role") or "")
@@ -54,14 +59,14 @@ def message_steps(panel, m) -> list:
     if role == "agent":
         steps.extend(_agent_steps(panel, m, run_id))
     elif role in _SIMPLE_ROLES:
-        steps.append(lambda: _replay_simple(panel, m, role, run_id))
+        steps.append(lambda: _replay_simple(panel, m, role, run_id, resendable))
     return steps
 
 
 _SIMPLE_ROLES = ("user", "tool", "plan", "permission", "error", "summary")
 
 
-def _replay_simple(panel, m: dict, role: str, run_id: str) -> None:
+def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> None:
     if role == "user":
         panel._add_user(UserBubble(str(m.get("text") or ""), m.get("chips") or [],
                                    m.get("attachments") or []))
@@ -79,8 +84,9 @@ def _replay_simple(panel, m: dict, role: str, run_id: str) -> None:
             panel.message_list.register_permission_card(tool_id, card)
         panel._add(card, animate=False)
     elif role == "error":
+        retryable = bool(m.get("retryable")) and (resendable is None or run_id in resendable)
         card = ErrorCard(run_id, str(m.get("code") or ""), str(m.get("message") or ""),
-                         bool(m.get("retryable")), str(m.get("details") or ""))
+                         retryable, str(m.get("details") or ""))
         card.retry_requested.connect(panel.retry_requested.emit)
         panel._add(card, animate=False)
     elif role == "summary":
@@ -126,16 +132,27 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
             block.finish(status or "done", seconds)
     if text:
         bubble = AgentBubble(text)
+
+        bubble.link_activated.connect(panel._on_bubble_link)
         if run_id:
             panel._run(run_id).bubble = bubble
+
+            panel._wire_answer(bubble, run_id)
+            bubble.finish_streaming()
         panel._add(bubble, animate=False)
+
+
+    changes = m.get("run_changes") if isinstance(m.get("run_changes"), dict) else None
     if status and status != "running":
         _replay_summary(panel, status, "" if text else summary, usage, m.get("verification"),
-                        has_text=bool(text))
+                        has_text=bool(text), with_changes=not changes)
+        if changes and run_id:
+            panel.add_run_changes(run_id, changes, animate=False)
 
 
-def _replay_summary(panel, status: str, summary: str, usage, verification, has_text: bool) -> None:
-    lines = RunSummaryCard._verification_lines(verification)
+def _replay_summary(panel, status: str, summary: str, usage, verification, has_text: bool,
+                    with_changes: bool = True) -> None:
+    lines = RunSummaryCard._verification_lines(verification, with_changes=with_changes)
     if status == "done":
         lines = [line for line in lines if not _is_nothing_changed(line)]
     if has_text:

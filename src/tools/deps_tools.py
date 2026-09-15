@@ -334,9 +334,6 @@ def _qgis_capabilities() -> dict:
 
 
 
-
-
-
     out: dict = {}
     try:
         from qgis.core import QgsApplication

@@ -1,13 +1,6 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""The rows of a run's trace: the task rows of the plan and the tool chips."""
-
-
-
-
-
-
-
+"""The rows of a run's trace: the tool chips."""
 
 
 
@@ -35,6 +28,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 
 from qgis.PyQt.QtCore import (
@@ -44,7 +38,6 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtWidgets import (
     QApplication,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -68,29 +61,19 @@ from .shared import connector_for_call
 from .style import (
     _BTN_QUIET,
     ACCENT_INK,
-    ACCENT_TINT,
-    CHIP_PX,
-    FONT_BASE,
     FONT_BODY,
     FONT_HINT,
     GREEN,
-    GREEN_TINT,
     HOVER,
     INK,
     INK_2,
     INK_3,
-    LINE,
-    LINE_SOFT,
     ORANGE,
-    RADIUS_CARD,
-    RADIUS_CHIP,
     RADIUS_CONTROL,
     RED,
-    RED_TINT,
     ROW_PX,
     SPACE_CARD,
     SPACE_TIGHT,
-    SURFACE,
     qcolor,
     repolish,
 )
@@ -108,7 +91,7 @@ from .tool_describe import (
     source_text,
     tool_glyph,
 )
-from .tool_rows import ToolGroup, _fold, _HoverRow, _MonoChip, _StateDisc
+from .tool_rows import _HoverRow, _MonoChip
 from .transcript import fence
 from .widgets import ElidedLabel, FlowLayout, Spinner
 
@@ -125,13 +108,12 @@ _CODE_TOOLS = ("execute_code", "run_code", "run_python", "python")
 _COPIED_MS = 1500
 
 
-_MAX_PLAN_LINES = 8
-
-_DETAIL_INDENT_PX = 20
-
-
 
 _EMPTY_SUMMARY_RE = EMPTY_SUMMARY_RE
+
+
+
+_CANCELLED_RE = re.compile(r"^\s*CANCELLED\b")
 
 
 
@@ -140,10 +122,6 @@ _GLYPH_PX = 13
 _CHEVRON_PX = 12
 _ROW_GAP_PX = 8
 _ROW_PAD_PX = 3
-
-_TASK_ROW_PX = 44
-_TASK_PAD_PX = 12
-_TASK_CHEVRON_PX = 14
 
 
 
@@ -166,308 +144,6 @@ _ROW_HOVER_QSS = (
     f"QWidget#toolRow {{ background: transparent; border-radius: {RADIUS_CONTROL}px; }}"
     f"QWidget#toolRow:hover {{ background: {HOVER}; }}"
 )
-_PLAN_CARD_QSS = scale_qss_font_px(
-    f"QFrame#planCard {{ background: {SURFACE}; border: 1px solid {LINE};"
-    f" border-radius: {RADIUS_CARD}px; }}"
-    f"QWidget#taskRow {{ background: transparent; }}"
-    f"QWidget#taskRow:hover {{ background: {HOVER}; }}"
-    f"QFrame#taskDivider {{ background: {LINE_SOFT}; border: none; }}"
-    f"QLabel#planStep {{ font-size: {FONT_BASE}px; font-weight: 400; color: {INK};"
-    " background: transparent; border: none; }"
-    f"QLabel#planStepCount {{ font-size: {FONT_BODY}px; color: {INK_2};"
-    " background: transparent; border: none; }"
-    f"QLabel#taskPill {{ font-size: {FONT_HINT}px; font-weight: 500; border: none;"
-    f" border-radius: {RADIUS_CHIP}px; padding: 0 8px; }}"
-    f'QLabel#taskPill[state="done"] {{ color: {GREEN}; background: {GREEN_TINT}; }}'
-    f'QLabel#taskPill[state="active"] {{ color: {ACCENT_INK}; background: {ACCENT_TINT}; }}'
-    f'QLabel#taskPill[state="failed"] {{ color: {RED}; background: {RED_TINT}; }}'
-)
-
-
-
-
-
-
-class _StepRow(QWidget):
-    """One plan step: the disc, the label, the count, the pill, the chevron, and under it the work it did, folded."""
-
-
-
-
-
-
-
-    def __init__(self, step_id: str, label: str, parent=None, number: int = 1):
-        super().__init__(parent)
-        self.step_id = step_id
-        self.state = "pending"
-        self._open = False
-        self._fold_anim = None
-        col = QVBoxLayout(self)
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(0)
-
-        self._head = _HoverRow(self)
-        self._head.setObjectName("taskRow")
-        self._head.setFixedHeight(_TASK_ROW_PX)
-        row = QHBoxLayout(self._head)
-        row.setContentsMargins(_TASK_PAD_PX, 0, _TASK_PAD_PX, 0)
-        row.setSpacing(10)
-        self._disc = _StateDisc(number, self._head)
-        row.addWidget(self._disc, 0, Qt.AlignmentFlag.AlignVCenter)
-
-
-        self._spinner = Spinner(12, parent=self._head)
-        self._spinner.hide()
-        self._icon = self._disc
-        self._label = QLabel(label, self._head)
-        self._label.setObjectName("planStep")
-        self._label.setWordWrap(False)
-        self._label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        row.addWidget(self._label, 1, Qt.AlignmentFlag.AlignVCenter)
-        self._count = QLabel(self._head)
-        self._count.setObjectName("planStepCount")
-        self._count.hide()
-        row.addWidget(self._count, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._pill = QLabel(self._head)
-        self._pill.setObjectName("taskPill")
-        self._pill.setFixedHeight(CHIP_PX)
-        self._pill.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._pill.hide()
-        row.addWidget(self._pill, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._chevron = QLabel(self._head)
-        self._chevron.setFixedSize(_TASK_CHEVRON_PX + 2, _TASK_CHEVRON_PX + 2)
-        self._chevron.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._chevron.hide()
-        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._head.clicked.connect(self.toggle)
-        col.addWidget(self._head)
-
-        self._details = QWidget(self)
-        self._detail_col = QVBoxLayout(self._details)
-        self._detail_col.setContentsMargins(_TASK_PAD_PX + _DETAIL_INDENT_PX, 0, _TASK_PAD_PX, SPACE_TIGHT)
-        self._detail_col.setSpacing(SPACE_TIGHT)
-        self._details.hide()
-        col.addWidget(self._details)
-
-        self.set_state("pending")
-
-
-
-    def add_detail(self, widget: QWidget) -> None:
-        widget.setParent(self._details)
-        self._detail_col.addWidget(widget)
-        finished = getattr(widget, "finished", None)
-        if finished is not None and hasattr(finished, "connect"):
-            finished.connect(self._sync_progress)
-        self._sync_chevron()
-        self._sync_progress()
-
-    def detail_count(self) -> int:
-        return self._detail_col.count()
-
-    def details(self) -> list:
-        return [self._detail_col.itemAt(i).widget() for i in range(self._detail_col.count())]
-
-    def tool_cards(self) -> list:
-        return [w for w in self.details() if isinstance(w, ToolCard)]
-
-    def _sync_chevron(self) -> None:
-        count = self.detail_count()
-        tools = self.tool_cards()
-        if tools:
-            n = sum(card.repeats for card in tools)
-            text = self.tr("%n tools", "", n) if n != 1 else self.tr("1 tool")
-        else:
-            text = str(count) if count else ""
-        self._count.setText(text)
-        self._count.setVisible(bool(count))
-        self._chevron.setVisible(bool(count))
-        self._head.setCursor(Qt.CursorShape.PointingHandCursor if count
-                             else Qt.CursorShape.ArrowCursor)
-        if count:
-            name = "chevron_up" if self._open else "chevron_down"
-            self._chevron.setPixmap(pixmap_for(self, name, _TASK_CHEVRON_PX, qcolor(INK_3)))
-
-    def _sync_progress(self) -> None:
-        tools = self.tool_cards()
-        if tools:
-            done = sum(1 for card in tools if card.ok is not None)
-            self._disc.set_state(self.state, done / len(tools))
-        else:
-            self._disc.set_state(self.state, 0.0)
-        self._sync_chevron()
-
-    def toggle(self) -> None:
-        if self.detail_count():
-            self.set_open(not self._open)
-
-    def set_open(self, open_: bool) -> None:
-        open_ = bool(open_) and bool(self.detail_count())
-        if open_ == self._open and self._details.isVisible() == open_:
-            self._sync_chevron()
-            return
-        self._open = open_
-        _fold(self._details, open_, self)
-        self._sync_chevron()
-
-    def is_open(self) -> bool:
-        return self._open
-
-
-
-    def set_state(self, state: str) -> None:
-        self.state = state
-        self._disc.set_state(state)
-        self._sync_progress()
-        pill = {
-            "done": self.tr("Done"),
-            "active": self.tr("Running"),
-            "failed": self.tr("Failed"),
-        }.get(state, "")
-        self._pill.setText(pill)
-        self._pill.setProperty("state", state)
-        self._pill.setVisible(bool(pill))
-        repolish(self._pill)
-        self._label.setProperty("state", state)
-        repolish(self._label)
-
-    def cleanup(self) -> None:
-        anim = self._fold_anim
-        self._fold_anim = None
-        if anim is not None:
-            try:
-                anim.stop()
-            except (RuntimeError, AttributeError):
-                pass
-
-
-class PlanCard(QFrame):
-    """The plan as one list in a card, a row per step, eight at most."""
-
-
-
-
-
-    changed = pyqtSignal()
-
-    def __init__(self, steps=None, parent=None):
-        super().__init__(parent)
-        self.setObjectName("planCard")
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet(_PLAN_CARD_QSS)
-        self._rows: dict[str, _StepRow] = {}
-        self._col = QVBoxLayout(self)
-        self._col.setContentsMargins(0, 0, 0, 0)
-        self._col.setSpacing(0)
-        self.set_steps(steps or [])
-
-    def set_steps(self, steps) -> None:
-
-
-
-
-
-
-        if isinstance(steps, (str, bytes)) or not hasattr(steps, "__iter__"):
-            steps = []
-        steps = [step for step in steps if isinstance(step, dict)]
-        while self._col.count():
-            item = self._col.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-
-
-                widget.setParent(None)
-                widget.deleteLater()
-        self._rows = {}
-        for i, step in enumerate(steps):
-            step_id = str(step.get("id") or i)
-            if i:
-                self._col.addWidget(_divider(self))
-            row = _StepRow(step_id, str(step.get("label") or ""), self, number=i + 1)
-            row.set_state(str(step.get("state") or "pending"))
-            self._rows[step_id] = row
-            self._col.addWidget(row)
-            row.setVisible(i < _MAX_PLAN_LINES)
-        self.changed.emit()
-
-    def update_step(self, step_id: str, state: str) -> None:
-        row = self._rows.get(str(step_id))
-        if row is not None:
-            row.set_state(state)
-            self.changed.emit()
-
-    def steps(self) -> list:
-        return [{"id": r.step_id, "label": r._label.text(), "state": r.state}
-                for r in self._rows.values()]
-
-    def rows(self) -> list:
-        return list(self._rows.values())
-
-    def active_row(self):
-        """The step in progress, else the last one that started, else None."""
-        last = None
-        for row in self._rows.values():
-            if row.state == "active":
-                return row
-            if row.state != "pending":
-                last = row
-        return last or (next(iter(self._rows.values())) if self._rows else None)
-
-    def add_detail(self, widget) -> bool:
-        """Hang a tool line or a thought under the step it belongs to."""
-
-        row = self.active_row()
-        if row is None:
-            return False
-        row.add_detail(widget)
-        return True
-
-    def set_details_open(self, open_: bool) -> None:
-        for row in self._rows.values():
-            row.set_open(open_)
-
-    def detail_count(self) -> int:
-        return sum(row.detail_count() for row in self._rows.values())
-
-    def active_label(self) -> str:
-        """The label of the step in progress, else the last one that ended, else an empty string."""
-
-        last = ""
-        for row in self._rows.values():
-            if row.state == "active":
-                return row._label.text()
-            if row.state != "pending":
-                last = row._label.text()
-        return last
-
-    def cleanup(self) -> None:
-        for row in self._rows.values():
-            row.cleanup()
-
-    def to_markdown(self) -> str:
-        lines = [f"**{self.tr('Plan')}**"]
-        for row in self._rows.values():
-            state = row.state
-            mark = "x" if state in ("done", "failed", "skipped") else " "
-            suffix = f" ({state})" if state in ("failed", "skipped", "active") else ""
-            lines.append(f"- [{mark}] {row._label.text()}{suffix}")
-            for widget in row.details():
-                text = getattr(widget, "to_markdown", None)
-                if callable(text):
-                    lines += [f"  {line}" for line in text().splitlines()]
-                elif hasattr(widget, "text") and callable(widget.text):
-                    lines.append(f"  - *{widget.text()}*")
-        return "\n".join(lines)
-
-
-def _divider(parent) -> QFrame:
-    line = QFrame(parent)
-    line.setObjectName("taskDivider")
-    line.setFrameShape(QFrame.Shape.NoFrame)
-    line.setFixedHeight(1)
-    return line
 
 
 
@@ -482,7 +158,13 @@ class ToolCard(QWidget):
 
 
 
+
+
     finished = pyqtSignal()
+
+
+    state_changed = pyqtSignal()
+    expanded_changed = pyqtSignal(object, bool)
 
     def __init__(self, tool_call_id: str, name: str, args=None,
                  danger: str = "read", sentence: str = "", parent=None, animate: bool = True):
@@ -493,6 +175,8 @@ class ToolCard(QWidget):
         self.danger = danger or "read"
         self.sentence = sentence or ""
         self.ok: bool | None = None
+
+        self.ended = ""
         self.summary = ""
         self.duration_s = 0.0
         self.detail = ""
@@ -652,6 +336,11 @@ class ToolCard(QWidget):
         """The one sentence the opened row shows: what was asked, then what came back."""
 
 
+        if self.ok is not True and self.ended:
+            words = {"denied": self.tr("not run, permission denied"),
+                     "stopped": self.tr("stopped before it finished")}
+            label = describe_tool_call(self.name, self.args)
+            return f"{label}: {words.get(self.ended, self.tr('never finished'))}"
         source = str(self.connector.get("name") or "") if self.connector else ""
         line = call_sentence(self.name, self.args, source)
         duration = format_duration(self.duration_s) if self.ok is not None else ""
@@ -782,6 +471,11 @@ class ToolCard(QWidget):
     def finish(self, ok: bool, summary: str, duration_s: float, detail: str = "") -> None:
         self.ok = bool(ok)
         self.summary = summary or ""
+
+
+
+        if not ok and _CANCELLED_RE.match(self.summary) and self.ended != "denied":
+            self.ended = "stopped"
         try:
             self.duration_s = float(duration_s or 0.0)
         except (TypeError, ValueError):
@@ -822,6 +516,11 @@ class ToolCard(QWidget):
             note = check
         if ok:
             self._text.setProperty("failed", False)
+        elif self.ended in ("denied", "stopped"):
+
+
+            note = self.tr("denied") if self.ended == "denied" else self.tr("stopped")
+            self._text.setProperty("failed", False)
         else:
 
 
@@ -838,22 +537,35 @@ class ToolCard(QWidget):
         self._set_running(False)
 
 
+
         if ok:
             self._icon.setPixmap(pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour()))
+        elif self.ended in ("denied", "stopped"):
+            self._icon.setPixmap(pixmap_for(self, "dash", _GLYPH_PX, qcolor(INK_3)))
         else:
             self._icon.setPixmap(pixmap_for(self, "close", _GLYPH_PX, qcolor(RED)))
         line = self.line()
         self.setToolTip(f"{line}  ·  {note}" if note else line)
         self.finished.emit()
+        self.state_changed.emit()
 
-    def mark_unfinished(self) -> None:
-        """A call whose end was never recorded (an interrupted run): no spinner, the glyph, no verdict."""
+    def mark_unfinished(self, reason: str = "") -> None:
+        """A call whose end was never recorded: denied at its permission card, stopped with the run, or cut off in a saved chat."""
+
 
         if self.ok is not None:
+            self.state_changed.emit()
             return
+        self.ended = reason if reason in ("denied", "stopped") else "unfinished"
         self._spinner.stop()
         self._spinner.hide()
         self._icon.show()
+        if self.ended != "unfinished":
+            self._icon.setPixmap(pixmap_for(self, "dash", _GLYPH_PX, qcolor(INK_3)))
+            self._note.setText(self.tr("denied") if self.ended == "denied" else self.tr("stopped"))
+            self._note.show()
+        self._sync_sentence()
+        self.state_changed.emit()
 
     def same_call(self, name: str, args) -> bool:
         """True when ``name`` and ``args`` are this card's call, exactly."""
@@ -884,8 +596,10 @@ class ToolCard(QWidget):
         repolish(self._text)
         self._icon.setPixmap(pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour()))
         self.ok = None
+        self.ended = ""
         self._sync_sentence()
         self._set_running(True)
+        self.state_changed.emit()
 
     def code_text(self) -> str:
         """The Python this call runs, when it is a code tool."""
@@ -922,6 +636,7 @@ class ToolCard(QWidget):
         if not self._expanded:
             self.reveal_source(False)
         self._sync_chevron()
+        self.expanded_changed.emit(self, self._expanded)
 
     def is_expanded(self) -> bool:
         return self._expanded
@@ -946,7 +661,9 @@ class ToolCard(QWidget):
     def to_markdown(self) -> str:
         head = self.line()
         status = ""
-        if self.ok is False:
+        if self.ok is not True and self.ended:
+            status = self.ended
+        elif self.ok is False:
             status = self.tr("failed") + (f": {self.summary}" if self.summary else "")
         elif self.summary and not _EMPTY_SUMMARY_RE.match(self.summary):
             status = self.summary
@@ -964,4 +681,4 @@ class ToolCard(QWidget):
         return "\n".join(parts)
 
 
-__all__ = ["CodeBlock", "PlanCard", "SCRIPT_PREAMBLE", "ToolCard", "ToolGroup", "humanise_tool_name"]
+__all__ = ["CodeBlock", "SCRIPT_PREAMBLE", "ToolCard", "humanise_tool_name"]

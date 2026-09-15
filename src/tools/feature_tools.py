@@ -257,14 +257,36 @@ def _add_features(args: dict) -> dict:
 
 
     if layer.isEditable():
-        if not layer.addFeatures(new_features):
+
+
+
+
+
+
+
+
+        new_fids: list = []
+
+        def _record(fid):
+            new_fids.append(fid)
+
+        layer.featureAdded.connect(_record)
+        try:
+            ok = layer.addFeatures(new_features)
+        finally:
+            layer.featureAdded.disconnect(_record)
+        if not ok:
             return {"_error": "Failed to add features to the open edit session"}
         layer.triggerRepaint()
+        one_per_feature = len(set(new_fids)) == len(new_fids) == len(new_features)
         return {
             "added": len(new_features),
-            "fids": [f.id() for f in new_features],
+            "fids": new_fids if one_per_feature else None,
             "committed": False,
-            "note": "added to the open edit session (not committed, commit or discard it yourself)",
+            "note": (
+                "added to the open edit session (not committed, commit or discard it yourself); "
+                "fids are the edit buffer's temporary ids and change when the session is committed"
+            ),
         }
 
 
@@ -651,8 +673,16 @@ def _select_by_attribute(args: dict) -> dict:
                               "expression without changing the selection."}
 
     layer.selectByExpression(expr_str)
-    return {"selected_count": layer.selectedFeatureCount(), "expression": expr_str,
-            "field_type": "text" if field_is_text else "number"}
+
+
+    field = layer.fields().at(field_index)
+    if field_is_text:
+        field_kind = "text"
+    elif field.isNumeric():
+        field_kind = "number"
+    else:
+        field_kind = str(field.typeName() or "number").lower()
+    return {"selected_count": layer.selectedFeatureCount(), "expression": expr_str, "field_type": field_kind}
 
 
 def _too_many_vertices(too_big, budget) -> str:
@@ -678,16 +708,30 @@ def _select_by_geometry(args: dict) -> dict:
                                    "with a reference layer.")}
         best_fid = None
         best_size = None
+        polygons = geom_type == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
+
+
+
+
+
+        calculator = None
+        if layer.crs().isGeographic():
+            from qgis.core import QgsDistanceArea
+
+            calculator = QgsDistanceArea()
+            calculator.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
+            ellipsoid = str(QgsProject.instance().ellipsoid() or "")
+            calculator.setEllipsoid(ellipsoid if ellipsoid.upper() not in ("", "NONE") else "WGS84")
 
 
         for feat in layer.getFeatures(QgsFeatureRequest().setSubsetOfAttributes([])):
             geom = feat.geometry()
             if geom.isNull():
                 continue
-            if geom_type == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry"):
-                size = geom.area()
+            if calculator is not None:
+                size = calculator.measureArea(geom) if polygons else calculator.measureLength(geom)
             else:
-                size = geom.length()
+                size = geom.area() if polygons else geom.length()
 
             if best_size is None or mode == "largest" and size > best_size or mode == "smallest" and size < best_size:
                 best_size = size
@@ -697,7 +741,16 @@ def _select_by_geometry(args: dict) -> dict:
             return {"_error": "No features with valid geometry found"}
 
         layer.selectByIds([best_fid])
-        return {"selected_count": 1, "mode": mode, "size": best_size}
+        if calculator is not None:
+            units = "square metres" if polygons else "metres"
+        else:
+            try:
+                from qgis.core import QgsUnitTypes
+
+                units = QgsUnitTypes.toString(layer.crs().mapUnits()) + (" squared" if polygons else "")
+            except Exception:  # noqa: BLE001 - the unit name is a courtesy, the selection stands
+                units = "layer CRS units" + (" squared" if polygons else "")
+        return {"selected_count": 1, "mode": mode, "size": best_size, "size_units": units}
 
     ref_name = args.get("reference_layer")
     if not ref_name:

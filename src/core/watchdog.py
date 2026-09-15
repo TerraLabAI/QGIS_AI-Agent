@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import time
 
-from .limits import WATCHDOG_BLOCKED_S, WATCHDOG_TICK_S
+from . import limits
 from .logger import log_warning
 
 
@@ -40,8 +40,8 @@ class MainThreadWatchdog:
 
 
 
-    def __init__(self, describe=None, on_blocked=None, on_tick=None, tick_s: float = WATCHDOG_TICK_S,
-                 blocked_s: float = WATCHDOG_BLOCKED_S):
+    def __init__(self, describe=None, on_blocked=None, on_tick=None, tick_s: float | None = None,
+                 blocked_s: float | None = None):
         self._describe = describe
         self._on_blocked = on_blocked
 
@@ -49,13 +49,32 @@ class MainThreadWatchdog:
 
 
         self._on_tick = on_tick
-        self._tick_s = float(tick_s)
-        self._blocked_s = float(blocked_s)
+
+
+
+        self._tick_given = tick_s
+        self._blocked_given = blocked_s
         self._timer = None
         self._last = time.monotonic()
 
         self.blocked_for: float = 0.0
         self.blocked_by: str = ""
+
+    def _seconds(self, given, name: str) -> float:
+        if given is not None:
+            return float(given)
+        try:
+            return float(limits.current(name))
+        except Exception:  # noqa: BLE001 - a slot never throws into Qt; the shipped number stands
+            return float(getattr(limits, name))
+
+    def tick_s(self) -> float:
+        """How often the timer fires, in seconds: the row's lower number or the shipped one."""
+        return self._seconds(self._tick_given, "WATCHDOG_TICK_S")
+
+    def blocked_s(self) -> float:
+        """The gap that counts as a freeze, in seconds, read the same way."""
+        return self._seconds(self._blocked_given, "WATCHDOG_BLOCKED_S")
 
 
 
@@ -67,7 +86,7 @@ class MainThreadWatchdog:
             from qgis.PyQt.QtCore import QTimer
 
             timer = QTimer()
-            timer.setInterval(int(self._tick_s * 1000))
+            timer.setInterval(int(self.tick_s() * 1000))
             timer.timeout.connect(self.tick)
             timer.start()
         except Exception as exc:  # noqa: BLE001 - no timer means no watchdog, never no plugin
@@ -100,12 +119,22 @@ class MainThreadWatchdog:
         now = time.monotonic() if now is None else float(now)
         gap = now - self._last
         self._last = now
+        timer = self._timer
+        if timer is not None:
+
+
+            try:
+                interval = int(self.tick_s() * 1000)
+                if timer.interval() != interval:
+                    timer.setInterval(interval)
+            except Exception:  # nosec B110 - a timer Qt already tore down keeps its interval
+                pass
         if self._on_tick is not None:
             try:
                 self._on_tick(now)
             except Exception as exc:  # noqa: BLE001 - a slot never throws into Qt
                 log_warning(f"Watchdog tick failed: {exc}")
-        if gap <= self._blocked_s:
+        if gap <= self.blocked_s():
             return gap
         try:
             who = str(self._describe() or "") if self._describe is not None else ""

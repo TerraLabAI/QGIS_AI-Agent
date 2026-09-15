@@ -38,6 +38,7 @@ from qgis.core import (
 
 from ..core import tuning
 from ..core.geometry_budget import VertexBudget
+from ._layers import loaded_feature_count
 from .layer_lookup import _find_layer
 
 
@@ -85,6 +86,16 @@ _PRESERVES_ROWS = frozenset({
     "native:reprojectlayer", "qgis:reprojectlayer", "native:buffer",
     "native:centroids", "native:assignprojection", "native:setzvalue",
     "native:setmvalue", "native:addfieldtoattributestable", "native:renametablefield",
+})
+
+
+
+_NEVER_GROWS = frozenset({
+    "native:clip", "qgis:clip", "native:clipvectorbyextent",
+    "native:extractbylocation", "qgis:extractbylocation",
+    "native:extractbyattribute", "qgis:extractbyattribute",
+    "native:extractbyexpression", "qgis:extractbyexpression",
+    "native:randomextract",
 })
 
 
@@ -145,10 +156,27 @@ def _layer_of(value):
         return value
     if isinstance(value, str):
         try:
+            if "/" in value or "\\" in value or "|" in value:
+                return _layer_reading(value)
             return _find_layer(value)
         except Exception:  # nosec B110 - a parameter that names no layer is not an error here
             return None
     return None
+
+
+def _layer_reading(path: str):
+    """The project layer reading exactly this file (and table), or None."""
+
+
+
+
+
+    from ._layers import _source_key
+
+    wanted = _source_key(path)
+    matches = [layer for layer in QgsProject.instance().mapLayers().values()
+               if _source_key(layer.source()) == wanted]
+    return matches[0] if len(matches) == 1 else None
 
 
 def _input_layer(parameters: dict):
@@ -178,7 +206,9 @@ def _feature_count(layer) -> int | None:
         count = int(layer.featureCount())
     except Exception:
         return None
-    return None if count < 0 else count
+
+
+    return None if count < 0 else loaded_feature_count(layer, count)
 
 
 def _primary_output(outputs: dict) -> tuple[str, dict] | tuple[None, None]:
@@ -362,13 +392,24 @@ def _invalid_geometries(layer) -> dict | None:
     return out
 
 
-def _row_count_note(algorithm_id: str, features_in: int | None, features_out: int | None) -> str | None:
+def _dissolves(algorithm_id: str, parameters: dict | None) -> bool:
+    """A dissolved buffer merges the features it covers, so its row count falls by design."""
+    return (algorithm_id in _algs("preserves_rows", _PRESERVES_ROWS)
+            and str((parameters or {}).get("DISSOLVE")).strip().lower() in ("true", "1"))
+
+
+def _row_count_note(algorithm_id: str, features_in: int | None, features_out: int | None,
+                    parameters: dict | None = None) -> str | None:
     if features_in is None or features_out is None or not features_in:
         return None
     if algorithm_id in _algs("reduces_rows", _REDUCES_ROWS) and features_out > features_in:
         return (f"{algorithm_id.split(':')[-1]} should reduce the row count and it grew: "
                 f"{features_in} in, {features_out} out.")
-    if algorithm_id in _algs("preserves_rows", _PRESERVES_ROWS) and features_out != features_in:
+    if algorithm_id in _algs("never_grows", _NEVER_GROWS) and features_out > features_in:
+        return (f"{algorithm_id.split(':')[-1]} cannot return more features than its input: "
+                f"{features_in} in, {features_out} out.")
+    if (algorithm_id in _algs("preserves_rows", _PRESERVES_ROWS)
+            and not _dissolves(algorithm_id, parameters) and features_out != features_in):
         return (f"{algorithm_id.split(':')[-1]} should keep one row per input feature: "
                 f"{features_in} in, {features_out} out.")
     return None
@@ -627,14 +668,18 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
             checks["field_added_to_output_only"] = True
             warnings.append(in_place)
 
-        note = _row_count_note(algorithm_id, features_in, features_out)
+        note = _row_count_note(algorithm_id, features_in, features_out, parameters)
         if note:
             checks["row_count_reconciled"] = False
             warnings.append(note)
         elif (algorithm_id in _algs("reduces_rows", _REDUCES_ROWS)
-              or algorithm_id in _algs("preserves_rows", _PRESERVES_ROWS)):
+              or algorithm_id in _algs("preserves_rows", _PRESERVES_ROWS)
+              or algorithm_id in _algs("never_grows", _NEVER_GROWS)):
             if features_in is not None and features_out is not None:
-                checks["row_count_reconciled"] = True
+                grew = (algorithm_id in _algs("never_grows", _NEVER_GROWS)
+                        and features_out > features_in)
+                if not _dissolves(algorithm_id, parameters) and not grew:
+                    checks["row_count_reconciled"] = True
 
         if warnings:
             checks["warnings"] = warnings

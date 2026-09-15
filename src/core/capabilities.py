@@ -78,6 +78,7 @@ _GROUPS: tuple[dict[str, Any], ...] = (
             "clear_selection", "open_attribute_table", "evaluate_expression", "validate_expression",
             "raster_sample", "get_raster_band_stats", "check_geometry_validity", "check_topology",
             "measure_distance", "transform_coordinates", "elevation_profile", "delineate_watershed",
+            "extract_stream_network", "create_chart", "map_drainage",
         ),
     },
     {
@@ -103,8 +104,10 @@ _GROUPS: tuple[dict[str, Any], ...] = (
             "execute_processing_batch", "get_processing_providers", "create_processing_model",
             "list_processing_models", "run_model", "get_task_status", "list_tasks", "cancel_task",
             "spatial_join", "zonal_statistics", "map_statistic", "raster_calculator", "create_hillshade",
-            "create_grid_layer", "encode_cells", "decode_cell", "gee_compute_index",
-            "gee_zonal_stats", "execute_code",
+            "terrain_visualisation", "detect_terrain_anomalies", "georeference_raster", "create_grid_layer",
+            "encode_cells",
+            "decode_cell", "gee_compute_index", "gee_zonal_stats", "create_polygon_centerlines",
+            "match_lines_to_roads", "execute_code",
         ),
     },
     {
@@ -116,6 +119,7 @@ _GROUPS: tuple[dict[str, Any], ...] = (
         "members": (
             "set_layer_style", "get_renderer_info", "set_raster_style", "apply_style_qml",
             "save_style_qml", "set_layer_labels", "get_layer_labeling", "set_layer_filter",
+            "set_layer_temporal", "export_animation_frames",
         ),
     },
     {

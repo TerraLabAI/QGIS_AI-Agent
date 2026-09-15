@@ -188,11 +188,9 @@ def check(name: str, args: dict) -> dict:
             "code": limits.CEILING_CODE,
         }
     if area > HARD_MAX_KM2:
+
         return {
             "error": f"Zone too large for one {label} run: {area:.1f} km², the cap is {HARD_MAX_KM2:.0f} km².",
-            "suggestion": ("Propose a smaller zone (under 1 km² for a first test) and ask the user which "
-                           "part of the area matters most. Never split the cap into many runs without "
-                           "an explicit request."),
             "code": limits.CEILING_CODE,
         }
     if area > CONFIRM_KM2:

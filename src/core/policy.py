@@ -16,6 +16,7 @@ import shutil
 import stat
 import time
 import uuid
+import zipfile
 from enum import Enum
 
 
@@ -187,8 +188,15 @@ def _remove_scratch_entry(path: str) -> bool:
     return True
 
 
-def _prune_dir(base: str, max_age_days: float, max_total_bytes: int) -> dict:
+def _prune_dir(base: str, max_age_days: float, max_total_bytes: int,
+               protected: frozenset = frozenset()) -> dict:
     """Remove entries of ``base`` older than ``max_age_days``, then, if what is left still exceeds ``max_total_bytes``, remove the oldest of what."""
+
+
+
+
+
+
 
 
 
@@ -202,7 +210,7 @@ def _prune_dir(base: str, max_age_days: float, max_total_bytes: int) -> dict:
     now = time.time()
     cutoff = now - max_age_days * 86400
 
-    survivors: list[tuple[float, str, int, bool]] = []
+    survivors: list[tuple[float, str, int, bool, bool]] = []
     for name in names:
         path = os.path.join(base, name)
         try:
@@ -210,20 +218,25 @@ def _prune_dir(base: str, max_age_days: float, max_total_bytes: int) -> dict:
         except OSError:
             continue
         size = _dir_bytes(path) if os.path.isdir(path) else os.path.getsize(path)
-        if mtime < cutoff:
+        is_protected = name in protected
+        if mtime < cutoff and not is_protected:
             if _remove_scratch_entry(path):
                 result["removed"] += 1
                 continue
             result["left_open"] += 1
-            survivors.append((mtime, path, size, True))
+            survivors.append((mtime, path, size, True, is_protected))
         else:
-            survivors.append((mtime, path, size, False))
+            survivors.append((mtime, path, size, False, is_protected))
     survivors.sort()
-    total = sum(size for _mtime, _path, size, _tried in survivors)
-    for _mtime, path, size, tried in survivors:
+
+
+    protected_bytes = sum(size for _mtime, _path, size, _tried, is_protected in survivors if is_protected)
+    total = sum(size for _mtime, _path, size, _tried, is_protected in survivors if not is_protected)
+    for _mtime, path, size, tried, is_protected in survivors:
         if total <= max_total_bytes:
             break
-        if tried:
+        if tried or is_protected:
+
 
 
             continue
@@ -233,8 +246,89 @@ def _prune_dir(base: str, max_age_days: float, max_total_bytes: int) -> dict:
         else:
             result["left_open"] += 1
     result["kept"] = len(names) - result["removed"]
-    result["kept_bytes"] = total
+    result["kept_bytes"] = total + protected_bytes
     return result
+
+
+def _recent_project_paths() -> list[str]:
+    """Project files the prune should protect job folders for: the one open right now plus QGIS's own recent-projects list."""
+
+
+
+
+
+
+    paths: list[str] = []
+    try:
+        from qgis.core import QgsProject
+
+        current = QgsProject.instance().fileName()
+        if current:
+            paths.append(current)
+    except Exception:  # noqa: BLE001  # nosec B110 - no live QGIS project (unit tests)
+        pass
+    try:
+        from qgis.core import QgsSettings
+
+        settings = QgsSettings()
+
+
+        settings.beginGroup("UI/recentProjects")
+        try:
+            for key in settings.childGroups():
+                recent = settings.value(f"{key}/path")
+                if recent:
+                    paths.append(str(recent))
+        finally:
+            settings.endGroup()
+    except Exception as exc:  # noqa: BLE001 - no QGIS settings store (unit tests)
+        log(f"Scratch prune: recent projects not read: {exc}")
+    seen: set[str] = set()
+    unique: list[str] = []
+    for path in paths:
+        if path and path not in seen:
+            seen.add(path)
+            unique.append(path)
+    return unique
+
+
+def _read_project_text(path: str) -> str:
+    """A saved project's own text, for a plain substring search -- never a parse, never ``QgsProject.read()``."""
+
+
+
+
+
+    try:
+        if path.lower().endswith(".qgz"):
+            with zipfile.ZipFile(path) as archive:
+                for name in archive.namelist():
+                    if name.lower().endswith(".qgs"):
+                        return archive.read(name).decode("utf-8", errors="ignore")
+            return ""
+        with open(path, encoding="utf-8", errors="ignore") as handle:
+            return handle.read()
+    except Exception as exc:  # noqa: BLE001 - an unreadable project never blocks the prune
+        log_warning(f"Scratch prune: project not read ({path}): {type(exc).__name__}: {exc}")
+        return ""
+
+
+def _referenced_names(base: str, project_texts: list[str]) -> frozenset:
+    """Entries of ``base`` whose name turns up in any of ``project_texts``."""
+
+
+
+
+
+
+
+    if not project_texts:
+        return frozenset()
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return frozenset()
+    return frozenset(name for name in names if any(name in text for text in project_texts))
 
 
 def prune_agent_scratch_dirs(max_age_days: float = PRUNE_MAX_AGE_DAYS,
@@ -252,9 +346,19 @@ def prune_agent_scratch_dirs(max_age_days: float = PRUNE_MAX_AGE_DAYS,
 
 
 
+
+
+
+
+
+
+    project_paths = _recent_project_paths()
+
     def work():
+        project_texts = [text for text in (_read_project_text(p) for p in project_paths) if text]
         for base in _PRUNED_DIRS:
-            counts = _prune_dir(base, max_age_days, max_total_bytes)
+            protected = _referenced_names(base, project_texts)
+            counts = _prune_dir(base, max_age_days, max_total_bytes, protected)
             if counts["removed"] or counts["left_open"]:
                 log(f"Scratch prune ({os.path.basename(base)}): removed {counts['removed']}, "
                     f"kept {counts['kept']} ({counts['kept_bytes'] / 1024 / 1024:.1f} MB), "

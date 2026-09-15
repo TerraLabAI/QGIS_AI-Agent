@@ -780,6 +780,111 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Your own edits</source>
             <translation>Le tue modifiche</translation>
         </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Belongs to a closed project</source>
+            <translation>Appartiene a un progetto chiuso</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Belongs to {name}</source>
+            <translation>Appartiene a {name}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>Undo puts back: {changes}</source>
+            <translation>Annulla ripristina: {changes}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>What this run changed:</source>
+            <translation>Cosa ha modificato questa esecuzione:</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>another project</source>
+            <translation>un altro progetto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>changed without a backup</source>
+            <translation>modificato senza backup</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>earlier project file</source>
+            <translation>file di progetto precedente</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>emptied by a restart</source>
+            <translation>svuotato da un riavvio</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was a temporary layer held in memory, and QGIS has restarted since</source>
+            <translation>era un layer temporaneo mantenuto in memoria, e QGIS è stato riavviato da allora</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was changed in place and no copy was made first</source>
+            <translation>è stato modificato sul posto e non è stata creata prima una copia</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>it was changed while another project was open</source>
+            <translation>è stato modificato mentre era aperto un altro progetto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>new file</source>
+            <translation>nuovo file</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>the project is saved under another file now, and a restore writes only that one</source>
+            <translation>il progetto è ora salvato con un altro file, e un ripristino scrive solo quello</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>the run wrote this file, and a restore deletes no file</source>
+            <translation>l'esecuzione ha scritto questo file, e un ripristino non elimina alcun file</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{change}, not put back: {why}</source>
+            <translation>{change}, non ripristinato: {why}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} added</source>
+            <translation>{name} aggiunto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} changed</source>
+            <translation>{name} modificato</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} removed</source>
+            <translation>{name} rimosso</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name} written</source>
+            <translation>{name} scritto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name}: {before} to {after} features</source>
+            <translation>{name}: da {before} a {after} elementi</translation>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py" />
+            <source>{name}: {fields}</source>
+            <translation>{name}: {fields}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1160,6 +1265,11 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Unexpected response from the server. Please try again.</source>
             <translation>Risposta imprevista dal server. Riprova.</translation>
         </message>
+        <message>
+            <location filename="src/api/account.py" />
+            <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password. Click Sign in to enter it.</source>
+            <translation>Hai effettuato l'accesso su questo computer, ma QGIS non può leggere il tuo accesso finché non inserisci la master password. Fai clic su Accedi per inserirla.</translation>
+        </message>
     </context>
     <context>
         <name>AccountSettingsDialog</name>
@@ -1438,6 +1548,16 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>{n} features</source>
             <translation>{n} elementi</translation>
         </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>denied</source>
+            <translation>negato</translation>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py" />
+            <source>stopped</source>
+            <translation>interrotto</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1686,6 +1806,66 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Reconnected. Checking how the run ended...</source>
             <translation>Riconnesso. Verifico come è terminata l'esecuzione...</translation>
         </message>
+        <message>
+            <location filename="src/core/controller_frames.py" />
+            <source>QGIS stopped responding for a while during this run.</source>
+            <translation>QGIS ha smesso di rispondere per un po' durante questa esecuzione.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_frames.py" />
+            <source>QGIS stopped responding for {n} seconds during this run.</source>
+            <translation>QGIS ha smesso di rispondere per {n} secondi durante questa esecuzione.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>Stopped before the agent answered.</source>
+            <translation>Interrotto prima che l'agente rispondesse.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller.py" />
+            <source>Stopped: QGIS closed during this run.</source>
+            <translation>Interrotto: QGIS si è chiuso durante questa esecuzione.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_account.py" />
+            <source>Stopped: signed out.</source>
+            <translation>Interrotto: disconnesso.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_projects.py" />
+            <source>Stopped: the project this run worked on was closed.</source>
+            <translation>Interrotto: il progetto su cui lavorava questa esecuzione è stato chiuso.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_projects.py" />
+            <source>The AI Agent run stopped because its project was closed.</source>
+            <translation>L'esecuzione di AI Agent si è interrotta perché il suo progetto è stato chiuso.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>The connection to the agent service was lost and did not come back. The run was ended, you can retry it once you are online.</source>
+            <translation>La connessione al servizio agente è stata persa e non è tornata. L'esecuzione è stata terminata, puoi riprovarla quando sarai di nuovo online.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>The message could not be sent. Retry, or reload the plugin if it keeps failing.</source>
+            <translation>Impossibile inviare il messaggio. Riprova, oppure ricarica il plugin se continua a non riuscire.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_runs.py" />
+            <source>This message can no longer be sent again.</source>
+            <translation>Questo messaggio non può più essere inviato di nuovo.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
+            <translation>Questo punto appartiene a un progetto non salvato che è stato chiuso, quindi non può essere ripristinato qui.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>This point belongs to the project {name}. Open that project to go back to it.</source>
+            <translation>Questo punto appartiene al progetto {name}. Apri quel progetto per tornare a esso.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1858,6 +2038,26 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Waiting for your answer...</source>
             <translation>In attesa della tua risposta...</translation>
         </message>
+        <message>
+            <location filename="src/ui/chat_panel_runs.py" />
+            <source>%n runs left</source>
+            <translation>%n esecuzioni rimaste</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_runs.py" />
+            <source>1 run left</source>
+            <translation>1 esecuzione rimasta</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Add a few words: what should the agent do with it?</source>
+            <translation>Aggiungi qualche parola: cosa deve farne l'agente?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Keep working with Pro</source>
+            <translation>Continua a lavorare con Pro</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -1910,6 +2110,11 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/sidebar.py" />
             <source>Upgrade</source>
             <translation>Passa a Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Do more with Pro</source>
+            <translation>Fai di più con Pro</translation>
         </message>
     </context>
     <context>
@@ -2058,6 +2263,46 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>{level} effort needs Pro. Pick Low, or upgrade.</source>
             <translation>L'impegno {level} richiede Pro. Scegli Low oppure esegui l'upgrade.</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Not connected to the agent service. Reconnecting now, your message is kept.</source>
+            <translation>Non connesso al servizio agente. Riconnessione in corso, il tuo messaggio viene conservato.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Pro unlocks {level} effort. Or pick Low.</source>
+            <translation>Pro sblocca l'impegno {level}. Oppure scegli Low.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Send anyway</source>
+            <translation>Invia comunque</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>These attachments are too large to send in one message. Remove {name} or another one.</source>
+            <translation>Questi allegati sono troppo grandi per essere inviati in un unico messaggio. Rimuovi {name} o un altro.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>This message is {n} characters long, over the {cap} one message can carry. Shorten it.</source>
+            <translation>Questo messaggio è lungo {n} caratteri, oltre i {cap} che un messaggio può contenere. Accorcialo.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Unlock this effort level with Pro.</source>
+            <translation>Sblocca questo livello di impegno con Pro.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Unlock with Pro</source>
+            <translation>Sblocca con Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>the largest one</source>
+            <translation>il più grande</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -2070,6 +2315,11 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/composer_input.py" />
             <source>QGIS plugins</source>
             <translation>Plugin QGIS</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer_input.py" />
+            <source>Layers</source>
+            <translation>Layer</translation>
         </message>
     </context>
     <context>
@@ -2529,6 +2779,11 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Pro only: this message runs on Low</source>
             <translation>Solo Pro: questo messaggio viene eseguito su Low</translation>
         </message>
+        <message>
+            <location filename="src/ui/effort_chip.py" />
+            <source>Unlock with Pro</source>
+            <translation>Sblocca con Pro</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2798,6 +3053,11 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>{name}. This layer is no longer in the project.</source>
             <translation>{name}. Questo layer non è più nel progetto.</translation>
         </message>
+        <message>
+            <location filename="src/ui/layer_card.py" />
+            <source>Not in the project</source>
+            <translation>Non nel progetto</translation>
+        </message>
     </context>
     <context>
         <name>LearnCard</name>
@@ -2971,6 +3231,16 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>Denied</source>
             <translation>Negato</translation>
         </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Show all {n} lines</source>
+            <translation>Mostra tutte le {n} righe</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py" />
+            <source>Show fewer lines</source>
+            <translation>Mostra meno righe</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -3041,6 +3311,41 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>What AI Agent may do without asking</source>
             <translation>Cosa può fare AI Agent senza chiedere</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Deletes layers and overwrites files without asking.</source>
+            <translation>Elimina layer e sovrascrive file senza chiedere.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Running code and spending credits still ask first.</source>
+            <translation>L'esecuzione di codice e l'uso di crediti richiedono ancora conferma.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>The next chat starts in Balanced again.</source>
+            <translation>La prossima chat riparte in Bilanciato.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Turn on Autopilot</source>
+            <translation>Attiva Autopilot</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Turn on Autopilot?</source>
+            <translation>Attivare Autopilot?</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>Undo covers the project, not every file on disk.</source>
+            <translation>Annulla copre il progetto, non ogni file sul disco.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/permission_chip.py" />
+            <source>With Pro</source>
+            <translation>Con Pro</translation>
         </message>
     </context>
     <context>
@@ -3191,6 +3496,21 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>You used all {n} runs this month. They come back on {date}.</source>
             <translation>Hai usato tutte le {n} esecuzioni di questo mese. Torneranno il {date}.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Get more runs</source>
+            <translation>Ottieni più esecuzioni</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Keep working with Pro</source>
+            <translation>Continua a lavorare con Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>{n} runs a month, higher effort levels and Autopilot.</source>
+            <translation>{n} esecuzioni al mese, livelli di impegno più alti e Autopilot.</translation>
         </message>
     </context>
     <context>
@@ -4042,6 +4362,151 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
             <translation>Le tue note come file Markdown su questo computer. Riformula o elimina una nota lì e la conversazione successiva la segue.</translation>
         </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Back to defaults, memory notes included. You stay signed in.</source>
+            <translation>Torna ai valori predefiniti, incluse le note di memoria. Rimani connesso.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Check your internet connection, then retry.</source>
+            <translation>Controlla la tua connessione internet, poi riprova.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Could not load your account</source>
+            <translation>Impossibile caricare il tuo account</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Could not reach TerraLab</source>
+            <translation>Impossibile raggiungere TerraLab</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>Do more with Pro</source>
+            <translation>Fai di più con Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Erases your account and its data. All TerraLab plugins stop.</source>
+            <translation>Cancella il tuo account e i suoi dati. Tutti i plugin TerraLab si fermano.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Errors, versions and which features you use, linked to your account. On Pro, only that you used the app and when.</source>
+            <translation>Errori, versioni e quali funzionalità usi, collegati al tuo account. Su Pro, solo che hai usato l'app e quando.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Language, style, permissions, your profile and your memory notes go back to their defaults.</source>
+            <translation>Lingua, stile, permessi, il tuo profilo e le tue note di memoria tornano ai valori predefiniti.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
+            <translation>Ci permette di leggere una chat solo per correggere una risposta sbagliata o un bug.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Never your prompts, layers, coordinates or files.</source>
+            <translation>Mai i tuoi prompt, layer, coordinate o file.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Off on your plan: chats are never read to improve it.</source>
+            <translation>Disattivato sul tuo piano: le chat non vengono mai lette per migliorarlo.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Plus memory, your instructions and higher effort.</source>
+            <translation>Più memoria, le tue istruzioni e un impegno maggiore.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Pro: commercial use and more runs</source>
+            <translation>Pro: uso commerciale e più esecuzioni</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_billing.py" />
+            <source>See what Pro unlocks</source>
+            <translation>Scopri cosa sblocca Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Share usage statistics</source>
+            <translation>Condividi le statistiche di utilizzo</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Sign in first to delete your account.</source>
+            <translation>Accedi prima per eliminare il tuo account.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Sign out, then sign in again.</source>
+            <translation>Esci, poi accedi di nuovo.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>This computer is no longer signed in</source>
+            <translation>Questo computer non ha più effettuato l'accesso</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>To confirm, you type your email address again.</source>
+            <translation>Per confermare, digita di nuovo il tuo indirizzo email.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Try again in a moment.</source>
+            <translation>Riprova tra un momento.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Turn it off any time, with no other effect.</source>
+            <translation>Disattivalo quando vuoi, senza altri effetti.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py" />
+            <source>Unlock with Pro</source>
+            <translation>Sblocca con Pro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Update your payment method to fix it.</source>
+            <translation>Aggiorna il tuo metodo di pagamento per risolverlo.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>What Pro unlocks, on the TerraLab website.</source>
+            <translation>Cosa sblocca Pro, sul sito TerraLab.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>What you write is never read to improve the product, no matter how this switch is set.</source>
+            <translation>Ciò che scrivi non viene mai letto per migliorare il prodotto, indipendentemente da questa impostazione.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Your last payment may have failed</source>
+            <translation>L'ultimo pagamento potrebbe non essere riuscito</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>Your sign-in, your plan and your privacy.</source>
+            <translation>Il tuo accesso, il tuo piano e la tua privacy.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>{left} of {limit} runs left</source>
+            <translation>{left} di {limit} esecuzioni rimaste</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_account.py" />
+            <source>{plan} · Personal, non-commercial use</source>
+            <translation>{plan} · Uso personale, non commerciale</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4208,6 +4673,31 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>Copy the code with the setup lines it needs, ready to paste into the console.</source>
             <translation>Copia il codice con le righe di configurazione necessarie, pronto da incollare nella console.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>denied</source>
+            <translation>negato</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>never finished</source>
+            <translation>mai terminato</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>not run, permission denied</source>
+            <translation>non eseguito, permesso negato</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>stopped</source>
+            <translation>interrotto</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py" />
+            <source>stopped before it finished</source>
+            <translation>interrotto prima di terminare</translation>
         </message>
     </context>
     <context>
@@ -4439,6 +4929,46 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>{n:+d} feature. Click to open it in QGIS.</source>
             <translation>{n:+d} elemento. Fai clic per aprirlo in QGIS.</translation>
         </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Click to select it in the Layers panel.</source>
+            <translation>Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Credit: {credit}</source>
+            <translation>Crediti: {credit}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its CRS changed. Click to select it in the Layers panel.</source>
+            <translation>Il suo SR è cambiato. Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Its file was written on disk. Click to select it in the Layers panel.</source>
+            <translation>Il suo file è stato scritto su disco. Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Licence: {licence}</source>
+            <translation>Licenza: {licence}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>New layer. Click to select it in the Layers panel.</source>
+            <translation>Nuovo layer. Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>{n:+d} feature. Click to select it in the Layers panel.</source>
+            <translation>{n:+d} elemento. Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>{n:+d} features. Click to select it in the Layers panel.</source>
+            <translation>{n:+d} elementi. Fai clic per selezionarlo nel pannello Layer.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -4473,6 +5003,16 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>Something else</source>
             <translation>Qualcos'altro</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Answers itself in %n seconds</source>
+            <translation>Si risponde da sé in %n secondi</translation>
+        </message>
+        <message>
+            <location filename="src/ui/cards_question.py" />
+            <source>Answers itself in 1 second</source>
+            <translation>Si risponde da sé in 1 secondo</translation>
         </message>
     </context>
     <context>
@@ -4563,6 +5103,16 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>The two other TerraLab plugins for QGIS. They install from here.</source>
             <translation>Gli altri due plugin TerraLab per QGIS. Si installano da qui.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/siblings_page.py" />
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Modifica le tue immagini con una singola frase.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/siblings_page.py" />
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Trasforma edifici, alberi o acqua in poligoni.</translation>
         </message>
     </context>
     <context>
@@ -4694,6 +5244,45 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>Stopped</source>
             <translation>Interrotto</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackRow</name>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Bad answer</source>
+            <translation>Risposta negativa</translation>
+        </message>
+        <message>
+            <location filename="src/ui/bubbles.py" />
+            <source>Good answer</source>
+            <translation>Risposta positiva</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FileChip</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>Click to show it in its folder.</source>
+            <translation>Fai clic per mostrarlo nella sua cartella.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_WarningsChip</name>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>%n warnings</source>
+            <translation>%n avvisi</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>1 warning</source>
+            <translation>1 avviso</translation>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py" />
+            <source>What QGIS found when it read the result back. Click to read it.</source>
+            <translation>Cosa ha trovato QGIS rileggendo il risultato. Fai clic per leggerlo.</translation>
         </message>
     </context>
 </TS>

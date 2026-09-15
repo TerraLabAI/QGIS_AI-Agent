@@ -11,7 +11,8 @@ from qgis.utils import iface
 from ..core import ground
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
+from ..core.snapshot import layer_file_path
+from ._widgets import AI_EDIT_KEYS
 from .layer_lookup import _duplicate_layer_names, _find_layer, _geometry_type_name, _layer_not_found_error
 
 
@@ -29,6 +30,18 @@ def _safe_feature_count(layer):
     if str(layer.providerType() or "") in _REMOTE_VECTOR_PROVIDERS:
         return None
     return layer.featureCount()
+
+
+def _layer_kind(layer) -> str:
+    """vector, raster, or what else the layer is (vectortile, pointcloud, mesh)."""
+
+
+
+
+
+    from ..core.context import layer_kind
+
+    return layer_kind(layer)
 
 
 
@@ -94,7 +107,7 @@ def _get_project_context(args: dict) -> dict:
     for lid, layer in all_layers[:limit]:
         info = {
             "name": layer.name(),
-            "type": "vector" if isinstance(layer, QgsVectorLayer) else "raster",
+            "type": _layer_kind(layer),
             "crs": layer.crs().authid(),
         }
         if verbose or layer.name() in ambiguous:
@@ -132,15 +145,19 @@ def _project_integrations() -> dict:
     integrations: dict = {}
     try:
         import qgis.utils
-        for key in AI_SEGMENT_KEYS:
-            plugin = qgis.utils.plugins.get(key)
-            if plugin:
-                model_loaded = hasattr(plugin, "predictor") and plugin.predictor is not None
-                integrations["ai_segmentation"] = {"installed": True, "model_loaded": model_loaded,
-                                                   "ready": model_loaded}
-                break
-        if "ai_segmentation" not in integrations:
+
+        from .integration_tools import aiseg_presence
+        presence = aiseg_presence()
+        plugin = presence["plugin"]
+        if plugin is not None:
+            model_loaded = hasattr(plugin, "predictor") and plugin.predictor is not None
+            integrations["ai_segmentation"] = {"installed": True, "model_loaded": model_loaded,
+                                               "ready": model_loaded}
+        elif presence["state"] == "absent":
             integrations["ai_segmentation"] = {"installed": False, "ready": False}
+        else:
+
+            integrations["ai_segmentation"] = {"installed": True, "ready": False, "state": presence["state"]}
 
         for key in AI_EDIT_KEYS:
             plugin = qgis.utils.plugins.get(key)
@@ -195,7 +212,7 @@ def _list_layers(args: dict) -> dict:
     for lid, layer in all_layers[:limit]:
         info = {
             "name": layer.name(),
-            "type": "vector" if isinstance(layer, QgsVectorLayer) else "raster",
+            "type": _layer_kind(layer),
             "crs": layer.crs().authid(),
         }
         if verbose or layer.name() in ambiguous:
@@ -316,7 +333,7 @@ def _get_layer_info(args: dict) -> dict:
     info = {
         "name": layer.name(),
         "layer_id": layer.id(),
-        "type": "vector" if isinstance(layer, QgsVectorLayer) else "raster",
+        "type": _layer_kind(layer),
         "crs": layer.crs().authid(),
         "extent": {
             "xmin": layer.extent().xMinimum(),
@@ -325,6 +342,11 @@ def _get_layer_info(args: dict) -> dict:
             "ymax": layer.extent().yMaximum(),
         },
     }
+
+
+    source_path = layer_file_path(layer)
+    if source_path:
+        info["source"] = source_path
 
 
 
@@ -421,8 +443,19 @@ def _zoom_to_layer(args: dict) -> dict:
     if not layer:
         return _layer_not_found_error(args["layer_name"])
 
+    import math
+
     canvas = iface.mapCanvas()
     extent = layer.extent()
+
+
+
+    corners = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    if extent.isNull() or not all(math.isfinite(value) for value in corners):
+        return {"_error": (f"Layer {layer.name()!r} has no extent to zoom to: it holds no feature with a "
+                           f"geometry. The view was not moved."),
+                "code": "INVALID_ARGS",
+                "suggestion": "Check feature_count with get_layer_info, or zoom to a layer that has features."}
     layer_crs = layer.crs()
     canvas_crs = canvas.mapSettings().destinationCrs()
     if layer_crs.isValid() and canvas_crs.isValid() and layer_crs != canvas_crs:

@@ -257,9 +257,6 @@ class PrivacyNoticeDialog(QDialog):
 
 
 
-
-
-
                 tr("The message you send is the part that reaches us: we keep it "
                    "90 days to make AI Agent better. On {pro}, no copy at all."),
             ),

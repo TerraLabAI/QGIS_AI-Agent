@@ -35,7 +35,7 @@ table, and the guards fail closed.
 | Ask mode refuses every write at the executor | `src/core/executor.py` |
 | Some tools ask at every level, whatever you approved before | `src/tools/guards.py` `ALWAYS_CONFIRM` |
 | Writes stay inside an allow-list of paths | `src/core/security.py` `validate_path` |
-| Fetches pass one URL guard, redirects re-checked | `src/core/net.py` `check_url` |
+| Fetches pass one URL guard, redirects re-checked | `src/core/net_opener.py` `check_url` |
 | Your activation key never reaches the model or a result | `src/core/log_scrub.py` `scrub_result` |
 | Fetched text is labelled as data, never as instructions | `src/core/serialization.py` `_untrusted_text` |
 | Every run can be undone | `src/core/snapshot.py`, `src/core/checkpoints.py` |

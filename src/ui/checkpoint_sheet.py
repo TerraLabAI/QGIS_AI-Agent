@@ -47,6 +47,8 @@
 
 from __future__ import annotations
 
+import os
+
 from qgis.PyQt.QtCore import QDateTime, QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
@@ -63,7 +65,12 @@ from ..core.checkpoints import (
     KIND_AFTER,
     KIND_EDITS,
     NOT_BACKED_COPY_FAILED,
+    NOT_BACKED_MEMORY_LOST,
+    NOT_BACKED_NEW_FILE,
+    NOT_BACKED_NO_BACKUP,
     NOT_BACKED_NOT_A_FILE,
+    NOT_BACKED_OLD_PROJECT_FILE,
+    NOT_BACKED_OTHER_PROJECT,
     NOT_BACKED_TOO_LARGE,
 )
 from .attach_menu import place_below
@@ -119,6 +126,9 @@ _SHEET_QSS = _POPOVER_QSS + scale_qss_font_px(
     f"QLabel#checkpointRun {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {INK_3};"
     " background: transparent; }"
     f"QLabel#checkpointAsked {{ font-size: {FONT_HINT}px; color: {INK_2};"
+    " background: transparent; }"
+
+    f"QLabel#checkpointChanges {{ font-size: {FONT_HINT}px; color: {INK_3};"
     " background: transparent; }"
 
 
@@ -201,6 +211,47 @@ def group_prompt(entry: dict, tr) -> str:
     return ""
 
 
+def _change_text(row: dict, tr) -> str:
+    """One change of a run's log, in the fewest words that say it."""
+    name = str(row.get("layer") or os.path.basename(str(row.get("file") or "")) or "?")
+    what = row.get("what")
+    if what == "added":
+        return tr("{name} added").format(name=name)
+    if what == "removed":
+        return tr("{name} removed").format(name=name)
+    if what == "features":
+        return tr("{name}: {before} to {after} features").format(
+            name=name, before=_whole(row.get("before")), after=_whole(row.get("after")))
+    if what == "fields":
+        return tr("{name}: {fields}").format(name=name, fields=", ".join(str(f) for f in row.get("fields") or []))
+    if what == "file":
+        return tr("{name} written").format(name=name)
+    return tr("{name} changed").format(name=name)
+
+
+def group_changes(entry: dict, tr) -> tuple[str, str]:
+    """The third line of a group, what Undo to before this run puts back, and a tooltip of every change."""
+
+
+
+
+
+    rows = [row for row in (entry.get("log") or []) if isinstance(row, dict)]
+    if not rows or entry.get("kind") == KIND_EDITS:
+        return "", ""
+    back = list(dict.fromkeys(_change_text(row, tr) for row in rows if row.get("restored")))
+    line = tr("Undo puts back: {changes}").format(changes=", ".join(back)) if back else ""
+    tip = [tr("What this run changed:")]
+    for row in rows:
+        text = _change_text(row, tr)
+        if row.get("restored"):
+            tip.append(f"• {text}")
+        else:
+            why = _long_reason(str(row.get("reason") or ""), tr)
+            tip.append("• " + tr("{change}, not put back: {why}").format(change=text, why=why))
+    return line, "\n".join(tip)
+
+
 def checkpoint_title(entry: dict, tr) -> str:
     """The row's own line: which side of its run this state is."""
 
@@ -229,6 +280,9 @@ def checkpoint_note(entry: dict, tr) -> str:
 
     if not entry.get("available", True):
         return tr("No longer available")
+    if entry.get("other_project"):
+        name = str(entry.get("project") or "")
+        return tr("Belongs to {name}").format(name=name) if name else tr("Belongs to a closed project")
     kind = entry.get("kind")
     if kind == KIND_AFTER:
         changed = _whole(entry.get("changed_layers"))
@@ -249,6 +303,8 @@ def checkpoint_note(entry: dict, tr) -> str:
 
 def checkpoint_tag(entry: dict, tr) -> str:
     """The verb on the right: what a click on this row does, in one word."""
+    if entry.get("other_project"):
+        return ""
     if entry.get("current"):
         return tr("You are here")
     if not entry.get("available", True):
@@ -259,7 +315,7 @@ def checkpoint_tag(entry: dict, tr) -> str:
 def not_restored_items(entry: dict) -> list:
     """The layers a restore of ``entry`` cannot bring back, as the core describes them: ``[{"name", "reason"}]``."""
 
-    if not entry.get("available", True):
+    if not entry.get("available", True) or entry.get("other_project"):
         return []
     items = entry.get("not_backed_up")
     if not isinstance(items, list):
@@ -275,6 +331,16 @@ def _short_reason(reason: str, tr) -> str:
         return tr("not a file")
     if reason == NOT_BACKED_COPY_FAILED:
         return tr("backup failed")
+    if reason == NOT_BACKED_MEMORY_LOST:
+        return tr("emptied by a restart")
+    if reason == NOT_BACKED_NO_BACKUP:
+        return tr("changed without a backup")
+    if reason == NOT_BACKED_NEW_FILE:
+        return tr("new file")
+    if reason == NOT_BACKED_OTHER_PROJECT:
+        return tr("another project")
+    if reason == NOT_BACKED_OLD_PROJECT_FILE:
+        return tr("earlier project file")
     return ""
 
 
@@ -286,6 +352,16 @@ def _long_reason(reason: str, tr) -> str:
         return tr("it lives in a database or a service, not in a file")
     if reason == NOT_BACKED_COPY_FAILED:
         return tr("its backup could not be written")
+    if reason == NOT_BACKED_MEMORY_LOST:
+        return tr("it was a temporary layer held in memory, and QGIS has restarted since")
+    if reason == NOT_BACKED_NO_BACKUP:
+        return tr("it was changed in place and no copy was made first")
+    if reason == NOT_BACKED_NEW_FILE:
+        return tr("the run wrote this file, and a restore deletes no file")
+    if reason == NOT_BACKED_OTHER_PROJECT:
+        return tr("it was changed while another project was open")
+    if reason == NOT_BACKED_OLD_PROJECT_FILE:
+        return tr("the project is saved under another file now, and a restore writes only that one")
     return tr("no backup was made")
 
 
@@ -355,7 +431,8 @@ def _paint_spine(widget, up: bool, down: bool) -> None:
 class _RunCaption(QWidget):
     """A group head: ``Run 2 · 3 min ago`` over what that run was asked."""
 
-    def __init__(self, caption: str, prompt: str, spine: bool = True, parent=None):
+    def __init__(self, caption: str, prompt: str, spine: bool = True, parent=None, changes: str = "",
+                 changes_tip: str = ""):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._full_prompt = _one_line(prompt)
@@ -374,6 +451,16 @@ class _RunCaption(QWidget):
         self._prompt.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._prompt.setVisible(bool(self._full_prompt))
         column.addWidget(self._prompt)
+
+
+        self._full_changes = _one_line(changes)
+        self._changes = QLabel(self)
+        self._changes.setObjectName("checkpointChanges")
+        self._changes.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._changes.setVisible(bool(self._full_changes))
+        if changes_tip:
+            self._changes.setToolTip(changes_tip)
+        column.addWidget(self._changes)
         self._elide()
 
     def set_width_hint(self, width: int) -> None:
@@ -387,6 +474,10 @@ class _RunCaption(QWidget):
             self._prompt.setText(self._prompt.fontMetrics().elidedText(
                 self._full_prompt, Qt.TextElideMode.ElideRight, width))
             self._prompt.setToolTip(self._full_prompt)
+        changes = getattr(self, "_changes", None)
+        if changes is not None and self._full_changes:
+            changes.setText(changes.fontMetrics().elidedText(
+                self._full_changes, Qt.TextElideMode.ElideRight, width))
 
     def resizeEvent(self, event):  # noqa: N802 - Qt override
         super().resizeEvent(event)
@@ -618,9 +709,11 @@ class CheckpointSheet(QFrame):
                    str(entry.get("run_id") or ""))
             if key != group:
                 group = key
+                changes, changes_tip = group_changes(entry, self.tr)
                 self._col.addWidget(_RunCaption(group_caption(entry, self.tr),
                                                 group_prompt(entry, self.tr),
-                                                spine=position > 0, parent=self._host))
+                                                spine=position > 0, parent=self._host,
+                                                changes=changes, changes_tip=changes_tip))
             self._col.addWidget(self._row_for(entry, first=position == 0,
                                               last=position == len(shown) - 1))
         self._col.addStretch(1)
@@ -639,16 +732,18 @@ class CheckpointSheet(QFrame):
         discard = _DiscardRow(self.tr("Discard everything from this chat"),
                               self.tr("Back to the project as it was before the first run") if whole
                               else self.tr("Back to the oldest state still kept"), self)
-        discard.setEnabled(any(e.get("available", True) for e in shown))
+        discard.setEnabled(any(e.get("available", True) and not e.get("other_project") for e in shown))
         discard.clicked.connect(lambda: self._choose(self.discard_all_requested))
         self._outer.addWidget(discard)
         self._discard = discard
         self._rows.append(discard)
 
     def _row_for(self, entry: dict, first: bool, last: bool) -> _CheckpointRow:
-        current = bool(entry.get("current"))
-        available = bool(entry.get("available", True))
+        other = bool(entry.get("other_project"))
+        current = bool(entry.get("current")) and not other
+        available = bool(entry.get("available", True)) and not other
         warning = checkpoint_warning(entry, self.tr)
+
 
 
 

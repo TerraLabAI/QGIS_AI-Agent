@@ -61,6 +61,11 @@ _SHAPES: dict[str, str] = {
     "get_route": "layer",
     "get_isochrone": "layer",
     "delineate_watershed": "layer",
+    "extract_stream_network": "layer",
+    "map_drainage": "layer",
+    "terrain_visualisation": "layer",
+    "detect_terrain_anomalies": "layer",
+    "georeference_raster": "layer",
     "save_layer_to_gpkg": "layer",
     "import_csv": "layer",
     "load_csv": "layer",
@@ -68,6 +73,7 @@ _SHAPES: dict[str, str] = {
     "set_layer_crs": "layer",
     "set_layer_style": "layer",
     "set_layer_labels": "layer",
+    "set_layer_temporal": "layer",
     "add_features": "layer",
     "update_feature_geometry": "layer",
     "select_features": "layer",
@@ -141,39 +147,83 @@ def _refs(args: dict, result: dict) -> tuple[list[str], bool]:
 
 
 def _find(ref: str):
-    """The layer by id, then by exact name."""
+    """The layer by id, then by exact name, and how many layers answer to that name."""
+
+
+
 
     project = _project()
     if project is None or not ref:
-        return None
+        return None, 0
     try:
         layer = project.mapLayer(ref)
         if layer is not None:
-            return layer
+            return layer, 1
         matches = project.mapLayersByName(ref)
     except Exception:  # noqa: BLE001
-        return None
-    return matches[0] if len(matches) == 1 else None
+        return None, 0
+    return (matches[0] if len(matches) == 1 else None), len(matches)
+
+
+def _result_ids(result: dict) -> list[tuple[str, str]]:
+    """(layer id, name) for every layer the result names by id: its own and each entry of the layers it lists (fetch_overture's families, a."""
+
+    entries = [result]
+    for key in ("layers", "outputs"):
+        value = result.get(key)
+        if isinstance(value, list):
+            entries.extend(value)
+        elif isinstance(value, dict):
+            entries.extend(value.values())
+    out: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        lid = _text(entry.get("layer_id"))
+        if lid and lid not in seen:
+            seen.add(lid)
+            out.append((lid, _text(entry.get("layer_name") or entry.get("name")) or lid))
+    return out
 
 
 def _resolve(args: dict, result: dict):
+    """(layer, reference, strong, shared)."""
+
+
+
+    ids = _result_ids(result) if isinstance(result, dict) else []
+    project = _project()
+    if ids and project is not None:
+        for lid, _name in ids:
+            try:
+                layer = project.mapLayer(lid)
+            except Exception:  # noqa: BLE001
+                layer = None
+            if layer is not None:
+                return layer, lid, True, False
+        return None, ids[0][1], True, False
     refs, strong = _refs(args, result)
+    shared = False
     for ref in refs:
-        layer = _find(ref)
+        layer, count = _find(ref)
         if layer is not None:
-            return layer, ref, strong
-    return None, (refs or [""])[0], strong
+            return layer, ref, strong, False
+        shared = shared or count > 1
+    return None, (refs or [""])[0], strong, shared
 
 
 def _feature_count(layer) -> int | None:
-    """The provider's count, or None when it is unknown rather than zero."""
+    """What the layer holds: the stamped true count for a capped remote load (``layer_order.mark_truncated_count``), else the provider's own."""
+
+
+
+
     if not hasattr(layer, "featureCount"):
         return None
-    try:
-        count = int(layer.featureCount())
-    except Exception:  # noqa: BLE001
-        return None
-    return None if count < 0 else count
+    from .layer_order import feature_count_of
+
+    return feature_count_of(layer)
 
 
 def _crs(layer) -> str:
@@ -259,6 +309,27 @@ def _field_name(args: dict, result: dict) -> str:
     return ""
 
 
+def _added_nothing(result: dict) -> bool:
+    """The result itself says no layer came of this call: a zero count and no layer id."""
+
+
+
+
+
+
+
+
+    if _result_ids(result):
+        return False
+    if "layer_name" in result and result["layer_name"] is None:
+        return True
+    for key in ("feature_count", "features"):
+        value = result.get(key)
+        if isinstance(value, int) and not isinstance(value, bool) and value == 0:
+            return True
+    return False
+
+
 def _missing(ref: str) -> dict:
     return {"layer": ref, "present": False,
             "warning": (f"Call list_layers and run the step again: {ref!r} is not in the project after "
@@ -284,9 +355,9 @@ def verify(name: str, args, result) -> dict | None:
 
 
 def _verify(shape: str, args: dict, result: dict) -> dict | None:
-    layer, ref, strong = _resolve(args, result)
+    layer, ref, strong, shared = _resolve(args, result)
     if shape == "removed":
-        if not ref:
+        if not ref or shared:
             return None
         if layer is None:
             return {"layer": ref, "present": False, "removed": True}
@@ -294,7 +365,9 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
                 "warning": (f"Say so instead of reporting it gone: {ref!r} is still in the project after "
                             "remove_layer.")}
     if layer is None:
-        return _missing(ref) if ref and strong else None
+        if not ref or not strong or shared or _added_nothing(result):
+            return None
+        return _missing(ref)
 
     out: dict = {"layer": layer.name(), "present": True}
     crs = _crs(layer)

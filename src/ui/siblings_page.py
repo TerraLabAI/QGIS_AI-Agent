@@ -33,6 +33,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, Qt, pyqtSignal
@@ -58,15 +61,14 @@ from .font_scale import scale_px_length, widget_pixel_ratio
 from .learn_page import Thumbnail, ThumbnailLoader, cached_thumbnail, is_thumbnail_url_usable
 from .logo_tile import logo_pixmap
 from .settings_pages import (
-    ACCENT_BORDER,
     GHOST_BTN_QSS,
     HAIRLINE,
-    LINK_BTN_QSS,
     MUTED,
     PRIMARY_BTN_QSS,
+    TINT_HOVER,
     Page,
 )
-from .style import ACCENT, FONT_BASE, FONT_BODY, FONT_HINT, RADIUS_CARD
+from .style import ACCENT, FONT_BASE, FONT_BODY, FONT_HINT, RADIUS_CARD, SURFACE
 
 
 
@@ -76,8 +78,8 @@ _LOGO_PX = 24
 
 
 
-_CARD_MAX_W = 420
-_CARD_PADDING = 12
+_CARD_MAX_W = 520
+_CARD_PADDING = 14
 
 
 
@@ -88,16 +90,25 @@ _CARD_MIN_W = 300
 _BODY_MARGIN = 24
 _SCROLLBAR_W = 16
 
+
+
+
 _CARD_QSS = (
-    f"QFrame#siblingCard {{ background: transparent; border: 1px solid {HAIRLINE};"
+    f"QFrame#siblingCard {{ background: {SURFACE}; border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#siblingCard:hover {{ border-color: {ACCENT_BORDER}; }}"
     f"QLabel#siblingName {{ font-size: {FONT_BASE + 1}px; font-weight: 600;"
     " color: palette(text); background: transparent; }"
-    f"QLabel#siblingNote {{ font-size: {FONT_BODY}px; color: palette(text);"
+    f"QLabel#siblingNote {{ font-size: {FONT_BODY}px; color: {MUTED};"
     " background: transparent; }"
     f"QLabel#siblingState {{ font-size: {FONT_HINT}px; color: {MUTED};"
     " background: transparent; }"
+)
+
+
+_GUIDE_BTN_QSS = (
+    f"QPushButton {{ background: transparent; color: {MUTED}; border: none;"
+    " border-radius: 8px; padding: 7px 10px; font-size: 12px; }"
+    f"QPushButton:hover {{ color: palette(text); background: {TINT_HOVER}; }}"
 )
 
 
@@ -118,7 +129,7 @@ class SiblingCard(QFrame):
 
         col = QVBoxLayout(self)
         col.setContentsMargins(_CARD_PADDING, _CARD_PADDING, _CARD_PADDING, _CARD_PADDING)
-        col.setSpacing(9)
+        col.setSpacing(10)
 
         logo_path = plugin_logo(str(sibling.get("folder") or ""))
         self._shot = Thumbnail("sparkles", ACCENT, self)
@@ -165,7 +176,7 @@ class SiblingCard(QFrame):
 
 
         guide = QPushButton(self.tr("Read the guide"), self)
-        guide.setStyleSheet(LINK_BTN_QSS)
+        guide.setStyleSheet(_GUIDE_BTN_QSS)
         guide.setCursor(Qt.CursorShape.PointingHandCursor)
         guide.setAutoDefault(False)
         guide.setToolTip(self.tr("The written tutorial, on the TerraLab blog."))
@@ -250,17 +261,11 @@ class SiblingsPage(Page):
         self._cards = [
             SiblingCard(
                 "ai-edit", "AI Edit",
-                self.tr("Repaint the imagery you already have open, from a sentence: a "
-                        "redevelopment before it is built, a street planted with trees, "
-                        "a flood, an orthophoto redrawn as a clean site plan. The result "
-                        "comes back georeferenced, on the source's own extent and CRS."),
+                self.tr("Edit your imagery with a single sentence."),
                 self._host),
             SiblingCard(
                 "ai-segmentation", "AI Segmentation",
-                self.tr("Detect objects in a raster and get them back as real polygons: "
-                        "building footprints, trees, water, solar panels, anything you can "
-                        "point at. Runs on your machine or on our servers, and exports to "
-                        "GeoPackage, Shapefile or GeoJSON."),
+                self.tr("Turn buildings, trees or water into polygons."),
                 self._host),
         ]
         for card in self._cards:
@@ -268,7 +273,17 @@ class SiblingsPage(Page):
             card.tutorial_requested.connect(self._on_tutorial)
         self._columns = 0
         self._reflow(2)
-        self.add(self._host)
+
+
+
+
+        row = QWidget(self)
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(0)
+        line.addWidget(self._host, 1)
+        line.addStretch(0)
+        self.add(row)
 
     def resizeEvent(self, event):  # noqa: N802 - Qt override
         super().resizeEvent(event)
@@ -294,13 +309,12 @@ class SiblingsPage(Page):
 
 
 
-            self._grid.addWidget(card, index // columns, index % columns,
-                                 Qt.AlignmentFlag.AlignLeft)
+
+            self._grid.addWidget(card, index // columns, index % columns)
         for column in range(2):
             self._grid.setColumnStretch(column, 1 if column < columns else 0)
-
-
-        self._grid.setColumnStretch(2, 2)
+        self._host.setMaximumWidth(
+            columns * scale_px_length(_CARD_MAX_W) + (columns - 1) * self._grid.spacing())
 
     def refresh(self) -> None:
         for card in self._cards:

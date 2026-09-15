@@ -71,9 +71,12 @@ SAVED_HINT_QSS = f"font-size: 11px; color: {MUTED}; background: transparent;"
 GROUP_TITLE_QSS = "font-size: 12px; font-weight: 600; color: palette(text); background: transparent;"
 
 
+
+
+
 GROUP_QSS = (
-    "QFrame#settingsGroup { background: transparent;"
-    f" border: 1px solid {HAIRLINE}; border-radius: 10px; }}"
+    f"QFrame#settingsGroup {{ background: {SURFACE};"
+    f" border: 1px solid {LINE}; border-radius: {RADIUS_CARD}px; }}"
     "QFrame#settingsGroup > QFrame#settingsRow { border: none; background: transparent; }"
 )
 
@@ -707,6 +710,13 @@ class Page(QWidget):
 
 
 
+
+USAGE_KEYS = ("runs_used", "runs_limit", "period_end", "reset_date", "is_subscriber", "is_free_tier")
+PROGRESS_QSS = (
+    "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 3px;"
+    " max-height: 6px; min-height: 6px; }"
+    "QProgressBar::chunk { background: palette(text); border-radius: 3px; }"
+)
 
 BILLING_CARD_QSS = (
     f"QFrame#billingCard {{ background: {SURFACE}; border: 1px solid {LINE};"

@@ -33,9 +33,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import locale
 import os
 import re
+
+from .host_platform import retry_file_op
 
 
 
@@ -213,22 +217,55 @@ def _parse(path: str, note_id: str) -> dict | None:
 
 
 def _read(path: str) -> str:
+    """The file as text, "" when it cannot be read."""
+
+
+
+
+
+
+
+
     try:
-        with open(path, encoding="utf-8", errors="replace") as handle:
-            return handle.read(NOTE_FILE_MAX_BYTES)
+        with open(path, "rb") as handle:
+            raw = handle.read(NOTE_FILE_MAX_BYTES)
     except Exception:  # noqa: BLE001 - a missing or unreadable file reads as nothing
         return ""
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return raw.decode(locale.getpreferredencoding(False) or "utf-8", errors="replace")
 
 
 def _write(path: str, body: str) -> None:
+    """Write through a temporary file, raising when the note file cannot be replaced."""
+
+
+
+
+
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as handle:
         handle.write(body)
-    os.replace(tmp, path)
+    try:
+        retry_file_op(os.replace, tmp, path)
+    except OSError:
+        with contextlib.suppress(OSError):
+            os.remove(tmp)
+        raise
 
 
 def _remove(path: str) -> None:
+    """Delete a forgotten note's file, raising when it is still there."""
+
+
+
+
+
+
+
+
     try:
         os.remove(path)
-    except OSError:
-        pass
+    except FileNotFoundError:
+        return

@@ -795,7 +795,7 @@ class EffortPopover(QFrame):
 
 
 
-        self._cta = QPushButton(QCoreApplication.translate("EffortChip", "Upgrade to Pro"), self)
+        self._cta = QPushButton(QCoreApplication.translate("EffortChip", "Unlock with Pro"), self)
         self._cta.setObjectName("effortCta")
         self._cta.setFixedHeight(_CTA_PX)
         self._cta.setCursor(Qt.CursorShape.PointingHandCursor)

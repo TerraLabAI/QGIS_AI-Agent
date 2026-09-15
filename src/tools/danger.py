@@ -33,6 +33,7 @@ DANGER: dict[str, str] = {
     "zoom_to_layer": "write",
     "get_features": "read",
     "run_processing": "write",
+    "create_polygon_centerlines": "write",
     "get_task_status": "read",
     "cancel_task": "write",
     "list_tasks": "read",
@@ -49,6 +50,10 @@ DANGER: dict[str, str] = {
     "list_algorithms": "read",
     "get_algorithm_help": "read",
     "set_layer_labels": "write",
+
+    "set_layer_temporal": "write",
+
+    "export_animation_frames": "write",
     "export_layer": "destructive",
     "add_field": "write",
 
@@ -130,6 +135,8 @@ DANGER: dict[str, str] = {
     "add_wfs_layer": "write",
     "add_vector_from_url": "write",
     "get_route": "write",
+
+    "match_lines_to_roads": "write",
     "measure_distance": "read",
     "inspect_data_source": "read",
     "search_open_data": "read",
@@ -143,6 +150,17 @@ DANGER: dict[str, str] = {
     "package_project": "destructive",
     "get_isochrone": "write",
     "delineate_watershed": "write",
+    "extract_stream_network": "write",
+
+    "map_drainage": "write",
+
+    "terrain_visualisation": "write",
+    "detect_terrain_anomalies": "write",
+
+    "georeference_raster": "write",
+
+
+    "create_chart": "read",
     "elevation_profile": "read",
     "check_topology": "read",
     "geocode_layer": "write",
@@ -233,7 +251,6 @@ DANGER: dict[str, str] = {
 
 
 
-
     "raster_calculator": "write",
     "field_calculator": "write",
     "get_unique_values": "read",
@@ -301,6 +318,7 @@ DANGER: dict[str, str] = {
     "ai_edit": "write",
     "ai_segment": "write",
     "ask_user": "read",
+    "verify_run": "read",
 
 
 
@@ -366,10 +384,12 @@ _OPTIONAL_PATH_ARGS = {
     "zonal_statistics": ("output_path",),
     "spatial_join": ("output_path",),
     "raster_calculator": ("output_path",),
+    "georeference_raster": ("output_path",),
+    "create_chart": ("output_path",),
 }
 
 
-_APPENDS_EXTENSION = {"create_hillshade": ".tif"}
+_APPENDS_EXTENSION = {"create_hillshade": ".tif", "georeference_raster": ".tif", "create_chart": ".png"}
 
 
 
@@ -541,6 +561,10 @@ def effective_danger(name: str, args: dict | None = None) -> str:
         return AI_EDIT_ACTION_DANGER.get(str(args.get("action") or ""), level)
     if name == "ai_segment":
         return AI_SEGMENT_ACTION_DANGER.get(str(args.get("action") or ""), level)
+
+
+    if name == "match_lines_to_roads" and str(args.get("task_id") or "").strip():
+        return "read"
 
 
 

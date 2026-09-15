@@ -24,9 +24,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from . import tuning
 
@@ -38,23 +48,32 @@ NOT_A_TASK = "not_a_task"
 
 
 
+
+
 ENOUGH_CHARS = 40
-MIN_WORDS = 3
-MIN_CHARS = 12
+MIN_WORDS = 1
+MIN_CHARS = 1
 
 
-MIN_WORDS_WITH_CONTEXT = 2
-MIN_CHARS_WITH_CONTEXT = 6
+
+MIN_WORDS_WITH_CONTEXT = 1
+MIN_CHARS_WITH_CONTEXT = 1
 
 _WORD = re.compile(r"[^\W\d_]{2,}", re.UNICODE)
-_VOWELS = set("aeiouyàâäéèêëîïôöùûüœæ")
+_VOWELS = frozenset("aeiouy")
 
 
-_LATIN = re.compile(r"^[A-Za-zÀ-ÿ]+$")
+_LAYOUTS = (
+    ("qwertyuiop", "asdfghjkl", "zxcvbnm"),
+    ("qwertzuiop", "asdfghjkl", "yxcvbnm"),
+    ("azertyuiop", "qsdfghjklm", "wxcvbn"),
+)
 
 
 _UNSPACED = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]")
-MIN_CHARS_UNSPACED = 5
+
+
+MIN_CHARS_UNSPACED = 2
 
 
 def _knob(name: str, shipped: int) -> int:
@@ -74,12 +93,70 @@ def _looks_like_letters_only(text: str) -> bool:
     return len(odd) > len(stripped) // 2
 
 
+def _fold(word: str) -> str:
+    """Lowercase, then drop combining marks: "ą" -> "a", "ü" -> "u"."""
+    folded = unicodedata.normalize("NFD", word.lower())
+    return "".join(ch for ch in folded if unicodedata.category(ch) != "Mn")
+
+
+def _step(first: str, second: str, rows: tuple[str, ...]) -> int:
+    """+1 or -1 when the second key is the next or previous key on the first one's row, else 0."""
+    for row in rows:
+        if first in row and second in row:
+            delta = row.index(second) - row.index(first)
+            return delta if delta in (1, -1) else 0
+    return 0
+
+
+def _walk_segments(word: str, rows: tuple[str, ...]) -> list[int]:
+    """Lengths of the pieces the word splits into, each a slide along one row in one direction."""
+    segments = []
+    length = 1
+    direction = 0
+    for first, second in zip(word, word[1:]):
+        step = _step(first, second, rows)
+        if step and (direction == 0 or step == direction):
+            length += 1
+            direction = step
+        else:
+            segments.append(length)
+            length = 1
+            direction = 0
+    segments.append(length)
+    return segments
+
+
 def _is_gibberish_word(word: str) -> bool:
-    """A long Latin word with no vowel, or one letter hammered five times."""
+    """A mash is one letter hit four times, six letters with no vowel, or a slide along one keyboard row (QWERTY, QWERTZ or AZERTY) in one."""
+
+
+
+
+
+
+
+
+
+
+
     lowered = word.lower()
-    if re.search(r"(.)\1{4,}", lowered):
+    if re.search(r"(.)\1{3,}", lowered):
         return True
-    return bool(len(lowered) >= 6 and _LATIN.match(lowered) and not (set(lowered) & _VOWELS))
+    folded = _fold(lowered)
+    if not re.fullmatch(r"[a-z]+", folded):
+        return False
+    n = len(folded)
+    if n >= 6 and not any(c in _VOWELS for c in folded):
+        return True
+    for rows in _LAYOUTS:
+        segments = _walk_segments(folded, rows)
+        if n >= 6 and len(segments) <= 2 and min(segments) >= 3:
+            return True
+        if n == 5 and len(segments) == 1:
+            return True
+        if n == 4 and len(segments) == 1 and not any(c in rows[0] for c in folded):
+            return True
+    return False
 
 
 def check_prompt(text: str, attachments: int = 0, chips: int = 0, first_message: bool = True) -> str:
@@ -96,6 +173,10 @@ def check_prompt(text: str, attachments: int = 0, chips: int = 0, first_message:
 
     if not words:
 
+
+
+        if not first_message and any(c.isalnum() for c in text) and not _looks_like_letters_only(text):
+            return ""
         return NOT_A_TASK
     if _looks_like_letters_only(text):
         return NOT_A_TASK

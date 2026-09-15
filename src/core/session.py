@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import random
+import time
 from typing import Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
@@ -23,9 +24,15 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 from . import protocol, tuning
 from .logger import log, log_warning
 from .protocol import ProtocolError, ServerErrorCode
-from .ws_client import WsClient
+from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_PING_S, WsClient
+
+
+
+
 
 HEARTBEAT_MS = 30_000
+
+
 
 
 
@@ -50,7 +57,31 @@ CANCEL_RESENDS = 3
 MAX_PENDING_CANCELS = 16
 
 
+
+
+QUIT_FLUSH_MS = 1_000
+
+
 _BAD_FRAME_MILESTONES = frozenset({10, 100, 1_000, 10_000})
+
+
+def socket_clocks() -> dict:
+    """The session's and the transport's clocks in force, in seconds."""
+
+
+
+
+    return tuning.socket_clocks({
+        "heartbeat_s": HEARTBEAT_MS / 1000,
+        "run_heartbeat_s": RUN_HEARTBEAT_MS / 1000,
+        "hello_timeout_s": HELLO_TIMEOUT_MS / 1000,
+        "backoff_min_s": float(BACKOFF_S[0]),
+        "backoff_max_s": float(BACKOFF_S[-1]),
+        "connect_timeout_s": _CONNECT_TIMEOUT_S,
+        "send_timeout_s": _SEND_TIMEOUT_S,
+        "idle_ping_s": IDLE_PING_S,
+        "dead_after_s": DEAD_AFTER_S,
+    })
 
 
 def tr(text: str) -> str:
@@ -121,20 +152,22 @@ class AgentSession(QObject):
         self._ws.frame_received.connect(self._on_frame)
         self._ws.error_occurred.connect(self._on_ws_error)
         self._ws.connect_failed.connect(self._on_ws_failed)
+        self._run_open = False
         self._heartbeat = QTimer(self)
-        self._heartbeat.setInterval(HEARTBEAT_MS)
+        self._heartbeat.setInterval(int(socket_clocks()["heartbeat_s"] * 1000))
         self._heartbeat.timeout.connect(self._on_heartbeat)
         self._reconnect = QTimer(self)
         self._reconnect.setSingleShot(True)
         self._reconnect.timeout.connect(self._reconnect_now)
         self._hello_deadline = QTimer(self)
         self._hello_deadline.setSingleShot(True)
-        self._hello_deadline.setInterval(HELLO_TIMEOUT_MS)
+        self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
         self._hello_deadline.timeout.connect(self._on_hello_timeout)
         self._state = "offline"
         self._session_id: str | None = None
         self._attempt = 0
         self._awaiting_pongs = 0
+        self._beat_at = 0.0
         self._user_closed = True
         self._auth_failed = False
         self._auth_message = ""
@@ -149,6 +182,11 @@ class AgentSession(QObject):
 
         self._pending_cancels: dict[str, int] = {}
         self._bad_frames: dict[str, int] = {}
+
+
+
+        self._last_seq = 0
+        self._replays_dropped = 0
 
 
 
@@ -181,26 +219,69 @@ class AgentSession(QObject):
     def disconnect_from_server(self, wait: bool = False) -> None:
         """Non-blocking."""
 
+
         self._user_closed = True
         self._heartbeat.stop()
         self._hello_deadline.stop()
         self._reconnect.stop()
+        if wait and self._pending_cancels:
+            self._flush_before_close()
         self._pending_cancels.clear()
         self._ws.close(1000, "client closing", wait_ms=1500 if wait else 0)
         self._set_state("offline", "")
 
+    def _flush_before_close(self) -> None:
+        """Give a queued cancel its bounded moment on the wire; a quit never waits longer."""
+        flush = getattr(self._ws, "flush", None)
+        if flush is None or not self._ws.is_open:
+            return
+        started = time.monotonic()
+        try:
+            written = flush(QUIT_FLUSH_MS)
+        except Exception as exc:  # noqa: BLE001 - an unload goes on whatever the socket says
+            log_warning(f"Cancel not written before closing: {exc}")
+            return
+        took = int((time.monotonic() - started) * 1000)
+        if written:
+            log(f"Cancel written before closing ({took} ms)")
+        else:
+            log_warning(f"Closing with a cancel still queued after {took} ms; the server may finish the run")
+
     def forget_session(self) -> None:
         self._session_id = None
+        self._last_seq = 0
 
     def set_run_open(self, open_: bool) -> None:
         """A run is open: ping every 3 s and give the link up after 9 s of silence."""
 
-        interval = RUN_HEARTBEAT_MS if open_ else HEARTBEAT_MS
+        self._run_open = bool(open_)
+        self._apply_heartbeat()
+
+    def _apply_heartbeat(self) -> None:
+        """The heartbeat interval for the run state, from the clocks in force."""
+        clocks = socket_clocks()
+        interval = int((clocks["run_heartbeat_s"] if self._run_open else clocks["heartbeat_s"]) * 1000)
         if interval == self._heartbeat.interval():
             return
         self._heartbeat.setInterval(interval)
         if self._heartbeat.isActive():
             self._heartbeat.start()
+
+    def still_sending(self) -> bool:
+        """True while a frame is still leaving: the writer moved bytes of it within the last run heartbeat, or what it wrote cannot have crossed yet."""
+
+
+
+
+
+        probe = getattr(self._ws, "link_moved_since", None)
+        if probe is None or not self._ws.is_open:
+            return False
+        try:
+            return bool(probe(time.monotonic() - socket_clocks()["run_heartbeat_s"])[1])
+        except Exception as exc:  # noqa: BLE001 - a watchdog must not raise into Qt
+            log_warning(f"Socket activity unreadable: {exc}")
+            return False
 
     def send_user_message(self, run_id: str, thread_id: str, text: str, attachments: list,
                           context: dict, mode: str, approval: str, effort: str = "low") -> bool:
@@ -251,7 +332,10 @@ class AgentSession(QObject):
         self._set_state("connecting", "")
         identity = self._identity_provider()
         headers = {"User-Agent": f"QGIS-AI-Agent/{identity.get('plugin_version', '?')}"}
-        if not self._ws.open(url, headers):
+        clocks = socket_clocks()
+        transport = {name: clocks[name] for name in ("connect_timeout_s", "send_timeout_s", "idle_ping_s",
+                                                     "dead_after_s")}
+        if not self._ws.open(url, headers, clocks=transport):
             log_warning("WebSocket open refused: a connection is already in progress")
         elif self._ws.proxy_label:
             log(f"Connecting through the HTTP proxy {self._ws.proxy_label}")
@@ -292,6 +376,7 @@ class AgentSession(QObject):
             identity = self._identity_provider()
             manifest_hash, manifest = self._manifest_provider()
             include = self._manifest_retry or self._settings.known_manifest_hash != manifest_hash
+            last_seq = self._last_seq if self._session_id else 0
             frame = protocol.hello(
                 activation_key=self._account.activation_key,
                 device_hash=self._account.device_hash,
@@ -304,6 +389,7 @@ class AgentSession(QObject):
                 resume_session_id=self._session_id,
                 telemetry=_telemetry_enabled(),
                 improve=_improve_enabled(),
+                last_seq=last_seq,
             )
         except Exception as exc:  # noqa: BLE001 - a half-open socket is worse than a retry
             log_warning(f"hello could not be built: {exc}")
@@ -312,9 +398,10 @@ class AgentSession(QObject):
         self._last_manifest_hash = manifest_hash
         self._manifest_included = include
         self._resume_asked = bool(self._session_id)
-        log(f"hello sent (manifest {'included' if include else 'by hash'}, "
-            f"{'resume' if self._session_id else 'new'} session)")
+        what = f"resume after seq {last_seq}" if self._session_id else "new"
+        log(f"hello sent (manifest {'included' if include else 'by hash'}, {what} session)")
         self._send(frame)
+        self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
         self._hello_deadline.start()
 
     def _on_hello_timeout(self) -> None:
@@ -327,7 +414,7 @@ class AgentSession(QObject):
 
         if self._state == "online" or self._user_closed:
             return
-        log_warning(f"No session frame within {HELLO_TIMEOUT_MS // 1000}s of hello, reconnecting")
+        log_warning(f"No session frame within {self._hello_deadline.interval() // 1000}s of hello, reconnecting")
         self._ws.close(1000, "no session frame")
 
     def _on_ws_disconnected(self, code: int, reason: str) -> None:
@@ -368,7 +455,9 @@ class AgentSession(QObject):
 
 
 
-        base = BACKOFF_S[min(self._attempt, len(BACKOFF_S) - 1)]
+
+        clocks = socket_clocks()
+        base = min(clocks["backoff_max_s"], clocks["backoff_min_s"] * (2 ** min(self._attempt, 16)))
         delay = base + random.uniform(0.0, 1.0)  # nosec B311 - reconnect jitter is not security relevant
         self._attempt += 1
         self._log_failure(code, reason)
@@ -426,9 +515,29 @@ class AgentSession(QObject):
         if not self._user_closed:
             self._open()
 
+    def _link_moved(self) -> tuple[bool, bool]:
+        """(a frame arrived, bytes are still leaving) since the previous tick."""
+        since, self._beat_at = self._beat_at, time.monotonic()
+        probe = getattr(self._ws, "link_moved_since", None)
+        if probe is None:
+            return False, False
+        try:
+            received, writing = probe(since)
+        except Exception as exc:  # noqa: BLE001 - a heartbeat must not raise into Qt
+            log_warning(f"Socket activity unreadable: {exc}")
+            return False, False
+        return bool(received), bool(writing)
+
     def _on_heartbeat(self) -> None:
         if not self._ws.is_open:
             return
+        received, writing = self._link_moved()
+        if received or writing:
+
+
+            self._awaiting_pongs = 0
+            if writing:
+                return
         if self._awaiting_pongs >= MAX_MISSED_PONGS:
             log_warning("Two pongs missed, closing the socket to reconnect")
             self._heartbeat.stop()
@@ -447,6 +556,9 @@ class AgentSession(QObject):
             frame = protocol.decode(text)
         except ProtocolError as exc:
             self._note_bad_frame("invalid", str(exc))
+            return
+        if self._already_received(frame):
+            self._awaiting_pongs = 0
             return
         kind = frame.get("type")
         handler = getattr(self, f"_on_{kind}", None) if protocol.is_server_type(kind) else None
@@ -477,8 +589,40 @@ class AgentSession(QObject):
         if seen + 1 in _BAD_FRAME_MILESTONES:
             log_warning(f"Frame dropped ({category}): {seen + 1} so far this session")
 
+    def _already_received(self, frame: dict) -> bool:
+        """True for a numbered run frame this session already has."""
+
+
+
+
+
+
+
+
+
+        seq = frame.get("seq")
+        if isinstance(seq, bool) or not isinstance(seq, int) or seq <= 0:
+            return False
+        if seq <= self._last_seq:
+            self._replays_dropped += 1
+            if self._replays_dropped == 1:
+                log(f"Frame seq {seq} ({frame.get('type')}) already received, dropped")
+            return True
+        if self._replays_dropped:
+            log(f"{self._replays_dropped} frame(s) already received were dropped")
+            self._replays_dropped = 0
+        if seq > self._last_seq + 1:
+            log_warning(f"Frames seq {self._last_seq + 1} to {seq - 1} never reached this session")
+        self._last_seq = seq
+        return False
+
     def _on_session(self, frame: dict) -> None:
         self._hello_deadline.stop()
+        if frame.get("resumed") is not True:
+
+
+            self._last_seq = 0
+            self._replays_dropped = 0
 
 
 
@@ -504,6 +648,8 @@ class AgentSession(QObject):
         self._manifest_retry = False
         self._awaiting_pongs = 0
         self._last_failure = None
+        self._beat_at = time.monotonic()
+        self._apply_heartbeat()
         self._heartbeat.start()
         self._model_label = str(frame.get("model_label") or "")
         self._set_state("online", self._model_label)
@@ -527,6 +673,7 @@ class AgentSession(QObject):
 
 
         tuning.apply(frame.get("policy"))
+        self._apply_heartbeat()
 
     def _on_token(self, frame: dict) -> None:
         self.token.emit(str(frame.get("run_id") or ""), str(frame.get("text") or ""))
@@ -555,7 +702,11 @@ class AgentSession(QObject):
 
     def _on_error(self, frame: dict) -> None:
         code = str(frame.get("code") or ServerErrorCode.INTERNAL)
-        if code == ServerErrorCode.AUTH_FAILED:
+
+
+
+
+        if code == ServerErrorCode.AUTH_FAILED and frame.get("retryable") is not True:
             self._auth_failed = True
             self._auth_message = str(frame.get("message") or "")
             self._heartbeat.stop()

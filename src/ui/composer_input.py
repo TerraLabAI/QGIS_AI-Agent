@@ -45,7 +45,7 @@ from qgis.PyQt.QtGui import QFont, QPainter, QTextCharFormat, QTextCursor, QText
 from qgis.PyQt.QtWidgets import QFrame, QPlainTextEdit, QWidget
 
 from .icons import icon_for
-from .mention_search import FILES, LAYER, PLUGIN, SOURCE, layer_rows, sheet_rows
+from .mention_search import FILES, LAYER, PLUGIN, SOURCE, layer_rows, live_mentions, sheet_rows
 from .mention_sheet import MentionSheet, popup_keys
 from .paste_text import clean_pasted_text
 from .style import ACCENT_INK, ACCENT_TINT, RADIUS_CHIP, accent_color, qcolor
@@ -135,6 +135,8 @@ class ComposerInput(QPlainTextEdit):
 
         self._candidates: list | None = None
         self._connector_rows: list | None = None
+
+        self._visible_ids: set | None = None
         self._sheet = MentionSheet(self)
         self._sheet.picked.connect(self._insert_mention)
 
@@ -148,6 +150,7 @@ class ComposerInput(QPlainTextEdit):
         """``provider() -> [{kind, label, value, detail?}]``, asked on every ``@``."""
         self._provider = provider if callable(provider) else None
         self._candidates = None
+        self._visible_ids = None
 
     def set_sheet_anchor(self, widget: QWidget | None) -> None:
         """The widget the sheet opens above: the composer frame."""
@@ -161,6 +164,7 @@ class ComposerInput(QPlainTextEdit):
 
         self._static_items = [dict(i) for i in items or [] if isinstance(i, dict)]
         self._candidates = None
+        self._visible_ids = None
         self._sheet.set_rows(self._static_items)
 
     def sheet(self) -> MentionSheet:
@@ -224,6 +228,12 @@ class ComposerInput(QPlainTextEdit):
         except Exception:  # noqa: BLE001 - optional QGIS context
             return set()
 
+    def _visible_once(self) -> set:
+        """``_visible_layer_ids`` read once per opening of the sheet."""
+        if self._visible_ids is None:
+            self._visible_ids = self._visible_layer_ids()
+        return self._visible_ids
+
     def _refresh_mentions(self, word: str = "") -> None:
         """Ask the provider of the open trigger, then rank for what was typed."""
         if self._candidates is None:
@@ -231,7 +241,7 @@ class ComposerInput(QPlainTextEdit):
                                 else list(self._static_items))
         items = self._candidates
         if self._mode == LAYER:
-            self._sheet.set_rows(layer_rows(word, items, self._visible_layer_ids()))
+            self._sheet.set_rows(layer_rows(word, items, self._visible_once()))
             return
         if self._connector_rows is None:
             self._connector_rows = self._connectors() if self._provider is not None else []
@@ -239,7 +249,9 @@ class ComposerInput(QPlainTextEdit):
 
 
         rows = sheet_rows(word, items, connectors, self._plugin_candidates(),
-                          {"sources": self.tr("Connectors"), "plugins": self.tr("QGIS plugins")})
+                          {"layers": self.tr("Layers"), "sources": self.tr("Connectors"),
+                           "plugins": self.tr("QGIS plugins")},
+                          self._visible_once())
         self._sheet.set_rows(rows)
 
     @staticmethod
@@ -255,6 +267,7 @@ class ComposerInput(QPlainTextEdit):
         self._mode = mode
         self._plugins = None
         self._candidates = None
+        self._visible_ids = None
         self._connector_rows = None
         cursor = self.textCursor()
         cursor.setCharFormat(QTextCharFormat())
@@ -306,6 +319,7 @@ class ComposerInput(QPlainTextEdit):
         self._mode = "@"
         self._plugins = None
         self._candidates = None
+        self._visible_ids = None
         self._connector_rows = None
 
     def _insert_mention(self, data) -> None:
@@ -408,6 +422,32 @@ class ComposerInput(QPlainTextEdit):
             seen.add(key)
             out.append({"kind": kind, "label": label, "value": value})
         return out
+
+    def drop_stale_mentions(self, name_of) -> int:
+        """Turn every layer chip whose layer is gone or renamed back into text."""
+
+
+
+
+
+
+
+        if not self._spans:
+            return 0
+        chips = [{"kind": span[2], "value": span[3], "label": span[4]} for span in self._spans]
+        keep = {(c["kind"], c["value"], c["label"]) for c in live_mentions(chips, name_of)}
+        stale = [span for span in self._spans if (span[2], span[3], span[4]) not in keep]
+        if not stale:
+            return 0
+        cursor = QTextCursor(self.document())
+        for span in stale:
+            cursor.setPosition(span[0])
+            cursor.setPosition(span[1], QTextCursor.MoveMode.KeepAnchor)
+            cursor.setCharFormat(QTextCharFormat())
+        self.setCurrentCharFormat(QTextCharFormat())
+        self._sync_spans()
+        self.viewport().update()
+        return len(stale)
 
     def _sync_spans(self) -> None:
         """Recompute where the chips sit; the painter and ``mentions`` read this."""

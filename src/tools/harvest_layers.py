@@ -35,8 +35,10 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorLayerJoinInfo,
 )
+from qgis.PyQt.QtCore import QDate, QDateTime, QLocale, Qt, QTime
 
 from ..core import layer_order, limits
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import (
     CONTRAST_CLIP_MINMAX,
@@ -639,8 +641,10 @@ def _set_layer_property(args: dict) -> dict:
             layer.setOpacity(opacity)
             applied = opacity
         elif prop == "name":
-            layer.setName(str(value))
-            applied = str(value)
+            from ._layers import take_layer_name
+
+            applied, renamed = take_layer_name(str(value), keep_id=layer.id())
+            layer.setName(applied)
         elif prop == "scale_visibility":
             applied = _to_bool(value)
             layer.setScaleBasedVisibility(applied)
@@ -658,7 +662,10 @@ def _set_layer_property(args: dict) -> dict:
             "opacity, min_scale and max_scale take numbers; scale_visibility takes true or false.",
         )
     _refresh(layer)
-    return {"layer_id": layer.id(), "name": layer.name(), "property": prop, "value": applied}
+    out = {"layer_id": layer.id(), "name": layer.name(), "property": prop, "value": applied}
+    if prop == "name" and renamed:
+        out["renamed_intermediates"] = renamed
+    return out
 
 
 def _set_layer_order(args: dict) -> dict:
@@ -877,6 +884,24 @@ def _delete_field(args: dict) -> dict:
     }
 
 
+def _non_null_count(layer, field: str, limit: int = 500) -> int:
+    """Non-null values of ``field`` over the first ``limit`` features: enough to see a column emptied."""
+    from qgis.core import QgsFeatureRequest
+
+    idx = layer.fields().indexOf(field)
+    if idx < 0:
+        return 0
+    request = QgsFeatureRequest().setLimit(limit).setSubsetOfAttributes([idx])
+    request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    count = 0
+    for feature in layer.getFeatures(request):
+        value = feature.attribute(idx)
+        if value is not None and not (hasattr(value, "isNull") and value.isNull()) \
+                and str(value) != "NULL":
+            count += 1
+    return count
+
+
 def _rename_field(args: dict) -> dict:
     layer, error = _vector(args["layer_name"])
     if error:
@@ -895,6 +920,24 @@ def _rename_field(args: dict) -> dict:
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
             "Commit or roll back with qgis_edit_commit / qgis_edit_rollback first.",
         )
+
+
+
+
+
+    storage = ""
+    try:
+        storage = str(layer.dataProvider().storageType() or "")
+    except Exception:  # noqa: BLE001 - an unknown storage is judged by the counts below
+        storage = ""
+    if "flatgeobuf" in storage.lower() or layer.source().split("|", 1)[0].lower().endswith(".fgb"):
+        return tool_error(
+            f"{layer.name()!r} is a FlatGeobuf file, and renaming a field there empties every value of it.",
+            "INVALID_ARGS",
+            f"Nothing was changed. Run run_processing native:renametablefield with INPUT {layer.id()!r}, "
+            f"FIELD {old_name!r}, NEW_NAME {new_name!r} and output_name {layer.name()!r}.",
+        )
+    before = _non_null_count(layer, old_name)
     if not layer.dataProvider().renameAttributes({idx: new_name}):
         return tool_error(
             f"The provider refused to rename field {old_name!r}.",
@@ -903,6 +946,13 @@ def _rename_field(args: dict) -> dict:
             "export_layer to GeoPackage and retry.",
         )
     layer.updateFields()
+    after = _non_null_count(layer, new_name)
+    if before and not after:
+        return tool_error(
+            f"The provider renamed {old_name!r} to {new_name!r} and lost its values: {before} non-null before, "
+            f"none after.", "EXECUTION_FAILED",
+            "Recreate the layer from its source, then rename with run_processing native:renametablefield.",
+        )
     return {
         "layer_id": layer.id(),
         "name": layer.name(),
@@ -910,6 +960,146 @@ def _rename_field(args: dict) -> dict:
         "new_name": new_name,
         "fields": [f.name() for f in layer.fields()],
     }
+
+
+def _sample_key_values(layer, field: str, limit: int = 5, scan: int = 200) -> list:
+    """Up to ``limit`` distinct, non-null values of ``field`` from the first ``scan`` features."""
+    from qgis.core import QgsFeatureRequest
+
+    idx = layer.fields().indexOf(field)
+    if idx < 0:
+        return []
+    request = QgsFeatureRequest().setLimit(scan).setSubsetOfAttributes([idx])
+    request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    seen: set = set()
+    values: list = []
+    for feature in layer.getFeatures(request):
+        value = feature.attribute(idx)
+        if value is None or (hasattr(value, "isNull") and value.isNull()):
+            continue
+        if repr(value) in seen:
+            continue
+        seen.add(repr(value))
+        values.append(value)
+        if len(values) >= limit:
+            break
+    return values
+
+
+
+
+
+_JOIN_CHECK_MAX_KEYS = 50_000
+
+
+_JOIN_CHECK_REMOTE_ROWS = 500
+_REMOTE_VECTOR_PROVIDERS = ("wfs", "arcgisfeatureserver", "oapif")
+_UNMODELLED_KEY = object()
+
+
+def _shortest_double_precision() -> int:
+    option = enum_member(QLocale, "FloatingPointPrecisionOption", "FloatingPointShortest", -128)
+    return int(getattr(option, "value", option))
+
+
+_SHORTEST_DOUBLE = _shortest_double_precision()
+_ISO_DATE = enum_member(Qt, "DateFormat", "ISODate")
+_ISO_WITH_MS = enum_member(Qt, "DateFormat", "ISODateWithMs")
+
+
+def _is_remote_vector(layer) -> bool:
+    """True for a web-service layer, where uniqueValues downloads every feature."""
+    provider = layer.dataProvider()
+    return provider is not None and provider.name().lower() in _REMOTE_VECTOR_PROVIDERS
+
+
+def _join_key(value):
+    """``QVariant::toString()`` of ``value``, the string QGIS's cached join compares; None for NULL."""
+
+
+
+
+
+
+
+
+    if value is None or (hasattr(value, "isNull") and value.isNull()):
+        return None
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        return QLocale.c().toString(value, "g", _SHORTEST_DOUBLE)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, QDateTime):
+        return value.toString(_ISO_WITH_MS)
+    if isinstance(value, QDate):
+        return value.toString(_ISO_DATE)
+    if isinstance(value, QTime):
+        return value.toString(_ISO_WITH_MS)
+    return _UNMODELLED_KEY
+
+
+def _join_match_count(target, target_field: str, join, join_field: str):
+    """How many distinct ``target_field`` values the join will find in ``join_field``."""
+
+
+
+
+
+
+
+
+    from qgis.core import QgsFeatureRequest
+
+    join_idx = join.fields().indexOf(join_field)
+    if _is_remote_vector(join):
+        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS + 1).setSubsetOfAttributes([join_idx])
+        request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        join_values = [feature.attribute(join_idx) for feature in join.getFeatures(request)]
+        if len(join_values) > _JOIN_CHECK_REMOTE_ROWS:
+            return None
+    else:
+        join_values = join.uniqueValues(join_idx, _JOIN_CHECK_MAX_KEYS + 1)
+        if len(join_values) > _JOIN_CHECK_MAX_KEYS:
+            return None
+    join_keys: set = set()
+    for value in join_values:
+        key = _join_key(value)
+        if key is _UNMODELLED_KEY:
+            return None
+        if key is not None:
+            join_keys.add(key)
+
+    target_idx = target.fields().indexOf(target_field)
+    if _is_remote_vector(target):
+        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS).setSubsetOfAttributes([target_idx])
+        request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        by_repr: dict = {}
+        for feature in target.getFeatures(request):
+            value = feature.attribute(target_idx)
+            by_repr.setdefault(repr(value), value)
+        target_values = list(by_repr.values())
+        complete = False
+    else:
+        target_values = list(target.uniqueValues(target_idx, _JOIN_CHECK_MAX_KEYS + 1))
+        complete = len(target_values) <= _JOIN_CHECK_MAX_KEYS
+        target_values = target_values[:_JOIN_CHECK_MAX_KEYS]
+
+    checked = matched = 0
+    unmatched_keys: list = []
+    for value in sorted(target_values, key=repr):
+        key = _join_key(value)
+        if key is _UNMODELLED_KEY:
+            return None
+        checked += 1
+        if key is not None and key in join_keys:
+            matched += 1
+        elif len(unmatched_keys) < 5:
+            unmatched_keys.append(value)
+    return {"checked": checked, "matched": matched, "unmatched_keys": unmatched_keys, "complete": complete}
 
 
 def _add_table_join(args: dict) -> dict:
@@ -924,6 +1114,25 @@ def _add_table_join(args: dict) -> dict:
         return _field_error(target, target_field)
     if join.fields().indexOf(join_field) < 0:
         return _field_error(join, join_field)
+    target_type = target.fields().field(target.fields().indexOf(target_field)).typeName()
+    join_type = join.fields().field(join.fields().indexOf(join_field)).typeName()
+
+
+
+
+    match = _join_match_count(target, target_field, join, join_field)
+    if match and match["complete"] and match["checked"] and match["matched"] == 0:
+        join_samples = _sample_key_values(join, join_field)
+        return tool_error(
+            f"The join would match none of the {match['checked']} distinct {target_field!r} values "
+            f"({target_type}) on {target.name()!r} against {join_field!r} ({join_type}) on "
+            f"{join.name()!r}, so it was not added.",
+            "JOIN_NO_MATCHES",
+            f"Sample {target_field!r} values: {match['unmatched_keys']!r}. Sample {join_field!r} values: "
+            f"{join_samples!r}. If the types differ, cast one side with add_field/field_calculator "
+            f"(to_string or to_int) and rejoin.",
+        )
+
     before = {f.name() for f in target.fields()}
     info = QgsVectorLayerJoinInfo()
     info.setTargetFieldName(target_field)
@@ -942,7 +1151,8 @@ def _add_table_join(args: dict) -> dict:
         )
     target.updateFields()
     added = [f.name() for f in target.fields() if f.name() not in before]
-    return {
+
+    result = {
         "layer_id": target.id(),
         "name": target.name(),
         "join_layer_id": join.id(),
@@ -950,6 +1160,21 @@ def _add_table_join(args: dict) -> dict:
         "field_count": len(added),
         "count_units": "fields",
     }
+    if match and match["checked"] and match["matched"] / match["checked"] < 0.5:
+        checked, matched = match["checked"], match["matched"]
+        scope = "" if match["complete"] else f" (counted on {checked} of the layer's distinct values)"
+        result["warning"] = (
+            f"Only {matched} of {checked} distinct {target_field!r} values found a match in {join_field!r}"
+            f"{scope} ({target_type} vs {join_type}). Unmatched sample of {target_field!r}: "
+            f"{match['unmatched_keys']!r}."
+        )
+        result["matched"] = matched
+        result["unmatched"] = checked - matched
+        result["match_units"] = "distinct key values"
+        result["unmatched_keys"] = match["unmatched_keys"]
+        result["target_field_type"] = target_type
+        result["join_field_type"] = join_type
+    return result
 
 
 
@@ -1027,40 +1252,38 @@ def _duplicate_layer(args: dict) -> dict:
     layer, error = _layer(args["layer_name"])
     if error:
         return error
-    if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory":
+    if isinstance(layer, QgsVectorLayer):
 
 
 
+
+        from qgis.core import QgsFeatureRequest, QgsMapLayerStyle
 
         count = layer.featureCount()
-
-
         ceiling = min(limits.current("MAX_FEATURES_MATERIALISED"), limits.current("MAX_FEATURES_CREATED"))
         if count is not None and count > ceiling:
             return limits.refusal(
                 f"The layer {layer.name()!r}", f"{count:,} features",
-                f"{ceiling:,} for a copy made in memory",
-                "Save it to a file first with export_layer or save_layer_to_gpkg, which streams, "
-                "then add the file. A copy this size in memory is minutes of frozen QGIS.")
-    clone = layer.clone()
+                f"{ceiling:,} for an independent copy made in memory",
+                "Use export_layer or save_layer_to_gpkg to write a separate file, then add that file.")
+
+
+        clone = layer.materialize(QgsFeatureRequest().setLimit(ceiling + 1))
+        if clone is None or not clone.isValid():
+            return tool_error("QGIS could not create an independent copy.", "EXECUTION_FAILED",
+                              "Export the layer to a separate file and add that file.")
+        if clone.featureCount() > ceiling:
+            return limits.refusal(
+                f"The layer {layer.name()!r}", f"more than {ceiling:,} features",
+                f"{ceiling:,} for an independent copy made in memory",
+                "Export to a separate file instead; no partial copy was added.")
+        style = QgsMapLayerStyle()
+        style.readFromLayer(layer)
+        style.writeToLayer(clone)
+        clone.setMetadata(layer.metadata())
+    else:
+        clone = layer.clone()
     clone.setName(args.get("new_name") or f"{layer.name()} copy")
-    if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory" and clone.featureCount() == 0:
-
-
-
-
-
-
-
-        batch: list = []
-        for feature in layer.getFeatures():
-            batch.append(feature)
-            if len(batch) >= 5_000:
-                clone.dataProvider().addFeatures(batch)
-                batch = []
-        if batch:
-            clone.dataProvider().addFeatures(batch)
-        clone.updateExtents()
     QgsProject.instance().addMapLayer(clone)
     out = {
         "layer_id": clone.id(),
@@ -1072,4 +1295,5 @@ def _duplicate_layer(args: dict) -> dict:
     if isinstance(clone, QgsVectorLayer):
         out["feature_count"] = clone.featureCount()
         out["count_units"] = "features"
+        out["independent_data"] = True
     return out

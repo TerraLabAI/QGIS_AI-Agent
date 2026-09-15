@@ -44,6 +44,7 @@ except Exception:  # pragma: no cover - headless safety
     iface = None
 
 from ..core.policy import ToolPolicyGroup
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry
 
 
@@ -97,6 +98,31 @@ def _require_editable(layer: QgsVectorLayer):
             )
         }
     return None
+
+
+def _set_vertex_and_segment_snapping(config) -> None:
+    """Set vertex + segment snapping across QGIS 3.28 through QGIS 4."""
+
+
+
+
+
+
+
+
+
+    try:
+        flags = (
+            enum_member(QgsSnappingConfig, "SnappingTypes", "VertexFlag")
+            | enum_member(QgsSnappingConfig, "SnappingTypes", "SegmentFlag")
+        )
+        config.setTypeFlag(flags)
+    except (TypeError, AttributeError):
+
+
+
+
+        config.setType(vars(QgsSnappingConfig)["VertexAndSegment"])
 
 
 def _snapshot_aids(proj: QgsProject) -> dict:
@@ -195,10 +221,7 @@ def _edit_begin(args: dict) -> dict:
     cfg = proj.snappingConfig()
     cfg.setEnabled(True)
     cfg.setMode(QgsSnappingConfig.SnappingMode.AllLayers)
-    cfg.setTypeFlag(
-        QgsSnappingConfig.SnappingTypes.VertexFlag
-        | QgsSnappingConfig.SnappingTypes.SegmentFlag
-    )
+    _set_vertex_and_segment_snapping(cfg)
     cfg.setTolerance(float(tol))
     cfg.setUnits(QgsTolerance.UnitType.Pixels)
     proj.setSnappingConfig(cfg)

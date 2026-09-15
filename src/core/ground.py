@@ -23,7 +23,6 @@
 
 
 
-
 from __future__ import annotations
 
 
@@ -139,9 +138,6 @@ def area_expression_error(layer) -> float | None:
 
 
 
-
-
-
     try:
         from qgis.core import (
             QgsDistanceArea,
@@ -203,21 +199,30 @@ def measure_on_ellipsoid(expression, layer) -> str:
 
 
 
-
-
     try:
-        from qgis.core import QgsDistanceArea, QgsProject, QgsUnitTypes
+        from qgis.core import Qgis, QgsDistanceArea, QgsProject, QgsUnitTypes
+
+        from .qt_compat import enum_member
 
         project = QgsProject.instance()
         current = str(project.ellipsoid() or "").strip()
         if current and current.upper() != "NONE":
             return ""
+
+
+
+        area_unit = enum_member(Qgis, "AreaUnit", "SquareMeters", None)
+        if area_unit is None:
+            area_unit = enum_member(QgsUnitTypes, "AreaUnit", "AreaSquareMeters")
+        distance_unit = enum_member(Qgis, "DistanceUnit", "Meters", None)
+        if distance_unit is None:
+            distance_unit = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
         measure = QgsDistanceArea()
         measure.setSourceCrs(layer.crs(), project.transformContext())
         measure.setEllipsoid("WGS84")
         expression.setGeomCalculator(measure)
-        expression.setAreaUnits(QgsUnitTypes.AreaUnit.SquareMeters)
-        expression.setDistanceUnits(QgsUnitTypes.DistanceUnit.Meters)
+        expression.setAreaUnits(area_unit)
+        expression.setDistanceUnits(distance_unit)
     except Exception:  # noqa: BLE001 - a project that measures planar is not an error
         return ""
     return "WGS84"

@@ -25,6 +25,12 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 import json
@@ -279,7 +285,6 @@ class ActivityRow(QWidget):
 
 
 
-
         self._flow.addWidget(self._outcome)
         row.addWidget(self._flow_host, 1)
         self._chevron = Chevron(_CHEVRON_PX, self._head)
@@ -287,12 +292,6 @@ class ActivityRow(QWidget):
         row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignTop)
         self._head.hovered.connect(self._on_hover)
         self._head.clicked.connect(self.toggle)
-
-
-
-        self._opens = is_code_tool(card.name)
-        if not self._opens:
-            self._head.setCursor(Qt.CursorShape.ArrowCursor)
         col.addWidget(self._head)
 
         self._body = QWidget(self)
@@ -301,6 +300,9 @@ class ActivityRow(QWidget):
         self._body_col.setSpacing(0)
         self._body.hide()
         col.addWidget(self._body)
+
+
+        self._opens = False
         self.add(card)
 
 
@@ -312,40 +314,16 @@ class ActivityRow(QWidget):
         card.hide()
         self._body_col.addWidget(card)
         self.cards.append(card)
-        self._wrap(card)
+        card.state_changed.connect(self.refresh)
+        card.expanded_changed.connect(self._on_card_expanded)
         for text, mark in self._subjects(card):
             self._add_chip(text, mark)
         self.refresh()
 
-    def _wrap(self, card: ToolCard) -> None:
-        """The line follows the card: its end and its opening."""
-        row = self
-        original_finish, original_expand, original_repeat, original_unfinished = (
-            card.finish, card.set_expanded, card.add_repeat, card.mark_unfinished)
-
-        def finish(ok, summary, duration_s, detail="", _orig=original_finish):
-            _orig(ok, summary, duration_s, detail)
-            row.refresh()
-
-        def set_expanded(expanded, _orig=original_expand, _card=card):
-            _orig(expanded)
-            _card.setVisible(bool(expanded))
-            row._sync_open()
-
-        def add_repeat(tool_call_id, _orig=original_repeat):
-            _orig(tool_call_id)
-            row.refresh()
-
-        def mark_unfinished(_orig=original_unfinished):
-
-
-            _orig()
-            row.refresh()
-
-        card.finish = finish
-        card.set_expanded = set_expanded
-        card.add_repeat = add_repeat
-        card.mark_unfinished = mark_unfinished
+    def _on_card_expanded(self, card: ToolCard, expanded: bool) -> None:
+        """A call opened or closed: the body shows it, the line follows."""
+        card.setVisible(bool(expanded))
+        self._sync_open()
 
     def _subjects(self, card: ToolCard) -> list:
         """``[(text, mark)]``: what the call touched, in words."""
@@ -412,7 +390,7 @@ class ActivityRow(QWidget):
     def refresh(self) -> None:
         first = self.cards[0]
         last = self.cards[-1]
-        running = any(card.ok is None for card in self.cards)
+        running = any(card.ok is None and not getattr(card, "ended", "") for card in self.cards)
         self._spinner.setVisible(running)
         self._icon.setVisible(not running)
         if running:
@@ -422,27 +400,39 @@ class ActivityRow(QWidget):
         connector = getattr(first, "connector", None) or {}
         label = str(connector.get("name") or "") or str(getattr(first, "_verb", "") or "")
         self._label.setText(label or describe_tool_call(first.name, first.args))
-        failed = not running and last.ok is False
-        self._label.setStyleSheet(_SECOND_QSS if failed else _LABEL_QSS)
+        ended = "" if running else str(getattr(last, "ended", "") or "")
+
+
+        failed = not running and last.ok is False and ended not in ("denied", "stopped")
+        declined = failed or ended in ("denied", "stopped")
+        self._label.setStyleSheet(_SECOND_QSS if declined else _LABEL_QSS)
         colour = first.glyph_colour() if callable(getattr(first, "glyph_colour", None)) \
             else qcolor(INK_2)
-        if failed:
+        if declined:
             self._icon.setPixmap(pixmap_for(self, "dash", GLYPH_PX, qcolor(INK_3)))
         else:
             self._icon.setPixmap(pixmap_for(self, str(first.glyph or "circle"), GLYPH_PX, colour))
+
+
+        self._opens = is_code_tool(first.name) or not running
+        self._head.setCursor(Qt.CursorShape.PointingHandCursor if self._opens else Qt.CursorShape.ArrowCursor)
         n = self.repeats
         self._count.setText(f"× {n}")
         self._count.setVisible(n > 1)
-        self._sync_outcome(running, failed)
+        self._sync_outcome(running, failed, ended)
         line = ", ".join(card.line() for card in self.cards)
         self.setToolTip(line if len(line) > 40 else "")
 
-    def _sync_outcome(self, running: bool, failed: bool) -> None:
+    def _sync_outcome(self, running: bool, failed: bool, ended: str = "") -> None:
         """What the last finished call came back with, after the chips."""
         self._clear_result_chips()
         text = ""
         if failed:
             text = self.tr("did not work")
+        elif ended == "denied":
+            text = self.tr("denied")
+        elif ended == "stopped":
+            text = self.tr("stopped")
         elif not running:
             last = self.cards[-1]
             if is_search_tool(last.name):
@@ -496,6 +486,13 @@ class ActivityRow(QWidget):
 
     def is_open(self) -> bool:
         return self._open
+
+    def failed(self) -> bool:
+        """True when the line's last call did not work."""
+        if not self.cards:
+            return False
+        last = self.cards[-1]
+        return last.ok is False and getattr(last, "ended", "") not in ("denied", "stopped")
 
     def cleanup(self) -> None:
         self._spinner.stop()

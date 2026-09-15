@@ -18,10 +18,13 @@
 
 
 
+
+
 from __future__ import annotations
 
 import difflib
 import json
+import math
 import re
 
 from qgis.PyQt.QtCore import QRect, QSize, Qt, QTimer
@@ -289,6 +292,11 @@ class _Body(QPlainTextEdit):
         self._gutter_font = mono_font(FONT_HINT)
         self._diff = False
         self._lines = 0
+
+        self._line_cap: int | None = _MAX_HIGHLIGHT_LINES
+
+
+        self._visible_lines: int | None = None
         self.setViewportMargins(_GUTTER_PX + 4, _PAD_PX, _PAD_PX, _PAD_PX)
         self.updateRequest.connect(self._scroll_gutter)
 
@@ -304,10 +312,15 @@ class _Body(QPlainTextEdit):
 
 
 
+
         self._diff = diff
         self.clear()
-        overflow = len(lines) - _MAX_HIGHLIGHT_LINES
-        shown = lines[:_MAX_HIGHLIGHT_LINES] if overflow > 0 else lines
+        if self._line_cap is None:
+            overflow = 0
+            shown = lines
+        else:
+            overflow = len(lines) - self._line_cap
+            shown = lines[:self._line_cap] if overflow > 0 else lines
         cursor = QTextCursor(self.document())
         cursor.beginEditBlock()
         for i, item in enumerate(shown):
@@ -344,9 +357,34 @@ class _Body(QPlainTextEdit):
         self._fit_height(len(shown) + (1 if overflow > 0 else 0))
         self._gutter.update()
 
+    def _rendered_line_px(self) -> float:
+        """One laid-out line's height."""
+
+
+
+        height = float(self.blockBoundingRect(self.document().firstBlock()).height())
+        return height if height > 0 else float(self.fontMetrics().lineSpacing())
+
+    def set_visible_lines(self, count: int | None) -> None:
+        """Show at most ``count`` lines at their rendered height; ``None`` returns to the default height."""
+
+        self._visible_lines = None if count is None else max(1, int(count))
+        self._fit_height()
+
     def _fit_height(self, count: int | None = None) -> None:
         if count is not None:
             self._lines = int(count)
+        if self._visible_lines is not None:
+            shown = max(1, min(self._lines, self._visible_lines))
+            extra = 0
+            bar = self.horizontalScrollBar()
+            if bar is not None and bar.maximum() > 0:
+                extra = bar.sizeHint().height()
+
+
+            self.setFixedHeight(
+                int(math.ceil(shown * self._rendered_line_px())) + 1 + 2 * _PAD_PX + extra)
+            return
         line_px = self.fontMetrics().lineSpacing() * _LINE_HEIGHT
         shown = max(1, min(self._lines, _MAX_LINES))
         extra = 0
@@ -376,6 +414,9 @@ class _Body(QPlainTextEdit):
     def paint_gutter(self, event, gutter: QWidget) -> None:
         painter = QPainter(gutter)
         painter.setFont(self._gutter_font)
+
+
+        painter.setClipRect(QRect(0, _PAD_PX, gutter.width(), self.viewport().height()))
         block = self.firstVisibleBlock()
         top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top()) + _PAD_PX
         height = self.fontMetrics().lineSpacing()
@@ -416,7 +457,8 @@ class CodeBlock(QFrame):
     """The card: a head with the name and Copy, the numbered listing under it."""
 
 
-    def __init__(self, code: str = "", name: str = "", language: str = "python", parent=None):
+    def __init__(self, code: str = "", name: str = "", language: str = "python", parent=None,
+                 line_cap: int | None = _MAX_HIGHLIGHT_LINES):
         super().__init__(parent)
         self.setObjectName("codeBlock")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -461,6 +503,7 @@ class CodeBlock(QFrame):
         col.addWidget(self._head)
 
         self._body = _Body(self)
+        self._body._line_cap = line_cap
         col.addWidget(self._body)
         self.set_code(code, name, language)
 
@@ -528,6 +571,12 @@ class CodeBlock(QFrame):
 
     def text(self) -> str:
         return self._text
+
+    def set_visible_lines(self, count: int | None) -> None:
+        """Show at most ``count`` lines at their rendered height, the horizontal scrollbar included, and scroll inside past that."""
+
+
+        self._body.set_visible_lines(count)
 
     @staticmethod
     def _default_name(language: str) -> str:

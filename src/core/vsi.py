@@ -53,7 +53,6 @@ import contextlib
 
 
 
-
 VSICURL_ALLOWED_EXTENSIONS = (".parquet", ".geoparquet", ".fgb", ".gpkg", ".pmtiles", ".tif", ".tiff",
                               ".vrt", ".laz", ".las", ".vpc", "{noext}")
 
@@ -85,6 +84,7 @@ def streamed_in_place(layer) -> bool:
 PERSISTENT_OPTIONS: dict[str, str] = {
 
 
+
     "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
     "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ",".join(VSICURL_ALLOWED_EXTENSIONS),
 
@@ -114,7 +114,6 @@ PERSISTENT_OPTIONS: dict[str, str] = {
 
 
 
-
     "GDAL_HTTP_CONNECTTIMEOUT": "10",
     "GDAL_HTTP_LOW_SPEED_LIMIT": "1000",
     "GDAL_HTTP_LOW_SPEED_TIME": "30",
@@ -123,6 +122,14 @@ PERSISTENT_OPTIONS: dict[str, str] = {
     "VSI_CACHE": "TRUE",
     "VSI_CACHE_SIZE": "25000000",
 }
+
+
+
+
+
+
+
+REMOTE_ONLY_OPTIONS = frozenset({"GDAL_DISABLE_READDIR_ON_OPEN"})
 
 
 
@@ -167,8 +174,6 @@ def _qgis_extra_cas() -> bytes:
 
 def _ca_bundle_with_qgis_extras():
     """Path to a CA file that keeps curl's own roots and adds the company's."""
-
-
 
 
 
@@ -227,8 +232,19 @@ def apply_persistent() -> bool:
         from osgeo import gdal
     except ImportError:
         return False
+    per_path = getattr(gdal, "SetPathSpecificOption", None)
     for key, value in PERSISTENT_OPTIONS.items():
-        gdal.SetConfigOption(key, value)
+        if key in REMOTE_ONLY_OPTIONS and per_path is not None:
+            for prefix in STREAMED_PREFIXES:
+                per_path(prefix, key, value)
+
+
+
+
+            if gdal.GetConfigOption(key) == value:
+                gdal.SetConfigOption(key, None)
+        else:
+            gdal.SetConfigOption(key, value)
     try:
         bundle = _ca_bundle_with_qgis_extras()
     except Exception:  # noqa: BLE001 - a remote read without it beats no remote read

@@ -251,3 +251,28 @@ class ChipRow:
         out = self.chips()
         self._chips = []
         return out
+
+
+def live_layer_chips(chips, name_of) -> list[dict]:
+    """The cards' chips as the project holds their layers now."""
+
+
+
+
+
+
+
+    kept = []
+    for chip in chips or []:
+        if not isinstance(chip, dict):
+            continue
+        if chip.get("kind") != "layer":
+            kept.append(chip)
+            continue
+        try:
+            name = name_of(str(chip.get("value") or ""))
+        except Exception:  # noqa: BLE001 - a lookup that fails is a layer that is gone
+            name = None
+        if name is not None:
+            kept.append({**chip, "label": str(name) or chip.get("label")})
+    return kept

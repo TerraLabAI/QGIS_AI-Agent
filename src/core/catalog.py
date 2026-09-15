@@ -16,6 +16,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -25,7 +28,46 @@ from . import net, security, tuning
 from .logger import log_warning
 
 
+
+
+
+
+
+
+
+
+
 FALLBACK_BASEMAPS: tuple = (
+    {
+        "id": "terralab_basemap",
+        "name": "TerraLab basemap",
+        "kind": "vectortile",
+        "url": "https://aca-terralab-tiles.proudsky-7d379d48.westeurope.azurecontainerapps.io/planet.json",
+        "style": "https://stterralabopendata.blob.core.windows.net/osm/basemap/style/light.json",
+        "attribution": "© OpenStreetMap contributors, Protomaps",
+        "max_zoom": 15,
+        "fallback": "openfreemap_liberty",
+    },
+    {
+        "id": "terralab_satellite",
+        "name": "TerraLab satellite",
+        "url": "https://aca-terralab-tiles.proudsky-7d379d48.westeurope.azurecontainerapps.io"
+               "/satellite-s2-2021/{z}/{x}/{y}.jpg",
+        "attribution": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) "
+                       "processed by ESA WorldCover consortium",
+        "max_zoom": 14,
+        "fallback": "nasa_blue_marble",
+    },
+    {
+        "id": "openfreemap_liberty",
+        "name": "OpenFreeMap Liberty",
+        "kind": "vectortile",
+        "url": "https://tiles.openfreemap.org/planet",
+        "style": "https://tiles.openfreemap.org/styles/liberty",
+        "attribution": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+        "max_zoom": 14,
+        "fallback": "openstreetmap",
+    },
     {
         "id": "openstreetmap",
         "name": "OpenStreetMap",
@@ -33,9 +75,22 @@ FALLBACK_BASEMAPS: tuple = (
         "attribution": "© OpenStreetMap contributors",
         "max_zoom": 19,
     },
+    {
+        "id": "nasa_blue_marble",
+        "name": "NASA Blue Marble",
+        "url": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/default"
+               "/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg",
+        "attribution": "NASA Blue Marble, imagery from NASA's Global Imagery Browse Services (GIBS)",
+        "max_zoom": 8,
+    },
 )
 
 FALLBACK_OVERPASS = "https://overpass-api.de/api/interpreter"
+
+
+
+FALLBACK_OWN_OVERPASS = "https://overpass.terra-lab.ai/api/interpreter"
+FALLBACK_MIRRORS = (FALLBACK_OWN_OVERPASS, FALLBACK_OVERPASS)
 
 FALLBACK_SHELF_CAP = 6
 
@@ -43,10 +98,12 @@ FALLBACK_SHELF_CAP = 6
 _SHELF_CAP_MIN, _SHELF_CAP_MAX = 3, 24
 _MAX_BASEMAPS = 40
 _MAX_MIRRORS = 8
+_MAX_SOURCE_LICENCES = 2000
 
 _basemaps: list = []
 _mirrors: list = []
 _shelves: dict = {}
+_source_licences: list = []
 
 
 def _looks_like_xyz(url: str) -> bool:
@@ -75,23 +132,43 @@ def _clean_basemap(row) -> dict | None:
         return None
     key = str(row.get("id") or "").strip().lower()
     url = str(row.get("url") or "").strip()
-    if not key or not _looks_like_xyz(url) or not _fetchable(url):
+    kind = str(row.get("kind") or "xyz").strip().lower()
+    if not key or kind not in ("xyz", "vectortile") or not _fetchable(url):
+        return None
+
+
+
+    if kind == "xyz" and not _looks_like_xyz(url):
         return None
     try:
         zoom = int(row.get("max_zoom") or 19)
     except (TypeError, ValueError):
         zoom = 19
-    return {
+    clean = {
         "id": key,
         "name": str(row.get("name") or key),
         "url": url,
         "attribution": str(row.get("attribution") or ""),
         "max_zoom": max(1, min(zoom, 24)),
     }
+    if kind == "vectortile":
+        style = str(row.get("style") or "").strip()
+        clean["kind"] = kind
+        clean["style"] = style if style and _fetchable(style) else ""
+    fallback = str(row.get("fallback") or "").strip().lower()
+    if fallback and fallback != key:
+        clean["fallback"] = fallback
+    return clean
 
 
-def set_basemaps(rows) -> None:
+def set_basemaps(rows, authoritative: bool = False) -> None:
     """Keep the presets the server named, and remember them for the next start."""
+
+
+
+
+
+
     global _basemaps
     cleaned = []
     seen = set()
@@ -100,6 +177,14 @@ def set_basemaps(rows) -> None:
         if clean is not None and clean["id"] not in seen:
             seen.add(clean["id"])
             cleaned.append(clean)
+    if not cleaned and authoritative:
+
+        _basemaps = []
+        with contextlib.suppress(Exception):
+            from .settings import Settings
+
+            Settings().known_basemaps = []
+        return
     if not cleaned or cleaned == _basemaps:
         return
     _basemaps = cleaned
@@ -126,9 +211,6 @@ def basemaps() -> dict:
 
 def _mirror_allowed(url: str) -> bool:
     """An https URL the plugin may fetch, on a host someone has stated a rate for."""
-
-
-
 
 
 
@@ -198,11 +280,6 @@ def set_overpass_mirrors(urls) -> None:
 
 
 
-
-
-
-
-
     global _mirrors
     kept = []
     seen = set()
@@ -220,8 +297,8 @@ def set_overpass_mirrors(urls) -> None:
 
 
 def overpass_mirrors() -> list:
-    """Best first. The shipped instance alone until a server has sent a list."""
-    return list(_mirrors) or [FALLBACK_OVERPASS]
+    """Best first. Our own instance, then the reference one, until a server has sent a list."""
+    return list(_mirrors) or list(FALLBACK_MIRRORS)
 
 
 def set_connector_shelves(payload) -> None:
@@ -250,16 +327,97 @@ def shelf_order() -> list:
     return list(_shelves.get("order") or [])
 
 
+def set_source_licences(rows) -> None:
+    """Keep the licence rows the server named: ``[{prefix, layer, licence, attribution}]``."""
+    global _source_licences
+    if not isinstance(rows, list):
+        return
+    cleaned = []
+    for row in rows[:_MAX_SOURCE_LICENCES]:
+        if not isinstance(row, dict):
+            continue
+        prefix = str(row.get("prefix") or "").strip()
+        if prefix.startswith(("http://", "https://")):
+
+
+            if len(prefix) < 10:
+                continue
+        elif not any(prefix.startswith(kind) and len(prefix) > len(kind) for kind in ("stac:", "overture:")):
+
+
+            continue
+        layer = str(row.get("layer") or "").strip()
+        licence = str(row.get("licence") or "").strip()[:300]
+        attribution = str(row.get("attribution") or "").strip()[:500]
+        if not licence and not attribution:
+            continue
+        cleaned.append({"prefix": prefix, "layer": layer, "licence": licence, "attribution": attribution})
+
+
+
+    _source_licences = cleaned
+
+
+def theme_licence(key: str) -> dict | None:
+    """The row served under exactly *key* (``overture:<theme>``): ``{licence, attribution}`` or None."""
+
+
+
+
+    for row in _source_licences:
+        if row["prefix"] == key:
+            return {"licence": row["licence"], "attribution": row["attribution"]}
+    return None
+
+
+def source_licence(url: str, layer: str = "") -> dict | None:
+    """The licence row for a source address: ``{licence, attribution}`` or None."""
+    url = str(url or "").strip()
+    if url.startswith("/vsicurl/"):
+        url = url[len("/vsicurl/"):]
+    if not url:
+        return None
+    names = {part.strip().lower() for part in str(layer or "").split(",") if part.strip()}
+    best = None
+    best_key = (-1, -1)
+    for row in _source_licences:
+        prefix = row["prefix"]
+        if not url.startswith(prefix):
+            continue
+        row_layer = row["layer"].strip().lower()
+        if row_layer and row_layer not in names:
+            continue
+
+
+        key = (1 if row_layer else 0, len(prefix))
+        if key > best_key:
+            best_key, best = key, row
+    if best is None:
+        return None
+    return {"licence": best["licence"], "attribution": best["attribution"]}
+
+
 def apply_session(session: dict) -> None:
-    """Read the three lists out of a session frame. Absent fields change nothing."""
+    """Read the served lists out of a session frame."""
+
+
+
+
+
+
+
     if not isinstance(session, dict):
         return
     rows = session.get("basemaps")
-    if isinstance(rows, list) and rows:
-        set_basemaps(rows)
+    reset = session.get("basemaps_reset") is True
+    if isinstance(rows, list) and (rows or reset):
+        set_basemaps(rows, authoritative=reset)
     mirrors = session.get("overpass_mirrors")
     if isinstance(mirrors, list) and mirrors:
         set_overpass_mirrors(mirrors)
     shelves = session.get("connector_shelves")
     if isinstance(shelves, dict) and shelves:
         set_connector_shelves(shelves)
+    licences = session.get("source_licences")
+    if isinstance(licences, list):
+        set_source_licences(licences)

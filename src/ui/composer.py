@@ -23,6 +23,7 @@
 
 
 
+
 from __future__ import annotations
 
 import os
@@ -40,11 +41,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, mime_has_layers
+from ..core import limits
+from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
 from .attach_menu import AttachPopover
 from .attachments import (
-    ATTACHMENT_BUDGET_BYTES,
     MAX_ATTACHMENTS,
     AttachmentTag,
     any_filter,
@@ -57,7 +58,7 @@ from .composer_input import ComposerInput
 from .effort_chip import EffortChip, effort_texts
 from .icons import icon_for, paper_of
 from .layer_card import LayerCard
-from .layer_icons import resolve_layer
+from .layer_icons import layer_name, resolve_layer
 from .library import ExamplesDialog
 from .permission_chip import PermissionChip
 from .shared import exec_dialog
@@ -167,6 +168,8 @@ class Composer(QFrame):
     upgrade_requested = pyqtSignal()
     example_chosen = pyqtSignal(str)
 
+    reconnect_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("composer")
@@ -267,6 +270,9 @@ class Composer(QFrame):
         self._hint.setStyleSheet(_HINT_QSS)
         self._hint.setWordWrap(True)
         self._hint.setContentsMargins(2, 0, 0, 0)
+        self._hint.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
+        self._hint.setOpenExternalLinks(False)
+        self._hint.linkActivated.connect(self._on_send_anyway)
         self._hint.hide()
         col.addWidget(self._hint)
         col.addLayout(row)
@@ -454,7 +460,7 @@ class Composer(QFrame):
         elif self._effort_locked and not self._blocked:
             names = {e: n for e, n, _note in effort_texts(self._effort_chip)}
             level = names.get(self._effort_chip.chosen(), "")
-            line = self.tr("{level} effort needs Pro. Pick Low, or upgrade.")
+            line = self.tr("Pro unlocks {level} effort. Or pick Low.")
             self._input.setPlaceholderText(line.format(level=level))
         else:
             self._input.setPlaceholderText(self._placeholder)
@@ -471,13 +477,19 @@ class Composer(QFrame):
         self._hint.show()
         self._hint_timer.start(_HINT_MS)
 
-    def show_warning(self, text: str) -> None:
+    def show_warning(self, text: str, *, offer_send_anyway: bool = False) -> None:
         """The same line in amber, for a message the box would not send."""
+
+
 
         if not text:
             return
         self._hint.setStyleSheet(_HINT_WARN_QSS)
-        self._hint.setText(text)
+        if offer_send_anyway:
+            link = self.tr("Send anyway")
+            self._hint.setText(f'{text} <a href="send-anyway">{link}</a>')
+        else:
+            self._hint.setText(text)
         self._hint.show()
         self._hint_timer.start(_HINT_WARN_MS)
         self._input.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -584,7 +596,8 @@ class Composer(QFrame):
 
         sized = [(len(str(item.get("data_base64") or "")), item)
                  for item in (wire_shape(x) for x in self._items)]
-        if sum(size for size, _ in sized) <= ATTACHMENT_BUDGET_BYTES:
+
+        if sum(size for size, _ in sized) <= limits.current("ATTACHMENTS_TOTAL_BYTES"):
             return None
         return max(sized, key=lambda pair: pair[0])[1]
 
@@ -708,7 +721,9 @@ class Composer(QFrame):
 
 
 
-        out = self._chips.chips()
+
+
+        out = live_layer_chips(self._chips.chips(), layer_name)
         seen = {ChipRow.key(chip) for chip in out}
         for chip in self._input.mentions():
             if ChipRow.key(chip) not in seen:
@@ -778,6 +793,8 @@ class Composer(QFrame):
 
 
 
+
+        self._input.drop_stale_mentions(layer_name)
         chips = self.chips()
         self.clear_chips()
         return chips
@@ -845,8 +862,8 @@ class Composer(QFrame):
 
 
             self._send_btn.setIcon(icon_for(self._send_btn, "lock", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
-            self._send_btn.setToolTip(self.tr("This effort comes with Pro. See the plans."))
-            self._send_btn.setAccessibleName(self.tr("Upgrade to Pro"))
+            self._send_btn.setToolTip(self.tr("Unlock this effort level with Pro."))
+            self._send_btn.setAccessibleName(self.tr("Unlock with Pro"))
         else:
             self._send_btn.setIcon(
                 icon_for(self._send_btn, "arrow_up", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
@@ -858,7 +875,11 @@ class Composer(QFrame):
         if self._running:
             self._send_btn.setEnabled(True)
             return
-        if self._blocked or self._offline:
+
+
+
+
+        if self._blocked:
             self._send_btn.setEnabled(False)
             return
         if self._effort_locked:
@@ -867,7 +888,16 @@ class Composer(QFrame):
         self._send_btn.setEnabled(bool(self.text().strip()) or bool(self._items))
 
     def _on_submit(self) -> None:
-        if self._running or self._blocked or self._offline:
+        self._submit(check_quality=True)
+
+    def _submit(self, *, check_quality: bool) -> None:
+        if self._running or self._blocked:
+            return
+        if self._offline and not self._effort_locked:
+            if self.text().strip() or self._items:
+                self.show_warning(self.tr("Not connected to the agent service. Reconnecting now, "
+                                          "your message is kept."))
+                self.reconnect_requested.emit()
             return
         if self._effort_locked:
             self.upgrade_requested.emit()
@@ -876,12 +906,23 @@ class Composer(QFrame):
             return
 
 
+        self._input.drop_stale_mentions(layer_name)
 
 
-        reason = check_prompt(self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat)
-        if reason:
-            self.show_warning(self._refusal(reason))
+
+        too_large = self._too_large()
+        if too_large:
+            self.show_warning(too_large)
             return
+        if check_quality:
+
+
+
+
+            reason = check_prompt(self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat)
+            if reason:
+                self.show_warning(self._refusal(reason), offer_send_anyway=True)
+                return
 
 
         self._last_sent = self.text()
@@ -894,6 +935,34 @@ class Composer(QFrame):
         if self._input.isReadOnly() or self._blocked or not self._last_sent:
             return
         self.set_text(self._last_sent)
+
+    def _on_send_anyway(self, href: str) -> None:
+        """The link on a refusal warning sends what is in the box past the gate's judgement only; offline and the effort lock still stop it exactly as."""
+
+
+
+
+        if href != "send-anyway":
+            return
+        self._clear_warning()
+        self._submit(check_quality=False)
+
+    def _too_large(self) -> str:
+        """Why the box cannot leave as one message, or "" when it fits."""
+
+
+
+
+        cap = int(limits.current("PROMPT_MAX_CHARS"))
+        length = len(self.text().strip())
+        if length > cap:
+            return self.tr("This message is {n} characters long, over the {cap} one message can carry. "
+                           "Shorten it.").format(n=f"{length:,}", cap=f"{cap:,}")
+        heaviest = self.attachments_over_budget()
+        if heaviest is not None:
+            return self.tr("These attachments are too large to send in one message. Remove {name} "
+                           "or another one.").format(name=heaviest.get("name") or self.tr("the largest one"))
+        return ""
 
     def _refusal(self, reason: str) -> str:
         if reason == NOT_A_TASK:

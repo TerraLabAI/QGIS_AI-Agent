@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import uuid
 
 import processing
 from qgis.core import (
@@ -46,14 +47,13 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QPointF
 
-from ..core import limits
+from ..core import layer_order, limits
 from ..core.logger import log, log_warning
 from ..core.security import expand_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .core_tools import _process_outputs, _run_processing
 from .data_tools import _avoid_reserved_name
 from .harvest_project import qgis_enum
-
 
 
 
@@ -470,9 +470,15 @@ def _execute_processing_batch(args: dict) -> dict:
     except _SpecError as e:
         return tool_error(str(e), "INVALID_ARGS", "list_algorithms finds the exact id.")
     parameters_list = args["parameters_list"]
+    from .processing_tools import _threadable
+
+    alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
+    if _threadable(alg):
+        return _BatchRun(alg, algorithm_id, parameters_list, args.get("timeout")).start()
 
 
-    budget = min(float(args.get("timeout") or _BATCH_TIMEOUT), limits.CALL_MAX_SECONDS_MAIN)
+    ceiling = limits.current("CALL_MAX_SECONDS_MAIN")
+    budget = min(float(args.get("timeout") or ceiling), ceiling)
     deadline = time.monotonic() + budget
 
     results = []
@@ -523,6 +529,256 @@ def _execute_processing_batch(args: dict) -> dict:
     if advice:
         response["suggestion"] = " ".join(advice)
     return response
+
+
+class _BatchRun:
+    """execute_processing_batch over an algorithm that may leave the main thread."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, alg, algorithm_id: str, parameters_list: list, timeout=None):
+        from .processing_tools import _destination_names
+
+        self.alg = alg
+        self.outputs = _destination_names(alg)
+        self.algorithm_id = algorithm_id
+        self.pending = list(enumerate(parameters_list))
+        self.count = len(self.pending)
+        self.results: list[dict] = []
+
+        self.running: dict[str, tuple] = {}
+        self.width = max(1, int(limits.current("PROCESSING_BATCH_PARALLEL")))
+        self._advancing = False
+        self._again = False
+        self.timed_out = False
+
+
+        self.budget = float(timeout) if timeout else None
+        self.deadline = time.monotonic() + self.budget if self.budget else None
+
+
+        self.run_token = layer_order.current_run()
+        self.task_id = "batch-" + uuid.uuid4().hex[:12]
+        self.entry = {"status": "running", "progress": 0, "algorithm": algorithm_id,
+                      "started_at": time.strftime("%H:%M:%S"), "sequence": self}
+
+    def start(self) -> dict:
+        from .processing_tools import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
+
+        _sweep_consumed_tasks()
+        _PROCESSING_TASKS[self.task_id] = self.entry
+        self.advance()
+        if self.entry["status"] != "running":
+
+            _PROCESSING_TASKS.pop(self.task_id, None)
+            return self.report()
+        return {**self.report(), "task_id": self.task_id, "status": "running",
+                "note": f"The runs go in the background, up to {self.width} at a time, and QGIS stays "
+                        "responsive. Poll get_task_status(task_id).",
+                "poll": {"tool": "get_task_status", "args": {"task_id": self.task_id},
+                         "interval_s": _POLL_INTERVAL_S,
+                         "label": f"Running {self.algorithm_id}, {self.count} runs"}}
+
+    def report(self) -> dict:
+        """The batch as execute_processing_batch has always answered it, for the runs settled so far."""
+        results = sorted(self.results, key=lambda r: r["index"])
+        out = {"algorithm": self.algorithm_id, "results": results, "count": self.count,
+               "succeeded": sum(1 for r in results if r["status"] == "success")}
+        if self.timed_out:
+            out["timed_out"] = True
+            out["suggestion"] = "Raise timeout or split parameters_list; the completed runs are kept."
+        return out
+
+    def advance(self) -> None:
+        """Settle the entries whose task is over, then start every entry there is room for."""
+        from .processing_tools import _PROCESSING_TASKS
+
+        if self._advancing:
+
+
+            self._again = True
+            return
+        self._advancing = True
+        try:
+
+            while self.entry["status"] == "running" and _PROCESSING_TASKS.get(self.task_id) is self.entry:
+                self._again = False
+                moved = self._settle() + self._fill()
+                if not self.pending and not self.running:
+                    self.entry.update(status="complete", progress=100)
+                    return
+                if not moved and not self._again:
+                    settled = len(self.results) + sum(
+                        (_PROCESSING_TASKS.get(tid) or {}).get("progress", 0) / 100 for tid in self.running)
+                    self.entry["progress"] = int(100 * settled / self.count)
+                    return
+        finally:
+            self._advancing = False
+
+    def _settle(self) -> int:
+        """Record every running entry whose task is over; returns how many."""
+        from .processing_tools import _PROCESSING_TASKS, _sync_with_qgis
+
+        settled = 0
+        for task_id in list(self.running):
+            _sync_with_qgis(task_id)
+            child = _PROCESSING_TASKS.get(task_id) or {}
+            if child.get("status") == "running" or task_id not in self.running:
+                continue
+            index, started, _writes, _reads = self.running.pop(task_id)
+            child.update(_consumed=True, _consumed_at=time.time())
+            self.results.append(self._line(index, started, child))
+            settled += 1
+        return settled
+
+    def _fill(self) -> int:
+        """Start waiting entries in list order while fewer than ``width`` run; returns how many left the queue."""
+
+
+
+
+        writes_busy, reads_busy = set(), set()
+        for _index, _started, writes, reads in self.running.values():
+            writes_busy |= writes
+            reads_busy |= reads
+        left = position = 0
+        while position < len(self.pending) and len(self.running) < self.width and self.entry["status"] == "running":
+            index, parameters = self.pending[position]
+            writes, reads = self._files(parameters)
+            if writes & (writes_busy | reads_busy) or reads & writes_busy:
+                writes_busy |= writes
+                reads_busy |= reads
+                position += 1
+                continue
+            del self.pending[position]
+            left += 1
+            if self._start(index, parameters, writes, reads):
+                writes_busy |= writes
+                reads_busy |= reads
+        return left
+
+    def _files(self, parameters) -> tuple[set, set]:
+        """(files the entry writes, files it reads), each a normalised path, a GeoPackage table as its file."""
+        from .processing_tools import _find_layer, _gpkg_table_target, _output_names
+
+        writes: set = set()
+        reads: set = set()
+        if not isinstance(parameters, dict):
+            return writes, reads
+        named, _renamed, _refusal = _output_names(self.alg, parameters, self.algorithm_id)
+        for key, value in named.items():
+            for item in (value if isinstance(value, (list, tuple)) else [value]):
+                if not isinstance(item, str) or not item.strip() or item == "TEMPORARY_OUTPUT" \
+                        or item.startswith("memory:"):
+                    continue
+                target = item
+                if key not in self.outputs:
+
+
+                    is_path = "/" in item or "\\" in item or "|" in item or item.startswith("~")
+                    layer = None if is_path else _find_layer(item)
+                    if layer is not None:
+                        target = layer.source() or ""
+                    elif not is_path:
+                        continue
+                table = _gpkg_table_target(target)
+                path = (table[0] if table else target.split("|", 1)[0]).strip()
+                if path:
+                    (writes if key in self.outputs else reads).add(
+                        os.path.normcase(os.path.abspath(os.path.expanduser(path))))
+        return writes, reads
+
+    def cancel(self) -> None:
+        """Stop: every running entry is cancelled, and the entries not started never start."""
+        from .processing_tools import _cancel_task
+
+        running, self.running = self.running, {}
+        for task_id, (index, started, _writes, _reads) in running.items():
+            _cancel_task({"task_id": task_id})
+            self.results.append({"index": index, "seconds": round(time.monotonic() - started, 2),
+                                 "status": "canceled", "message": "Stopped while running; nothing was added."})
+        pending, self.pending = self.pending, []
+        self.results.extend({"index": index, "status": "skipped", "message": "Stopped before this run started."}
+                            for index, _parameters in pending)
+
+    def _start(self, index: int, parameters, writes=frozenset(), reads=frozenset()) -> bool:
+        """Start one entry; True when its task runs, False when the entry was settled at once."""
+        from .processing_tools import _PROCESSING_TASKS, _cancel_task
+
+        if not isinstance(parameters, dict):
+            self.results.append({"index": index, "status": "error",
+                                 "message": "each parameters_list entry must be an object"})
+            return False
+        if self.deadline is not None and time.monotonic() >= self.deadline:
+            self.timed_out = True
+            self.results.append({"index": index, "status": "skipped",
+                                 "message": f"Batch budget of {self.budget:g}s exhausted before this run started"})
+            return False
+        started = time.monotonic()
+        try:
+            outcome = _run_processing({"algorithm_id": self.algorithm_id, "parameters": parameters})
+        except Exception as exc:  # noqa: BLE001 - it also runs from a task's signal, where nothing may raise
+            log_warning(f"execute_processing_batch: run {index} raised {exc}")
+            outcome = {"_error": f"{exc.__class__.__name__}: {exc}"}
+        if not isinstance(outcome, dict):
+            outcome = {"_error": "The run returned no result."}
+        child = _PROCESSING_TASKS.get(outcome.get("task_id") or "")
+        if child is None:
+            self.results.append(self._line(index, started, outcome))
+            return False
+        child["run_token"] = self.run_token
+        task_id = outcome["task_id"]
+        if self.entry["status"] != "running":
+
+            _cancel_task({"task_id": task_id})
+            self.results.append({"index": index, "seconds": round(time.monotonic() - started, 2),
+                                 "status": "canceled", "message": "Stopped while running; nothing was added."})
+            return False
+        self.running[task_id] = (index, started, frozenset(writes), frozenset(reads))
+        task = child.get("task")
+        for name in ("executed", "taskTerminated"):
+            signal = getattr(task, name, None)
+            if signal is not None:
+                signal.connect(lambda *_args, tid=task_id: self._ended(tid))
+        return True
+
+    def _ended(self, task_id: str) -> None:
+        """A task signal: the entry that task ran is over, unless the batch already settled it."""
+        if task_id not in self.running:
+            return
+        try:
+            self.advance()
+        except Exception as exc:  # noqa: BLE001 - a Qt slot must not raise
+            log_warning(f"execute_processing_batch: could not go on after {task_id}: {exc}")
+
+    @staticmethod
+    def _line(index: int, started: float, outcome: dict) -> dict:
+        """One run's line, in the shape the loop in _execute_processing_batch writes."""
+        line = {"index": index, "seconds": round(time.monotonic() - started, 2)}
+        status = str(outcome.get("status") or "")
+        if outcome.get("_error") or status == "error":
+            line.update(status="error",
+                        message=str(outcome.get("_error") or outcome.get("error") or "The run failed."))
+        elif status == "canceled":
+            line.update(status="canceled", message="Cancelled before it finished; nothing was added.")
+        else:
+            line.update(status="success", outputs=outcome.get("outputs"))
+            if outcome.get("outputs_note"):
+                line["outputs_note"] = outcome["outputs_note"]
+        return line
 
 
 def _create_processing_model(args: dict) -> dict:
@@ -615,15 +871,29 @@ def _run_model(args: dict) -> dict:
 
 
 
+
+
+    from .processing_tools import _destination_names, _output_names
+
+    parameters, renamed, misnamed = _output_names(alg, parameters, model)
+    if misnamed:
+        return misnamed
+
+    def _named(outcome):
+        if isinstance(outcome, dict) and not outcome.get("_error"):
+            outcome["model"] = model
+            if renamed:
+                outcome["repairs"] = renamed + list(outcome.get("repairs") or [])
+        return outcome
+
+
+
     for param in alg.parameterDefinitions():
         if isinstance(param, QgsProcessingDestinationParameter):
             parameters.setdefault(param.name(), "TEMPORARY_OUTPUT")
 
     if file_alg is None:
-        outcome = _run_processing({"algorithm_id": model, "parameters": parameters})
-        if isinstance(outcome, dict) and not outcome.get("_error"):
-            outcome["model"] = model
-        return outcome
+        return _named(_run_processing({"algorithm_id": model, "parameters": parameters}))
 
 
 
@@ -632,11 +902,12 @@ def _run_model(args: dict) -> dict:
 
     from ..core.security import validate_path
 
+    outputs = _destination_names(alg)
     for key, value in list(parameters.items()):
         if not isinstance(value, str) or value in ("TEMPORARY_OUTPUT", "memory:"):
             continue
         upper = key.upper()
-        if "OUTPUT" not in upper and "DEST" not in upper:
+        if key not in outputs and "OUTPUT" not in upper and "DEST" not in upper:
             continue
         if not (os.path.isabs(value) or value.startswith(("~", ".")) or "/" in value or "\\" in value):
             continue
@@ -649,14 +920,24 @@ def _run_model(args: dict) -> dict:
 
 
 
-    from .processing_tools import _heavy_inputs
+
+
+
+
+    from .processing_tools import _heavy_inputs, _threadable
+
+    if _threadable(file_alg):
+        outcome = _named(_run_processing({"algorithm_id": model, "parameters": parameters}, algorithm=file_alg))
+        if isinstance(outcome, dict) and isinstance(outcome.get("poll"), dict):
+            outcome["poll"]["label"] = f"Running {os.path.basename(model)}"
+        return outcome
 
     if _heavy_inputs(parameters):
         return tool_error(
-            "The inputs are too large to run a .model3 file on the main thread; nothing was run.",
+            "A step of this model cannot run in the background, and the inputs are too large to run it on "
+            "the main thread; nothing was run.",
             "INVALID_ARGS",
-            "Add the model to the Processing toolbox (Models > Add Model to Toolbox) and call run_model "
-            "with its registered id, which runs heavy inputs in the background, or clip the inputs first.")
+            "Clip the inputs first.")
 
     feedback = QgsProcessingFeedback()
     try:
@@ -665,4 +946,4 @@ def _run_model(args: dict) -> dict:
         return tool_error(f"Model run failed: {e}", "EXECUTION_FAILED",
                           "Check the parameter names against the model's inputs "
                           "(get_algorithm_help on a registered model).")
-    return {"model": model, "outputs": _process_outputs(result)}
+    return _named({"model": model, "outputs": _process_outputs(result)})

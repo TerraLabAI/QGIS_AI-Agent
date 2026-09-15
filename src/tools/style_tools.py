@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import contextlib
 import os
+import time
+import uuid
 
 from qgis.core import QgsMapRendererSequentialJob, QgsMapSettings, QgsVectorLayer
 from qgis.utils import iface
 
-from ..core import limits
+from ..core import layer_order, limits
+from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from . import guards
 from ._images import image_to_base64, normalize_fmt
@@ -31,29 +34,286 @@ _OTHER_LABEL = "Other"
 _OTHER_COLOR = "#9e9e9e"
 
 
+def _failure_of(result) -> str | None:
+    """The error message of one command's result, in either shape the executor reads."""
+    if not isinstance(result, dict):
+        return None
+    if result.get("_error") is not None:
+        return str(result["_error"])
+    if result.get("isError") and result.get("error"):
+        return str(result["error"])
+    return None
+
+
+def batch_status(outcomes: list, total: int) -> str:
+    """Which commands of a failed batch ran, failed (with their code) and never ran, numbered from 1."""
+
+
+
+    ran, failed = [], []
+    for i, outcome in enumerate(outcomes, start=1):
+        if _failure_of(outcome) is None:
+            ran.append(str(i))
+        else:
+            code = outcome.get("code")
+            failed.append(f"{i} ({code})" if code else str(i))
+    parts = [f"ran: {', '.join(ran) or 'none'}", f"failed: {', '.join(failed)}"]
+    if len(outcomes) < total:
+        start = len(outcomes) + 1
+        parts.append(f"not run: {start}" if start == total else f"not run: {start}-{total}")
+    return "; ".join(parts)
+
+
 def _make_batch_handler(registry):
     def _batch_commands(args: dict) -> dict:
         commands = args.get("commands")
         if not isinstance(commands, list) or not commands:
             return {"_error": "commands must be a non-empty array of {name, arguments}"}
-        stop_on_error = args.get("stop_on_error", True)
-        results = []
-        for i, cmd in enumerate(commands):
-            if not isinstance(cmd, dict) or not cmd.get("name"):
-                res = {"_error": "each command needs a 'name'"}
-            elif cmd["name"] == "batch_commands":
-                res = {"_error": "batch_commands cannot be nested"}
-            elif guards.always_confirm(cmd["name"], cmd.get("arguments")):
-                res = {"_error": f"{cmd['name']} needs its own confirmation card and cannot run inside "
-                                 "batch_commands"}
-            else:
-                res = registry.execute(cmd["name"], cmd.get("arguments", {}) or {})
-            results.append({"name": cmd.get("name"), "result": res})
-            if stop_on_error and isinstance(res, dict) and res.get("_error"):
-                return {"results": results, "executed": i + 1, "stopped_at": i, "error": res["_error"]}
-        return {"results": results, "executed": len(results), "stopped_at": None}
+        return _CommandRun(registry, commands, args.get("stop_on_error", True)).start()
 
     return _batch_commands
+
+
+def _strings_in(value, depth: int = 0):
+    """Every string inside a command's arguments, however deep, up to a sane depth."""
+    if depth > 8:
+        return
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _strings_in(item, depth + 1)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _strings_in(item, depth + 1)
+
+
+def _path_key(text: str) -> str:
+    """A path-like string as one comparable key: the file part, absolute, case as the OS compares it."""
+    head = text.split("|", 1)[0].strip()
+    if not ("/" in head or "\\" in head or head.startswith("~")):
+        return ""
+    return os.path.normcase(os.path.abspath(os.path.expanduser(head)))
+
+
+class _CommandRun:
+    """One batch_commands call: its commands in the model's order."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, registry, commands: list, stop_on_error):
+        self.registry = registry
+        self.commands = commands
+        self.stop_on_error = stop_on_error
+        self.results: list[dict] = []
+        self.failed: list[int] = []
+        self.position = 0
+
+        self.tasks: dict[str, int] = {}
+        self.open: set[str] = set()
+        self.deferred = False
+        self.stopped = False
+        self._advancing = False
+        self._again = False
+        self.run_token = layer_order.current_run()
+        self.task_id = "cmds-" + uuid.uuid4().hex[:12]
+        self.entry = {"status": "running", "progress": 0, "algorithm": "batch_commands",
+                      "started_at": time.strftime("%H:%M:%S"), "sequence": self}
+
+    def start(self) -> dict:
+        from .processing_tools import _POLL_INTERVAL_S, _PROCESSING_TASKS
+
+        self._run_on()
+        if not self.deferred:
+            return self.report()
+        _PROCESSING_TASKS[self.task_id] = self.entry
+        waiting = self.commands[self.position]
+        name = waiting.get("name") if isinstance(waiting, dict) else None
+        return {**self.report(), "task_id": self.task_id, "status": "running",
+                "note": (f"Command {self.position + 1} ({name}) waits for a command before it that is still "
+                         "running in the background; the rest run in order. Poll get_task_status(task_id)."),
+                "poll": {"tool": "get_task_status", "args": {"task_id": self.task_id},
+                         "interval_s": _POLL_INTERVAL_S, "label": f"Running {len(self.commands)} commands"}}
+
+    def _done(self) -> bool:
+        left = self.position < len(self.commands) and not self.stopped \
+            and not (self.failed and self.stop_on_error)
+        return not left and not (self.deferred and self.open)
+
+    def _run_on(self) -> None:
+        """Run the commands in order until one has to wait for a task still running, or none is left."""
+        while self.position < len(self.commands) and not self.stopped \
+                and not (self.failed and self.stop_on_error):
+            command = self.commands[self.position]
+            if self.open and self._waits(command):
+                self.deferred = True
+                return
+            self.position += 1
+            result = self._execute(command)
+            index = len(self.results)
+            self.results.append({"name": command.get("name") if isinstance(command, dict) else None,
+                                 "result": result})
+            self._watch(index, result)
+            if _failure_of(result) is not None:
+                self.failed.append(index)
+
+    def _execute(self, command) -> dict:
+        if not isinstance(command, dict) or not command.get("name"):
+            return {"_error": "each command needs a 'name'"}
+        if command["name"] == "batch_commands":
+            return {"_error": "batch_commands cannot be nested"}
+        if guards.always_confirm(command["name"], command.get("arguments")):
+            return {"_error": f"{command['name']} needs its own confirmation card and cannot run inside "
+                              "batch_commands"}
+        arguments = command.get("arguments", {}) or {}
+        if not self.deferred:
+            return self.registry.execute(command["name"], arguments)
+
+        outcome = {"_error": "The command did not run."}
+        try:
+            with layer_order.adopted(self.run_token):
+                outcome = self.registry.execute(command["name"], arguments)
+        except Exception as exc:  # noqa: BLE001 - it runs from a Qt signal, where nothing may raise
+            log_warning(f"batch_commands: {command['name']} raised {exc}")
+            outcome = {"_error": f"{exc.__class__.__name__}: {exc}"}
+        return outcome
+
+    def _watch(self, index: int, result) -> None:
+        """Keep a command's background task, and go on when its task signals that it ended."""
+        from .processing_tools import _PROCESSING_TASKS
+
+        if not isinstance(result, dict) or str(result.get("status") or "").lower() != "running":
+            return
+        task_id = str(result.get("task_id") or "")
+        entry = _PROCESSING_TASKS.get(task_id)
+        if entry is None or entry.get("status") != "running":
+            return
+        self.tasks[task_id] = index
+        self.open.add(task_id)
+        if self.stopped:
+
+
+            from .processing_tools import _cancel_task
+
+            _cancel_task({"task_id": task_id})
+            return
+        task = entry.get("task")
+        for signal_name in ("executed", "taskTerminated"):
+            signal = getattr(task, signal_name, None)
+            if signal is not None:
+                signal.connect(lambda *_args: self._ended())
+
+    def _waits(self, command) -> bool:
+        """Whether the command names what a command still running writes: its output_name or a path it was given."""
+        names, paths = set(), set()
+        for task_id in self.open:
+            earlier = self.commands[self._command_index(task_id)]
+            arguments = earlier.get("arguments") if isinstance(earlier, dict) else None
+            if isinstance(arguments, dict) and isinstance(arguments.get("output_name"), str):
+                names.add(arguments["output_name"].strip().casefold())
+            paths.update(key for key in map(_path_key, _strings_in(arguments)) if key)
+        arguments = command.get("arguments") if isinstance(command, dict) else None
+        for text in _strings_in(arguments):
+            if text.strip().casefold() in names or (paths and _path_key(text) in paths):
+                return True
+        return False
+
+    def _command_index(self, task_id: str) -> int:
+        """The position in commands of the command whose result carries this task (results skip nothing)."""
+        return self.tasks[task_id]
+
+    def _settle(self) -> None:
+        """Put each ended task's final status in place of its running answer."""
+        from .processing_tools import _PROCESSING_TASKS, _get_task_status, _sync_with_qgis
+
+        for task_id in sorted(self.open):
+            _sync_with_qgis(task_id)
+            if (_PROCESSING_TASKS.get(task_id) or {}).get("status") == "running":
+                continue
+            self.open.discard(task_id)
+            final = {k: v for k, v in _get_task_status({"task_id": task_id}).items() if k != "poll"}
+            if final.get("status") in ("error", "canceled") and not final.get("_error"):
+                final["_error"] = str(final.get("error") or f"The task ended {final.get('status')}.")
+            index = self.tasks[task_id]
+            self.results[index]["result"] = final
+            if _failure_of(final) is not None and index not in self.failed:
+                self.failed.append(index)
+                self.failed.sort()
+
+    def advance(self) -> None:
+        """Settle what ended, then run the commands that no longer wait (from a poll or a task's signal)."""
+        from .processing_tools import _PROCESSING_TASKS
+
+        if self._advancing:
+            self._again = True
+            return
+        self._advancing = True
+        try:
+            while self.entry["status"] == "running" and _PROCESSING_TASKS.get(self.task_id) is self.entry:
+                self._again = False
+                self._settle()
+                self._run_on()
+                if self._done():
+                    self.entry.update(status="error" if self.failed else "complete", progress=100)
+                    return
+                self.entry["progress"] = int(100 * len(self.results) / len(self.commands))
+                if not self._again:
+                    return
+        finally:
+            self._advancing = False
+
+    def _ended(self) -> None:
+        from .processing_tools import _PROCESSING_TASKS
+
+        if _PROCESSING_TASKS.get(self.task_id) is not self.entry:
+            return
+        try:
+            self.advance()
+        except Exception as exc:  # noqa: BLE001 - a Qt slot must not raise
+            log_warning(f"batch_commands: could not go on after a task ended: {exc}")
+
+    def cancel(self) -> None:
+        """Stop: every task the batch started is cancelled, and no command after them runs."""
+        from .processing_tools import _cancel_task
+
+        self.stopped = True
+        for task_id in sorted(self.open):
+            _cancel_task({"task_id": task_id})
+
+    def report(self) -> dict:
+        """The batch as batch_commands has always answered it; its failure only once nothing is left to run."""
+        results = [dict(item) for item in self.results]
+        outcome = {"results": results, "executed": len(results),
+                   "stopped_at": self.failed[0] if self.failed and self.stop_on_error else None}
+        if not self.failed or (self.deferred and not self._done()):
+            return outcome
+
+
+
+
+        first = results[self.failed[0]]
+        inner = first["result"]
+
+
+
+        outcome["_error"] = (f"Command {self.failed[0] + 1} of {len(self.commands)} ({first['name']}) failed: "
+                             f"{_failure_of(inner)} "
+                             f"({batch_status([item['result'] for item in results], len(self.commands))}).")
+        for key in ("code", "suggestion", "traceback"):
+            if inner.get(key):
+                outcome[key] = inner[key]
+        return outcome
 
 
 def _set_layer_style(args: dict) -> dict:
@@ -66,6 +326,7 @@ def _set_layer_style(args: dict) -> dict:
         QgsSingleSymbolRenderer,
         QgsStyle,
         QgsSymbol,
+        QgsWkbTypes,
     )
     from qgis.PyQt.QtGui import QColor
 
@@ -97,6 +358,20 @@ def _set_layer_style(args: dict) -> dict:
     bad_argument = _style_args_error(layer, args)
     if bad_argument:
         return bad_argument
+
+
+
+
+    if not layer.isSpatial():
+        return {"_error": f"Layer {layer.name()!r} has no geometry, so there is nothing on the map to style.",
+                "code": "INVALID_ARGS",
+                "suggestion": "Style the layer that draws these rows, or join this table to it first."}
+    if (args.get("size_expression") and style_type != "cluster"
+            and layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")):
+        return {"_error": (f"size_expression sizes point markers or line widths, and {layer.name()!r} "
+                           "is a polygon layer. Nothing was changed."),
+                "code": "INVALID_ARGS",
+                "suggestion": "Leave size_expression out, or use a graduated style on the field to show its values."}
 
 
 
@@ -148,7 +423,6 @@ def _set_layer_style(args: dict) -> dict:
 
         unique_values = list(layer.uniqueValues(idx, _MAX_CATEGORIES + 1))
         n = len(unique_values)
-
 
 
 
@@ -227,6 +501,28 @@ def _set_layer_style(args: dict) -> dict:
         if idx < 0:
             return _field_not_found_error(layer, field)
 
+
+
+
+        if not layer.fields().at(idx).isNumeric():
+            type_name = layer.fields().at(idx).typeName() or "not numeric"
+            numeric_names = [f.name() for f in layer.fields() if f.isNumeric()]
+            if numeric_names:
+                suggestion = (
+                    "Numeric fields: " + ", ".join(numeric_names[:12])
+                    + ". Use categorized for text, or convert the field to a number first."
+                )
+            else:
+                suggestion = (
+                    "This layer has no numeric field. Use categorized for text, "
+                    "or add a numeric field computed from this one first."
+                )
+            return {
+                "_error": f"Field {field!r} is {type_name}, and a graduated style needs a numeric field.",
+                "code": "INVALID_ARGS",
+                "suggestion": suggestion,
+            }
+
         mode_names = {
             "equal_interval": "EqualInterval",
             "quantile": "Quantile",
@@ -261,6 +557,12 @@ def _set_layer_style(args: dict) -> dict:
                     "_error": f"Graduated renderer is not available on this QGIS version: {exc}",
                     "code": "EXECUTION_FAILED",
                 }
+        if len(renderer.ranges()) == 0:
+            return {
+                "_error": f"Field {field!r} has no values to classify.",
+                "code": "INVALID_ARGS",
+                "suggestion": "Check the field holds numbers on at least one feature, or pick another field.",
+            }
         layer.setRenderer(renderer)
 
     elif style_type == "cluster":
@@ -272,12 +574,14 @@ def _set_layer_style(args: dict) -> dict:
     else:
         return {"_error": f"Unknown style type: {style_type}"}
 
-    if style_type != "cluster":
-        _apply_symbol_tweaks(renderer, args)
+    applied = _apply_symbol_tweaks(renderer, args) if style_type != "cluster" else {"stroke_color"}
 
     if args.get("size_expression") and style_type != "cluster":
         for symbol in renderer.symbols(QgsRenderContext()):
-            symbol.setDataDefinedSize(QgsProperty.fromExpression(args["size_expression"]))
+            if hasattr(symbol, "setDataDefinedSize"):
+                symbol.setDataDefinedSize(QgsProperty.fromExpression(args["size_expression"]))
+            elif hasattr(symbol, "setDataDefinedWidth"):
+                symbol.setDataDefinedWidth(QgsProperty.fromExpression(args["size_expression"]))
 
     opacity = args.get("opacity")
     if opacity is not None:
@@ -296,9 +600,20 @@ def _set_layer_style(args: dict) -> dict:
     if args.get("classification_mode"):
         result["classification_mode"] = args["classification_mode"]
 
+
+    not_applied = []
     for key in ("stroke_color", "stroke_width", "size", "fill"):
-        if args.get(key) is not None:
+        if args.get(key) is None:
+            continue
+        if key in applied:
             result[key] = args[key]
+        else:
+            not_applied.append(key)
+    if not_applied:
+        result["not_applied"] = not_applied
+        result["not_applied_note"] = ("these arguments have no place on this layer's symbols and changed nothing: "
+                                      "size sizes point markers, fill is a polygon's inside, stroke_width and "
+                                      "stroke_color are a line or an outline")
     if style_type == "graduated":
         result["classes"] = len(renderer.ranges())
     elif style_type == "categorized":
@@ -470,13 +785,23 @@ def _cluster_renderer(layer, args: dict):
     return renderer
 
 
-def _apply_symbol_tweaks(renderer, args: dict):
+def _apply_symbol_tweaks(renderer, args: dict) -> set:
+    """Write the per-symbol arguments onto every class symbol; the keys that landed."""
+
+
+
+
+
+
+
+    from qgis.core import QgsLineSymbolLayer
     from qgis.PyQt.QtGui import QColor
 
     stroke_color = args.get("stroke_color")
     stroke_width = args.get("stroke_width")
     size = args.get("size")
     fill = args.get("fill")
+    applied: set = set()
 
     symbols = []
     if hasattr(renderer, "symbols"):
@@ -495,21 +820,35 @@ def _apply_symbol_tweaks(renderer, args: dict):
         if size is not None and hasattr(symbol, "setSize"):
             try:
                 symbol.setSize(float(size))
+                applied.add("size")
             except (TypeError, ValueError):
                 pass
         for i in range(symbol.symbolLayerCount()):
             sl = symbol.symbolLayer(i)
+            line_layer = isinstance(sl, QgsLineSymbolLayer)
             if fill in ("none", "solid") and hasattr(sl, "setBrushStyle"):
                 from qgis.PyQt.QtCore import Qt as _Qt
 
                 sl.setBrushStyle(_Qt.BrushStyle.NoBrush if fill == "none" else _Qt.BrushStyle.SolidPattern)
-            if stroke_color is not None and hasattr(sl, "setStrokeColor"):
-                sl.setStrokeColor(QColor(stroke_color))
-            if stroke_width is not None and hasattr(sl, "setStrokeWidth"):
+                applied.add("fill")
+            if stroke_color is not None:
+                if line_layer:
+                    sl.setColor(QColor(stroke_color))
+                    applied.add("stroke_color")
+                elif hasattr(sl, "setStrokeColor"):
+                    sl.setStrokeColor(QColor(stroke_color))
+                    applied.add("stroke_color")
+            if stroke_width is not None:
                 try:
-                    sl.setStrokeWidth(float(stroke_width))
+                    if line_layer:
+                        sl.setWidth(float(stroke_width))
+                        applied.add("stroke_width")
+                    elif hasattr(sl, "setStrokeWidth"):
+                        sl.setStrokeWidth(float(stroke_width))
+                        applied.add("stroke_width")
                 except (TypeError, ValueError):
                     pass
+    return applied
 
 
 def _capture_format(args: dict, default: str) -> tuple[str, int]:
@@ -527,7 +866,7 @@ def _take_screenshot(args: dict) -> dict:
 
 
 
-    max_width = max(100, min(int(args.get("max_width", 1600) or 1600), limits.MAX_RENDER_WIDTH_PX))
+    max_width = max(100, min(int(args.get("max_width", 1600) or 1600), limits.current("MAX_RENDER_WIDTH_PX")))
     fmt, quality = _capture_format(args, "jpeg")
 
 
@@ -668,7 +1007,7 @@ def _style_args_error(layer, args: dict) -> dict | None:
 
 
 def _set_layer_labels(args: dict) -> dict:
-    from qgis.core import QgsPalLayerSettings, QgsTextFormat, QgsVectorLayerSimpleLabeling
+    from qgis.core import Qgis, QgsPalLayerSettings, QgsTextFormat, QgsVectorLayerSimpleLabeling, QgsWkbTypes
     from qgis.PyQt.QtGui import QColor, QFont
 
     layer = _find_layer(args["layer_name"])
@@ -703,6 +1042,12 @@ def _set_layer_labels(args: dict) -> dict:
             return error
     settings.isExpression = is_expression
 
+
+
+
+    if layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "LineGeometry"):
+        settings.placement = enum_member(Qgis, "LabelPlacement", "Line")
+
     text_format = QgsTextFormat()
     font = QFont()
     font.setPointSizeF(size)
@@ -728,8 +1073,6 @@ def _set_layer_labels(args: dict) -> dict:
             settings.setPlacementSettings(placement)
         except Exception:  # nosec B110 - older QGIS has no overlap handling
             pass
-
-
 
 
 

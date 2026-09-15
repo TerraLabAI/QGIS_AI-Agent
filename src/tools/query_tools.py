@@ -62,17 +62,18 @@ def _get_features(args: dict) -> dict:
     available = {f.name() for f in layer.fields()}
     names = [f.name() for f in layer.fields()]
     fields_arg = args.get("fields")
+    missing: list = []
     if isinstance(fields_arg, list) and fields_arg:
         selected = [f for f in fields_arg if f in available]
         if not selected:
             return {"_error": f"None of the requested fields exist: {fields_arg}", "fields": names}
+
+
+        missing = [f for f in fields_arg if f not in available]
         names = selected
 
     request = QgsFeatureRequest()
     expression = args.get("expression")
-
-
-
 
 
 
@@ -133,6 +134,9 @@ def _get_features(args: dict) -> dict:
     fetched = len(collected)
     features = collected[:limit]
     result = {"layer": layer.name(), "count": len(features), "offset": offset, "features": features}
+    if missing:
+        result["fields_not_found"] = missing
+        result["fields"] = [f.name() for f in layer.fields()]
     if include_geometry:
         result["geometry_crs"] = layer.crs().authid()
     if over_budget or fetched > limit:
@@ -170,14 +174,13 @@ def _evaluate_expression(args: dict) -> dict:
     expr.prepare(ctx)
     feature_id = args.get("feature_id")
     is_vector = isinstance(layer, QgsVectorLayer)
-    needs_feature = expr.needsGeometry() or bool(expr.referencedColumns())
+    needs_feature = _needs_feature(expr)
 
 
 
     if is_vector and feature_id is not None:
         feat = layer.getFeature(int(feature_id))
         if not feat.isValid():
-
 
 
 
@@ -236,6 +239,74 @@ def _evaluate_expression(args: dict) -> dict:
             "(and optionally feature_id)."
         )
     return out
+
+
+def _needs_feature(expr) -> bool:
+    """Whether *expr* reads the feature it is evaluated on."""
+
+
+
+
+
+
+
+
+    try:
+        root = expr.rootNode()
+        if root is not None:
+            return _node_needs_feature(root)
+    except Exception:  # noqa: BLE001  # nosec B110 - the whole-expression reading below is the fallback
+        pass
+    return expr.needsGeometry() or bool(expr.referencedColumns())
+
+
+def _node_needs_feature(node) -> bool:
+    from qgis.core import (
+        QgsExpressionNodeBetweenOperator,
+        QgsExpressionNodeBinaryOperator,
+        QgsExpressionNodeColumnRef,
+        QgsExpressionNodeCondition,
+        QgsExpressionNodeFunction,
+        QgsExpressionNodeInOperator,
+        QgsExpressionNodeLiteral,
+        QgsExpressionNodeUnaryOperator,
+    )
+
+    if node is None or isinstance(node, QgsExpressionNodeLiteral):
+        return False
+    if isinstance(node, QgsExpressionNodeColumnRef):
+        return True
+    if isinstance(node, QgsExpressionNodeBinaryOperator):
+        return _node_needs_feature(node.opLeft()) or _node_needs_feature(node.opRight())
+    if isinstance(node, QgsExpressionNodeUnaryOperator):
+        return _node_needs_feature(node.operand())
+    if isinstance(node, QgsExpressionNodeInOperator):
+        return _node_needs_feature(node.node()) or any(_node_needs_feature(n) for n in node.list().list())
+    if isinstance(node, QgsExpressionNodeBetweenOperator):
+        return any(_node_needs_feature(n) for n in (node.node(), node.lowerBound(), node.higherBound()))
+    if isinstance(node, QgsExpressionNodeCondition):
+        return (any(_node_needs_feature(c.whenExp()) or _node_needs_feature(c.thenExp()) for c in node.conditions())
+                or _node_needs_feature(node.elseExp()))
+    if isinstance(node, QgsExpressionNodeFunction):
+        function = QgsExpression.Functions()[node.fnIndex()]
+        arguments = node.args().list() if node.args() is not None else []
+        if "Aggregates" in function.groups():
+
+
+            if function.name() == "relation_aggregate" or "parent" in node.referencedVariables():
+                return True
+            names = [parameter.name() for parameter in function.parameters()]
+            if "group_by" in names and names.index("group_by") < len(arguments):
+                grouped = arguments[names.index("group_by")]
+                return not (isinstance(grouped, QgsExpressionNodeLiteral) and grouped.value() is None)
+            return False
+        if function.usesGeometry(node) or function.referencedColumns(node):
+            return True
+        if function.name() in ("$id", "$currentfeature"):
+            return True
+        return any(_node_needs_feature(n) for n in arguments)
+
+    return node.needsGeometry() or bool(node.referencedColumns())
 
 
 def _get_field_statistics(args: dict) -> dict:
@@ -369,7 +440,7 @@ def _stats_summary(state: dict) -> dict:
             stats[key] = _jsonable_value(value)
         return _statistics_result(name, field, stats)
 
-    values = [str(value) for value in others + numbers]
+    values = [_stat_text(value) for value in others + numbers]
     if values or missing:
         summary = QgsStringStatisticalSummary()
         summary.calculate(values + [None] * missing)
@@ -382,6 +453,25 @@ def _stats_summary(state: dict) -> dict:
         stats["count_distinct"] = 0
         stats["count_missing"] = missing
     return _statistics_result(name, field, stats)
+
+
+def _stat_text(value) -> str:
+    """A value as text that sorts the way the value does."""
+
+
+
+
+
+
+
+    if type(value).__name__ in ("QDate", "QDateTime", "QTime"):
+        from qgis.PyQt.QtCore import Qt
+
+        return value.toString(Qt.DateFormat.ISODate)
+    isoformat = getattr(value, "isoformat", None)
+    if callable(isoformat):
+        return isoformat()
+    return str(value)
 
 
 def _statistics_result(layer_name: str, field: str, stats: dict) -> dict:
@@ -534,8 +624,6 @@ def _get_raster_band_stats(args: dict) -> dict:
 
 
 
-
-
     read = int(getattr(stats, "width", 0) or 0) * int(getattr(stats, "height", 0) or 0)
     if read <= 0:
         read = int(layer.width() or 0) * int(layer.height() or 0)
@@ -570,15 +658,19 @@ def _class_counts(layer, provider, band: int) -> dict:
 
 
 
-
-
     try:
         import numpy as np
         from osgeo import gdal
     except Exception as exc:  # nosec B110 - the table is optional
         return {"class_counts_note": f"GDAL or numpy unavailable: {exc}"}
     source = provider.dataSourceUri()
-    dataset = gdal.Open(source) if source else None
+    try:
+
+
+
+        dataset = gdal.Open(source) if source else None
+    except RuntimeError:
+        dataset = None
     if dataset is None:
         return {"class_counts_note": "the source is not a GDAL raster (a tile service or a WMS has no class table)"}
     try:
@@ -684,8 +776,6 @@ def _check_geometry_validity(args: dict) -> dict:
 
     limit = min(max(int(args.get("limit", 50) or 50), 1), 500)
     max_checked = 100_000
-
-
 
 
 

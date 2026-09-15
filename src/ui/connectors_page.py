@@ -67,6 +67,7 @@ from .settings_pages import (
     TINT,
     TINT_HOVER,
 )
+from .shared import event_pos
 from .style import (
     ACCENT,
     ACCENT_BORDER,
@@ -357,11 +358,11 @@ class ConnectorTile(QFrame):
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
         control = self._control
         if control is not None and control.isVisible():
-            local = control.mapFrom(self, event.pos())
+            local = control.mapFrom(self, event_pos(event))
             if control.rect().contains(local):
                 super().mouseReleaseEvent(event)
                 return
-        if self.rect().contains(event.pos()):
+        if self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
 
@@ -523,9 +524,6 @@ class ConnectorsPage(QWidget):
                 labels[key] = str(row.get("category_label") or key)
             counts[key] = counts.get(key, 0) + 1
         shelves = [(ALL_KEY, self.tr("All"), len(self._sources) + len(self._plugins))]
-
-
-
 
 
 
@@ -998,8 +996,6 @@ class ConnectorsPage(QWidget):
 
 
 
-
-
         key = str(row.get("id") or "")
         count = int(row.get("datasets") or 0)
         mark = QLabel(str(count) if count else "")
@@ -1074,8 +1070,6 @@ class ConnectorsPage(QWidget):
 
 
         if not row.get("installed"):
-
-
 
 
             return self.tr("Not installed on this machine.")

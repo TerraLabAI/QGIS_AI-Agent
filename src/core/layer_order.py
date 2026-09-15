@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 
 
 
@@ -255,6 +256,36 @@ def _opacity(layer) -> float:
         return 1.0
 
 
+def _paints_fill(layer) -> bool:
+    """Whether a polygon layer paints its inside, so a raster under it is hidden. True when unsure."""
+    try:
+        from qgis.core import QgsRenderContext
+        renderer = layer.renderer()
+        symbols = list(renderer.symbols(QgsRenderContext())) if renderer is not None else []
+    except Exception:  # noqa: BLE001 - a renderer that cannot be read is treated as a fill
+        return True
+    if not symbols:
+        return True
+    for symbol in symbols:
+        try:
+            if float(symbol.opacity()) <= 0.0:
+                continue
+            for symbol_layer in symbol.symbolLayers():
+                if hasattr(symbol_layer, "enabled") and not symbol_layer.enabled():
+                    continue
+                kind = type(symbol_layer).__name__
+                if "Line" in kind and "Fill" not in kind:
+                    continue
+                if kind == "QgsSimpleFillSymbolLayer":
+                    from qgis.PyQt.QtCore import Qt
+                    if symbol_layer.brushStyle() == Qt.BrushStyle.NoBrush or symbol_layer.fillColor().alpha() == 0:
+                        continue
+                return True
+        except Exception:  # noqa: BLE001 - a symbol that cannot answer is treated as a fill
+            return True
+    return False
+
+
 def _root():
     try:
         from qgis.core import QgsProject
@@ -263,7 +294,6 @@ def _root():
         return project.layerTreeRoot() if project is not None else None
     except Exception:  # noqa: BLE001 - outside QGIS there is no tree
         return None
-
 
 
 
@@ -318,7 +348,7 @@ def stack_rank(layer) -> int | None:
     return None
 
 
-def stack_slot(rank: int, area: float, others: list[tuple[int | None, float]]) -> int:
+def stack_slot(rank: int, area: float, others: list[tuple]) -> int:
     """The index a new layer takes among children listed top to bottom."""
 
 
@@ -329,11 +359,18 @@ def stack_slot(rank: int, area: float, others: list[tuple[int | None, float]]) -
 
 
 
+
+
+
     index = 0
-    for position, (other_rank, other_area) in enumerate(others):
+    for position, other in enumerate(others):
+        other_rank, other_area = other[0], other[1]
+        other_fills = other[2] if len(other) > 2 else True
         if other_rank is None:
             continue
         if other_rank > rank:
+            if rank == STACK_RASTER and other_rank == STACK_POLYGON and other_fills:
+                break
             index = position + 1
             continue
         if other_rank == rank and area > 0 and other_area > 0 and area >= other_area * STACK_LARGER_RATIO:
@@ -349,15 +386,15 @@ def stack_slot(rank: int, area: float, others: list[tuple[int | None, float]]) -
 
 
 
-
-
-_SERIES_NUMBER = re.compile(r"(?<![\w.])(\d{1,4})(?![\w.])")
+_SERIES_NUMBER = re.compile(r"(?<![0-9A-Za-z.])(19\d\d|20\d\d|2100)(?![0-9A-Za-z.])")
 
 SERIES_GROUP_MIN = 3
 
 
 def series_key(name: str) -> tuple[str, float] | None:
-    """``("ndvi brut", 2021.0)`` for "NDVI 2021 brut", ``None`` without a number."""
+    """``("ndvi brut", 2021.0)`` for "NDVI 2021 brut", ``None`` without a year."""
+
+
 
 
 
@@ -370,7 +407,9 @@ def series_key(name: str) -> tuple[str, float] | None:
         return None
     last = matches[-1]
     rest = (text[:last.start()] + " " + text[last.end():]).lower()
-    stem = " ".join(part for part in re.split(r"[^a-z0-9]+", rest) if part)
+
+
+    stem = " ".join(part for part in re.split(r"[\W_]+", rest) if part)
     return (stem, float(last.group(1))) if stem else None
 
 
@@ -426,6 +465,44 @@ def keeps_place(layer) -> bool:
         return bool(layer.customProperty(KEEP_PLACE_PROPERTY, False))
     except Exception:  # noqa: BLE001
         return False
+
+
+
+
+
+
+
+
+TRUNCATED_COUNT_PROPERTY = "ai_agent/truncated_feature_count"
+
+
+def mark_truncated_count(layer, count: int) -> None:
+    """Record the features a capped remote load actually holds, read by feature_count_of()."""
+    try:
+        layer.setCustomProperty(TRUNCATED_COUNT_PROPERTY, int(count))
+    except Exception:  # nosec B110 - noqa: BLE001 - a layer without properties reports its own count
+        pass
+
+
+def feature_count_of(layer) -> int | None:
+    """The count to report for *layer*: the stamped true count when one was capped, else the provider's own ``featureCount()``, None when that is."""
+
+
+
+    try:
+        stamped = layer.customProperty(TRUNCATED_COUNT_PROPERTY, None)
+    except Exception:  # noqa: BLE001
+        stamped = None
+    if stamped is not None:
+        try:
+            return int(stamped)
+        except (TypeError, ValueError):
+            pass
+    try:
+        count = int(layer.featureCount())
+    except Exception:  # noqa: BLE001
+        return None
+    return count if count >= 0 else None
 
 
 def _extent_area(layer) -> float:
@@ -487,7 +564,10 @@ def place_new(layer, root=None) -> dict:
             keyed.append((None, None))
             continue
         other_rank = stack_rank(other)
-        ranked.append((other_rank, _extent_area(other)))
+        if other_rank == STACK_POLYGON:
+            ranked.append((other_rank, _extent_area(other), _paints_fill(other)))
+        else:
+            ranked.append((other_rank, _extent_area(other)))
         keyed.append((other_rank, series_key(other.name())))
     target = stack_slot(rank, _extent_area(layer), ranked)
     target = series_slot(rank, series_key(layer.name()), keyed, target)
@@ -514,7 +594,6 @@ def _lift_over_backdrops(group, root) -> bool:
 
 
 
-
     lifted = False
     node = group
     while node is not None and node is not root:
@@ -535,8 +614,6 @@ def _lift_over_backdrops(group, root) -> bool:
 
 def reset_insertion_point(root=None) -> None:
     """Put QGIS's insertion point back at the root of the layer tree."""
-
-
 
 
 
@@ -588,8 +665,38 @@ def _move_into_group(group, node, number: float) -> None:
         parent.removeChildNode(node)
 
 
+
+
+_RUN_TOKEN = None
+_RUN_SERIAL = 0
+
+_ADOPTING: list = []
+
+
+def current_run():
+    """The token of the run whose layers are watched now, or None outside a run."""
+
+
+
+
+    return _RUN_TOKEN
+
+
+@contextmanager
+def adopted(token):
+    """Layers added inside belong to the run ``token`` names, if it is still the watched run."""
+    _ADOPTING.append(token)
+    try:
+        yield
+    finally:
+        _ADOPTING.pop()
+
+
 class Stacker:
     """Places every layer a run adds, once its tree node exists."""
+
+
+
 
 
 
@@ -604,9 +711,17 @@ class Stacker:
         self._placed: list = []
         self._series_groups: dict = {}
         self._grouped: dict = {}
+        self._added: list = []
+        self.in_call = None
+        self._added_ids: list = []
+        self._token = None
 
     def begin(self) -> None:
         self.end()
+        global _RUN_TOKEN, _RUN_SERIAL
+        _RUN_SERIAL += 1
+        self._token = _RUN_SERIAL
+        _RUN_TOKEN = self._token
         try:
             from qgis.core import QgsProject
 
@@ -620,6 +735,10 @@ class Stacker:
             log_warning(f"Layer order: cannot watch the layers a run adds: {exc}")
 
     def end(self) -> None:
+        global _RUN_TOKEN
+        if self._token is not None and self._token == _RUN_TOKEN:
+            _RUN_TOKEN = None
+        self._token = None
         if self._project is not None:
             try:
                 self._project.layersAdded.disconnect(self._on_layers_added)
@@ -627,15 +746,45 @@ class Stacker:
                 pass
             self._project = None
         self._pending = []
+        self._added = []
         self._placed = []
         self._series_groups = {}
         self._grouped = {}
+        self._added_ids = []
 
     def _on_layers_added(self, layers) -> None:
+
+
+        deferred = self._token is not None and self._token in _ADOPTING
+        if not deferred and _ADOPTING and _ADOPTING[-1] != self._token:
+
+
+
+            return
+        if not deferred and self.in_call is not None:
+            try:
+                if not self.in_call():
+                    return
+            except Exception:  # noqa: BLE001 - a check that cannot answer means not in a call
+                return
         for layer in layers or ():
-            if layer is not None and not is_backdrop(layer):
+            if layer is None:
+                continue
+
+            self._added.append(layer)
+            self._added_ids.append(layer.id())
+            if not is_backdrop(layer):
 
                 self._pending.append(layer)
+
+    def added_count(self) -> int:
+        """How many layers added by this run's tool calls are still in the project."""
+        try:
+            from qgis.core import QgsProject
+            present = QgsProject.instance().mapLayers()
+        except Exception:  # noqa: BLE001 - no project, nothing counted
+            return 0
+        return sum(1 for layer_id in dict.fromkeys(self._added_ids) if layer_id in present)
 
     def place_pending(self) -> dict:
         """Place what the last call added. ``{name: under}`` for each layer moved under something."""
@@ -664,6 +813,11 @@ class Stacker:
         """``{layer name: group name}`` for what was filed since the last read."""
         grouped, self._grouped = self._grouped, {}
         return grouped
+
+    def take_added(self) -> list:
+        """Every layer added since the last read, basemaps included, for core/licence.credit_added."""
+        added, self._added = self._added, []
+        return added
 
     def _file_series(self) -> None:
         """Put a numbered family this run added into a group of its own."""

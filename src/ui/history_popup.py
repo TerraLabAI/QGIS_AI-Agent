@@ -54,6 +54,7 @@ from qgis.PyQt.QtWidgets import (
 from .card_base import reduced_motion
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
+from .shared import event_pos
 from .style import (
     ACCENT_INK,
     FONT_BASE,
@@ -67,8 +68,8 @@ from .style import (
     RADIUS_CARD,
     RADIUS_CHIP,
     SURFACE,
-    drop_shadow,
     hover_pill,
+    paint_shadow,
     qcolor,
 )
 from .widgets import IconButton
@@ -365,7 +366,7 @@ class _Row(QWidget):
         super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
 
@@ -430,7 +431,7 @@ class HistoryPopup(QWidget):
         self._frame.setObjectName("historySheet")
         self._frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._frame.setStyleSheet(_SHEET_QSS)
-        drop_shadow(self._frame, "overlay")
+
         outer.addWidget(self._frame)
         col = QVBoxLayout(self._frame)
         col.setContentsMargins(0, 0, 0, 0)
@@ -551,6 +552,10 @@ class HistoryPopup(QWidget):
         self._pop.setStartValue(0.0)
         self._pop.setEndValue(1.0)
         self._pop.start()
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_shadow(self, self._frame.geometry(), RADIUS_CARD, "overlay")
+        super().paintEvent(event)
 
     def _on_pop(self, value) -> None:
         try:

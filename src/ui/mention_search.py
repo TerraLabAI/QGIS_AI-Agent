@@ -29,8 +29,8 @@ from __future__ import annotations
 
 import re
 
-__all__ = ["group_mentions", "layer_rows", "mentions_for", "plugin_rows", "rank_mentions",
-           "score_mention", "sheet_rows", "short_detail", "source_rows"]
+__all__ = ["group_mentions", "layer_rows", "live_mentions", "mentions_for", "plugin_rows",
+           "rank_mentions", "score_mention", "sheet_rows", "short_detail", "source_rows"]
 
 
 
@@ -298,7 +298,7 @@ def layer_rows(word: str, layers, visible_ids=()) -> list[dict]:
     return rows
 
 
-def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None) -> list[dict]:
+def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None, visible_ids=()) -> list[dict]:
     """Everything the ``@`` sheet lists for ``@word``, in order."""
 
 
@@ -316,6 +316,7 @@ def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None) -> 
         provided = [i for i in list(items or [])[:1000] if isinstance(i, dict)]
     except TypeError:
         provided = []
+    layers = layer_rows(word, provided, visible_ids)
     sources = (source_rows(connectors) if connectors
                else [i for i in provided if i.get("kind") == SOURCE])
     installed = (plugin_rows(plugins) if plugins
@@ -325,7 +326,7 @@ def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None) -> 
         installed = rank_mentions(word, installed)
     labels = labels or {}
     out: list[dict] = []
-    for key, rows in (("sources", sources), ("plugins", installed)):
+    for key, rows in (("layers", layers), ("sources", sources), ("plugins", installed)):
         if not rows:
             continue
         heading = str(labels.get(key) or "")
@@ -333,3 +334,29 @@ def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None) -> 
             out.append({"kind": "header", "label": heading})
         out.extend(rows[:500])
     return out
+
+
+def live_mentions(chips, name_of) -> list[dict]:
+    """The chips written with ``@`` that still name what they named."""
+
+
+
+
+
+
+
+
+    kept = []
+    for chip in chips or []:
+        if not isinstance(chip, dict):
+            continue
+        if chip.get("kind") != LAYER:
+            kept.append(chip)
+            continue
+        try:
+            name = name_of(str(chip.get("value") or ""))
+        except Exception:  # noqa: BLE001 - a lookup that fails is a layer that is gone
+            name = None
+        if name is not None and str(name) == str(chip.get("label") or ""):
+            kept.append(chip)
+    return kept

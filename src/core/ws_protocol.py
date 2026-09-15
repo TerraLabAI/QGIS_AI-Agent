@@ -259,6 +259,9 @@ class SocketReader:
         self._should_stop = should_stop
         self._on_idle = on_idle
 
+
+        self.last_rx = 0.0
+
     def _recv(self, size: int, deadline: float | None, what: str) -> bytes:
         while True:
             if self._should_stop():
@@ -282,6 +285,7 @@ class SocketReader:
                 raise WsConnectionLost(f"socket error while {what}: {exc}") from exc
             if not chunk:
                 raise WsConnectionLost(f"peer closed the socket while {what}")
+            self.last_rx = time.monotonic()
             return chunk
 
     def read_exact(self, n: int) -> bytes:

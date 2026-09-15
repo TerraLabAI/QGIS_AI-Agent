@@ -51,15 +51,10 @@
 
 
 
-
-
-
-
-
-
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 from . import limits
@@ -82,6 +77,10 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
         "max_log_lines": (0, 20),
         "max_log_chars": (40, 2_000),
         "max_layout_names": (0, 60),
+
+
+        "max_rich_layers": (0, 25),
+        "min_rich_layers": (0, 25),
     },
 
 
@@ -112,7 +111,6 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
 
 
 
-
     "net": {
         "overpass_timeout_s": (20, 180),
         "download_timeout_s": (15, 300),
@@ -131,6 +129,39 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
 
 
         "portal_timeout_s": (5, 60),
+
+
+
+        "own_geocode_timeout_s": (2, 60),
+
+
+
+
+        "osrm_match_max_coordinates": (5, 100),
+        "osrm_match_max_radius_m": (5, 100),
+
+
+
+
+        "retry_max": (0, 5),
+        "refusal_retry_max": (0, 5),
+
+
+
+
+
+
+
+
+        "ws_heartbeat_s": (10, 120),
+        "ws_run_heartbeat_s": (2, 15),
+        "ws_hello_timeout_s": (5, 120),
+        "ws_backoff_min_s": (1, 30),
+        "ws_backoff_max_s": (5, 600),
+        "ws_connect_timeout_s": (5, 120),
+        "ws_send_timeout_s": (30, 600),
+        "ws_idle_ping_s": (15, 300),
+        "ws_dead_after_s": (30, 900),
     },
 }
 
@@ -145,6 +176,17 @@ _FLOAT_LIMITS: dict[str, dict[str, tuple[float, float]]] = {
         "point_share": (0.01, 0.5),
         "approach_span_m": (50.0, 5_000.0),
         "approach_keep_ratio": (1.0, 100_000.0),
+    },
+
+
+
+
+    "net": {
+        "retry_base_s": (0.5, 10.0),
+        "refusal_retry_base_s": (0.1, 10.0),
+        "refusal_max_wait_s": (5.0, 120.0),
+        "cooldown_min_s": (1.0, 60.0),
+        "cooldown_max_s": (10.0, 600.0),
     },
 }
 
@@ -182,17 +224,71 @@ _TIGHTEN_ONLY: dict[str, dict[str, tuple[float, float]]] = {
         "max_render_height_px": (256, limits.MAX_RENDER_HEIGHT_PX),
         "max_render_pixels": (65_536, limits.MAX_RENDER_PIXELS),
         "max_render_dpi": (72, limits.MAX_RENDER_DPI),
+
+
+        "selective_max_km2": (limits.MAX_FETCH_KM2, limits.SELECTIVE_MAX_KM2),
+
+
+
+
+        "map_match_max_requests": (50, limits.MAP_MATCH_MAX_REQUESTS),
+        "sync_feature_loop_max": (250, limits.SYNC_FEATURE_LOOP_MAX),
+        "geometry_check_max_vertices": (50_000, limits.GEOMETRY_CHECK_MAX_VERTICES),
+        "geometry_check_max_total_vertices": (500_000, limits.GEOMETRY_CHECK_MAX_TOTAL_VERTICES),
+
+        "geometry_check_seconds": (2.0, limits.GEOMETRY_CHECK_SECONDS),
+        "terrain_max_cells": (16_000_000, limits.TERRAIN_MAX_CELLS),
+        "hydrology_max_cells": (1_000_000, limits.HYDROLOGY_MAX_CELLS),
+        "georeference_max_pixels": (40_000_000, limits.GEOREFERENCE_MAX_PIXELS),
+        "chart_max_features": (100_000, limits.CHART_MAX_FEATURES),
+        "chart_max_bins": (10, limits.CHART_MAX_BINS),
+        "chart_max_categories": (5, limits.CHART_MAX_CATEGORIES),
+        "chart_max_points": (1_000, limits.CHART_MAX_POINTS),
+        "animation_max_frames": (250, limits.ANIMATION_MAX_FRAMES),
+        "processing_batch_parallel": (1, limits.PROCESSING_BATCH_PARALLEL),
+
+        "max_stream_bytes": (limits.MAX_DOWNLOAD_BYTES, limits.MAX_STREAM_BYTES),
+
+
+
+
+
+
+
+        "call_max_seconds_main": (8.0, limits.CALL_MAX_SECONDS_MAIN),
+        "call_max_seconds_main_long": (30.0, limits.CALL_MAX_SECONDS_MAIN_LONG),
+        "call_max_seconds_background": (60.0, limits.CALL_MAX_SECONDS_BACKGROUND),
+        "watchdog_tick_s": (0.5, limits.WATCHDOG_TICK_S),
+        "watchdog_blocked_s": (3.0, limits.WATCHDOG_BLOCKED_S),
+
+
+
+        "prompt_max_chars": (10_000, limits.PROMPT_MAX_CHARS),
+        "attachments_total_bytes": (1_048_576, limits.ATTACHMENTS_TOTAL_BYTES),
+
+
+
+
     },
 }
 
 SECTIONS = ("context", "results", "follow", "compose", "net", "limits", "hosts", "services",
-            "checks")
+            "checks", "execute_code")
 
 _BOOL_KEYS: dict[str, set[str]] = {
 
 
 
     "context": {"always_send_layer_id"},
+}
+
+
+
+
+
+
+_OFF_ONLY: dict[str, set[str]] = {
+    "execute_code": {"isolated_enabled"},
 }
 
 
@@ -416,6 +512,130 @@ def _clean_portals(value: Any, where: str) -> dict | None:
     return out or None
 
 
+
+
+
+
+
+
+
+
+
+_ROUTING_VERSION = 1
+_ROUTING_TABLES = ("theme_keys", "value_themes", "fields", "mixed_themes", "road_classes", "key_values",
+                   "way_themes")
+
+_ROUTING_CODE_THEMES = frozenset({"roads", "buildings"})
+_MAX_ROUTING_ROWS = 100
+_MAX_ROUTING_VALUES = 200
+_ROUTING_THEME = re.compile(r"[a-z0-9_]{1,40}")
+
+_ROUTING_KEY = re.compile(r"[a-z_][a-z0-9_:]{0,59}")
+_ROUTING_VALUE = re.compile(r"[A-Za-z0-9_:\-]{1,60}")
+
+
+class _RoutingInvalid(ValueError):
+    """One part of a served routing document that fails its check."""
+
+
+def _routing_word(value: Any, pattern, spot: str) -> str:
+    if not isinstance(value, str) or not pattern.fullmatch(value):
+        raise _RoutingInvalid(f"{spot} holds {str(value)[:60]!r}")
+    return value
+
+
+def _routing_words(value: Any, pattern, spot: str, empty: bool = False) -> list:
+    if not isinstance(value, list) or len(value) > _MAX_ROUTING_VALUES or (not value and not empty):
+        raise _RoutingInvalid(f"{spot} is not a list of 1 to {_MAX_ROUTING_VALUES} values")
+    out: list = []
+    for item in value:
+        word = _routing_word(item, pattern, spot)
+        if word not in out:
+            out.append(word)
+    return out
+
+
+def _routing_rows(value: Any, spot: str, empty: bool = False) -> dict:
+    if not isinstance(value, dict) or len(value) > _MAX_ROUTING_ROWS or (not value and not empty):
+        raise _RoutingInvalid(f"{spot} is not an object of 1 to {_MAX_ROUTING_ROWS} rows")
+    return value
+
+
+def _routing_document(value: Any, where: str) -> dict:
+    """The routing document, cleaned, or `_RoutingInvalid` naming the first part that fails."""
+    if not isinstance(value, dict):
+        raise _RoutingInvalid(f"{where} is not an object")
+    version = value.get("version")
+    if isinstance(version, bool) or version != _ROUTING_VERSION:
+        raise _RoutingInvalid(f"{where}.version is not {_ROUTING_VERSION}")
+    missing = [table for table in _ROUTING_TABLES if table not in value]
+    if missing:
+        raise _RoutingInvalid(f"{where} has no {', '.join(missing)}")
+    fields: dict = {}
+    for theme, names in _routing_rows(value["fields"], f"{where}.fields").items():
+        _routing_word(theme, _ROUTING_THEME, f"{where}.fields")
+        fields[theme] = _routing_words(names, _ROUTING_KEY, f"{where}.fields.{theme}")
+    known = set(fields) | _ROUTING_CODE_THEMES
+
+    def theme_named(name: Any, spot: str) -> str:
+        if not isinstance(name, str) or name not in known:
+            raise _RoutingInvalid(f"{spot} names {str(name)[:60]!r}, a theme with no field list")
+        return name
+
+    theme_keys: dict = {}
+    for key, theme in _routing_rows(value["theme_keys"], f"{where}.theme_keys").items():
+        _routing_word(key, _ROUTING_KEY, f"{where}.theme_keys")
+        theme_keys[key] = theme_named(theme, f"{where}.theme_keys.{key}")
+    value_themes: dict = {}
+    for key, row in _routing_rows(value["value_themes"], f"{where}.value_themes", empty=True).items():
+        spot = f"{where}.value_themes.{_routing_word(key, _ROUTING_KEY, f'{where}.value_themes')}"
+        if not isinstance(row, dict):
+            raise _RoutingInvalid(f"{spot} is not an object")
+        value_themes[key] = {"theme": theme_named(row.get("theme"), f"{spot}.theme"),
+                             "values": _routing_words(row.get("values"), _ROUTING_VALUE, f"{spot}.values")}
+    key_values: dict = {}
+    for theme, row in _routing_rows(value["key_values"], f"{where}.key_values", empty=True).items():
+        spot = f"{where}.key_values.{str(theme)[:40]}"
+        if theme not in fields or not isinstance(row, dict):
+            raise _RoutingInvalid(f"{spot} is not an object for a theme with a field list")
+        if not isinstance(row.get("bare"), bool):
+            raise _RoutingInvalid(f"{spot}.bare is not true or false")
+        if row.get("key") not in fields[theme]:
+            raise _RoutingInvalid(f"{spot}.key is not one of that theme's fields")
+        if ("only" in row) == ("except" in row):
+            raise _RoutingInvalid(f"{spot} carries neither or both of only and except")
+        clean = {"key": row["key"], "bare": row["bare"]}
+        if "only" in row:
+            clean["only"] = _routing_words(row["only"], _ROUTING_VALUE, f"{spot}.only")
+        else:
+            clean["except"] = _routing_words(row["except"], _ROUTING_VALUE, f"{spot}.except", empty=True)
+        key_values[theme] = clean
+    mixed = _routing_words(value["mixed_themes"], _ROUTING_THEME, f"{where}.mixed_themes", empty=True)
+    for theme in mixed:
+        if theme not in fields:
+            raise _RoutingInvalid(f"{where}.mixed_themes names {theme!r}, a theme with no field list")
+    way_themes = [theme_named(theme, f"{where}.way_themes") for theme in
+                  _routing_words(value["way_themes"], _ROUTING_THEME, f"{where}.way_themes", empty=True)]
+    return {
+        "version": _ROUTING_VERSION,
+        "theme_keys": theme_keys,
+        "value_themes": value_themes,
+        "fields": fields,
+        "mixed_themes": mixed,
+        "road_classes": _routing_words(value["road_classes"], _ROUTING_VALUE, f"{where}.road_classes"),
+        "key_values": key_values,
+        "way_themes": way_themes,
+    }
+
+
+def _clean_osm_routing(value: Any, where: str) -> dict | None:
+    try:
+        return _routing_document(value, where)
+    except _RoutingInvalid as exc:
+        log_warning(f"Server policy {exc}: the whole {where} is ignored, the shipped routing stays")
+        return None
+
+
 def _read_services(raw: Any) -> dict:
     """The `services` section, key by key. An unknown key is dropped."""
     out: dict = {}
@@ -437,6 +657,8 @@ def _read_services(raw: Any) -> dict:
             clean = _clean_silent_pages(value, where)
         elif key == "open_data_portals":
             clean = _clean_portals(value, where)
+        elif key == "osm_routing":
+            clean = _clean_osm_routing(value, where)
         else:
             continue
         if clean is not None:
@@ -465,6 +687,9 @@ _CHECK_TABLES = frozenset({
     "field_to_a_copy",
     "raster_preserves",
     "raster_masked",
+    "unsafe_threading",
+    "terrain_by_cell",
+    "zonal_algorithms",
 })
 
 
@@ -568,7 +793,7 @@ def _tighten(value: Any, low: float, shipped: float, where: str) -> int | float 
 
 
 def _read_hosts(raw: Any) -> dict[str, tuple[float, int, int]]:
-    """Per-host limits, keyed exactly as `net.HOST_POLICIES` keys them."""
+    """Per-host limits, keyed exactly as `net_hosts.HOST_POLICIES` keys them."""
 
 
 
@@ -652,6 +877,16 @@ def apply(policy: Any) -> bool:
             if isinstance(raw.get(name), bool):
                 doc[section][name] = raw[name]
 
+    for section, names in _OFF_ONLY.items():
+        raw = policy.get(section)
+        if not isinstance(raw, dict):
+            continue
+        for name in names:
+            if raw.get(name) is False:
+                doc[section][name] = False
+            elif name in raw:
+                log_warning(f"Server policy {section}.{name} may only switch it off, ignored")
+
     doc["hosts"] = _read_hosts(policy.get("hosts"))
     doc["services"] = _read_services(policy.get("services"))
     doc["checks"] = _read_checks(policy.get("checks"))
@@ -694,6 +929,27 @@ def number(section: str, name: str, default: float) -> float:
 def flag(section: str, name: str, default: bool) -> bool:
     value = _DOC.get(section, {}).get(name)
     return value if isinstance(value, bool) else default
+
+
+def socket_clocks(shipped: dict) -> dict:
+    """The agent socket's clocks in force, in seconds, with their relations kept."""
+
+
+
+
+
+
+
+
+    out = {name: float(number("net", f"ws_{name}", value)) for name, value in shipped.items()}
+    if "heartbeat_s" in out and "run_heartbeat_s" in out:
+        out["run_heartbeat_s"] = min(out["run_heartbeat_s"], out["heartbeat_s"])
+    if "backoff_min_s" in out and "backoff_max_s" in out:
+        out["backoff_max_s"] = max(out["backoff_max_s"], out["backoff_min_s"])
+    if "dead_after_s" in out:
+        out["dead_after_s"] = max(out["dead_after_s"], 2 * out.get("idle_ping_s", 0.0),
+                                  2 * out.get("heartbeat_s", 0.0))
+    return out
 
 
 def host_policy(host: str) -> tuple[float, int, int] | None:
@@ -754,6 +1010,16 @@ def service_rows(key: str, default: dict) -> dict:
         if name in out and isinstance(row, dict):
             out[name].update(row)
     return out
+
+
+def service_doc(key: str) -> dict | None:
+    """A served document a row or the backend sent whole, as `apply` checked it, or None."""
+
+
+
+
+    value = (_DOC.get("services") or {}).get(key)
+    return value if isinstance(value, dict) else None
 
 
 def check_algs(key: str, shipped) -> frozenset:

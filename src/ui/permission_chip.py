@@ -26,7 +26,6 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -34,9 +33,9 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.plan import autopilot_allowed, stated
+from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
-from .shared import exec_dialog
 from .style import (
     _BTN_MODE,
     BTN_SMALL_PX,
@@ -196,7 +195,9 @@ class _ModeRow(QFrame):
         self._name.setObjectName("permissionName")
         head.addWidget(self._name)
         head.addStretch(1)
-        self._tag = QLabel(QCoreApplication.translate("PermissionChip", "Upgrade"), self)
+
+
+        self._tag = QLabel(QCoreApplication.translate("PermissionChip", "With Pro"), self)
         self._tag.setObjectName("permissionTag")
         self._tag.hide()
         head.addWidget(self._tag, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -214,7 +215,7 @@ class _ModeRow(QFrame):
         self.set_current(False)
 
     def set_locked(self, locked: bool) -> None:
-        """A locked row carries the Upgrade tag and never the check."""
+        """A locked row carries the With Pro tag and never the check."""
         self._locked = bool(locked)
         self._tag.setVisible(self._locked)
         self._check.setVisible(not self._locked)
@@ -544,18 +545,21 @@ class PermissionChip(QToolButton):
         self.mode_changed.emit(approval)
 
     def _confirm_autopilot(self) -> bool:
-        box = QMessageBox(self.window())
-        box.setIcon(QMessageBox.Icon.Warning)
-        box.setWindowTitle(self.tr("Switch to Autopilot?"))
-        box.setText(self.tr("Switch to Autopilot?"))
-        box.setInformativeText(self.tr(
-            "AI Agent will delete layers and overwrite files without asking. "
-            "Running code and anything that spends credits still ask. "
-            "Undo covers the project, not every file on disk. "
-            "The next chat starts in Balanced again."))
-        switch = box.addButton(self.tr("Switch"), QMessageBox.ButtonRole.AcceptRole)
-        cancel = box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
-        box.setDefaultButton(cancel)
-        box.setEscapeButton(cancel)
-        exec_dialog(box)
-        return box.clickedButton() is switch
+        """The product confirmation, one fact per line; Cancel stays the default."""
+        glyph, accent = mode_visual(AUTO)
+        return ask_confirm(
+            self.window(),
+            window_title=self.tr("Autopilot"),
+            title=self.tr("Turn on Autopilot?"),
+            points=(
+                ("trash", self.tr("Deletes layers and overwrites files without asking.")),
+                ("shield_check", self.tr("Running code and spending credits still ask first.")),
+                ("undo", self.tr("Undo covers the project, not every file on disk.")),
+            ),
+            note=self.tr("The next chat starts in Balanced again."),
+            cancel_text=self.tr("Cancel"),
+            confirm_text=self.tr("Turn on Autopilot"),
+            glyph=glyph,
+            accent=accent,
+            object_name="autopilotConfirm",
+        )

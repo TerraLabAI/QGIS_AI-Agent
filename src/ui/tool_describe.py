@@ -88,7 +88,13 @@ _TEMPLATES = {
     "apply_style_qml": "Apply the style {path} to {layer_name}",
     "save_style_qml": "Save the style of {layer_name}",
     "set_layer_labels": "Label {layer_name}[ by {field}]",
+    "set_layer_temporal": "Animate {layer_name} over time[ by {field}]",
+    "export_animation_frames": "Export the animation frames as PNG[ to {out_dir}]",
     "create_hillshade": "Create a hillshade[ from {layer_name}]",
+    "terrain_visualisation": "Compute relief images[ of {dem}]",
+    "detect_terrain_anomalies": "Look for relief anomalies[ in {lrm_layer}][ in {dem}]",
+    "georeference_raster": "Georeference {raster}",
+    "map_drainage": "Map the watershed and streams[ of {area}]",
 
     "get_features": "Read features of {layer_name}",
     "identify_features": "Identify features at a point",
@@ -119,6 +125,7 @@ _TEMPLATES = {
     "raster_calculator": "Raster calculation[ as {name}]",
     "raster_sample": "Sample {layer_name} at a point",
     "get_raster_band_stats": "Statistics of {layer_name}[, band {band}]",
+    "create_chart": "Chart {x_field}[ and {y_field}] of {layer}",
     "measure_distance": "Measure a distance",
     "transform_coordinates": "Convert coordinates to {target_crs}",
     "list_algorithms": "Search the processing tools[ for {query}]",
@@ -280,7 +287,8 @@ def _processing_line(args: dict) -> str:
     return " ".join(parts)
 
 
-_LAYER_KEYS = ("layer_name", "layer_id", "layer", "input", "target_layer", "polygon_layer")
+_LAYER_KEYS = ("layer_name", "layer_id", "layer", "input", "target_layer", "polygon_layer",
+               "raster_layer", "join_layer", "lrm_layer", "dem", "area", "raster")
 
 
 def _with_layer_names(args: dict) -> dict:
@@ -311,7 +319,8 @@ def _with_layer_names(args: dict) -> dict:
 
 
 _OSM_PLANET_THEMES = frozenset(
-    ("landuse", "pois", "waterways", "water_areas", "power", "boundaries", "railways"))
+    ("landuse", "pois", "waterways", "water_areas", "power", "boundaries", "railways", "routes", "transit_stops",
+     "protected_areas"))
 _OSM_PLANET_TEMPLATE = "Fetch OpenStreetMap {theme}[ as {layer_name}]"
 
 
@@ -789,8 +798,24 @@ def _plain_note(summary) -> str:
     return _short(text, _MAX_REASON)
 
 
+_FAILURE_CODE_RE = re.compile(r"^\s*[A-Z][A-Z0-9_]{2,}\s*:\s*")
+_MAX_FAILURE = 240
+
+
+def failure_reason(summary) -> str:
+    """Why a call failed, in the tool's own words: the summary without its leading error code (``NETWORK_ERROR: ``), on one line, cut at 240."""
+
+    text = _FAILURE_CODE_RE.sub("", str(summary or ""))
+    text = " ".join(text.split())
+    if not text or EMPTY_SUMMARY_RE.match(text):
+        return ""
+    return _short(text, _MAX_FAILURE)
+
+
 def outcome_sentence(ok, summary, duration: str = "", context: str = "") -> str:
-    """What the call came back with: ``24 760 found, 1.2 s``, ``into the layer Roads buffered``, ``did not work``."""
+    """What the call came back with: ``24 760 found, 1.2 s``, ``into the layer Roads buffered``, or, when it did not work, why in the tool's own."""
+
+
 
 
 
@@ -800,7 +825,11 @@ def outcome_sentence(ok, summary, duration: str = "", context: str = "") -> str:
     if ok is None:
         parts.append(tr("still running"))
     elif not ok:
-        parts.append(tr("did not work"))
+        head = tr("did not work")
+        if duration:
+            head = f"{head}, {duration}"
+        reason = failure_reason(summary)
+        return f"{head}. {reason}" if reason else head
     else:
         facts = result_facts(summary)
         if facts["count"] is not None:

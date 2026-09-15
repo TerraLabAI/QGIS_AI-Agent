@@ -6,6 +6,26 @@
 
 
 
+def _drop_stale_modules() -> None:
+    """Forget any module of this package a previous copy left in sys.modules."""
+
+
+
+
+
+
+
+
+    import sys
+
+    prefix = __name__ + "."
+    for name in [key for key in sys.modules if key.startswith(prefix)]:
+        sys.modules.pop(name, None)
+
+
+_drop_stale_modules()
+
+
 def classFactory(iface):
     from .src.plugin import AIAgentPlugin
 

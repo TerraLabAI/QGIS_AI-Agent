@@ -640,7 +640,6 @@ def retire_stale_samplers() -> int:
 
 
 
-
     retired = 0
     for thread in threading.enumerate():
         if thread.name != SAMPLER_THREAD_NAME or thread is threading.current_thread():

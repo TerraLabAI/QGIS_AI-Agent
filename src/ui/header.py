@@ -159,6 +159,8 @@ class Header(QWidget):
         row.addWidget(self._restore_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._new_btn = IconButton(self, "new_chat", 18, self.tr("New chat"))
+        self._new_btn.setObjectName("agentNewChat")
+        self._new_btn.setProperty("agentAction", "new_chat")
         self._new_btn.setFixedSize(26, 26)
         self._new_btn.clicked.connect(self.new_thread_requested.emit)
         row.addWidget(self._new_btn, 0, Qt.AlignmentFlag.AlignVCenter)

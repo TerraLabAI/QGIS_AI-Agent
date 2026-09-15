@@ -48,11 +48,6 @@ _SQL_ROW_CAP = 1000
 
 
 
-
-_MAX_SYNC_FEATURES = limits.SYNC_FEATURE_LOOP_MAX
-
-
-
 _COUNTED_VALUES_MAX = 50
 _UNIQUE_VALUES_DEFAULT = 1000
 
@@ -432,9 +427,10 @@ def _field_calculator(args: dict) -> dict:
 
 
     total = layer.featureCount()
-    if total > _MAX_SYNC_FEATURES:
+    ceiling = limits.current("SYNC_FEATURE_LOOP_MAX")
+    if total > ceiling:
         return tool_error(
-            f"{layer.name()!r} holds {total} features, above the {_MAX_SYNC_FEATURES} this tool "
+            f"{layer.name()!r} holds {total} features, above the {ceiling} this tool "
             f"calculates in one pass on the interface thread.",
             "INVALID_ARGS",
             "Run qgis:fieldcalculator through run_processing, which goes to the task manager and "
@@ -545,15 +541,14 @@ def _get_unique_values(args: dict) -> dict:
 
 
 
-
-
+    ceiling = limits.current("MAX_FEATURES_PER_CALL")
     try:
         asked = int(args.get("limit") if args.get("limit") is not None else _UNIQUE_VALUES_DEFAULT)
-        limit = limits.MAX_FEATURES_PER_CALL if asked <= 0 else min(asked, limits.MAX_FEATURES_PER_CALL)
+        limit = ceiling if asked <= 0 else min(asked, ceiling)
     except (TypeError, ValueError):
         return tool_error(f"limit must be a whole number, got {args.get('limit')!r}.", "INVALID_ARGS",
                           f"Leave it out for {_UNIQUE_VALUES_DEFAULT}, or pass a number up to "
-                          f"{limits.MAX_FEATURES_PER_CALL}.")
+                          f"{ceiling}.")
     raw = layer.uniqueValues(idx, limit)
     values = [py_value(v) for v in raw]
     values = [v for v in values if v is not None]
@@ -579,7 +574,13 @@ def _get_unique_values(args: dict) -> dict:
         from .style_tools import _value_frequencies
         counts, scanned = _value_frequencies(layer, idx, limits.current("MAX_FEATURES_MATERIALISED"))
         ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-        out["counts"] = [{"value": value, "count": count} for value, count in ranked[:_COUNTED_VALUES_MAX]]
+
+
+
+
+        typed = {str(value): py_value(value) for value in raw}
+        out["counts"] = [{"value": typed.get(value, value), "count": count}
+                         for value, count in ranked[:_COUNTED_VALUES_MAX]]
         out["counts_order"] = "most frequent first"
         out["counted_features"] = scanned
         if scanned < layer.featureCount():

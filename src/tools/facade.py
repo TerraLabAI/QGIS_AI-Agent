@@ -24,7 +24,7 @@ import urllib.parse
 
 from qgis.core import QgsProject, QgsRasterLayer, QgsUnitTypes, QgsVectorLayer
 
-from ..core import dataset_docs, ground, net
+from ..core import dataset_docs, ground, links, net
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import VISIBLE_TOOLS, Tool, ToolRegistry, tool_error
@@ -45,7 +45,7 @@ AI_SEGMENT_ACTIONS = (
     "install_status", "cancel", "load_model",
 )
 ADD_DATA_KINDS = ("auto", "vector", "raster", "wms", "wfs", "xyz", "vectortile", "stac", "cog", "pmtiles",
-                  "pointcloud", "csv", "geojson", "gpkg")
+                  "pointcloud", "csv", "geojson", "gpkg", "wcs")
 
 _VECTOR_EXT = {
     ".shp", ".gpkg", ".geojson", ".json", ".kml", ".kmz", ".gml", ".csv", ".zip", ".fgb", ".sqlite", ".tab",
@@ -105,6 +105,15 @@ def register_facade_tools(registry: ToolRegistry):
                 },
                 "zmin": {"type": "integer"},
                 "zmax": {"type": "integer"},
+                "full_extent": {
+                    "type": "object",
+                    "properties": {"quote": {"type": "string"}, "place": {"type": "string"}},
+                    "required": ["quote", "place"],
+                },
+
+
+
+                "confirm_large": {"type": "boolean"},
             },
             "required": ["source"],
         },
@@ -305,6 +314,9 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
     if _is_url(text):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(text).query.lower())
         service = (query.get("service") or [""])[0]
+
+        if (service == "wcs" or "/wcs" in lower) and (query.get("request") or [""])[0] != "getcoverage":
+            return "wcs"
         if service == "wms" or "/wms" in lower or "wmts" in lower:
             return "wms"
         if service == "wfs" or "/wfs" in lower:
@@ -354,9 +366,6 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
 
-
-
-
     raw_bbox = args.get("bbox")
     bbox = _stac._parse_bbox(raw_bbox) if raw_bbox else None
     if raw_bbox and bbox is None:
@@ -381,7 +390,9 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             if _data._oapif_collection(source) is not None:
                 return _data._add_oapif_layer({"url": source, "name": name})
             return _data._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
-                                               "layer_name": name, "layer": layer, "bbox": bbox})
+                                               "layer_name": name, "layer": layer, "bbox": bbox,
+                                               "confirm_large": args.get("confirm_large"),
+                                               "full_extent": args.get("full_extent")})
         return _core._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer})
     if kind == "raster":
         if _is_url(source):
@@ -389,8 +400,6 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                 return _add_arcgis_rest_layer({"url": source, "name": name, "crs": crs, "kind": "map"})
             address = source.replace("/vsicurl/", "", 1)
             streamed = _stac._add_cog_layer({"url": address, "name": name})
-
-
 
 
 
@@ -442,6 +451,14 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         if crs:
             wfs_args["crs"] = crs
         return _data._add_wfs_layer(wfs_args)
+    if kind == "wcs":
+        if not layer:
+            return tool_error(
+                "A WCS source needs the coverage to load.",
+                "INVALID_ARGS",
+                "Pass layer=<coverage id>. inspect_data_source lists what the service serves.",
+            )
+        return _data._add_wcs_layer({"url": source, "coverage": layer, "name": name, "crs": crs, "bbox": bbox})
     return tool_error(f"Unknown kind: {kind}", "INVALID_ARGS", f"kind must be one of {list(ADD_DATA_KINDS)}.")
 
 
@@ -471,6 +488,10 @@ def _describe_layer(layer, kind: str, known_count=None) -> dict:
         },
         "units": _unit_name(layer),
     }
+    if not out["crs"]:
+
+
+        out["crs_name"] = layer.crs().description() if layer.crs().isValid() else "none declared"
     if isinstance(layer, QgsVectorLayer):
 
 
@@ -512,7 +533,7 @@ def _move_to_group(layer, group_name: str):
 
 
 
-_REMOTE_KINDS = frozenset({"cog", "stac", "pmtiles", "wms", "wfs", "vectortile"})
+_REMOTE_KINDS = frozenset({"cog", "stac", "pmtiles", "wms", "wfs", "vectortile", "wcs"})
 
 
 def _add_data_is_remote(args: dict) -> bool:
@@ -554,10 +575,24 @@ def _add_data(args: dict) -> dict:
     if refusal:
         return tool_error(refusal, "INVALID_ARGS",
                           "Call find_datasets for the same theme and add a row it returns.")
+
+
+
+
+    resolved_from = ""
+    if _is_url(source) and not source.startswith("/vsicurl/"):
+        link = links.resolve(source)
+        if link.kind in ("listing", "inline", "unreachable"):
+            args = dict(args, kind="vector")
+        elif link.kind != "unchanged":
+            resolved_from, source = source, link.url
+            args = dict(args, source=source)
     kind = deduce_kind(source, args.get("kind"))
     result = _dispatch_add(kind, args)
     if not isinstance(result, dict) or result.get("_error") is not None:
         return result
+    if resolved_from:
+        result["resolved_from"] = resolved_from
 
 
     if _add_data_is_remote(args):
@@ -589,6 +624,13 @@ def _add_data(args: dict) -> dict:
 
 
             "dataset_notes",
+
+            "resolved_from",
+
+
+            "licence", "attribution",
+
+            "crs_assigned",
         ):
             if key in result:
                 described[key] = result[key]
@@ -614,6 +656,22 @@ def _loaded(keys) -> bool:
     import qgis.utils
 
     return any(qgis.utils.plugins.get(key) is not None for key in keys)
+
+
+def _aiseg_not_running(presence: dict) -> dict:
+    """No live AI Segmentation object: missing only when no folder is installed."""
+
+
+
+
+    if presence.get("state") == "absent":
+        return _plugin_missing("AI Segmentation by TerraLab")
+    status = _integration.aiseg_not_running_status(presence)
+    return tool_error(
+        f"AI Segmentation by TerraLab is installed but not running ({status['state']}).",
+        "PERMISSION_DENIED",
+        status["action_required"],
+    )
 
 
 def _ai_edit(args: dict) -> dict:
@@ -666,8 +724,9 @@ def _ai_segment(args: dict) -> dict:
         if not _loaded(AI_SEGMENT_KEYS) and _install._seg_package() is None:
             return _plugin_missing("AI Segmentation by TerraLab")
         return _install._install_status(args)
-    if not _loaded(AI_SEGMENT_KEYS):
-        return _plugin_missing("AI Segmentation by TerraLab")
+    presence = _integration.aiseg_presence()
+    if presence["plugin"] is None:
+        return _aiseg_not_running(presence)
     if action == "detect_auto":
         return _integration._aiseg_detect_auto(args)
     if action == "auto_status":
@@ -809,7 +868,11 @@ def _output_layer(value: dict):
     candidates = project.mapLayersByName(str(name))
     path = value.get("path")
     if path and len(candidates) > 1:
-        candidates = [c for c in candidates if str(c.source() or "").split("|")[0] == str(path)]
+
+        from ._layers import _source_key
+
+        wanted = _source_key(str(path).split("|")[0])
+        candidates = [c for c in candidates if _source_key(str(c.source() or "").split("|")[0]) == wanted]
     if len(candidates) != 1:
         return None
     return candidates[0]

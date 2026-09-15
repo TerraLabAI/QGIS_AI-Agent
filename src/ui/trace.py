@@ -23,6 +23,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import (
@@ -223,9 +225,6 @@ class RunTrace(QWidget):
             self._latest = text
             self._sync_head()
 
-    def set_run_counts(self, tool_calls: int, messages: int) -> None:
-        """Kept for the panel: the head no longer counts, it names."""
-
     def _last_row(self):
         """The row at the bottom of the list, wherever it hangs."""
         if self.plan is not None:
@@ -337,7 +336,8 @@ class RunTrace(QWidget):
         return count
 
     def failed_count(self) -> int:
-        return sum(1 for card in self.tools if card.ok is False)
+        return sum(1 for card in self.tools
+                   if card.ok is False and getattr(card, "ended", "") not in ("denied", "stopped"))
 
     def is_empty(self) -> bool:
         """Nothing to show: no plan, no call and no note."""
@@ -474,6 +474,18 @@ class RunTrace(QWidget):
             self._icon.setPixmap(pixmap_for(self, "close", _SPARK_PX, qcolor(RED)))
         self._sync_head()
         self.set_expanded(False)
+
+    def reveal_failure(self) -> bool:
+        """Open the block on its last line that did not work."""
+
+
+
+        failed = [row for row in self.rows() if row.failed()]
+        if not failed:
+            return False
+        failed[-1].set_open(True)
+        self.set_expanded(True)
+        return True
 
 
 

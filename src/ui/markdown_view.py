@@ -15,8 +15,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
+import bisect
 import math
 import re
 
@@ -33,6 +43,7 @@ from qgis.PyQt.QtGui import (
     QTextCharFormat,
     QTextCursor,
     QTextDocument,
+    QTextDocumentFragment,
     QTextFormat,
     QTextImageFormat,
     QTextLength,
@@ -45,7 +56,7 @@ from .font_scale import widget_pixel_ratio
 from .icons import ink_of
 from .shared import qt_enum_int, resolve_qt_enum
 from .source_marks import MARK_PX, source_host, source_mark_pixmap
-from .style import FIELD, FONT_HINT, FONT_PROSE, INK_2, MONO_FAMILY, qcolor
+from .style import FIELD, FONT_HINT, FONT_PROSE, INK_2, INK_3, MONO_FAMILY, qcolor
 
 
 
@@ -132,6 +143,10 @@ _RULE_HEIGHT = 12
 
 
 SOURCE_SCHEME = "source:"
+
+
+
+GONE_SCHEME = "gone:"
 _CHIP_PAD = "\u00a0"
 
 
@@ -155,6 +170,10 @@ class MarkdownView(QTextBrowser):
         self._mono = mono
         self._px = int(px) if px else _BODY_PX
         self._streaming = False
+
+
+        self._stream = None
+        self._holding = False
         self._had_selection = False
         self.setObjectName("monoText" if mono else "chatText")
         self.setReadOnly(True)
@@ -176,6 +195,9 @@ class MarkdownView(QTextBrowser):
 
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         doc = self.document()
+
+
+        doc.setUndoRedoEnabled(False)
         doc.setDocumentMargin(6 if mono else 2)
 
         doc.setIndentWidth(_LIST_INDENT)
@@ -198,20 +220,120 @@ class MarkdownView(QTextBrowser):
 
 
     def set_markdown(self, text: str) -> None:
+        self._stream = None
         doc = self.document()
         if hasattr(doc, "setMarkdown"):
-            if _MARKDOWN_FEATURES is None:
-                doc.setMarkdown(soft_breaks(text or ""))
-            else:
-                doc.setMarkdown(soft_breaks(text or ""), _MARKDOWN_FEATURES)
+            _import_markdown(doc, text or "")
             self._decorate()
         else:
             doc.setPlainText(text or "")
         self._sync_height()
 
     def set_plain_text(self, text: str) -> None:
+        self._stream = None
         self.document().setPlainText(text or "")
         self._sync_height()
+
+    def stream_markdown(self, text: str) -> None:
+        """The document ``set_markdown(text)`` builds, for an answer that grows by its end: only the block still open is parsed again."""
+
+
+
+
+
+
+
+
+
+
+
+
+        text = text or ""
+        doc = self.document()
+        state = self._stream
+        if state is None or not text.startswith(state.text):
+            state = _Stream()
+        state.text = text
+        state.cuts.feed(text)
+        if state.cuts.pending_ref_def(text):
+            state.cuts.stuck = True
+        closed = state.cuts.last()
+        incremental = (not state.broken and not state.cuts.stuck and closed > 0
+                       and hasattr(doc, "setMarkdown"))
+        if incremental:
+
+
+            self._holding = True
+            try:
+                if state.stable <= 0:
+
+                    _import_markdown(doc, text[:closed])
+                    self._decorate()
+                    state.close_at(closed, doc)
+                state.broken = not self._stream_into(state, closed)
+            finally:
+                self._holding = False
+        if not incremental or state.broken:
+            self.set_markdown(text)
+            state.stable = 0
+        self._stream = state
+        self._sync_height()
+
+    def _stream_into(self, state, closed: int) -> bool:
+        """Drop the open block, append the blocks closed since, then the open one."""
+
+
+
+        cursor = QTextCursor(self.document())
+        cursor.setPosition(state.stable_pos)
+        kept_block, kept_chars = cursor.blockFormat(), cursor.blockCharFormat()
+        cursor.movePosition(_END, QTextCursor.MoveMode.KeepAnchor)
+        cursor.removeSelectedText()
+
+
+
+        cursor.setBlockFormat(kept_block)
+        cursor.setBlockCharFormat(kept_chars)
+        if closed > state.stable:
+            if not self._append_after_context(state, state.stable, closed):
+                return False
+            self._decorate(state.stable_pos + 1)
+            state.close_at(closed, self.document())
+        if not self._append_after_context(state, closed, len(state.text)):
+            return False
+        self._decorate(state.stable_pos + 1)
+        return True
+
+    def _append_after_context(self, state, begin: int, end: int) -> bool:
+        """Parse ``text[begin:end]`` after the block that precedes ``begin`` and append what follows that block to the document."""
+
+        start, _ = state.context
+        context = state.text[start:begin]
+
+
+        font = self.document().defaultFont()
+        if state.context_mark is None:
+            alone = QTextDocument()
+            alone.setDefaultFont(font)
+            _import_markdown(alone, context)
+            last = alone.lastBlock()
+            state.context_mark = (alone.characterCount() - 1, last.blockNumber(), last.text())
+        mark, number, last_text = state.context_mark
+        scratch = QTextDocument()
+        scratch.setDefaultFont(font)
+        _import_markdown(scratch, context + state.text[begin:end])
+        block = scratch.findBlock(mark)
+        if (not block.isValid() or block.blockNumber() != number or block.text() != last_text
+                or block.position() + block.length() - 1 != mark):
+            return False
+        selection = QTextCursor(scratch)
+        selection.setPosition(mark)
+        selection.movePosition(_END, QTextCursor.MoveMode.KeepAnchor)
+        if selection.hasSelection():
+            cursor = QTextCursor(self.document())
+            cursor.movePosition(_END)
+            cursor.insertFragment(QTextDocumentFragment(selection))
+        return True
 
     def text(self) -> str:
         return self.document().toPlainText()
@@ -226,8 +348,14 @@ class MarkdownView(QTextBrowser):
             doc.deleteLater()
         return width
 
-    def _decorate(self) -> None:
+    def _decorate(self, start: int = 0) -> None:
         """Set the reading rhythm, size the headings, colour the links and tint the code, which setMarkdown leaves bare or HTML-sized."""
+
+
+
+
+
+
 
 
 
@@ -242,15 +370,24 @@ class MarkdownView(QTextBrowser):
         doc = self.document()
         anchors, inline_code, code_spans, code_blocks = [], [], [], []
         prose, headings, quotes = [], [], []
-        empties, rules, sources = [], [], []
+        empties, rules, sources, gone = [], [], [], []
         block = doc.begin()
+        if start > 0:
+            block = doc.findBlock(start)
+            if not block.isValid():
+                block = doc.lastBlock()
+            for _ in range(2):
+                if block.previous().isValid():
+                    block = block.previous()
         while block.isValid():
             block_format = block.blockFormat()
             is_code_block = _is_code_block(block)
             level = block_format.headingLevel() if hasattr(block_format, "headingLevel") else 0
+            fresh = block.position() >= start
             if is_code_block:
                 code_blocks.append(block.position())
-                code_spans.append((block.position(), max(0, block.length() - 1)))
+                if fresh:
+                    code_spans.append((block.position(), max(0, block.length() - 1)))
             elif _is_rule(block):
                 rules.append(block.position())
             elif _is_filler(block):
@@ -261,10 +398,10 @@ class MarkdownView(QTextBrowser):
                 is_last = not block.next().isValid() or _in_table(doc, block.position())
                 prose.append((block.position(), is_item, is_last))
                 if level:
-                    headings.append((block.position(), max(0, block.length() - 1), level))
+                    headings.append((block.position(), max(0, block.length() - 1), level, fresh))
                 if _BLOCK_QUOTE_LEVEL is not None and block_format.hasProperty(_BLOCK_QUOTE_LEVEL):
                     quotes.append(block.position())
-            it = block.begin()
+            it = block.begin() if fresh else block.end()
             while not it.atEnd():
                 fragment = it.fragment()
                 if fragment.isValid():
@@ -274,6 +411,8 @@ class MarkdownView(QTextBrowser):
                         href = fmt.anchorHref()
                         if href.startswith(SOURCE_SCHEME):
                             sources.append((fragment.position(), fragment.length(), href))
+                        elif href.startswith(GONE_SCHEME):
+                            gone.append(span)
                         else:
                             anchors.append(span)
                     elif fmt.fontFixedPitch() and not is_code_block:
@@ -290,7 +429,7 @@ class MarkdownView(QTextBrowser):
             fmt.setBottomMargin(0 if is_last else (_ITEM_GAP if is_item else _PARAGRAPH_GAP))
             cursor.setPosition(position)
             cursor.mergeBlockFormat(fmt)
-        for position, length, level in headings:
+        for position, length, level, fresh in headings:
             delta, bold, above, below = _HEADINGS.get(level, _HEADINGS[3])
             block_fmt = QTextBlockFormat()
             block_fmt.setLineHeight(130, _proportional_height())
@@ -298,6 +437,10 @@ class MarkdownView(QTextBrowser):
             block_fmt.setBottomMargin(below)
             cursor.setPosition(position)
             cursor.mergeBlockFormat(block_fmt)
+            if not fresh:
+
+
+                continue
             char_fmt = QTextCharFormat()
             if _FONT_SIZE_ADJUSTMENT is not None:
                 char_fmt.setProperty(_FONT_SIZE_ADJUSTMENT, 0)
@@ -338,6 +481,17 @@ class MarkdownView(QTextBrowser):
             cursor.setPosition(position)
             cursor.setPosition(position + length, QTextCursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(link_format)
+
+
+        gone_format = QTextCharFormat()
+        gone_format.setAnchor(False)
+        gone_format.setAnchorHref("")
+        gone_format.setFontUnderline(False)
+        gone_format.setForeground(QBrush(qcolor(INK_3)))
+        for position, length in gone:
+            cursor.setPosition(position)
+            cursor.setPosition(position + length, QTextCursor.MoveMode.KeepAnchor)
+            cursor.mergeCharFormat(gone_format)
         mono_px = max(9, int(round(base_px * _CODE_FONT_SCALE)))
         code_format = QTextCharFormat()
         code_format.setBackground(QBrush(_CODE_BG))
@@ -354,21 +508,22 @@ class MarkdownView(QTextBrowser):
             cursor.setPosition(position)
             cursor.setPosition(position + length, QTextCursor.MoveMode.KeepAnchor)
             cursor.mergeCharFormat(block_code_format)
-        for i, position in enumerate(code_blocks):
+        for position in code_blocks:
             block_format = QTextBlockFormat()
             block_format.setLeftMargin(_CODE_PAD)
             block_format.setRightMargin(_CODE_PAD)
             block_format.setLineHeight(130, _proportional_height())
 
 
-            first = i == 0 or code_blocks[i - 1] != _previous_position(doc, position)
-            last = i == len(code_blocks) - 1 or code_blocks[i + 1] != _next_position(doc, position)
+            current = doc.findBlock(position)
+            first = not _is_code_block(current.previous())
+            last = not _is_code_block(current.next())
             block_format.setTopMargin(_CODE_PAD if first else 0)
             block_format.setBottomMargin(_CODE_PAD + _PARAGRAPH_GAP if last else 0)
             cursor.setPosition(position)
             cursor.mergeBlockFormat(block_format)
         cursor.endEditBlock()
-        self._decorate_tables()
+        self._decorate_tables(start)
         self._insert_source_chips(sources)
 
     def _insert_source_chips(self, sources: list) -> None:
@@ -417,11 +572,11 @@ class MarkdownView(QTextBrowser):
             cursor.insertText(_CHIP_PAD, chip)
         cursor.endEditBlock()
 
-    def _decorate_tables(self) -> None:
+    def _decorate_tables(self, start: int = 0) -> None:
         """Hairline borders, collapsed, with a little padding in each cell."""
         doc = self.document()
         for frame in _frames(doc.rootFrame()):
-            if not hasattr(frame, "columns"):
+            if not hasattr(frame, "columns") or frame.lastPosition() < start:
                 continue
             fmt = QTextTableFormat(frame.format())
             fmt.setBorder(1)
@@ -459,6 +614,11 @@ class MarkdownView(QTextBrowser):
         super().changeEvent(event)
         if event.type() == QEvent.Type.FontChange and not self._mono:
             self._apply_body_font()
+        if event.type() in (QEvent.Type.FontChange, QEvent.Type.PaletteChange):
+
+
+
+            self._stream = None
 
 
 
@@ -581,6 +741,8 @@ class MarkdownView(QTextBrowser):
         self._sync_height()
 
     def _sync_height(self) -> None:
+        if self._holding:
+            return
         doc = self.document()
         margin = int(2 * doc.documentMargin())
         one_line = self.fontMetrics().lineSpacing() + margin
@@ -717,14 +879,155 @@ def _frames(frame):
         yield from _frames(child)
 
 
-def _previous_position(doc, position: int) -> int:
-    block = doc.findBlock(position).previous()
-    return block.position() if block.isValid() else -1
+def _import_markdown(doc, text: str) -> None:
+    """setMarkdown with the dialect flags when the binding takes them."""
+    if _MARKDOWN_FEATURES is None:
+        doc.setMarkdown(soft_breaks(text))
+    else:
+        doc.setMarkdown(soft_breaks(text), _MARKDOWN_FEATURES)
 
 
-def _next_position(doc, position: int) -> int:
-    block = doc.findBlock(position).next()
-    return block.position() if block.isValid() else -1
+_END = resolve_qt_enum(QTextCursor, "MoveOperation", "End")
+_FENCE_LINE = re.compile(r"^( {0,3})(`{3,}|~{3,})(.*)$")
+_LIST_ITEM = re.compile(r"^ {0,3}(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)")
+_ATX_HEADING = re.compile(r"^ {0,3}#{1,6}(?:[ \t]|$)")
+_TABLE_RULE = re.compile(r"^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$")
+
+
+
+
+_LINK_REF_DEF = re.compile(r"^ {0,3}\[[^\[\]]+\]:\s*\S")
+
+
+class _Stream:
+    """What ``stream_markdown`` built last: the text, where it can be cut, and how much of it the document holds for good."""
+
+
+    def __init__(self):
+        self.text = ""
+        self.cuts = _StreamCuts()
+        self.stable = 0
+        self.stable_pos = 0
+        self.context = (0, 0)
+        self.context_mark = None
+        self.broken = False
+
+    def close_at(self, offset: int, doc) -> None:
+        self.context = (self.cuts.before(offset), offset)
+        self.context_mark = None
+        self.stable = offset
+        self.stable_pos = doc.characterCount() - 1
+
+
+class _StreamCuts:
+    """Where a growing answer can be cut into parts that render apart the way they render together, read one complete line at a time."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self):
+        self.offsets: list[int] = []
+        self.stuck = False
+        self._read = 0
+        self._prev = "start"
+        self._fence = None
+        self._toggle = False
+        self._list = False
+        self._pipe = False
+        self._table = False
+
+    def last(self) -> int:
+        return self.offsets[-1] if self.offsets else 0
+
+    def before(self, offset: int) -> int:
+        index = bisect.bisect_left(self.offsets, offset)
+        return self.offsets[index - 1] if index > 0 else 0
+
+    def pending_ref_def(self, text: str) -> bool:
+        """Whether the line still being typed, its newline not in yet, already reads as a link reference definition."""
+
+
+
+
+        return self._fence is None and bool(_LINK_REF_DEF.match(text[self._read:]))
+
+    def feed(self, text: str) -> None:
+        pos = self._read
+        while not self.stuck:
+            end = text.find("\n", pos)
+            if end < 0:
+                break
+            self._line(text[pos:end], pos)
+            pos = end + 1
+        self._read = pos
+
+    def _line(self, line: str, offset: int) -> None:
+        stripped = line.strip()
+        toggles = stripped.startswith("```") or stripped.startswith("~~~")
+        if self._fence is not None:
+            marker, length, indent = self._fence
+            if toggles:
+                self._toggle = not self._toggle
+            match = _FENCE_LINE.match(line)
+            if (match and match.group(2)[0] == marker and len(match.group(2)) >= length
+                    and not match.group(3).strip()):
+                self._fence = None
+
+
+
+                self._prev = "fence_close" if not indent and not self._list else "text"
+            elif stripped and len(line) - len(line.lstrip(" ")) < indent:
+                self.stuck = True
+            return
+        if stripped and not self._toggle and line[0] not in " \t" and (
+                (self._prev == "blank" and not (self._list and _LIST_ITEM.match(line)))
+                or self._prev in ("heading", "fence_close")
+                or (self._prev == "text" and not self._table and line[0] == "#"
+                    and _ATX_HEADING.match(line))):
+            self.offsets.append(offset)
+            self._list = False
+        if toggles:
+            self._toggle = not self._toggle
+        if not stripped:
+            self._prev = "blank"
+            self._pipe = self._table = False
+            return
+        if _LINK_REF_DEF.match(line):
+            self.stuck = True
+            return
+        match = _FENCE_LINE.match(line)
+        if match and not (match.group(2)[0] == "`" and "`" in match.group(3)):
+            if self._table:
+                self.stuck = True
+                return
+            self._fence = (match.group(2)[0], len(match.group(2)), len(match.group(1)))
+            self._prev = "fence_open"
+            return
+        if _ATX_HEADING.match(line):
+            if self._table:
+                self.stuck = True
+                return
+            self._prev = "heading" if line[0] == "#" else "text"
+            return
+        if self._pipe and _TABLE_RULE.match(line):
+            self._table = True
+        if "|" in line:
+            self._pipe = True
+        if _LIST_ITEM.match(line):
+            self._list = True
+        self._prev = "text"
 
 
 _LIST_OR_HEADING = re.compile(r"^\s*(?:[-*+]\s|\d+[.)]\s|#{1,6}\s|>|\|)")

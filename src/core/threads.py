@@ -26,6 +26,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import json
@@ -36,8 +40,8 @@ import uuid
 from datetime import datetime, timezone
 
 from .host_platform import retry_file_op
-from .logger import log_warning
-from .settings import account_dir
+from .logger import log, log_warning
+from .settings import account_dir, account_tag
 from .writeback import WriteBehind
 
 
@@ -88,9 +92,69 @@ def _serialise(thread: dict) -> str:
     return text
 
 
+SIGNED_OUT = "signed-out"
+
+
+def _writer_account(store_account: str) -> str:
+    """The tag to stamp on a new file: the store's, or the key readable right now."""
+
+
+
+
+    if store_account and store_account != SIGNED_OUT:
+        return store_account
+    if store_account != SIGNED_OUT:
+        return ""
+    try:
+        from .settings import Settings
+
+        key = Settings().activation_key
+    except Exception:  # noqa: BLE001 - no settings backend: no stamp
+        return ""
+    return account_tag(key) if key else ""
+
+
+def _adopt_signed_out_threads(folder: str) -> None:
+    """Index thread: chats under ``signed-out`` move to an account only when the file itself names that account (``"account"``, written since."""
+
+
+
+
+
+    own = os.path.basename(os.path.dirname(folder))
+    accounts = os.path.dirname(os.path.dirname(folder))
+    source = os.path.join(accounts, SIGNED_OUT, "threads")
+    try:
+        names = [name for name in os.listdir(source) if name.endswith(".json")]
+    except OSError:
+        return
+    if not names:
+        return
+    moved = 0
+    for name in names:
+        path, target = os.path.join(source, name), os.path.join(folder, name)
+        if os.path.islink(path) or os.path.exists(target):
+            continue
+        data = ThreadStore._read(path)
+        if data is None or data.get("account") != own:
+            continue
+        try:
+            retry_file_op(os.replace, path, target)
+            moved += 1
+        except OSError:
+            continue
+    left = len(names) - moved
+    if moved:
+        log(f"{moved} chats saved while signed out moved to this account")
+    if left:
+        log(f"{left} chats saved while signed out stay unlisted: no saved account matches this one")
+
+
 class ThreadStore:
     def __init__(self, base_dir: str | None = None, writer: WriteBehind | None = None,
                  on_index_ready=None):
+
+        self._account = "" if base_dir else account_tag()
         self._dir = base_dir or os.path.join(account_dir(), "threads")
         try:
             os.makedirs(self._dir, exist_ok=True)
@@ -224,11 +288,18 @@ class ThreadStore:
     def _build_index(self) -> None:
         rows: dict[str, dict] = {}
         try:
-            for mtime, path in self._files_newest_first()[:MAX_KEPT_FILES]:
+            if self._account and self._account != SIGNED_OUT:
+                _adopt_signed_out_threads(self._dir)
+
+            files = [] if self._account == SIGNED_OUT else self._files_newest_first()[:MAX_KEPT_FILES]
+            for mtime, path in files:
                 if self._closed:
                     break
                 data = self._read(path)
                 if data is None or not data.get("id") or not data.get("messages"):
+                    continue
+                if (self._account and isinstance(data.get("account"), str)
+                        and data["account"] and data["account"] != self._account):
                     continue
                 rows[data["id"]] = self._row_of(data, mtime)
         finally:
@@ -262,6 +333,11 @@ class ThreadStore:
     def index_ready(self) -> bool:
         return self._index_ready.is_set()
 
+    @property
+    def account(self) -> str:
+        """The account tag this store files chats under; "" for a folder the caller chose."""
+        return self._account
+
 
 
     def list_threads(self, limit: int = MAX_LISTED) -> list[dict]:
@@ -290,6 +366,9 @@ class ThreadStore:
     def create(self, title: str = "", project_path: str = "") -> dict:
         thread = {"id": new_id("t_"), "title": title, "project_path": project_path or "",
                   "created_at": now_iso(), "updated_at": now_iso(), "messages": []}
+        account = _writer_account(self._account)
+        if account:
+            thread["account"] = account
         self._save(thread)
         self._writer.schedule_job(self._prune)
         return thread
@@ -387,11 +466,19 @@ class ThreadStore:
             self._cache.pop(os.path.splitext(os.path.basename(path))[0], None)
 
 
-def user_message_record(run_id: str, text: str, chips: list, attachments: list) -> dict:
-    return {"role": "user", "run_id": run_id, "text": text, "ts": now_iso(),
-            "chips": [c for c in chips if isinstance(c, dict)],
-            "attachments": [{"name": a.get("name", ""), "path": a.get("path", "")}
-                            for a in attachments if isinstance(a, dict)]}
+def user_message_record(run_id: str, text: str, chips: list, attachments: list,
+                        mode: str = "", approval: str = "") -> dict:
+    """The user turn as stored."""
+
+    record = {"role": "user", "run_id": run_id, "text": text, "ts": now_iso(),
+              "chips": [c for c in chips if isinstance(c, dict)],
+              "attachments": [{"name": a.get("name", ""), "path": a.get("path", "")}
+                              for a in attachments if isinstance(a, dict)]}
+    if mode:
+        record["mode"] = mode
+    if approval:
+        record["approval"] = approval
+    return record
 
 
 def elapsed_label(started: float) -> str:

@@ -9,7 +9,6 @@
 
 
 
-
 from __future__ import annotations
 
 import os
@@ -24,25 +23,28 @@ from qgis.PyQt.QtCore import (
     QTimer,
     pyqtSignal,
 )
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .attach_card import AttachCard
 from .attachments import attachment_caption, attachment_kind, file_art, tile_pixmap
 from .file_links import linkify_paths
+from .icons import icon_for
 from .image_preview import ClickableThumb, open_image_preview
 from .layer_card import LayerCard
+from .layer_links import LAYER_URL, follow_layer_links
 from .loader import GAP_PX, LINE_PX, DotsLoader, ElapsedClock, ShimmerLabel
 from .markdown_view import MarkdownView
 from .source_marks import SourcesButton
 from .style import (
-    FONT_BODY,
-    INK,
-    INK_2,
-    INK_3,
+    _BTN_VOTE_DOWN,
+    _BTN_VOTE_UP,
+    GREEN,
     MOTION_FADE_UP_MS,
+    RED,
     SPACE_TIGHT,
 )
-from .widgets import FlowLayout
+from .widgets import FlowLayout, IconButton
 
 
 _USER_BUBBLE_SHARE = 0.85
@@ -57,6 +59,7 @@ _BUBBLE_PAD_Y = 6
 
 
 _BUBBLE_BORDER = 1
+
 
 
 
@@ -273,47 +276,82 @@ class UserBubble(QWidget):
             self._tags_host.setFixedHeight(max(0, self._tags_flow.heightForWidth(width)))
 
 
-class StepLine(QWidget):
-    """The line over an answer that came from a plan step (Chat, docs/DESIGN.md): the step name in ink medium, the source (a connector or a tool)."""
+class _Thumb(IconButton):
+    """One thumb: green (up) or red (down) under the cursor, solid once chosen."""
 
 
+
+
+
+
+
+
+    def __init__(self, parent, up: bool, tooltip: str):
+        super().__init__(parent, None, size=15, tooltip=tooltip,
+                         qss=_BTN_VOTE_UP if up else _BTN_VOTE_DOWN)
+        self._name = "thumbs_up" if up else "thumbs_down"
+        self._tone = GREEN if up else RED
+        self._chosen = False
+        self.set_icon(self._name, 15)
+
+    def set_chosen(self, chosen: bool) -> None:
+        if self._chosen == chosen:
+            return
+        self._chosen = chosen
+        self.set_active(chosen)
+        self._repaint_glyph_icon()
+
+    def is_chosen(self) -> bool:
+        return self._chosen
+
+    def _repaint_glyph_icon(self) -> None:
+        if not getattr(self, "_name", None):
+            super()._repaint_glyph_icon()
+            return
+        chosen, hovering = self._chosen, self._hovering and self.isEnabled()
+        name = self._name + "_filled" if chosen else self._name
+        color = QColor(self._tone) if chosen or hovering else None
+        try:
+            self.setIcon(icon_for(self, name, 15, color))
+            self.setIconSize(QSize(15, 15))
+        except (RuntimeError, AttributeError, TypeError):
+            pass
+
+
+class FeedbackRow(QWidget):
+    """Thumbs up and down under a finished answer."""
+
+
+
+
+
+
+
+
+
+
+    voted = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(SPACE_TIGHT)
-        self._name = QLabel(self)
-        self._name.setStyleSheet(
-            f"font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
-            " background: transparent; border: none;")
-        self._source = QLabel(self)
-        self._source.setStyleSheet(
-            f"font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none;")
-        self._time = QLabel(self)
-        self._time.setStyleSheet(
-            f"font-size: {FONT_BODY}px; color: {INK_3}; background: transparent; border: none;")
-        for label in (self._name, self._source, self._time):
-            row.addWidget(label, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        row.setSpacing(2)
+        self._up = _Thumb(self, True, self.tr("Good answer"))
+        self._down = _Thumb(self, False, self.tr("Bad answer"))
+        self._up.clicked.connect(lambda: self._on_click(True))
+        self._down.clicked.connect(lambda: self._on_click(False))
+        row.addWidget(self._up)
+        row.addWidget(self._down)
         row.addStretch(1)
 
-    def set_step(self, name: str, source: str = "", seconds=None) -> None:
-        self._name.setText(str(name or ""))
-        self._source.setText(str(source or ""))
-        self._source.setVisible(bool(source))
-        text = ""
-        if seconds is not None and float(seconds) > 0:
-
-
-
-            text = self.tr("for {n}s").format(n=max(1, int(round(float(seconds)))))
-        self._time.setText(text)
-        self._time.setVisible(bool(text))
-        self.setVisible(bool(name))
-
-    def text(self) -> str:
-        parts = [self._name.text(), self._source.text(), self._time.text()]
-        return "  ".join(p for p in parts if p)
+    def _on_click(self, up: bool) -> None:
+        chosen = self._up if up else self._down
+        if chosen.is_chosen():
+            return
+        chosen.set_chosen(True)
+        (self._down if up else self._up).set_chosen(False)
+        self.voted.emit(up)
 
 
 class AgentBubble(QWidget):
@@ -333,20 +371,14 @@ class AgentBubble(QWidget):
 
 
 
-
     link_activated = pyqtSignal(str)
-    retry_requested = pyqtSignal()
     feedback = pyqtSignal(bool)
-    message_requested = pyqtSignal(str)
 
     def __init__(self, text: str = "", parent=None):
         super().__init__(parent)
         self._col = QVBoxLayout(self)
         self._col.setContentsMargins(2, 2, 2, 2)
         self._col.setSpacing(0)
-        self._step = StepLine(self)
-        self._step.hide()
-        self._col.addWidget(self._step)
         self._view = MarkdownView(self)
         self._view.link_activated.connect(self.link_activated.emit)
         self._view.height_changed.connect(self._on_text_height)
@@ -354,11 +386,16 @@ class AgentBubble(QWidget):
         self._sources = SourcesButton(self)
         self._sources.hide()
         self._col.addWidget(self._sources, 0, Qt.AlignmentFlag.AlignLeft)
+        self._feedback = FeedbackRow(self)
+        self._feedback.hide()
+        self._feedback.voted.connect(self.feedback.emit)
+        self._col.addWidget(self._feedback)
         self._fade = None
         self._text = ""
         self._pending: list[str] = []
         self._finished = False
         self._linked = False
+        self._followed = ""
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.setInterval(_STREAM_INTERVAL_MS)
@@ -384,11 +421,13 @@ class AgentBubble(QWidget):
         self._flush_pending(final=True)
 
     def finish_streaming(self) -> None:
-        """The answer is complete: the caret goes, the paths become links."""
+        """The answer is complete: the caret goes, the paths become links, and the feedback row shows, in place, no hover needed to find it."""
+
         self._timer.stop()
         self._finished = True
         self._flush_pending(final=True)
         self._view.set_streaming(False)
+        self._feedback.setVisible(bool(self._text))
 
     def is_finished(self) -> bool:
         return self._finished
@@ -399,7 +438,7 @@ class AgentBubble(QWidget):
         self._text = text or ""
         self._render()
 
-    def _render(self, streaming: bool = False) -> None:
+    def _render(self, streaming: bool = False, gone=frozenset()) -> None:
         """Paint ``_text`` with its file paths turned into links."""
 
 
@@ -408,8 +447,15 @@ class AgentBubble(QWidget):
 
 
 
+
+
         started = time.perf_counter()
-        self._view.set_markdown(self._text if streaming else linkify_paths(self._text))
+        if streaming:
+            self._view.stream_markdown(self._text)
+        else:
+
+            self._followed = follow_layer_links(self._text, gone)
+            self._view.set_markdown(linkify_paths(self._followed))
         self._linked = not streaming
         if streaming:
             spent_ms = (time.perf_counter() - started) * 1000.0
@@ -419,10 +465,17 @@ class AgentBubble(QWidget):
     def text(self) -> str:
         return self._text + "".join(self._pending)
 
+    def follow_project(self, gone=frozenset()) -> None:
+        """The answer's layer links match the project as it is now (``layer_watch``): drawn again once the answer is whole, and only when a link reads."""
+
+
+        if not self._linked or LAYER_URL not in self._text:
+            return
+        if follow_layer_links(self._text, gone) != self._followed:
+            self._render(gone=gone)
+
     def to_markdown(self) -> str:
         parts = [f"**{self.tr('Agent')}:**"]
-        if self._step.isVisible():
-            parts.append(f"_{self._step.text()}_")
         parts.append(self.text())
         return "\n\n".join(parts)
 
@@ -437,10 +490,6 @@ class AgentBubble(QWidget):
         self._render(streaming=not final and not self._finished)
 
 
-
-    def set_step_line(self, name: str, source: str = "", seconds=None) -> None:
-        """The plan step this answer belongs to, its source and how long it took."""
-        self._step.set_step(name, source, seconds)
 
     def set_sources(self, items) -> None:
         """``[{name, url, glyph?}]``: the stacked marks and ``N sources``."""

@@ -35,6 +35,50 @@ def retry_file_op(op, *args):
     return op(*args)
 
 
+def _windows_memory_counters():
+    """This process's PROCESS_MEMORY_COUNTERS from GetProcessMemoryInfo, or None."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _Counters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        counters = _Counters()
+        counters.cb = ctypes.sizeof(_Counters)
+
+        get_handle = ctypes.windll.kernel32.GetCurrentProcess
+        get_handle.restype = wintypes.HANDLE
+
+
+        query = ctypes.windll.psapi.GetProcessMemoryInfo
+        query.argtypes = [wintypes.HANDLE, ctypes.POINTER(_Counters), wintypes.DWORD]
+        query.restype = wintypes.BOOL
+
+        if not query(get_handle(), ctypes.byref(counters), counters.cb):
+            return None
+        return counters
+    except Exception:
+        return None
+
+
+def working_set_mb() -> float | None:
+    """Memory this Windows process holds in RAM right now, in MB, or None elsewhere."""
+    counters = _windows_memory_counters() if IS_WINDOWS else None
+    return round(counters.WorkingSetSize / (1024 * 1024), 1) if counters is not None else None
+
+
 def peak_memory_mb() -> float | None:
     """Peak resident memory of this process, in MB, or None if unavailable."""
 
@@ -42,40 +86,8 @@ def peak_memory_mb() -> float | None:
 
 
     if IS_WINDOWS:
-        try:
-            import ctypes
-            from ctypes import wintypes
-
-            class _Counters(ctypes.Structure):
-                _fields_ = [
-                    ("cb", wintypes.DWORD),
-                    ("PageFaultCount", wintypes.DWORD),
-                    ("PeakWorkingSetSize", ctypes.c_size_t),
-                    ("WorkingSetSize", ctypes.c_size_t),
-                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                    ("PagefileUsage", ctypes.c_size_t),
-                    ("PeakPagefileUsage", ctypes.c_size_t),
-                ]
-
-            counters = _Counters()
-            counters.cb = ctypes.sizeof(_Counters)
-
-            get_handle = ctypes.windll.kernel32.GetCurrentProcess
-            get_handle.restype = wintypes.HANDLE
-
-
-            query = ctypes.windll.psapi.GetProcessMemoryInfo
-            query.argtypes = [wintypes.HANDLE, ctypes.POINTER(_Counters), wintypes.DWORD]
-            query.restype = wintypes.BOOL
-
-            if not query(get_handle(), ctypes.byref(counters), counters.cb):
-                return None
-            return round(counters.PeakWorkingSetSize / (1024 * 1024), 1)
-        except Exception:
-            return None
+        counters = _windows_memory_counters()
+        return round(counters.PeakWorkingSetSize / (1024 * 1024), 1) if counters is not None else None
 
     try:
         import resource

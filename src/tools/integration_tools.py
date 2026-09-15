@@ -39,6 +39,88 @@ def _find_plugin(candidate_keys: list[str]):
     return None, None
 
 
+def _plugin_dirs() -> list[str]:
+    import os
+
+    import qgis.utils
+    dirs = [path for path in (getattr(qgis.utils, "plugin_paths", None) or []) if isinstance(path, str)]
+    try:
+        from qgis.core import QgsApplication
+        dirs.append(os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins"))
+    except Exception:  # nosec B110 - no QGIS application (a unit test)
+        pass
+    return dirs
+
+
+def _enabled_in_plugin_manager(folder: str) -> bool:
+    """The Plugin Manager's own tick for this folder (``PythonPlugins/<folder>``)."""
+    try:
+        from qgis.core import QgsSettings
+        return bool(QgsSettings().value("PythonPlugins/" + folder, False, type=bool))
+    except Exception:  # noqa: BLE001 - no settings means no tick
+        return False
+
+
+def aiseg_presence() -> dict:
+    """Where AI Segmentation stands in this QGIS: the one reading every caller shares."""
+
+
+
+
+
+
+
+
+
+
+
+
+    import os
+
+    import qgis.utils
+    loaded = getattr(qgis.utils, "plugins", None) or {}
+    for key in AISEG_KEYS:
+        plugin = loaded.get(key)
+        if plugin is not None:
+            return {"state": "loaded", "folder": key, "plugin": plugin}
+    available = set(getattr(qgis.utils, "available_plugins", None) or [])
+    folder = next((key for key in AISEG_KEYS if key in available), None)
+    if folder is None:
+        folder = next((key for base in _plugin_dirs() for key in AISEG_KEYS
+                       if os.path.isfile(os.path.join(base, key, "metadata.txt"))), None)
+    if folder is None:
+        return {"state": "absent", "folder": None, "plugin": None}
+    started = folder in (getattr(qgis.utils, "active_plugins", None) or [])
+    enabled = started or _enabled_in_plugin_manager(folder)
+    return {"state": "not_started" if enabled else "disabled", "folder": folder, "plugin": None}
+
+
+def aiseg_not_running_status(presence: dict) -> dict:
+    """The status answer when there is no live plugin object, by what is on disk."""
+    if presence.get("state") == "disabled":
+        return {
+            "installed": True, "enabled": False, "ready": False, "state": "PLUGIN_DISABLED",
+            "plugin_folder": presence.get("folder"),
+            "action_required": ("AI Segmentation is installed but switched off. Tick it in "
+                                "Plugins > Manage and Install Plugins > Installed."),
+        }
+    if presence.get("state") == "not_started":
+        return {
+            "installed": True, "enabled": True, "ready": False, "state": "PLUGIN_NOT_STARTED",
+            "plugin_folder": presence.get("folder"),
+            "action_required": ("AI Segmentation is installed and switched on but did not start in this "
+                                "QGIS session. Restart QGIS; if it still does not start, reinstall it from "
+                                "Plugins > Manage and Install Plugins."),
+        }
+    return {
+        "installed": False,
+        "ready": False,
+        "state": "NOT_INSTALLED",
+        "action_required": "Install 'AI Segmentation by TerraLab' from QGIS Plugin Manager.",
+        "register_url": AISEG_REGISTER_URL,
+    }
+
+
 def _aiseg_module(plugin, dotted: str):
     """Import a submodule of the live AI Segmentation package by dotted path under its ``src`` root (e.g."""
 
@@ -547,16 +629,12 @@ def _aiedit_select_version(args: dict) -> dict:
 
 
 def _aiseg_status(args: dict) -> dict:
+    """The one status answer: ``ai_segment_status`` and ``ai_segment`` action status both land here."""
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
-        if not plugin:
-            return {
-                "installed": False,
-                "ready": False,
-                "state": "NOT_INSTALLED",
-                "action_required": "Install 'AI Segmentation by TerraLab' from QGIS Plugin Manager.",
-                "register_url": AISEG_REGISTER_URL,
-            }
+        presence = aiseg_presence()
+        plugin = presence["plugin"]
+        if plugin is None:
+            return aiseg_not_running_status(presence)
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -568,7 +646,8 @@ def _aiseg_status(args: dict) -> dict:
             status = _aiseg_without_local_model(status)
         return status
     except Exception as e:
-        return {"installed": False, "ready": False, "_error": str(e)}
+
+        return {"ready": False, "_error": f"AI Segmentation status failed: {e}"}
 
 
 def _aiseg_without_local_model(status: dict) -> dict:

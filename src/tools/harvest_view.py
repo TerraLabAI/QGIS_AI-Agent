@@ -24,6 +24,7 @@ from qgis.core import (
     Qgis,
     QgsApplication,
     QgsContrastEnhancement,
+    QgsDataSourceUri,
     QgsFeatureRequest,
     QgsProject,
     QgsRasterLayer,
@@ -33,12 +34,13 @@ from qgis.core import (
 )
 from qgis.utils import iface
 
+from ..core import layer_order, limits
 from ..core.logger import log
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import core_tools as _core
-from ._layers import layer_not_found, resolve_layer
+from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
 from .data_tools import _avoid_reserved_name
 
 _REMOTE_PREFIXES = ("/vsicurl/", "http://", "https://", "/vsis3/", "/vsiaz/", "/vsigs/")
@@ -184,7 +186,10 @@ def _set_layer_filter(args: dict) -> dict:
             "set_layer_filter again.",
         )
     previous = layer.subsetString() or ""
+    lifted = _lift_wfs_cap(layer) if expression else None
     if not layer.setSubsetString(expression):
+        if lifted is not None:
+            layer.setSubsetString(previous)
         return tool_error(
             f"The provider rejected the filter {expression!r} on {layer.name()!r}.",
             "INVALID_ARGS",
@@ -194,17 +199,51 @@ def _set_layer_filter(args: dict) -> dict:
         )
     layer.triggerRepaint()
     count = _feature_count(layer)
+    cap = wfs_feature_cap(layer)
     out = {
         "layer_id": layer.id(),
         "layer_name": layer.name(),
         "filter": layer.subsetString() or "",
         "previous_filter": previous,
         "cleared": expression == "",
-        "feature_count": count,
+        "feature_count": count if cap is None else min(count, cap),
     }
+    if cap is not None:
+
+
+        out["features_available"] = count
+
+
+        layer_order.mark_truncated_count(layer, min(count, cap))
+        if lifted is not None:
+            out["max_features"] = lifted
+        if count > cap:
+            out["truncated"] = True
+            out["warning"] = (f"The service holds {count:,} features under this filter and the layer loads "
+                              f"{cap:,} of them, the first in the service's own order.")
+            out["suggestion"] = "Narrow the filter, or filter one part at a time, to load the rest."
     if expression and count == 0:
         out["_note"] = "The filter matches no feature: the layer shows nothing until the filter changes."
     return out
+
+
+def _lift_wfs_cap(layer) -> int | None:
+    """Raise a WFS layer's download cap to this machine's ceiling before a filter narrows it."""
+
+
+
+
+
+
+    cap = wfs_feature_cap(layer)
+    ceiling = int(limits.current("MAX_FEATURES_PER_CALL"))
+    if cap is None or cap >= ceiling:
+        return None
+    uri = QgsDataSourceUri(layer.source())
+    uri.removeParam("maxNumFeatures")
+    uri.setParam("maxNumFeatures", str(ceiling))
+    layer.setDataSource(uri.uri(False), layer.name(), layer.providerType())
+    return ceiling
 
 
 
@@ -320,6 +359,8 @@ class _HillshadeTask(QgsTask):
         self.options = options
         self.error = ""
 
+        self.run_token = layer_order.current_run()
+
     def run(self) -> bool:
         try:
             from osgeo import gdal
@@ -380,7 +421,8 @@ class _HillshadeTask(QgsTask):
             if entry.get("status") == "canceled" or self.isCanceled():
                 entry["status"] = "canceled"
             elif result:
-                self._add_layer(entry)
+                with layer_order.adopted(self.run_token):
+                    self._add_layer(entry)
             else:
                 entry["status"] = "error"
                 entry["error"] = self.error or "The hillshade task failed; get_message_log has the GDAL output."

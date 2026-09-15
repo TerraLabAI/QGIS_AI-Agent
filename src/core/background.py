@@ -289,7 +289,6 @@ def gc_paused():
 
 
 
-
     global _GC_DEPTH, _GC_WAS_ENABLED
     with _GC_LOCK:
         if _GC_DEPTH == 0:
@@ -374,7 +373,6 @@ def run_sliced(steps, budget_ms: float, still_wanted: Callable[[], bool] | None 
 
 def breathe(index: int, every: int = BREATHE_EVERY) -> None:
     """Worker loops call this once per item so the main thread gets its turn."""
-
 
 
 

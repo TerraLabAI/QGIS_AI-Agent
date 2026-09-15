@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import re
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer
 from qgis.PyQt.QtWidgets import QDialog, QMenu
@@ -176,8 +177,7 @@ FREE_RUNS = 10
 PRO_RUNS_PER_MONTH = 250
 
 
-PRO_PRICE = "49 EUR"
-PRO_PRICE_LINE = "49 EUR a month"
+
 
 
 
@@ -593,7 +593,7 @@ def get_upgrade_url() -> str:
 
 
 def get_pricing_url() -> str:
-    """The plans and the price, on the site."""
+    """What each plan gives, on the site."""
 
 
 
@@ -739,28 +739,6 @@ def get_pro_runs_per_month() -> int:
     return _served_int("pro_runs_per_month", PRO_RUNS_PER_MONTH)
 
 
-def get_pro_price() -> str:
-    """The monthly price of Pro, "49 EUR": ``pricing.pro.price`` when the website serves one, the shipped figure otherwise."""
-
-    pricing = _served_config.get("pricing")
-    if isinstance(pricing, dict):
-        pro = pricing.get("pro")
-        if isinstance(pro, dict):
-            value = pro.get("price")
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-    return _served_text("pro_price", PRO_PRICE)
-
-
-def get_pro_price_line() -> str:
-    pricing = _served_config.get("pricing")
-    if isinstance(pricing, dict):
-        value = pricing.get("pro_price_line")
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return _served_text("pro_price_line", PRO_PRICE_LINE)
-
-
 
 
 
@@ -772,7 +750,6 @@ FREE_PLAN_POINTS = (
 
 
     "{n} runs a month",
-
 
 
     "Every tool, every connector, every QGIS plugin",
@@ -810,31 +787,26 @@ def get_pro_plan_points() -> list:
 
 
 
+_PRICE_RE = re.compile(r"[€$£¥]|\b(?:EUR|USD|GBP|CHF)\b", re.IGNORECASE)
+
+
+def get_served_pro_points() -> list:
+    """The served ``pricing.pro.points``, run count filled in, or an empty list when the site sends none."""
 
 
 
 
 
-PAYWALL_POINTS = (
-    "{n} runs a month",
-
-
-
-    "Go back to the project as it was before a run",
-    "Cancel anytime",
-)
-
-
-def get_paywall_points() -> list:
-    """The three lines under the Upgrade button, served or shipped."""
-    pricing = _served_config.get("pricing")
-    plan = pricing.get("pro") if isinstance(pricing, dict) else None
-    points = plan.get("paywall_points") if isinstance(plan, dict) else None
-    if isinstance(points, list):
-        clean = [str(p).strip()[:120] for p in points if str(p or "").strip()]
-        if clean:
-            return clean[:6]
-    return list(PAYWALL_POINTS)
+    runs = get_pro_runs_per_month()
+    out = []
+    for line in _served_points("pro", ()):
+        if _PRICE_RE.search(line):
+            continue
+        try:
+            out.append(line.format(n=runs))
+        except (IndexError, KeyError, ValueError):
+            out.append(line)
+    return out
 
 
 

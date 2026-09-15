@@ -53,7 +53,11 @@ _MAX_EXISTS_CHECKS = 40
 
 
 
-_UNC_PREFIX = re.compile(r"^\\\\[^\\]")
+
+
+
+
+_UNC_PREFIX = re.compile(r"^[\\/]{2}")
 
 
 
@@ -134,6 +138,37 @@ def reveal_target(path: str) -> str:
     text = str(path or "")
     parent = os.path.dirname(text.rstrip("/\\")) or text
     return parent if os.path.isdir(parent) else text
+
+
+def reveal_local_file(path: str, parent=None) -> bool:
+    """Show a file in the system file browser, selected where the platform can."""
+
+
+
+
+
+
+    from qgis.PyQt.QtCore import QProcess
+
+    from .external_links import open_local_path
+
+    text = str(path or "")
+    if not text:
+        return False
+    if os.path.exists(text):
+        command = None
+        if sys.platform == "darwin":
+            command = ("open", ["-R", text])
+        elif os.name == "nt":
+            command = ("explorer", ["/select,", os.path.normpath(text)])
+        if command is not None:
+            started = QProcess.startDetached(*command)
+            if started[0] if isinstance(started, tuple) else started:
+                return True
+    folder = reveal_target(text)
+    if folder == text or not is_safe_to_open(folder):
+        return False
+    return open_local_path(folder, parent)
 
 
 class _ExistsBudget:

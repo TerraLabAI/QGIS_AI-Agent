@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import math
 import os
-import pathlib
 import re as _re
 import sqlite3
 import time
@@ -46,6 +45,8 @@ WRITE_PATH_ARGS: dict[str, tuple[str, ...]] = {
     "render_camera_move": ("out_dir", "output_dir"),
     "get_3d_screenshot": ("save_path",),
     "create_hillshade": ("output_path",),
+    "georeference_raster": ("output_path",),
+    "create_chart": ("output_path",),
     "zonal_statistics": ("output_path",),
     "spatial_join": ("output_path",),
     "raster_calculator": ("output_path", "output"),
@@ -249,7 +250,6 @@ def _check_extent_order(name: str, args: dict) -> dict | None:
             continue
 
 
-
         if xmax < xmin or ymax < ymin:
             for low, high, a, b in (("xmin", "xmax", min(xmin, xmax), max(xmin, xmax)),
                                     ("ymin", "ymax", min(ymin, ymax), max(ymin, ymax))):
@@ -447,9 +447,11 @@ def _gpkg_table_target(name: str, args: dict) -> str:
     """The table an append-style GeoPackage tool will actually replace."""
     if name == "create_memory_layer":
         return str(args.get("name") or "").strip()
-    if name != "save_layer_to_gpkg":
+    if name == "export_layer" and args.get("layer_name_in_file"):
+        return str(args["layer_name_in_file"])
+    if name not in {"save_layer_to_gpkg", "export_layer"}:
         return ""
-    reference = args.get("layer")
+    reference = args.get("layer_name" if name == "export_layer" else "layer")
     if not isinstance(reference, str) or not reference.strip():
         return ""
     try:
@@ -460,7 +462,8 @@ def _gpkg_table_target(name: str, args: dict) -> str:
         if layer is None:
             matches = project.mapLayersByName(reference)
             layer = matches[0] if matches else None
-        return str(layer.name() if layer is not None else reference).strip()
+        table = str(layer.name() if layer is not None else reference)
+        return table if name == "export_layer" else table.strip()
     except Exception:  # noqa: BLE001 - outside QGIS the reference itself is the best available name
         return reference.strip()
 
@@ -473,8 +476,11 @@ def _gpkg_has_table(path: str, table: str) -> bool | None:
 
 
 
-        uri = pathlib.Path(os.path.abspath(path)).as_uri() + "?mode=ro"
-        connection = sqlite3.connect(uri, timeout=1.0, uri=True)
+        from ..core.snapshot_files import sqlite_read_only_uri
+
+
+
+        connection = sqlite3.connect(sqlite_read_only_uri(path), timeout=1.0, uri=True)
         try:
             row = connection.execute(
                 "SELECT 1 FROM gpkg_contents WHERE lower(table_name)=lower(?) LIMIT 1", (table,),
@@ -498,7 +504,9 @@ def _check_paths(name: str, args: dict) -> dict:
             return _refusal(error, "Pick a path under the project folder, your home folder or the temp folder.",
                             "PERMISSION_DENIED")
         if os.path.isfile(expanded):
-            if name in _APPEND_TOOLS:
+            if name in _APPEND_TOOLS or (
+                name == "export_layer" and os.path.splitext(expanded)[1].lower() == ".gpkg"
+            ):
                 table = _gpkg_table_target(name, args)
                 table_exists = _gpkg_has_table(expanded, table)
                 if table_exists is None:
@@ -585,8 +593,15 @@ _CREATE_COUNT_KEYS = ("count", "num_features", "number_of_points", "point_count"
 
 
 
+
+
+
+
+
+
+
 _OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fetch_overture",
-                             "add_pmtiles_layer", "create_grid_layer"})
+                             "add_pmtiles_layer", "create_grid_layer", "add_data"})
 
 
 
@@ -704,9 +719,28 @@ def _check_render_size(name: str, args: dict) -> dict | None:
     if dpi is not None and dpi > max_dpi:
         return limits.refusal(
             "'dpi'", f"{dpi:,.0f}", f"{max_dpi}",
-            "600 dpi is print quality. dpi multiplies into pixels twice over, so an A0 page at "
-            "2400 dpi is a three gigapixel image that fails after minutes of work.")
+            _layout_dpi_advice(name, args, max_dpi)
+            or "600 dpi is print quality. dpi multiplies into pixels twice over, so an A0 page at "
+               "2400 dpi is a three gigapixel image that fails after minutes of work.")
     return None
+
+
+def _layout_dpi_advice(name: str, args: dict, max_dpi) -> str:
+    """What the highest dpi allowed here gives on the ground, for a layout export."""
+
+
+
+
+
+
+    if name not in ("export_layout", "export_atlas"):
+        return ""
+    try:
+        from .advanced_tools import dpi_ceiling_advice
+
+        return dpi_ceiling_advice(args.get("layout_name"), int(max_dpi))
+    except Exception:  # noqa: BLE001 - no QGIS or no such layout: the general sentence
+        return ""
 
 
 def _feature_count(reference) -> int | None:
@@ -884,7 +918,11 @@ def check_call(name: str, args: dict) -> dict:
         for command in args.get("commands") or []:
             if isinstance(command, dict):
                 inner_name = str(command.get("name") or "")
-                if inner_name in _COSTLY_INSIDE_BATCH:
+                inner_args = command.get("arguments") if isinstance(command.get("arguments"), dict) else {}
+
+
+                if (inner_name in _COSTLY_INSIDE_BATCH
+                        or f"{inner_name}_{inner_args.get('action') or ''}" in _COSTLY_INSIDE_BATCH):
 
 
 

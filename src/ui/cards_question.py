@@ -20,9 +20,14 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QPoint, QRect, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QPalette
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
@@ -102,6 +107,37 @@ def _as_timeout(value) -> int:
     if seconds <= 0:
         return 0
     return min(seconds, _MAX_TIMEOUT_S)
+
+
+def _on_screen(widget) -> bool:
+    """Whether some of ``widget`` is actually in front of the user right now: itself shown, its window shown and not minimized, and part of its."""
+
+
+
+
+
+
+
+    try:
+        if not widget.isVisible():
+            return False
+        window = widget.window()
+        if window is None or not window.isVisible() or window.isMinimized():
+            return False
+
+
+
+
+        seen = QRect(widget.mapTo(window, QPoint(0, 0)), widget.size())
+        parent = None if widget.isWindow() else widget.parentWidget()
+        while parent is not None and not seen.isEmpty():
+            seen = seen.intersected(QRect(parent.mapTo(window, QPoint(0, 0)), parent.size()))
+            if parent.isWindow():
+                break
+            parent = parent.parentWidget()
+        return not seen.isEmpty()
+    except (RuntimeError, AttributeError):
+        return False
 
 
 def _as_options(options) -> list:
@@ -241,6 +277,7 @@ class _Page(QWidget):
         self._rows: list = []
         self._free: _FreeTextRow | None = None
         self._timer: QTimer | None = None
+        self._countdown: QLabel | None = None
         self._engaged = False
 
         col = QVBoxLayout(self)
@@ -261,9 +298,17 @@ class _Page(QWidget):
 
 
 
+
+
+
             self._timer = QTimer(self)
             self._timer.setInterval(1000)
             self._timer.timeout.connect(self._tick)
+            self._countdown = plain_label("", self)
+            self._countdown.setObjectName("questionCountdown")
+            self._countdown.setStyleSheet(_ASK_LABEL_QSS)
+            self._countdown.hide()
+            col.addWidget(self._countdown)
 
     def _build_options(self) -> QWidget:
         host = QWidget(self)
@@ -314,6 +359,7 @@ class _Page(QWidget):
             return
         self._engaged = True
         self._stop_timer()
+        self._update_countdown()
 
     def _on_return(self) -> None:
         if self.is_answerable():
@@ -343,7 +389,18 @@ class _Page(QWidget):
         if self.answer is not None:
             self._stop_timer()
             return
+        if not _on_screen(self):
+
+
+
+
+
+
+
+            self._update_countdown()
+            return
         self._remaining = max(0, self._remaining - 1)
+        self._update_countdown()
         if self._remaining == 0:
             self._stop_timer()
             self._auto_answer()
@@ -358,10 +415,26 @@ class _Page(QWidget):
             return
         if self._timer is not None and self.answer is None and self._remaining > 0:
             self._timer.start()
+        self._update_countdown()
 
     def pause_timer(self) -> None:
         """Another page is on screen: this one waits, and keeps the seconds it has left."""
         self._stop_timer()
+        self._update_countdown()
+
+    def _update_countdown(self) -> None:
+        """The seconds left, shown next to the question while they are actually being spent: no visible number would be a stopwatch running behind."""
+
+
+
+        if self._countdown is None:
+            return
+        running = (self.answer is None and not self._engaged and self._timer is not None
+                  and self._timer.isActive() and self._remaining > 0 and _on_screen(self))
+        if running:
+            self._countdown.setText(self.tr("Answers itself in 1 second") if self._remaining == 1
+                                    else self.tr("Answers itself in %n seconds", "", self._remaining))
+        self._countdown.setVisible(running)
 
     def _auto_answer(self) -> None:
         if self.answer is not None or self._engaged:
@@ -389,6 +462,7 @@ class _Page(QWidget):
             return
         self.answer = answer or ""
         self._stop_timer()
+        self._update_countdown()
         self.setEnabled(False)
 
     def shown_answer(self) -> str:
@@ -426,6 +500,7 @@ class QuestionCard(_Card, FoldMixin):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.tool_call_id = tool_call_id
         self.question = (question or "").strip()
+
 
 
 
@@ -652,20 +727,6 @@ class QuestionCard(_Card, FoldMixin):
         self._body.setEnabled(False)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.fold_body(self._body, self._show_done)
-
-    def stop_asking(self) -> None:
-        """The run this card belongs to is over: it no longer decides anything."""
-
-
-
-
-
-        for page in self._pages:
-            page.pause_timer()
-            page._engaged = True
-        if self.is_open():
-            self._body.setEnabled(False)
-            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
     def _show_done(self) -> None:
         self._body.hide()

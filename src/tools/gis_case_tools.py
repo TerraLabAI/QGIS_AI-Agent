@@ -26,10 +26,12 @@ from qgis.core import (
     QgsRectangle,
     QgsSpatialIndex,
     QgsTask,
+    QgsUnitTypes,
     QgsVectorLayer,
     QgsWkbTypes,
 )
 
+from ..core import layer_order
 from ..core.geometry_budget import VertexBudget
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
@@ -345,7 +347,6 @@ def _package_project(args: dict) -> dict:
 
 
 
-
 _ROAD_NAME_HINTS = ("road", "highway", "street", "route", "voirie", "rue", "walk", "network", "réseau")
 
 
@@ -405,7 +406,6 @@ def _get_isochrone(args: dict) -> dict:
 
 
 
-
     import processing
 
     road_layer_name = args.get("road_layer")
@@ -424,15 +424,11 @@ def _get_isochrone(args: dict) -> dict:
 
 
 
-
     if "/vsicurl/" in str(roads.source()):
         return tool_error(
             f"{roads.name()} is a streamed remote tile; the road graph needs a local layer.", "INVALID_ARGS",
             "Fetch the roads again with fetch_overture theme roads, mode clip, over a bbox a little larger "
             "than the reach (confirm_large true if it says so), then call get_isochrone with that layer.")
-
-
-
 
 
     asked = args["minutes"]
@@ -473,9 +469,6 @@ def _get_isochrone(args: dict) -> dict:
                                             QgsProject.instance()).transformBoundingBox(window)
         except Exception:  # nosec B110 - an untransformable window keeps the whole layer
             window = None
-
-
-
 
 
 
@@ -614,6 +607,33 @@ def _profile_geometry(args: dict, dem):
     return None, tool_error("Pass line_layer or line_wkt.", "INVALID_ARGS", "Use a line layer or LINESTRING WKT.")
 
 
+def _metric_sampling_crs(geometry, dem_crs):
+    """A metric CRS to interpolate the line in, and the transforms to and from it."""
+
+
+
+
+
+
+
+
+
+
+    if not dem_crs.isValid():
+        return dem_crs, None, None
+    metres = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
+    if not dem_crs.isGeographic() and dem_crs.mapUnits() == metres:
+        return dem_crs, None, None
+    wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+    centre = geometry.centroid().asPoint()
+    if dem_crs != wgs84:
+        centre = QgsCoordinateTransform(dem_crs, wgs84, QgsProject.instance()).transform(centre)
+    metric_crs = QgsCoordinateReferenceSystem(_utm_authid(centre.x(), centre.y()))
+    to_metric = QgsCoordinateTransform(dem_crs, metric_crs, QgsProject.instance())
+    to_dem = QgsCoordinateTransform(metric_crs, dem_crs, QgsProject.instance())
+    return metric_crs, to_metric, to_dem
+
+
 def _elevation_profile(args: dict) -> dict:
     dem = _find_layer(args["dem"])
     if dem is None:
@@ -625,11 +645,20 @@ def _elevation_profile(args: dict) -> dict:
         return {"_error": "The profile line is empty or has zero length."}
     count = max(2, min(int(args.get("sample_count", 100) or 100), 2000))
     provider = dem.dataProvider()
+    dem_crs = dem.crs()
+    _metric_crs, to_metric, to_dem = _metric_sampling_crs(geometry, dem_crs)
+    if to_metric is not None:
+        geometry = QgsGeometry(geometry)
+        geometry.transform(to_metric)
     total = geometry.length()
+    if total <= 0:
+        return {"_error": "The profile line is empty or has zero length."}
     series = []
     for index in range(count):
         distance = total * index / (count - 1)
         point = geometry.interpolate(distance).asPoint()
+        if to_dem is not None:
+            point = to_dem.transform(point)
         identified = provider.identify(point, enum_member(QgsRaster, "IdentifyFormat", "IdentifyFormatValue"))
         values = identified.results() if identified.isValid() else {}
         value = values.get(1)
@@ -640,7 +669,7 @@ def _elevation_profile(args: dict) -> dict:
         "samples": series,
         "sample_count": count,
         "png_path": path,
-        "distance_units": dem.crs().mapUnits().name if hasattr(dem.crs().mapUnits(), "name") else "layer units",
+        "distance_units": "meters",
     }
 
 
@@ -762,7 +791,6 @@ def _interior_holes(geometry, limit: int) -> list[dict]:
 
 
 
-
     polygon_type = enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
     gaps = []
     for part in geometry.asGeometryCollection() or [geometry]:
@@ -788,6 +816,7 @@ class _GeocodeLayerTask(QgsTask):
         self.results: list[dict] = []
         self.skipped = 0
         self.error = None
+        self.run_token = layer_order.current_run()
 
     def run(self):
 
@@ -844,7 +873,8 @@ class _GeocodeLayerTask(QgsTask):
             state.update({"status": "canceled" if self.isCanceled() else "error", "results": self.results})
             return
         try:
-            self._publish(state)
+            with layer_order.adopted(self.run_token):
+                self._publish(state)
         except Exception as exc:  # noqa: BLE001 - a poll must never wait on a raised finished()
             state.update({"status": "error", "error": str(exc), "results": self.results})
 

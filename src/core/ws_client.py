@@ -65,6 +65,12 @@ _SEND_CHUNK = 65536
 _MESSAGE_FRAGMENT = 65536
 IDLE_PING_S = 45.0
 DEAD_AFTER_S = 90.0
+
+
+
+
+LINK_FLOOR_BPS = 50_000
+IN_FLIGHT_MAX_S = 40.0
 MAX_QUEUED_FRAMES = 128
 MAX_QUEUED_BYTES = 32 * 1024 * 1024
 
@@ -106,6 +112,8 @@ class WsConnection:
         self._close_sent = False
         self._writer_closed = False
         self._last_rx = 0.0
+        self._last_tx = 0.0
+        self._in_flight_until = 0.0
         self._ping_sent_at: float | None = None
         self.open = False
 
@@ -351,7 +359,7 @@ class WsConnection:
             if self._writer_closed:
                 return
 
-    def _write_controls(self, deadline: float | None = None) -> None:
+    def _write_controls(self) -> None:
         """Writer thread only: control frames may interrupt a fragmented message."""
 
         for _ in range(16):
@@ -362,7 +370,7 @@ class WsConnection:
             with self._send_state:
                 self._queued_bytes = max(0, self._queued_bytes - len(payload))
             try:
-                self._write_frame(encode_frame(opcode, payload, mask=True), deadline)
+                self._write_frame(encode_frame(opcode, payload, mask=True))
             except WsError as exc:
                 self._settle_send(exc)
                 raise
@@ -377,25 +385,24 @@ class WsConnection:
                 return
 
     def _write_message(self, opcode: int, payload: bytes) -> None:
-        """Fragment data, with one deadline for the complete message."""
+        """Fragment data; the message fails only when its bytes stop moving."""
 
 
 
 
 
 
-        deadline = time.monotonic() + self.send_timeout
         if opcode not in (OP_TEXT, OP_BINARY) or len(payload) <= _MESSAGE_FRAGMENT:
-            self._write_frame(encode_frame(opcode, payload, mask=True), deadline)
+            self._write_frame(encode_frame(opcode, payload, mask=True))
             return
         for start in range(0, len(payload), _MESSAGE_FRAGMENT):
-            self._write_controls(deadline)
+            self._write_controls()
             if self._writer_closed:
                 return
             end = min(len(payload), start + _MESSAGE_FRAGMENT)
             fragment = encode_frame(opcode if start == 0 else OP_CONT, payload[start:end],
                                     mask=True, fin=end == len(payload))
-            self._write_frame(fragment, deadline)
+            self._write_frame(fragment)
 
     @staticmethod
     def _produce(produce) -> bytes:
@@ -411,30 +418,38 @@ class WsConnection:
             raise WsError(f"message of {len(data)} bytes exceeds the 16 MiB limit")
         return data
 
-    def _write_frame(self, frame: bytes, deadline: float | None = None) -> None:
-        """Chunked sends with a total deadline."""
+    def _write_frame(self, frame: bytes) -> None:
+        """Chunked sends that give up only after `send_timeout` with no byte moving."""
+
+
+
+
+
+
 
         sock = self._sock
         if sock is None:
             raise WsConnectionLost("not connected")
         view = memoryview(frame)
-        if deadline is None:
-            deadline = time.monotonic() + self.send_timeout
+        moved_at = time.monotonic()
         while view:
             if self._stop.is_set():
                 raise WsConnectionLost("closed while sending")
-            if time.monotonic() >= deadline:
-                raise WsConnectionLost(f"send timed out after {int(self.send_timeout)} s", "timeout")
+            if time.monotonic() - moved_at >= self.send_timeout:
+                raise WsConnectionLost(f"send timed out: nothing moved for {int(self.send_timeout)} s", "timeout")
             try:
                 sent = sock.send(view[:_SEND_CHUNK])
             except (socket.timeout, ssl.SSLWantWriteError, ssl.SSLWantReadError):
-                if time.monotonic() > deadline:
-                    raise WsConnectionLost(f"send timed out after {int(self.send_timeout)} s", "timeout") from None
                 continue
             except (OSError, ssl.SSLError) as exc:
                 raise WsConnectionLost(f"send failed: {exc}") from exc
             if sent <= 0:
                 raise WsConnectionLost("socket closed while sending")
+            now = time.monotonic()
+            moved_at = now
+            self._last_tx = now
+            self._in_flight_until = min(max(self._in_flight_until, now) + sent / LINK_FLOOR_BPS,
+                                        now + IN_FLIGHT_MAX_S)
             view = view[sent:]
 
     def _drain(self, timeout: float) -> None:
@@ -460,6 +475,38 @@ class WsConnection:
 
     def send_ping(self, payload: bytes = b"") -> None:
         self._enqueue(OP_PING, payload[:125])
+
+    def link_moved_since(self, since: float) -> tuple[bool, bool]:
+        """(bytes arrived, bytes are still leaving) since the monotonic time `since`."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+        writing = (self._outstanding > 0 and self._last_tx >= since) or self._in_flight_until > time.monotonic()
+        return self._last_byte_at() >= since, writing
+
+    def _last_byte_at(self) -> float:
+        """Monotonic time of the last byte read: a whole frame, or a chunk of one."""
+        reader = self._reader
+        return max(self._last_rx, reader.last_rx if reader is not None else 0.0)
+
+    def flush(self, timeout: float) -> bool:
+        """Wait at most `timeout` s for every queued frame to be written; True when none is left."""
+
+
+
+
+        self._drain(timeout)
+        return not self._outstanding
 
     def close(self, code: int = 1000, reason: str = "") -> None:
         """Start the close handshake."""
@@ -520,7 +567,7 @@ class WsConnection:
             raise self._send_error
         if not self.open:
             return
-        idle = now - self._last_rx
+        idle = now - self._last_byte_at()
         if self.dead_after_s and idle > self.dead_after_s:
             raise WsConnectionLost(f"no data from the server for {int(idle)} s", "lost")
         if self.idle_ping_s and idle > self.idle_ping_s and self._ping_sent_at is None:
@@ -862,7 +909,10 @@ if _QT_AVAILABLE:
                 self._state = state
                 self.state_changed.emit(state)
 
-        def open(self, url: str, headers: dict | None = None) -> bool:
+        def open(self, url: str, headers: dict | None = None, clocks: dict | None = None) -> bool:
+            """Start a connection."""
+
+
             thread = self._thread
             if thread is not None and thread.isRunning():
                 if self._state != "closing":
@@ -879,7 +929,13 @@ if _QT_AVAILABLE:
             proxy = resolve_proxy(host, port, secure)
             self.proxy_label = f"{proxy['host']}:{proxy['port']}" if proxy else ""
             ca_pem, insecure = resolve_tls(host, port) if secure else (None, False)
-            thread = _WsThread(WsConnection(url, headers or {}, proxy, insecure, ca_pem=ca_pem))
+            clocks = clocks or {}
+            thread = _WsThread(WsConnection(
+                url, headers or {}, proxy, insecure, ca_pem=ca_pem,
+                connect_timeout=float(clocks.get("connect_timeout_s", _CONNECT_TIMEOUT_S)),
+                idle_ping_s=float(clocks.get("idle_ping_s", IDLE_PING_S)),
+                dead_after_s=float(clocks.get("dead_after_s", DEAD_AFTER_S)),
+                send_timeout=float(clocks.get("send_timeout_s", _SEND_TIMEOUT_S))))
             thread.connected.connect(lambda t=thread: self._on_connected(t))
             thread.disconnected.connect(lambda code, reason, t=thread: self._on_disconnected(t, code, reason))
             thread.frame_received.connect(lambda text, t=thread: self._on_frame(t, text))
@@ -917,6 +973,20 @@ if _QT_AVAILABLE:
                 self.error_occurred.emit(str(exc))
                 thread.conn.abort()
                 return False
+
+        def link_moved_since(self, since: float) -> tuple[bool, bool]:
+            """See `WsConnection.link_moved_since`; (False, False) with no socket."""
+            thread = self._thread
+            if thread is None:
+                return False, False
+            return thread.conn.link_moved_since(since)
+
+        def flush(self, wait_ms: int) -> bool:
+            """See `WsConnection.flush`. Blocks the caller at most `wait_ms`: unload only."""
+            thread = self._thread
+            if thread is None:
+                return True
+            return thread.conn.flush(max(0, int(wait_ms)) / 1000.0)
 
         def close(self, code: int = 1000, reason: str = "", wait_ms: int = 0) -> None:
             """Non-blocking by default."""

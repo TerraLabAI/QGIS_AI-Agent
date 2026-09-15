@@ -40,7 +40,6 @@ from ..style import (
     FONT_BASE,
     FONT_HINT,
     HAIRLINE,
-    MONO_FAMILY,
     MUTED,
     RADIUS_CARD,
     SPACE_CARD,
@@ -62,11 +61,6 @@ _HINT_CARD_QSS = (
 _TOP_MARGIN = 18
 _TITLE_GAP = 14
 _HINT_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; border: none;"
-_CODE_QSS = (
-    f"font-family: {MONO_FAMILY}; font-size: 20px; font-weight: 700;"
-    " letter-spacing: 2px; color: palette(text); background: rgba(128, 128, 128, 0.12);"
-    f" border: 1px solid rgba(128, 128, 128, 0.25); border-radius: {RADIUS_CARD}px; padding: 6px 12px;"
-)
 
 
 class ActivationCard(QWidget):
@@ -177,18 +171,6 @@ class ActivationCard(QWidget):
         status_row.addWidget(self._wait_status, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addStretch(1)
         wait_col.addLayout(status_row)
-        self._code_label = QLabel(self._wait_section)
-        self._code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._code_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._code_label.setStyleSheet(_CODE_QSS)
-        self._code_label.setToolTip(self.tr("Type this code in the browser if it asks for one"))
-        self._code_label.hide()
-        wait_col.addWidget(self._code_label)
-        self._code_hint = QLabel(self.tr("Your browser asks for this code."), self._wait_section)
-        self._code_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._code_hint.setStyleSheet(_HINT_QSS)
-        self._code_hint.hide()
-        wait_col.addWidget(self._code_hint)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(SPACE_CARD)
         self._reopen_btn = QPushButton(self.tr("Open browser"), self._wait_section)
@@ -287,9 +269,6 @@ class ActivationCard(QWidget):
         self._connect_section.hide()
         self._account_section.hide()
         self._message.hide()
-        self._code_label.setText(self.pairing_code)
-        self._code_label.setVisible(bool(self.pairing_code))
-        self._code_hint.setVisible(bool(self.pairing_code))
         self._wait_section.show()
         self._spinner.start()
         self._set_subtitle(self.tr("Finish the sign-in in your browser, then come back here."))

@@ -21,8 +21,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import hashlib
@@ -64,8 +62,6 @@ def _expand_home(arguments: dict) -> dict:
 
 
 
-
-
     def walk(value):
         if isinstance(value, str):
             if value == "~" or value.startswith(("~/", "~\\")):
@@ -82,6 +78,21 @@ def _expand_home(arguments: dict) -> dict:
 def tool_error(message: str, code: str = "EXECUTION_FAILED", suggestion: str = "") -> dict:
     """The error result every tool returns on failure."""
     return {"_error": message, "code": code, "suggestion": suggestion}
+
+
+def _network_failure(exc: BaseException) -> str | None:
+    """The sentence ``net`` has for a request the network failed, or None."""
+    try:
+        from . import net
+    except ImportError:
+        return None
+    return net.describe_failure(exc)
+
+
+def _network_suggestion() -> str:
+    from . import net
+
+    return net.NETWORK_SUGGESTION
 
 
 
@@ -161,6 +172,7 @@ class Tool:
         background: bool | Callable[[dict], bool] = False,
         idempotent: bool | None = None,
         open_world: bool | None = None,
+        preflight: Callable[[dict], Any] | None = None,
     ):
 
 
@@ -185,6 +197,11 @@ class Tool:
         self.hidden = hidden
 
         self.background = background if callable(background) else bool(background)
+
+
+
+
+        self.preflight = preflight if callable(preflight) else None
 
 
 
@@ -343,6 +360,12 @@ class ToolRegistry:
                 "Flatten the arguments to match the tool's parameters schema and call again.",
             )
         except Exception as e:
+            network = _network_failure(e)
+            if network:
+
+
+                log_warning(f"Tool '{name}' lost its network: {network}")
+                return tool_error(network, "NETWORK_ERROR", _network_suggestion())
             cls = e.__class__.__name__
             detail = str(e).strip()
             message = f"{cls}: {detail}" if detail else f"{cls} (no message)"
@@ -503,7 +526,6 @@ class ToolRegistry:
                 unknown = sorted(set(value.keys()) - set(properties.keys()))
                 nested = path.startswith("arguments.")
                 if unknown and nested and required and all(f in value for f in required):
-
 
 
 

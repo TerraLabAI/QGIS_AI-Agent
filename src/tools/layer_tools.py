@@ -269,13 +269,15 @@ def _set_active_layer(args: dict) -> dict:
 
 
 def _get_active_layer(args: dict) -> dict:
+    from ..core.context import layer_kind
+
     layer = iface.activeLayer()
     if not layer:
         return {"active_layer": None}
     return {
         "active_layer": {
             "name": layer.name(),
-            "type": "vector" if isinstance(layer, QgsVectorLayer) else "raster",
+            "type": layer_kind(layer),
             "layer_id": layer.id(),
         }
     }
@@ -346,12 +348,25 @@ def _set_layer_visibility(args: dict) -> dict:
     }
 
 
-def _default_gpkg_path() -> str | None:
-    """'<project_dir>/<project_stem>_data.gpkg', or None if the project is unsaved."""
+def _default_gpkg_path(layer_name: str = "") -> str | None:
+    """'<project_dir>/<project_stem>_data.gpkg', else a new '<layer>.gpkg' in Documents/TerraLab exports."""
+
+
+
+
+
     import os
     fname = QgsProject.instance().fileName()
     if not fname:
-        return None
+        from ..core import output_paths
+
+        folder = os.path.join(output_paths.standard_folder("documents"), output_paths.DEFAULT_SUBFOLDER)
+        stem = output_paths.safe_file_name(layer_name, "layers")
+        path, number = os.path.join(folder, f"{stem}.gpkg"), 2
+        while os.path.exists(path):
+            path, number = os.path.join(folder, f"{stem}_{number}.gpkg"), number + 1
+        os.makedirs(folder, exist_ok=True)
+        return path
     directory = os.path.dirname(fname)
     stem = os.path.splitext(os.path.basename(fname))[0]
     return os.path.join(directory, f"{stem}_data.gpkg")
@@ -432,7 +447,7 @@ def _create_memory_layer(args: dict) -> dict:
             "geometry_type": geom_type, "storage": "memory",
         }
 
-    gpkg_path = args.get("gpkg_path") or _default_gpkg_path()
+    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
     if not gpkg_path:
         return {
             "_error": "Project is unsaved, pass gpkg_path explicitly for a permanent layer, or save the project first."
@@ -467,14 +482,13 @@ def _save_layer_to_gpkg(args: dict) -> dict:
 
 
 
-
         return tool_error(
             f"'{name}' streams a remote file in place; saving it copies the whole tile, not the area on the map, "
             "and holds QGIS for minutes.",
             "INVALID_ARGS",
             'Fetch a local copy of the area first, with the same theme and bbox and mode "clip" (fetch_overture) '
             "or a bbox on add_data, then save that layer.")
-    gpkg_path = args.get("gpkg_path") or _default_gpkg_path()
+    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
     if not gpkg_path:
         return {"_error": "Project is unsaved, pass gpkg_path explicitly, or save the project first."}
 
@@ -548,6 +562,8 @@ def _save_layer_to_gpkg(args: dict) -> dict:
 
 
 def _get_layer_tree(args: dict) -> dict:
+    from ..core.context import layer_kind
+
     root = QgsProject.instance().layerTreeRoot()
 
     def _tree_node(node):
@@ -560,7 +576,7 @@ def _get_layer_tree(args: dict) -> dict:
                 "type": "layer",
                 "name": layer.name() if layer else "(invalid)",
                 "visible": node.isVisible(),
-                "layer_type": "vector" if isinstance(layer, QgsVectorLayer) else "raster" if layer else "unknown",
+                "layer_type": layer_kind(layer) if layer else "unknown",
             }
         return {"type": "unknown"}
 
@@ -811,6 +827,49 @@ def _write_failure(project, path: str) -> str:
     return f"Failed to save project to {path}" + (f": {reason}" if reason else "")
 
 
+def _scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]]:
+    """Layers this save does not make durable: in-memory ones that vanish the moment QGIS closes (``create_memory_layer``, ``duplicate_layer``)."""
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsRasterLayer
+
+    from ..core import policy
+
+    memory_layers: list[dict] = []
+    temporary_layers: list[dict] = []
+    from ._layers import _source_key
+
+
+    scratch_prefix = _source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"
+
+    def entry(layer) -> dict:
+        if not isinstance(layer, QgsVectorLayer):
+            if isinstance(layer, QgsRasterLayer):
+                return {"name": layer.name(), "layer_type": "raster"}
+            return {"name": layer.name()}
+        try:
+            count = layer.featureCount()
+        except Exception:  # noqa: BLE001 - a broken layer is still worth listing
+            count = None
+        return {"name": layer.name(), "feature_count": count}
+
+    for layer in project.mapLayers().values():
+        if isinstance(layer, QgsVectorLayer):
+            if layer.providerType() == "memory":
+                memory_layers.append(entry(layer))
+                continue
+        if _source_key(str(layer.source() or "")).startswith(scratch_prefix):
+            temporary_layers.append(entry(layer))
+    return memory_layers, temporary_layers
+
+
 def _save_project(args: dict) -> dict:
     from ..core.security import validate_path
     project = QgsProject.instance()
@@ -830,7 +889,20 @@ def _save_project(args: dict) -> dict:
 
     if not ok:
         return {"_error": _write_failure(project, path or project.fileName())}
-    return {"saved": project.fileName()}
+
+    result: dict = {"saved": project.fileName()}
+    memory_layers, temporary_layers = _scratch_layers_summary(project)
+    if memory_layers:
+        result["memory_layers"] = memory_layers
+    if temporary_layers:
+        result["temporary_layers"] = temporary_layers
+    if memory_layers or temporary_layers:
+        result["_next"] = (
+            "save_layer_to_gpkg persists a listed vector layer into a GeoPackage next to the project, "
+            "and export_layer writes a listed raster to a lasting path. "
+            "A memory layer disappears when QGIS closes; a temporary one is a scratch file pruned "
+            "a week after it was made unless this saved project still points to it.")
+    return result
 
 
 def _load_project(args: dict) -> dict:

@@ -17,7 +17,7 @@ import time
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QIcon, QKeySequence
-from qgis.PyQt.QtWidgets import QAction, QDockWidget
+from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget
 
 from .core import i18n, improve, policy, telemetry
 from .core import telemetry_events as ev
@@ -46,6 +46,12 @@ PLUGIN_NAME = "AI Agent"
 
 DEFAULT_SHORTCUT = "Ctrl+Alt+A"
 _DOCK_AREA = getattr(getattr(Qt, "DockWidgetArea", Qt), "RightDockWidgetArea", getattr(Qt, "RightDockWidgetArea", 2))
+
+
+
+_DOCK_MIN_HEIGHT_SHARE = 0.5
+_DOCK_HEIGHT_SHARE = 0.85
+_DOCK_WIDTH_PX = 400
 
 
 _SLOW_PROMPT_S = 0.25
@@ -78,6 +84,7 @@ class AIAgentPlugin:
         self._suppressed_update_versions: set[str] = set()
         self._update_refresh_requested = False
         self._loaded_at = time.monotonic()
+        self._app_events = None
 
     def _register_shortcut(self, sequence: str) -> bool:
         """Hand the shortcut to QGIS's own registry; False when it will not take it."""
@@ -103,6 +110,55 @@ class AIAgentPlugin:
             unregister(self.action)
         except Exception:  # nosec B110 - QGIS may already have torn the registry down
             pass
+
+    def _guarded_shortcuts(self) -> list:
+        """The keys AltGr text must not fire: the toggle as the user bound it, and the panel's own."""
+        sequences = []
+        if self.action is not None:
+            sequences.extend(self.action.shortcuts())
+        if self.dock is not None:
+            from .ui.shared import QShortcut
+
+            sequences.extend(shortcut.key() for shortcut in self.dock.findChildren(QShortcut))
+        return sequences
+
+    def _install_app_events(self) -> None:
+        """AltGr text on Windows, and the palette change Qt 6 has no signal for (``ui/app_events.py``)."""
+        try:
+            import sys
+
+            from qgis.PyQt.QtGui import QKeySequence
+            from qgis.PyQt.QtWidgets import QApplication
+
+            from .ui.app_events import PANEL_KEYS, AppEvents, layouts_type_text
+
+            app = QApplication.instance()
+            if app is None:
+                return
+
+
+            altgr = sys.platform == "win32" and layouts_type_text(
+                self._guarded_shortcuts() + [QKeySequence(keys) for keys in PANEL_KEYS])
+            if not altgr and hasattr(app, "paletteChanged"):
+                return
+            events = AppEvents(self._guarded_shortcuts, altgr=altgr)
+            app.installEventFilter(events)
+            self._app_events = events
+        except Exception as exc:  # noqa: BLE001 - a key guard is never a blocker
+            log_warning(f"Application event filter not installed: {exc}")
+
+    def _remove_app_events(self) -> None:
+
+
+        events, self._app_events = self._app_events, None
+        if events is None:
+            return
+        events.on_palette = None
+        from qgis.PyQt.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app is not None:
+            app.removeEventFilter(events)
 
 
 
@@ -136,6 +192,7 @@ class AIAgentPlugin:
             if shortcut_context is not None:
                 self.action.setShortcutContext(shortcut_context)
         self.action.triggered.connect(self.toggle_dock)
+        self._install_app_events()
         try:
             from .ui.locator import register as register_locator
 
@@ -236,12 +293,49 @@ class AIAgentPlugin:
         """Refresh served product settings when the user opens the dock."""
         if not visible or self._unloading:
             return
+
+        QTimer.singleShot(0, self._fit_dock)
         self._refresh_server_config()
         if self._config_refresh_timer is None:
             self._config_refresh_timer = QTimer(self.dock)
             self._config_refresh_timer.setInterval(30 * 60 * 1000)
             self._config_refresh_timer.timeout.connect(self._refresh_server_config)
             self._config_refresh_timer.start()
+
+    def _fit_dock(self) -> None:
+        """Give a docked panel room to read a conversation."""
+
+
+
+
+
+
+
+
+
+        dock = self.dock
+        if dock is None or self._unloading:
+            return
+        try:
+            window = self.iface.mainWindow()
+            if dock.isFloating() or not dock.isVisible() or window is None:
+                return
+            from .ui.font_scale import scale_px_length
+
+            area = window.dockWidgetArea(dock)
+            left, right = dock.x(), dock.x() + dock.width()
+            column = [other for other in window.findChildren(QDockWidget)
+                      if other.isVisible() and not other.isFloating()
+                      and window.dockWidgetArea(other) == area
+                      and other.x() < right and left < other.x() + other.width()]
+            height = max(o.y() + o.height() for o in column) - min(o.y() for o in column)
+            if dock.height() < height * _DOCK_MIN_HEIGHT_SHARE:
+                window.resizeDocks([dock], [int(height * _DOCK_HEIGHT_SHARE)], Qt.Orientation.Vertical)
+            width = scale_px_length(_DOCK_WIDTH_PX)
+            if dock.width() < width:
+                window.resizeDocks([dock], [width], Qt.Orientation.Horizontal)
+        except (RuntimeError, AttributeError) as exc:
+            log_warning(f"Panel size not adjusted: {exc}")
 
     def _refresh_server_config(self) -> None:
         if self._config_task is not None and self._config_task.is_active():
@@ -464,6 +558,57 @@ class AIAgentPlugin:
         if asked:
             log_warning(f"Unload: asked {asked} background algorithm(s) to stop")
 
+    def _drop_window_watches(self, dock) -> None:
+        """Disconnect the two closures that objects outliving the plugin hold."""
+
+
+
+
+
+
+
+
+        from qgis.PyQt.QtGui import QGuiApplication
+
+        check = getattr(dock, "_theme_watch", None)
+        if check is not None:
+            with contextlib.suppress(AttributeError, TypeError, RuntimeError):
+                QGuiApplication.instance().paletteChanged.disconnect(check)
+            with contextlib.suppress(AttributeError, TypeError, RuntimeError):
+                QGuiApplication.styleHints().colorSchemeChanged.disconnect(check)
+            if self._app_events is not None:
+                self._app_events.on_palette = None
+        repaint = getattr(dock, "_screen_watch", None)
+        if repaint is None:
+            return
+        handles = []
+        with contextlib.suppress(AttributeError, RuntimeError):
+            handles.append(dock.window().windowHandle())
+        with contextlib.suppress(AttributeError, RuntimeError):
+            handles.append(self.iface.mainWindow().windowHandle())
+        for handle in {id(h): h for h in handles if h is not None}.values():
+            with contextlib.suppress(TypeError, RuntimeError):
+                handle.screenChanged.disconnect(repaint)
+
+    @staticmethod
+    def _drop_package_modules() -> None:
+        """Take every module of this package out of sys.modules, the last step of an unload."""
+
+
+
+
+
+
+
+
+
+
+        import sys
+
+        root = __name__.partition(".")[0]
+        for name in [key for key in sys.modules if key == root or key.startswith(root + ".")]:
+            sys.modules.pop(name, None)
+
     def unload(self):
         self._unloading = True
         try:
@@ -506,12 +651,12 @@ class AIAgentPlugin:
 
 
 
-
         for label, step in (
             ("i18n", i18n.uninstall),
             ("map hooks", self._remove_map_hooks),
             ("locator", self._remove_locator),
             ("options page", self._remove_options_page),
+            ("app events", self._remove_app_events),
         ):
             try:
                 step()
@@ -523,6 +668,7 @@ class AIAgentPlugin:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Controller shutdown: {exc}")
         if self.dock is not None:
+            self._drop_window_watches(self.dock)
             for slot in (self._remember_visibility, self._on_dock_visibility_changed):
                 try:
                     self.dock.visibilityChanged.disconnect(slot)
@@ -540,6 +686,7 @@ class AIAgentPlugin:
             self.dock = None
         self.controller = None
         if self.action is None:
+            self._drop_package_modules()
             return
         self._unregister_shortcut()
         try:
@@ -575,6 +722,7 @@ class AIAgentPlugin:
         except (RuntimeError, AttributeError):  # nosec B110 - the wrapper may be gone
             pass
         self.action = None
+        self._drop_package_modules()
 
     def _remove_map_hooks(self) -> None:
         hooks, self.map_hooks = self.map_hooks, None
@@ -690,7 +838,6 @@ class AIAgentPlugin:
 
 
 
-
         include_debug = os.environ.get("AI_AGENT_DEBUG_TOOLS", "1") != "0"
         include_dev = os.environ.get("AI_AGENT_DEBUG_TOOLS") == "1"
         registry = build_registry(include_debug=include_debug, include_dev=include_dev)
@@ -725,7 +872,7 @@ class AIAgentPlugin:
             self.controller = AgentController(self.iface, dock.panel, self.registry, self._settings)
             self.controller.layer_action_requested.connect(self._on_layer_action)
             self.controller.settings_requested.connect(self.open_settings)
-            self.controller.notice.connect(lambda kind, message: self._push(message, kind))
+            self.controller.notice.connect(self._on_notice)
             self.iface.addDockWidget(_DOCK_AREA, dock)
             self.dock = dock
             self._watch_screen(dock)
@@ -751,6 +898,34 @@ class AIAgentPlugin:
                 except RuntimeError:
                     pass
             self._push(tr("AI Agent could not open its panel: {error}").format(error=exc), "warning")
+
+    def _on_notice(self, kind: str, message: str) -> None:
+        """A controller notice goes where the user is looking."""
+
+
+
+
+
+
+
+
+        panel = getattr(self.dock, "panel", None)
+        composer = getattr(panel, "composer", None)
+        try:
+            shown = (self.dock is not None and composer is not None
+                     and composer.isVisible() and QApplication.activeModalWidget() is None)
+        except RuntimeError:
+            shown = False
+        if shown:
+            try:
+                if kind == "warning":
+                    composer.show_warning(message)
+                else:
+                    composer.show_hint(message)
+                return
+            except (AttributeError, RuntimeError):
+                pass
+        self._push(message, kind)
 
     def _push(self, message: str, kind: str = "info"):
         level = Qgis.MessageLevel.Warning if kind == "warning" else Qgis.MessageLevel.Info
@@ -794,11 +969,14 @@ class AIAgentPlugin:
         try:
             from qgis.PyQt.QtGui import QGuiApplication
 
-            from .ui import style
+            from .ui import style, styles
 
             def check(_palette=None):
                 try:
-                    if style.is_dark() == style.DARK:
+
+
+
+                    if styles._dark_ui() == style.DARK:
                         return
                 except Exception:  # noqa: BLE001 - no palette to read, nothing to say
                     return
@@ -813,11 +991,23 @@ class AIAgentPlugin:
             app = QGuiApplication.instance()
             if app is None:
                 return
-            app.paletteChanged.connect(check)
+
+
+
+
+
+
+            signal = getattr(app, "paletteChanged", None)
+            if signal is not None:
+                signal.connect(check)
+            elif self._app_events is not None:
+                self._app_events.on_palette = check
+            scheme = getattr(QGuiApplication.styleHints(), "colorSchemeChanged", None)
+            if scheme is not None:
+                scheme.connect(check)
 
             dock._theme_watch = check
         except (AttributeError, TypeError, RuntimeError) as exc:
-
 
 
             log_warning(f"Theme change watch not installed: {exc}")
