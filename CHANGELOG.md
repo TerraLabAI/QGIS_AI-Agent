@@ -9,6 +9,34 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-18
+
+### Added
+
+- Undo history: step to any earlier point in a chat, see what each run changed, and go
+  back without losing your own edits made since.
+- Search filters connectors and examples as you type, and a data source card shows its
+  licence and when it was last loaded.
+
+### Changed
+
+- The composer keeps an unsent message and resends it automatically once the connection
+  to the agent service drops and comes back.
+- Long conversations are compacted instead of cut off, and your own messages stay
+  visible either way.
+
+### Fixed
+
+- A layer removed from the project no longer leaves stale references behind, and a 3D
+  map view no longer crashes QGIS when its layer is removed.
+- Georeferencing and layout extents keep the right coordinate system across canvas
+  reprojections.
+- All 11 translated locales are complete again: every interface string ships with its
+  translation, none left in English.
+- On Windows: long folder paths, CSV files saved by Excel, mapped network drives, OneDrive
+  folders and `%VAR%` paths now work across loading, exports, downloads and undo.
+- Layouts report a legend, scale bar or north arrow cut off by the page edge.
+
 ## [1.1.0] - 2026-09-15
 
 ### Added
