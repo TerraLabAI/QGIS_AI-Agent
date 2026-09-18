@@ -28,21 +28,24 @@ from ..core import dataset_docs, ground, links, net
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import VISIBLE_TOOLS, Tool, ToolRegistry, tool_error
-from . import aiseg_install_tools as _install
 from . import core_tools as _core
 from . import data_tools as _data
 from . import integration_tools as _integration
+from . import sibling_setup as _setup
 from . import stac_tools as _stac
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
+from ._widgets import AI_EDIT_KEYS
 from .adapters.ai_edit_access import ACCESS as _AIEDIT
 from .data_tools import _run_on_main_thread
 from .harvest_remote import _add_arcgis_rest_layer, _arcgis_parse
 from .layer_io_tools import point_cloud_provider
 
-AI_EDIT_ACTIONS = ("status", "generate", "generation_status", "select_version", "vectorize", "cancel", "presets")
+
+
+
+AI_EDIT_ACTIONS = ("status", "generate", "generation_status", "select_version", "vectorize", "cancel", "presets",
+                   "setup")
 AI_SEGMENT_ACTIONS = (
-    "status", "detect_auto", "auto_status", "set_zone", "presets",
-    "install_status", "cancel", "load_model",
+    "status", "detect_auto", "auto_status", "set_zone", "presets", "cancel", "setup",
 )
 ADD_DATA_KINDS = ("auto", "vector", "raster", "wms", "wfs", "xyz", "vectortile", "stac", "cog", "pmtiles",
                   "pointcloud", "csv", "geojson", "gpkg", "wcs")
@@ -59,12 +62,6 @@ _VECTOR_EXT = {
 _RASTER_EXT = {
     ".tif", ".tiff", ".vrt", ".jp2", ".img", ".asc", ".png", ".jpg", ".jpeg", ".nc", ".hdf", ".ecw", ".sid", ".grd",
 }
-
-PLUGIN_MANAGER_SUGGESTION = (
-    "Tell the user {plugin} is not installed and offer the QGIS plugin manager "
-    "(Plugins > Manage and Install Plugins, search '{plugin}')."
-)
-
 
 def register_facade_tools(registry: ToolRegistry):
     """Register add_data, ai_edit and ai_segment and flag the visible catalog."""
@@ -105,6 +102,8 @@ def register_facade_tools(registry: ToolRegistry):
                 },
                 "zmin": {"type": "integer"},
                 "zmax": {"type": "integer"},
+
+                "max_features": {"type": "integer", "minimum": 1},
                 "full_extent": {
                     "type": "object",
                     "properties": {"quote": {"type": "string"}, "place": {"type": "string"}},
@@ -224,12 +223,6 @@ def register_facade_tools(registry: ToolRegistry):
                         "right_angles": {"type": "boolean"},
                         "min_size_m2": {"type": "number"},
                     },
-                },
-                "include_packages": {
-                    "type": "boolean",
-                },
-                "timeout_s": {
-                    "type": "number", "minimum": 1, "maximum": 600,
                 },
             },
             "required": ["action"],
@@ -406,9 +399,10 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
             if streamed.get("_error") and streamed.get("_code") != "PERMISSION_DENIED":
-                downloaded = _stac.add_raster_downloaded(address, name)
-                if not downloaded.get("_error"):
-                    return downloaded
+
+
+
+                return _stac.add_raster_downloaded(address, name)
             return streamed
         return _core._add_raster_layer({"path": source, "name": name})
     if kind == "cog":
@@ -423,7 +417,8 @@ def _dispatch_add(kind: str, args: dict) -> dict:
     if kind == "pointcloud":
         return _core._add_point_cloud_layer({"path": source, "name": name})
     if kind == "xyz":
-        return _data._add_xyz_layer({"source": source, "name": name})
+        return _data._add_xyz_layer({"source": source, "name": name,
+                                     "zmin": args.get("zmin"), "zmax": args.get("zmax")})
     if kind == "vectortile":
         return _data._add_vector_tile_layer({
             "url": source, "name": name, "style": args.get("style"),
@@ -447,7 +442,10 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                 "INVALID_ARGS",
                 "Pass layer=<WFS typename>. inspect_data_source lists what the service serves.",
             )
-        wfs_args = {"url": source, "typename": layer, "name": name}
+
+
+        wfs_args = {"url": source, "typename": layer, "name": name, "bbox": bbox,
+                    "max_features": args.get("max_features"), "full_extent": args.get("full_extent")}
         if crs:
             wfs_args["crs"] = crs
         return _data._add_wfs_layer(wfs_args)
@@ -630,6 +628,8 @@ def _add_data(args: dict) -> dict:
 
             "licence", "attribution",
 
+            "data_date",
+
             "crs_assigned",
         ):
             if key in result:
@@ -644,11 +644,20 @@ def _add_data(args: dict) -> dict:
 
 
 
-def _plugin_missing(label: str) -> dict:
+def _plugin_missing(label: str, tool: str) -> dict:
     return tool_error(
         f"{label} is not installed in this QGIS.",
         "PERMISSION_DENIED",
-        PLUGIN_MANAGER_SUGGESTION.format(plugin=label),
+        f"Call {tool} action setup now (its card is the yes): it opens the Plugin Manager on {label}.",
+    )
+
+
+def _signed_out(tool: str, label: str) -> dict:
+    """The refusal before a paid call from a plugin that holds no account."""
+    return tool_error(
+        f"{label} is not connected to a TerraLab account.",
+        "PERMISSION_DENIED",
+        f"Call {tool} action setup now (its card is the yes): it opens the one-click sign-in page.",
     )
 
 
@@ -665,12 +674,13 @@ def _aiseg_not_running(presence: dict) -> dict:
 
 
     if presence.get("state") == "absent":
-        return _plugin_missing("AI Segmentation by TerraLab")
+        return _plugin_missing("AI Segmentation by TerraLab", "ai_segment")
     status = _integration.aiseg_not_running_status(presence)
     return tool_error(
         f"AI Segmentation by TerraLab is installed but not running ({status['state']}).",
         "PERMISSION_DENIED",
-        status["action_required"],
+        ("Call ai_segment action setup: it switches the plugin on." if status["state"] == "PLUGIN_DISABLED"
+         else status["action_required"]),
     )
 
 
@@ -678,14 +688,25 @@ def _ai_edit(args: dict) -> dict:
     action = args.get("action")
     if action == "status":
         return _integration._aiedit_status(args)
+    if action == "setup":
+        return _setup.setup("ai_edit")
     if not _loaded(AI_EDIT_KEYS):
-        return _plugin_missing("AI Edit by TerraLab")
+        found = _setup.presence(AI_EDIT_KEYS)
+        if found["state"] == "absent":
+            return _plugin_missing("AI Edit by TerraLab", "ai_edit")
+        return tool_error(
+            "AI Edit by TerraLab is installed but not running.", "PERMISSION_DENIED",
+            ("Call ai_edit action setup: it switches the plugin on." if found["state"] == "disabled"
+             else _setup.not_running("ai_edit", found)["action_required"]),
+        )
     if action == "generate":
         if not str(args.get("prompt") or "").strip():
             return tool_error(
                 "generate needs a prompt.", "INVALID_ARGS",
                 "Pass prompt, the edit to apply, plus bbox or use_canvas_extent.",
             )
+        if _setup.signed_in("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]) is False:
+            return _signed_out("ai_edit", "AI Edit")
         return _integration._aiedit_generate(args)
     if action == "generation_status":
         return _AIEDIT.generation_status()
@@ -720,14 +741,15 @@ def _ai_segment(args: dict) -> dict:
     if action == "install_status":
 
 
-
-        if not _loaded(AI_SEGMENT_KEYS) and _install._seg_package() is None:
-            return _plugin_missing("AI Segmentation by TerraLab")
-        return _install._install_status(args)
+        return _integration._aiseg_status(args)
+    if action == "setup":
+        return _setup.setup("ai_segment")
     presence = _integration.aiseg_presence()
     if presence["plugin"] is None:
         return _aiseg_not_running(presence)
     if action == "detect_auto":
+        if _setup.signed_in("ai_segment", presence["plugin"]) is False:
+            return _signed_out("ai_segment", "AI Segmentation")
         return _integration._aiseg_detect_auto(args)
     if action == "auto_status":
         return _integration._aiseg_auto_status(args)
@@ -737,8 +759,6 @@ def _ai_segment(args: dict) -> dict:
         return _integration._aiseg_get_presets(args)
     if action == "cancel":
         return _integration._aiseg_auto_cancel(args)
-    if action == "load_model":
-        return _integration._aiseg_load_model(args)
     return tool_error(f"Unknown action: {action}", "INVALID_ARGS", f"action must be one of {list(AI_SEGMENT_ACTIONS)}.")
 
 

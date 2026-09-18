@@ -485,11 +485,22 @@ def _wms(final_url: str, root) -> dict:
             args["crs"] = chosen
         entries.append({"name": name, **({"title": _short(title)} if title else {}),
                         "add": {"tool": "add_data", "args": args}})
-    return _listing("wms_capabilities", "WMS", final_url, endpoint, root, entries, [(n, t) for n, t, _ in named],
-                    crs=service_crs, formats=formats,
-                    message=("WMS capabilities read. Each layer carries the add_data call that loads it, with the "
-                             "CRS chosen from the ones it is served in (EPSG:3857 when offered; crs lists the "
-                             "others). " + _PICTURES_NOT_VALUES))
+    out = _listing("wms_capabilities", "WMS", final_url, endpoint, root, entries, [(n, t) for n, t, _ in named],
+                   crs=service_crs, formats=formats,
+                   message=("WMS capabilities read. Each layer carries the add_data call that loads it, with the "
+                            "CRS chosen from the ones it is served in (EPSG:3857 when offered; crs lists the "
+                            "others). " + _PICTURES_NOT_VALUES))
+
+
+    service = _child(root, "Service")
+    for key, tag in (("max_width", "MaxWidth"), ("max_height", "MaxHeight")):
+        try:
+            size = int(_text(_child(service, tag))) if service is not None else 0
+        except ValueError:
+            size = 0
+        if size > 0:
+            out[key] = size
+    return out
 
 
 
@@ -509,9 +520,34 @@ def _wfs(final_url: str, root) -> dict:
         entries.append({"name": name, **({"title": _short(title)} if title else {}),
                         **({"crs": epsg_of(default) or default} if default else {}),
                         "add": {"tool": "add_data", "args": {"source": endpoint, "kind": "wfs", "layer": name}}})
-    return _listing("wfs_capabilities", "WFS", final_url, endpoint, root, entries, [n for n in names if n[0]],
-                    message=("WFS capabilities read. Each feature type carries the add_data call that loads it as "
-                             "vector features; zoom to the area first, a national type is large."))
+    page = _wfs_page_size(root)
+    message = ("WFS capabilities read. Each feature type carries the add_data call that loads it as "
+               "vector features. It loads 1,000 features at most, and a type holding more is fetched for "
+               "the map view only: zoom to the area first.")
+    if page:
+        message += (f" The service answers at most {page:,} features per request (CountDefault) and says "
+                    "nothing when it stops there.")
+    out = _listing("wfs_capabilities", "WFS", final_url, endpoint, root, entries, [n for n in names if n[0]],
+                   message=message)
+    if page:
+        out["page_size"] = page
+    return out
+
+
+def _wfs_page_size(root) -> int:
+    """The CountDefault a WFS 2.0 publishes, or 0."""
+
+
+
+
+    for element in root.iter():
+        if _local(element.tag) == "Constraint" and element.get("name") == "CountDefault":
+            value = _find(element, "DefaultValue")
+            try:
+                return max(0, int(float(_text(value))))
+            except (TypeError, ValueError):
+                return 0
+    return 0
 
 
 
@@ -820,6 +856,10 @@ def _arcgis(final_url: str, payload: dict) -> dict | None:
                "type": payload.get("type"), **({"crs": crs} if crs else {})}
         if payload.get("geometryType"):
             out["geometry_type"] = str(payload["geometryType"]).replace("esriGeometry", "").lower()
+
+
+        if isinstance(payload.get("maxRecordCount"), int) and payload["maxRecordCount"] > 0:
+            out["page_size"] = payload["maxRecordCount"]
         if vector:
             out["import_method"] = "add_data"
             out["import_arguments"] = {"source": layer_url, "kind": "vector"}

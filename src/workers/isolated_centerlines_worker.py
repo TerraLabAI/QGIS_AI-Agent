@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import traceback
 
 
@@ -16,13 +17,27 @@ def _utm_authid(longitude: float, latitude: float) -> str:
     return f"EPSG:{base + zone}"
 
 
+def _replace(source: str, target: str) -> None:
+
+
+    for pause in (0.05, 0.1, 0.2, 0.3, 0.5, 0.85):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            time.sleep(pause)
+    os.replace(source, target)
+
+
 def _write(path: str, value: dict) -> None:
     temporary = path + ".partial"
     with open(temporary, "w", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False)
         handle.flush()
         os.fsync(handle.fileno())
-    os.replace(temporary, path)
+    _replace(temporary, path)
 
 
 def _source_uri(job: dict) -> str:
@@ -134,20 +149,46 @@ def _run(job: dict) -> dict:
     }
 
 
+class _OnAnyFailure:
+    """``with _OnAnyFailure(handle):`` is ``try: ..."""
+
+
+
+
+
+
+    def __init__(self, handle) -> None:
+        self._handle = handle
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if exc_type is None:
+            return False
+        self._handle(exc)
+        return True
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
         return 2
     job_path, status_path = argv[1:]
-    try:
-        with open(job_path, encoding="utf-8") as handle:
-            job = json.load(handle)
-        result = _run(job)
-    except BaseException as exc:  # noqa: BLE001 - the parent needs every child failure
-        result = {
+    results: list = []
+
+    def _report(exc: BaseException) -> None:
+        results.append({
             "ok": False,
             "error": f"{type(exc).__name__}: {exc}",
             "traceback": traceback.format_exc()[-4_000:],
-        }
+        })
+
+
+    with _OnAnyFailure(_report):
+        with open(job_path, encoding="utf-8") as handle:
+            job = json.load(handle)
+        results.append(_run(job))
+    result = results[0]
     _write(status_path, result)
     return 0 if result.get("ok") else 1
 

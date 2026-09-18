@@ -38,7 +38,7 @@ _LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 UNSAVED_KEY = "(unsaved)"
 _unsaved_grants: dict[str, str] = {}
-_unsaved_watched = False
+_unsaved_watch = {"tried": False}
 
 
 def forget_unsaved_grants() -> None:
@@ -48,10 +48,9 @@ def forget_unsaved_grants() -> None:
 
 def _watch_project_cleared() -> None:
     """Connect ``QgsProject.cleared`` once, so New Project drops the grants."""
-    global _unsaved_watched
-    if _unsaved_watched:
+    if _unsaved_watch["tried"]:
         return
-    _unsaved_watched = True
+    _unsaved_watch["tried"] = True
     try:
         from qgis.core import QgsProject
 
@@ -93,6 +92,68 @@ PROFILE_LINE_MAX_CHARS = 80
 
 _AUTHCFG_KEY = "authcfg_id"
 _LEGACY_KEY = "activation_key"
+
+
+
+_PROTECTED_KEY = "activation_key_dpapi"
+_DPAPI_PREFIX = "dpapi1:"
+_DPAPI_ENTROPY = b"TerraLab AI Agent activation key"
+
+
+def _dpapi(data: bytes, seal: bool) -> bytes | None:
+    """CryptProtectData or CryptUnprotectData for the current Windows user, else None."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _Blob(ctypes.Structure):
+            _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
+
+        def _blob(raw: bytes):
+            buffer = ctypes.create_string_buffer(raw, len(raw))
+            return _Blob(len(raw), ctypes.cast(buffer, ctypes.POINTER(ctypes.c_char))), buffer
+
+        crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+        source, _keep = _blob(data)
+        entropy, _keep_entropy = _blob(_DPAPI_ENTROPY)
+        out = _Blob()
+        call = crypt32.CryptProtectData if seal else crypt32.CryptUnprotectData
+
+        if not call(ctypes.byref(source), None, ctypes.byref(entropy), None, None, 0x1, ctypes.byref(out)):
+            return None
+        try:
+            return ctypes.string_at(out.pbData, out.cbData)
+        finally:
+            kernel32.LocalFree(ctypes.cast(out.pbData, ctypes.c_void_p))
+    except Exception:  # noqa: BLE001 - no DPAPI means the old storage
+        return None
+
+
+def _protect(key: str) -> str:
+    """The key sealed for this Windows user, or "" when that is not available."""
+    import base64
+
+    sealed = _dpapi(key.encode("utf-8"), seal=True)
+    return _DPAPI_PREFIX + base64.b64encode(sealed).decode("ascii") if sealed else ""
+
+
+def _unprotect(value: str) -> str:
+    """The key from a sealed value, or "" (another user, another machine, damage)."""
+    import base64
+
+    if not value.startswith(_DPAPI_PREFIX):
+        return ""
+    try:
+        opened = _dpapi(base64.b64decode(value[len(_DPAPI_PREFIX):]), seal=False)
+        return opened.decode("utf-8") if opened else ""
+    except (ValueError, UnicodeDecodeError):
+        return ""
+
+
 _DEVICE_SEED_KEY = "TerraLab/device_seed"
 _DEVICE_HASH_LEN = 16
 
@@ -207,10 +268,64 @@ def key_prefix(key: str) -> str:
     return (key or "")[:6]
 
 
+
+
+
+
+
+_cache_memory: dict[str, str] = {}
+
+
+def _cache_path(name: str) -> str:
+    profile = hashlib.sha1(QgsApplication.qgisSettingsDirPath().encode("utf-8"),
+                           usedforsecurity=False).hexdigest()[:10]
+    return os.path.join(state_dir(), "server-cache", f"{profile}-{name}.json")
+
+
 class Settings:
     def __init__(self, settings=None):
+
+
+        self._cache_files = settings is None
         self._s = settings or QgsSettings()
         self._session_approval = ""
+
+    def _cache_get(self, name: str) -> str:
+        if not self._cache_files:
+            return self._get(name, "")
+        if name in _cache_memory:
+            return _cache_memory[name]
+        path = _cache_path(name)
+        try:
+            with open(path, encoding="utf-8") as fh:
+                value = fh.read()
+        except OSError:
+            value = self._get(name, "")
+            if value:
+                self._cache_set(name, value)
+        _cache_memory[name] = value
+        return value
+
+    def _cache_set(self, name: str, value: str) -> None:
+        if not self._cache_files:
+            self._set(name, value)
+            return
+        if _cache_memory.get(name) == value and not self._s.contains(self._key(name)):
+            return
+        path = _cache_path(name)
+        try:
+            from .writeback import write_atomic
+
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            write_atomic(path, value)
+        except OSError:
+
+            self._set(name, value)
+            _cache_memory[name] = value
+            return
+        _cache_memory[name] = value
+        if self._s.contains(self._key(name)):
+            self._s.remove(self._key(name))
 
 
 
@@ -226,7 +341,19 @@ class Settings:
         return value if isinstance(value, str) else (default if value is None else str(value))
 
     def _set(self, name: str, value) -> None:
-        self._s.setValue(self._key(name), value)
+
+
+
+
+
+        key = self._key(name)
+        if isinstance(value, str):
+            try:
+                if self._s.contains(key) and self._s.value(key) == value:
+                    return
+            except Exception:  # nosec B110 - a failed read only costs the write
+                pass
+        self._s.setValue(key, value)
 
     @property
     def last_run_version(self) -> str:
@@ -312,7 +439,7 @@ class Settings:
 
 
 
-        raw = self._get("known_connectors", "")
+        raw = self._cache_get("known_connectors")
         if not raw:
             return []
         try:
@@ -324,7 +451,7 @@ class Settings:
     @known_connectors.setter
     def known_connectors(self, rows) -> None:
         clean = [r for r in (rows or []) if isinstance(r, dict) and r.get("id")]
-        self._set("known_connectors", json.dumps(clean, ensure_ascii=False) if clean else "")
+        self._cache_set("known_connectors", json.dumps(clean, ensure_ascii=False) if clean else "")
 
     @property
     def known_qgis_plugins(self) -> list:
@@ -334,7 +461,7 @@ class Settings:
 
 
 
-        raw = self._get("known_qgis_plugins", "")
+        raw = self._cache_get("known_qgis_plugins")
         if not raw:
             return []
         try:
@@ -346,7 +473,7 @@ class Settings:
     @known_qgis_plugins.setter
     def known_qgis_plugins(self, rows) -> None:
         clean = [r for r in (rows or []) if isinstance(r, dict) and r.get("folder")]
-        self._set("known_qgis_plugins", json.dumps(clean, ensure_ascii=False) if clean else "")
+        self._cache_set("known_qgis_plugins", json.dumps(clean, ensure_ascii=False) if clean else "")
 
     @property
     def known_basemaps(self) -> list:
@@ -355,7 +482,7 @@ class Settings:
 
 
 
-        raw = self._get("known_basemaps", "")
+        raw = self._cache_get("known_basemaps")
         if not raw:
             return []
         try:
@@ -367,7 +494,7 @@ class Settings:
     @known_basemaps.setter
     def known_basemaps(self, rows) -> None:
         clean = [r for r in (rows or []) if isinstance(r, dict) and r.get("id")]
-        self._set("known_basemaps", json.dumps(clean, ensure_ascii=False) if clean else "")
+        self._cache_set("known_basemaps", json.dumps(clean, ensure_ascii=False) if clean else "")
 
     @property
     def known_use_cases(self) -> list:
@@ -378,7 +505,7 @@ class Settings:
 
 
 
-        raw = self._get("known_use_cases", "")
+        raw = self._cache_get("known_use_cases")
         if not raw:
             return []
         try:
@@ -390,12 +517,12 @@ class Settings:
     @known_use_cases.setter
     def known_use_cases(self, rows) -> None:
         clean = [r for r in (rows or []) if isinstance(r, dict) and r.get("id")]
-        self._set("known_use_cases", json.dumps(clean, ensure_ascii=False) if clean else "")
+        self._cache_set("known_use_cases", json.dumps(clean, ensure_ascii=False) if clean else "")
 
     @property
     def known_use_case_groups(self) -> list:
         """The Examples rail's groups the server last sent, beside the rows above."""
-        raw = self._get("known_use_case_groups", "")
+        raw = self._cache_get("known_use_case_groups")
         if not raw:
             return []
         try:
@@ -407,7 +534,7 @@ class Settings:
     @known_use_case_groups.setter
     def known_use_case_groups(self, rows) -> None:
         clean = [r for r in (rows or []) if isinstance(r, dict) and r.get("id")]
-        self._set("known_use_case_groups", json.dumps(clean, ensure_ascii=False) if clean else "")
+        self._cache_set("known_use_case_groups", json.dumps(clean, ensure_ascii=False) if clean else "")
 
     @property
     def hidden_plugins(self) -> list:
@@ -417,24 +544,24 @@ class Settings:
 
 
 
-        raw = self._get("hidden_plugins", "")
+        raw = self._cache_get("hidden_plugins")
         return [part for part in (piece.strip() for piece in raw.split(",")) if part]
 
     @hidden_plugins.setter
     def hidden_plugins(self, folders) -> None:
         clean = sorted({str(f).strip() for f in (folders or []) if str(f or "").strip()})
-        self._set("hidden_plugins", ",".join(clean))
+        self._cache_set("hidden_plugins", ",".join(clean))
 
     @property
     def known_tool_names(self) -> list:
         """The tool catalog's names, so Settings can count them before the dock opens."""
-        raw = self._get("known_tool_names", "")
+        raw = self._cache_get("known_tool_names")
         return [part for part in (piece.strip() for piece in raw.split(",")) if part]
 
     @known_tool_names.setter
     def known_tool_names(self, names) -> None:
         clean = sorted({str(n).strip() for n in (names or []) if str(n or "").strip()})
-        self._set("known_tool_names", ",".join(clean))
+        self._cache_set("known_tool_names", ",".join(clean))
 
 
 
@@ -763,6 +890,16 @@ class Settings:
     def known_manifest_hash(self, value: str) -> None:
         self._set("known_manifest_hash", value or "")
 
+    @property
+    def saved_session(self) -> str:
+        """The server session the last closed QGIS (or plugin load) left for the next one to resume, as ``key tag|session id|last seq|epoch``; empty."""
+
+        return self._get("saved_session", "")
+
+    @saved_session.setter
+    def saved_session(self, value: str) -> None:
+        self._set("saved_session", value or "")
+
 
 
 
@@ -938,6 +1075,23 @@ class Settings:
         except Exception:
             return None
 
+    @staticmethod
+    def _remove_auth_config(authcfg_id: str) -> None:
+        """Delete a stored key from the auth database, master password typed or not."""
+
+
+
+
+
+        if not authcfg_id:
+            return
+        try:
+            am = QgsApplication.authManager()
+            if am is not None:
+                am.removeAuthenticationConfig(authcfg_id)
+        except Exception:  # nosec B110 - the pointer is cleared either way
+            pass
+
     @property
     def activation_key(self) -> str:
         authcfg_id = self._get(_AUTHCFG_KEY, "")
@@ -952,7 +1106,23 @@ class Settings:
                             return key
                 except Exception:  # nosec B110 - legacy setting fallback
                     pass
-        return self._get(_LEGACY_KEY, "")
+        protected = self._get(_PROTECTED_KEY, "")
+        if protected:
+            key = _unprotect(protected)
+            if key:
+                return key
+        key = self._get(_LEGACY_KEY, "")
+        if key and not authcfg_id:
+
+
+            sealed = _protect(key)
+            if sealed:
+                try:
+                    self._set(_PROTECTED_KEY, sealed)
+                    self._set(_LEGACY_KEY, "")
+                except Exception:  # nosec B110 - the clear copy still works
+                    pass
+        return key
 
     def set_activation_key(self, key: str) -> None:
         reset_account_tag_cache()
@@ -960,6 +1130,7 @@ class Settings:
         if not key:
             self.clear_activation_key()
             return
+        previous = self._get(_AUTHCFG_KEY, "")
         am = self._auth_manager()
         if am is not None:
             try:
@@ -970,24 +1141,24 @@ class Settings:
                 if am.storeAuthenticationConfig(cfg) and cfg.id():
                     self._set(_AUTHCFG_KEY, cfg.id())
                     self._set(_LEGACY_KEY, "")
+                    self._set(_PROTECTED_KEY, "")
+                    if previous and previous != cfg.id():
+                        self._remove_auth_config(previous)
                     return
             except Exception:  # nosec B110 - legacy setting fallback
                 pass
-        self._set(_LEGACY_KEY, key)
+        sealed = _protect(key)
+        self._set(_PROTECTED_KEY, sealed)
+        self._set(_LEGACY_KEY, "" if sealed else key)
         self._set(_AUTHCFG_KEY, "")
+        self._remove_auth_config(previous)
 
     def clear_activation_key(self) -> None:
         reset_account_tag_cache()
-        authcfg_id = self._get(_AUTHCFG_KEY, "")
-        if authcfg_id:
-            am = self._auth_manager()
-            if am is not None:
-                try:
-                    am.removeAuthenticationConfig(authcfg_id)
-                except Exception:  # nosec B110 - legacy setting fallback
-                    pass
+        self._remove_auth_config(self._get(_AUTHCFG_KEY, ""))
         self._set(_AUTHCFG_KEY, "")
         self._set(_LEGACY_KEY, "")
+        self._set(_PROTECTED_KEY, "")
         try:
             self._s.sync()
         except Exception:  # nosec B110 - legacy setting fallback
@@ -1001,6 +1172,6 @@ class Settings:
         """A key sits in the QGIS auth database but the master password is not typed yet."""
         if not self._get(_AUTHCFG_KEY, ""):
             return False
-        if self._get(_LEGACY_KEY, ""):
+        if self._get(_LEGACY_KEY, "") or self._get(_PROTECTED_KEY, ""):
             return False
         return self._auth_manager() is None

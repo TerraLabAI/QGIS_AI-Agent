@@ -885,6 +885,82 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Permitir / Denegar</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Antes: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Cambiado: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Botón del historial de chat</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Botón de nuevo chat</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Ningún ejemplo coincide</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Ahora</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Solicitud {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>El proyecto después de esta solicitud</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>El proyecto antes de la primera solicitud</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>El proyecto antes de esta solicitud</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Esta capa ya no está en el proyecto.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>después de la solicitud {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>después de “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>antes de la solicitud {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>antes de “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>solicitud {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>el inicio de este chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>tus propios cambios</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Abre el panel con Ctrl+Alt+A, o escribe "ai" seguido de una pregunta en la barra del localizador (Ctrl+K). Haz clic derecho en una capa, una entidad o el mapa para preguntar sobre ello.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent by TerraLab es tu agente de IA dentro de QGIS: carga datos, estiliza layers, ejecuta análisis y crea composiciones. Pide permiso antes de los cambios arriesgados y puedes deshacer una ejecución.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS cambió de tema. Recarga AI Agent o reinicia QGIS para aplicarlo al panel.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Abre el panel de AI Agent: pide cualquier cosa en QGIS y hace el trabajo.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostrar</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>El agente espera tu aprobación.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Tu agente de IA dentro de QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Registrarse es gratis y tarda 15 segundos, en tu navegador.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Tu agente de IA dentro de QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>stopped</source>
             <translation>detenido</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} de {total} no funcionaron</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agente</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Deshecho</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>No ha cambiado ninguna capa, entidad ni archivo</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>El orden de layers o los grupos ha cambiado</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Este punto pertenece al proyecto {name}. Abre ese proyecto para volver a él.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer en el proyecto</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Volver a {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>No se pudo volver por completo a {point}. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Sin resultados</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Sin conexión al servicio del agente, así que no se envió nada. Reconectando ahora: tu mensaje se conserva y Reintentar lo envía en cuanto la conexión esté de vuelta.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>El modo de permisos cambió. Se aplica a partir de la siguiente acción.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>El modo de permisos cambió. Se aplica a partir de la siguiente acción; la tarjeta abierta aún necesita tu respuesta.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>El mensaje no se pudo enviar: la conexión con el servicio del agente está caída.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>después de la solicitud {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>después de “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>antes de la solicitud {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>antes de “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>datos restaurados en {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>el inicio de este chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>tus propios cambios</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layers en el proyecto</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <translation>Dale una tarea al agente de IA en QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Chat largo: los mensajes antiguos se agrupan a partir de aquí. Para un tema nuevo, inicia un hilo nuevo (+ en el encabezado).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Conversación compactada</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>El agente conserva un resumen de los intercambios anteriores. Tus mensajes siguen siendo visibles.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Sigue trabajando con Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n pasos</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 paso</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>No se pudo añadir nada de esa suelta.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Rehacer: avanzar a {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Detenido</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>El mensaje no se pudo enviar. Sigue aquí; inténtalo de nuevo.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Deshacer: volver a {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Esperando tu aprobación: Permitir o Denegar abajo.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>No se elimina nada. Siempre puedes volver.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Volver al proyecto tal como estaba antes de la primera solicitud</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>el más grande</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>La conexión volvió. Tu mensaje fue enviado.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Sin conexión al servicio del agente. Pulsa para intentarlo de nuevo ahora; tu mensaje se conserva.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Sin conexión al servicio del agente. Reconectando ahora.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Sin conexión al servicio del agente. Reconectando; escribe, se enviará.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Sin conexión al servicio del agente. Tu mensaje permanece aquí y se envía en cuanto la conexión esté de vuelta.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Reconectando al servicio del agente. Pulsa para intentarlo de nuevo ahora; tu mensaje se conserva.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Reconectando al servicio del agente. Escribe, se enviará.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Reconectando al servicio del agente. Tu mensaje permanece aquí y se envía en cuanto la conexión esté de vuelta.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Reintentar la conexión</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Enable</source>
             <translation>Activar</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Ningún conector coincide</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Unlock with Pro</source>
             <translation>Desbloquear con Pro</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>El esfuerzo se puede cambiar cuando termine esta ejecución</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Deshacer los cambios del agente: volver a un estado anterior de este proyecto</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obtén Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Mira lo que desbloquea Pro</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>de TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Clic para mostrarlo en el panel Capas.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>No está en el proyecto</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Eliminar</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Clic para mostrarlo en el panel Capas.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Mostrar menos líneas</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>expresión</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Clic para mostrarlo en el panel Capas.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} ejecuciones al mes, niveles de esfuerzo más altos y Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obtén Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} ejecuciones al mes y niveles de esfuerzo más altos.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Clic para mostrarlo en el panel Capas.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Esto vuelve al estado más antiguo aún conservado, no al principio absoluto: los anteriores se eliminaron para ahorrar espacio en disco.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>¿Volver a {point}? Tus propios cambios desde entonces se perderán.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Clic para mostrarlo en el panel Capas.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Uso personal, no comercial</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Eliminar</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Mejorar</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4969,6 +5271,10 @@ Clic para mostrarlo en el panel Capas.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} entidades. Haz clic para seleccionarla en el panel Capas.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Esta capa ya no está en el proyecto.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5283,6 +5589,43 @@ Clic para mostrarlo en el panel Capas.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>Lo que QGIS encontró al releer el resultado. Haz clic para leerlo.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Página del dataset</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Fecha desconocida</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>En vivo, cargado {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Tu propio archivo</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Tu propia fuente</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} más</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verificar</translation>
         </message>
     </context>
 </TS>

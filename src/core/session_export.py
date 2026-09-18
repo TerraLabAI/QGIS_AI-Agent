@@ -63,7 +63,8 @@ def _clean(value):
     if isinstance(value, str):
         return redact_signed_urls(scrub_secrets(scrub_user_paths(value)))
     if isinstance(value, dict):
-        return {k: _clean(v) for k, v in value.items()}
+
+        return {_clean(k) if isinstance(k, str) else k: _clean(v) for k, v in value.items()}
     if isinstance(value, list):
         return [_clean(v) for v in value]
     return value
@@ -340,8 +341,12 @@ def _render_call(index: int, call: dict) -> list:
 
 def write_json(path: str, export: dict) -> None:
     """The structured object, nothing cut, for a script or an attachment."""
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(export, handle, ensure_ascii=False, indent=1, default=str)
+
+
+
+    from .writeback import write_atomic
+
+    write_atomic(path, json.dumps(export, ensure_ascii=False, indent=1, default=str))
 
 
 def default_name(export: dict) -> str:

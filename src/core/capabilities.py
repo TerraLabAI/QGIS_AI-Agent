@@ -142,6 +142,7 @@ _GROUPS: tuple[dict[str, Any], ...] = (
         "members": (
             "get_canvas_extent", "set_canvas_extent", "get_canvas_scale", "set_canvas_scale",
             "zoom_to_layer", "zoom_to_selected", "take_screenshot", "get_3d_screenshot",
+            "flash_features",
         ),
     },
     {

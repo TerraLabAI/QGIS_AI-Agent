@@ -15,7 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from . import telemetry
 from . import telemetry_events as ev
-from .checkpoints import KIND_AFTER, KIND_BEFORE, KIND_EDITS
+from .checkpoints import KIND_AFTER, KIND_EDITS
 from .context import mention_candidates
 from .logger import log, log_warning
 from .protocol import Approval, Effort, Mode
@@ -148,7 +148,8 @@ class PanelActionsMixin:
 
 
             whole = not discard or history.start_reachable(thread_id)
-            self._panel_call("show_restore_warning", checkpoint_id, discard, edits, whole)
+            self._panel_call("show_restore_warning", checkpoint_id, discard, edits, whole,
+                             self._point_name(entry))
             return
         if edits and current is not None and not self._capture_edits(thread_id, current):
 
@@ -163,7 +164,8 @@ class PanelActionsMixin:
 
 
 
-            result = entry.snapshot.restore(file_name=entry.file_to_keep(), project_files=entry.project_files)
+            result = entry.snapshot.restore(file_name=entry.file_to_keep(), project_files=entry.project_files,
+                                            extra_copies=history.file_versions(thread_id, entry))
         finally:
             self._restoring = False
 
@@ -174,9 +176,8 @@ class PanelActionsMixin:
             "ok": bool(result.get("ok")), "kind": "discard" if discard else entry.kind, "steps_back": steps})
         if result.get("ok"):
             history.mark_current(entry)
-        self._note_restored_state(entry if result.get("ok") else None)
         self._send_history()
-        self.notice.emit("info" if result.get("ok") else "warning", str(result.get("message") or ""))
+        self.notice.emit("info" if result.get("ok") else "warning", self._restored_text(entry, result))
 
     def _manual_changes_since(self, current) -> bool:
         """True when the project moved since the current checkpoint outside a run."""
@@ -208,19 +209,46 @@ class PanelActionsMixin:
                                        snapshot, fork=False)
         return bool(captured)
 
-    def _note_restored_state(self, entry) -> None:
-        """After a restore, one quiet line in the chat says where the project stands."""
+    def _point_name(self, entry) -> str:
+        """The state as a sentence names it: "before “Remove the roads layer”"."""
 
 
-        if entry is None:
-            return
+
+
+
+        words = " ".join(str(entry.prompt or "").split())
+        if len(words) > 48:
+            words = words[:48].rstrip() + "\u2026"
+        if entry.kind == KIND_EDITS:
+            return tr("your own changes")
         if entry.kind == KIND_AFTER:
-            note = tr("Back to after run {n}").format(n=entry.run_index)
-        elif entry.kind == KIND_BEFORE:
-            note = tr("Back to before run {n}").format(n=entry.run_index)
-        else:
-            note = tr("Back to your edits after run {n}").format(n=entry.run_index)
-        self._panel_call("note_project_state", note)
+            return (tr("after “{request}”").format(request=words) if words
+                    else tr("after request {n}").format(n=entry.run_index))
+        first = self._executor.history.first(self._thread_id or "")
+        if entry.run_index <= 1 or (first is not None and first.id == entry.id):
+            return tr("the start of this chat")
+        return (tr("before “{request}”").format(request=words) if words
+                else tr("before request {n}").format(n=entry.run_index))
+
+    def _restored_text(self, entry, result: dict) -> str:
+        """What a restore says it did: where the project is, and what came back."""
+        point = self._point_name(entry)
+        if not result.get("ok"):
+            reason = str(result.get("message") or "").strip()
+            return tr("Could not fully go back to {point}. {reason}").format(point=point, reason=reason).strip()
+        sidecar = (".shx", ".dbf", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".qmd", ".xml")
+        files = {path for path in result.get("files_put_back", result.get("files_restored")) or []
+                 if not str(path).lower().endswith(sidecar + ("-wal", "-shm", "-journal"))}
+        layers = int(result.get("layers") or 0)
+        text = tr("Back to {point}.").format(point=point)
+        if layers == 1:
+            text += " " + tr("1 layer in the project")
+        elif layers:
+            text += " " + tr("{n} layers in the project").format(n=layers)
+        if files:
+            names = ", ".join(sorted(os.path.basename(str(path)) for path in files)[:3])
+            text += (", " if layers else " ") + tr("data put back in {files}").format(files=names)
+        return text + ("." if layers or files else "")
 
     def _on_layer_action(self, layer_id: str, action: str) -> None:
         telemetry.track(ev.REVIEW_OPENED, {"action": action})
@@ -259,8 +287,24 @@ class PanelActionsMixin:
         log(f"Help opened: {kind}")
 
     def _on_upgrade_requested(self) -> None:
-        telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "quota_card"})
+        """Every Upgrade in the panel: the plans, signed in when it can."""
+        self._account.open_plans(
+            "plugin_quota_card",
+            on_outcome=lambda link: telemetry.track(
+                ev.SUBSCRIBE_LINK_CLICKED, {"source": "quota_card", "checkout_link": link}))
         log("Upgrade opened from the panel")
+
+    def _on_pro_pill_requested(self) -> None:
+        """The header's "Get Pro" pill: the same signed-in door, its own source."""
+
+
+
+
+        self._account.open_plans(
+            "plugin_header_pill",
+            on_outcome=lambda link: telemetry.track(
+                ev.SUBSCRIBE_LINK_CLICKED, {"source": "header_pill", "checkout_link": link}))
+        log("Upgrade opened from the header pill")
 
     def _on_low_balance_shown(self, remaining: int) -> None:
         telemetry.track(ev.LOW_BALANCE_CARD_SHOWN, {"remaining": remaining})
@@ -277,11 +321,20 @@ class PanelActionsMixin:
             if approval != previous:
                 telemetry.track(ev.PERMISSION_LEVEL_CHANGED, {"level": approval, "previous": previous})
 
-                self._executor.on_approval_changed(approval)
+
+
+
+                if self._run is not None:
+                    if self._executor.open_cards():
+                        self.notice.emit("info", tr("Permission mode changed. It applies from the next "
+                                                    "action; the open card still needs your answer."))
+                    else:
+                        self.notice.emit("info", tr("Permission mode changed. It applies from the next action."))
         self._sync_permission_mode()
 
     def _sync_permission_mode(self) -> None:
-        self._panel_call("set_permission_mode", self._settings.approval)
+
+        self._panel_call("set_permission_mode", self._approval())
 
     def _on_effort_changed(self, effort: str) -> None:
         """The composer's effort slider."""

@@ -12,7 +12,8 @@ from ..core.serialization import size_budget
 
 _LOG_BUFFER_SIZE = 5000
 _MSG_BUF = "_aiagent_msglog_buf"
-_MSG_BUF_CACHE = None
+
+_msg_buf_cache: dict = {"buf": None}
 _MSG_CONNECTED = "_aiagent_msglog_connected"
 
 
@@ -23,9 +24,9 @@ def _message_buffer():
 
 
 
-    global _MSG_BUF_CACHE
-    if _MSG_BUF_CACHE is not None:
-        return _MSG_BUF_CACHE
+    cached = _msg_buf_cache["buf"]
+    if cached is not None:
+        return cached
     from collections import deque
 
     app = QgsApplication.instance()
@@ -37,7 +38,7 @@ def _message_buffer():
         app.setProperty(_MSG_BUF, buf)
 
 
-    _MSG_BUF_CACHE = buf
+    _msg_buf_cache["buf"] = buf
     return buf
 
 
@@ -178,12 +179,14 @@ def _get_debug_info(args: dict) -> dict:
 
     from qgis.core import Qgis, QgsProviderRegistry
 
+    from ..core.host_platform import os_info, os_label
+
     result = {
         "qgis_version": Qgis.version(),
         "python_version": platform.python_version(),
         "python_executable": _python_executable(),
         "host_executable": sys.executable,
-        "os": f"{platform.system()} {platform.release()} ({platform.machine()})",
+        "os": f"{os_label()} ({os_info()[2]})",
         "profile_path": QgsApplication.qgisSettingsDirPath(),
         "prefix_path": QgsApplication.prefixPath(),
         "locale": QgsApplication.locale(),

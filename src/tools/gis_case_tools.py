@@ -32,6 +32,7 @@ from qgis.core import (
 )
 
 from ..core import layer_order
+from ..core.feature_requests import feature_request, first_feature
 from ..core.geometry_budget import VertexBudget
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
@@ -217,7 +218,21 @@ def _enable_add_data_subdatasets() -> None:
 
 
 def _source_path(layer) -> str:
-    return (layer.source() or "").split("|", 1)[0]
+    """The file a layer reads, through its provider's own URI decoding."""
+
+
+
+
+
+    source = layer.source() or ""
+    try:
+        from qgis.core import QgsProviderRegistry
+
+        decoded = QgsProviderRegistry.instance().decodeUri(layer.providerType(), source)
+        path = decoded.get("path") if isinstance(decoded, dict) else ""
+    except Exception:  # noqa: BLE001 - a provider that cannot decode keeps the plain reading
+        path = ""
+    return path or source.split("|", 1)[0]
 
 
 def _repair_layer_paths(args: dict) -> dict:
@@ -291,8 +306,13 @@ def _arcname(path: str, project_dir: str) -> str:
 
 
 
+
+
+
+
     try:
-        if os.path.commonpath([project_dir, path]) == project_dir:
+        common = os.path.commonpath([project_dir, path])
+        if os.path.normcase(os.path.normpath(common)) == os.path.normcase(os.path.normpath(project_dir)):
             return os.path.relpath(path, project_dir)
     except ValueError:
         pass
@@ -309,6 +329,10 @@ def _package_project(args: dict) -> dict:
             "Call save_project, then package_project.",
         )
     output = os.path.abspath(os.path.expanduser(args["output_path"]))
+    if not output.lower().endswith(".zip") and (os.path.isdir(output) or not os.path.splitext(output)[1]):
+
+        stem = os.path.splitext(os.path.basename(project_path))[0] or "project"
+        output = os.path.join(output, f"{stem}.zip")
     error = validate_path(output, write=True)
     if error:
         return {"_error": error}
@@ -598,7 +622,7 @@ def _profile_geometry(args: dict, dem):
         layer = _find_layer(args["line_layer"])
         if layer is None:
             return None, _layer_not_found_error(args["line_layer"])
-        feature = next(layer.getFeatures(), None)
+        feature = first_feature(layer, feature_request(attributes=[], limit=1))
         geometry = feature.geometry() if feature is not None else None
         if geometry is not None and layer.crs() != dem.crs():
             transform = QgsCoordinateTransform(layer.crs(), dem.crs(), QgsProject.instance())
@@ -733,7 +757,7 @@ def _check_topology(args: dict) -> dict:
 
     budget = VertexBudget()
     features = []
-    for feature in layer.getFeatures():
+    for feature in layer.getFeatures(feature_request(attributes=[])):
         if feature.geometry().isEmpty():
             continue
         too_big = budget.oversize(feature.geometry())

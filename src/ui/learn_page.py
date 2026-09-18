@@ -67,8 +67,6 @@ _NO_LESS_SAFE = resolve_qt_enum(QNetworkRequest, "RedirectPolicy", "NoLessSafeRe
 
 _CARD_W = 300
 _CARD_H = 169
-_BADGE_PX = 34
-_BADGE_GLYPH_PX = 16
 
 
 
@@ -374,7 +372,7 @@ class LearnPage(Page):
     def __init__(self, parent=None):
         super().__init__(
             parent.tr("Tutorials") if parent is not None else "Tutorials",
-            parent.tr("Twelve minutes of video and a written guide. Both open in your browser.")
+            parent.tr("Videos and guides to get started. They open in your browser.")
             if parent is not None else "",
             parent)
         items = [i for i in get_learn_items() if str(i.get("url") or "").startswith("https://")]

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import posixpath
@@ -17,7 +18,8 @@ import zlib
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from ..core import limits, links, net, vsi
+from ..core import limits, links, net, security, vsi
+from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from . import ogc_inspect, volume_guard
 from .csv_loader import CSV_EXTENSIONS
@@ -156,8 +158,8 @@ def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
     except Exception:  # noqa: BLE001 - a file that cannot say is held to the area ceiling instead
         return None
     finally:
-        layer = None
-        dataset = None
+        del layer
+        del dataset
 
 
 def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | None, bbox: list,
@@ -190,6 +192,10 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
                                "extract applies."),
                     "code": limits.CEILING_CODE,
                     "suggestion": f"Cut the box to {ceiling:,.0f} km2 around the area of interest and say which part."}
+    elif count == 0:
+        return {"_error": f"{posixpath.basename(urllib.parse.urlparse(url).path)} holds no feature in this box.",
+                "code": "EXECUTION_FAILED",
+                "suggestion": "Say the file has nothing here, or try a larger box. Do not load the whole file."}
     else:
         refused = volume_guard.too_many(count, args or {}, f"The box asked of {name}", on_disk=True)
         if refused:
@@ -201,12 +207,18 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
               "spatSRS": "EPSG:4326", "dstSRS": "EPSG:4326"}
     if sublayer:
         kwargs["layers"] = [str(sublayer)]
+
+
+    previous = gdal.GetThreadLocalConfigOption("OGR2OGR_USE_ARROW_API", None)
+    gdal.SetThreadLocalConfigOption("OGR2OGR_USE_ARROW_API", "NO")
     try:
         written = gdal.VectorTranslate(path, source, **kwargs)
     except RuntimeError as exc:
         return {"_error": f"The extract from {url} failed: {exc}",
                 "code": "EXECUTION_FAILED",
                 "suggestion": "Try a smaller box, or add the source without bbox and work at its own scale."}
+    finally:
+        gdal.SetThreadLocalConfigOption("OGR2OGR_USE_ARROW_API", previous)
     if written is None:
         return {"_error": f"The extract from {url} produced nothing.",
                 "code": "EXECUTION_FAILED",
@@ -415,10 +427,7 @@ def _discard_download(tmp_dir: str, result: dict) -> dict:
 
 
 
-    try:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-    except Exception:  # noqa: BLE001  # nosec B110 - the error being returned is the point
-        pass
+    remove_tree(tmp_dir)
     return result
 
 
@@ -442,6 +451,15 @@ def _extract_member(zf, member, tmp_dir: str) -> None:
     if not parts:
         return
     target = os.path.join(tmp_dir, *[_safe_filename(part, "entry") for part in parts])
+    if len(target) >= security._MAX_PATH and not security._long_paths_ok():
+
+
+
+
+        if member.is_dir():
+            return
+        folder = hashlib.sha1("/".join(parts[:-1]).encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
+        target = os.path.join(tmp_dir, folder, _safe_filename(parts[-1], "entry"))
     if member.is_dir():
         os.makedirs(target, exist_ok=True)
         return
@@ -1144,6 +1162,7 @@ def expand_link(url: str) -> dict:
         return out
     files = sorted(links.listing_files(resolved.listing, resolved.url, payload), key=links.rank)
     out["files"] = [dict(entry, add=_link_file_call(entry)) for entry in files]
+    out.update(links.listing_terms(resolved.listing, payload))
     return out
 
 
@@ -1176,6 +1195,7 @@ def _link_inspect_answer(link: dict) -> dict | None:
     files = link.get("files") or []
     out = {"source_family": "file_listing", "resolved_from": link["resolved_from"], "listing_url": link["url"],
            "file_count": len(files), "layers": files,
+           **{k: link[k] for k in ("licence", "publisher") if link.get(k)},
            "message": (link["note"] + " Each entry in layers carries the call that opens it, the files that "
                        "draw on a map first." if files else
                        link["note"] + " The listing is empty: nothing public is attached there.")}

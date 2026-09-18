@@ -72,6 +72,22 @@ _CHIP_GLYPH_ROOM = _CHIP_GLYPH + 3
 EMPTY_CHAT_LINES = 2
 
 
+
+
+
+_SPREADSHEET_FORMATS = ('value="Csv"', 'value="XML Spreadsheet"', 'value="Biff')
+
+
+def _is_spreadsheet_copy(source) -> bool:
+    """True for cells copied from a spreadsheet: their text is what was meant."""
+    try:
+        if not source.hasText() or not source.text().strip():
+            return False
+        return any(mark in fmt for fmt in source.formats() for mark in _SPREADSHEET_FORMATS)
+    except (AttributeError, RuntimeError, TypeError):
+        return False
+
+
 class ComposerInput(QPlainTextEdit):
     """Auto-height plain text input with Enter-to-send and ``@`` mentions."""
 
@@ -524,7 +540,7 @@ class ComposerInput(QPlainTextEdit):
         return bool(source.hasImage() or source.hasUrls()) or super().canInsertFromMimeData(source)
 
     def insertFromMimeData(self, source):  # noqa: N802 - Qt override
-        if source.hasImage():
+        if source.hasImage() and not _is_spreadsheet_copy(source):
             from qgis.PyQt.QtGui import QImage
 
             data = source.imageData()

@@ -257,6 +257,14 @@ HYDROLOGY_MAX_CELLS = 4_000_000
 
 
 
+
+GEE_MAX_PIXELS = 1_000_000_000
+
+
+
+
+
+
 GEOREFERENCE_MAX_PIXELS = 150_000_000
 
 
@@ -369,6 +377,40 @@ def bbox_km2(south: float, west: float, north: float, east: float) -> float:
     middle = math.radians((float(north) + float(south)) / 2.0)
     width = abs(float(east) - float(west)) * _KM_PER_DEGREE * max(math.cos(middle), 0.01)
     return height * width
+
+
+
+
+
+
+
+FIT_MARGIN = 0.95
+
+
+def shrink_bbox(box, ceiling_km2: float, margin: float = FIT_MARGIN):
+    """``(south, west, north, east)`` of *box* shrunk about its centre to just under *ceiling_km2*."""
+
+
+
+
+
+
+
+
+    try:
+        south, west, north, east = (float(v) for v in box)
+        ceiling = float(ceiling_km2)
+    except (TypeError, ValueError):
+        return None
+    area = bbox_km2(south, west, north, east)
+    if ceiling <= 0 or area <= 0 or area <= ceiling:
+        return None
+    scale = (ceiling * float(margin) / area) ** 0.5
+    mid_lat, mid_lon = (south + north) / 2.0, (west + east) / 2.0
+    half_lat = (north - south) / 2.0 * scale
+    half_lon = (east - west) / 2.0 * scale
+    return (round(mid_lat - half_lat, 5), round(mid_lon - half_lon, 5),
+            round(mid_lat + half_lat, 5), round(mid_lon + half_lon, 5))
 
 
 

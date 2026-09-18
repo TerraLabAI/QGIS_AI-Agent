@@ -10,15 +10,31 @@
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
 
 from .provider_uri import REDACTED, scrub_uri_secrets
 
-_USER_PATH_RE = re.compile(r"(?i)([/\\](?:Users|home)[/\\])[^/\\\s\"']+")
 
-_ACTIVATION_KEY_RE = re.compile(r"\btl_[0-9a-f]{32}\b")
-_BEARER_RE = re.compile(r"(?i)\b(bearer|basic|token)\s+[A-Za-z0-9\-._~+/]{16,}=*")
+
+
+_SEP = r"(?:/|\\{1,2}|%5[cC]|%2[fF])"
+_NAME_CHAR = r"[^/\\\s\"'\[\]:;|=,+*?<>%]"
+_ACCOUNT = r"(?:" + _NAME_CHAR + r"+(?: " + _NAME_CHAR + r"+)+(?=" + _SEP + r")|[^/\\\s\"'%]+)"
+_USER_PATH_RE = re.compile(r"(?i)(" + _SEP + r"(?:Users|home|Documents and Settings)" + _SEP + r")" + _ACCOUNT)
+
+_ONEDRIVE_RE = re.compile(r"(?i)(\bOneDrive - )[^/\\\"'\r\n]+")
+
+
+_UNC_RE = re.compile(
+    r"(?im)(\\{1,2}[?.]\\{1,2}UNC\\{1,2}|(?:^|(?<=[\s\"'=(\[,;<>|]))(?:\\{2,4}|//)(?![?.][\\/]))"
+    r"([^\\/\s\"'|<>?]+)")
+
+_ACTIVATION_KEY_RE = re.compile(r"(?i)\btl_[0-9a-f]{32}\b")
+_BEARER_RE = re.compile(r"(?i)\b(bearer|token)\s+[A-Za-z0-9\-._~+/]{16,}=*")
+
+_BASIC_RE = re.compile(r"(?i)\b(basic)\s+[A-Za-z0-9+/]{4,}=*")
 _KNOWN_TOKEN_RE = re.compile(
     r"\b(?:sk-(?:proj-|ant-)?[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}"
     r"|xox[abpr]-[A-Za-z0-9-]{20,}|hf_[A-Za-z0-9]{30,}|glpat-[A-Za-z0-9_-]{20,}"
@@ -47,9 +63,35 @@ _SAFE_KEYS = frozenset({"tokens", "input_tokens", "output_tokens", "layer_key", 
 MAX_DEPTH = 40
 
 
+def _machine_words() -> tuple:
+    """This computer's name and a home folder outside Users, as (pattern, replacement)."""
+    words = []
+    for name in ("COMPUTERNAME", "HOSTNAME"):
+        value = (os.environ.get(name) or "").strip()
+        if len(value) >= 4:
+            words.append((re.compile(r"(?i)(?<![\w-])" + re.escape(value) + r"(?![\w-])"), REDACTED))
+    home = os.path.expanduser("~")
+    if len(home) > 3 and home != "~":
+        for spelling in {home, home.replace("\\", "/"), home.replace("\\", "\\\\")}:
+            words.append((re.compile(r"(?i)" + re.escape(spelling) + r"(?=[/\\\s\"']|$)"), "~"))
+    return tuple(words)
+
+
+_MACHINE_WORDS = _machine_words()
+
+
 def scrub_user_paths(text: str) -> str:
     """Replace a local account name in macOS, Linux, and Windows home paths."""
-    return _USER_PATH_RE.sub(r"\1***", text or "")
+
+
+
+
+    text = text or ""
+    for pattern, replacement in _MACHINE_WORDS:
+        text = pattern.sub(replacement, text)
+    text = _USER_PATH_RE.sub(r"\1***", text)
+    text = _ONEDRIVE_RE.sub(r"\1***", text)
+    return _UNC_RE.sub(r"\1***", text)
 
 
 def scrub_sensitive(text: str) -> str:
@@ -71,6 +113,7 @@ def scrub_secrets(text: str) -> str:
     text = _ACTIVATION_KEY_RE.sub(REDACTED, text)
     text = _KNOWN_TOKEN_RE.sub(REDACTED, text)
     text = _BEARER_RE.sub(lambda m: f"{m.group(1)} {REDACTED}", text)
+    text = _BASIC_RE.sub(lambda m: f"{m.group(1)} {REDACTED}", text)
     return scrub_uri_secrets(text)
 
 

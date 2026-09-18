@@ -46,7 +46,7 @@ from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for
 from .layer_icons import layer_icon
 from .mention_search import FILES
-from .shared import event_pos
+from .shared import event_pos, keep_on_screen, screen_area_at
 from .style import (
     _COMPLETER_POPUP_QSS,
     FONT_BASE,
@@ -444,25 +444,22 @@ class MentionSheet(QWidget):
 
         width = max(_SHEET_MIN_WIDTH, min(SHEET_WIDTH, anchor.width()))
         width = max(width, min(_SHEET_MAX_WIDTH, self.content_width()))
-        screen = QApplication.screenAt(anchor.mapToGlobal(QPoint(0, 0))) if hasattr(
-            QApplication, "screenAt") else None
-        if screen is not None:
-            width = min(width, max(_SHEET_MIN_WIDTH, screen.availableGeometry().width() - 2 * _SHADOW - 16))
+        top_left = anchor.mapToGlobal(QPoint(0, 0))
+        area = screen_area_at(top_left, anchor)
+        if area is not None:
+            width = min(width, max(_SHEET_MIN_WIDTH, area.width() - 2 * _SHADOW - 16))
         rows = min(_MAX_VISIBLE_ROWS, max(1, self._model.rowCount()))
         self._view.setFixedHeight(rows * _ROW_HEIGHT)
         self.setFixedWidth(width + 2 * _SHADOW)
         self._frame.layout().activate()
         self.setFixedHeight(self._frame.sizeHint().height() + 2 * _SHADOW)
-        top_left = anchor.mapToGlobal(QPoint(0, 0))
         x = top_left.x() - _SHADOW
         y = top_left.y() - self.height() + _SHADOW - 4
-        screen = QApplication.screenAt(top_left) if hasattr(QApplication, "screenAt") else None
-        if screen is not None:
-            geometry = screen.availableGeometry()
-            x = max(geometry.left(), min(x, geometry.right() - self.width()))
-            if y < geometry.top():
+        if area is not None:
+            x = max(area.left(), min(x, area.right() - self.width()))
+            if y < area.top():
                 y = top_left.y() + anchor.height() - _SHADOW + 4
-        self._final = QPoint(x, y)
+        self._final = QPoint(*keep_on_screen(x, y, self.width(), self.height(), area))
         was_visible = self.isVisible()
         self.move(self._final)
         if not was_visible:

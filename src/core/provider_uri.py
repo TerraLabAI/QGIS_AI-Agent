@@ -86,9 +86,15 @@ _URI_KV_RE = _re.compile(
 _URL_QUERY_KEY_RE = _re.compile(r"(?i)([?&](?:key|sig|session|sessionid|auth|credentials?)=)[^&\s'\"]{12,}")
 
 
+_URL_QUERY_SUFFIX_RE = _re.compile(
+    r"(?i)([?&;][\w.\-]*(?:token|secret|password|passwd|signature|credential|api_?key|jwt)=)[^&\s'\"#]+")
 
 
-_URL_USERINFO_RE = _re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^/\s:@]+):([^@/\s]+)@")
+
+
+
+
+_URL_USERINFO_RE = _re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^/\s:@]+):([^/\s?#]+)@")
 REDACTED = "***"
 
 
@@ -98,6 +104,7 @@ def scrub_uri_secrets(text: str) -> str:
         return text or ""
     text = _URL_USERINFO_RE.sub(r"\1:" + REDACTED + "@", text)
     text = _URL_QUERY_KEY_RE.sub(r"\1" + REDACTED, text)
+    text = _URL_QUERY_SUFFIX_RE.sub(r"\1" + REDACTED, text)
     return _URI_KV_RE.sub(lambda m: f"{m.group(1)}={REDACTED}", text)
 
 

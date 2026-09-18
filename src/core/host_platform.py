@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 import time
 
@@ -16,11 +17,24 @@ IS_MACOS = sys.platform == "darwin"
 
 
 
-_FILE_OP_PAUSES_S = (0.05, 0.1, 0.2)
+
+_FILE_OP_PAUSES_S = (0.05, 0.1, 0.2, 0.3, 0.5, 0.85)
+
+
+
+
+
+_TRANSIENT_WINERRORS = frozenset((5, 32, 33, 145, 1224))
+
+
+def _is_transient(exc: OSError) -> bool:
+    if isinstance(exc, PermissionError):
+        return True
+    return getattr(exc, "winerror", None) in _TRANSIENT_WINERRORS
 
 
 def retry_file_op(op, *args):
-    """Call ``op(*args)`` again after a transient PermissionError, then give up."""
+    """Call ``op(*args)`` again after a transient Windows refusal, then give up."""
 
 
 
@@ -30,16 +44,118 @@ def retry_file_op(op, *args):
     for pause in _FILE_OP_PAUSES_S:
         try:
             return op(*args)
-        except PermissionError:
+        except OSError as exc:
+            if not _is_transient(exc):
+                raise
             time.sleep(pause)
     return op(*args)
+
+
+_LEADING_WINDOWS_VAR = re.compile(r"^%[A-Za-z_][A-Za-z0-9_()]*%(?:[\\/]|$)")
+
+
+def expand_leading_env(text: str) -> str:
+    """``%USERPROFILE%\\Desktop\\map.pdf`` with its variable expanded, on Windows only."""
+
+
+
+
+    if IS_WINDOWS and isinstance(text, str) and _LEADING_WINDOWS_VAR.match(text):
+        return os.path.expandvars(text)
+    return text
+
+
+def release_pooled_handles(layer) -> None:
+    """Close the file handle QGIS's OGR connection pool keeps for ``layer``."""
+
+
+
+
+
+
+
+
+    if not IS_WINDOWS:
+        return
+    try:
+        if layer.providerType() != "ogr":
+            return
+        provider = layer.dataProvider()
+        if provider is not None:
+            provider.reloadData()
+    except Exception:  # nosec B110 - nothing here may raise; the write that follows reports the lock
+        pass
+
+
+def remove_quietly(path: str) -> bool:
+    """Delete one file with the Windows retry; False when it is still there."""
+    try:
+        retry_file_op(os.remove, path)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return not os.path.lexists(path)
+    return True
+
+
+def remove_tree(path: str) -> list:
+    """Delete a folder tree and return the entries that could not go."""
+
+
+
+
+
+    import shutil
+    import stat
+
+    failed = []
+
+    def attempt(func, target):
+
+
+        if failed:
+            func(target)
+        else:
+            retry_file_op(func, target)
+
+    def on_error(func, target, _exc):
+        if func not in (os.remove, os.unlink, os.rmdir):
+            failed.append(target)
+            return
+        try:
+            if not os.lstat(target).st_mode & stat.S_IWRITE:
+                os.chmod(target, stat.S_IWRITE)
+        except OSError:
+            pass
+        try:
+            attempt(func, target)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            failed.append(target)
+
+    if not os.path.lexists(path):
+        return failed
+    try:
+        if os.path.isdir(path) and not os.path.islink(path):
+            if sys.version_info >= (3, 12):
+                shutil.rmtree(path, onexc=on_error)
+            else:
+                shutil.rmtree(path, onerror=on_error)
+        else:
+            retry_file_op(os.remove, path)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        failed.append(path)
+    return failed
 
 
 def _windows_memory_counters():
     """This process's PROCESS_MEMORY_COUNTERS from GetProcessMemoryInfo, or None."""
     try:
         import ctypes
-        from ctypes import wintypes
+        import ctypes.wintypes as wintypes
 
         class _Counters(ctypes.Structure):
             _fields_ = [
@@ -98,3 +214,46 @@ def peak_memory_mb() -> float | None:
         return round(rss, 1)
     except Exception:
         return None
+
+
+_OS_INFO = None
+
+
+def os_info() -> tuple:
+    """``(system, release, machine)`` as platform.system/release/machine name them."""
+
+
+
+
+
+
+    global _OS_INFO
+    if _OS_INFO is not None:
+        return _OS_INFO
+    system = release = machine = ""
+    try:
+        if IS_WINDOWS:
+            system = "Windows"
+            ver = sys.getwindowsversion()
+            if ver.major == 10 and ver.build >= 22000:
+                release = "11"
+            elif ver.major == 10:
+                release = "10"
+            else:
+                release = f"{ver.major}.{ver.minor}"
+
+            machine = (os.environ.get("PROCESSOR_ARCHITEW6432")
+                       or os.environ.get("PROCESSOR_ARCHITECTURE") or "")
+        else:
+            import platform
+            system, release, machine = platform.system(), platform.release(), platform.machine()
+    except Exception:  # nosec B110 - an OS label is optional
+        system = system or ("Darwin" if IS_MACOS else sys.platform)
+    _OS_INFO = (system, release, machine)
+    return _OS_INFO
+
+
+def os_label() -> str:
+    """``"Windows 11"``, ``"Darwin 24.1.0"``: system and release in one string."""
+    system, release, _machine = os_info()
+    return f"{system} {release}".strip()

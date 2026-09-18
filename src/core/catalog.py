@@ -24,7 +24,7 @@ from __future__ import annotations
 import contextlib
 import urllib.parse
 
-from . import net, security, tuning
+from . import data_date, net, security, tuning
 from .logger import log_warning
 
 
@@ -327,8 +327,26 @@ def shelf_order() -> list:
     return list(_shelves.get("order") or [])
 
 
+def _row_extras(row: dict) -> dict:
+    """The source sheet facts a newer server adds to a row, each optional: ``{title, data_date, page_url}``."""
+
+
+
+
+    page_url = str(row.get("page_url") or "").strip()
+    if not page_url.startswith(("https://", "http://")) or len(page_url) > 500:
+        page_url = ""
+    return {"title": str(row.get("title") or "").strip()[:200],
+            "data_date": data_date.clean(row.get("data_date")),
+            "page_url": page_url}
+
+
 def set_source_licences(rows) -> None:
     """Keep the licence rows the server named: ``[{prefix, layer, licence, attribution}]``."""
+
+
+
+
     global _source_licences
     if not isinstance(rows, list):
         return
@@ -349,9 +367,11 @@ def set_source_licences(rows) -> None:
         layer = str(row.get("layer") or "").strip()
         licence = str(row.get("licence") or "").strip()[:300]
         attribution = str(row.get("attribution") or "").strip()[:500]
-        if not licence and not attribution:
+        extras = _row_extras(row)
+        if not licence and not attribution and not any(extras.values()):
             continue
-        cleaned.append({"prefix": prefix, "layer": layer, "licence": licence, "attribution": attribution})
+        cleaned.append({"prefix": prefix, "layer": layer, "licence": licence, "attribution": attribution,
+                        **extras})
 
 
 
@@ -359,19 +379,20 @@ def set_source_licences(rows) -> None:
 
 
 def theme_licence(key: str) -> dict | None:
-    """The row served under exactly *key* (``overture:<theme>``): ``{licence, attribution}`` or None."""
+    """The row served under exactly *key* (``overture:<theme>``): ``{licence, attribution, title, data_date, page_url}`` or None, the last three."""
+
 
 
 
 
     for row in _source_licences:
         if row["prefix"] == key:
-            return {"licence": row["licence"], "attribution": row["attribution"]}
+            return _answer(row)
     return None
 
 
 def source_licence(url: str, layer: str = "") -> dict | None:
-    """The licence row for a source address: ``{licence, attribution}`` or None."""
+    """The row for a source address: ``{licence, attribution, title, data_date, page_url}`` or None."""
     url = str(url or "").strip()
     if url.startswith("/vsicurl/"):
         url = url[len("/vsicurl/"):]
@@ -394,7 +415,13 @@ def source_licence(url: str, layer: str = "") -> dict | None:
             best_key, best = key, row
     if best is None:
         return None
-    return {"licence": best["licence"], "attribution": best["attribution"]}
+    return _answer(best)
+
+
+def _answer(row: dict) -> dict:
+    """A kept row as its lookups hand it out, every key present."""
+    return {"licence": row["licence"], "attribution": row["attribution"], "title": row.get("title", ""),
+            "data_date": row.get("data_date", ""), "page_url": row.get("page_url", "")}
 
 
 def apply_session(session: dict) -> None:

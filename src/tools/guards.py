@@ -19,10 +19,10 @@ import os
 import re as _re
 import sqlite3
 import time
+from urllib.parse import unquote
 
 from ..core import limits, security
-from ..core.policy import MAX_FEATURES_PER_CALL  # noqa: F401  re-exported, the tests read it here
-from .danger import PAID_ALGORITHMS, _processing_output_params, looks_like_disk_path
+from .danger import _OGR_DBNAME_RE, PAID_ALGORITHMS, _processing_output_params, looks_like_disk_path
 
 
 WRITE_PATH_ARGS: dict[str, tuple[str, ...]] = {
@@ -71,7 +71,10 @@ _DENIED_SCHEMES = ("file", "ftp", "gopher", "data", "javascript", "dict", "ldap"
 
 
 _FREE_TEXT_KEYS = ("code", "query", "sql", "expression", "filter", "text", "question", "content", "html", "label",
-                   "action_path", "formula", "input_query", "where")
+                   "action_path", "formula", "input_query", "where",
+
+
+                   "quote", "place")
 
 
 
@@ -361,10 +364,14 @@ def _check_urls(args: dict) -> dict | None:
             return problem
 
 
-        for embedded in _EMBEDDED_URL_RE.findall(text):
-            problem = _check_one_address(embedded)
-            if problem:
-                return problem
+
+
+        decoded = unquote(text)
+        for variant in (text, decoded) if decoded != text else (text,):
+            for embedded in _EMBEDDED_URL_RE.findall(variant):
+                problem = _check_one_address(embedded)
+                if problem:
+                    return problem
     return None
 
 
@@ -439,8 +446,19 @@ def _write_targets(name: str, args: dict) -> list[str]:
                 is_output = key in outputs if outputs is not None else ("OUTPUT" in upper or "DEST" in upper)
                 candidate = value.get("path") if isinstance(value, dict) else value
                 if is_output and looks_like_disk_path(candidate):
-                    targets.append(str(candidate).split("|", 1)[0])
+                    targets.append(_file_part(str(candidate)))
     return targets
+
+
+def _file_part(value: str) -> str:
+    """The file a QGIS destination names: before "|", or inside ogr:dbname='...'."""
+
+
+
+
+
+    match = _OGR_DBNAME_RE.match(value.strip())
+    return match.group("path") if match else value.split("|", 1)[0]
 
 
 def _gpkg_table_target(name: str, args: dict) -> str:
@@ -546,7 +564,7 @@ def _check_paths(name: str, args: dict) -> dict:
 
         if value.startswith(("http://", "https://")) or _scheme_of(value):
             continue
-        error = security.validate_path(value.split("|", 1)[0])
+        error = security.validate_path(_file_part(value))
         if error:
             return _refusal(error, "Ask the user for a data file outside credential and system folders.",
                             "PERMISSION_DENIED")
@@ -600,8 +618,16 @@ _CREATE_COUNT_KEYS = ("count", "num_features", "number_of_points", "point_count"
 
 
 
+
+
+
+
+
+
+
+
 _OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fetch_overture",
-                             "add_pmtiles_layer", "create_grid_layer", "add_data"})
+                             "add_pmtiles_layer", "create_grid_layer", "add_data", "map_drainage"})
 
 
 
@@ -628,6 +654,21 @@ _RENDER_SIZE_KEYS = (("width", "MAX_RENDER_WIDTH_PX"), ("height", "MAX_RENDER_HE
                      ("max_width", "MAX_RENDER_WIDTH_PX"))
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+_RENDER_CLAMPING_TOOLS = frozenset({"render_map", "render_detection_reveal", "render_camera_move"})
+
+
 def _number(value):
     """The argument as a float when it is a plain number, else None."""
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
@@ -645,9 +686,12 @@ def _check_created_features(args: dict) -> dict | None:
         if wanted is not None and wanted > ceiling:
             return limits.refusal(
                 f"'{key}'", f"{wanted:,.0f} features", f"{ceiling:,} in one call",
-                "Ask for fewer features, or cover the area in several calls and tell the user why. "
-                "A layer this size is also one QGIS draws slowly, so a coarser step is usually the "
-                "better answer, not a second attempt at the same number.")
+
+
+
+                f"Retry with {key}={ceiling} at most, or cover the area in several calls and tell the "
+                "user why. A layer this size is also one QGIS draws slowly, so a coarser step is "
+                "usually the better answer, not a second attempt at the same number.")
     return None
 
 
@@ -676,29 +720,80 @@ def _lonlat_box(value) -> tuple[float, float, float, float] | None:
     return south, west, north, east
 
 
+
+
+
+
+
+
+
+_SERVER_SIDE_RASTER = frozenset({"add_gee_dataset"})
+_RASTER_SCALE_ARG = {"gee_zonal_stats": ("scale", 30.0)}
+
+
+def _check_raster_pixels(name: str, area_km2: float, args: dict) -> dict | None:
+    key, default = _RASTER_SCALE_ARG[name]
+    scale = _number(args.get(key))
+    if scale is None or scale <= 0:
+        scale = default
+    pixels = area_km2 * 1e6 / (scale * scale)
+    ceiling = limits.current("GEE_MAX_PIXELS")
+    if pixels <= ceiling:
+        return None
+    fits = (area_km2 * 1e6 / ceiling) ** 0.5
+    return limits.refusal(
+        "The bounding box", f"{pixels:,.0f} pixels at {scale:g} m", f"{ceiling:,.0f} pixels",
+        f"Pass {key} {int(fits) + 1} or more (metres per pixel) for this box, or a smaller box.")
+
+
 def _check_bbox_area(name: str, args: dict) -> dict | None:
-    if name in _OWN_AREA_CHECK:
+    if name in _OWN_AREA_CHECK or name in _SERVER_SIDE_RASTER:
         return None
     box = _lonlat_box(args.get("bbox"))
     if box is None:
         return None
     area = limits.bbox_km2(*box)
+    if name in _RASTER_SCALE_ARG:
+        return _check_raster_pixels(name, area, args)
     ceiling = limits.current("MAX_FETCH_KM2")
     if area <= ceiling:
         return None
+
+
+
+
+
+
+
+    fitted = limits.shrink_bbox(box, ceiling)
+    retry = ""
+    if fitted is not None:
+        south, west, north, east = fitted
+
+
+        given = args.get("bbox")
+        if isinstance(given, dict):
+            keys = ("xmin", "ymin", "xmax", "ymax") if "xmin" in given else ("west", "south", "east", "north")
+            written = "{" + ", ".join(f'"{k}": {v}' for k, v in zip(keys, (west, south, east, north))) + "}"
+        else:
+            written = f"[{west}, {south}, {east}, {north}]"
+        retry = (f"Retry with bbox {written} "
+                 f"({limits.bbox_km2(south, west, north, east):,.0f} km2, same centre), or smaller. ")
     return limits.refusal(
         "The bounding box", f"{area:,.0f} km2", f"{ceiling:,.0f} km2 for one fetch",
-        f"Cut the box to {ceiling:,.0f} km2 around the centre of the area, or the city rather than "
-        "the region, and tell the user which part you kept. Do not ask the user. A public service "
-        "either refuses a box this size or spends minutes on it. For a whole country, download an "
-        "extract and add the file instead.")
+        retry + "Keep the city rather than the region, and tell the user which part you kept. Do not "
+        "ask the user. A public service either refuses a box this size or spends minutes on it. For "
+        "a whole country, download an extract and add the file instead.")
 
 
 def _check_render_size(name: str, args: dict) -> dict | None:
     if name not in _RENDER_TOOLS:
         return None
     max_w, max_h = limits.current("MAX_RENDER_WIDTH_PX"), limits.current("MAX_RENDER_HEIGHT_PX")
+    clamps = name in _RENDER_CLAMPING_TOOLS
     for key, side in _RENDER_SIZE_KEYS:
+        if clamps and key in ("width", "height"):
+            continue
         wanted = _number(args.get(key))
         ceiling = limits.current(side)
         if wanted is not None and wanted > ceiling:
@@ -709,11 +804,16 @@ def _check_render_size(name: str, args: dict) -> dict | None:
                 "and the model reads it resized. For a large print, export the layout at a higher "
                 "dpi rather than asking for a larger image.")
     width, height = _number(args.get("width")), _number(args.get("height"))
+    if clamps and width and height:
+
+
+
+        width, height = min(width, max_w), min(height, max_h)
     max_pixels = limits.current("MAX_RENDER_PIXELS")
     if width and height and width * height > max_pixels:
         return limits.refusal(
             "The image asked for", f"{width * height:,.0f} pixels", f"{max_pixels:,} pixels",
-            "Keep the two sides inside 4K together, not only one at a time.")
+            f"Keep the two sides inside {max_w} by {max_h} together, not only one at a time.")
     dpi = _number(args.get("dpi"))
     max_dpi = limits.current("MAX_RENDER_DPI")
     if dpi is not None and dpi > max_dpi:

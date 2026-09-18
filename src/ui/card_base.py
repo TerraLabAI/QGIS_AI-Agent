@@ -18,16 +18,15 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from .font_scale import scale_point_size
 from .icons import ink_of, pixmap_for
 from .style import (
     FONT_HINT,
     INK_2,
-    INK_3,
     MONO_FAMILY,
     MOTION_FADE_UP_MS,
     MUTED,
     SPACE_CARD,
-    qcolor,
 )
 from .styles import (
     _CARD_CHILD_BTN_RESET_QSS,
@@ -41,8 +40,6 @@ from .styles import (
 
 
 _HINT_QSS = f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;"
-
-_MUTED_GREY = qcolor(INK_3)
 
 _GLYPH_SLOT_PX = 14
 _GLYPH_PX = 12
@@ -107,7 +104,8 @@ def humanise_tool_name(name: str) -> str:
 
 
 def format_duration(seconds) -> str:
-    """``1.2 s`` under ten seconds, ``12 s`` under a minute, ``1 min 12 s`` past it."""
+    """``1.2 s`` under ten seconds, ``12 s`` under a minute, ``1 min 12 s`` past it, ``3 min`` on the minute."""
+
 
 
     try:
@@ -116,10 +114,9 @@ def format_duration(seconds) -> str:
         return ""
     if value < 0:
         return ""
-    if value >= 60:
-        minutes = int(value // 60)
-        rest = int(round(value - minutes * 60))
-        return f"{minutes} min {rest} s"
+    if value >= 59.5:
+        minutes, rest = divmod(int(round(value)), 60)
+        return f"{minutes} min {rest} s" if rest else f"{minutes} min"
     if value < 1:
         return f"{max(1, int(round(value * 1000)))} ms"
     if value < 10:
@@ -274,6 +271,8 @@ def mono_font(px: int, weight: int = 400):
 
 
 
+
+
     from qgis.PyQt.QtGui import QFont
 
     families = [f.strip().strip("'\"") for f in MONO_FAMILY.split(",")]
@@ -283,7 +282,7 @@ def mono_font(px: int, weight: int = 400):
     except AttributeError:
         font.setFamily(families[0])
     font.setStyleHint(QFont.StyleHint.TypeWriter)
-    font.setPixelSize(int(px))
+    font.setPixelSize(scale_point_size(int(px)))
     try:
         font.setWeight(QFont.Weight.Medium if weight >= 500 else QFont.Weight.Normal)
     except AttributeError:
@@ -376,3 +375,22 @@ def stop_fade_up(widget) -> None:
         widget._fade_up_anim = None
     except (RuntimeError, AttributeError):
         pass
+
+
+__all__ = [
+    "_Card",
+    "_FADE_UP_WINDOW_S",
+    "_HINT_QSS",
+    "_UNBOUNDED_PX",
+    "_args_text",
+    "fade_up",
+    "format_duration",
+    "glyph_row",
+    "humanise_tool_name",
+    "mono_font",
+    "msg_kind_colour",
+    "msg_kind_icon",
+    "plain_label",
+    "reduced_motion",
+    "stop_fade_up",
+]

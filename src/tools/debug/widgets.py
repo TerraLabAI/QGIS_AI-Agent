@@ -39,29 +39,22 @@ from qgis.PyQt.QtWidgets import (
 
 from .._images import (  # noqa: F401  re-exported for the debug modules
     image_to_base64,
-    image_to_base64_jpeg,
     normalize_fmt,
     scale_image,
 )
 from .._widgets import (  # noqa: F401  re-exported for the debug modules
-    AI_EDIT_KEYS,
-    AI_SEGMENT_KEYS,
-    _app,
     _is_password_field,
     cap_text,
     descendants,
-    displayed_text,
     find_plugin,
     fingerprint_marker,
     geometry,
     is_alive,
     label_and_tooltip,
-    plugin_candidates,
     plugin_widgets,
     process_events,
     redact_secrets,
     safe_call,
-    secret_fingerprint,
     top_level_roots,
     widget_ident,
     widget_label,
@@ -78,8 +71,11 @@ def grab_widget(
     fmt: str = "png",
     quality: int = 95,
     full_page: bool = False,
+    pixmap=None,
 ) -> dict:
     """Capture a widget."""
+
+
 
 
 
@@ -97,7 +93,8 @@ def grab_widget(
     if target.width() <= 0 or target.height() <= 0:
         return {"_error": "Widget has no size"}
     fmt = normalize_fmt(fmt)
-    pixmap = target.grab()
+    if pixmap is None:
+        pixmap = target.grab()
     image = scale_image(pixmap.toImage(), max_width)
     out = {"width": image.width(), "height": image.height(), "format": fmt}
     if scrolled:
@@ -671,3 +668,14 @@ def resolve_widget(args: dict, require_type: str | None = None) -> tuple[QWidget
             "matches": [widget_ident(w) for w in ordered[:10]],
         }
     return ordered[occurrence], None
+
+
+
+
+__all__ = [
+    "find_plugin",
+    "is_alive",
+    "plugin_widgets",
+    "widget_label",
+    "widget_summary",
+]

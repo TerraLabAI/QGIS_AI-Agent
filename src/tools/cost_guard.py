@@ -172,12 +172,47 @@ def zone_area_km2(args: dict, label: str = "") -> float | None:
     return _area_km2(zone_geometry(args, label))
 
 
+
+
+_FIT_MARGIN = limits.FIT_MARGIN
+
+
+def _fitting_zone_sentence(geom, area: float) -> str:
+    """The bbox under the cap around the same centre, as a sentence, or ''."""
+
+
+
+
+
+
+
+    if geom is None or area <= 0 or area <= HARD_MAX_KM2:
+        return ""
+    try:
+        box = geom.boundingBox()
+        scale = (HARD_MAX_KM2 * _FIT_MARGIN / area) ** 0.5
+        half_x, half_y = box.width() / 2.0 * scale, box.height() / 2.0 * scale
+        centre_x, centre_y = box.center().x(), box.center().y()
+    except Exception:  # noqa: BLE001 - a zone that cannot be measured is refused without a box
+        return ""
+    if half_x <= 0 or half_y <= 0:
+        return ""
+    corners = [round(centre_x - half_x, 6), round(centre_y - half_y, 6),
+               round(centre_x + half_x, 6), round(centre_y + half_y, 6)]
+    return (f"Under the cap around the same centre: bbox {corners} in the canvas CRS "
+            f"({HARD_MAX_KM2 * _FIT_MARGIN:.1f} km²). ")
+
+
 def check(name: str, args: dict) -> dict:
     """{label, area_km2, sentence} when allowed, or {error, suggestion} when refused."""
     label = costly_label(name, args)
     if label is None:
         return {}
-    area = zone_area_km2(args, label)
+
+
+
+    geom = zone_geometry(args, label)
+    area = _area_km2(geom)
     if area is None:
 
 
@@ -189,8 +224,16 @@ def check(name: str, args: dict) -> dict:
         }
     if area > HARD_MAX_KM2:
 
+
+
+
+
+
         return {
             "error": f"Zone too large for one {label} run: {area:.1f} km², the cap is {HARD_MAX_KM2:.0f} km².",
+            "suggestion": (_fitting_zone_sentence(geom, area)
+                           + "Propose a smaller zone (under 1 km² for a first test) and ask the user "
+                             "which part matters most. Never split it into several runs unless the user asks."),
             "code": limits.CEILING_CODE,
         }
     if area > CONFIRM_KM2:

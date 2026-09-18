@@ -31,8 +31,7 @@ from collections import OrderedDict
 from . import limits, tuning
 from .host_platform import retry_file_op
 from .logger import log_warning
-from .net_failure import (  # noqa: F401 - moved here, re-exported for the callers of net
-    _NO_ROUTE_ERRNOS,
+from .net_failure import (
     NETWORK_ERROR,
     NETWORK_SUGGESTION,
     FetchCancelled,
@@ -54,33 +53,23 @@ from .net_failure import (  # noqa: F401 - moved here, re-exported for the calle
     _warn_if_on_main_thread,
     describe_failure,
 )
-from .net_hosts import (  # noqa: F401 - moved here, re-exported for the callers of net
+from .net_hosts import (
     _GATES,
     _TICK,
-    CONTACT,
-    COOLDOWN_MAX_S,
-    COOLDOWN_MIN_S,
     DEFAULT_POLICY,
     GATES_KEEP,
     HOST_POLICIES,
-    PROJECT_URL,
-    RETRY_BASE_S,
     RETRY_CODES,
     RETRY_JITTER_S,
     RETRY_MAX,
-    RETRY_MAX_WAIT_S,
     USER_AGENT,
     FetchRateLimited,
     _budget_spent,
     _gate,
-    _HostGate,
     _pause,
-    _plugin_version,
     _Policy,
     _policy_for,
-    _prune_gates,
     _refusal_delay,
-    _shipped_policy,
     host_is_stated,
     politeness_reset,
     politeness_stats,
@@ -88,14 +77,8 @@ from .net_hosts import (  # noqa: F401 - moved here, re-exported for the callers
     retry_numbers,
     user_agent,
 )
-from .net_link import (  # noqa: F401 - moved here, re-exported for the callers of net
-    LINK_POOR_KBPS,
+from .net_link import (
     LINK_REFERENCE_KBPS,
-    LINK_SAMPLE_MIN_BYTES,
-    LINK_SMOOTHING,
-    MAX_TRACKED_HOSTS,
-    OFFLINE_HOLD_S,
-    OFFLINE_HOSTS,
     OFFLINE_STRIKES,
     _never_reached_a_server,
     _note_reachable,
@@ -109,45 +92,107 @@ from .net_link import (  # noqa: F401 - moved here, re-exported for the callers 
     note_transfer,
     seconds_to_transfer,
 )
-from .net_opener import (  # noqa: F401 - moved here, re-exported for the callers of net
+from .net_opener import (
     _CONNECT_LOCAL,
-    _IDENTITY_HEADERS,
     DEFAULT_CONNECT_TIMEOUT_S,
     WITHDRAWN_HOSTS,
-    _build_opener,
     _explain_url_error,
     _GuardedConnection,
-    _GuardedHTTP,
-    _GuardedHTTPHandler,
-    _GuardedHTTPS,
-    _GuardedHTTPSHandler,
-    _identity_names,
     _NoLocalRedirect,
     _opener,
-    _pin,
     _pin_table,
     _pinned_for,
-    _redact_proxy,
-    _same_origin,
-    _ssl_context,
     check_url,
     proxy_in_use,
     set_proxy,
     set_trust,
     withdrawn_reason,
 )
-from .net_state import (  # noqa: F401 - moved here, re-exported for the callers of net
+from .net_state import (
     _cancelled,
     current_cancel_check,
     set_cancel_check,
 )
-from .net_stream import (  # noqa: F401 - moved here, re-exported for the callers of net
-    STREAM_INFLATE_PIECE,
+from .net_stream import (
     STREAM_KEEP_FREE_BYTES,
     Streamed,
     _StreamInflater,
     free_disk_bytes,
 )
+
+
+
+__all__ = [
+    "CACHE_MAX_BYTES",
+    "CACHE_MAX_ENTRIES",
+    "CACHE_MAX_TOTAL_BYTES",
+    "cache_stats",
+    "check_url",
+    "CHUNK",
+    "clear_cache",
+    "current_cancel_check",
+    "DEFAULT_CONNECT_TIMEOUT_S",
+    "DEFAULT_POLICY",
+    "describe_failure",
+    "fetch",
+    "fetch_to_file",
+    "FetchCancelled",
+    "FetchDeadline",
+    "FetchDropped",
+    "FetchRateLimited",
+    "FetchTooLarge",
+    "FetchTooSlow",
+    "FetchTruncated",
+    "FetchWithdrawn",
+    "forget_link_speed",
+    "forget_link_state",
+    "free_disk_bytes",
+    "_GATES",
+    "GATES_KEEP",
+    "_GuardedConnection",
+    "HEAD_START_S",
+    "host_is_stated",
+    "HOST_POLICIES",
+    "link_factor",
+    "link_is_down",
+    "link_kbps",
+    "LINK_REFERENCE_KBPS",
+    "link_report",
+    "LocalUrlRefused",
+    "NETWORK_ERROR",
+    "NETWORK_SUGGESTION",
+    "NetworkUnreachable",
+    "_NoLocalRedirect",
+    "note_transfer",
+    "OFFLINE_STRIKES",
+    "open_url",
+    "_pinned_for",
+    "_Policy",
+    "_policy_for",
+    "politeness_reset",
+    "politeness_stats",
+    "proxy_in_use",
+    "race",
+    "read_bounded",
+    "Response",
+    "retry_after_seconds",
+    "RETRY_CODES",
+    "RETRY_JITTER_S",
+    "RETRY_MAX",
+    "retry_numbers",
+    "seconds_to_transfer",
+    "set_cancel_check",
+    "set_proxy",
+    "set_trust",
+    "STREAM_KEEP_FREE_BYTES",
+    "Streamed",
+    "TRANSPORT_RETRY_BASE_S",
+    "TRANSPORT_RETRY_MAX",
+    "USER_AGENT",
+    "user_agent",
+    "WITHDRAWN_HOSTS",
+    "withdrawn_reason",
+]
 
 
 def open_url(request, timeout: float, connect_timeout: float | None = None):
@@ -166,6 +211,10 @@ def open_url(request, timeout: float, connect_timeout: float | None = None):
     _CONNECT_LOCAL.connect_timeout = connect_timeout or None
     try:
         return opener.open(request, timeout=timeout)  # nosec B310 - scheme, address and redirects checked above
+    except urllib.error.URLError as exc:
+        if isinstance(getattr(exc, "reason", None), LocalUrlRefused):
+            raise exc.reason from None
+        raise
     finally:
         _CONNECT_LOCAL.connect_timeout = None
 

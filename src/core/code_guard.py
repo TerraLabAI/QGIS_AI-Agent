@@ -74,7 +74,19 @@ DENIED_MODULES = frozenset({
 
 
     "builtins", "operator", "types", "weakref", "copyreg", "_frozen_importlib", "_frozen_importlib_external",
+
+
+
+
+    "_winapi", "_winreg", "_overlapped", "_wmi", "wmi", "winsound", "msilib", "_msi", "_multiprocessing",
+    "pythoncom", "pywintypes", "pythonwin", "win32ui", "dde", "comtypes", "servicemanager", "mmapfile", "odbc",
+    "perfmon", "timer", "adodbapi", "isapi", "pywin32_system32", "pywin32_bootstrap", "pywin32_postinstall",
+
+    "_pyio",
+
+    "httplib2", "owslib", "pyodbc", "psycopg", "psycopg2",
 })
+_DENIED_MODULE_PREFIXES = ("win32", "_win32")
 DENIED_NAMES = frozenset({
     "eval", "exec", "compile", "__import__", "breakpoint", "input", "exit", "quit", "help", "vars", "memoryview",
 
@@ -84,6 +96,8 @@ DENIED_NAMES = frozenset({
     "QgsSettings", "QSettings", "QgsAuthMethodConfig", "QgsAuthManager", "QgsAuthConfigSslServer",
     "QgsNetworkAccessManager", "QNetworkAccessManager", "QNetworkRequest", "QProcess", "QFile", "QDir",
     "QSaveFile", "QTemporaryFile",
+
+    "QDesktopServices",
 })
 DENIED_ATTRS = frozenset({
     "authManager", "masterPasswordIsSet", "setMasterPassword", "authMethodConfig", "storeAuthenticationConfig",
@@ -98,6 +112,10 @@ DENIED_ATTRS = frozenset({
 
     "sys", "builtins", "subprocess", "socket", "ctypes", "ctypeslib", "importlib", "CDLL", "WinDLL", "PyDLL",
     "OleDLL", "cdll", "windll", "pydll", "LibraryLoader", "load_extension", "enable_load_extension",
+    "openUrl", "openURL", "startfile", "add_dll_directory", "FileIO", "CreateProcess", "ShellExecute",
+    "ShellExecuteEx", "WinExec",
+
+    "unsafe_load", "unsafe_load_all", "UnsafeLoader", "Loader",
 })
 
 _DENIED_LITERALS = frozenset({
@@ -151,6 +169,8 @@ class CodeRefused(ValueError):
 
 def _module_denied(name: str) -> bool:
     parts = name.split(".")
+    if parts[0].lower().startswith(_DENIED_MODULE_PREFIXES):
+        return True
     return any(".".join(parts[:i]) in DENIED_MODULES for i in range(1, len(parts) + 1))
 
 

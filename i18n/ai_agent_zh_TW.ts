@@ -885,6 +885,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{name}: {fields}</source>
             <translation>{name}：{fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>允許 / 拒絕</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>之前：{request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>已變更：{changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>聊天記錄按鈕</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>新聊天按鈕</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>沒有符合的範例</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>現在</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>請求 {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>此請求之後的專案</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>第一個請求之前的專案</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>此請求之前的專案</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>此圖層已不在專案中。</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>請求 {n} 之後</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>「{request}」之後</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>請求 {n} 之前</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>「{request}」之前</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>請求 {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>此聊天的開始</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>您自己的變更</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>以 Ctrl+Alt+A 開啟面板，或在定位器列 (Ctrl+K) 中輸入 "ai" 並接著輸入問題。在圖層、圖徵或地圖上按一下右鍵即可詢問相關內容。</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>TerraLab 的 AI Agent 是您在 QGIS 中的 AI 代理：載入資料、設定 layer 樣式、執行分析並建立版面配置。進行有風險的變更前會先徵求您的同意，且您可以復原一次執行。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS 已變更主題。重新載入 AI Agent，或重新啟動 QGIS，讓面板跟隨。</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>開啟 AI Agent 面板：在 QGIS 中提出任何要求，讓它完成工作。</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>顯示</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>AI Agent 正在等待您的核准。</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>您在 QGIS 中的 AI 代理</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>免費註冊，瀏覽器內 15 秒完成。</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>您在 QGIS 中的 AI 代理</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>stopped</source>
             <translation>已停止</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{total} 個中有 {failed} 個未成功</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>代理程式</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>已復原</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>沒有圖層、圖徵或檔案變更</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>layer 順序或群組已變更</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>此還原點屬於專案 {name}。請開啟該專案以回到此處。</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>專案中有 1 個 layer</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>返回 {point}。</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>無法完全返回 {point}。{reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>沒有結果</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>未連線至 AI Agent 服務，因此未送出任何內容。現在正在重新連線：您的訊息已保留，連線恢復後按「重試」即可送出。</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>權限模式已變更。將從下一個動作開始套用。</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>權限模式已變更。將從下一個動作開始套用；開啟的卡片仍需要您的回答。</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>無法送出訊息：與 AI Agent 服務的連線中斷。</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>請求 {n} 之後</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>「{request}」之後</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>請求 {n} 之前</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>「{request}」之前</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>資料已放回 {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>此聊天的開始</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>您自己的變更</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>專案中有 {n} 個 layers</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>在 QGIS 中指派任務給 AI 代理程式...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>對話很長：較早的訊息會從此處摺疊。若要討論新主題，請開始新的執行緒（標題中的 +）。</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>對話已精簡</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>AI Agent 會保留先前交流的摘要。您的訊息仍會顯示。</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>使用 Pro 繼續工作</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n 個步驟</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 個步驟</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>無法從該次拖放加入任何內容。</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>重做：前進到 {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>已停止</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>無法送出訊息。訊息仍在這裡，請再試一次。</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>復原：返回 {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>正在等待您的核准：請在下方選擇允許或拒絕。</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>不會刪除任何內容。你隨時可以回來。</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>返回第一個請求之前的專案狀態</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>最大的那個</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>連線已恢復。您的訊息已送出。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>未連線至 AI Agent 服務。按下即可立即重試；您的訊息已保留。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>未連線至 AI Agent 服務。現在正在重新連線。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>未連線至 AI Agent 服務。正在重新連線；請輸入訊息，連線恢復後就會送出。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>未連線至 AI Agent 服務。您的訊息會留在這裡，連線恢復後立即送出。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>正在重新連線至 AI Agent 服務。按下即可立即重試；您的訊息已保留。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>正在重新連線至 AI Agent 服務。請輸入訊息，連線恢復後就會送出。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>正在重新連線至 AI Agent 服務。您的訊息會留在這裡，連線恢復後立即送出。</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>重試連線</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Enable</source>
             <translation>啟用</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>沒有符合的連接器</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Unlock with Pro</source>
             <translation>使用 Pro 解鎖</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>此執行結束後即可變更運算強度</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>復原助理的變更：回到此專案的先前狀態</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>取得 Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>查看 Pro 可解鎖的內容</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>TerraLab 提供</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>不在專案中</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>移除</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>顯示較少行</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>運算式</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Click to show it in the Layers panel.</source>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>每月 {n} 次執行、更高投入程度與 Autopilot。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>取得 Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>每月 {n} 次執行，以及更高的運算強度等級。</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>這會回到仍保留的最舊狀態，而非最開始：較早的狀態已清除以節省磁碟空間。</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>要返回 {point} 嗎？您之後所做的變更將會遺失。</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Click to show it in the Layers panel.</source>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · 個人非商業用途</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>刪除</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>升級</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4963,6 +5265,10 @@ Click to show it in the Layers panel.</source>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} 個圖徵。按一下以在圖層面板中選取。</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>此圖層已不在專案中。</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5275,6 +5581,43 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>QGIS 讀回結果時發現的內容。按一下以查看。</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>資料集頁面</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>日期未知</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>即時，已載入 {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>您自己的檔案</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>您自己的來源</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>另有 {n} 個</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>驗證</translation>
         </message>
     </context>
 </TS>

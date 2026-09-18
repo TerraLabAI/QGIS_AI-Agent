@@ -99,3 +99,24 @@ def _dump_context(context: dict, run_id: str) -> None:
 
 def tr(text: str) -> str:
     return QCoreApplication.translate("AgentController", text)
+
+
+__all__ = [
+    "BUSY_RESENDS",
+    "BUSY_RESEND_MS",
+    "CANCEL_GRACE_MS",
+    "CONTINUE_TEXT",
+    "MAX_AGENT_TEXT",
+    "PROPOSAL_MAX_ROWS",
+    "PROPOSAL_TOOLS",
+    "RESUME_GRACE_S",
+    "RESUME_OUTCOME_MS",
+    "RETRY_MEMORY",
+    "RUN_PROJECTS_KEPT",
+    "RUN_SILENCE_S",
+    "SENDING_RECHECK_MS",
+    "_DIFF_SETTLE_MS",
+    "_dump_context",
+    "strip_followups",
+    "tr",
+]

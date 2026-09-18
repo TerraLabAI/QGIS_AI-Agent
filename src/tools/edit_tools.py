@@ -46,6 +46,7 @@ except Exception:  # pragma: no cover - headless safety
 from ..core.policy import ToolPolicyGroup
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry
+from . import vector_write
 
 
 _edit_sessions: dict[str, dict] = {}
@@ -189,6 +190,29 @@ def _line_points_from_wkt(wkt: str):
     return pts, None
 
 
+def _release_aids(layer) -> bool:
+    """Put the project's editing aids back for *layer* and forget its token."""
+
+
+
+
+
+    try:
+        token = _layer_tokens.pop(layer.id(), None)
+    except Exception:  # noqa: BLE001 - a layer we cannot identify has no token to drop
+        return False
+    if token is None:
+        return False
+    snap = _edit_sessions.pop(token, None)
+    if snap is None:
+        return False
+    try:
+        _apply_aids_snapshot(QgsProject.instance(), snap)
+    except Exception:  # noqa: BLE001 - reported as not restored
+        return False
+    return True
+
+
 
 
 
@@ -211,8 +235,13 @@ def _edit_begin(args: dict) -> dict:
     prior = _edit_sessions[existing_token] if reused_session else _snapshot_aids(proj)
 
     if not layer.isEditable():
-        if not layer.startEditing():
-            return {"_error": f"Cannot start editing on layer '{layer.name()}'"}
+
+
+
+
+        _started, cannot = vector_write.open_edit(layer, "edit")
+        if cannot:
+            return cannot
 
     topological = bool(args.get("topological", True))
     avoid_overlap = bool(args.get("avoid_overlap", True))
@@ -288,7 +317,15 @@ def _edit_commit(args: dict) -> dict:
 
     if not layer.commitChanges():
         errors = layer.commitErrors()
-        return {"_error": "; ".join(errors) if errors else "commitChanges failed"}
+
+
+
+        vector_write.force_out_of_edit(layer)
+        aids_restored = _release_aids(layer)
+        failure = vector_write.commit_failure_error(layer, errors, "The digitizing session")
+        failure["discarded"] = pending
+        failure["aids_restored"] = aids_restored
+        return failure
 
     return {
         "committed": True,
@@ -311,16 +348,19 @@ def _edit_rollback(args: dict) -> dict:
     if err:
         return err
 
-    if not layer.rollBack():
-        return {"_error": f"rollBack failed on layer '{layer.name()}'"}
+    left_edit_mode = vector_write.force_out_of_edit(layer)
 
-    aids_restored = False
-    token = _layer_tokens.pop(layer.id(), None)
-    if token is not None:
-        snap = _edit_sessions.pop(token, None)
-        if snap is not None:
-            _apply_aids_snapshot(QgsProject.instance(), snap)
-            aids_restored = True
+    aids_restored = _release_aids(layer)
+    if not left_edit_mode:
+
+
+        return {
+            "_error": f"rollBack failed on layer '{layer.name()}', which is still in edit mode.",
+            "code": "EXECUTION_FAILED",
+            "aids_restored": aids_restored,
+            "suggestion": ("Ask the user to click Toggle Editing on that layer in QGIS and discard the changes; "
+                           "no further tool call on it can succeed until they do."),
+        }
 
     return {
         "rolled_back": True,

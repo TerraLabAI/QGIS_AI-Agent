@@ -59,9 +59,9 @@ TINT = FIELD
 TINT_HOVER = HOVER_ON
 TINT_ON = LINE_STRONG
 
-ACCENT_TINT = "rgba(139, 172, 39, 0.10)"
-ACCENT_TINT_ON = "rgba(139, 172, 39, 0.20)"
-ACCENT_BORDER = "rgba(139, 172, 39, 0.45)"
+ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
+ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
+ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
 PAGE_TITLE_QSS = "font-size: 16px; font-weight: 600; color: palette(text); background: transparent;"
 PAGE_SUBTITLE_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"

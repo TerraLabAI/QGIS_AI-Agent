@@ -17,9 +17,16 @@ def _list_layouts(args: dict) -> dict:
     manager = QgsProject.instance().layoutManager()
     layouts = []
     for layout in manager.layouts():
+
+
+
+        pages = getattr(layout, "pageCollection", None)
+        if pages is None:
+            layouts.append({"name": layout.name(), "kind": "report"})
+            continue
         layouts.append({
             "name": layout.name(),
-            "page_count": layout.pageCollection().pageCount(),
+            "page_count": pages().pageCount(),
         })
     return {"layouts": layouts, "count": len(layouts)}
 
@@ -282,6 +289,102 @@ def _layout_credits(layout) -> str:
     return joined if len(joined) <= 600 else joined[:597].rstrip() + "..."
 
 
+
+
+
+
+_HEAVY_PROVIDERS = frozenset({"wms", "wmts", "xyz", "wfs", "arcgismapserver",
+                              "arcgisfeatureserver", "afs", "ams", "vectortile", "oapif"})
+
+
+def _heavy_layers(layout) -> list:
+    """The names of the layers this layout's maps draw from pixels or over the network."""
+    from qgis.core import QgsLayoutItemMap, QgsRasterLayer
+
+    names: list = []
+    for item in layout.items():
+        if not isinstance(item, QgsLayoutItemMap):
+            continue
+        for layer in _map_layers(item):
+            try:
+                provider = str(getattr(layer, "providerType", lambda: "")() or "").lower()
+                if (provider in _HEAVY_PROVIDERS or isinstance(layer, QgsRasterLayer)) \
+                        and layer.name() not in names:
+                    names.append(layer.name())
+            except (AttributeError, RuntimeError):
+                continue
+    return names
+
+
+def _page_pixels(layout, dpi: float) -> float:
+    """How many pixels the first page is at *dpi*, or 0 when the page cannot be measured."""
+    try:
+        from .layout_tools import _page_summary
+
+        page = _page_summary(layout)
+        width, height = float(page["width_mm"] or 0), float(page["height_mm"] or 0)
+        if width <= 0 or height <= 0:
+            return 0.0
+        return (width / 25.4 * dpi) * (height / 25.4 * dpi)
+    except Exception:  # noqa: BLE001 - a page we cannot measure is not held to a ceiling
+        return 0.0
+
+
+
+
+_MIN_LOWERED_DPI = 96
+
+
+def _fit_dpi(layout, dpi: int, fmt: str) -> tuple:
+    """``(dpi to use, what to say)``: the dpi lowered when the sheet would be too many pixels."""
+
+
+
+
+
+
+
+    heavy = _heavy_layers(layout)
+    if not heavy:
+        return dpi, ""
+    pixels = _page_pixels(layout, dpi)
+    ceiling = float(limits.current("MAX_RENDER_PIXELS"))
+    if not pixels > ceiling:
+        return dpi, ""
+    fitted = int(max(_MIN_LOWERED_DPI, dpi * math.sqrt(ceiling / pixels)))
+    if fitted >= dpi:
+        return dpi, ""
+    return fitted, (f"Exported at {fitted} dpi rather than {dpi}: this page at {dpi} dpi is "
+                    f"{pixels / 1e6:,.0f} megapixels of {fmt}, and every one of them is drawn from "
+                    f"{', '.join(heavy[:4])}, which is what makes an export run for minutes and time out. "
+                    "Hide the heaviest layer, or use a smaller page, to print finer than this.")
+
+
+_EXPORT_RESULT_WORDS = {
+    "Canceled": "the export was cancelled",
+    "MemoryError": "QGIS ran out of memory for an image this size",
+    "FileError": "the file could not be written",
+    "PrintError": "the printer device refused the page",
+    "SvgLayerError": "the SVG layers could not be written",
+    "IteratorError": "the atlas iterator failed",
+}
+
+
+def _export_failure(result) -> dict:
+    """The refusal a failed export answers with, in words rather than an enum number."""
+    name = ""
+    for member, sentence in _EXPORT_RESULT_WORDS.items():
+        if result == enum_member(QgsLayoutExporter, "ExportResult", member, None):
+            name = sentence
+            break
+    if not name:
+        name = f"the exporter answered {result}"
+    return {"_error": f"The layout was not exported: {name}.",
+            "_code": "EXECUTION_FAILED",
+            "_suggestion": ("Lower dpi, hide the heaviest layer with set_layers_visibility, or export a "
+                            "smaller page, then export again.")}
+
+
 def _add_without_undo(layout, label) -> None:
     """Add the credit label without an undo step: the user never placed it."""
     undo = layout.undoStack()
@@ -464,6 +567,13 @@ def _export_layout(args: dict) -> dict:
 
 
 
+    dpi_note = ""
+    asked_dpi = dpi
+    if wanted_ground is None:
+        dpi, dpi_note = _fit_dpi(layout, int(dpi), fmt)
+
+
+
 
 
 
@@ -529,7 +639,11 @@ def _export_layout(args: dict) -> dict:
 
     if result != enum_member(QgsLayoutExporter, "ExportResult", "Success"):
         _restore_scale_on_refusal(reference_map, pre_scale_extent)
-        return {"_error": f"Export failed with code: {result}"}
+        failure = _export_failure(result)
+        heavy = _heavy_layers(layout)
+        if heavy:
+            failure["slow_layers"] = heavy
+        return failure
 
 
 
@@ -561,6 +675,9 @@ def _export_layout(args: dict) -> dict:
         out["page_size"] = page_text
     if scale_note:
         out["scale_note"] = scale_note
+    if dpi_note:
+        out["dpi_note"] = dpi_note
+        out["dpi_lowered_from"] = int(asked_dpi)
     if credit_label is not None:
         out["attribution"] = credits
     if fmt in _IMAGE_FORMATS:
@@ -570,7 +687,10 @@ def _export_layout(args: dict) -> dict:
             if geo.get("_error"):
                 return geo
             out.update(geo)
+
+
+    from ..core.layout_quality import assess_layout
+    out["layout_checks"] = assess_layout(layout)
     if created_folder:
         out["created_folder"] = created_folder
     return out
-

@@ -198,6 +198,11 @@ class EditWatcher:
 
     def __init__(self):
         self._rect: QgsRectangle | None = None
+
+
+
+
+        self._crs = None
         self._layers: list = []
         self._project = None
         self._watching = False
@@ -208,6 +213,7 @@ class EditWatcher:
         """Listen to every vector layer in the project, and to new ones."""
         self.stop()
         self._rect = None
+        self._crs = None
         project = QgsProject.instance()
         if project is None:
             return
@@ -282,11 +288,20 @@ class EditWatcher:
 
     def take(self) -> QgsRectangle | None:
         """The rectangle gathered so far, and a clean slate after it."""
-        rect, self._rect = self._rect, None
+        rect = self.peek()
+        self._rect, self._crs = None, None
         return rect
 
     def peek(self) -> QgsRectangle | None:
-        return QgsRectangle(self._rect) if self._rect is not None else None
+        if self._rect is None:
+            return None
+        return self._in_canvas_crs(_canvas())
+
+    def _in_canvas_crs(self, canvas) -> QgsRectangle | None:
+        """The gathered rectangle in the canvas's current CRS."""
+        if canvas is None or self._crs is None:
+            return QgsRectangle(self._rect)
+        return _rect_from_crs(self._rect, self._crs, canvas)
 
 
 
@@ -393,10 +408,19 @@ class EditWatcher:
     def _add(self, rect) -> None:
         if rect is None or rect.isNull():
             return
+        canvas = _canvas()
+        crs = _canvas_crs(canvas) if canvas is not None else None
         if self._rect is None:
             self._rect = QgsRectangle(rect)
         else:
+            if crs is not None and self._crs is not None and crs != self._crs:
+                self._rect = self._in_canvas_crs(canvas)
+                if self._rect is None:
+                    self._rect = QgsRectangle(rect)
+                    self._crs = crs
+                    return
             self._rect.combineExtentWith(rect)
+        self._crs = crs
 
 
 def same_view(first, second) -> bool:
@@ -967,6 +991,11 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
     canvas = canvas if canvas is not None else _canvas()
     if canvas is None or not isinstance(args, dict):
         return None
+
+
+
+    if name.startswith("add_layout_"):
+        return None
     declared = args.get("crs") or args.get("target_crs") or args.get("output_crs")
     source = _crs(declared) if isinstance(declared, str) and ":" in declared else None
     wkts = _wkts(args)
@@ -1004,6 +1033,19 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
     if point is None and args.get("lon") is not None and args.get("lat") is not None:
         point = _numbers([args.get("lon"), args.get("lat")], 2)
     if point is None and args.get("x") is not None and args.get("y") is not None:
+
+
+
+        if name in {"qgis_move_vertex", "qgis_add_vertex"}:
+            source = _named_layer_crs(args)
+        elif name == "raster_sample":
+            source = _crs(args["crs"]) if args.get("crs") else _named_layer_crs(args)
+        elif name == "transform_coordinates":
+            source = _crs(args.get("source_crs", ""))
+        else:
+            return None
+        if source is None:
+            return None
         point = _numbers([args.get("x"), args.get("y")], 2)
     if point is not None:
         if point[0] == 0 and point[1] == 0:

@@ -19,10 +19,11 @@ The catalog search (search_gee_catalog) is answered by the server: the community
 catalog is tens of megabytes and every session used to download it to match a
 keyword. The tools here are the ones that need the ee library on this machine.
 """
-from datetime import datetime, timezone  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
 
 from qgis.core import QgsProject, QgsRasterLayer  # noqa: E402
 
+from ..core import limits  # noqa: E402
 from ..core.policy import ToolPolicyGroup  # noqa: E402
 from ..core.provider_uri import encode_uri_url  # noqa: E402
 from ..core.tool_registry import Tool, ToolRegistry  # noqa: E402
@@ -354,7 +355,36 @@ def _add_gee_dataset(args: dict) -> dict:
     }
     if reducer_used is not None:
         result["reducer_used"] = reducer_used
+    acquired = _acquired(ee, image, collection is not None, date_start, date_end)
+    if acquired:
+
+        result["data_date"] = acquired
     return result
+
+
+def _acquired(ee, image, reduced: bool, date_start, date_end) -> str:
+    """The date the layer shows, in the catalog's format, or empty when it is not known."""
+
+
+
+
+
+
+    from ..core.data_date import from_range
+
+    try:
+        if reduced:
+            if not date_start:
+                return ""
+            end = str(date_end or _today_iso())[:10]
+            try:
+                last = (datetime.fromisoformat(end) - timedelta(days=1)).date().isoformat()
+            except ValueError:
+                last = end
+            return from_range(date_start, max(last, str(date_start)[:10]))
+        return from_range(image.date().format("YYYY-MM-dd").getInfo())
+    except Exception:  # noqa: BLE001 - no date is an answer, not a failure
+        return ""
 
 
 
@@ -547,7 +577,7 @@ def _gee_zonal_stats(args: dict) -> dict:
             reducer=reducer_map[reducer_name](),
             geometry=region,
             scale=scale,
-            maxPixels=1e9,
+            maxPixels=int(limits.current("GEE_MAX_PIXELS")),
         ).getInfo()
     except Exception as exc:
         return {

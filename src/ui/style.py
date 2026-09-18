@@ -30,7 +30,7 @@
 from __future__ import annotations
 
 from .font_scale import scale_qss_font_px
-from .styles import _MSG_TINTS, BRAND_GREEN, BRAND_GREEN_TEXT, DARK_UI
+from .styles import BRAND_GREEN_TEXT, BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
 
 
 def is_dark() -> bool:
@@ -69,8 +69,8 @@ _LIGHT = {
     "tooltip_border": "#3a3c40",
 
     "accent_ink": BRAND_GREEN_TEXT,
-    "accent_tint": "rgba(139, 172, 39, 0.10)",
-    "accent_tint_on": "rgba(139, 172, 39, 0.20)",
+    "accent_tint": "rgba(67, 160, 71, 0.10)",
+    "accent_tint_on": "rgba(67, 160, 71, 0.20)",
     "shadow_alpha": 0.10,
 }
 _DARK = {
@@ -85,9 +85,9 @@ _DARK = {
     "red": "#ee5c61", "red_tint": "rgba(238, 92, 97, 0.14)",
     "tooltip_bg": "#111214", "tooltip_fg": "#f2f3f4", "tooltip_muted": "#a5a8ad",
     "tooltip_border": "#2e3033",
-    "accent_ink": "#a3c644",
-    "accent_tint": "rgba(139, 172, 39, 0.16)",
-    "accent_tint_on": "rgba(139, 172, 39, 0.26)",
+    "accent_ink": "#66bb6a",
+    "accent_tint": "rgba(67, 160, 71, 0.16)",
+    "accent_tint_on": "rgba(67, 160, 71, 0.26)",
     "shadow_alpha": 0.34,
 }
 
@@ -195,21 +195,22 @@ TINT_ON = HOVER_ON
 
 
 
-ACCENT = BRAND_GREEN
-ACCENT_DARK = "#76a32a"
-ACCENT_TINT = "rgba(139, 172, 39, 0.10)"
-ACCENT_TINT_ON = "rgba(139, 172, 39, 0.20)"
-ACCENT_BORDER_SOFT = "rgba(139, 172, 39, 0.24)"
-ACCENT_BORDER = "rgba(139, 172, 39, 0.45)"
+
+ACCENT = BTN_GREEN
+ACCENT_DARK = BTN_GREEN_HOVER
+ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
+ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
+ACCENT_BORDER_SOFT = "rgba(67, 160, 71, 0.24)"
+ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
 
 
 ACCENT_INK_LIGHT = BRAND_GREEN_TEXT
-ACCENT_INK_DARK = "#a3c644"
+ACCENT_INK_DARK = "#66bb6a"
 ACCENT_INK = T["accent_ink"]
 
 
-ON_ACCENT = "#14210A"
+ON_ACCENT = "#000000"
 
 
 
@@ -219,9 +220,6 @@ MONO_FAMILY = "Consolas, 'DejaVu Sans Mono', Menlo, monospace"
 
 
 USER_PILL_LINE = LINE_STRONG if not DARK else "rgba(255, 255, 255, 0.05)"
-
-NEUTRAL_FILL, NEUTRAL_BORDER = _MSG_TINTS["neutral"]
-SUCCESS_FILL, SUCCESS_BORDER = _MSG_TINTS["success"]
 
 
 
@@ -257,6 +255,13 @@ _BTN_SEND = (
     f"QToolButton:pressed {{ background: {ACCENT_DARK}; }}"
 
     f"QToolButton:disabled {{ background: {ACCENT_BORDER}; }}"
+
+
+
+    f'QToolButton[offline="true"] {{ background: {ACCENT_BORDER}; }}'
+    f'QToolButton[offline="true"]:hover {{ background: {ACCENT}; }}'
+    f'QToolButton[offline="true"]:pressed {{ background: {ACCENT_DARK}; }}'
+
     f'QToolButton[running="true"] {{ background: {INK}; }}'
     f'QToolButton[running="true"]:hover {{ background: {INK_HOVER}; }}'
 )
@@ -317,26 +322,6 @@ _BTN_THUMB_CLOSE = (
 )
 
 
-_BTN_CHIP_ADD = (
-    "QToolButton { background: transparent;"
-    f" border: 1px dashed {LINE_STRONG}; border-radius: {RADIUS_CHIP}px;"
-    f" padding: 0 6px; font-size: {FONT_HINT}px; color: {INK_2}; }}"
-    f"QToolButton:hover {{ background: {HOVER}; border-color: {INK_3};"
-    f" color: {INK}; }}"
-    "QToolButton::menu-indicator { image: none; width: 0; }"
-)
-
-
-_BTN_HELP = (
-    "QToolButton { background: transparent; border: none; padding: 0;"
-    f" border-radius: {RADIUS_CONTROL}px; font-size: {FONT_BASE}px; font-weight: 700;"
-    f" color: {INK_2}; }}"
-    f"QToolButton:hover {{ background: {HOVER}; color: {INK}; }}"
-    f'QToolButton[active="true"] {{ background: {HOVER_ON}; }}'
-    "QToolButton::menu-indicator { image: none; width: 0; }"
-)
-
-
 _BTN_AVATAR = (
     "QToolButton { background: transparent; border: none; padding: 2px;"
     " border-radius: 13px; }"
@@ -394,11 +379,29 @@ _BTN_QUIET = (
     f"QPushButton:hover {{ color: {INK}; background: {HOVER}; }}"
 )
 
+PRO_PILL_PX = 24
 
 
 
-for _qss_name in ("_BTN_MODE", "_BTN_CHIP_ADD", "_BTN_HELP", "_BTN_PRIMARY",
-                  "_BTN_PRIMARY_WIDE", "_BTN_GHOST", "_BTN_DANGER_GHOST", "_BTN_QUIET"):
+
+
+
+_BTN_PRO_PILL = (
+    "QPushButton#hdrProPill { background: transparent;"
+    f" color: {INK}; border: 1px solid {LINE_STRONG};"
+    f" padding: 0 10px 0 8px; font-size: {FONT_BODY}px; font-weight: 600; }}"
+    f"QPushButton#hdrProPill:hover {{ background: {HOVER}; }}"
+    f"QPushButton#hdrProPill:pressed {{ background: {HOVER_ON}; }}"
+    f"QPushButton#hdrProPill:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 9px 0 7px; }}"
+    'QPushButton#hdrProPill[compact="true"] { padding: 0; }'
+    f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0; }}'
+)
+
+
+
+
+for _qss_name in ("_BTN_MODE", "_BTN_PRIMARY", "_BTN_PRIMARY_WIDE", "_BTN_GHOST",
+                  "_BTN_DANGER_GHOST", "_BTN_QUIET", "_BTN_PRO_PILL"):
     globals()[_qss_name] = scale_qss_font_px(globals()[_qss_name])
 del _qss_name
 
@@ -418,11 +421,15 @@ _MENU_QSS = (
 )
 
 
+
+
 _HEADER_QSS = scale_qss_font_px(
     "QWidget#hdr { background: transparent;"
     f" border-bottom: 1px solid {LINE}; }}"
-    f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
+    f"QLabel#hdrTitle {{ font-size: {FONT_BODY}px; font-weight: 600;"
     " color: palette(text); background: transparent; border: none; }"
+    f"QLabel#hdrByline {{ font-size: {FONT_MICRO}px;"
+    f" color: {MUTED}; background: transparent; border: none; }}"
     "QLabel { background: transparent; border: none; }"
     + _MENU_QSS
 )
@@ -529,7 +536,16 @@ def panel_qss() -> str:
         f"QLabel#traceHead {{ font-size: {FONT_BASE}px; color: {INK_2};"
         " background: transparent; border: none; }"
 
+        f"QLabel#answerNote {{ font-size: {FONT_BODY}px; color: {INK_2};"
+        " background: transparent; border: none; }"
+
         f"QFrame#turnDivider {{ background: {LINE_SOFT}; border: none; }}"
+
+
+
+        f"QFrame#compactionRule {{ background: {LINE}; border: none; }}"
+        f"QLabel#compactionLabel {{ font-size: {FONT_HINT}px; color: {INK_2};"
+        " background: transparent; border: none; }"
 
         f"QLabel#decisionLine {{ font-size: {FONT_HINT}px; color: {INK_2};"
         " background: transparent; border: none; }"
@@ -794,3 +810,119 @@ def drop_shadow(widget, level: str = "overlay") -> None:
     color.setAlphaF(alpha)
     effect.setColor(color)
     widget.setGraphicsEffect(effect)
+
+
+__all__ = [
+    "ACCENT",
+    "ACCENT_BORDER",
+    "ACCENT_BORDER_SOFT",
+    "ACCENT_DARK",
+    "ACCENT_INK",
+    "ACCENT_INK_DARK",
+    "ACCENT_INK_LIGHT",
+    "ACCENT_TINT",
+    "ACCENT_TINT_ON",
+    "BTN_PILL_PX",
+    "BTN_PRIMARY_WIDE_PX",
+    "BTN_PX",
+    "BTN_SMALL_PX",
+    "CANVAS",
+    "CHIP_PX",
+    "COMPLETER_POPUP_RADIUS",
+    "COMPOSER_PX",
+    "DARK",
+    "FIELD",
+    "FONT_BASE",
+    "FONT_BODY",
+    "FONT_HINT",
+    "FONT_MICRO",
+    "FONT_PROSE",
+    "GREEN",
+    "GREEN_TINT",
+    "HAIRLINE",
+    "HAIRLINE_STRONG",
+    "HOVER",
+    "HOVER_ON",
+    "INK",
+    "INK_2",
+    "INK_3",
+    "INK_HOVER",
+    "INSET",
+    "LETTER_SPACING",
+    "LINE",
+    "LINE_SOFT",
+    "LINE_STRONG",
+    "MIN_PANEL_WIDTH",
+    "MONO_FAMILY",
+    "MOTION_FADE_UP_MS",
+    "MOTION_FOLD_MS",
+    "MOTION_HOVER_MS",
+    "MOTION_POP_MS",
+    "MUTED",
+    "MUTED_SOFT",
+    "ON_ACCENT",
+    "ON_ORANGE",
+    "ORANGE",
+    "ORANGE_DARK",
+    "ORANGE_TINT",
+    "PAGE",
+    "PRO_PILL_PX",
+    "RADIUS_BOX",
+    "RADIUS_CARD",
+    "RADIUS_CHIP",
+    "RADIUS_COMPOSER",
+    "RADIUS_CONTROL",
+    "RADIUS_PANEL",
+    "RADIUS_ROW",
+    "RADIUS_WINDOW",
+    "RED",
+    "RED_TINT",
+    "ROW_PX",
+    "SPACE_CARD",
+    "SPACE_OUTER",
+    "SPACE_STAGE",
+    "SPACE_TIGHT",
+    "STRIPE",
+    "STRIPE_BG",
+    "SURFACE",
+    "T",
+    "TINT",
+    "TINT_HOVER",
+    "TINT_ON",
+    "TOOLTIP_BG",
+    "TOOLTIP_BORDER",
+    "TOOLTIP_FG",
+    "TOOLTIP_MUTED",
+    "USER_PILL_LINE",
+    "_BTN_AVATAR",
+    "_BTN_CHIP_CLOSE",
+    "_BTN_DANGER_GHOST",
+    "_BTN_GHOST",
+    "_BTN_ICON",
+    "_BTN_MODE",
+    "_BTN_PRIMARY",
+    "_BTN_PRIMARY_WIDE",
+    "_BTN_PRO_PILL",
+    "_BTN_QUIET",
+    "_BTN_SCROLL_PILL",
+    "_BTN_SEND",
+    "_BTN_THUMB_CLOSE",
+    "_BTN_VOTE_DOWN",
+    "_BTN_VOTE_UP",
+    "_CARD_QSS",
+    "_COMPLETER_POPUP_QSS",
+    "_HEADER_QSS",
+    "_MENU_QSS",
+    "_SCROLL_AREA_QSS",
+    "accent_color",
+    "accent_ink",
+    "accent_pill",
+    "drop_shadow",
+    "hover_pill",
+    "is_dark",
+    "muted_ink",
+    "paint_shadow",
+    "panel_qss",
+    "qcolor",
+    "repolish",
+]

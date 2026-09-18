@@ -19,17 +19,22 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 import sqlite3
 import time
 
 from qgis.core import QgsProject, QgsVectorLayer
 
+from .host_platform import release_pooled_handles
 from .logger import log, log_warning
-from .snapshot_features import (  # noqa: F401 - shutdown is re-exported for plugin.py
+from .snapshot_features import (
     MAX_CAPTURE_SECONDS,
     MAX_SIGNATURE_TOTAL,
     _FeaturePass,
@@ -41,66 +46,93 @@ from .snapshot_features import (  # noqa: F401 - shutdown is re-exported for plu
     refill_from_copy,
     shutdown,
 )
-from .snapshot_files import (  # noqa: F401 - the names this module moved out are re-exported here
+from .snapshot_files import (
     MAX_INDEX_BYTES,
-    MAX_SQLITE_BACKUP_SECONDS,
     ORPHAN_GRACE_SECONDS,
     _backup_copies,
     _backup_size,
     _copies_unchanged,
     _copy_files,
-    _is_sqlite_file,
     _remove_tree,
-    _replace_corrupt_sqlite,
     _restore_file,
-    _restore_sqlite,
+    _same_content,
     _sidecars,
-    _sqlite_backup,
-    _sqlite_copy,
     _unchanged,
     prune_snapshots,
     resolve_layers,
 )
-from .snapshot_paths import (  # noqa: F401 - the names this module moved out are re-exported here
+from .snapshot_paths import (
     _canvas_held,
-    _file_hash,
-    _folder_freshness,
-    _map_canvas,
     _ordered_layers,
     _project_state,
     _refresh_canvas,
     _stamp,
     checkpoints_dir,
     folder_bytes,
-    held_snapshots,
     hold_snapshot,
     inside,
     layer_file_path,
     release_snapshot,
     snapshots_dir,
 )
-from .snapshot_project import (  # noqa: F401 - the names this module moved out are re-exported here
-    _CORE_SECTIONS,
+from .snapshot_project import (
     LAYER_SECTIONS_FILE,
     RESTORE_FILE,
     SECTIONS_FILE,
-    _children,
     _core_sections,
-    _dom,
-    _enum_int,
     _handler_sections,
     _layer_handler_sections,
-    _layer_sections_by_id,
     _merged_copy,
-    _put_layer_sections,
     _signals_blocked,
 )
-from .snapshot_report import (  # noqa: F401 - re-exported: the panel and the executor import them from here
+from .snapshot_report import (
     changed_layer_items,
     describe_diff,
     diff_changed,
 )
 from .snapshot_style import _style_digest
+
+
+
+__all__ = [
+    "changed_layer_items",
+    "checkpoints_dir",
+    "compare_signatures",
+    "describe_diff",
+    "diff_changed",
+    "feature_signatures",
+    "folder_bytes",
+    "forget_styles",
+    "held_features",
+    "hold_snapshot",
+    "INLINE_BACKUP_BYTES",
+    "inside",
+    "is_copy_table",
+    "layer_file_path",
+    "LAYER_SECTIONS_FILE",
+    "MAX_CAPTURE_SECONDS",
+    "MAX_DIFF_SECONDS",
+    "MAX_HASH_FILE_BYTES",
+    "MAX_INDEX_BYTES",
+    "MAX_SIGNATURE_TOTAL",
+    "ORPHAN_GRACE_SECONDS",
+    "prune_snapshots",
+    "REASON_MEMORY_LOST",
+    "refill_from_copy",
+    "release_snapshot",
+    "remember_style",
+    "remembered_style",
+    "resolve_layers",
+    "RESTORE_FILE",
+    "RunSnapshot",
+    "SECTIONS_FILE",
+    "shutdown",
+    "snapshots_dir",
+    "style_memory_dir",
+    "style_xml",
+    "STYLE_MEMORY_HOURS",
+    "STYLE_MEMORY_LAYERS",
+]
 
 
 
@@ -117,6 +149,124 @@ MAX_DIFF_SECONDS = 0.2
 
 
 REASON_MEMORY_LOST = "memory_lost"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+STYLE_MEMORY_LAYERS = 8
+STYLE_MEMORY_HOURS = 24
+
+_style_memory: dict = {}
+
+
+def style_memory_dir() -> str:
+    """Where the replaced styles are kept, inside the account folder."""
+    from .settings import account_dir
+
+    path = os.path.join(account_dir(), "style_undo")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def style_xml(layer) -> str:
+    """The style ``layer`` draws with now, as the text a .qml file holds."""
+
+
+
+
+
+
+
+
+    try:
+        from qgis.PyQt.QtXml import QDomDocument
+
+        document = QDomDocument()
+        layer.exportNamedStyle(document)
+        text = document.toString(2)
+    except Exception as exc:  # noqa: BLE001 - a style that cannot be read only means no way back
+        log_warning(f"Style not kept: {exc}")
+        return ""
+    return text if text and text.strip() else ""
+
+
+def remember_style(layer, xml: str) -> str:
+    """Keep *xml* as the style *layer* had before this call. Its .qml path, or ""."""
+    if not xml:
+        return ""
+    try:
+        layer_id, name = str(layer.id()), str(layer.name())
+    except Exception:  # noqa: BLE001 - a layer that cannot name itself keeps nothing
+        return ""
+    try:
+        tag = hashlib.sha1(layer_id.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:16]
+        path = os.path.join(style_memory_dir(), f"{tag}.qml")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(xml)
+    except OSError as exc:
+        log_warning(f"Previous style of {name!r} not kept: {exc}")
+        return ""
+    _style_memory.pop(layer_id, None)
+    _style_memory[layer_id] = {"path": path, "layer_name": name, "at": time.time()}
+    _prune_style_memory()
+    return path
+
+
+def remembered_style(layer_id: str) -> dict | None:
+    """The entry kept for ``layer_id``, or None. Its file may still be gone."""
+    entry = _style_memory.get(str(layer_id or ""))
+    if entry and os.path.isfile(entry["path"]):
+        return dict(entry)
+    return None
+
+
+def _prune_style_memory() -> None:
+    """The newest STYLE_MEMORY_LAYERS entries, and no file older than a day."""
+
+
+
+
+    while len(_style_memory) > STYLE_MEMORY_LAYERS:
+        entry = _style_memory.pop(next(iter(_style_memory)))
+        with contextlib.suppress(OSError):
+            os.remove(entry["path"])
+    kept = {entry["path"] for entry in _style_memory.values()}
+    cutoff = time.time() - STYLE_MEMORY_HOURS * 3600
+    try:
+        folder = style_memory_dir()
+        stale = [os.path.join(folder, name) for name in os.listdir(folder) if name.endswith(".qml")]
+    except OSError:
+        return
+    for path in stale:
+        if path in kept:
+            continue
+        try:
+            if os.path.getmtime(path) < cutoff:
+                os.remove(path)
+        except OSError:  # nosec B112 - a file another QGIS holds is left where it is
+            continue
+
+
+def forget_styles() -> None:
+    """Drop every kept style and its file. Plugin unload and tests."""
+    for entry in list(_style_memory.values()):
+        with contextlib.suppress(OSError):
+            os.remove(entry["path"])
+    _style_memory.clear()
 
 
 class RunSnapshot:
@@ -564,7 +714,12 @@ class RunSnapshot:
         except OSError:
             self.unbacked[lid] = name
             return False
-        folder = os.path.join(self.dir, "backup", lid[:40])
+
+
+
+
+        tag = hashlib.sha1(lid.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:8]
+        folder = os.path.join(self.dir, "backup", f"{lid[:31]}_{tag}")
         copies = _backup_copies(folder, _sidecars(path))
         self.backups[lid] = copies
         self.path_backups[canonical] = copies
@@ -774,8 +929,13 @@ class RunSnapshot:
 
 
 
-    def restore(self, file_name: str | None = None, project_files=()) -> dict:
+    def restore(self, file_name: str | None = None, project_files=(), extra_copies=()) -> dict:
         """Put the project back, with the canvas held still while it happens."""
+
+
+
+
+
 
 
 
@@ -797,7 +957,7 @@ class RunSnapshot:
         if not self.captured or not os.path.isfile(self.project_path):
             return {"ok": False, "message": "No snapshot to restore."}
         with _canvas_held():
-            result = self._restore_now(file_name, project_files)
+            result = self._restore_now(file_name, project_files, extra_copies)
         _refresh_canvas()
         return result
 
@@ -823,7 +983,7 @@ class RunSnapshot:
             names.discard(key(kept))
         return names
 
-    def _restore_now(self, file_name: str | None = None, project_files=()) -> dict:
+    def _restore_now(self, file_name: str | None = None, project_files=(), extra_copies=()) -> dict:
         project = QgsProject.instance()
         for layer in list(project.mapLayers().values()):
             try:
@@ -837,8 +997,22 @@ class RunSnapshot:
 
 
         left = self._project_files_left(file_name, project_files)
+
+
+
+
+        restoring = {self._path_key(src) for record in self.file_backups.values() for src, _dst in record["copies"]}
+        restoring.update(self._path_key(src) for copies in self.backups.values() for src, _dst in copies)
+        restoring.update(self._path_key(src) for src, _dst in (extra_copies or ()))
+        for layer in list(project.mapLayers().values()):
+            file_part = (layer.source() or "").split("|", 1)[0]
+            if file_part and self._path_key(file_part) in restoring:
+                release_pooled_handles(layer)
         project.clear()
         files_restored = []
+
+
+        files_put_back = []
         file_restore_errors = []
         files_left = []
         for path, record in self.file_backups.items():
@@ -856,7 +1030,10 @@ class RunSnapshot:
                 continue
             for src, dst in record["copies"]:
                 try:
+                    same = _same_content(dst, src)
                     _restore_file(dst, src)
+                    if not same:
+                        files_put_back.append(src)
                     files_restored.append(src)
                 except (OSError, sqlite3.Error) as exc:
                     log_warning(f"Could not restore {os.path.basename(src)}: {exc}")
@@ -873,11 +1050,27 @@ class RunSnapshot:
                 if src in files_restored:
                     continue
                 try:
+                    same = _same_content(dst, src)
                     _restore_file(dst, src)
+                    if not same:
+                        files_put_back.append(src)
                     files_restored.append(src)
                 except (OSError, sqlite3.Error) as exc:
                     log_warning(f"Could not restore {os.path.basename(src)}: {exc}")
                     file_restore_errors.append({"path": src, "error": str(exc)})
+        for src, dst in extra_copies or ():
+
+            if src in files_restored or self._path_key(src) in left:
+                continue
+            try:
+                same = _same_content(dst, src)
+                _restore_file(dst, src)
+                if not same:
+                    files_put_back.append(src)
+                files_restored.append(src)
+            except (OSError, sqlite3.Error) as exc:
+                log_warning(f"Could not restore {os.path.basename(src)}: {exc}")
+                file_restore_errors.append({"path": src, "error": str(exc)})
         project_ok = False
         try:
             project_ok = bool(project.read(source))
@@ -922,6 +1115,8 @@ class RunSnapshot:
         self._restore_subsets(project, refill_errors)
         self._name_unrefilled(project, refill_errors, handled)
         ok = project_ok and not file_restore_errors and not refill_errors
+        if project_ok:
+            self._restamp()
         log(f"Snapshot restored for run {self.run_id[:8]}: project={'ok' if project_ok else 'failed'}, "
             f"files={len(files_restored)}, file errors={len(file_restore_errors)}, files left={len(files_left)}, "
             f"memory layers refilled={refilled}, memory layers incomplete={len(refill_errors)}")
@@ -942,10 +1137,68 @@ class RunSnapshot:
                     named += f" and {len(refill_errors) - 3} more"
                 problems.append(f"{named} did not take all their features back")
             message = ("Project restored, but " + "; ".join(problems) + ".") if problems else "Project restored."
-        return {"ok": ok, "files_restored": files_restored, "files_left": files_left,
+        layer_count = len(project.mapLayers()) if project_ok else 0
+        return {"ok": ok, "files_restored": files_restored, "files_put_back": files_put_back, "files_left": files_left,
+                "layers": layer_count,
                 "file_restore_errors": file_restore_errors,
                 "memory_layers_refilled": refilled,
                 "memory_layers_incomplete": refill_errors, "message": message}
+
+    def _restamp(self) -> None:
+        """The files as the restore left them are this state's files now."""
+
+
+
+
+
+
+
+
+        for record in self.layers.values():
+            path = record.get("path") if isinstance(record, dict) else None
+            if path and record.get("stamp"):
+                stamp = _stamp(path)
+                record["stamp"] = stamp
+                record["size"] = stamp[0] if stamp else None
+        for path, record in self.file_backups.items():
+            if record.get("stamp"):
+                record["stamp"] = _stamp(path)
+
+    def file_groups(self) -> dict[str, list[tuple[str, str]]]:
+        """Every file this snapshot holds a copy of: first original resolved -> ``(original, copy)`` pairs."""
+
+
+
+
+        pending = {dst for _folder, copies, _label in self.pending_copies for _src, dst in copies}
+        groups: dict[str, list[tuple[str, str]]] = {}
+        sources = [*self.backups.values(), *(record.get("copies") or [] for record in self.file_backups.values())]
+        for copies in sources:
+            pairs = [(src, dst) for src, dst in copies or []]
+            if not pairs or any(dst in pending or not os.path.isfile(dst) for _src, dst in pairs):
+                continue
+            groups.setdefault(self._path_key(pairs[0][0]), pairs)
+        return groups
+
+    def keep_files_of(self, other: RunSnapshot) -> int:
+        """Copy, as they are now, the files ``other`` backed up: this state's version of them."""
+
+
+
+
+
+
+        paths = [pairs[0][0] for pairs in other.file_groups().values()]
+        paths = [path for path in paths if os.path.splitext(path)[1].lower() not in (".qgs", ".qgz")]
+        if not paths:
+            return 0
+        try:
+            count = self.backup_files(paths)
+            self.run_pending_copies()
+        except OSError as exc:
+            log_warning(f"After-run copy of the run's files failed: {exc}")
+            return 0
+        return count
 
     def _source_to_read(self, project) -> str:
         """The file a restore reads: the copy, or the copy with what a quiet capture left out."""

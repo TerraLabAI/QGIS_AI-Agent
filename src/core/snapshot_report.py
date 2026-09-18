@@ -8,8 +8,16 @@
 from __future__ import annotations
 
 
+def QT_TRANSLATE_NOOP(context: str, text: str) -> str:  # noqa: N802 - Qt's marker name, read by scripts/extract_i18n.py
+    """Qt's marker without Qt: the extractor files ``text`` under ``context``, and the text comes back unchanged for the caller's tr() to."""
+
+    return text
+
+
 def describe_diff(diff: dict) -> list:
     """The diff as short sentences, one per thing that changed, nothing for what did not."""
+
+
 
     if not isinstance(diff, dict):
         return []
@@ -37,7 +45,7 @@ def describe_diff(diff: dict) -> list:
         if c.get("what") == "crs":
             lines.append(f"Project CRS {c.get('before')} to {c.get('after')}")
         elif c.get("what") == "layer_tree":
-            lines.append("Layer order or groups changed")
+            lines.append(QT_TRANSLATE_NOOP("AgentController", "Layer order or groups changed"))
     orphans = diff.get("orphan_temporary_layers") or []
     if orphans:
         lines.append(f"Temporary layer{'s' if len(orphans) > 1 else ''} left outside the layer tree: {names(orphans)}")
@@ -119,6 +127,7 @@ def run_change_items(report, touched=None) -> dict:
 
 
 
+
     try:
         return _run_change_items(report if isinstance(report, dict) else {},
                                  [x for x in touched if isinstance(x, dict)]
@@ -170,17 +179,6 @@ def _run_change_items(report: dict, touched: list) -> dict:
             extra["visible"] = bool(entry.get("visible"))
         add(entry, what, **extra)
 
-    files: list[dict] = []
-    paths: set[str] = set()
-    for entry in listed("files_written"):
-        path = entry.get("path")
-        if not isinstance(path, str) or not path or entry.get("exists") is False or path in paths:
-            continue
-        paths.add(path)
-        item: dict = {"path": path}
-        if _whole(entry.get("size_bytes")) is not None:
-            item["size_bytes"] = entry["size_bytes"]
-        files.append(item)
     raw = report.get("warnings")
     warnings = [text for text in raw if isinstance(text, str) and text.strip()] if isinstance(raw, list) else []
 
@@ -188,8 +186,6 @@ def _run_change_items(report: dict, touched: list) -> dict:
     layers = [item for what in _CHIP_ORDER for item in buckets[what]]
     if layers:
         out["layers"] = layers
-    if files:
-        out["files"] = files
     if warnings:
         out["warnings"] = warnings
     return out

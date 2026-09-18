@@ -307,13 +307,14 @@ def _priority_flood(dem, invalid, np, heapq, checkpoint=None):
         closed[i] = 1
     heapq.heapify(heap)
     offsets = [(dr, dc, dr * width + dc) for dr, dc in _D8]
-    nextafter = math.nextafter if hasattr(math, "nextafter") else (lambda a, b: np.nextafter(a, b).item())
+    nextafter = math.nextafter
     heappop, heappush = heapq.heappop, heapq.heappush
     while heap:
         for _ in range(_CHECK_EVERY):
-            if not heap:
+            try:
+                z, i = heappop(heap)
+            except IndexError:
                 break
-            z, i = heappop(heap)
             r, c = divmod(i, width)
             for dr, dc, di in offsets:
                 nr, nc = r + dr, c + dc
@@ -567,3 +568,47 @@ def _polygonise(mask, geotransform, crs_wkt, gdal, ogr, osr):
     merged = QgsGeometry.unaryUnion(parts) if len(parts) > 1 else parts[0]
     merged = merged.makeValid()
     return bytes(merged.asWkb())
+
+
+
+
+__all__ = [
+    "_BYTES_PER_CELL",
+    "_CHAIN_MARGIN_SHARE",
+    "_CHAIN_MAX_MARGIN_KM",
+    "_CHAIN_MIN_MARGIN_M",
+    "_CHAIN_TIME_SHARE",
+    "_DEFAULT_RADIUS_KM",
+    "_DEFAULT_SNAP_M",
+    "_EXIT_WHY",
+    "_MAX_ORDER",
+    "_MAX_RADIUS_KM",
+    "_MAX_STREAM_SEGMENTS",
+    "_MEMORY_SHARE",
+    "_MIN_THRESHOLD_CELLS",
+    "_MIN_THRESHOLD_M2",
+    "_OTHER_EXITS",
+    "_OUTLET_FORMS",
+    "_THRESHOLD_SHARE",
+    "_UTM_MAX_LAT",
+    "_accumulate",
+    "_authid",
+    "_bbox_around",
+    "_border_nodata",
+    "_box_geometry",
+    "_d8_downstream",
+    "_dilate",
+    "_envelope",
+    "_exit_cells",
+    "_longest_flow_path",
+    "_open_water",
+    "_parse_bbox",
+    "_polygonise",
+    "_priority_flood",
+    "_rasterise",
+    "_segment_rows",
+    "_sinks",
+    "_srs",
+    "_strahler_network",
+    "_upstream_of",
+]

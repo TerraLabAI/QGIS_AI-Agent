@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import threading
 from collections import deque
@@ -22,6 +23,8 @@ TAG = "AI Agent"
 MAX_LOG_LINE_CHARS = 2_000
 _recent_lines = deque(maxlen=100)
 _recent_lines_lock = threading.Lock()
+_CUT_EDGE_TAIL = re.compile(r"[^\s\"']*\Z")
+_CUT_EDGE_HEAD = re.compile(r"\A[^\s\"']*")
 _capture_connected = False
 
 
@@ -86,7 +89,11 @@ def _rendered(message) -> str:
     if len(text) > MAX_LOG_LINE_CHARS:
         cut = len(text) - MAX_LOG_LINE_CHARS
         head = int(MAX_LOG_LINE_CHARS * 0.75)
-        text = f"{text[:head]} [... {cut:,} chars cut ...] {text[-(MAX_LOG_LINE_CHARS - head):]}"
+
+
+        first = _CUT_EDGE_TAIL.sub("", text[:head])
+        last = _CUT_EDGE_HEAD.sub("", text[-(MAX_LOG_LINE_CHARS - head):])
+        text = f"{first} [... {cut:,} chars cut ...] {last}"
     try:
         return scrub_secrets(scrub_user_paths(text))
     except Exception:  # noqa: BLE001 - never publish a line the scrubber could not clean

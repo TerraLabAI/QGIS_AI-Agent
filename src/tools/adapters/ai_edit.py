@@ -232,22 +232,22 @@ class AiEditAdapter(PluginAdapter):
     def run_flow(self, name: str, params: dict) -> dict:
         params = params or {}
         dispatch = {
-            "signout": lambda: self.do_signout(),
+            "signout": self.do_signout,
             "set_key": lambda: self.do_set_key(params.get("key", ""), params.get("validate_with_server", False)),
             "mock_usage": lambda: self.do_mock_usage(
                 params.get("used"), params.get("limit"), params.get("is_free", True)
             ),
-            "restore_usage": lambda: self.do_restore_usage(),
+            "restore_usage": self.do_restore_usage,
             "set_dev_flags": lambda: self.do_set_dev_flags(params.get("debug"), params.get("skip_trial")),
             "set_model": lambda: self.do_set_model(params.get("model_id", "")),
-            "simulate_signup": lambda: self.do_simulate_signup(),
+            "simulate_signup": self.do_simulate_signup,
             "run_generation": lambda: self.do_run_generation(params),
-            "generation_status": lambda: self.do_generation_status(),
+            "generation_status": self.do_generation_status,
             "attach_reference": lambda: self.do_attach_reference(
                 params.get("path", ""), params.get("layer_name", ""), params.get("use_zone_extent", True)
             ),
             "set_resolution": lambda: self.do_set_resolution(params.get("resolution", "")),
-            "clear_references": lambda: self.do_clear_references(),
+            "clear_references": self.do_clear_references,
             "new_free_key": lambda: self.do_new_free_key(params.get("email", ""), params.get("confirm", False)),
         }
         fn = dispatch.get(name)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import time
 
-from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .bubbles import AgentBubble
 from .shared import tr
@@ -84,3 +84,32 @@ def _turn_divider(parent=None) -> QFrame:
     line.setFrameShape(QFrame.Shape.NoFrame)
     line.setFixedHeight(1)
     return line
+
+
+class CompactionDivider(QWidget):
+    """The mark a thread wears once, after the run in which the server first compacted its history: a hairline, a short muted label, a hairline."""
+
+
+
+
+    def __init__(self, label: str, tip: str, parent=None):
+        super().__init__(parent)
+        self.setObjectName("compactionDivider")
+        self.setToolTip(tip)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 12, 0, 12)
+        row.setSpacing(10)
+        self.label = QLabel(label, self)
+        self.label.setObjectName("compactionLabel")
+        self.label.setToolTip(tip)
+        row.addWidget(self._rule(), 1)
+        row.addWidget(self.label, 0)
+        row.addWidget(self._rule(), 1)
+
+    def _rule(self) -> QFrame:
+
+        line = QFrame(self)
+        line.setObjectName("compactionRule")
+        line.setFrameShape(QFrame.Shape.NoFrame)
+        line.setFixedHeight(1)
+        return line

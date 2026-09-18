@@ -32,6 +32,7 @@ import importlib.util
 import itertools
 import math
 
+from ..core.feature_requests import feature_request
 from ..core.logger import log
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .data_tools import _run_on_main_thread
@@ -1233,7 +1234,7 @@ def _read_layer_points(layer_name: str):
 
     points = []
     out_of_domain = 0
-    for feature in layer.getFeatures():
+    for feature in layer.getFeatures(feature_request(attributes=[])):
         geometry = feature.geometry()
         if geometry is None or geometry.isEmpty():
             points.append((feature.id(), None, None))

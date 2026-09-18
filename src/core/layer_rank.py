@@ -108,6 +108,9 @@ def view_of(extent: dict | None, view: dict | None) -> str:
     if not extent or not view:
         return ""
     try:
+        if not all(math.isfinite(box[key]) for box in (extent, view)
+                   for key in ("xmin", "ymin", "xmax", "ymax")):
+            return ""
         if not _intersects(extent, view):
             return "out"
         inside = (extent["xmin"] >= view["xmin"] and extent["xmax"] <= view["xmax"]
@@ -120,6 +123,13 @@ def view_of(extent: dict | None, view: dict | None) -> str:
 def offset_from_view(view_box: list | None, layer_box: list | None) -> tuple[float, str] | None:
     """(km, compass point) from the centre of the view to the centre of a layer, both [w, s, e, n] degrees."""
     if not view_box or not layer_box or len(view_box) != 4 or len(layer_box) != 4:
+        return None
+    try:
+        if not all(math.isfinite(value) for box in (view_box, layer_box) for value in box):
+            return None
+        if any(abs(box[index]) > 90 for box in (view_box, layer_box) for index in (1, 3)):
+            return None
+    except TypeError:
         return None
     lon1, lat1 = (view_box[0] + view_box[2]) / 2, (view_box[1] + view_box[3]) / 2
     lon2, lat2 = (layer_box[0] + layer_box[2]) / 2, (layer_box[1] + layer_box[3]) / 2
@@ -136,6 +146,9 @@ def _intersects(extent: dict | None, rect: dict | None) -> bool:
     if not extent or not rect:
         return False
     try:
+        if not all(math.isfinite(box[key]) for box in (extent, rect)
+                   for key in ("xmin", "ymin", "xmax", "ymax")):
+            return False
         return not (
             extent["xmax"] < rect["xmin"]
             or extent["xmin"] > rect["xmax"]
@@ -182,6 +195,8 @@ def detailed_ids(ranked: list[dict], active_id: str | None, most: int, least: in
 
 
 
+    most = max(0, most)
+    least = max(0, min(least, most))
     about = [item["id"] for item in ranked
              if item.get("named") or item.get("selected_count") or item.get("by_agent")
              or (active_id is not None and item.get("id") == active_id)][:max(0, most)]

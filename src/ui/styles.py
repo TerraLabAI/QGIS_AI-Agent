@@ -124,7 +124,7 @@ _MSG_TINTS = {
     "neutral": ("rgba(128, 128, 128, 0.12)", "rgba(128, 128, 128, 0.25)"),
     "info": ("rgba(30, 136, 229, 0.08)", "rgba(30, 136, 229, 0.22)"),
     "armed": ("rgba(30, 136, 229, 0.12)", "rgba(30, 136, 229, 0.40)"),
-    "success": ("rgba(139, 172, 39, 0.14)", "rgba(139, 172, 39, 0.45)"),
+    "success": ("rgba(67, 160, 71, 0.14)", "rgba(67, 160, 71, 0.45)"),
     "warning": ("rgba(245, 166, 35, 0.12)", "rgba(245, 166, 35, 0.45)"),
     "error": ("rgba(229, 72, 77, 0.14)", "rgba(229, 72, 77, 0.45)"),
     "error_transient": ("rgba(229, 72, 77, 0.25)", "rgba(229, 72, 77, 0.60)"),
@@ -239,7 +239,7 @@ def _step_dial(num: int, state: str = "todo"):
                f" border-radius: {radius}px; font-size: 11px; font-weight: 700;")
     elif state == "done":
         qss = (f"background: transparent; color: {BRAND_GREEN};"
-               " border: 1px solid rgba(139, 172, 39, 0.75);"
+               " border: 1px solid rgba(67, 160, 71, 0.75);"
                f" border-radius: {radius}px; font-size: 11px; font-weight: 700;")
     else:
         qss = (f"background: transparent; color: {MUTED_TEXT};"
@@ -467,10 +467,10 @@ _BTN_CHIP = (
     " border: 1px solid rgba(128, 128, 128, 0.40); border-radius: 6px;"
     f" padding: 6px 12px; font-size: 12px; color: palette(text);"
     f" {_BTN_LABEL_WEIGHT} }}"
-    "QPushButton:hover { background: rgba(139, 172, 39, 0.18);"
-    " border-color: rgba(139, 172, 39, 0.65); }"
-    "QPushButton:pressed { background: rgba(139, 172, 39, 0.32);"
-    " border-color: rgba(139, 172, 39, 0.85); }"
+    "QPushButton:hover { background: rgba(67, 160, 71, 0.18);"
+    " border-color: rgba(67, 160, 71, 0.65); }"
+    "QPushButton:pressed { background: rgba(67, 160, 71, 0.32);"
+    " border-color: rgba(67, 160, 71, 0.85); }"
     "QPushButton:disabled { color: rgba(128, 128, 128, 0.40);"
     " background: transparent; border-color: rgba(128, 128, 128, 0.20); }"
 )
@@ -590,8 +590,8 @@ _FOOTER_ICON_BTN_STYLE = (
     " font-size: 22px; font-weight: 600;"
     " color: palette(text); border-radius: 4px; }"
     'QToolButton[hover="true"] { background: rgba(128,128,128,0.15); }'
-    'QToolButton[active="true"] { background: rgba(139, 172, 39, 0.55); }'
-    'QToolButton[active="true"][hover="true"] { background: rgba(139, 172, 39, 0.75); }'
+    'QToolButton[active="true"] { background: rgba(67, 160, 71, 0.55); }'
+    'QToolButton[active="true"][hover="true"] { background: rgba(67, 160, 71, 0.75); }'
     "QToolButton::menu-indicator { image: none; width: 0; }"
 )
 
@@ -601,9 +601,9 @@ _HELP_ICON_BTN_STYLE = (
     "QToolButton { background: transparent; border: none; padding: 6px 10px;"
     " font-size: 22px; font-weight: 600;"
     " color: palette(text); border-radius: 4px; }"
-    'QToolButton[hover="true"] { background: rgba(139, 172, 39, 0.35); }'
-    'QToolButton[active="true"] { background: rgba(139, 172, 39, 0.55); }'
-    'QToolButton[active="true"][hover="true"] { background: rgba(139, 172, 39, 0.75); }'
+    'QToolButton[hover="true"] { background: rgba(67, 160, 71, 0.35); }'
+    'QToolButton[active="true"] { background: rgba(67, 160, 71, 0.55); }'
+    'QToolButton[active="true"][hover="true"] { background: rgba(67, 160, 71, 0.75); }'
     "QToolButton::menu-indicator { image: none; width: 0; }"
 )
 
@@ -646,3 +646,67 @@ for _qss_name in (
 ):
     globals()[_qss_name] = _scale_qss_font_px(globals()[_qss_name])
 del _qss_name
+
+
+__all__ = [
+    "BRAND_BLUE",
+    "BRAND_BLUE_HOVER",
+    "BRAND_DISABLED",
+    "BRAND_GRAY",
+    "BRAND_GRAY_HOVER",
+    "BRAND_GREEN",
+    "BRAND_GREEN_TEXT",
+    "BRAND_RED",
+    "BRAND_RED_HOVER",
+    "BTN_GREEN",
+    "BTN_GREEN_DISABLED",
+    "BTN_GREEN_HOVER",
+    "DARK_UI",
+    "DISABLED_TEXT",
+    "ERROR_TEXT",
+    "INK_HOVER_FILL",
+    "INK_PRESSED_FILL",
+    "MUTED_TEXT",
+    "MUTED_TEXT_SOFT",
+    "SUCCESS_TEXT",
+    "WARNING_TEXT",
+    "_BTN_BLUE",
+    "_BTN_BLUE_AUTH",
+    "_BTN_BLUE_OUTLINE",
+    "_BTN_BLUE_PRIMARY",
+    "_BTN_CHIP",
+    "_BTN_GHOST",
+    "_BTN_GRAY",
+    "_BTN_GREEN",
+    "_BTN_GREEN_AUTH",
+    "_BTN_LINK",
+    "_BTN_LINK_MUTED",
+    "_BTN_LINK_STRONG",
+    "_BTN_PAIR_CANCEL",
+    "_BTN_PAIR_NEUTRAL",
+    "_BTN_RED",
+    "_BTN_RED_OUTLINE",
+    "_CARD_CHILD_BTN_RESET_QSS",
+    "_CARD_MARGINS",
+    "_CARD_QSS",
+    "_CHIP_QSS",
+    "_COMBO_THEME_QSS",
+    "_FOOTER_CTA_BTN_STYLE",
+    "_FOOTER_ICON_BTN_STYLE",
+    "_FOOTER_MENU_STYLE",
+    "_HELP_ICON_BTN_STYLE",
+    "_INPUT_THEME_QSS",
+    "_INSTRUCTIONS_CARD_QSS",
+    "_INSTRUCTIONS_HINT_QSS",
+    "_MSG_TINTS",
+    "_PROGRESS_THIN_QSS",
+    "_SECTION_TOGGLE_QSS",
+    "_SUBCARD_MARGINS",
+    "_SUBCARD_QSS",
+    "_UPDATE_CARD_STYLE",
+    "_UPDATE_LATER_STYLE",
+    "_UPDATE_NOTE_STYLE",
+    "_UPDATE_TITLE_STYLE",
+    "_msg_card_qss",
+    "_msg_label_qss",
+]

@@ -1,6 +1,16 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""The header row: mark, title, and every control of the panel."""
+"""The header row: mark, wordmark, and every control of the panel."""
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -29,14 +39,14 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon, QPainter, QPixmap, QTextOption
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QStyle, QToolButton, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QToolButton, QVBoxLayout, QWidget
 
 from .checkpoint_sheet import CheckpointSheet
-from .font_scale import widget_pixel_ratio
+from .font_scale import scale_px_length, widget_pixel_ratio
 from .history_popup import HistoryPopup
-from .icons import logo_pixmap, logo_size
+from .icons import icon_for, logo_pixmap, logo_size
 from .shared import event_pos, safe_disconnect
-from .style import _BTN_AVATAR, _HEADER_QSS, SPACE_CARD
+from .style import _BTN_AVATAR, _BTN_PRO_PILL, _HEADER_QSS, PRO_PILL_PX, SPACE_CARD, accent_color, repolish
 from .styles import BRAND_GREEN
 from .widgets import IconButton
 
@@ -47,6 +57,7 @@ HEADER_HEIGHT = 36
 _MARK = 20
 _MARK_GAP = 6
 _AVATAR_PX = 22
+_PRO_GLYPH = 14
 
 
 class _BrandTile(QWidget):
@@ -103,6 +114,7 @@ class Header(QWidget):
     checkpoints_requested = pyqtSignal()
     restore_requested = pyqtSignal(str)
     discard_all_requested = pyqtSignal()
+    pro_pill_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -137,11 +149,45 @@ class Header(QWidget):
         self._logo.setPixmap(logo_pixmap(self, _MARK))
         brand.addWidget(self._logo, 0, Qt.AlignmentFlag.AlignVCenter)
 
-        self._title = QLabel(self.tr("AI Agent"), brand_host)
+
+
+
+        wordmark = QWidget(brand_host)
+        word_col = QVBoxLayout(wordmark)
+        word_col.setContentsMargins(0, 0, 0, 0)
+        word_col.setSpacing(0)
+        self._title = QLabel(self.tr("AI Agent"), wordmark)
         self._title.setObjectName("hdrTitle")
-        brand.addWidget(self._title, 0, Qt.AlignmentFlag.AlignVCenter)
+        word_col.addWidget(self._title)
+        self._byline = QLabel(self.tr("by TerraLab"), wordmark)
+        self._byline.setObjectName("hdrByline")
+        word_col.addWidget(self._byline)
+        brand.addWidget(wordmark, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(brand_host, 0)
+        self._brand = brand_host
         row.addStretch(1)
+
+
+        self._pro_pill = QPushButton(self.tr("Get Pro"), self)
+        self._pro_pill.setObjectName("hdrProPill")
+        pill_px = scale_px_length(PRO_PILL_PX)
+        self._pro_pill.setStyleSheet(
+            _BTN_PRO_PILL + f"QPushButton#hdrProPill {{ border-radius: {pill_px // 2}px; }}")
+        self._pro_pill.setFixedHeight(pill_px)
+        self._pro_pill.setIcon(icon_for(self._pro_pill, "sparkles", _PRO_GLYPH, accent_color()))
+        self._pro_pill.setIconSize(QSize(_PRO_GLYPH, _PRO_GLYPH))
+        self._pro_pill.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self._pro_pill.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self._pro_pill.setAutoDefault(False)
+        self._pro_pill.setToolTip(self.tr("See what Pro unlocks"))
+        self._pro_pill.setAccessibleName(self.tr("See what Pro unlocks"))
+        self._pro_pill.setProperty("compact", False)
+        self._pro_pill.clicked.connect(self.pro_pill_clicked.emit)
+        self._pro_pill.hide()
+        self._pro_pill_wanted = False
+        self._pro_pill_full_width = self._pro_pill.sizeHint().width()
+        row.addWidget(self._pro_pill, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
 
@@ -194,24 +240,15 @@ class Header(QWidget):
         row.addWidget(self._avatar_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
-        icon_px = self.style().pixelMetric(QStyle.PixelMetric.PM_SmallIconSize)
-        self._float_btn = QToolButton(self)
-        self._float_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarNormalButton))
-        self._float_btn.setToolTip(self.tr("Dock or undock this panel"))
-        self._float_btn.setAccessibleName(self.tr("Dock or undock this panel"))
-        self._float_btn.setFixedSize(icon_px + 6, icon_px + 6)
-        self._float_btn.setAutoRaise(True)
-        self._float_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+
+        self._float_btn = IconButton(self, "float_window", 18, self.tr("Dock or undock this panel"))
+        self._float_btn.setFixedSize(26, 26)
         self._float_btn.clicked.connect(self._toggle_floating)
         self._float_btn.hide()
         row.addWidget(self._float_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._close_btn = QToolButton(self)
-        self._close_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
-        self._close_btn.setToolTip(self.tr("Close this panel"))
-        self._close_btn.setAccessibleName(self.tr("Close this panel"))
-        self._close_btn.setFixedSize(icon_px + 6, icon_px + 6)
-        self._close_btn.setAutoRaise(True)
-        self._close_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._close_btn = IconButton(self, "close", 18, self.tr("Close this panel"))
+        self._close_btn.setFixedSize(26, 26)
         self._close_btn.clicked.connect(self._close_dock)
         self._close_btn.hide()
         row.addWidget(self._close_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -223,6 +260,53 @@ class Header(QWidget):
         self._dock = dock
         self._float_btn.setVisible(dock is not None)
         self._close_btn.setVisible(dock is not None)
+        self._fit_pro_pill()
+
+
+
+    def set_pro_pill_visible(self, visible: bool) -> None:
+        """Show the pill (a signed-in free account) or hide it (paid, signed out)."""
+        self._pro_pill_wanted = bool(visible)
+        self._pro_pill.setVisible(self._pro_pill_wanted)
+        self._fit_pro_pill()
+
+    def pro_pill(self) -> QPushButton:
+        """The pill itself, for the panel's tests and the UI driver."""
+        return self._pro_pill
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        self._fit_pro_pill()
+
+    def _fit_pro_pill(self) -> None:
+        """The word when the row has room for it, the sparkle alone otherwise."""
+
+
+
+
+
+        if not self._pro_pill_wanted:
+            return
+        row = self.layout()
+        margins = row.contentsMargins()
+        others = [w for w in (self._brand, self._restore_btn, self._new_btn, self._history_btn,
+                              self._settings_btn, self._avatar_btn, self._float_btn, self._close_btn)
+                  if not w.isHidden()]
+        used = margins.left() + margins.right()
+        used += sum(w.sizeHint().width() for w in others)
+        used += row.spacing() * len(others)
+        compact = used + self._pro_pill_full_width > self.width()
+        if bool(self._pro_pill.property("compact")) == compact:
+            return
+        self._pro_pill.setProperty("compact", compact)
+        if compact:
+            self._pro_pill.setText("")
+            self._pro_pill.setFixedWidth(self._pro_pill.height())
+        else:
+            self._pro_pill.setText(self.tr("Get Pro"))
+            self._pro_pill.setMinimumWidth(0)
+            self._pro_pill.setMaximumWidth(16777215)
+        repolish(self._pro_pill)
 
     def _toggle_floating(self) -> None:
         if self._dock is not None:
@@ -275,6 +359,7 @@ class Header(QWidget):
         """Show or hide the undo button."""
 
         self._restore_btn.setVisible(bool(available))
+        self._fit_pro_pill()
 
     def open_checkpoints(self) -> bool:
         """Drop the sheet under the undo button; False when there is nothing to restore and the button is not there to open it from."""
@@ -336,6 +421,7 @@ class Header(QWidget):
         self._avatar_btn.setIcon(QIcon(letter_badge(self, letter)))
         self._avatar_btn.setToolTip(email or self.tr("Account"))
         self._avatar_btn.show()
+        self._fit_pro_pill()
         self._cancel_avatar_load()
         if not avatar_url:
             return
@@ -374,6 +460,7 @@ class Header(QWidget):
     def clear_account(self) -> None:
         self._cancel_avatar_load()
         self._avatar_btn.hide()
+        self._fit_pro_pill()
 
     def _open_product_page(self) -> None:
         """The mark and the name: the AI Agent page on terra-lab.ai."""

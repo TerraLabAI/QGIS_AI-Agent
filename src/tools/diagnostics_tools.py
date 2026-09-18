@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from qgis.core import Qgis, QgsProject, QgsRasterLayer, QgsVectorLayer
 
+from ..core.background import running_tasks
 from ..core.tool_registry import Tool, ToolRegistry
 from .layer_lookup import _find_layer, _layer_not_found_error
 
@@ -26,6 +27,12 @@ _MANY_VISIBLE = 40
 _REMOTE_VECTOR_PROVIDERS = ("WFS", "wfs", "arcgisfeatureserver", "oapif")
 _REMOTE_RASTER_PROVIDERS = ("wms", "wcs", "arcgismapserver")
 _SEVERITY = {"high": 0, "medium": 1, "low": 2}
+
+
+
+
+_QUIET_TASK_S = 60.0
+_LONG_TASK_S = 120.0
 
 
 def register_diagnostics_tools(registry: ToolRegistry):
@@ -115,6 +122,32 @@ def _raster_findings(layer: QgsRasterLayer, visible: bool) -> list[dict]:
     return out
 
 
+def _background_findings(tasks: list) -> list[dict]:
+    """What the work in flight says about a QGIS that is not answering."""
+
+
+
+
+
+
+
+    out: list[dict] = []
+    for task in tasks:
+        quiet, running = task["quiet_s"], task["running_s"]
+        if quiet >= _QUIET_TASK_S:
+            out.append({"severity": "high",
+                        "issue": f"background task '{task['description']}' has been running {int(running)} s and has "
+                                 f"said nothing for {int(quiet)} s: it looks stuck, not slow",
+                        "fix": "Tell the user it is not progressing; cancel_task stops a processing task, and a "
+                               "reload of the plugin clears the rest. Do not start the same work again first."})
+        elif running >= _LONG_TASK_S:
+            out.append({"severity": "low",
+                        "issue": f"background task '{task['description']}' has been running {int(running)} s and is "
+                                 f"still working (last active {quiet:.0f} s ago)",
+                        "fix": "It is progressing: wait for it rather than starting it again or reporting a failure."})
+    return out
+
+
 def _diagnose_project(args: dict) -> dict:
     project = QgsProject.instance()
     root = project.layerTreeRoot()
@@ -150,6 +183,11 @@ def _diagnose_project(args: dict) -> dict:
             findings.append({"layer": layer.name(), "layer_id": layer.id(), "severity": "low",
                              "issue": f"could not be inspected: {exc}", "fix": "Check the layer's source"})
     project_findings: list[dict] = []
+    try:
+        tasks = running_tasks()
+    except Exception:  # noqa: BLE001 - a diagnostic never fails the diagnosis
+        tasks = []
+    project_findings.extend(_background_findings(tasks))
     if not wanted and visible_count > _MANY_VISIBLE:
         project_findings.append({"severity": "medium", "issue": f"{visible_count} layers visible at once",
                                  "fix": "Group them and hide the groups not in use (set_layers_visibility)",
@@ -163,6 +201,10 @@ def _diagnose_project(args: dict) -> dict:
         "layers_checked": min(len(layers), _MAX_LAYERS),
         "layers_visible": visible_count,
         "project_crs": project_crs.authid(),
+
+
+
+        **({"background_tasks": tasks} if tasks else {}),
         "findings": findings,
         "project_findings": project_findings,
         "counts": {level: sum(1 for f in findings if f["severity"] == level) for level in _SEVERITY},

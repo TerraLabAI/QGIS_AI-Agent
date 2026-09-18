@@ -438,7 +438,6 @@ class _InstallWorker(QThread):
 
 
 
-            rc = 1
             log_fd, log_path = tempfile.mkstemp(prefix="qgis_ai_agent_pip_", suffix=".log")
             os.close(log_fd)
             try:

@@ -230,7 +230,9 @@ def _on_finished(reply):
         except Exception:  # nosec B110 - the debug report reads what answers and skips what does not
             pass
         try:
-            code = int(reply.error())
+
+            error = reply.error()
+            code = int(getattr(error, "value", error))
             entry["error_code"] = code
             entry["error"] = reply.errorString() if code else None
         except Exception:  # nosec B110 - the debug report reads what answers and skips what does not

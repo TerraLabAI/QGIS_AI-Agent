@@ -6,11 +6,11 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..core import limits, net
+from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from . import volume_guard
 from .data_common import _bbox_km2, _footprint_box, _run_on_main_thread
@@ -215,7 +215,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
                 outline = found
     filters = dict(wanted) if isinstance(wanted, dict) else {}
     if theme == "divisions":
-        subtypes, refusal = _divisions_subtypes_asked(wanted)
+        subtypes, refusal = _divisions_subtypes_asked(wanted, args)
         if refusal:
             return refusal
         filters.pop("subtype", None)
@@ -371,15 +371,15 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         completed = True
     finally:
         tables = {family: out.GetName() for family, out in outputs.items()}
-        outputs = {}
-        target = None
+        del outputs
+        del target
         if not completed:
 
-            shutil.rmtree(directory, ignore_errors=True)
+            remove_tree(directory)
     if stopped == "cancelled":
 
 
-        shutil.rmtree(directory, ignore_errors=True)
+        remove_tree(directory)
         return {"_error": "The load was stopped before it finished.", "code": "CANCELLED"}
     total = sum(counts.values())
     size = os.path.getsize(path) if os.path.exists(path) else 0
@@ -393,7 +393,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
     unread = [label for label, _url in sources if label not in finished and label not in absent]
     shown = ", ".join(unread[:8]) + (f" and {len(unread) - 8} more" if len(unread) > 8 else "")
     if not total and unread:
-        shutil.rmtree(directory, ignore_errors=True)
+        remove_tree(directory)
         why = " and ".join(part for part in (
             f"{len(refused)} could not be read" if refused else "",
             "the read reached its time limit" if stopped == "clock" else "") if part)
@@ -421,7 +421,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
             if sample and not any(_overture_matches(feature, flat) for feature in sample):
                 empty.update(_overture_filter_miss(sample, flat))
                 empty["suggestion"] = _filter_miss_suggestion(empty) or empty["suggestion"]
-        shutil.rmtree(directory, ignore_errors=True)
+        remove_tree(directory)
         return empty
     several = len(tables) > 1
 
@@ -523,6 +523,10 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         box, problem = _footprint_box(raw_box)
         if box is None:
             return {"_error": problem, "code": "INVALID_ARGS"}
+        problem = volume_guard.not_degrees(*box)
+        if problem:
+            return {"_error": problem, "code": "INVALID_ARGS",
+                    "suggestion": 'Pass clip_to with the place name ("Paris"), or the bbox in EPSG:4326 degrees.'}
         if outline is not None:
 
 
@@ -604,11 +608,19 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         if max(east - west, north - south) > max_span:
             return {"_error": f"Each side of the box must stay under {max_span:.0f} degree." + volume_guard.LIFT_HINT,
+
+
+
+
+
+
+                    "code": "INVALID_ARGS",
                     "suggestion": 'Ask for a district or a town at a time, or use mode "stream" for a '
                                   'whole city, or clip_to the place by name.'}
         if area_km2 > max_km2:
             return {"_error": f"This box is {area_km2:.0f} km2 and the Overture service takes at most "
                     f"{max_km2:.0f} km2." + volume_guard.LIFT_HINT,
+                    "code": "INVALID_ARGS",
                     "area_km2": round(area_km2, 1),
                     "suggestion": 'Zoom in, use mode "stream", or pass clip_to with the place name, '
                                   'which splits the outline into clips of that size.'}
@@ -620,7 +632,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
     subtypes = [""]
     if theme == "divisions":
-        subtypes, refusal = _divisions_subtypes_asked(wanted)
+        subtypes, refusal = _divisions_subtypes_asked(wanted, args)
         if refusal:
             return refusal
     if check_only:
@@ -662,7 +674,11 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     name = _overture_layer_name(theme, args)
     if not features:
         truncated = bool(payload.get("truncated"))
+
+
         empty = {"feature_count": 0, "theme": theme, "area_km2": round(area_km2, 1),
+                 "bbox": {"west": round(west, 5), "south": round(south, 5),
+                          "east": round(east, 5), "north": round(north, 5)},
                  "release": payload.get("release", ""),
                  "truncated": truncated, "served": len(served)}
         empty.update(payload.get("_trace") or {})
@@ -750,7 +766,15 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             counts[origin] = counts.get(origin, 0) + 1
         made["by_source"] = dict(sorted(counts.items(), key=lambda pair: -pair[1]))
     if made.get("truncated"):
-        made["_note"] = "The service stopped at its limit: this is part of the box, not all of it."
+
+
+        made["coverage"] = "partial"
+        made["_note"] = (f"The service stopped at its limit of {len(features):,} features: this layer covers part "
+                         "of the box, and the rest is missing from the map, not empty. Say so.")
+        made["suggestion"] = ("For the rest: a smaller box around the part that matters, or, if the user's own "
+                              "words ask for the whole place, the same call with full_extent.")
+        if payload.get("unread_boxes"):
+            made["unread_boxes"] = payload["unread_boxes"]
     elif forced_clip:
         made["_note"] = ('mode "stream" opens whole tiles, which cannot be clipped to an outline or to one '
                          'division, so this came back clipped instead.')

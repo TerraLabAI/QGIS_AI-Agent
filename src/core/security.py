@@ -30,8 +30,7 @@ import time
 import urllib.parse
 from typing import Any
 
-from .policy import AGENT_HOME
-from .provider_uri import encode_uri_url  # noqa: F401  re-exported for the tools
+from .policy import AGENT_CACHE_DIR, AGENT_EXPORT_DIR, AGENT_HOME, AGENT_ROOT, AGENT_TMP_DIR
 
 
 STRICT_WRITE_ROOTS = False
@@ -57,7 +56,7 @@ _DENY_WRITE_DIRS = [
     _PLUGIN_DIR,
 ]
 _WRITE_ALLOWED_UNDER_DENIED = ["/var/folders", "/private/var/folders", "/var/tmp", "/private/var/tmp",
-                               "/private/tmp", "/tmp"]  # nosec B108 - allowlist of temp roots, not a temp file
+                               "/private/tmp", "/tmp"]  # nosec B108 - temp roots, not a file  # win-ok: POSIX only
 
 
 
@@ -92,15 +91,101 @@ def _windows_credential_dirs() -> list[str]:
     return [os.path.normpath(d) for d in out]
 
 
+def _windows_write_denied_dirs() -> list[str]:
+    """Where a written file runs as code or reaches every program: AppData as a whole (the Startup folder, QGIS's startup.py and other profiles'."""
+
+
+    if not _WINDOWS:
+        return []
+    out = [os.path.join(_HOME, "AppData"), os.environ.get("APPDATA", ""), os.environ.get("LOCALAPPDATA", "")]
+    for documents in _windows_documents_folders():
+        out += [os.path.join(documents, "WindowsPowerShell"), os.path.join(documents, "PowerShell")]
+    return [os.path.normpath(d) for d in out if d]
+
+
+def _windows_documents_folders() -> list[str]:
+    """~/Documents and the folder Windows really uses for Documents."""
+
+
+
+
+
+
+    out = [os.path.join(_HOME, "Documents")]
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as key:
+            value, _kind = winreg.QueryValueEx(key, "Personal")
+        if isinstance(value, str) and value.strip():
+            out.append(os.path.expandvars(value.strip()))
+    except (ImportError, OSError):
+        pass
+    return out
+
+
+def _install_dirs() -> list[str]:
+    """The QGIS and Python installation this process runs from."""
+
+
+
+
+
+    import sys
+
+    out = [sys.prefix, sys.base_prefix, sys.exec_prefix]
+    for prefix in (sys.base_prefix, sys.prefix):
+        parent = os.path.dirname(os.path.normpath(prefix))
+        if os.path.basename(parent).lower() == "apps":
+            out.append(os.path.dirname(parent))
+    try:
+        from qgis.core import QgsApplication
+
+        prefix_path = QgsApplication.prefixPath()
+        if isinstance(prefix_path, str):
+            out.append(prefix_path)
+    except Exception:  # nosec B110 - no QGIS, the Python prefixes still count
+        pass
+    return list(dict.fromkeys(os.path.normpath(d) for d in out if d and len(os.path.normpath(d)) > 3))
+
+
 _WINDOWS_CREDENTIAL_DIRS = _windows_credential_dirs()
-_MOUNT_ROOTS = ["/Volumes", "/mnt", "/media", "/srv", "/data", "/home", "/Users", "/tmp", "/private/tmp",
+_WINDOWS_WRITE_DENIED = _windows_write_denied_dirs()
+_INSTALL_DIRS: list[str] = []
+
+
+
+
+
+
+_AGENT_WORK_DIRS = list(dict.fromkeys(
+    [AGENT_TMP_DIR, AGENT_EXPORT_DIR, AGENT_CACHE_DIR]
+    + [os.path.join(AGENT_ROOT, name) for name in ("tmp", "exports", "cache")]))
+_MOUNT_ROOTS = ["/Volumes", "/mnt", "/media", "/srv", "/data", "/home", "/Users",
+                "/tmp", "/private/tmp",
                 "/var/folders", "/private/var/folders", "/var/tmp", "/private/var/tmp"]  # nosec B108
 
 
 
 
 
-_WINDOWS_UNC_RE = re.compile(r"^\\\\[^\\/]")
+
+
+
+
+
+
+
+
+_AGENT_DIR_NAME = os.path.basename(os.path.normpath(AGENT_ROOT)).replace("-", "_").lower()
+
+
+def _is_agent_dir_name(part: str) -> bool:
+    """True when this path component names the agent's own folder, however spelled."""
+    return bool(_AGENT_DIR_NAME) and part.replace("-", "_").lower() == _AGENT_DIR_NAME
+
+
 
 
 _NON_HTTP_PORTS = frozenset({
@@ -111,7 +196,9 @@ _SECRET_NAME_RE = re.compile(
     r"(?i)^(?:\.env(?:\..*)?|id_(?:rsa|dsa|ecdsa|ed25519)(?:\..*)?|known_hosts|authorized_keys|passwd|shadow"
     r"|\.pgpass|\.netrc|_netrc|\.git-credentials|qgis-auth\.db|.*\.(?:pem|key|p12|pfx|jks|kdbx|ppk|ovpn|gpg|asc"
     r"|tfstate|keychain|keychain-db)|credentials?(?:\..*)?|secrets?(?:\..*)?"
-    r"|.*(?:credential|secret|password|token).*\.(?:json|ya?ml|txt|ini|cfg|conf|toml|env|xml|properties))$"
+    r"|.*(?:credential|secret|password|token).*\.(?:json|ya?ml|txt|ini|cfg|conf|toml|env|xml|properties)"
+
+    r"|login data(?: for account)?|web data|cookies|local state|key[34]\.db|logins\.json|cookies\.sqlite)$"
 )
 
 _allowed_roots: list[str] = []
@@ -172,7 +259,7 @@ def _state_dirs() -> list[str]:
 
 
 def temp_roots() -> list[str]:
-    roots = [tempfile.gettempdir(), AGENT_HOME]
+    roots = [tempfile.gettempdir()] + _AGENT_WORK_DIRS
     return list(dict.fromkeys(os.path.realpath(r) for r in roots if r))
 
 
@@ -183,7 +270,11 @@ def project_dir() -> str:
         name = QgsProject.instance().fileName() or ""
     except Exception:
         return ""
-    return os.path.dirname(os.path.realpath(name)) if name else ""
+
+
+
+
+    return os.path.dirname(os.path.abspath(name)) if name else ""
 
 
 def allow_attached_paths(paths) -> None:
@@ -221,7 +312,7 @@ def _hidden_component(path: str, roots: list[str]) -> str | None:
         return None
     drive, rest = os.path.splitdrive(path)
     for part in rest.replace("\\", "/").split("/"):
-        if part.startswith(".") and part not in (".", ".."):
+        if part.startswith(".") and part not in (".", "..") and not _is_agent_dir_name(part):
             return part
     return None
 
@@ -244,6 +335,13 @@ def _read_denied(path: str, roots: list[str]) -> str | None:
     for state in _state_dirs():
         if _under(path, state):
             return "The agent's own state folder is off limits to tools."
+
+
+
+
+    if (any(_under(path, root) for root in (AGENT_HOME, AGENT_ROOT))
+            and not any(_under(path, d) for d in _AGENT_WORK_DIRS)):
+        return "The agent's own state folder is off limits to tools."
     hidden = _hidden_component(path, roots)
     if hidden:
         return f"'{hidden}' is a hidden folder or file; the agent stays out of hidden paths."
@@ -276,7 +374,11 @@ _VSI_REMOTE = ("/vsicurl/", "/vsicurl_streaming/", "/vsis3/", "/vsis3_streaming/
                "/vsiswift_streaming/", "/vsihdfs/", "/vsiwebhdfs/")
 _VSI_ARCHIVE = ("/vsizip/", "/vsitar/", "/vsigzip/", "/vsi7z/", "/vsirar/", "/vsisparse/", "/vsicrypt/")
 _VSI_MEMORY = ("/vsimem/",)
-_VSI_REFUSED = ("/vsistdin/", "/vsistdout/")
+_VSI_REFUSED = ("/vsistdin/", "/vsistdout/", "/vsistdin?", "/vsistdout?")
+
+
+_VSI_ANY_RE = re.compile(r"(?i)^/vsi[a-z0-9_]+[/?]")
+_VSI_WRAPPERS = ("/vsipmtiles/",)
 
 
 def unwrap_vsi(path: str) -> tuple[str, str]:
@@ -294,6 +396,9 @@ def unwrap_vsi(path: str) -> tuple[str, str]:
             return "refused", text
         if lowered.startswith(_VSI_REMOTE):
             return "remote", text.split("/", 2)[-1]
+        if lowered.startswith(("/vsicurl?", "/vsicurl_streaming?")):
+            query = urllib.parse.parse_qs(text.split("?", 1)[1])
+            return "remote", (query.get("url") or [""])[0]
         if lowered.startswith(_VSI_MEMORY):
             return "memory", text
         if lowered.startswith("/vsisubfile/"):
@@ -301,9 +406,9 @@ def unwrap_vsi(path: str) -> tuple[str, str]:
             remainder = text[len("/vsisubfile/"):]
             text = remainder.split(",", 1)[1] if "," in remainder else remainder
             continue
-        matched = next((prefix for prefix in _VSI_ARCHIVE if lowered.startswith(prefix)), None)
+        matched = next((prefix for prefix in _VSI_ARCHIVE + _VSI_WRAPPERS if lowered.startswith(prefix)), None)
         if matched is None:
-            return "local", text
+            return ("unknown" if _VSI_ANY_RE.match(text) else "local"), text
         text = text[len(matched):]
     return "local", text
 
@@ -348,6 +453,16 @@ def _long_paths_ok() -> bool:
     return _long_paths_state
 
 
+def fits_path(path: str, margin: int = 0) -> bool:
+    """True when this process can open ``path`` (plus ``margin`` more characters)."""
+
+
+
+
+
+    return len(path) + margin < _MAX_PATH or _long_paths_ok()
+
+
 def _windows_path_problem(path: str) -> str | None:
     """Reject Win32 aliases and device names before any file API sees them."""
 
@@ -387,6 +502,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None)
         kind, inner = unwrap_vsi(path)
         if kind == "refused":
             return "The agent does not read from or write to the standard streams."
+        if kind == "unknown":
+            return "The agent does not open this GDAL virtual path; name the file or its URL directly."
         if kind in ("remote", "memory"):
             return None
 
@@ -426,7 +543,9 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None)
     if not write:
         return None
     for candidate in dict.fromkeys((expanded, real)):
-        for root in _DENY_WRITE_DIRS + [d for d in _WINDOWS_SYSTEM if d]:
+        if not _INSTALL_DIRS:
+            _INSTALL_DIRS.extend(_install_dirs())
+        for root in _DENY_WRITE_DIRS + [d for d in _WINDOWS_SYSTEM if d] + _WINDOWS_WRITE_DENIED + _INSTALL_DIRS:
 
 
 
@@ -438,7 +557,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None)
 
 
 
-                return (f"{expanded} is under {root}, a system folder; write under the project, "
+                return (f"{expanded} is under {root}, a system or application folder; write under the project, "
                         "home or temp folder.")
     if not _write_root_ok(real, roots):
         return ("Writes are limited to the project folder, the temp folder, attached files' folders and your "
@@ -498,7 +617,7 @@ def remember_user_text(text: str) -> None:
     global _user_text_seen
     _user_text_seen = True
     for match in _HOST_RE.finditer(text or ""):
-        _user_hosts.add((match.group(1) or match.group(2) or "").strip("[]").lower())
+        _user_hosts.add((match.group(1) or match.group(2) or "").strip("[]").lower().rstrip("."))
 
 
 
@@ -615,24 +734,63 @@ def _legacy_ipv4(text: str):
     return ipaddress.IPv4Address(packed)
 
 
+_NAT64_PREFIXES = (ipaddress.ip_network("64:ff9b::/96"), ipaddress.ip_network("64:ff9b:1::/48"))
+_IPV4_COMPATIBLE = ipaddress.ip_network("::/96")
+_CGNAT = ipaddress.ip_network("100.64.0.0/10")
+
+
+_METADATA_ADDRESSES = frozenset(ipaddress.ip_address(a) for a in (
+    "168.63.129.16", "100.100.100.200", "fd00:ec2::254",
+))
+_METADATA_NAMES = ("metadata.google.internal", "metadata.goog", "instance-data.ec2.internal")
+
+
+def _host_of(url: str) -> str:
+    """The URL's host, lowercased, without brackets, zone id or the root dot."""
+
+
+
+
+
+    host = (urllib.parse.urlsplit(url).hostname or "").strip("[]").lower()
+    return host.split("%", 1)[0].rstrip(".")
+
+
 def _as_address(text: str):
     """The host as an ip address object, or None when it is a name."""
 
 
 
 
+
+
+    text = (text or "").split("%", 1)[0].rstrip(".")
     try:
         address = ipaddress.ip_address(text)
     except ValueError:
         return _legacy_ipv4(text)
-    mapped = getattr(address, "ipv4_mapped", None)
-    return mapped if mapped is not None else address
+    if address.version != 6 or address in _METADATA_ADDRESSES:
+        return address
+    for inner in (address.ipv4_mapped, address.sixtofour, (address.teredo or (None, None))[1]):
+        if inner is not None:
+            return inner
+    if any(address in net for net in _NAT64_PREFIXES) or (
+            address in _IPV4_COMPATIBLE and int(address) >> 24):
+        return ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
+    return address
 
 
 def _address_is_local(address) -> bool:
-    """Loopback, link-local (which is where cloud metadata lives), or a wildcard."""
+    """Loopback, link-local (which is where cloud metadata lives), a known metadata address, or a wildcard."""
     return bool(address.is_loopback or address.is_link_local or address.is_unspecified
-                or address.is_multicast or address.is_reserved)
+                or address.is_multicast or address.is_reserved or address in _METADATA_ADDRESSES)
+
+
+def _address_is_private(address) -> bool:
+    """RFC 1918, ULA, the carrier range 100.64/10 (Tailscale, CGNAT), and the like."""
+    if _address_is_local(address):
+        return False
+    return bool(address.is_private or (address.version == 4 and address in _CGNAT))
 
 
 def is_local_url(url: str, resolve: bool = True) -> bool:
@@ -643,12 +801,12 @@ def is_local_url(url: str, resolve: bool = True) -> bool:
 
 
     try:
-        host = (urllib.parse.urlsplit(url).hostname or "").strip("[]").lower()
+        host = _host_of(url)
     except ValueError:
         return True
     if not host:
         return True
-    if host in _LOCAL_HOSTS or host.endswith(".localhost"):
+    if host in _LOCAL_HOSTS or host.endswith(".localhost") or host in _METADATA_NAMES:
         return True
     literal = _as_address(host)
     if literal is not None:
@@ -665,14 +823,14 @@ def is_local_url(url: str, resolve: bool = True) -> bool:
 def is_private_url(url: str, resolve: bool = True) -> bool:
     """True for an RFC 1918 or ULA address, or a bare hostname without a dot (an intranet name)."""
     try:
-        host = (urllib.parse.urlsplit(url).hostname or "").strip("[]").lower()
+        host = _host_of(url)
     except ValueError:
         return False
     if not host:
         return False
     literal = _as_address(host)
     if literal is not None:
-        return bool(literal.is_private and not literal.is_loopback and not literal.is_link_local)
+        return _address_is_private(literal)
     if "." not in host:
         return True
     if not resolve:
@@ -681,7 +839,7 @@ def is_private_url(url: str, resolve: bool = True) -> bool:
 
     for text in resolve_host(host):
         address = _as_address(text)
-        if address is not None and address.is_private and not address.is_loopback and not address.is_link_local:
+        if address is not None and _address_is_private(address):
             return True
     return False
 
@@ -709,7 +867,7 @@ def vetted_addresses(url: str):
 
 
     try:
-        host = (urllib.parse.urlsplit(url).hostname or "").strip("[]").lower()
+        host = _host_of(url)
     except ValueError:
         return None
     if not host or _as_address(host) is not None:
@@ -720,6 +878,25 @@ def vetted_addresses(url: str):
         if address is not None and _address_is_local(address):
             return None
     return addresses
+
+
+def refused_addresses(url: str, addresses) -> str | None:
+    """Why a connection to *url* may not use *addresses*, else None."""
+
+
+
+
+    host = _host_of(url)
+    for text in addresses:
+        address = _as_address(text)
+        if address is None:
+            continue
+        if _address_is_local(address) and not is_paired_backend_url(url):
+            return f"{host} resolved to a local address at connection time."
+        if (_address_is_private(address) and _user_text_seen and host not in _user_hosts
+                and not is_paired_backend_url(url)):
+            return f"{host} resolved to a private network address the user did not name."
+    return None
 
 
 def is_paired_backend_url(url: str) -> bool:
@@ -767,7 +944,7 @@ def validate_url(url: str) -> str | None:
     if is_local_url(text) and not is_paired_backend_url(text):
         return "URLs on this machine or on link-local addresses are not fetched."
     if is_private_url(text) and _user_text_seen and not is_paired_backend_url(text):
-        host = (urllib.parse.urlsplit(text).hostname or "").strip("[]").lower()
+        host = _host_of(text)
         if host not in _user_hosts:
             return (f"{host} is a private network address the user did not name; ask the user for the "
                     "address before fetching it.")

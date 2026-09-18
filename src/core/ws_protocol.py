@@ -162,6 +162,10 @@ def no_proxy_matches(host: str, raw: str) -> bool:
 def build_ssl_context(ca_pem: bytes | None = None, insecure: bool = False) -> ssl.SSLContext:
     """The system trust store, plus the CA list QGIS trusts when one is given."""
     ctx = ssl.create_default_context()
+
+
+
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     if ca_pem:
         try:
             ctx.load_verify_locations(cadata=ca_pem.decode("ascii", "ignore"))
@@ -334,17 +338,13 @@ def read_frame(reader: SocketReader, require_mask: bool) -> tuple[bool, int, byt
             raise WsProtocolError("invalid 64-bit frame length")
     if length > MAX_FRAME_BYTES:
         raise WsProtocolError(f"frame of {length} bytes exceeds the 16 MiB limit", 1009)
-    if require_mask and not masked:
-        raise WsProtocolError("client frame is not masked")
     key = reader.read_exact(4) if masked else None
     payload = reader.read_exact(length)
     if key:
         payload = mask_bytes(payload, key)
-    if opcode >= 0x8:
-        if not fin or length > 125:
-            raise WsProtocolError("malformed control frame")
-    elif opcode not in (OP_CONT, OP_TEXT, OP_BINARY):
-        raise WsProtocolError(f"unknown opcode {opcode}")
+
+
+
     return fin, opcode, payload
 
 

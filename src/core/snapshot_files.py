@@ -15,14 +15,13 @@ import json
 import os
 import shutil
 import sqlite3
-import stat
 import tempfile
 import time
 import urllib.parse
 
 from qgis.core import QgsProject
 
-from .host_platform import retry_file_op
+from .host_platform import remove_quietly, remove_tree, retry_file_op
 from .logger import log, log_warning
 from .snapshot_paths import (
     _SQLITE_EXTENSIONS,
@@ -144,6 +143,44 @@ def _copies_unchanged(copies) -> bool:
     return True
 
 
+
+_COMPARE_LIMIT = 256 * 1024 * 1024
+
+
+def _same_content(backup: str, target: str) -> bool:
+    """The file on disk already holds the saved copy, byte for byte."""
+
+
+
+
+
+
+
+
+    counters = ((24, 28), (40, 44), (92, 96)) if _is_sqlite_file(target) else ()
+    try:
+        size = os.path.getsize(backup)
+        if size != os.path.getsize(target) or size > _COMPARE_LIMIT:
+            return False
+        if os.path.isfile(target + "-wal") and os.path.getsize(target + "-wal"):
+            return False
+        with open(backup, "rb") as a, open(target, "rb") as b:
+            first = True
+            while True:
+                left, right = a.read(1 << 20), b.read(1 << 20)
+                if first and counters:
+                    left, right = bytearray(left), bytearray(right)
+                    for start, end in counters:
+                        left[start:end] = right[start:end]
+                    first = False
+                if left != right:
+                    return False
+                if not left:
+                    return True
+    except OSError:
+        return False
+
+
 def _is_sqlite_file(path: str) -> bool:
     return os.path.splitext(path)[1].lower() in _SQLITE_EXTENSIONS
 
@@ -251,7 +288,7 @@ def _replace_corrupt_sqlite(backup: str, target: str) -> None:
     folder = os.path.dirname(os.path.abspath(target))
     fd, temporary = tempfile.mkstemp(prefix=".qgis-restore-", dir=folder)
     os.close(fd)
-    os.remove(temporary)
+    retry_file_op(os.remove, temporary)
     try:
         _sqlite_copy(backup, temporary)
 
@@ -263,11 +300,10 @@ def _replace_corrupt_sqlite(backup: str, target: str) -> None:
 
         retry_file_op(os.replace, temporary, target)
     finally:
+
+
         for suffix in ("",) + sidecars:
-            try:
-                os.remove(temporary + suffix)
-            except FileNotFoundError:
-                pass
+            remove_quietly(temporary + suffix)
 
 
 def _restore_file(backup: str, target: str) -> None:
@@ -299,10 +335,7 @@ def _restore_file(backup: str, target: str) -> None:
 
         retry_file_op(os.replace, temporary, target)
     except OSError:
-        try:
-            os.remove(temporary)
-        except OSError:  # nosec B110 - the temporary is already gone
-            pass
+        remove_quietly(temporary)
         raise
 
 
@@ -320,10 +353,7 @@ def _copy_files(folder: str, copies: list, label: str) -> bool:
 
         for _src, dst in copies:
             for suffix in ("", "-wal", "-shm", "-journal"):
-                try:
-                    os.remove(dst + suffix)
-                except OSError:
-                    pass
+                remove_quietly(dst + suffix)
         return False
     return True
 
@@ -364,27 +394,9 @@ def _remove_tree(path: str, what: str) -> bool:
 
     if not os.path.exists(path):
         return True
-    failed = []
-
-    def note(func, target, _exc):
-
-
-
-
-        try:
-            os.chmod(target, stat.S_IWRITE)
-            func(target)
-            return
-        except OSError:
-            pass
-        failed.append(target)
-
-    try:
-        shutil.rmtree(path, onexc=lambda f, t, e: note(f, t, e))
-    except TypeError:
-        shutil.rmtree(path, onerror=note)
-    except OSError as exc:
-        log_warning(f"{what} not removed ({path}): {exc}")
+    failed = remove_tree(path)
+    if failed == [path]:
+        log_warning(f"{what} not removed ({path}).")
         return False
     if failed:
         log_warning(f"{what} partly left behind: {len(failed)} entries under {path} are held open. "

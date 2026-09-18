@@ -23,8 +23,8 @@ from .common import RAIL_W, accent_of
 
 _ROW_QSS = scale_qss_font_px(
     "QFrame#railRow { background: transparent; border: none; border-radius: 8px; }"
-    "QFrame#railRow:hover { background: rgba(139, 172, 39, 0.10); }"
-    'QFrame#railRow[current="true"] { background: rgba(139, 172, 39, 0.20); }'
+    "QFrame#railRow:hover { background: rgba(67, 160, 71, 0.10); }"
+    'QFrame#railRow[current="true"] { background: rgba(67, 160, 71, 0.20); }'
 
 
 

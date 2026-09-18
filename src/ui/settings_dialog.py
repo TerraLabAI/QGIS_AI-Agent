@@ -102,7 +102,7 @@ from .shared import (
     size_within_screen,
 )
 from .siblings_page import SiblingsPage
-from .style import ACCENT, ACCENT_DARK
+from .style import ACCENT, ACCENT_DARK, FONT_HINT, ON_ACCENT
 
 
 
@@ -152,14 +152,14 @@ _NAV_TINTS = {
 _WORDMARK_PX = 22
 _WORDMARK_QSS = ("font-size: 13px; font-weight: 700; color: palette(text);"
                  " background: transparent;")
-_WORDMARK_NOTE_QSS = f"font-size: 10px; color: {MUTED}; background: transparent;"
-_IDENTITY_QSS = (f"QLabel#settingsIdentity {{ font-size: 10px; color: {MUTED};"
+_WORDMARK_NOTE_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent;"
+_IDENTITY_QSS = (f"QLabel#settingsIdentity {{ font-size: {FONT_HINT}px; color: {MUTED};"
                  " background: transparent; }"
                  "QLabel#settingsIdentity:hover { color: palette(text); }")
 
 
 _RAIL_CTA_QSS = (
-    f"QPushButton {{ background: {ACCENT}; color: #12240a; border: none;"
+    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
     " border-radius: 8px; margin: 4px 12px 6px 14px; padding: 7px 10px;"
     " font-size: 12px; font-weight: 700; }"
     f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
@@ -361,7 +361,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
             f'<a href="{get_privacy_url()}" style="color: {MUTED}; text-decoration: none;">'
             f'{self.tr("Privacy")}</a>', side)
         legal.setOpenExternalLinks(True)
-        legal.setStyleSheet("font-size: 10px;")
+        legal.setStyleSheet(f"font-size: {FONT_HINT}px;")
         legal.setContentsMargins(16, 0, 0, 0)
         col.addWidget(legal)
 

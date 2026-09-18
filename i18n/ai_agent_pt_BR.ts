@@ -885,6 +885,82 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Permitir / Negar</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Antes: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Alterado: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Botão do histórico do chat</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Botão de novo chat</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Nenhum exemplo corresponde</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Agora</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Solicitação {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>O projeto após esta solicitação</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>O projeto antes da primeira solicitação</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>O projeto antes desta solicitação</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Esta camada não está mais no projeto.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>após a solicitação {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>após “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>antes da solicitação {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>antes de “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>solicitação {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>o início deste chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>suas próprias alterações</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Abra o painel com Ctrl+Alt+A, ou digite "ai" seguido de uma pergunta na barra de localização (Ctrl+K). Clique com o botão direito em uma camada, uma feição ou no mapa para perguntar a IA sobre ele.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>O agente de IA da TerraLab é seu agente de IA dentro do QGIS: ele carrega dados, estiliza layers, executa análises e cria layouts. Ele pergunta antes de fazer alterações arriscadas, e você pode desfazer uma execução.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS mudou de tema. Recarregue AI Agent ou reinicie QGIS para o painel acompanhar.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Abra o painel do agente de IA: peça qualquer coisa no QGIS e ele fará o trabalho.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostrar</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>O agente está aguardando sua aprovação.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Seu agente de IA dentro do QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Criar uma conta é grátis e leva 15 segundos, no navegador.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Seu agente de IA dentro do QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>stopped</source>
             <translation>interrompido</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} de {total} não funcionaram</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agente</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Desfeito</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>Nenhuma camada, feição ou arquivo foi alterado</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>A ordem das layers ou os grupos foram alterados</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Este ponto pertence ao projeto {name}. Abra esse projeto para voltar a ele.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer no projeto</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Voltar para {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Não foi possível voltar completamente para {point}. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Nenhum resultado</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Não conectado ao serviço do agente, portanto nada foi enviado. Reconectando agora: sua mensagem foi mantida, e Tentar novamente a enviará assim que a conexão voltar.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>O modo de permissão foi alterado. Ele se aplica a partir da próxima ação.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>O modo de permissão foi alterado. Ele se aplica a partir da próxima ação; o cartão aberto ainda precisa da sua resposta.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>A mensagem não pôde ser enviada: a conexão com o serviço do agente está indisponível.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>após a solicitação {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>após “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>antes da solicitação {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>antes de “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>dados restaurados em {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>o início deste chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>suas próprias alterações</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layers no projeto</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <translation>Dê uma tarefa ao agente de IA no QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Conversa longa: as mensagens antigas serão recolhidas a partir daqui. Para um novo tema, inicie uma nova conversa (+ no cabeçalho).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Conversa compactada</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>O agente mantém um resumo das trocas anteriores. Suas mensagens continuam visíveis.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Continue trabalhando com o Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n etapas</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 etapa</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Nada pôde ser adicionado a partir desse arraste.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Refazer: avançar para {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Interrompido</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>A mensagem não pôde ser enviada. Ela ainda está aqui; tente novamente.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Desfazer: voltar para {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Aguardando sua aprovação: Permitir ou Negar abaixo.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>Nada é excluído. Você sempre pode voltar.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Voltar ao projeto como estava antes da primeira solicitação</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>o maior</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>A conexão voltou. Sua mensagem foi enviada.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Não conectado ao serviço do agente. Pressione para tentar novamente agora; sua mensagem foi mantida.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Não conectado ao serviço do agente. Reconectando agora.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Não conectado ao serviço do agente. Reconectando; digite, e a mensagem será enviada.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Não conectado ao serviço do agente. Sua mensagem fica aqui e será enviada assim que a conexão voltar.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Reconectando ao serviço do agente. Pressione para tentar novamente agora; sua mensagem foi mantida.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Reconectando ao serviço do agente. Digite, e a mensagem será enviada.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Reconectando ao serviço do agente. Sua mensagem fica aqui e será enviada assim que a conexão voltar.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Tentar novamente a conexão</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Enable</source>
             <translation>Ativar</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Nenhum conector corresponde</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Unlock with Pro</source>
             <translation>Desbloquear com o Pro</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>O nível de esforço pode ser alterado após o fim desta execução</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Desfazer as alterações do agente: voltar a um estado anterior deste projeto</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obter Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Veja o que o Pro desbloqueia</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>da TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>Não está no projeto</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Remover</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Mostrar menos linhas</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>expressão</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} execuções por mês, níveis de esforço mais altos e Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obter Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} execuções por mês e níveis de esforço mais altos.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Clique para mostrá-lo no painel Camadas.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Isso volta ao estado mais antigo ainda mantido, não ao início absoluto: os anteriores foram limpos para economizar espaço em disco.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Voltar para {point}? Suas próprias alterações desde então serão perdidas.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Uso pessoal, não comercial</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Excluir</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Fazer upgrade</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4969,6 +5271,10 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} feições. Clique para selecioná-la no painel Camadas.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Esta camada não está mais no projeto.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5283,6 +5589,43 @@ Clique para mostrá-lo no painel Camadas.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>O que o QGIS encontrou ao reler o resultado. Clique para ler.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Página do conjunto de dados</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Data desconhecida</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Ao vivo, carregado {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Seu próprio arquivo</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Sua própria fonte</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} a mais</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verificar</translation>
         </message>
     </context>
 </TS>

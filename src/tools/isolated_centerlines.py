@@ -21,6 +21,7 @@ from contextlib import closing
 from typing import Any
 
 from ..core import layer_order
+from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
@@ -51,6 +52,56 @@ def _gpkg_source(source: str) -> tuple[str, str] | None:
     return path, str(match.groupdict().get("table") or "")
 
 
+def _gpkg_copy(layer) -> tuple[str, str] | None:
+    """The layer written to a GeoPackage in a managed temp folder, as (path, table), or None."""
+    from qgis.core import QgsCoordinateTransformContext, QgsProject, QgsVectorFileWriter
+
+    path = os.path.join(create_managed_temp_dir("centerlines-input"), "input.gpkg")
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "GPKG"
+    options.layerName = "input"
+    try:
+        context = QgsProject.instance().transformContext()
+    except Exception:  # noqa: BLE001 - a default context writes the same features
+        context = QgsCoordinateTransformContext()
+    try:
+        written = QgsVectorFileWriter.writeAsVectorFormatV3(layer, path, context, options)
+    except Exception as exc:  # noqa: BLE001 - the caller answers with the export route
+        log_warning(f"centerlines: GeoPackage copy failed: {exc}")
+        return None
+    error = written[0] if isinstance(written, tuple) else written
+    if error != enum_member(QgsVectorFileWriter, "WriterError", "NoError") or not os.path.isfile(path):
+        log_warning(f"centerlines: GeoPackage copy failed: {written}")
+        return None
+    return path, "input"
+
+
+def _auto_spacing(layer, count: int) -> float:
+    """A boundary spacing in metres when the call gave none."""
+
+
+
+
+
+
+    from qgis.core import QgsDistanceArea, QgsPointXY, QgsProject
+
+    fallback = 10.0
+    try:
+        extent = layer.extent()
+        measure = QgsDistanceArea()
+        measure.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
+        measure.setEllipsoid("EPSG:7030")
+        diagonal = measure.measureLine(QgsPointXY(extent.xMinimum(), extent.yMinimum()),
+                                       QgsPointXY(extent.xMaximum(), extent.yMaximum()))
+    except Exception:  # noqa: BLE001 - a layer that cannot be measured gets the middle value
+        return fallback
+    if not diagonal or diagonal <= 0:
+        return fallback
+    size = diagonal / max(1.0, float(count) ** 0.5)
+    return round(max(1.0, min(50.0, size / 30.0)), 1)
+
+
 def _worker_outcome(returncode: int, status: dict, output_path: str, log_tail: str) -> dict:
     """Turn a child exit and its result file into one fail-closed outcome."""
     reported_error = isinstance(status, dict) and status.get("ok") is False and status.get("error")
@@ -77,7 +128,8 @@ def _worker_outcome(returncode: int, status: dict, output_path: str, log_tail: s
         return tool_error(
             "The isolated calculation produced no centerline features.",
             "EMPTY_OUTPUT",
-            "Try a smaller set of valid polygon features or adjust simplify and densify distances.",
+            "Retry with method 0 and a densify_distance near a thirtieth of a feature's width in metres "
+            "(5 to 20 for city blocks); a smaller set of valid polygons also helps.",
         )
     if not os.path.isfile(output_path):
         return tool_error(
@@ -147,7 +199,8 @@ def usable_python(path: str) -> bool:
 
     if not path or not os.path.isfile(path):
         return False
-    return "windowsapps" not in os.path.abspath(path).lower().replace("\\", "/").split("/")
+    parts = os.path.abspath(path).lower().replace("\\", "/").split("/")
+    return "windowsapps" not in parts
 
 
 def _qgis_python() -> str:
@@ -203,6 +256,19 @@ def _child_environment(python_executable: str, work_dir: str) -> dict[str, str]:
             "PROJ_DATA": os.path.join(qgis_resources, "proj"),
             "PYTHONPATH": os.path.join(qgis_resources, "python", "plugins"),
         })
+    elif os.name == "nt":
+
+
+
+        try:
+            import qgis
+
+            qgis_python = os.path.dirname(os.path.dirname(os.path.abspath(qgis.__file__)))
+        except Exception:  # noqa: BLE001 - no QGIS here: the child reports its own import error
+            qgis_python = ""
+        if qgis_python:
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = os.pathsep.join([qgis_python] + ([existing] if existing else []))
     return env
 
 
@@ -275,23 +341,21 @@ def _input_job(args: dict) -> dict:
     polygon_type = enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
     if not isinstance(layer, QgsVectorLayer) or QgsWkbTypes.geometryType(layer.wkbType()) != polygon_type:
         return tool_error("Centerlines require a polygon vector layer.", "INVALID_ARGS")
+
+
+    provider_dir = os.path.join(os.path.dirname(_PLUGIN_ROOT), "geometric_attributes")
+    if not os.path.isfile(os.path.join(provider_dir, "Centerlines.py")):
+        return tool_error(
+            "The Geometric Attributes QGIS plugin is not installed in this profile.",
+            "PROVIDER_NOT_INSTALLED",
+            "Install and enable Geometric Attributes, then restart QGIS.",
+        )
     if layer.isModified():
         return tool_error(
             "The input layer has unsaved edits, so its on-disk snapshot would be incomplete.",
             "INVALID_ARGS",
             "Save or roll back the layer edits, then call create_polygon_centerlines again.",
         )
-    source = _gpkg_source(layer.source())
-    if source is None:
-        return tool_error(
-            "Safe centerlines currently require a local GeoPackage input layer.",
-            "INVALID_ARGS",
-            "Export the polygon layer to GeoPackage, load that copy, then call create_polygon_centerlines on it.",
-        )
-    source_path, table = source
-    path_error = validate_path(source_path, write=False)
-    if path_error or not os.path.isfile(source_path):
-        return tool_error(path_error or f"Input GeoPackage not found: {source_path}", "INVALID_ARGS")
     count = int(layer.featureCount())
     if count < 1:
         return tool_error("The polygon layer is empty.", "EMPTY_INPUT")
@@ -302,13 +366,22 @@ def _input_job(args: dict) -> dict:
             "CONFIRM_REQUIRED",
             "Clip or filter the layer first, or ask the user and retry with confirm_large true.",
         )
-    provider_dir = os.path.join(os.path.dirname(_PLUGIN_ROOT), "geometric_attributes")
-    if not os.path.isfile(os.path.join(provider_dir, "Centerlines.py")):
-        return tool_error(
-            "The Geometric Attributes QGIS plugin is not installed in this profile.",
-            "PROVIDER_NOT_INSTALLED",
-            "Install and enable Geometric Attributes, then restart QGIS.",
-        )
+    source = _gpkg_source(layer.source())
+    if source is None:
+
+
+
+        source = _gpkg_copy(layer)
+        if source is None:
+            return tool_error(
+                "The polygon layer could not be copied to a GeoPackage for the isolated calculation.",
+                "EXECUTION_FAILED",
+                "Export it with export_layer to a .gpkg, load that file, then call create_polygon_centerlines on it.",
+            )
+    source_path, table = source
+    path_error = validate_path(source_path, write=False)
+    if path_error or not os.path.isfile(source_path):
+        return tool_error(path_error or f"Input GeoPackage not found: {source_path}", "INVALID_ARGS")
     work_dir = create_managed_temp_dir("isolated-centerlines")
     return {
         "work_dir": work_dir,
@@ -318,7 +391,7 @@ def _input_job(args: dict) -> dict:
         "method": int(args.get("method", 0) or 0),
         "trim_iterations": float(args.get("trim_iterations", 0) or 0),
         "simplify_distance": float(args.get("simplify_distance", 0) or 0),
-        "densify_distance": float(args.get("densify_distance", 0) or 0),
+        "densify_distance": float(args.get("densify_distance", 0) or 0) or _auto_spacing(layer, count),
         "output_name": str(args.get("output_name") or "Polygon centerlines"),
         "input_feature_count": count,
     }

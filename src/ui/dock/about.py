@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QKeySequence, QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -282,11 +284,15 @@ def shortcut_columns() -> tuple:
     def word(label: str) -> tuple:
         return ((label, False),)
 
-    enter_key = native("Return")
+
+
+
+    enter_name = "Return" if sys.platform == "darwin" else "Enter"
+    enter_key = native(enter_name)
     esc_key = native("Esc")
     composer = (
         (tr("Send the message"), "", key(enter_key)),
-        (tr("New line"), "", key(native("Shift+Return"))),
+        (tr("New line"), "", key(native(f"Shift+{enter_name}"))),
         (tr("Add a layer from the project"), tr("Or drag it from the Layers panel"), key("@")),
         (tr("Bring back the last message you sent"), "", key(native("Up"))),
         (tr("Close the list, or stop the run"), "", key(esc_key)),
@@ -304,11 +310,11 @@ def shortcut_columns() -> tuple:
     )
     during = (
         (tr("Stop the run"), "", key_or(esc_key, tr("Stop button"))),
-        (tr("Answer a permission card"), "", word(tr("Allow / Skip"))),
+        (tr("Answer a permission card"), "", word(tr("Allow / Deny"))),
     )
     chats = (
-        (tr("Open a recent chat"), "", word(tr("History button"))),
-        (tr("Start a new chat"), "", word(tr("Pencil button"))),
+        (tr("Open a recent chat"), "", word(tr("Chat history button"))),
+        (tr("Start a new chat"), "", word(tr("New chat button"))),
     )
 
 

@@ -19,6 +19,7 @@ from qgis.PyQt.QtWidgets import QLabel, QSizePolicy
 
 from .card_base import mono_font
 from .cards_click import _ClickRow
+from .font_scale import scale_px_length
 from .style import (
     CHIP_PX,
     FIELD,
@@ -58,7 +59,7 @@ class _MonoChip(QLabel):
         super().__init__(parent)
         self._full = ""
         self._font = mono_font(FONT_HINT)
-        self.setFixedHeight(CHIP_PX)
+        self.setFixedHeight(scale_px_length(CHIP_PX))
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.setText(text)
 
@@ -81,7 +82,7 @@ class _MonoChip(QLabel):
         return QFontMetrics(self._font).horizontalAdvance(self._full)
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
-        return QSize(self._text_width() + 12 + 2, CHIP_PX)
+        return QSize(self._text_width() + 12 + 2, scale_px_length(CHIP_PX))
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt override
         return QSize(min(48, self.sizeHint().width()), CHIP_PX)

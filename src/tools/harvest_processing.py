@@ -34,6 +34,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from ..core.host_platform import remove_quietly
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import is_raster
 from .data_tools import _avoid_reserved_name
@@ -262,13 +263,34 @@ def _register_output(out, name: str) -> dict:
     return info
 
 
-def _output_target(output_path: str | None, memory_name: str) -> str:
-    if not output_path:
+_TEMPORARY_SPELLINGS = frozenset({"temporary_output", "temporary", "temp", "memory", "memory:"})
+
+
+def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
+
+
+
+    text = str(output_path or "").strip()
+    if not text or text.lower() in _TEMPORARY_SPELLINGS or text.lower().startswith("memory:"):
         return f"memory:{memory_name}"
-    path = _expand(output_path)
+    from ..core import output_paths
+
+    path = _expand(output_paths.resolve(text)[0])
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
+    if os.path.isfile(path):
+
+
+
+
+
+        from .layer_io_tools import _release_layers_at_path, _same_file
+
+        sources = [(layer.source() or "").split("|", 1)[0] for layer in inputs if layer is not None]
+        if not any(source and _same_file(source, path) for source in sources):
+            _release_layers_at_path(path, skip_ids={layer.id() for layer in inputs if layer is not None},
+                                    delete_existing=True)
     return path
 
 
@@ -333,7 +355,7 @@ def _zonal_statistics(args: dict) -> dict:
         "RASTER_BAND": band,
         "COLUMN_PREFIX": prefix,
         "STATISTICS": stats,
-        "OUTPUT": _output_target(args.get("output_path"), "zonal_stats"),
+        "OUTPUT": _output_target(args.get("output_path"), "zonal_stats", (poly, values_raster)),
     }
     name = args.get("name") or "zonal_stats"
     result, error, deferred = _run_or_defer("native:zonalstatisticsfb", params, name)
@@ -364,12 +386,8 @@ def _discard_partial_raster(path: str) -> bool:
 
     gone = False
     for candidate in (path, f"{path}.aux.xml"):
-        try:
-            if os.path.isfile(candidate):
-                os.remove(candidate)
-                gone = gone or candidate == path
-        except OSError:  # nosec B110 - the calculation error is what the caller needs
-            continue
+        if os.path.isfile(candidate) and remove_quietly(candidate):
+            gone = gone or candidate == path
     return gone
 
 
@@ -421,7 +439,7 @@ def _spatial_join(args: dict) -> dict:
         "JOIN_FIELDS": join_fields,
         "METHOD": method,
         "PREFIX": args.get("prefix", ""),
-        "OUTPUT": _output_target(args.get("output_path"), "joined"),
+        "OUTPUT": _output_target(args.get("output_path"), "joined", (target, join)),
     }
     name = args.get("name") or "joined"
     result, error, deferred = _run_or_defer("native:joinattributesbylocation", params, name)
@@ -457,7 +475,57 @@ _REF_RE = re.compile(r'"([^"]+)@(\d+)"|([A-Za-z0-9_.\-]+)@(\d+)')
 
 
 
+
+
 _CALC_MAX_PIXELS = 60_000_000
+
+
+def _remote_input_too_large(referenced: list, refs: dict, pixels: int):
+    """Refuse a huge calculation whose inputs are streamed over HTTP, else None."""
+
+
+
+
+
+
+
+    if pixels <= _CALC_MAX_PIXELS:
+        return None
+    remote = sorted({
+        refs[ref].name() for ref in referenced
+        if ref in refs and ("/vsicurl" in str(refs[ref].source() or "")
+                            or str(refs[ref].source() or "").startswith(("http://", "https://")))
+    })
+    if not remote:
+        return None
+    return tool_error(
+        f"{', '.join(remote)} is read over HTTP where it is published, and this calculation covers "
+        f"{pixels / 1e6:,.0f} million pixels; every block would be fetched across the network, which takes "
+        f"minutes whichever thread it runs on.",
+        "INVALID_ARGS",
+        "Clip the inputs to the study area first (run_processing gdal:cliprasterbyextent with PROJWIN set to the "
+        "canvas extent), then calculate on the local clips.")
+
+
+def _disk_room_for(directory: str, pixels: int):
+    """Refuse before starting when the drive cannot hold the output, else None."""
+
+
+
+
+
+    needed = pixels * 4
+    try:
+        free = shutil.disk_usage(directory or ".").free
+    except OSError:  # nosec B110 - no usage figure is no reason to refuse the calculation
+        return None
+    if free >= needed * 1.1:
+        return None
+    return tool_error(
+        f"The result would be {needed / 1e6:,.0f} MB (Float32 over {pixels / 1e6:,.0f} million pixels) and the "
+        f"drive holding the output folder has {free / 1e6:,.0f} MB free.",
+        "INVALID_ARGS",
+        "Clip the inputs to the study area first, or pass an output_path on a drive with room.")
 
 
 def _raster_calculator(args: dict) -> dict:
@@ -501,15 +569,6 @@ def _raster_calculator(args: dict) -> dict:
             if entry.ref in refs and refs[entry.ref] is not layer:
                 ambiguous.setdefault(entry.ref, [refs[entry.ref].id()]).append(layer.id())
             refs[entry.ref] = layer
-    if ambiguous:
-        names = sorted({ref.rsplit("@", 1)[0] for ref in ambiguous})
-        return tool_error(
-            f"More than one loaded raster is named {', '.join(repr(n) for n in names)}, so a band "
-            f"reference cannot say which one to read.",
-            "INVALID_ARGS",
-            "Rename one of them, or remove the one you are not calculating on, then run again. "
-            f"The layer ids involved are {sorted({i for ids in ambiguous.values() for i in ids})}.",
-        )
     if not rasters:
         return tool_error(
             "No raster layers loaded to compute from.", "INVALID_ARGS", "Load a raster with add_data first."
@@ -518,6 +577,24 @@ def _raster_calculator(args: dict) -> dict:
     referenced = []
     for quoted_name, quoted_band, bare_name, bare_band in _REF_RE.findall(expression):
         referenced.append(f"{quoted_name}@{quoted_band}" if quoted_name else f"{bare_name}@{bare_band}")
+
+
+
+
+
+
+
+
+    clashing = {ref: ids for ref, ids in ambiguous.items() if ref in referenced}
+    if clashing:
+        names = sorted({ref.rsplit("@", 1)[0] for ref in clashing})
+        return tool_error(
+            f"More than one loaded raster is named {', '.join(repr(n) for n in names)}, so a band "
+            f"reference cannot say which one to read.",
+            "INVALID_ARGS",
+            "Rename one of them, or remove the one you are not calculating on, then run again. "
+            f"The layer ids involved are {sorted({i for ids in clashing.values() for i in ids})}.",
+        )
     unknown = [r for r in referenced if r not in refs]
     if unknown:
         return tool_error(
@@ -535,6 +612,14 @@ def _raster_calculator(args: dict) -> dict:
     else:
         ref_layer = rasters[0]
 
+
+
+    reprojected = sorted({refs[r].name() for r in referenced if refs[r].crs() != ref_layer.crs()})
+    reprojected_note = (
+        f"{', '.join(reprojected)} not in {ref_layer.crs().authid()}: resampled onto {ref_layer.name()}'s grid "
+        "(nearest neighbour). Tell the user; for continuous data warp them first (gdal:warpreproject, bilinear)."
+    ) if reprojected else ""
+
     directory = os.path.dirname(output_path)
     if directory:
         os.makedirs(directory, exist_ok=True)
@@ -546,7 +631,22 @@ def _raster_calculator(args: dict) -> dict:
 
     from .processing_tools import _ASYNC_PIXELS, _start_async_processing
 
-    if _ASYNC_PIXELS < cols * rows <= _CALC_MAX_PIXELS:
+    pixels = cols * rows
+
+
+
+
+
+
+
+
+    if pixels > _ASYNC_PIXELS:
+        blocked = _remote_input_too_large(referenced, refs, pixels)
+        if blocked:
+            return blocked
+        room = _disk_room_for(directory, pixels)
+        if room:
+            return room
         alg = QgsApplication.processingRegistry().algorithmById("native:rastercalc")
         if alg is not None:
             crs_id = ref_layer.crs().authid()
@@ -563,17 +663,25 @@ def _raster_calculator(args: dict) -> dict:
             name = args.get("name") or os.path.splitext(os.path.basename(output_path))[0]
             started = _start_async_processing(alg, "native:rastercalc", params, name,
                                               destination_paths=_new_file(output_path))
-            started["note"] = (f"{ref_layer.name()} is {cols * rows / 1e6:,.0f} million pixels, so the calculation "
-                               "runs in the background as native:rastercalc; poll get_task_status.")
+            started["note"] = (
+                f"{ref_layer.name()} is {cols:,} by {rows:,} pixels ({pixels / 1e6:,.0f} million), too many for "
+                "the interface thread, so the calculation runs in the background as native:rastercalc; poll "
+                "get_task_status. The whole grid is computed at full resolution, nothing is sampled or clipped, "
+                f"and the GeoTIFF is about {pixels * 4 / 1e6:,.0f} MB. Tell the user it is running rather than "
+                "waiting silently, and Stop cancels it.")
+            started["computed"] = {"width": cols, "height": rows, "pixels": pixels, "sampled": False}
+            if reprojected_note:
+                started["crs_note"] = reprojected_note
             return started
 
 
 
 
-    if cols * rows > _CALC_MAX_PIXELS:
+    if pixels > _CALC_MAX_PIXELS:
         return tool_error(
-            f"{ref_layer.name()} is {cols:,} by {rows:,} pixels ({cols * rows / 1e6:,.0f} million); the calculator "
-            f"runs over the whole grid on the main thread and the cap is {_CALC_MAX_PIXELS / 1e6:,.0f} million.",
+            f"{ref_layer.name()} is {cols:,} by {rows:,} pixels ({pixels / 1e6:,.0f} million); this QGIS has no "
+            f"native:rastercalc to run it in the background, and on the interface thread the cap is "
+            f"{_CALC_MAX_PIXELS / 1e6:,.0f} million.",
             "INVALID_ARGS",
             "Clip every input to the study area first (run_processing gdal:cliprasterbyextent with PROJWIN set to "
             "the canvas extent, or native:cliprasterbymasklayer with the parcels), then calculate on the clips.")
@@ -651,7 +759,7 @@ def _raster_calculator(args: dict) -> dict:
     if not layer.isValid():
         return {"path": output_path, "reference_layer": ref_layer.name(), "added_to_project": False}
     project.addMapLayer(layer)
-    return {
+    out = {
         "layer_id": layer.id(),
         "name": layer.name(),
         "path": output_path,
@@ -668,11 +776,14 @@ def _raster_calculator(args: dict) -> dict:
         },
         "added_to_project": True,
     }
+    if reprojected_note:
+        out["crs_note"] = reprojected_note
+    return out
 
 
 
 
-_ALGORITHM_CATALOG: list[dict] | None = None
+_algorithm_catalog_cache: dict = {"catalog": None}
 
 _STOPWORDS = {
     "the", "a", "an", "of", "to", "for", "with", "and", "or", "in", "on", "by",
@@ -724,9 +835,9 @@ _SYNONYMS = {
 
 def _algorithm_catalog(refresh: bool = False) -> list[dict]:
     """Every registered algorithm with searchable metadata, cached once per session."""
-    global _ALGORITHM_CATALOG
-    if _ALGORITHM_CATALOG is not None and not refresh:
-        return _ALGORITHM_CATALOG
+    cached = _algorithm_catalog_cache["catalog"]
+    if cached is not None and not refresh:
+        return cached
     catalog = []
     for alg in QgsApplication.processingRegistry().algorithms():
         try:
@@ -748,23 +859,49 @@ def _algorithm_catalog(refresh: bool = False) -> list[dict]:
             "tags": tags,
             "description": description,
         })
-    _ALGORITHM_CATALOG = catalog
+    _algorithm_catalog_cache["catalog"] = catalog
     return catalog
+
+
+
+
+_UNSPACED_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]+")
+
+
+def _unspaced_tokens(query: str) -> list[str]:
+    """Character bigrams of every CJK run in the query, plus the runs themselves."""
+    out = []
+    for run in _UNSPACED_RE.findall(query or ""):
+        out.append(run)
+        for start in range(len(run) - 1):
+            out.append(run[start:start + 2])
+    return out
 
 
 def _query_tokens(query: str) -> list[str]:
     """Tokenize a task description and expand with GIS synonyms."""
+
+
+
+
+
+
+
+
+
     words = re.findall(r"[a-z]+", (query or "").lower())
     tokens = [w for w in words if w not in _STOPWORDS and len(w) > 2]
     expanded = list(tokens)
     for token in tokens:
         expanded.extend(_SYNONYMS.get(token, []))
+    expanded.extend(_unspaced_tokens(query))
     return list(dict.fromkeys(expanded))
 
 
 def _score_algorithm(tokens: list[str], entry: dict) -> float:
     """Cheap lexical relevance of one catalog entry against query tokens."""
-    name_words = set(re.findall(r"[a-z]+", entry["name"].lower()))
+    name = entry["name"].lower()
+    name_words = set(re.findall(r"[a-z]+", name))
     alg_id = entry["id"].lower()
     tags = entry["tags"]
     desc = entry["description"].lower()
@@ -774,6 +911,10 @@ def _score_algorithm(tokens: list[str], entry: dict) -> float:
             score += 3.0
         elif any(token in w for w in name_words):
             score += 1.5
+        elif token in name:
+
+
+            score += 2.0
         if token in alg_id:
             score += 1.5
         if any(token == tag or token in tag for tag in tags):

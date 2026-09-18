@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import re
 
@@ -24,9 +25,11 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication
 
 from . import ground, tuning
+from .feature_requests import feature_request, first_feature
 from .layer_order import positions as tree_positions
 from .layer_rank import detailed_ids as choose_detailed
 from .layer_rank import fields_named_in, named_in, offset_from_view, rank_layers, view_of
+from .serialization import qt_temporal_text
 
 
 def _cap(name: str, default: int) -> int:
@@ -295,6 +298,13 @@ def extent_is_cheap(layer) -> bool:
 
 def layer_extent_rect(layer, canvas_crs, project) -> dict | None:
     """The layer's extent as a plain rect in the canvas CRS, or None if either is unknown."""
+
+
+
+
+
+
+
     if layer is None or canvas_crs is None or not canvas_crs.isValid():
         return None
     if not extent_is_cheap(layer):
@@ -308,7 +318,8 @@ def layer_extent_rect(layer, canvas_crs, project) -> dict | None:
             transform = QgsCoordinateTransform(layer_crs, canvas_crs, project)
             extent = transform.transformBoundingBox(extent)
         return {"xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
-                "xmax": extent.xMaximum(), "ymax": extent.yMaximum()}
+                "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),
+                "crs": canvas_crs.authid() or ""}
     except Exception:
         return None
 
@@ -332,27 +343,43 @@ def sample_attributes(layer) -> dict | None:
     if source_kind(layer) not in ("memory", "file"):
         return None
     try:
-        feature = next(layer.getFeatures(), None)
-    except Exception:
-        feature = None
-    if feature is None:
-        return None
-    out: dict = {}
-    try:
-        for field, value in zip(layer.fields(), feature.attributes()):
-            if isinstance(value, (bytes, bytearray)) or field.typeName().lower() in ("binary", "blob"):
+        fields = list(layer.fields())
+        eligible = [(index, field) for index, field in enumerate(fields)
+                    if field.typeName().lower() not in ("binary", "blob")]
+        chosen = eligible[:MAX_FIELDS]
+        if not chosen:
+            return None
+        feature = first_feature(layer, feature_request(
+            attributes=[index for index, _field in chosen], geometry=False, limit=1))
+        if feature is None:
+            return None
+        out: dict = {}
+        for index, field in chosen:
+            value = feature[index]
+            if isinstance(value, (bytes, bytearray)):
                 continue
-            if len(out) >= MAX_FIELDS:
-                out["_more_fields"] = len(layer.fields()) - MAX_FIELDS
-                break
+            if type(value).__name__ in ("QDate", "QDateTime", "QTime"):
+                value = qt_temporal_text(value)
             out[field.name()] = str(value)[:MAX_SAMPLE_VALUE_CHARS]
+        if len(eligible) > len(chosen):
+            out["_more_fields"] = len(eligible) - len(chosen)
+        return out or None
     except Exception:
         return None
-    return out or None
 
 
 def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
-    """Width/height of ``rect``, or of a freshly computed one when the caller has none."""
+    """How wide and how tall the layer is, in the layer's own CRS, with that frame named."""
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -361,7 +388,25 @@ def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
         rect = layer_extent_rect(layer, canvas_crs, project)
     if not rect:
         return None
-    return {"width": round(rect["xmax"] - rect["xmin"], 2), "height": round(rect["ymax"] - rect["ymin"], 2)}
+    try:
+        extent = layer.extent()
+        layer_crs = layer.crs()
+        width, height = extent.width(), extent.height()
+
+
+        digits = 6 if layer_crs.isGeographic() else 2
+        out = {"width": round(width, digits), "height": round(height, digits),
+               "crs": layer_crs.authid() or "", "units": crs_units(layer_crs)}
+        centre = extent.center()
+        scale = ground.metres_per_unit(layer_crs, centre.x(), centre.y())
+    except Exception:  # noqa: BLE001 - a size we cannot frame is not given at all
+        return None
+    if ground.distorted(scale):
+
+
+        out["ground_width_m"] = round(width * scale, 1)
+        out["ground_height_m"] = round(height * scale, 1)
+    return out
 
 
 def is_editing(layer) -> bool:
@@ -394,7 +439,7 @@ def _rounded(value) -> float | None:
         number = float(value)
     except (TypeError, ValueError):
         return None
-    if number != number or number in (float("inf"), float("-inf")):
+    if math.isnan(number) or math.isinf(number):
         return None
     return float(f"{number:.6g}")
 
@@ -650,6 +695,73 @@ MAX_LAYOUT_NAMES = 20
 MAX_HISTORY_ENTRIES = 5
 
 
+
+
+
+
+
+
+
+_HISTORY_FULL_S = 600.0
+_history: dict = {"rows": None, "limit": 0, "newest": None, "newest_id": -1, "read_at": 0.0}
+
+
+def _history_row(entry) -> tuple | None:
+    details = getattr(entry, "entry", None) or {}
+    if not isinstance(details, dict):
+        return None
+    algorithm = str(details.get("algorithm_id") or "").strip()
+    if not algorithm:
+        return None
+    params = details.get("parameters")
+    if isinstance(params, dict) and isinstance(params.get("inputs"), dict):
+        params = params["inputs"]
+    stamp = getattr(entry, "timestamp", None)
+    at = stamp.toString("yyyy-MM-dd HH:mm") if stamp is not None and hasattr(stamp, "toString") else ""
+    return (algorithm, params if isinstance(params, dict) else None, at)
+
+
+def _newest_rows(entries, limit: int) -> list[tuple]:
+    rows: list[tuple] = []
+    for entry in reversed(entries):
+        row = _history_row(entry)
+        if row is not None:
+            rows.append(row)
+            if len(rows) >= limit:
+                break
+    return rows
+
+
+def _history_rows(registry, limit: int) -> list[tuple]:
+    """``(algorithm, parameters, at)`` of the newest ``limit`` runs, newest first."""
+    import time
+
+    from qgis.PyQt.QtCore import QDateTime
+
+    now = time.monotonic()
+    cached, newest = _history["rows"], _history["newest"]
+    if (cached is not None and newest is not None and _history["limit"] == limit
+            and now - _history["read_at"] < _HISTORY_FULL_S):
+        fresh = [entry for entry in registry.queryEntries(newest, QDateTime(), "processing")
+                 if getattr(entry, "id", -1) > _history["newest_id"]]
+        if not fresh:
+            return cached
+        rows = (_newest_rows(fresh, limit) + cached)[:limit]
+        entries = fresh
+    else:
+        entries = list(registry.queryEntries(providerId="processing"))
+        rows = _newest_rows(entries, limit)
+        _history["read_at"] = now
+    last = entries[-1] if entries else None
+    last_id = getattr(last, "id", None) if last is not None else None
+    stamp = getattr(last, "timestamp", None) if last is not None else None
+    if isinstance(last_id, int) and stamp is not None:
+        _history.update(rows=rows, limit=limit, newest=QDateTime(stamp), newest_id=last_id)
+    else:
+        _history.update(rows=None, newest=None, newest_id=-1)
+    return rows
+
+
 def _recent_processing() -> list[dict]:
     """The last Processing runs of this QGIS (toolbox, model, or the agent), newest first."""
 
@@ -659,30 +771,18 @@ def _recent_processing() -> list[dict]:
         from qgis.gui import QgsGui
 
         registry = QgsGui.historyProviderRegistry()
-        entries = registry.queryEntries(providerId="processing")
+        rows = _history_rows(registry, _cap("max_history_entries", MAX_HISTORY_ENTRIES))
     except Exception:  # nosec B110 - optional QGIS context
         return []
     out: list[dict] = []
-    names = _layer_names_by_source(QgsProject.instance())
-    for entry in reversed(list(entries)):
-        details = getattr(entry, "entry", None) or {}
-        if not isinstance(details, dict):
-            continue
-        algorithm = str(details.get("algorithm_id") or "").strip()
-        if not algorithm:
-            continue
+    names = _layer_names_by_source(QgsProject.instance()) if rows else {}
+    for algorithm, params, at in rows:
         item: dict = {"algorithm": algorithm}
-        params = details.get("parameters")
-        if isinstance(params, dict) and isinstance(params.get("inputs"), dict):
-            params = params["inputs"]
-        if isinstance(params, dict) and params:
+        if params:
             item["parameters"] = history_parameters(params, names)
-        stamp = getattr(entry, "timestamp", None)
-        if stamp is not None and hasattr(stamp, "toString"):
-            item["at"] = stamp.toString("yyyy-MM-dd HH:mm")
+        if at:
+            item["at"] = at
         out.append(item)
-        if len(out) >= _cap("max_history_entries", MAX_HISTORY_ENTRIES):
-            break
     return out
 
 

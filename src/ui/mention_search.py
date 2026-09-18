@@ -28,28 +28,39 @@
 from __future__ import annotations
 
 import re
+import unicodedata
+from functools import lru_cache
+from itertools import islice
 
-__all__ = ["group_mentions", "layer_rows", "live_mentions", "mentions_for", "plugin_rows",
-           "rank_mentions", "score_mention", "sheet_rows", "short_detail", "source_rows"]
+__all__ = ["FILES", "LAYER", "PLUGIN", "SOURCE", "group_mentions", "layer_rows",
+           "live_mentions", "mentions_for", "plugin_rows", "rank_mentions", "score_mention",
+           "sheet_rows", "short_detail", "source_rows"]
 
 
 
-_SEPARATORS = re.compile(r"[^0-9A-Za-z]+")
+_SEPARATORS = re.compile(r"[\W_]+", re.UNICODE)
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
 NO_MATCH = 99
 
 
-def _words(text: str) -> list[str]:
+@lru_cache(maxsize=2048)
+def _words(text: str) -> tuple[str, ...]:
     out: list[str] = []
     for chunk in _SEPARATORS.split(text or ""):
         if chunk:
             out.extend(part for part in _CAMEL.split(chunk) if part)
-    return out
+    return tuple(out)
+
+
+@lru_cache(maxsize=4096)
+def _fold(text: str) -> str:
+    value = unicodedata.normalize("NFKD", text or "").casefold()
+    return unicodedata.normalize("NFC", "".join(c for c in value if not unicodedata.combining(c)))
 
 
 def _initials(text: str) -> str:
-    return "".join(word[0] for word in _words(text)).lower()
+    return _fold("".join(word[0] for word in _words(text)))
 
 
 def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, int]:
@@ -59,8 +70,8 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
 
 
 
-    q = (query or "").strip().lower()
-    name = (label or "").lower()
+    q = _fold((query or "").strip())
+    name = _fold(label)
     inexact = 0 if name == q else 1
     if not q:
         return (0, 0, 1)
@@ -74,12 +85,15 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
 
     at = 0
     for word in _words(label):
-        at = name.find(word.lower(), at)
+        at = name.find(_fold(word), at)
         if at < 0:
             at = 0
-        if word.lower().startswith(q):
+        if _fold(word).startswith(q):
             return (1, at, inexact)
-        at += len(word)
+
+
+
+        at += len(_fold(word))
 
     if len(q) >= 2:
         acronym = _initials(label)
@@ -87,7 +101,7 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
             return (2, 0, inexact)
 
         for word in _words(group):
-            if word.lower().startswith(q):
+            if _fold(word).startswith(q):
                 return (3, 0, inexact)
 
     if len(q) >= 3:
@@ -107,7 +121,7 @@ def rank_mentions(query: str, items) -> list[dict]:
 
     scored = []
     try:
-        candidates = list(items or [])[:1000]
+        candidates = list(islice(items or (), 1000))
     except TypeError:
         candidates = []
     for index, item in enumerate(candidates):

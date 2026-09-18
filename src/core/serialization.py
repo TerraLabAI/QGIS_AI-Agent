@@ -250,7 +250,8 @@ _NARROWING_NAMED = 4
 
 def narrowing_note(available=None) -> str:
     """What to change to get an answer that fits, named from the tool's own arguments."""
-    names = [a for a in NARROWING_ARGS if a in set(available or ())][:_NARROWING_NAMED]
+    available = set(available or ())
+    names = [a for a in NARROWING_ARGS if a in available][:_NARROWING_NAMED]
     if not names:
         return ("Result cut by the client. This tool takes no argument that makes its answer "
                 "smaller: ask for a narrower thing, or run it over a subset of the data.")
@@ -275,9 +276,10 @@ def _over_transport(kept: dict) -> dict:
 
     if not kept:
         return {}
-    if sum(len(v) for v in kept.values()) <= MAX_UNCAPPED_BYTES // 4:
+    if sum(len(v) for v in kept.values()) <= MAX_UNCAPPED_BYTES // 6:
         return {}
-    sizes = {k: len(v.encode("utf-8", "replace")) for k, v in kept.items()}
+    sizes = {k: len(json.dumps(v, ensure_ascii=False).encode("utf-8", "replace"))
+             for k, v in kept.items()}
     total = sum(sizes.values())
     if total <= MAX_UNCAPPED_BYTES:
         return {}
@@ -319,33 +321,26 @@ def bound_result(result: Any, cap: int | None = None, narrow_with=None) -> tuple
 
     if cap is None:
         cap = result_cap()
-    try:
-        text = dump_json(result)
-    except Exception:  # nosec B110 - a result that cannot dump still has to be answered
-        text = json.dumps(result, default=str)
+    cap = max(0, int(cap))
     kept: dict = {}
     if isinstance(result, dict):
         kept = {k: v for k, v in result.items() if isinstance(v, str) and _UNCAPPED_KEY_RE.search(str(k))}
-    detail = _detail_of(result, kept, text)
     dropped = _over_transport(kept)
     if dropped:
         result = {k: dropped.get(k, v) for k, v in result.items()}
         kept = {k: v for k, v in kept.items() if k not in dropped}
-        try:
-            text = dump_json(result)
-        except Exception:  # nosec B110 - a result that cannot dump still has to be answered
-            text = json.dumps(result, default=str)
-    if len(text) <= cap:
-        return result, detail, text
-    if kept:
-        rest = {k: v for k, v in result.items() if k not in kept}
+    rest = {k: v for k, v in result.items() if k not in kept} if kept else result
+    try:
         text = dump_json(rest)
-        if len(text) <= cap:
-            return result, detail, None
+    except Exception:  # nosec B110 - a result that cannot dump still has to be answered
+        text = json.dumps(rest, default=str)
+    detail = _detail_of(result, kept, text)
+    if len(text) <= cap:
+        return result, detail, None if kept else text
     head = int(cap * _HEAD_SHARE)
     tail = cap - head
     truncated = {"_truncated": True, "total_chars": len(text), "cut_chars": len(text) - cap,
-                 "head": text[:head], "tail": text[-tail:],
+                 "head": text[:head], "tail": text[-tail:] if tail else "",
                  "note": narrowing_note(narrow_with)}
     truncated.update(kept)
     return truncated, detail, None

@@ -22,6 +22,7 @@ import urllib.request
 from qgis.core import QgsDataSourceUri, QgsProject, QgsRasterLayer, QgsUnitTypes, QgsVectorLayer, QgsWkbTypes
 
 from ..core import net
+from ..core.links import host_is
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import stac_tools as _stac
 from . import volume_guard
@@ -346,7 +347,7 @@ def _asset_row(key: str, asset: dict) -> dict:
     for key_in, key_out in extras:
         if asset.get(key_in) is not None:
             row[key_out] = asset[key_in]
-    if "blob.core.windows.net" in href and "sig=" not in href.lower():
+    if host_is(href, "blob.core.windows.net") and "sig=" not in href.lower():
         row["needs_signing"] = True
     return row
 

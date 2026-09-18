@@ -885,6 +885,82 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Toestaan / Weigeren</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Voor: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Gewijzigd: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Knop voor chatgeschiedenis</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Knop voor nieuwe chat</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Geen voorbeelden komen overeen</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Nu</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Verzoek {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>Het project na dit verzoek</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>Het project vóór het eerste verzoek</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>Het project vóór dit verzoek</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Deze laag staat niet meer in het project.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>na verzoek {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>na “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vóór verzoek {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>verzoek {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>het begin van deze chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>je eigen wijzigingen</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Open het paneel met Ctrl+Alt+A, of typ "ai" gevolgd door een vraag in de locatorbalk (Ctrl+K). Klik met de rechtermuisknop op een laag, een object of de kaart om er een vraag over te stellen.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent van TerraLab is je AI-agent in QGIS: het laadt gegevens, stijlt layers, voert analyses uit en maakt layouts. Het vraagt toestemming vóór risicovolle wijzigingen en je kunt een run ongedaan maken.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS-thema gewijzigd. Herlaad AI Agent of herstart QGIS zodat het paneel volgt.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Open het AI Agent-paneel: vraag om iets in QGIS en het voert het werk uit.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>De agent wacht op je goedkeuring.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Je AI-agent in QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Registreren is gratis en duurt 15 seconden in je browser.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Je AI-agent in QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>stopped</source>
             <translation>gestopt</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} van {total} zijn mislukt</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agent</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Ongedaan gemaakt</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>Geen laag, object of bestand gewijzigd</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>Volgorde van layers of groepen gewijzigd</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Dit punt hoort bij het project {name}. Open dat project om ernaar terug te gaan.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer in het project</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Terug naar {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Kon niet volledig teruggaan naar {point}. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Geen resultaten</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Niet verbonden met de agentservice, dus er is niets verzonden. Er wordt nu opnieuw verbinding gemaakt: je bericht blijft behouden en met Opnieuw proberen wordt het verzonden zodra de verbinding is hersteld.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>De toestemmingsmodus is gewijzigd. Deze is van toepassing vanaf de volgende actie.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>De toestemmingsmodus is gewijzigd. Deze is van toepassing vanaf de volgende actie; de geopende kaart heeft nog steeds je antwoord nodig.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>Het bericht kon niet worden verzonden: de verbinding met de agentservice is verbroken.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>na verzoek {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>na “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vóór verzoek {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vóór “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>gegevens teruggezet in {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>het begin van deze chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>je eigen wijzigingen</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layers in het project</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Geef de AI-agent een taak in QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Lang gesprek: oudere berichten worden vanaf hier ingeklapt. Start een nieuw gesprek voor een nieuw onderwerp (+ in de kop).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Conversatie gecomprimeerd</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>De agent houdt een samenvatting van de eerdere uitwisselingen bij. Je berichten blijven zichtbaar.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Blijf werken met Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n stappen</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 stap</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Er kon niets aan die drop worden toegevoegd.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Opnieuw: vooruit naar {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>Het bericht kon niet worden verzonden. Het staat hier nog; probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Ongedaan maken: terug naar {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Wachten op je goedkeuring: kies hieronder Toestaan of Weigeren.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>Er wordt niets verwijderd. Je kunt altijd terugkomen.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Terug naar het project zoals het was vóór het eerste verzoek</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>de grootste</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>De verbinding is hersteld. Je bericht is verzonden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Niet verbonden met de agentservice. Druk om het nu opnieuw te proberen; je bericht blijft behouden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Niet verbonden met de agentservice. Er wordt nu opnieuw verbinding gemaakt.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Niet verbonden met de agentservice. Er wordt opnieuw verbinding gemaakt; typ maar, het wordt verzonden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Niet verbonden met de agentservice. Je bericht blijft hier en wordt verzonden zodra de verbinding is hersteld.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Druk om het nu opnieuw te proberen; je bericht blijft behouden.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Typ maar, het wordt verzonden.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Opnieuw verbinding maken met de agentservice. Je bericht blijft hier en wordt verzonden zodra de verbinding is hersteld.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Verbinding opnieuw proberen</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Enable</source>
             <translation>Inschakelen</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Geen connectors komen overeen</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Unlock with Pro</source>
             <translation>Ontgrendelen met Pro</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>Inspanningsniveau kan worden gewijzigd nadat deze run is voltooid</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Wijzigingen van de agent ongedaan maken: terug naar een eerdere staat van dit project</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Bekijk wat Pro ontgrendelt</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>door TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>Niet in het project</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Minder regels tonen</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>expressie</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} runs per maand, hogere inspanningsniveaus en Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} uitvoeringen per maand en hogere inspanningsniveaus.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Dit gaat terug naar de oudste nog bewaarde status, niet naar het allereerste begin: de eerdere zijn gewist om schijfruimte te besparen.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Teruggaan naar {point}? Je eigen wijzigingen sindsdien gaan verloren.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Persoonlijk, niet-commercieel gebruik</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Upgraden</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4963,6 +5265,10 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} objecten. Klik om deze te selecteren in het Lagen-paneel.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Deze laag staat niet meer in het project.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5275,6 +5581,43 @@ Klik om deze te tonen in het Lagen-paneel.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>Wat QGIS aantrof toen het resultaat opnieuw werd ingelezen. Klik om het te lezen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Datasetpagina</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Datum onbekend</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Live, geladen op {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Je eigen bestand</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Je eigen bron</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verifiëren</translation>
         </message>
     </context>
 </TS>

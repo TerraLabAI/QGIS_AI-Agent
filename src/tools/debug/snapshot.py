@@ -562,7 +562,7 @@ def _ui_fingerprint() -> str:
                     break
             except Exception:  # nosec B112 - the debug report reads what answers and skips what does not
                 continue
-    return hashlib.md5("\n".join(parts).encode("utf-8", "ignore")).hexdigest()  # nosec B324 - a fingerprint
+    return hashlib.sha256("\n".join(parts).encode("utf-8", "ignore")).hexdigest()
 
 
 def _check_no_progress(action: str, widget, args: dict, extra: str = ""):
@@ -691,7 +691,6 @@ def _wait_actionable(widget, action: str, timeout_ms: int):
     _v, _e, need_stable, need_receives, _ed = reqs
     deadline = time.monotonic() + max(timeout_ms, 0) / 1000.0
     last_rect = None
-    last_fail = "unknown"
     notes: dict = {}
     scrolled = False
     while True:

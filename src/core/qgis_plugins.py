@@ -129,7 +129,7 @@ def _metadata_of(directory: str) -> dict[str, str]:
     return dict(meta)
 
 
-_WARMED = False
+_WARM = {"started": False}
 
 
 def warm_metadata() -> None:
@@ -141,10 +141,9 @@ def warm_metadata() -> None:
 
 
 
-    global _WARMED
-    if _WARMED:
+    if _WARM["started"]:
         return
-    _WARMED = True
+    _WARM["started"] = True
     roots = _plugin_dirs()
 
     def parse() -> None:
@@ -294,6 +293,8 @@ def _search_menu_bar(names: list[str], menu, depth: int = 0):
         actions = list(menu.actions())
     except Exception:  # noqa: BLE001
         return None
+    top_level = depth == 0
+    descend = depth < 2
     for action in actions:
         try:
             submenu = action.menu()
@@ -302,11 +303,11 @@ def _search_menu_bar(names: list[str], menu, depth: int = 0):
             continue
         if submenu is None or not title:
             continue
-        if not (depth == 0 and title in _QGIS_MENUS) and len(title) >= 4:
+        if not (top_level and title in _QGIS_MENUS) and len(title) >= 4:
             for name in names:
                 if title == name or title in name or name in title:
                     return submenu
-        if depth < 2:
+        if descend:
             found = _search_menu_bar(names, submenu, depth + 1)
             if found is not None:
                 return found

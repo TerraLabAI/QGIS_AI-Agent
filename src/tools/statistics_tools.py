@@ -16,6 +16,7 @@ a person cannot skip. What this tool must not do is quietly accept a table it ca
 The source, the year and the licence arrive with the layer and are written into its metadata and
 its attribution, because a choropleth with no source is not evidence of anything.
 """
+import difflib  # noqa: E402
 import json  # noqa: E402
 import re  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -87,9 +88,13 @@ def _numeric_domain_error(layer, field: str) -> dict | None:
     index = layer.fields().indexOf(field)
     try:
         if not layer.fields().at(index).isNumeric():
+            numeric = [f.name() for f in layer.fields() if f.isNumeric()]
             return {"_error": f"{field!r} is not a numeric field, so it cannot be graduated.",
                     "code": "INVALID_ARGS",
-                    "fields": [f.name() for f in layer.fields() if f.isNumeric()]}
+                    "fields": numeric,
+                    "suggestion": (f"Pass value_field={numeric[0]!r}, or one of the other numeric fields listed "
+                                   "in 'fields'." if numeric else
+                                   "This table carries no numeric column, so no choropleth can be built from it.")}
     except Exception:  # nosec B110 - a provider that cannot describe the field is judged on values
         pass
     values = layer.uniqueValues(index, 2)
@@ -108,8 +113,14 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
         return {"_error": "The statistics layer could not be read as a vector layer.",
                 "code": "EXECUTION_FAILED"}
     if layer.fields().indexOf(field) < 0:
-        return {"_error": f"The layer carries no field named {field!r}.", "code": "INVALID_ARGS",
-                "fields": [f.name() for f in layer.fields()]}
+        names = [f.name() for f in layer.fields()]
+        close = difflib.get_close_matches(field, names, n=3, cutoff=0.5)
+        return {"_error": (f"The layer carries no field named {field!r}."
+                           + (f" Did you mean {close[0]!r}?" if close else "")),
+                "code": "INVALID_ARGS",
+                "fields": names,
+                "suggestion": (f"Call it again with value_field={close[0]!r}." if close else
+                               "Use one of the names in 'fields' as value_field.")}
     if layer.featureCount() == 0:
         return {"_error": "The statistics layer is empty, so nothing was added.",
                 "code": "EXECUTION_FAILED"}

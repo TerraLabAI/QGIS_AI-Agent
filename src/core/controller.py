@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-import platform
-
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
@@ -26,26 +24,16 @@ from .controller_frames import _ControllerFrames
 from .controller_offers import _ControllerOffers
 from .controller_projects import _ControllerProjects
 from .controller_runs import _ControllerRuns
-from .controller_shared import (  # noqa: F401 - moved here, re-exported for the callers of controller
+from .controller_shared import (
     _DIFF_SETTLE_MS,
-    BUSY_RESEND_MS,
-    BUSY_RESENDS,
     CANCEL_GRACE_MS,
-    CONTINUE_TEXT,
-    MAX_AGENT_TEXT,
-    PROPOSAL_MAX_ROWS,
-    PROPOSAL_TOOLS,
     RESUME_GRACE_S,
-    RESUME_OUTCOME_MS,
     RETRY_MEMORY,
-    RUN_PROJECTS_KEPT,
     RUN_SILENCE_S,
-    SENDING_RECHECK_MS,
-    _dump_context,
-    strip_followups,
     tr,
 )
 from .executor import ToolExecutor
+from .host_platform import os_label
 from .logger import log, log_warning
 from .plan import autopilot_allowed, effort_allowed
 from .protocol import Approval, Effort, RunStatus
@@ -56,11 +44,17 @@ from .telemetry_errors import report_exception
 from .threads import ThreadStore
 
 
+__all__ = ["AgentController", "CANCEL_GRACE_MS", "RESUME_GRACE_S", "RUN_SILENCE_S"]
+
+
 class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _ControllerOffers,
                       _ControllerAccount, PanelActionsMixin, QObject):
     layer_action_requested = pyqtSignal(str, str)
     settings_requested = pyqtSignal()
     notice = pyqtSignal(str, str)
+
+
+    approval_waiting = pyqtSignal(bool)
 
     def __init__(self, iface, panel, registry, settings: Settings | None = None,
                  account: Account | None = None, parent=None, *, session=None, executor=None, store=None):
@@ -168,6 +162,13 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             timer.stop()
 
         self._executor.cancel_background()
+
+
+        if getattr(self._account, "state", None) == getattr(Account, "PAIRING", object()):
+            try:
+                self._account.cancel_pairing()
+            except Exception as exc:  # noqa: BLE001 - an unload never stops on the sign-in
+                log_warning(f"Sign-in poll not cancelled on unload: {exc}")
         run = self._run
         if run is not None and not run.get("cancelled"):
 
@@ -209,11 +210,12 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         except Exception:
             qgis_version = ""
         return {"plugin_version": plugin_version(), "qgis_version": qgis_version,
-                "os": f"{platform.system()} {platform.release()}".strip(), "locale": self._settings.locale}
+                "os": os_label(), "locale": self._settings.locale}
 
     def _manifest(self) -> tuple:
         if self._manifest_cache is None:
-            self._manifest_cache = (self._registry.manifest_hash(), self._registry.manifest())
+            manifest = self._registry.manifest()
+            self._manifest_cache = (self._registry.manifest_hash(manifest), manifest)
         return self._manifest_cache
 
 
@@ -240,7 +242,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             if name in self._failed_slots:
                 return
             self._failed_slots.add(name)
-            report_exception(exc, "panel_slot", module=type(self._panel).__module__)
+            report_exception(exc, "panel_slot", module=type(self._panel).__module__, slot=name)
 
     def _connect_optional(self, name: str, slot) -> None:
         """A signal a newer panel has and an older one may not: no warning when absent."""
@@ -286,6 +288,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("attachment_added", self._on_attachment_added)
         self._connect("dashboard_requested", lambda: log("Dashboard opened from the panel"))
         self._connect("upgrade_requested", self._on_upgrade_requested)
+        self._connect_optional("pro_pill_requested", self._on_pro_pill_requested)
         self._connect_optional("reconnect_requested", self._on_reconnect_requested)
         self._connect("help_requested", self._on_help_requested)
         self._connect("open_settings_requested", self.settings_requested)
@@ -314,6 +317,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         s.status_line.connect(self._on_status_line)
         s.sources.connect(self._on_sources)
         s.counts.connect(self._on_counts)
+        if hasattr(s, "server_tool"):
+            s.server_tool.connect(self._on_server_tool)
+        if hasattr(s, "connection_failed"):
+            s.connection_failed.connect(self._on_connection_failed)
 
     def _wire_executor(self) -> None:
         e = self._executor

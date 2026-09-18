@@ -13,8 +13,8 @@
 from __future__ import annotations
 
 from ..font_scale import scale_qss_font_px
-from ..style import FONT_BASE, FONT_BODY, FONT_HINT, FONT_MICRO, HAIRLINE, MUTED, RADIUS_CARD
-from ..styles import BRAND_BLUE, BRAND_GREEN, WARNING_TEXT
+from ..style import ACCENT, FONT_BASE, FONT_BODY, FONT_HINT, FONT_MICRO, HAIRLINE, MUTED, RADIUS_CARD
+from ..styles import BRAND_BLUE, WARNING_TEXT
 from ..use_cases import group_accent, group_glyph
 
 
@@ -33,7 +33,7 @@ COLUMNS = 2
 
 GROUP_ACCENTS = {
     "explore": BRAND_BLUE,
-    "map": BRAND_GREEN,
+    "map": ACCENT,
     "analyse": WARNING_TEXT,
     "terrain": "#8d6e63",
     "share": "#c96a8c",
@@ -76,8 +76,8 @@ def glyph_of(group: str) -> str:
 CARD_QSS = scale_qss_font_px(
     f"QFrame#exampleCard {{ background: palette(base); border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#exampleCard:hover {{ border-color: rgba(139, 172, 39, 0.45);"
-    " background: rgba(139, 172, 39, 0.06); }"
+    f"QFrame#exampleCard:hover {{ border-color: rgba(67, 160, 71, 0.45);"
+    " background: rgba(67, 160, 71, 0.06); }"
     f"QLabel#cardTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
     " background: transparent; }"
     f"QLabel#cardNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}"
@@ -92,7 +92,7 @@ DIALOG_QSS = scale_qss_font_px(
     f" border: 1px solid {HAIRLINE}; border-radius: 8px; padding: 6px 10px;"
     f" font-size: {FONT_BASE}px; color: palette(text);"
     " selection-background-color: rgba(128,128,128,0.35); }"
-    "QLineEdit#librarySearch:focus { border-color: rgba(139, 172, 39, 0.45); }"
+    "QLineEdit#librarySearch:focus { border-color: rgba(67, 160, 71, 0.45); }"
     f"QLabel#libraryEmpty {{ font-size: {FONT_BASE}px; color: {MUTED};"
     " padding: 40px 12px; background: transparent; }"
     f"QLabel#librarySection {{ font-size: {FONT_HINT}px; font-weight: 600; color: {MUTED};"

@@ -362,6 +362,15 @@ def _draw_undo(p: QPainter, c: QColor) -> None:
     p.drawPolyline(QPolygonF([QPointF(9, 5.5), QPointF(6, 8.5), QPointF(9, 11.5)]))
 
 
+def _draw_redo(p: QPainter, c: QColor) -> None:
+    """Take it again: the undo arrow, mirrored."""
+    p.save()
+    p.translate(BOX, 0)
+    p.scale(-1, 1)
+    _draw_undo(p, c)
+    p.restore()
+
+
 def _draw_file(p: QPainter, c: QColor) -> None:
     """A file on disk: a sheet with its corner turned."""
     p.setPen(_pen(c, 1.5))
@@ -1230,6 +1239,7 @@ _GLYPHS = {
     "paperclip": _draw_paperclip,
     "spark": _draw_spark,
     "undo": _draw_undo,
+    "redo": _draw_redo,
     "gear": _draw_gear,
     "file": _draw_file,
     "image": _draw_image,
@@ -1416,7 +1426,12 @@ def theme_pixmap(widget, name: str, size: int = 18) -> QPixmap | None:
             physical = max(1, int(round(size * ratio)))
             candidate = icon.pixmap(physical, physical)
             if not candidate.isNull():
-                candidate.setDevicePixelRatio(ratio)
+
+
+
+
+                side = max(candidate.width(), candidate.height())
+                candidate.setDevicePixelRatio(max(1.0, side / float(size)))
                 pixmap = candidate
     except Exception:  # noqa: BLE001 - any QGIS build must keep the panel alive
         pixmap = None
@@ -1490,3 +1505,20 @@ def spinner_frames(color: QColor, size: int = 14, count: int = 12, ratio: float 
 
 def icon_size(size: int = 20) -> QSize:
     return QSize(size, size)
+
+
+
+
+def _draw_float_window(p: QPainter, c: QColor) -> None:
+    """Dock or undock the panel: a window over the one behind it."""
+    p.setPen(_pen(c, 1.5))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawPolyline(QPolygonF([QPointF(7.5, 5.5), QPointF(7.5, 4.8),
+                              QPointF(15.2, 4.8), QPointF(15.2, 12.5),
+                              QPointF(14.5, 12.5)]))
+    p.drawRoundedRect(QRectF(4.8, 7.5, 7.7, 7.7), 1.4, 1.4)
+
+
+_GLYPHS["float_window"] = _draw_float_window
+
+ICON_NAMES = tuple(_GLYPHS)

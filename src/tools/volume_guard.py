@@ -200,6 +200,13 @@ HOSTED_INSTEAD = (
 
 
 
+CLIP_TO_HINT = (" For a named place, fetch_overture with the theme and clip_to the place reads up to 12 such "
+                "clips along its outline.")
+
+
+
+
+
 
 
 
@@ -220,7 +227,9 @@ HOSTED_CAPS = {
     "routes": (5000.0, 3.0),
     "transit_stops": (2000.0, 2.0),
     "protected_areas": (5000.0, 3.0),
-    "divisions": (20000.0, 3.0),
+
+
+    "divisions": (30_000_000.0, 60.0),
 }
 
 
@@ -368,23 +377,22 @@ def _holds(value, only, left_out) -> bool:
 
 _SHIPPED = _Routing(SHIPPED_ROUTING)
 
-_served: tuple = (None, _SHIPPED)
+_served: dict = {"pair": (None, _SHIPPED)}
 
 
 def _routing() -> _Routing:
     """The served routing document once `core/tuning` accepted one, else the shipped one."""
-    global _served
     doc = tuning.service_doc("osm_routing")
     if doc is None:
         return _SHIPPED
-    seen, tables = _served
+    seen, tables = _served["pair"]
     if seen is not doc:
         try:
             tables = _Routing(doc)
         except (KeyError, TypeError, AttributeError) as exc:
             log_warning(f"Served osm_routing could not be read ({exc}), the shipped routing stays")
             tables = _SHIPPED
-        _served = (doc, tables)
+        _served["pair"] = (doc, tables)
     return tables
 
 
@@ -534,6 +542,16 @@ def _selector(raw: str, routing: _Routing):
     return key.lower(), parts
 
 
+
+
+
+
+
+
+
+_OSM_ONLY = {"roads": {"subtype": "road", "source": "OpenStreetMap"}}
+
+
 def _statement_filter(theme: str, selectors: list, routing: _Routing):
     """The filter the tiles read for one statement, or None when not covered."""
     if theme == "roads":
@@ -543,7 +561,7 @@ def _statement_filter(theme: str, selectors: list, routing: _Routing):
         for key, _ in selectors:
             if key != "highway":
                 return None
-        wanted: dict = {"subtype": "road"}
+        wanted: dict = dict(_OSM_ONLY["roads"])
         for _, values in selectors:
             if values is None:
                 continue
@@ -624,6 +642,10 @@ def _merge_filters(base: dict, filters: list):
     return merged
 
 
+
+OSM_SOURCE = "OpenStreetMap"
+
+
 def hosted_plan(query) -> list:
     """``[(theme, filter), ...]`` when TerraLab's tiles cover the whole query, else []."""
 
@@ -685,10 +707,17 @@ def hosted_plan(query) -> list:
         return []
     plan = []
     for theme in order:
-        base = {"subtype": "road"} if theme == "roads" else {}
+        base = dict(_OSM_ONLY.get(theme, {}))
         merged = _merge_filters(base, filters[theme])
         if merged is None:
             return []
+        if theme == "buildings":
+
+
+
+
+            merged = ([dict(one, source=OSM_SOURCE) for one in merged] if isinstance(merged, list)
+                      else dict(merged, source=OSM_SOURCE))
         plan.append((theme, merged))
     return plan
 
@@ -844,7 +873,10 @@ def hard_cap_km2(name: str, args: dict) -> float:
 
 
 
-FIT_MARGIN = 0.95
+
+
+
+FIT_MARGIN = limits.FIT_MARGIN
 
 
 
@@ -895,20 +927,7 @@ def clamp_to_cap(name: str, args: dict) -> dict:
 
 def largest_fitting_bbox(box, hard: float):
     """The bbox of *box* shrunk about its centre to just under *hard* km2."""
-    try:
-        south, west, north, east = (float(v) for v in box)
-        area = float(limits.bbox_km2(south, west, north, east))
-        hard = float(hard)
-    except (TypeError, ValueError):
-        return None
-    if hard <= 0 or area <= 0 or area <= hard:
-        return None
-    scale = (hard * FIT_MARGIN / area) ** 0.5
-    mid_lat, mid_lon = (south + north) / 2.0, (west + east) / 2.0
-    half_lat = (north - south) / 2.0 * scale
-    half_lon = (east - west) / 2.0 * scale
-    return (round(mid_lat - half_lat, 5), round(mid_lon - half_lon, 5),
-            round(mid_lat + half_lat, 5), round(mid_lon + half_lon, 5))
+    return limits.shrink_bbox(box, hard, FIT_MARGIN)
 
 
 def fitting_zone(args: dict, hard: float) -> dict:
@@ -962,6 +981,17 @@ ZONE_ARGUMENTS = (
 )
 
 
+
+
+
+
+
+CONFIRM_ARGUMENTS = (
+    "Say {area:,.1f} km² to the user, get a yes, then call again with confirm_area_km2={area:.1f} "
+    "and the same bbox. Under {quiet:.0f} km² here no yes is needed. One zone is one call, never tiled."
+)
+
+
 def _num(value) -> float | None:
     try:
         if isinstance(value, bool):
@@ -993,6 +1023,25 @@ def bbox_of(args: dict) -> tuple[float, float, float, float] | None:
     if north <= south or east <= west:
         return None
     return (south, west, north, east)
+
+
+def not_degrees(west, south, east, north) -> str:
+    """The refusal sentence for a box whose numbers cannot be EPSG:4326 degrees, or ""."""
+
+
+
+
+
+
+    try:
+        west, south, east, north = (float(v) for v in (west, south, east, north))
+    except (TypeError, ValueError):
+        return ""
+    if -180 <= west <= 180 and -180 <= east <= 180 and -90 <= south <= 90 and -90 <= north <= 90:
+        return ""
+    return (f"bbox west={west:g}, south={south:g}, east={east:g}, north={north:g} is not in EPSG:4326 degrees "
+            "(longitude -180 to 180, latitude -90 to 90): these look like projected metres. Transform the box "
+            "to degrees first, or name the place.")
 
 
 def _canvas_bbox() -> tuple[float, float, float, float] | None:
@@ -1116,7 +1165,8 @@ def check(name: str, args: dict) -> dict:
                 fit = fitting_zone(args, hosted_cap)
                 return {
                     "error": (f"Zone too large for one {name} call: {area:,.1f} km², and TerraLab's tiles "
-                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² in one call." + LIFT_HINT),
+                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² in one call."
+                              + CLIP_TO_HINT + LIFT_HINT),
 
 
 
@@ -1143,7 +1193,16 @@ def check(name: str, args: dict) -> dict:
                               if dense and hard == own_overpass_max_km2() else
                               f"Zone too large for one {name} call: {area:,.1f} km², the cap for "
                               f"{'dense features' if dense else 'a fetch'} is {hard:.0f} km². Loading it "
-                              "would take minutes and leave a layer QGIS cannot draw."),
+                              "would take minutes and leave a layer QGIS cannot draw.")
+
+
+
+
+
+
+
+
+                             + ("" if provider else LIFT_HINT),
 
 
 
@@ -1162,13 +1221,20 @@ def check(name: str, args: dict) -> dict:
                 }
             if area > quiet:
                 if not (_confirmed(args, area) or _confirmed(args, asked)):
-                    if _num(args.get("confirm_area_km2")) is None:
+                    if _num(args.get("confirm_area_km2")) is None and not args.get("confirm_large"):
                         return {
                             "error": (f"{name} over {area:,.1f} km² loads more than a district's worth of "
                                       f"{'dense ' if dense else ''}features, and the user has not been told the size."),
-                            "suggestion": ZONE_ARGUMENTS.format(quiet=quiet),
+
+
+
+
+                            "suggestion": CONFIRM_ARGUMENTS.format(area=area, quiet=quiet),
                             "code": limits.CEILING_CODE,
                         }
+
+
+
 
 
 

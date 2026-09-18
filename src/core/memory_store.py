@@ -33,13 +33,13 @@
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import locale
 import os
 import re
 
 from .host_platform import retry_file_op
+from .writeback import write_atomic
 
 
 
@@ -130,6 +130,8 @@ def write_notes(notes: list) -> bool:
         os.makedirs(notes_dir, exist_ok=True)
         wanted = {}
         for note in notes:
+            if not isinstance(note, dict):
+                continue
             note_id = str(note.get("id") or "")
             if not _SAFE_ID.match(note_id) or not _note_text(note):
                 continue
@@ -139,7 +141,7 @@ def write_notes(notes: list) -> bool:
                 _remove(os.path.join(notes_dir, name))
         for note_id, note in wanted.items():
             _write(os.path.join(notes_dir, note_id + ".md"), _front(note) + _note_text(note) + "\n")
-        lines = [_index_line(note) for note in notes if str(note.get("id") or "") in wanted]
+        lines = [_index_line(note) for note in wanted.values()]
         body = _INDEX_HEADER + "\n" + ("\n".join(lines) if lines else "_No notes yet._") + "\n"
         _write(os.path.join(root, _INDEX), body)
         _write(os.path.join(root, _DIGEST), digest(notes) + "\n")
@@ -169,6 +171,8 @@ def read_notes() -> list | None:
             if not name.endswith(".md") or not _SAFE_ID.match(name[:-3]):
                 continue
             path = os.path.join(notes_dir, name)
+            if os.path.islink(path) or not os.path.isfile(path):
+                return None
             size = os.path.getsize(path)
             total += size
             if total > STORE_MAX_BYTES:
@@ -205,7 +209,7 @@ def _parse(path: str, note_id: str) -> dict | None:
     if not text:
         return None
     return {
-        "id": front.get("id") or note_id,
+        "id": note_id,
         "text": text,
         "kind": front.get("kind", ""),
         "scope": front.get("scope", ""),
@@ -231,10 +235,19 @@ def _read(path: str) -> str:
             raw = handle.read(NOTE_FILE_MAX_BYTES)
     except Exception:  # noqa: BLE001 - a missing or unreadable file reads as nothing
         return ""
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff"):
+
+        return raw.decode("utf-16", errors="replace")
     try:
         return raw.decode("utf-8-sig")
     except UnicodeDecodeError:
-        return raw.decode(locale.getpreferredencoding(False) or "utf-8", errors="replace")
+
+
+
+
+        encoding = "mbcs" if os.name == "nt" else (
+            locale.getpreferredencoding(False) or "utf-8")
+        return raw.decode(encoding, errors="replace")
 
 
 def _write(path: str, body: str) -> None:
@@ -244,15 +257,21 @@ def _write(path: str, body: str) -> None:
 
 
 
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as handle:
-        handle.write(body)
-    try:
-        retry_file_op(os.replace, tmp, path)
-    except OSError:
-        with contextlib.suppress(OSError):
-            os.remove(tmp)
-        raise
+
+
+
+
+
+    expected = body.encode("utf-8")
+    if not os.path.islink(path):
+        try:
+            with open(path, "rb") as handle:
+                held = handle.read(2 * len(expected) + 2)
+            if held.replace(b"\r\n", b"\n") == expected.replace(b"\r\n", b"\n"):
+                return
+        except OSError:
+            pass
+    write_atomic(path, body)
 
 
 def _remove(path: str) -> None:
@@ -266,6 +285,6 @@ def _remove(path: str) -> None:
 
 
     try:
-        os.remove(path)
+        retry_file_op(os.remove, path)
     except FileNotFoundError:
         return

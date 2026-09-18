@@ -450,7 +450,8 @@ def _add_xyz_layer(args: dict) -> dict:
 
     if _looks_like_xyz_url(source):
         return (_withdrawn_basemap(source)
-                or _build_raw_xyz(source, name or "XYZ Tiles", 19, 0, source))
+                or _build_raw_xyz(source, name or "XYZ Tiles", _raw_zmax(source, args.get("zmax")),
+                                  _raw_zmin(args.get("zmin")), source))
 
 
     presets = catalog.basemaps()
@@ -472,7 +473,6 @@ def _add_xyz_layer(args: dict) -> dict:
 VECTOR_TILE_EXTENSIONS = (".pbf", ".mvt")
 
 _CACHE_STYLE_S = 3600
-_MAX_STYLE_BYTES = 8 * 1024 * 1024
 
 
 def _fetch_gl_style(url: str):
@@ -732,6 +732,32 @@ def _zoom_range(args: dict) -> tuple[int, int]:
 
 def _looks_like_xyz_url(source: str) -> bool:
     return "{z}" in source and "{x}" in source and "{y}" in source
+
+
+
+
+
+
+
+_GIBS_LEVEL_RE = re.compile(r"GoogleMapsCompatible_Level(\d{1,2})\b")
+
+
+def _raw_zmax(url: str, asked=None) -> int:
+    """The deepest zoom a raw template serves: the caller's, the level GIBS names, or 19."""
+    try:
+        if asked is not None and 0 <= int(asked) <= 24:
+            return int(asked)
+    except (TypeError, ValueError):
+        pass
+    found = _GIBS_LEVEL_RE.search(str(url or ""))
+    return int(found.group(1)) if found else 19
+
+
+def _raw_zmin(asked=None) -> int:
+    try:
+        return int(asked) if asked is not None and 0 <= int(asked) <= 24 else 0
+    except (TypeError, ValueError):
+        return 0
 
 
 def _build_raw_xyz(url: str, name: str, zmax, zmin, source_label: str, attribution: str = "") -> dict:

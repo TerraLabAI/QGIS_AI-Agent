@@ -20,9 +20,10 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QApplication, QFrame, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
+from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
 from .style import ACCENT, INK_2, LINE_STRONG, RADIUS_CARD, SURFACE
 
 
@@ -57,10 +58,12 @@ def place_above(popover: QWidget, anchor: QWidget, panel: QWidget | None, width:
     top_left = anchor.mapToGlobal(QPoint(0, 0))
     x = _anchored_x(top_left, panel, width)
     y = top_left.y() - popover.height() - 6
-    screen = QApplication.screenAt(top_left) if hasattr(QApplication, "screenAt") else None
-    if screen is not None and y < screen.availableGeometry().top():
+    area = screen_area_at(top_left, anchor)
+    if area is not None and y < area.top():
         y = top_left.y() + anchor.height() + 6
-    popover.move(QPoint(x, y))
+
+
+    popover.move(QPoint(*keep_on_screen(x, y, width, popover.height(), area)))
 
 
 def place_below(popover: QWidget, anchor: QWidget, panel: QWidget | None, width: int) -> None:
@@ -73,16 +76,15 @@ def place_below(popover: QWidget, anchor: QWidget, panel: QWidget | None, width:
     top_left = anchor.mapToGlobal(QPoint(0, 0))
     x = _anchored_x(top_left, panel, width)
     y = top_left.y() + anchor.height() + 6
-    screen = QApplication.screenAt(top_left) if hasattr(QApplication, "screenAt") else None
-    if screen is not None:
-        bottom = screen.availableGeometry().bottom()
+    area = screen_area_at(top_left, anchor)
+    if area is not None:
+        bottom = area.bottom()
         if y + popover.height() > bottom:
             above = top_left.y() - popover.height() - 6
 
 
-            y = above if above >= screen.availableGeometry().top() else max(
-                screen.availableGeometry().top(), bottom - popover.height())
-    popover.move(QPoint(x, y))
+            y = above if above >= area.top() else max(area.top(), bottom - popover.height())
+    popover.move(QPoint(*keep_on_screen(x, y, width, popover.height(), area)))
 
 
 class AttachPopover(QFrame):
@@ -93,6 +95,7 @@ class AttachPopover(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        round_popup_corners(self)
         self.setObjectName("attachPopover")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_SHEET_QSS)
@@ -146,6 +149,10 @@ class AttachPopover(QFrame):
         super().resizeEvent(event)
         for row in self._rows:
             row._elide()
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_styled_ground(self)
+        super().paintEvent(event)
 
 
 

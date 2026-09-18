@@ -17,6 +17,8 @@ from ..core.geometry_budget import VertexBudget
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import vector_write
+from .layer_lookup import _find_layer, _layer_not_found_error
 
 
 
@@ -169,22 +171,42 @@ def register_feature_tools(registry: ToolRegistry):
 
 
 def _find_vector_layer(name_or_id: str):
-    """Find vector layer by ID first, then by name."""
+    """Find vector layer by ID first, then through the shared name matcher."""
 
 
 
 
 
-    layer = QgsProject.instance().mapLayer(name_or_id)
-    if layer and isinstance(layer, QgsVectorLayer):
-        return layer
-    layers = QgsProject.instance().mapLayersByName(name_or_id)
-    if len(layers) != 1:
-        return None
-    layer = layers[0]
-    if not isinstance(layer, QgsVectorLayer):
+
+
+
+
+
+
+    layer = _find_layer(name_or_id)
+    if layer is None or not isinstance(layer, QgsVectorLayer):
         return None
     return layer
+
+
+def _vector_layer(name_or_id: str):
+    """(layer, error): the resolution above, with a different error for each cause."""
+
+
+
+
+    layer = _find_layer(name_or_id)
+    if layer is None:
+        return None, _layer_not_found_error(name_or_id)
+    if not isinstance(layer, QgsVectorLayer):
+        kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "other"
+        return None, {
+            "_error": (f"Layer {layer.name()!r} is a {kind} layer, and this tool works on vector features."),
+            "code": "INVALID_ARGS",
+            "suggestion": ("Name a vector layer. For a raster, get_raster_band_stats and the raster tools read "
+                           "and write pixels instead."),
+        }
+    return layer, None
 
 
 def _unknown_fields_error(layer, unknown: list) -> dict:
@@ -205,9 +227,9 @@ def _unknown_fields_error(layer, unknown: list) -> dict:
 
 
 def _add_features(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
     features_data = args.get("features", [])
     if not features_data:
@@ -235,14 +257,24 @@ def _add_features(args: dict) -> dict:
 
 
     new_features = []
-    for feat_data in features_data:
+    truncations: list = []
+    for position, feat_data in enumerate(features_data):
         feature = QgsFeature(layer.fields())
 
         geom_wkt = feat_data.get("geometry_wkt")
         if geom_wkt:
             geom = QgsGeometry.fromWkt(geom_wkt)
             if geom.isNull():
-                return {"_error": f"Invalid WKT geometry: {geom_wkt[:100]}"}
+                return {"_error": f"Invalid WKT geometry: {geom_wkt[:100]}", "code": "INVALID_ARGS",
+                        "suggestion": ("Send valid WKT in the layer's CRS, for example "
+                                       "'POINT(x y)' or 'POLYGON((x y, x y, x y, x y))'.")}
+
+
+
+            problem = vector_write.geometry_problem(layer, geom, check_crs=position == 0)
+            if problem is not None:
+                problem["feature_index"] = position
+                return problem
             feature.setGeometry(geom)
 
         attrs = feat_data.get("attributes", {})
@@ -250,6 +282,10 @@ def _add_features(args: dict) -> dict:
             idx = layer.fields().indexOf(field_name)
             if idx >= 0:
                 feature.setAttribute(idx, value)
+        if len(truncations) < 50:
+            for warning in vector_write.value_warnings(layer, attrs):
+                warning["feature_index"] = position
+                truncations.append(warning)
 
         new_features.append(feature)
 
@@ -276,10 +312,10 @@ def _add_features(args: dict) -> dict:
         finally:
             layer.featureAdded.disconnect(_record)
         if not ok:
-            return {"_error": "Failed to add features to the open edit session"}
+            return _write_refused(layer, "add features", len(new_features))
         layer.triggerRepaint()
         one_per_feature = len(set(new_fids)) == len(new_fids) == len(new_features)
-        return {
+        result = {
             "added": len(new_features),
             "fids": new_fids if one_per_feature else None,
             "committed": False,
@@ -288,14 +324,18 @@ def _add_features(args: dict) -> dict:
                 "fids are the edit buffer's temporary ids and change when the session is committed"
             ),
         }
+        if truncations:
+            result["truncated_values"] = truncations[:20]
+        return result
 
 
-    if not layer.startEditing():
-        return {"_error": "Cannot start editing on this layer"}
+    started, error = vector_write.open_edit(layer, "add features")
+    if error:
+        return error
 
     if not layer.addFeatures(new_features):
-        layer.rollBack()
-        return {"_error": "Failed to add features"}
+        vector_write.abort_edit(layer, started)
+        return _write_refused(layer, "add features", len(new_features))
 
 
 
@@ -306,31 +346,58 @@ def _add_features(args: dict) -> dict:
 
     layer.committedFeaturesAdded.connect(_capture)
     try:
-        ok = layer.commitChanges()
+        failure = vector_write.finish_edit(layer, started, f"The {len(new_features)} feature(s)")
     finally:
         layer.committedFeaturesAdded.disconnect(_capture)
 
-    if not ok:
-        errors = layer.commitErrors()
-        layer.rollBack()
-        return {"_error": "; ".join(errors)}
+    if failure is not None:
+        return failure
 
     if committed_feats:
-        return {"added": len(new_features), "fids": [f.id() for f in committed_feats], "committed": True}
+        result = {"added": len(new_features), "fids": [f.id() for f in committed_feats], "committed": True}
+        if truncations:
+            result["truncated_values"] = truncations[:20]
+        return result
 
 
 
 
-    return {"added": len(new_features), "committed": True, "fids": None,
-            "fids_unresolved": True,
-            "note": ("this provider did not report the ids it assigned; read them back with "
-                     "get_features if you need them")}
+    result = {"added": len(new_features), "committed": True, "fids": None,
+              "fids_unresolved": True,
+              "note": ("this provider did not report the ids it assigned; read them back with "
+                       "get_features if you need them")}
+    if truncations:
+        result["truncated_values"] = truncations[:20]
+    return result
+
+
+def _write_refused(layer, action: str, count: int) -> dict:
+    """The error for a write the layer accepted an edit session for and then refused."""
+
+
+
+
+
+    error = vector_write.cannot_edit_error(layer, action)
+    name = error.get("layer") or "the layer"
+    head = f"The layer {name!r} refused to {action} ({count} asked for)."
+    if error.get("reason") == "start_editing_refused":
+
+
+        error["_error"] = (f"{head} The edit session opened, the provider "
+                           f"({error.get('provider') or 'unknown'}"
+                           f"{'; ' + str(error.get('storage')) if error.get('storage') else ''}) then refused "
+                           "the write and reported no reason.")
+        error["reason"] = "write_refused"
+    else:
+        error["_error"] = f"{head} {error.get('_error', '')}"
+    return error
 
 
 def _update_features(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
     updates = args.get("updates", [])
     if not updates:
@@ -365,11 +432,11 @@ def _update_features(args: dict) -> dict:
     if unknown:
         return _unknown_fields_error(layer, unknown)
 
-    was_editing = layer.isEditable()
-    if not was_editing:
-        if not layer.startEditing():
-            return {"_error": "Cannot start editing on this layer"}
+    started, error = vector_write.open_edit(layer, "change attributes")
+    if error:
+        return error
 
+    truncations: list = []
     updated = 0
     partial: list = []
     not_found: list = []
@@ -389,6 +456,10 @@ def _update_features(args: dict) -> dict:
 
 
         wrote = 0
+        if len(truncations) < 50:
+            for warning in vector_write.value_warnings(layer, attrs):
+                warning["fid"] = fid
+                truncations.append(warning)
         for field_name, value in attrs.items():
             idx = layer.fields().indexOf(field_name)
             if idx < 0:
@@ -406,12 +477,16 @@ def _update_features(args: dict) -> dict:
         elif wrote:
             partial.append(fid)
 
-    if not was_editing:
-        if not layer.commitChanges():
-            layer.rollBack()
-            return {"_error": "; ".join(layer.commitErrors())}
+    failure = vector_write.finish_edit(layer, started, f"The {updated + len(partial)} attribute change(s)")
+    if failure is not None:
+        return failure
 
     result: dict = {"updated": updated}
+    if not started:
+        result["committed"] = False
+        result["note"] = "written into the open edit session (not committed, commit or discard it yourself)"
+    if truncations:
+        result["truncated_values"] = truncations[:20]
     if partial:
         result["partially_updated"] = partial[:20]
         result["partially_updated_count"] = len(partial)
@@ -445,13 +520,14 @@ def _update_features(args: dict) -> dict:
 
 
 def _delete_features(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
     fids = args.get("fids", [])
     if not fids:
-        return {"_error": "No feature IDs provided"}
+        return {"_error": "No feature IDs provided", "code": "INVALID_ARGS",
+                "suggestion": "Feature ids come from the _fid field of get_features."}
     if len(fids) > _MAX_FEATURE_BATCH:
         return {
             "_error": f"{len(fids)} feature ids given, above the {_MAX_FEATURE_BATCH} this tool deletes in one call.",
@@ -480,39 +556,38 @@ def _delete_features(args: dict) -> dict:
             "deleted": 0,
             "not_found": not_found,
             "_error": "None of the requested feature IDs exist in this layer",
+            "code": "INVALID_ARGS",
+            "suggestion": ("Feature ids come from the _fid field of get_features; read them again, since a commit "
+                           "renumbers the ids an open edit session handed out."),
         }
 
-    was_editing = layer.isEditable()
-    if not was_editing:
-        if not layer.startEditing():
-            return {"_error": "Cannot start editing on this layer"}
+    started, error = vector_write.open_edit(layer, "delete features")
+    if error:
+        return error
 
     if not layer.deleteFeatures(to_delete):
-        if not was_editing:
-            layer.rollBack()
-        return {"_error": "Failed to delete features"}
+        vector_write.abort_edit(layer, started)
+        return _write_refused(layer, "delete features", len(to_delete))
 
-    if not was_editing:
-        if not layer.commitChanges():
-            errors = layer.commitErrors()
-            layer.rollBack()
-            return {"_error": "; ".join(errors)}
+    failure = vector_write.finish_edit(layer, started, f"The {len(to_delete)} deletion(s)")
+    if failure is not None:
+        return failure
 
     result = {"deleted": len(to_delete)}
     if duplicates:
         result["duplicate_ids_ignored"] = duplicates
     if not_found:
         result["not_found"] = not_found
-    if was_editing:
+    if not started:
         result["committed"] = False
         result["note"] = "deleted in the open edit session (not committed)"
     return result
 
 
 def _select_features(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
     expression = args.get("expression")
     fids = args.get("fids")
@@ -542,9 +617,9 @@ def _select_features(args: dict) -> dict:
 
 
 def _get_selection(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
 
 
@@ -577,9 +652,9 @@ def _get_selection(args: dict) -> dict:
 def _clear_selection(args: dict) -> dict:
     layer_name = args.get("layer_name")
     if layer_name:
-        layer = _find_vector_layer(layer_name)
-        if not layer:
-            return {"_error": f"Vector layer not found: {layer_name}"}
+        layer, error = _vector_layer(layer_name)
+        if error:
+            return error
         layer.removeSelection()
         return {"cleared": layer_name}
     for layer in QgsProject.instance().mapLayers().values():
@@ -691,9 +766,9 @@ def _too_many_vertices(too_big, budget) -> str:
 
 
 def _select_by_geometry(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return {"_error": f"Vector layer not found: {args['layer_name']}"}
+    layer, error = _vector_layer(args["layer_name"])
+    if error:
+        return error
 
     mode = args["mode"]
 
@@ -754,11 +829,15 @@ def _select_by_geometry(args: dict) -> dict:
 
     ref_name = args.get("reference_layer")
     if not ref_name:
-        return {"_error": f"reference_layer is required for mode '{mode}'"}
+        return {"_error": f"reference_layer is required for mode '{mode}'", "code": "INVALID_ARGS",
+                "suggestion": "Name the layer whose features the selection is measured against."}
 
-    ref_layer = _find_vector_layer(ref_name)
-    if not ref_layer:
-        return {"_error": f"Reference layer not found: {ref_name}"}
+    ref_layer, ref_error = _vector_layer(ref_name)
+    if ref_error:
+
+
+        ref_error["_error"] = f"reference_layer: {ref_error['_error']}"
+        return ref_error
 
 
 

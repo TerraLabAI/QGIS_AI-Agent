@@ -49,7 +49,6 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QLinearGradient, QPainter, QPen, QPolygonF, QRadialGradient
 from qgis.PyQt.QtWidgets import (
-    QApplication,
     QFrame,
     QGraphicsOpacityEffect,
     QHBoxLayout,
@@ -65,7 +64,14 @@ from ..core.plan import effort_name, efforts_allowed, efforts_stated
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
-from .shared import event_pos, get_effort_text
+from .shared import (
+    event_pos,
+    get_effort_text,
+    keep_on_screen,
+    paint_styled_ground,
+    round_popup_corners,
+    screen_area_at,
+)
 from .style import (
     ACCENT,
     ACCENT_DARK,
@@ -763,6 +769,7 @@ class EffortPopover(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        round_popup_corners(self)
         self.setObjectName("effortPopover")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_POPOVER_QSS)
@@ -891,6 +898,10 @@ class EffortPopover(QFrame):
         self.hide()
         self.upgrade_requested.emit()
 
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_styled_ground(self)
+        super().paintEvent(event)
+
     def showEvent(self, event):  # noqa: N802 - Qt override
         super().showEvent(event)
         self.slider.setFocus(Qt.FocusReason.PopupFocusReason)
@@ -924,6 +935,11 @@ class EffortChip(QToolButton):
         self.setAccessibleName(self.tr("Effort"))
         self._effort = DEFAULT_EFFORT
         self._paid = False
+
+
+
+
+        self._run_locked = False
 
 
         self._compact = False
@@ -965,6 +981,19 @@ class EffortChip(QToolButton):
 
     def is_paid(self) -> bool:
         return self._paid
+
+    def set_run_locked(self, locked: bool) -> None:
+        """A run in progress: the composer disables the chip and asks for this tooltip while it does, so a click still explains why nothing opens."""
+
+
+        locked = bool(locked)
+        if locked == self._run_locked:
+            return
+        self._run_locked = locked
+        self._paint()
+
+    def is_run_locked(self) -> bool:
+        return self._run_locked
 
 
     mode = effort
@@ -1016,7 +1045,9 @@ class EffortChip(QToolButton):
 
 
 
-        if self.is_locked():
+        if self._run_locked:
+            self.setToolTip(self.tr("Effort can be changed after this run ends"))
+        elif self.is_locked():
             self.setToolTip(self.tr("Pro only: this message runs on Low"))
         else:
             self.setToolTip(self.tr("How hard the agent works on the next message"))
@@ -1046,7 +1077,7 @@ class EffortChip(QToolButton):
         super().paintEvent(event)
         plain, strong = self._fonts()
         word, name = self._label()
-        lit = self.underMouse() or bool(self.property("active"))
+        lit = not self._run_locked and (self.underMouse() or bool(self.property("active")))
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         x = 8
@@ -1126,13 +1157,12 @@ class EffortChip(QToolButton):
 
         x = above.x() + self.width() - popover.width()
         y = above.y() - popover.height() - 6
-        screen = QApplication.screenAt(above) if hasattr(QApplication, "screenAt") else None
-        if screen is not None:
-            geometry = screen.availableGeometry()
-            x = max(geometry.left() + 4, min(x, geometry.right() - popover.width() - 4))
-            if y < geometry.top():
+        area = screen_area_at(above, self)
+        if area is not None:
+            x = max(area.left() + 4, min(x, area.right() - popover.width() - 4))
+            if y < area.top():
                 y = above.y() + self.height() + 6
-        popover.move(x, y)
+        popover.move(*keep_on_screen(x, y, popover.width(), popover.height(), area))
         popover.show()
 
     def eventFilter(self, watched, event):  # noqa: N802 - Qt override

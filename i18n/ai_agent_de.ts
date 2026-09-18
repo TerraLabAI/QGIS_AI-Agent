@@ -885,6 +885,82 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Erlauben / Ablehnen</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Vorher: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Geändert: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Chatverlauf-Schaltfläche</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Schaltfläche „Neuer Chat“</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Keine Beispiele passen</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Jetzt</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>Das Projekt nach dieser Anfrage</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>Das Projekt vor der ersten Anfrage</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>Das Projekt vor dieser Anfrage</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Dieser Layer ist nicht mehr im Projekt.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>nach Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>nach „{request}“</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vor Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vor „{request}“</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>der Beginn dieses Chats</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>Ihre eigenen Änderungen</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Öffne das Panel mit Ctrl+Alt+A oder gib "ai" gefolgt von einer Frage in die Locator-Leiste ein (Ctrl+K). Klicke mit der rechten Maustaste auf einen Layer, ein Objekt oder die Karte, um danach zu fragen.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent by TerraLab ist Ihr AI-Agent in QGIS: Er lädt Daten, gestaltet Layer, führt Analysen durch und erstellt Layouts. Er fragt vor riskanten Änderungen nach und Sie können einen Lauf rückgängig machen.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS-Theme geändert. AI Agent neu laden oder QGIS neu starten, damit das Panel folgt.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Öffnen Sie das AI-Agent-Panel: Fragen Sie in QGIS nach allem, und es erledigt die Arbeit.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Anzeigen</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>Der Agent wartet auf Ihre Genehmigung.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Ihr AI-Agent in QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Die Anmeldung ist kostenlos und dauert 15 Sekunden in Ihrem Browser.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Ihr AI-Agent in QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>stopped</source>
             <translation>gestoppt</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} von {total} haben nicht funktioniert</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agent</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Rückgängig gemacht</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>Kein Layer, Objekt oder keine Datei geändert</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>Layer-Reihenfolge oder Gruppen geändert</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Dieser Punkt gehört zum Projekt {name}. Öffnen Sie dieses Projekt, um dorthin zurückzukehren.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 Layer im Projekt</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Zurück zu {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Konnte nicht vollständig zu {point} zurückgehen. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Keine Ergebnisse</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Nicht mit dem Agent-Dienst verbunden, daher wurde nichts gesendet. Es wird jetzt erneut verbunden: Ihre Nachricht bleibt erhalten, und mit „Erneut versuchen“ wird sie gesendet, sobald die Verbindung wieder steht.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>Der Berechtigungsmodus wurde geändert. Er gilt ab der nächsten Aktion.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>Der Berechtigungsmodus wurde geändert. Er gilt ab der nächsten Aktion; die offene Karte wartet weiterhin auf Ihre Antwort.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>Die Nachricht konnte nicht gesendet werden: Die Verbindung zum Agent-Dienst ist gestört.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>nach Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>nach „{request}“</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>vor Anfrage {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>vor „{request}“</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>Daten in {files} wiederhergestellt</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>der Beginn dieses Chats</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>Ihre eigenen Änderungen</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} Layer im Projekt</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <translation>Gib dem KI-Agenten eine Aufgabe in QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Langer Chat: Ältere Nachrichten werden ab hier eingeklappt. Für ein neues Thema starten Sie einen neuen Thread (+ in der Kopfzeile).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Unterhaltung komprimiert</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>Der Agent führt eine Zusammenfassung der früheren Austausche. Ihre Nachrichten bleiben sichtbar.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Mit Pro weiterarbeiten</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n Schritte</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 Schritt</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Aus dem Ablegen konnte nichts hinzugefügt werden.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Wiederholen: vorwärts zu {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Angehalten</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>Die Nachricht konnte nicht gesendet werden. Sie ist noch da; versuchen Sie es erneut.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Rückgängig: zurück zu {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Warten auf Ihre Genehmigung: Erlauben oder Ablehnen unten.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>Nichts wird gelöscht. Du kannst jederzeit zurückkehren.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Zurück zum Projekt, wie es vor der ersten Anfrage war</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>den größten</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>Die Verbindung ist wieder da. Ihre Nachricht wurde gesendet.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Nicht mit dem Agent-Dienst verbunden. Drücken, um es jetzt erneut zu versuchen; Ihre Nachricht bleibt erhalten.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Nicht mit dem Agent-Dienst verbunden. Es wird jetzt erneut verbunden.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Nicht mit dem Agent-Dienst verbunden. Es wird erneut verbunden; tippen Sie, es wird gesendet.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Nicht mit dem Agent-Dienst verbunden. Ihre Nachricht bleibt hier und wird gesendet, sobald die Verbindung wieder steht.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Verbindung zum Agent-Dienst wird wiederhergestellt. Drücken, um es jetzt erneut zu versuchen; Ihre Nachricht bleibt erhalten.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Verbindung zum Agent-Dienst wird wiederhergestellt. Tippen Sie, es wird gesendet.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Verbindung zum Agent-Dienst wird wiederhergestellt. Ihre Nachricht bleibt hier und wird gesendet, sobald die Verbindung wieder steht.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Verbindung erneut versuchen</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Enable</source>
             <translation>Aktivieren</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Keine Connectors passen</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Unlock with Pro</source>
             <translation>Mit Pro freischalten</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>Der Aufwand kann nach Ende dieses Laufs geändert werden</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Die Änderungen des Agenten rückgängig machen: zurück zu einem früheren Stand dieses Projekts</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro holen</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Sehen Sie, was Pro freischaltet</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>von TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>Nicht im Projekt</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Entfernen</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Weniger Zeilen anzeigen</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>Ausdruck</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} Läufe pro Monat, höhere Aufwandsstufen und Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro holen</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} Läufe pro Monat und höhere Aufwandstufen.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Dies geht zurück zum ältesten noch erhaltenen Zustand, nicht zum allerersten Anfang: die früheren wurden gelöscht, um Speicherplatz zu sparen.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Zurück zu {point}? Ihre eigenen Änderungen seitdem gehen verloren.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Persönliche, nicht kommerzielle Nutzung</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Löschen</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Upgrade</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4963,6 +5265,10 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} Objekte. Klicken, um ihn im Layer-Panel auszuwählen.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Dieser Layer ist nicht mehr im Projekt.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5275,6 +5581,43 @@ Klicken, um ihn im Layer-Bedienfeld anzuzeigen.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>Was QGIS beim erneuten Lesen des Ergebnisses gefunden hat. Klicken, um es zu lesen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Datensatzseite</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Datum unbekannt</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Live, geladen {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Ihre eigene Datei</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Ihre eigene Quelle</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} weitere</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Überprüfen</translation>
         </message>
     </context>
 </TS>

@@ -18,6 +18,7 @@ from ..core.qt_compat import enum_member
 from .data_common import _canvas_viewbox_4326, _fold, _is_number, _run_on_main_thread, _viewbox_bounds
 from .data_geocoding import (
     _PLACE_AREA_LAYERS,
+    _arrondissement_key,
     _geocode,
     _geocode_fetch,
     _parse_photon_forward,
@@ -43,26 +44,32 @@ def _outline_of_layer(name: str):
 
 
 
+
+
+
     def _read():
 
 
         from qgis.core import QgsGeometry, QgsWkbTypes
 
-        from ._layers import resolve_layer
-
-        layer = resolve_layer(name)
-        if layer is None or not hasattr(layer, "getFeatures"):
-            return None
-        if name.strip().lower() not in (layer.name().strip().lower(), layer.id().lower()):
-
-
-
-            return None
         polygon_type = enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
-        if QgsWkbTypes.geometryType(layer.wkbType()) != polygon_type:
-            return {"_error": f"The layer {layer.name()!r} draws no outline: it is not polygons.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "Pass the boundary layer, or the name of the place itself."}
+        wanted = name.strip().lower()
+        layer = None
+        for candidate in QgsProject.instance().mapLayers().values():
+
+
+
+
+
+            if wanted not in (candidate.name().strip().lower(), candidate.id().lower()):
+                continue
+            if not hasattr(candidate, "wkbType") or not hasattr(candidate, "getFeatures"):
+                continue
+            if QgsWkbTypes.geometryType(candidate.wkbType()) == polygon_type:
+                layer = candidate
+                break
+        if layer is None:
+            return None
         selected = layer.selectedFeatureCount()
         count = selected or layer.featureCount()
         if count > _CLIP_MAX_PARTS:
@@ -206,6 +213,7 @@ def _outline_of_place(name: str):
 
 
     kind = _HIT_SUBTYPES.get(str(hit.get("type") or "").lower(), "")
+    arrondissement = _arrondissement_key(name)
     code = str(hit.get("country_code") or "").upper()
     order = ((kind,) + tuple(s for s in _CLIP_SUBTYPE_ORDER if s != kind)) if kind else _CLIP_SUBTYPE_ORDER
     fallback = None
@@ -230,7 +238,10 @@ def _outline_of_place(name: str):
                        "outline_source": f"Overture divisions, subtype {subtype}",
                        "division": {"subtype": subtype, "country": props.get("country"),
                                     "region": props.get("region")}}
-            if _fold(label) in wanted or (subtype == kind and (
+
+
+            same_arrondissement = arrondissement is not None and _arrondissement_key(label) == arrondissement
+            if _fold(label) in wanted or same_arrondissement or (subtype == kind and (
                     subtype != "country" or not code or str(props.get("country") or "").upper() == code)):
                 return outline
 
@@ -255,6 +266,28 @@ def _outline_of_place(name: str):
                            "or pass a bbox.")}
 
 
+def _one_side_of_antimeridian(made: dict) -> None:
+    """Keep the parts of an outline on the side of the 180th meridian that holds most of it."""
+
+
+
+
+
+    polys = made.get("polys") or []
+    weight = {True: 0, False: 0}
+    for exterior, _holes in polys:
+        east = sum(x for x, _y in exterior) >= 0
+        weight[east] += len(exterior)
+    east_side = weight[True] >= weight[False]
+    kept = [part for part in polys if (sum(x for x, _y in part[0]) >= 0) == east_side]
+    if kept and len(kept) < len(polys):
+        made["polys"] = kept
+        made["note"] = ((made.get("note") + " ") if made.get("note") else "") + (
+            f"The outline crosses the 180th meridian: the clip kept its {len(kept)} parts at "
+            f"{'positive' if east_side else 'negative'} longitudes") + (
+            f" and left out {len(polys) - len(kept)}; load those with a bbox of their own if needed.")
+
+
 def _resolve_outline(clip_to: str, layers: bool = True):
     """``(outline, None)`` for a name, or ``(None, error)``."""
 
@@ -270,6 +303,9 @@ def _resolve_outline(clip_to: str, layers: bool = True):
     if not isinstance(made, dict) or made.get("_error"):
         return None, (made if isinstance(made, dict) else {"_error": f"Could not resolve {clip_to!r}."})
     bounds = _polys_bbox(made.get("polys") or [])
+    if bounds and bounds[2] - bounds[0] > 180.0:
+        _one_side_of_antimeridian(made)
+        bounds = _polys_bbox(made.get("polys") or [])
     if not bounds:
         return None, {"_error": f"{clip_to!r} resolved to an empty outline.", "code": "INVALID_ARGS",
                       "suggestion": "Pass a bbox instead of clip_to."}

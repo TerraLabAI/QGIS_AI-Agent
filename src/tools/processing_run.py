@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import time
 import uuid
+from collections import OrderedDict
 
 import processing
 from qgis.core import (
@@ -17,13 +17,16 @@ from qgis.core import (
     QgsProcessingAlgRunnerTask,
     QgsProcessingContext,
     QgsProcessingFeedback,
+    QgsProcessingUtils,
     QgsProject,
     QgsRasterLayer,
     QgsTask,
     QgsVectorLayer,
+    QgsWkbTypes,
 )
 
 from ..core import layer_order
+from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
 from ..core.policy import AGENT_TMP_DIR, create_managed_temp_dir
 from ..core.qt_compat import enum_member
@@ -41,8 +44,6 @@ from .processing_decisions import (
 from .processing_destinations import (
     _destination_names,
     _ensure_proj_env,
-    _fid_blocks_geopackage,
-    _fid_safe_suffix,
     _gpkg_sink_uri,
     _gpkg_table_target,
     _input_file_paths,
@@ -52,6 +53,10 @@ from .processing_destinations import (
     _output_names,
     _provider_hint,
     _release_table_layers,
+    _temporary_suffix,
+    destination_report,
+    modified_destination_layers,
+    output_evidence_problem,
 )
 from .processing_guards import (
     _distance_sanity,
@@ -59,6 +64,7 @@ from .processing_guards import (
     _gdal_format_options,
     _geographic_distance_check,
     _grid_sanity,
+    _parameter_sanity,
     _raster_size_sanity,
     _resolve_layer_inputs,
     _stamp_provenance,
@@ -66,7 +72,9 @@ from .processing_guards import (
     _undeclared_nodata_check,
     _unresolved_input_check,
     _window_degrees_repair,
+    _window_order_repair,
     _window_sanity,
+    ignored_parameters,
     localise_streamed_rasters,
 )
 from .stac_tools import normalise_crs
@@ -77,6 +85,75 @@ _PROCESSING_TASKS: dict[str, dict] = {}
 
 _CANCELED_AT_UNLOAD: dict[str, dict] = {}
 
+
+
+
+
+
+
+
+_FAILED_CALLS: OrderedDict[str, dict] = OrderedDict()
+_FAILED_CALLS_MAX = 64
+
+
+_TRANSIENT_CODES = frozenset({"RUN_BUDGET", "PERMISSION_DENIED", "TIMEOUT", "CANCELLED",
+                              "NETWORK_ERROR", "REPEATED_FAILURE"})
+_TRANSIENT_MARKS = ("still held by another process", "is not answering", "was stopped")
+_EXTERNAL_PREFIXES = ("saga:", "sagang:", "grass:", "grass7:", "otb:", "r:")
+_REPEAT_SUGGESTION = ("Do not send it again. Change the algorithm (find_processing_algorithm for the same "
+                      "operation), the input, or the output path, or tell the user what is in the way.")
+_REPEAT_EXTERNAL_SUGGESTION = ("This provider runs outside QGIS and fails the same way every time. Use the "
+                               "native: or gdal: algorithm for the same operation instead.")
+
+
+def _call_signature(algorithm_id, parameters) -> str:
+    """The call as a string, scoped to the run that makes it, or "" when it cannot be written."""
+    import json
+
+    try:
+        return json.dumps({"run": str(layer_order.current_run() or ""), "alg": str(algorithm_id),
+                           "params": parameters}, sort_keys=True, default=str)[:4000]
+    except Exception:  # noqa: BLE001 - a call we cannot write down is a call we do not remember
+        return ""
+
+
+def _repeat_refusal(signature: str, algorithm_id: str) -> dict | None:
+    """The first failure of this exact call, with something else to do, or None."""
+    first = _FAILED_CALLS.get(signature)
+    if first is None:
+        return None
+    _FAILED_CALLS.move_to_end(signature)
+    first["attempts"] = first.get("attempts", 1) + 1
+    alternative = (_REPEAT_EXTERNAL_SUGGESTION
+                   if str(algorithm_id).casefold().startswith(_EXTERNAL_PREFIXES)
+                   else _REPEAT_SUGGESTION)
+    return {
+        "_error": (f"This {algorithm_id} call, with these exact parameters, already failed in this answer: "
+                   f"{first['error']} Nothing was run, because nothing about it changed."),
+        "code": "REPEATED_FAILURE",
+        "attempts": first["attempts"],
+        "first_failure": first["error"],
+        "first_suggestion": first.get("suggestion") or "",
+        "suggestion": alternative,
+    }
+
+
+def _remember_failure(signature: str, failure: dict) -> None:
+    if not signature or not isinstance(failure, dict):
+        return
+    message = str(failure.get("_error") or failure.get("error") or "")
+    if not message:
+        return
+    code = str(failure.get("code") or failure.get("_code") or "")
+    if code in _TRANSIENT_CODES or any(mark in message for mark in _TRANSIENT_MARKS):
+        return
+    _FAILED_CALLS[signature] = {"error": cut_string(message, 400),
+                                "suggestion": cut_string(str(failure.get("suggestion") or ""), 300),
+                                "attempts": 1}
+    _FAILED_CALLS.move_to_end(signature)
+    while len(_FAILED_CALLS) > _FAILED_CALLS_MAX:
+        _FAILED_CALLS.popitem(last=False)
+
 class _CapturingFeedback(QgsProcessingFeedback):
     """Feedback that records error/warning text so a failed async task can report the real reason instead of pointing the agent at the message log."""
 
@@ -84,6 +161,7 @@ class _CapturingFeedback(QgsProcessingFeedback):
     def __init__(self):
         super().__init__()
         self.errors: list[str] = []
+        self.console: list[str] = []
 
     def reportError(self, error, fatalError=False):  # noqa: N802 (Qt signature)
         self.errors.append(str(error))
@@ -92,6 +170,19 @@ class _CapturingFeedback(QgsProcessingFeedback):
     def pushWarning(self, warning):  # noqa: N802 (Qt signature)
         self.errors.append(str(warning))
         super().pushWarning(warning)
+
+
+
+    def pushConsoleInfo(self, info):  # noqa: N802 (Qt signature)
+        lines = [line.strip() for line in str(info).splitlines() if line.strip()]
+        self.console = (self.console + lines)[-40:]
+        super().pushConsoleInfo(info)
+
+    def console_tail(self, count: int = 4) -> list[str]:
+        """The last console lines that read like a failure, else the last lines."""
+        flagged = [line for line in self.console
+                   if any(word in line.lower() for word in ("error", "fail", "could not", "cannot", "invalid"))]
+        return (flagged or self.console)[-count:]
 
 
 def _inject_gdal_crs(alg, params: dict) -> None:
@@ -203,6 +294,29 @@ def _record_history(alg, parameters: dict, context) -> dict:
 
 
 def _run_processing(args: dict, algorithm=None) -> dict:
+    """run_processing, with the same call's earlier failure answered from memory."""
+
+
+
+
+
+    signature = _call_signature(args.get("algorithm_id"), args.get("parameters", {}))
+    repeat = _repeat_refusal(signature, args.get("algorithm_id")) if signature else None
+    if repeat is not None:
+        return repeat
+    out = _run_processing_once(args, algorithm)
+    if isinstance(out, dict) and out.get("_error"):
+        _remember_failure(signature, out)
+    elif isinstance(out, dict) and out.get("task_id") and out.get("status") == "running":
+
+
+        entry = _PROCESSING_TASKS.get(out["task_id"])
+        if entry is not None:
+            entry["signature"] = signature
+    return out
+
+
+def _run_processing_once(args: dict, algorithm=None) -> dict:
     """run_processing."""
 
 
@@ -229,7 +343,14 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-    parameters, _resolved_inputs = _resolve_layer_inputs(parameters)
+    parameters, _resolved_inputs = _resolve_layer_inputs(parameters, alg)
+
+
+
+    wrong_parameters = _parameter_sanity(alg, parameters)
+    if wrong_parameters:
+        return wrong_parameters
+    dropped = ignored_parameters(alg, parameters)
 
     in_degrees = _geographic_distance_check(alg, parameters, bool(args.get("confirm_large")))
     if in_degrees:
@@ -254,7 +375,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
     parameters, streamed_copies, not_copied = localise_streamed_rasters(algorithm_id, parameters)
     if not_copied:
         return not_copied
-    window_repairs = _window_degrees_repair(parameters)
+    window_repairs = _window_degrees_repair(parameters) + _window_order_repair(parameters)
     off_raster = _window_sanity(parameters)
     if off_raster:
         return off_raster
@@ -409,40 +530,24 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-    _forget_canceled_destinations(file_destination_paths)
+
 
     try:
         for kind, name, payload in plans:
             if kind == "temp":
                 if managed_output_dir is None:
                     managed_output_dir = create_managed_temp_dir("processing")
-                ext = ""
-                if hasattr(payload, "defaultFileExtension"):
-                    try:
-                        ext = payload.defaultFileExtension() or ""
-                    except Exception:
-                        ext = ""
-                suffix = f".{ext}" if ext and not str(ext).startswith(".") else str(ext)
-                if suffix.lower() == ".gpkg" and _fid_blocks_geopackage(input_ids):
-                    suffix = _fid_safe_suffix(payload, input_ids)
+                suffix = _temporary_suffix(payload, input_ids)
                 sanitized_parameters[name] = os.path.join(
                     managed_output_dir,
                     f"{name.lower()}{suffix}",
                 )
             elif kind == "table":
-                gpkg_path, table_name, sink_uri = payload
-                if not _protects_input(gpkg_path):
-                    released.extend(_release_table_layers(gpkg_path, table_name, skip_ids=input_ids))
-                sanitized_parameters[name] = sink_uri
+                sanitized_parameters[name] = payload[2]
             else:
                 sanitized_parameters[name] = payload
-                parent = os.path.dirname(payload)
-                if parent and not os.path.isdir(parent):
-                    os.makedirs(parent, exist_ok=True)
-                if not _protects_input(payload):
-                    released.extend(_release_layers_at_path(payload, skip_ids=input_ids, delete_existing=not appends))
     except Exception as e:
-        return {"_error": f"Failed to prepare processing outputs: {e}"}
+        return {"_error": f"Failed to prepare processing output names: {e}"}
 
     feedback = _CapturingFeedback()
     context = QgsProcessingContext()
@@ -458,10 +563,11 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         member = "GeometrySkipInvalid" if invalid_geometry_filter == "skip" else "GeometryAbortOnInvalid"
         check = getattr(holder, member, None)
         if check is None and invalid_geometry_filter == "skip":
+            if managed_output_dir is not None:
+                remove_tree(managed_output_dir)
             return {"_error": "This QGIS version cannot skip invalid geometries through Processing."}
         if check is not None:
             context.setInvalidGeometryCheck(check)
-
 
 
 
@@ -469,9 +575,75 @@ def _run_processing(args: dict, algorithm=None) -> dict:
     if algorithm_id.startswith("gdal:"):
         _ensure_proj_env()
         _inject_gdal_crs(alg, sanitized_parameters)
-
-
         repairs += _gdal_format_options(algorithm_id, sanitized_parameters)
+
+    try:
+        valid, detail = alg.checkParameterValues(sanitized_parameters, context)
+    except Exception as exc:  # noqa: BLE001 - a broken provider preflight must not clear a destination
+        if managed_output_dir is not None:
+            remove_tree(managed_output_dir)
+        return _processing_error(
+            algorithm_id,
+            f"Processing parameter validation failed before the run: {exc}. "
+            "Nothing was run and no destination was replaced.",
+            alg,
+        )
+    if not valid:
+        if managed_output_dir is not None:
+            remove_tree(managed_output_dir)
+        native_detail = " ".join(str(detail).split()) or "provider validation failed"
+        failure = _processing_error(
+            algorithm_id,
+            f"Processing parameters are invalid: {native_detail}. "
+            "Nothing was run and no destination was replaced.",
+            alg,
+        )
+        failure["code"] = "INVALID_ARGS"
+        try:
+            failure.setdefault("parameters", [f"{d.name()} ({d.type()})" for d in alg.parameterDefinitions()])
+        except Exception as exc:  # noqa: BLE001 - the native validation message still stands alone
+            log_warning(f"{algorithm_id}: listing parameter definitions failed: {exc}")
+        return failure
+
+    modified_outputs: list[str] = []
+    for kind, _name, payload in plans:
+        if kind == "table":
+            gpkg_path, table_name, _sink_uri = payload
+            if not _protects_input(gpkg_path):
+                modified_outputs.extend(
+                    modified_destination_layers(gpkg_path, table_name, skip_ids=input_ids))
+        elif kind == "file" and not _protects_input(payload):
+            modified_outputs.extend(modified_destination_layers(payload, skip_ids=input_ids))
+    if modified_outputs:
+        if managed_output_dir is not None:
+            remove_tree(managed_output_dir)
+        names = ", ".join(dict.fromkeys(modified_outputs))
+        return {
+            "_error": (
+                f"Cannot replace the Processing destination while {names} has unsaved edits. "
+                "Save or roll back those edits, then run the algorithm again; nothing was run."
+            )
+        }
+
+
+
+
+    _forget_canceled_destinations(file_destination_paths)
+
+    try:
+        for kind, _name, payload in plans:
+            if kind == "table":
+                gpkg_path, table_name, sink_uri = payload
+                if not _protects_input(gpkg_path):
+                    released.extend(_release_table_layers(gpkg_path, table_name, skip_ids=input_ids))
+            elif kind == "file":
+                parent = os.path.dirname(payload)
+                if parent and not os.path.isdir(parent):
+                    os.makedirs(parent, exist_ok=True)
+                if not _protects_input(payload):
+                    released.extend(_release_layers_at_path(payload, skip_ids=input_ids, delete_existing=not appends))
+    except Exception as e:
+        return {"_error": f"Failed to prepare processing outputs: {e}"}
 
 
 
@@ -494,6 +666,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             destination_paths=file_destination_paths,
             temporary_dir=managed_output_dir,
         )
+        if dropped:
+            repairs += dropped
         if repairs:
             started["repairs"] = repairs
         return started
@@ -560,16 +734,50 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-    missing = _missing_destinations(alg, sanitized_parameters)
+    missing, written = destination_report(alg, sanitized_parameters)
     if missing:
         detail = f"Processing finished without writing {', '.join(missing)}."
-        if feedback.errors:
-            detail += " Log: " + " | ".join(" ".join(e.split())[:300] for e in feedback.errors[:3])
-        return _processing_error(algorithm_id, detail, alg)
+        if written:
+            detail += " It did write " + ", ".join(f"{key} at {path}" for key, path in written.items()) + "."
+        log_lines = feedback.errors[:3] or feedback.console_tail()
+        if log_lines:
+            detail += " Log: " + " | ".join(" ".join(e.split())[:300] for e in log_lines)
+        failed = _processing_error(algorithm_id, detail, alg)
+        if written:
+            failed["files_written"] = written
+        external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
+        if external and not failed.get("suggestion"):
+            failed["suggestion"] = ("This external provider wrote nothing; its log is in the message. Look for "
+                                    "the same operation among the native: or gdal: algorithms (list_algorithms), "
+                                    "which run inside QGIS, before retrying this one.")
+        return failed
 
     provenance = _record_history(alg, sanitized_parameters, context)
     out = {"algorithm": algorithm_id,
-           "outputs": _process_outputs(result, output_name=args.get("output_name"), provenance=provenance)}
+           "outputs": _process_outputs(result, output_name=args.get("output_name"), provenance=provenance,
+                                       destination_parameters=sanitized_parameters)}
+    unreadable = output_evidence_problem(alg, sanitized_parameters, out["outputs"])
+    if unreadable:
+        failed = _processing_error(algorithm_id, f"Processing finished, but {unreadable}", alg)
+        if written:
+            failed["files_written"] = written
+        return failed
+
+
+
+
+    if written:
+        out["files_written"] = written
+
+
+
+        repairs += [f"{key} was written as {path}" for key, path in written.items()
+                    if isinstance(sanitized_parameters.get(key), str)
+                    and "|layername=" not in sanitized_parameters[key]
+                    and not sanitized_parameters[key].startswith("ogr:")
+                    and path != sanitized_parameters[key]]
+    if dropped:
+        repairs += dropped
     if repairs:
         out["repairs"] = repairs
     if managed_output_dir is not None:
@@ -671,11 +879,12 @@ def raster_file_problem(path: str) -> str:
     except Exception as exc:
         return " ".join(str(exc).split()) or type(exc).__name__
     finally:
-        dataset = None
+        del dataset
         gdal.PopErrorHandler()
 
 
-def _process_outputs(result_map: dict, context=None, output_name=None, provenance=None) -> dict:
+def _process_outputs(result_map: dict, context=None, output_name=None, provenance=None,
+                     destination_parameters=None) -> dict:
     """Add output layers to the project and return a JSON-safe outputs summary."""
 
 
@@ -687,7 +896,18 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
     output = {}
     added = []
     for key, value in (result_map or {}).items():
+        declared = (destination_parameters or {}).get(key)
+
+
+
+        table_target = _gpkg_table_target(declared) if isinstance(declared, str) else None
+        if table_target:
+            value = f"{table_target[0]}|layername={table_target[1]}"
         if isinstance(value, QgsMapLayer):
+            if not value.isValid():
+                output[key] = {"layer_name": value.name(), "readable": False,
+                               "warning": "the algorithm returned an invalid QGIS layer"}
+                continue
             _declare_raster_crs(value)
             QgsProject.instance().addMapLayer(value)
             added.append((key, value))
@@ -697,41 +917,34 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
             file_part = value.split("|", 1)[0]
             path_error = validate_path(file_part, write=False)
             if path_error:
-                output[key] = {"path": value, "warning": path_error}
+                output[key] = {"path": value, "readable": False, "warning": path_error}
                 continue
-            table = value.split("|layername=", 1)[1].split("|", 1)[0]
-            layer = QgsVectorLayer(value, table, "ogr")
-            if layer.isValid():
+            layer = _native_output_layer(value, context)
+            if layer is not None and layer.isValid():
                 QgsProject.instance().addMapLayer(layer)
                 added.append((key, layer))
                 output[key] = _layer_summary(layer, value)
             else:
-                output[key] = {"path": value}
+                output[key] = {"path": value, "readable": False}
         elif isinstance(value, str) and os.path.exists(value):
             path_error = validate_path(value, write=False)
             if path_error:
-                output[key] = {"path": value, "warning": path_error}
+                output[key] = {"path": value, "readable": False, "warning": path_error}
                 continue
-            layer = QgsVectorLayer(value, os.path.basename(value), "ogr")
-            if layer.isValid():
+            layer = _native_output_layer(value, context)
+            problem = raster_file_problem(value) if isinstance(layer, QgsRasterLayer) else ""
+            if problem:
+                output[key] = {"path": value, "readable": False, "unreadable": problem[:300],
+                               "warning": "GDAL cannot read this file to its last row: it was written "
+                                          "incompletely and was not loaded. Do not use it; write it again "
+                                          "to another folder."}
+            elif layer is not None and layer.isValid():
+                _declare_raster_crs(layer)
                 QgsProject.instance().addMapLayer(layer)
                 added.append((key, layer))
                 output[key] = _layer_summary(layer, value)
             else:
-                rlayer = QgsRasterLayer(value, os.path.basename(value))
-                problem = raster_file_problem(value) if rlayer.isValid() else ""
-                if problem:
-                    output[key] = {"path": value, "unreadable": problem[:300],
-                                   "warning": "GDAL cannot read this file to its last row: it was written "
-                                              "incompletely and was not loaded. Do not use it; write it again "
-                                              "to another folder."}
-                elif rlayer.isValid():
-                    _declare_raster_crs(rlayer)
-                    QgsProject.instance().addMapLayer(rlayer)
-                    added.append((key, rlayer))
-                    output[key] = _layer_summary(rlayer, value)
-                else:
-                    output[key] = {"path": value}
+                output[key] = {"path": value, "readable": False}
         else:
             layer = None
             if context is not None and isinstance(value, str):
@@ -748,7 +961,7 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
 
 
 
-                output[key] = {"path": value, "missing": True,
+                output[key] = {"path": value, "readable": False, "missing": True,
                                "warning": "the algorithm finished without writing this file; read log"}
             else:
 
@@ -774,6 +987,25 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
         for _key, layer in added:
             _stamp_provenance(layer, provenance)
     return output
+
+
+def _native_output_layer(value: str, context=None):
+    """Load a Processing output with QGIS' resolver, including non-vector layer types."""
+    lookup = context or QgsProcessingContext()
+    if context is None:
+        lookup.setProject(QgsProject.instance())
+    try:
+        layer = QgsProcessingUtils.mapLayerFromString(value, lookup, True)
+    except Exception:  # noqa: BLE001 - an unreadable output is reported by the caller
+        return None
+    if layer is None or not layer.isValid():
+        return None
+    if QgsProject.instance().mapLayer(layer.id()) is None:
+        try:
+            lookup.temporaryLayerStore().takeMapLayer(layer)
+        except Exception as exc:  # noqa: BLE001 - older QGIS may not expose ownership transfer
+            log_warning(f"takeMapLayer ownership transfer failed: {exc}")
+    return layer
 
 
 
@@ -822,9 +1054,13 @@ def _drop_leftovers(added: list, output: dict) -> list:
 def _layer_summary(layer, path: str | None = None) -> dict:
     """What the model needs about an output layer: id, name, crs, count, path."""
     out = {"layer_id": layer.id(), "layer_name": layer.name(), "crs": layer.crs().authid(),
-           "added_to_project": True}
+           "readable": True, "added_to_project": True}
     if isinstance(layer, QgsVectorLayer):
         out["feature_count"] = layer.featureCount()
+        out["geometry_type"] = QgsWkbTypes.displayString(layer.wkbType())
+    elif isinstance(layer, QgsRasterLayer):
+        out["raster_size"] = [int(layer.width()), int(layer.height())]
+        out["band_count"] = int(layer.bandCount())
     if path:
         out["path"] = path
     return out
@@ -1064,18 +1300,15 @@ def _cleanup_canceled_destination(entry: dict) -> None:
 
 
     for path in entry.get("destination_paths") or ():
-        try:
-            if os.path.isfile(path):
-                os.remove(path)
-            stem, extension = os.path.splitext(path)
-            sidecars = [path + suffix for suffix in ("-wal", "-shm", "-journal")]
-            if extension.lower() == ".shp":
-                sidecars += [stem + suffix for suffix in (".shx", ".dbf", ".prj", ".cpg", ".qix")]
-            for sidecar in sidecars:
-                if os.path.isfile(sidecar):
-                    os.remove(sidecar)
-        except OSError as exc:
-            log_warning(f"Partial output {path} not removed after cancel: {exc}")
+
+
+        stem, extension = os.path.splitext(path)
+        sidecars = [path + suffix for suffix in ("-wal", "-shm", "-journal")]
+        if extension.lower() == ".shp":
+            sidecars += [stem + suffix for suffix in (".shx", ".dbf", ".prj", ".cpg", ".qix")]
+        for candidate in [path] + sidecars:
+            if os.path.isfile(candidate) and not remove_quietly(candidate):
+                log_warning(f"Partial output {candidate} not removed after cancel: another program holds it.")
     folder = entry.get("temporary_dir")
     if not isinstance(folder, str) or not folder:
         return
@@ -1084,7 +1317,8 @@ def _cleanup_canceled_destination(entry: dict) -> None:
 
         if (os.path.dirname(real) == os.path.realpath(AGENT_TMP_DIR)
                 and os.path.basename(real).startswith("processing-") and os.path.isdir(real)):
-            shutil.rmtree(real)
+            if remove_tree(real):
+                log_warning(f"Partial temporary output {folder} not fully removed after cancel.")
     except OSError as exc:
         log_warning(f"Partial temporary output {folder} not removed after cancel: {exc}")
 
@@ -1181,28 +1415,59 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
 
 
 
-        missing = _missing_destinations(entry["alg"], entry.get("parameters") or {})
+        missing, written = destination_report(entry["alg"], entry.get("parameters") or {})
         feedback = entry.get("feedback")
         errors = getattr(feedback, "errors", [])[-3:] if feedback else []
+        console = feedback.console_tail() if hasattr(feedback, "console_tail") else []
         detail = f"Processing finished without writing {', '.join(missing)}."
-        if errors:
-            detail += " Log: " + " | ".join(" ".join(e.split())[:300] for e in errors)
+        if written:
+            detail += " It did write " + ", ".join(f"{key} at {path}" for key, path in written.items()) + "."
+        for lines in (errors, console):
+            if lines:
+                detail += " Log: " + " | ".join(" ".join(e.split())[:300] for e in lines)
+                break
         entry["status"] = "error"
-        entry["error"] = detail
+
+
+
+        explained = _processing_error(entry.get("algorithm") or "", detail, entry.get("alg"))
+        entry["error"] = explained.get("_error") or detail
+        if explained.get("suggestion"):
+            entry["suggestion"] = explained["suggestion"]
+        if written:
+            entry["files_written"] = written
     elif ok:
         try:
             provenance = None
             if entry.get("alg") is not None:
                 provenance = _record_history(entry["alg"], entry.get("parameters") or {}, context)
             with layer_order.adopted(entry.get("run_token")):
-                entry["outputs"] = _process_outputs(results, context, output_name=entry.get("output_name"),
-                                                    provenance=provenance)
-            entry["status"] = "complete"
-            entry["progress"] = 100
-            _report_empty_outputs(entry)
-            _report_log(entry, entry.get("feedback"))
-            report_checks(entry, entry.get("algorithm") or entry.get("algorithm_id") or "",
-                          entry.get("parameters") or {})
+                entry["outputs"] = _process_outputs(
+                    results,
+                    context,
+                    output_name=entry.get("output_name"),
+                    provenance=provenance,
+                    destination_parameters=entry.get("parameters") or {},
+                )
+            written = destination_report(entry["alg"], entry.get("parameters") or {})[1]
+            if written:
+                entry["files_written"] = written
+            unreadable = output_evidence_problem(
+                entry["alg"], entry.get("parameters") or {}, entry.get("outputs") or {})
+            if unreadable:
+                entry["status"] = "error"
+                explained = _processing_error(
+                    entry.get("algorithm") or "", f"Processing finished, but {unreadable}", entry.get("alg"))
+                entry["error"] = explained.get("_error") or unreadable
+                if explained.get("suggestion"):
+                    entry["suggestion"] = explained["suggestion"]
+            else:
+                entry["status"] = "complete"
+                entry["progress"] = 100
+                _report_empty_outputs(entry)
+                _report_log(entry, entry.get("feedback"))
+                report_checks(entry, entry.get("algorithm") or entry.get("algorithm_id") or "",
+                              entry.get("parameters") or {})
         except Exception as e:
             entry["status"] = "error"
             entry["error"] = f"Output handling failed: {e}"
@@ -1215,6 +1480,11 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
             if captured
             else "Algorithm reported failure, check get_message_log for details."
         )
+
+
+    if entry.get("status") == "error" and entry.get("signature"):
+        _remember_failure(entry["signature"],
+                          {"_error": entry.get("error"), "suggestion": entry.get("suggestion")})
 
     for heavy in ("task", "context", "feedback", "alg", "parameters"):
         entry.pop(heavy, None)
@@ -1289,12 +1559,15 @@ def _get_task_status(args: dict) -> dict:
 
 
             "checks",
+
+
+            "files_written",
         ):
             if key in entry and entry[key] is not None:
                 out[key] = entry[key]
     elif entry["status"] == "error":
         out["error"] = entry.get("error")
-        for key in ("code", "suggestion"):
+        for key in ("code", "suggestion", "files_written"):
             if entry.get(key):
                 out[key] = entry[key]
     elif entry["status"] == "canceled":
@@ -1401,4 +1674,3 @@ def shutdown() -> int:
                                             "destination_paths": list(entry.get("destination_paths") or [])}
     _PROCESSING_TASKS.clear()
     return asked
-

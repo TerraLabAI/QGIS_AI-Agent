@@ -73,6 +73,7 @@ def _empty_report() -> dict:
     """The report with nothing in it: no snapshot, no change, nothing to say."""
     return {
         "changed": False,
+        "project_checked": False,
         "layers_added": [],
         "layers_changed": [],
         "layers_removed": [],
@@ -458,6 +459,7 @@ def _build_report(snapshot, written, view, call_warnings=(), diff=None, working=
         if isinstance(found, dict):
             diff = found
 
+    report["project_checked"] = diff is not None
     if diff is not None:
         project = QgsProject.instance()
         orphans = {str(entry.get("id") or "") for entry in _listed(diff.get("orphan_temporary_layers"))

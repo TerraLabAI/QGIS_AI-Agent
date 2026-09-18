@@ -22,7 +22,8 @@ from .settings import account_dir
 _SQLITE_EXTENSIONS = (".gpkg", ".sqlite", ".sqlite3", ".db")
 
 
-_SNAPSHOTS_DIR = ""
+
+_SNAPSHOTS = {"dir": ""}
 
 
 
@@ -47,11 +48,10 @@ def held_snapshots() -> set:
 
 
 def snapshots_dir() -> str:
-    global _SNAPSHOTS_DIR
     path = os.path.join(account_dir(), "snapshots")
-    if path != _SNAPSHOTS_DIR:
+    if path != _SNAPSHOTS["dir"]:
         os.makedirs(path, exist_ok=True)
-        _SNAPSHOTS_DIR = path
+        _SNAPSHOTS["dir"] = path
     return path
 
 

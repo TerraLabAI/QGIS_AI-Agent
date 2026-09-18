@@ -17,7 +17,7 @@ from qgis.PyQt.QtCore import QAbstractAnimation, QEasingCurve, QPropertyAnimatio
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen
 from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect, QWidget
 
-from .font_scale import widget_pixel_ratio
+from .font_scale import scale_point_size, widget_pixel_ratio
 from .icons import ink_of, paper_of, render_pixmap
 from .style import FONT_BASE, FONT_BODY, RADIUS_PANEL, accent_color
 
@@ -118,10 +118,10 @@ class DropOverlay(QWidget):
             painter.drawRoundedRect(field, RADIUS_PANEL, RADIUS_PANEL)
 
             title_font = QFont(self.font())
-            title_font.setPixelSize(FONT_BASE + 3)
+            title_font.setPixelSize(scale_point_size(FONT_BASE + 3))
             title_font.setWeight(QFont.Weight.DemiBold)
             body_font = QFont(self.font())
-            body_font.setPixelSize(FONT_BODY)
+            body_font.setPixelSize(scale_point_size(FONT_BODY))
             painter.setFont(title_font)
             title_h = painter.fontMetrics().height()
             painter.setFont(body_font)

@@ -198,6 +198,11 @@ _SCALED: dict[str, tuple[str, float, bool]] = {
 
     "MAX_FETCH_KM2": ("down", 8.0, True),
 
+
+
+
+
+
     "MAX_LAYERS_PER_RUN": ("down", 8, False),
 
 
@@ -591,15 +596,15 @@ def forget_profile() -> None:
 
 
 
-_SAMPLE: Sample | None = None
+
+_SAMPLE: dict = {"last": None}
 _FREEZES: list[tuple[float, float]] = []
 
 
 def sample(force: bool = False) -> Sample:
     """A live reading of memory and pressure, cached for ``SAMPLE_TTL_S``."""
-    global _SAMPLE
     now = time.monotonic()
-    cached = _SAMPLE
+    cached = _SAMPLE["last"]
     if not force and cached is not None and now - cached.at < SAMPLE_TTL_S:
         return cached
     total = total_memory_mb()
@@ -626,7 +631,7 @@ def sample(force: bool = False) -> Sample:
         except Exception:  # nosec B110 - a machine whose memory cannot be read reports None and
             pass
     fresh = Sample(available, total, swap_used, resident_memory_mb(), _os_pressure(), now)
-    _SAMPLE = fresh
+    _SAMPLE["last"] = fresh
     return fresh
 
 

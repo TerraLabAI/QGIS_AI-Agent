@@ -47,11 +47,42 @@ def detect_encoding(sample: bytes) -> str:
 
     if sample.startswith(codecs.BOM_UTF8):
         return "UTF-8"
+    if sample.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+
+        return "UTF-16"
     try:
-        sample.decode("utf-8")
+
+
+
+        codecs.getincrementaldecoder("utf-8")().decode(sample, final=False)
     except UnicodeDecodeError:
-        return "windows-1252"
+        return _ansi_encoding()
     return "UTF-8"
+
+
+
+_ANSI_NAMES = {874: "windows-874", 932: "Shift_JIS", 936: "GBK", 949: "EUC-KR", 950: "Big5",
+               **{page: f"windows-{page}" for page in range(1250, 1259)}}
+
+
+def _ansi_encoding() -> str:
+    """The code page Excel on this Windows saves a CSV in, else Windows-1252."""
+
+
+
+
+
+
+    if os.name == "nt":
+        try:
+            import ctypes
+
+            name = _ANSI_NAMES.get(int(ctypes.windll.kernel32.GetACP()))
+            if name:
+                return name
+        except Exception:  # nosec B110 - the Western default below
+            pass
+    return "windows-1252"
 
 
 def sniff(path: str) -> dict:
@@ -71,7 +102,11 @@ def sniff(path: str) -> dict:
 
 
 
-    rows = list(itertools.islice(csv.reader(io.StringIO(sample), delimiter=delimiter), 50))
+    try:
+        rows = list(itertools.islice(csv.reader(io.StringIO(sample), delimiter=delimiter), 50))
+    except csv.Error:
+
+        rows = [line.split(delimiter) for line in sample.splitlines()[:50]]
     rows = [r for r in rows if r]
     header = rows[0] if rows else []
     body = rows[1:]

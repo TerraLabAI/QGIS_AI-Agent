@@ -24,11 +24,8 @@ from .layer_io_tools import (  # noqa: F401 - _sublayer_names/describe_sublayers
     describe_sublayers,
 )
 from .layer_lookup import (  # noqa: F401 - re-exported for other tool modules
-    _duplicate_layer_names,
     _field_not_found_error,
     _find_layer,
-    _geometry_type_name,
-    _is_qgis_null,
     _jsonable_value,
     _layer_not_found_error,
 )
@@ -61,7 +58,13 @@ from .query_tools import (
     _get_renderer_info,
     _raster_sample,
 )
-from .style_tools import _make_batch_handler, _set_layer_labels, _set_layer_style, _take_screenshot
+from .style_tools import (
+    _flash_features,
+    _make_batch_handler,
+    _set_layer_labels,
+    _set_layer_style,
+    _take_screenshot,
+)
 
 
 def register_core_tools(registry: ToolRegistry):
@@ -358,6 +361,18 @@ def register_core_tools(registry: ToolRegistry):
             "required": ["layer_name"],
         },
         handler=_get_raster_band_stats,
+
+
+
+
+
+
+
+
+
+
+
+
     ))
 
     registry.register(Tool(
@@ -593,3 +608,44 @@ def register_core_tools(registry: ToolRegistry):
         },
         handler=_add_field,
     ))
+
+
+
+
+    registry.register(Tool(
+        name="flash_features",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "layer_name": {"type": "string"},
+                "fids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "minItems": 1,
+                    "maxItems": 200,
+                },
+                "expression": {"type": "string"},
+                "flashes": {"type": "integer", "minimum": 1, "maximum": 10},
+                "duration": {"type": "integer", "minimum": 50, "maximum": 5000},
+            },
+            "required": ["layer_name"],
+        },
+        handler=_flash_features,
+    ))
+
+
+
+
+__all__ = [
+    "register_core_tools",
+    "_PROCESSING_TASKS",
+    "_add_point_cloud_layer",
+    "_field_not_found_error",
+    "_find_layer",
+    "_jsonable_value",
+    "_layer_not_found_error",
+    "_process_outputs",
+    "_sublayer_names",
+    "_sweep_consumed_tasks",
+    "describe_sublayers",
+]

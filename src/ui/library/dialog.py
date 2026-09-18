@@ -171,7 +171,7 @@ class ExamplesDialog(QDialog):
         self._grid.setHorizontalSpacing(CARD_GAP)
         self._grid.setVerticalSpacing(CARD_GAP)
         outer.addWidget(self._grid_host)
-        self._empty = QLabel(tr("No example matches that."), holder)
+        self._empty = QLabel(tr("No examples match"), holder)
         self._empty.setObjectName("libraryEmpty")
         self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty.hide()

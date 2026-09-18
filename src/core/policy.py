@@ -19,18 +19,7 @@ import uuid
 import zipfile
 from enum import Enum
 
-
-
-
-
-
-
 from .host_platform import retry_file_op
-from .limits import (  # noqa: F401  re-exported for the tool modules
-    MAX_FEATURES_PER_CALL,
-    RUN_MAX_SECONDS,
-    RUN_MAX_STEPS,
-)
 from .logger import log, log_warning
 
 
@@ -189,8 +178,11 @@ def _remove_scratch_entry(path: str) -> bool:
 
 
 def _prune_dir(base: str, max_age_days: float, max_total_bytes: int,
-               protected: frozenset = frozenset()) -> dict:
+               protected: frozenset = frozenset(), stop=None) -> dict:
     """Remove entries of ``base`` older than ``max_age_days``, then, if what is left still exceeds ``max_total_bytes``, remove the oldest of what."""
+
+
+
 
 
 
@@ -212,6 +204,8 @@ def _prune_dir(base: str, max_age_days: float, max_total_bytes: int,
 
     survivors: list[tuple[float, str, int, bool, bool]] = []
     for name in names:
+        if stop is not None and stop():
+            return result
         path = os.path.join(base, name)
         try:
             mtime = os.path.getmtime(path)
@@ -233,7 +227,7 @@ def _prune_dir(base: str, max_age_days: float, max_total_bytes: int,
     protected_bytes = sum(size for _mtime, _path, size, _tried, is_protected in survivors if is_protected)
     total = sum(size for _mtime, _path, size, _tried, is_protected in survivors if not is_protected)
     for _mtime, path, size, tried, is_protected in survivors:
-        if total <= max_total_bytes:
+        if total <= max_total_bytes or (stop is not None and stop()):
             break
         if tried or is_protected:
 
@@ -355,10 +349,15 @@ def prune_agent_scratch_dirs(max_age_days: float = PRUNE_MAX_AGE_DAYS,
     project_paths = _recent_project_paths()
 
     def work():
+        from .net_state import current_cancel_check
+
+        stop = current_cancel_check()
         project_texts = [text for text in (_read_project_text(p) for p in project_paths) if text]
         for base in _PRUNED_DIRS:
+            if stop is not None and stop():
+                return
             protected = _referenced_names(base, project_texts)
-            counts = _prune_dir(base, max_age_days, max_total_bytes, protected)
+            counts = _prune_dir(base, max_age_days, max_total_bytes, protected, stop)
             if counts["removed"] or counts["left_open"]:
                 log(f"Scratch prune ({os.path.basename(base)}): removed {counts['removed']}, "
                     f"kept {counts['kept']} ({counts['kept_bytes'] / 1024 / 1024:.1f} MB), "

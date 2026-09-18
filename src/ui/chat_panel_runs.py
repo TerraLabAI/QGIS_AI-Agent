@@ -13,11 +13,10 @@ from qgis.PyQt.QtCore import QTimer
 
 from ..core.snapshot_report import run_change_items
 from .bubbles import AgentBubble, StatusLine, UserBubble
-from .card_base import format_duration
 from .cards import RunSummaryCard, ToolCard
 from .chat_panel_shared import _is_nothing_changed, _Run
 from .external_links import open_local_path
-from .file_links import is_safe_to_open, path_from_url, reveal_local_file, reveal_target
+from .file_links import is_safe_to_open, path_from_url, reveal_target
 from .layer_links import RunChangesRow, layer_id_from_url, linkify_layers
 from .trace import RunFootnote, RunTrace
 
@@ -191,7 +190,7 @@ class _ChatPanelRuns:
 
 
         block = self._plan_block(run_id) or self._trace_for(run_id)
-        block.set_plan(list(steps or []))
+        block.set_plan(steps or [])
 
     def update_plan_step(self, run_id: str, step_id: str, state: str) -> None:
         if self._live_run(run_id) is None:
@@ -311,17 +310,21 @@ class _ChatPanelRuns:
         if run is not None and run.bubble is not None:
             run.bubble.finish_streaming()
         self._add_layer_links(run_id)
-        footnote = self._run_footnote(blocks, usage, seconds)
-        if footnote:
+        footnote = self._run_footnote(blocks, usage)
+        if run is not None and run.bubble is not None:
+            run.bubble.set_footnote(footnote)
+        elif footnote:
             note = RunFootnote()
             note.setText(footnote)
             note.show()
             self._add(note)
-        self._nudge_long_chat(usage)
+        self._mark_compaction(usage)
         self._drop_status()
         if self._current_run == run_id or self._current_run is None:
             self._current_run = None
             self.composer.set_running(False)
+
+        self._sync_answer_restores()
 
     def _on_bubble_link(self, href: str) -> None:
         """A link inside an answer: a layer opens in QGIS, a data or document file the run wrote opens with the desktop's own handler, and anything."""
@@ -364,6 +367,7 @@ class _ChatPanelRuns:
             return
         bubble.setProperty("wired", True)
         bubble.feedback.connect(lambda up: self.feedback.emit(run_id, bool(up)))
+        bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
 
     def set_sources(self, run_id: str, items) -> None:
         """``[{name, url, glyph?}]``: the stacked marks and ``N sources`` on the answer's action row, with the popover that lists them."""
@@ -400,15 +404,16 @@ class _ChatPanelRuns:
             if linked != bubble.text():
                 bubble.set_text(linked)
         row.layer_action_requested.connect(self.layer_action_requested.emit)
-        row.file_reveal_requested.connect(self._on_reveal_file)
+        if bubble is not None:
+
+            bubble.set_changes(row, animate=animate)
+            return
         self._add(row, animate=animate)
 
-    def _on_reveal_file(self, path: str) -> None:
-        """A file chip: the file shown in the system file browser, never opened."""
-        reveal_local_file(path, self)
+    def _run_footnote(self, blocks, usage: dict) -> str:
+        """``4 steps``: what the run took, on the answer's action row after its sources."""
 
-    def _run_footnote(self, blocks, usage: dict, seconds) -> str:
-        """``4 steps · 12 s · 37 runs left``: what the run took, in one muted line under its answer."""
+
 
 
         parts = []
@@ -420,12 +425,6 @@ class _ChatPanelRuns:
             steps = sum(block.step_count() for block in blocks)
         if steps > 0:
             parts.append(self.tr("%n steps", "", steps) if steps != 1 else self.tr("1 step"))
-        if seconds is not None:
-            parts.append(format_duration(seconds))
-        used, limit = self._usage[0], self._usage[1]
-        if self._signed_in and limit > 0:
-            left = max(0, limit - used)
-            parts.append(self.tr("%n runs left", "", left) if left != 1 else self.tr("1 run left"))
         return " · ".join(part for part in parts if part)
 
     def set_run_changes(self, changed_layers: int, restore_available: bool,

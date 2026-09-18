@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import unicodedata
 import urllib.error
@@ -31,6 +32,8 @@ _WINDOWS_RESERVED_NAMES = (
 )
 
 _WINDOWS_FORBIDDEN_CHARS = '\\/:*?"<>|'
+_MAX_STEM_CHARS = 100
+_MAX_EXT_CHARS = 16
 
 
 def _avoid_reserved_name(stem: str) -> str:
@@ -59,7 +62,14 @@ def _safe_filename(name: str, default: str = "download") -> str:
     if not cleaned:
         return default
     stem, ext = os.path.splitext(cleaned)
-    stem = _avoid_reserved_name(stem.strip(" .")) or default
+    if len(ext) > _MAX_EXT_CHARS:
+        stem, ext = cleaned, ""
+
+
+
+
+    stem = stem[:_MAX_STEM_CHARS].strip(" .")
+    stem = _avoid_reserved_name(stem) or default
     return stem + ext
 
 
@@ -525,7 +535,7 @@ def _viewbox_centre(viewbox: str | None) -> tuple | None:
 
 
 
-    if lon != lon or lat != lat or not (-180.0 <= lon <= 180.0 and -90.0 <= lat <= 90.0):
+    if math.isnan(lon) or math.isnan(lat) or not (-180.0 <= lon <= 180.0 and -90.0 <= lat <= 90.0):
         return None
     return lon, lat
 
@@ -568,3 +578,61 @@ def _footprint_box(bbox: dict):
     if box[2] <= box[0] or box[3] <= box[1]:
         return None, "bbox must have east greater than west and north greater than south"
     return box, ""
+
+
+
+
+__all__ = [
+    "_CACHE_CATALOG_S",
+    "_CACHE_GEOCODE_S",
+    "_DOWNLOAD_TOTAL_TIMEOUT",
+    "_GEOCODE_TIMEOUT",
+    "_INSPECT_TIMEOUT",
+    "_MAX_ARCHIVE_ENTRIES",
+    "_MAX_DOWNLOAD_SIZE",
+    "_MAX_EXTRACTED_SIZE",
+    "_MAX_ROUTE_WAYPOINTS",
+    "_NOMINATIM_URL",
+    "_OPEN_DATA_PORTALS",
+    "_OSM_RECENT",
+    "_OSM_RECENT_MIN_BYTES",
+    "_OSRM_PROFILES",
+    "_OVERPASS_CONNECT_TIMEOUT",
+    "_OWN_GEOCODE_TIMEOUT",
+    "_PORTAL_TIMEOUT",
+    "_ROUTE_TIMEOUT",
+    "_SERVICE_FORMAT_HINTS",
+    "_SOCRATA_GEOMETRY_TYPES",
+    "_TOTAL_TIMEOUT_FACTOR",
+    "_USER_AGENT",
+    "_VECTOR_FORMAT_HINTS",
+    "_WINDOWS_FORBIDDEN_CHARS",
+    "_WINDOWS_RESERVED_NAMES",
+    "_avoid_reserved_name",
+    "_bbox_km2",
+    "_canvas_viewbox_4326",
+    "_download_timeout",
+    "_fold",
+    "_footprint_box",
+    "_http_fetch",
+    "_http_get",
+    "_is_number",
+    "_json_object",
+    "_layer_from_geojson_str",
+    "_layer_from_source",
+    "_ogr_feature_count",
+    "_open_data_portals",
+    "_osm_recent",
+    "_osm_remember",
+    "_osrm_base",
+    "_overpass_timeout",
+    "_project_crs_transform",
+    "_run_on_main_thread",
+    "_safe_filename",
+    "_service",
+    "_text",
+    "_vector_source_from_features",
+    "_vector_uri_for",
+    "_viewbox_bounds",
+    "_viewbox_centre",
+]

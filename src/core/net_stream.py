@@ -88,6 +88,8 @@ class _StreamInflater:
             return
         self._fed += len(block)
         if self._first and self._fresh:
+            if len(self._head) + len(block) > STREAM_INFLATE_PIECE:
+                raise FetchTooLarge("The compressed answer's header exceeds the 1 MB parsing budget.")
             self._head += block
         self._feed(block, handle)
 
@@ -145,7 +147,7 @@ class _StreamInflater:
             return
         if self._worker is not None:
             self._put(self._worker.flush(), handle)
-            if self._gzip and not self._worker.eof:
+            if not self._worker.eof:
                 raise FetchTruncated(
                     "The compressed answer ended before its own end marker, so the file is "
                     "incomplete. The connection dropped; try again.")

@@ -415,11 +415,10 @@ GATES_KEEP = 512
 
 
 _GATES_PRUNE_EVERY_S = 5.0
-_last_gates_prune = 0.0
+_last_gates_prune = {"at": 0.0}
 
 
 def _gate(host: str) -> _HostGate:
-    global _last_gates_prune
 
 
 
@@ -440,8 +439,8 @@ def _gate(host: str) -> _HostGate:
 
 
 
-            if len(_GATES) > GATES_KEEP and now - _last_gates_prune >= _GATES_PRUNE_EVERY_S:
-                _last_gates_prune = now
+            if len(_GATES) > GATES_KEEP and now - _last_gates_prune["at"] >= _GATES_PRUNE_EVERY_S:
+                _last_gates_prune["at"] = now
                 _prune_gates()
         gate._touched = time.monotonic()
         return gate
@@ -467,10 +466,9 @@ def politeness_stats() -> dict:
 
 def politeness_reset() -> None:
     """Forget every bucket and counter. Tests, and a new QGIS session."""
-    global _last_gates_prune
     with _GATES_LOCK:
         _GATES.clear()
-    _last_gates_prune = 0.0
+    _last_gates_prune["at"] = 0.0
 
 
 def _pause(seconds: float, cancel, deadline: float | None) -> None:

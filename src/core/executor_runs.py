@@ -108,6 +108,12 @@ class _ExecutorRuns:
             waiting, self._waiting_for_history = self._waiting_for_history, {}
             for call in waiting.values():
                 self.handle_tool_call(call)
+        if not (self._run_mode or self._inflight or self._background or self._waiting_for_history):
+
+
+
+            self.watchdog.stop()
+            return
         now = time.monotonic() if now is None else float(now)
         for tool_call_id, (run_id, name, started, in_background) in list(self._inflight.items()):
             spent = now - started
@@ -173,8 +179,14 @@ class _ExecutorRuns:
 
 
 
+    def _wake_watchdog(self) -> None:
+        """Arm the main-thread watchdog again; it stops itself between runs."""
+        if not self._closed:
+            self.watchdog.start()
+
     def begin_run(self, run_id: str, mode: str, approval: str, thread_id: str = "",
                   prompt: str = "") -> None:
+        self._wake_watchdog()
 
 
 
@@ -281,11 +293,15 @@ class _ExecutorRuns:
 
 
 
-        try:
-            self.follower.end()
-            self.stacker.end()
-        except Exception as exc:  # noqa: BLE001 - unload never fails on a follower
-            log_warning(f"Canvas follower not stopped at unload: {exc}")
+
+
+
+
+        for watcher_end in (self.follower.end, self.stacker.end, self.scratch.end):
+            try:
+                watcher_end()
+            except Exception as exc:  # noqa: BLE001 - unload never fails on a watcher
+                log_warning(f"Run watcher not stopped at unload: {exc}")
         self._table.close()
 
     def bind_account(self) -> None:
@@ -388,6 +404,13 @@ class _ExecutorRuns:
             log_warning(f"After-run snapshot failed: {exc}")
             captured = False
         if captured:
+
+
+
+            try:
+                after.keep_files_of(snapshot)
+            except Exception as exc:  # noqa: BLE001 - a copy never blocks the checkpoint
+                log_warning(f"After-run file copies failed: {exc}")
             self.history.add(thread_id, KIND_AFTER, run_id, run_index, after, changed,
                              changed_layer_items(diff), prompt)
 

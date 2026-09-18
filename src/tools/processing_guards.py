@@ -33,6 +33,7 @@ from qgis.core import (
 )
 
 from ..core import ground, limits, tuning, vsi
+from ..core.logger import log_debug
 from ..core.policy import create_managed_temp_dir
 from .layer_lookup import _find_layer
 
@@ -120,6 +121,8 @@ def _extent_numbers(value) -> tuple[float, float, float, float] | None:
 def _cells(width: float, height: float, hspacing: float, vspacing: float) -> float:
     if width <= 0 or height <= 0 or hspacing <= 0 or vspacing <= 0:
         return 0.0
+    if not (math.isfinite(width) and math.isfinite(height)):
+        return math.inf
     return math.ceil(width / hspacing) * math.ceil(height / vspacing)
 
 
@@ -145,13 +148,35 @@ def _grid_sanity(parameters: dict, confirmed: bool) -> dict | None:
     if hspacing is None or vspacing is None:
         return None
     a, b, c, d = numbers
+    value = parameters.get("EXTENT")
+    tag = _WINDOW_CRS_RE.search(value) if isinstance(value, str) else None
+    target = parameters.get("CRS") if isinstance(parameters.get("CRS"), str) else ""
 
-    width, height = b - a, d - c
+    def spans(x0: float, x1: float, y0: float, y1: float) -> tuple[float, float]:
+
+
+
+
+        width, height = abs(x1 - x0), abs(y1 - y0)
+        if not tag or not target or tag.group(1).upper() == target.strip().upper():
+            return width, height
+        try:
+            box = QgsCoordinateTransform(QgsCoordinateReferenceSystem(tag.group(1).upper()),
+                                         QgsCoordinateReferenceSystem(target.strip()),
+                                         QgsProject.instance()).transformBoundingBox(
+                QgsRectangle(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)))
+            width, height = box.width(), box.height()
+        except Exception:  # noqa: BLE001 - a box that will not transform is past any grid
+            return math.inf, math.inf
+        return (width, height) if math.isfinite(width) and math.isfinite(height) else (math.inf, math.inf)
+
+
+    width, height = spans(a, b, c, d)
     asked = _cells(width, height, hspacing, vspacing)
     if asked <= _GRID_CELLS_MAX:
         return None
 
-    alt_width, alt_height = c - a, d - b
+    alt_width, alt_height = spans(a, c, b, d)
     meant = _cells(alt_width, alt_height, hspacing, vspacing)
     hint = ""
     if 0 < meant <= _GRID_CELLS_MAX:
@@ -301,7 +326,7 @@ def _local_copy(layer, algorithm_id: str, key: str) -> dict:
             dataset = gdal.Translate(path, source, format="GTiff",
                                      creationOptions=["COMPRESS=DEFLATE", "TILED=YES", "BIGTIFF=IF_SAFER"])
             copied = dataset is not None
-            dataset = None
+            del dataset
     except Exception as exc:  # noqa: BLE001 - GDAL raises once UseExceptions is on
         copied, reason = False, " ".join(str(exc).split())[:200]
     if not copied or not os.path.exists(path):
@@ -414,6 +439,59 @@ def _window_degrees_repair(parameters: dict) -> list[str]:
     return notes
 
 
+def _window_readings(value, layer):
+    """(rect, alt, crs_text, fits, alt_fits) for a window, both readings in the raster's CRS, or None."""
+
+
+
+    numbers = _extent_numbers(value)
+    if numbers is None:
+        return None
+    a, b, c, d = numbers
+    rect = QgsRectangle(min(a, b), min(c, d), max(a, b), max(c, d))
+    alt = QgsRectangle(min(a, c), min(b, d), max(a, c), max(b, d))
+    tag = _WINDOW_CRS_RE.search(value) if isinstance(value, str) else None
+    crs_text = f" [{tag.group(1).upper()}]" if tag else ""
+    if tag and tag.group(1).upper() != layer.crs().authid().upper():
+        try:
+            transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(tag.group(1).upper()),
+                                               layer.crs(), QgsProject.instance())
+            rect = transform.transformBoundingBox(rect)
+            alt = transform.transformBoundingBox(alt)
+        except Exception:  # noqa: BLE001 - a window that will not transform is not judged
+            return None
+    extent = layer.extent()
+
+    def fits(box):
+        return box.intersects(extent) and box.area() <= _WINDOW_RATIO_MAX * extent.area()
+
+    return rect, alt, crs_text, fits(rect), fits(alt)
+
+
+def _window_order_repair(parameters: dict) -> list[str]:
+    """A window in the xmin,ymin,xmax,ymax habit, rewritten in Processing's order when only that reading fits."""
+
+
+
+
+    notes: list[str] = []
+    for key in ("PROJWIN", "EXTENT", "TARGET_EXTENT"):
+        value = parameters.get(key)
+        layer = _raster_input(parameters)
+        if layer is None or layer.extent().isEmpty():
+            return notes
+        readings = _window_readings(value, layer)
+        if readings is None:
+            continue
+        _rect, _alt, crs_text, fits, alt_fits = readings
+        if fits or not alt_fits:
+            continue
+        a, b, c, d = _extent_numbers(value)
+        parameters[key] = f"{_plain(a)},{_plain(c)},{_plain(b)},{_plain(d)}{crs_text}"
+        notes.append(f"{key} was xmin,ymin,xmax,ymax: rewritten as xmin,xmax,ymin,ymax, the order Processing reads")
+    return notes
+
+
 def _window_sanity(parameters: dict) -> dict | None:
     """Refuse a raster window that misses the input raster or dwarfs it."""
 
@@ -421,43 +499,28 @@ def _window_sanity(parameters: dict) -> dict | None:
 
 
 
-
     for key in ("PROJWIN", "EXTENT", "TARGET_EXTENT"):
         value = parameters.get(key)
-        numbers = _extent_numbers(value)
-        if numbers is None:
+        if _extent_numbers(value) is None:
             continue
         layer = _raster_input(parameters)
         if layer is None or layer.extent().isEmpty():
             return None
-        a, b, c, d = numbers
-        rect = QgsRectangle(min(a, b), min(c, d), max(a, b), max(c, d))
-        alt = QgsRectangle(min(a, c), min(b, d), max(a, c), max(b, d))
-        tag = _WINDOW_CRS_RE.search(value) if isinstance(value, str) else None
-        crs_text = f" [{tag.group(1).upper()}]" if tag else ""
-        if tag and tag.group(1).upper() != layer.crs().authid().upper():
-            try:
-                transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(tag.group(1).upper()),
-                                                   layer.crs(), QgsProject.instance())
-                rect = transform.transformBoundingBox(rect)
-                alt = transform.transformBoundingBox(alt)
-            except Exception:
-                return None
-        extent = layer.extent()
-        if rect.intersects(extent) and rect.area() <= _WINDOW_RATIO_MAX * extent.area():
+        readings = _window_readings(value, layer)
+        if readings is None:
             return None
+        rect, _alt, _crs_text, fits, _alt_fits = readings
+        if fits:
+            return None
+        extent = layer.extent()
         problem = ("does not overlap" if not rect.intersects(extent)
                    else f"is {rect.area() / extent.area():,.0f} times the size of")
-        hint = ""
-        if alt.intersects(extent) and alt.area() <= _WINDOW_RATIO_MAX * extent.area():
-            hint = (f" The same numbers read as xmin,ymin,xmax,ymax lie on the raster: "
-                    f"pass '{_plain(a)},{_plain(c)},{_plain(b)},{_plain(d)}{crs_text}'.")
         return {
             "_error": (
-                f"WINDOW_OFF_RASTER: {key} spans {rect.width():,.0f} by {rect.height():,.0f} in the "
-                f"raster's CRS and {problem} {layer.name()} (extent {extent.xMinimum():,.0f}, "
-                f"{extent.yMinimum():,.0f} to {extent.xMaximum():,.0f}, {extent.yMaximum():,.0f}). "
-                f"Processing reads {key} as xmin,xmax,ymin,ymax [EPSG:n], not xmin,ymin,xmax,ymax.{hint}"
+                f"WINDOW_OFF_RASTER: {key} spans {rect.width():,.6g} by {rect.height():,.6g} in the "
+                f"raster's CRS and {problem} {layer.name()} (extent {extent.xMinimum():,.6g}, "
+                f"{extent.yMinimum():,.6g} to {extent.xMaximum():,.6g}, {extent.yMaximum():,.6g}). "
+                f"Processing reads {key} as xmin,xmax,ymin,ymax [EPSG:n], not xmin,ymin,xmax,ymax."
             ),
             "code": "INVALID_ARGS",
         }
@@ -530,7 +593,7 @@ _NOT_A_LAYER_NAME = ("|", "://", "/", "\\", "memory:")
 _OUTPUT_SENTINELS = ("TEMPORARY_OUTPUT", "memory:")
 
 
-def _resolve_layer_inputs(parameters: dict) -> tuple[dict, list[str]]:
+def _resolve_layer_inputs(parameters: dict, alg=None) -> tuple[dict, list[str]]:
     """Replace a named input with the id of the layer that name points at."""
 
 
@@ -561,7 +624,52 @@ def _resolve_layer_inputs(parameters: dict) -> tuple[dict, list[str]]:
         if identifier and identifier != value:
             resolved[key] = identifier
             rewritten.append(key)
+    for key in sorted(_layer_list_keys(alg)):
+        items = parameters.get(key)
+        if not isinstance(items, list):
+            continue
+        swapped = [_layer_id_for(item) for item in items]
+        if swapped != items:
+            resolved[key] = swapped
+            rewritten.append(key)
     return resolved, rewritten
+
+
+def _names_a_layer(value) -> bool:
+    """Whether a string argument is meant as a project layer's name or id."""
+    if not isinstance(value, str) or not value.strip():
+        return False
+    value = value.strip()
+    if value in _OUTPUT_SENTINELS or any(mark in value for mark in _NOT_A_LAYER_NAME):
+        return False
+    return not os.path.exists(value)
+
+
+def _layer_id_for(item):
+    """A list entry as the id of the layer it names, or unchanged."""
+    if not _names_a_layer(item):
+        return item
+    layer = _find_layer(item.strip())
+    try:
+        return layer.id() if layer is not None and layer.id() else item
+    except (AttributeError, RuntimeError):
+        return item
+
+
+def _layer_list_keys(alg) -> set:
+    """The parameters of ``alg`` that take several layers (LAYERS of mergevectorlayers)."""
+    keys = set()
+    try:
+        definitions = alg.parameterDefinitions() if alg is not None else []
+    except Exception:  # noqa: BLE001 - no definitions, no list inputs to check
+        return keys
+    for definition in definitions:
+        try:
+            if definition.type() == "multilayer":
+                keys.add(definition.name())
+        except Exception:  # nosec B112 - a definition that cannot say its type is skipped
+            continue
+    return keys
 
 
 def _unresolved_input_check(alg, parameters: dict) -> dict | None:
@@ -584,16 +692,201 @@ def _unresolved_input_check(alg, parameters: dict) -> dict | None:
             continue
         if os.path.exists(value) or _find_layer(value) is not None:
             continue
-        names = [layer.name() for layer in QgsProject.instance().mapLayers().values()][:20]
-        return {
-            "_error": f"No layer in this project is called {value!r}, so "
-                      f"{alg.id() if alg is not None else 'this algorithm'} has nothing to read.",
-            "code": "INVALID_ARGS",
-            "layers": names,
-            "suggestion": "Pass one of the names above, or the layer_id the tool that made the layer "
-                          "returned. list_layers gives both.",
-        }
+        return _no_such_layers(alg, key, [value])
+
+
+
+    for key in sorted(_layer_list_keys(alg)):
+        items = parameters.get(key)
+        if not isinstance(items, list):
+            continue
+        missing = [item.strip() for item in items if _names_a_layer(item) and _find_layer(item.strip()) is None]
+        if missing:
+            return _no_such_layers(alg, key, missing)
     return None
+
+
+def _no_such_layers(alg, key: str, missing: list) -> dict:
+    """The refusal for input names that match no layer of the project."""
+    names = [layer.name() for layer in QgsProject.instance().mapLayers().values()][:20]
+    quoted = ", ".join(repr(value) for value in missing)
+    return {
+        "_error": (f"No layer in this project is called {quoted} ({key}), so "
+                   f"{alg.id() if alg is not None else 'this algorithm'} has nothing to read."),
+        "code": "INVALID_ARGS",
+        "layers": names,
+        "suggestion": "Pass one of the names above, or the layer_id the tool that made the layer "
+                      "returned. list_layers gives both.",
+    }
+
+
+
+
+
+
+
+
+
+
+PARAMETER_MARK = "PARAMETER_INVALID:"
+
+
+_NUMERIC_TYPES = frozenset({"number", "distance", "area", "volume", "duration", "scale"})
+_SKIPPED_TYPES = frozenset({"matrix", "range", "aggregates", "fieldmapping", "tininputlayers",
+                            "vectortilewriterlayers", "dxflayers", "meshdatasetgroups",
+                            "meshdatasettime", "alignrasterlayers", "rasterdemparameters"})
+
+
+def _definitions(alg):
+    try:
+        return list(alg.parameterDefinitions()) if alg is not None else []
+    except Exception:  # noqa: BLE001 - an algorithm that cannot list its parameters is not checked
+        return []
+
+
+def _type_of(definition) -> str:
+    try:
+        return str(definition.type() or "").casefold()
+    except Exception:  # noqa: BLE001 - a definition without a type is not checked
+        return ""
+
+
+def _enum_problem(definition, value) -> str:
+    """Why this value cannot be an enum choice, or ""."""
+    try:
+        options = [str(option) for option in definition.options()]
+    except (AttributeError, TypeError, RuntimeError):
+        return ""
+    if not options:
+        return ""
+    listed = ", ".join(f"{index}={option}" for index, option in enumerate(options))
+    for item in (value if isinstance(value, (list, tuple)) else [value]):
+        if isinstance(item, bool) or item is None:
+            continue
+        if isinstance(item, str) and not item.strip().lstrip("-").isdigit():
+            wanted = item.strip().casefold()
+            match = next((index for index, option in enumerate(options)
+                          if str(option).casefold() == wanted), None)
+            if match is not None:
+                return (f"is the label '{item}', and an enum takes the integer beside it: send {match}. "
+                        f"Choices: {listed}")
+            return f"is '{item}', which is not one of its choices. Choices: {listed}"
+        try:
+            index = int(item)
+        except (TypeError, ValueError):
+            continue
+        if index < 0 or index >= len(options):
+            return f"is {index}, outside its choices. Choices: {listed}"
+    return ""
+
+
+def _parameter_sanity(alg, parameters: dict) -> dict | None:
+    """Refuse a call whose parameters QGIS would reject, naming each one and its type."""
+    definitions = _definitions(alg)
+    if not definitions:
+        return None
+    by_name = {definition.name(): definition for definition in definitions}
+    algorithm = alg.id() if alg is not None else "this algorithm"
+
+
+
+
+    import difflib
+    for key in parameters:
+        if key in by_name:
+            continue
+        near = difflib.get_close_matches(str(key), list(by_name), n=1, cutoff=0.75)
+        if not near:
+
+
+
+
+            folded = str(key).casefold()
+            holders = [name for name in by_name
+                       if folded and folded != name.casefold() and folded in name.casefold()]
+            near = holders if len(holders) == 1 else []
+        if near:
+            definition = by_name[near[0]]
+            return {
+                "_error": (f"{PARAMETER_MARK} {algorithm} has no parameter '{key}'. Its parameter "
+                           f"'{near[0]}' ({_type_of(definition) or 'value'}) is the one this spelling means. "
+                           f"Nothing was run."),
+                "code": "INVALID_ARGS",
+                "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
+                "suggestion": f"Send '{near[0]}' instead of '{key}'. The full parameter list is above.",
+            }
+
+
+
+    from .processing_destinations import _is_optional
+
+    absent = []
+    for definition in definitions:
+        name = definition.name()
+        if name in parameters and parameters[name] not in (None, ""):
+            continue
+        if getattr(definition, "isDestination", lambda: False)():
+            continue
+        try:
+            if _is_optional(definition) or definition.defaultValue() is not None:
+                continue
+        except Exception as exc:  # noqa: BLE001 - a definition that cannot say is left alone
+            log_debug(f"required parameter check: {name!r} could not say if it is optional: {exc}")
+            continue
+        absent.append(f"{name} ({_type_of(definition) or 'value'})")
+    if absent:
+        return {
+            "_error": (f"{PARAMETER_MARK} {algorithm} needs {', '.join(absent)}, and the call gives "
+                       f"no value for {'them' if len(absent) > 1 else 'it'}. Nothing was run."),
+            "code": "INVALID_ARGS",
+            "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
+            "suggestion": "Add " + ", ".join(absent) + " to parameters, with the type named in brackets.",
+        }
+
+
+
+    for name, value in parameters.items():
+        definition = by_name.get(name)
+        if definition is None or value is None:
+            continue
+        kind = _type_of(definition)
+        if kind in _SKIPPED_TYPES:
+            continue
+        if kind == "enum":
+            problem = _enum_problem(definition, value)
+            if problem:
+                return {
+                    "_error": f"{PARAMETER_MARK} {algorithm} parameter '{name}' {problem}. Nothing was run.",
+                    "code": "INVALID_ARGS",
+                    "suggestion": f"Send the integer for '{name}' from the choices above.",
+                }
+            continue
+        if kind in _NUMERIC_TYPES and isinstance(value, str) and value.strip():
+            try:
+                float(value.strip())
+            except ValueError:
+                return {
+                    "_error": (f"{PARAMETER_MARK} {algorithm} parameter '{name}' is a {kind} and the call "
+                               f"sends the text '{value}'. Nothing was run."),
+                    "code": "INVALID_ARGS",
+                    "suggestion": f"Send '{name}' as a number, in the units of the input layer's CRS.",
+                }
+    return None
+
+
+def ignored_parameters(alg, parameters: dict) -> list:
+    """Parameter names the algorithm does not have and no real name resembles."""
+
+
+
+
+
+    definitions = _definitions(alg)
+    if not definitions:
+        return []
+    names = {definition.name() for definition in definitions}
+    return [f"{key} is not a parameter of {alg.id()} and was ignored"
+            for key in parameters if key not in names]
 
 
 def _empty_input_check(alg, parameters: dict) -> dict | None:
@@ -749,6 +1042,11 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
         source = parameters.get(parent or "INPUT")
         layer = _find_layer(source) if isinstance(source, str) else None
         if layer is None or not hasattr(layer, "crs"):
+            continue
+        if name.upper() == "INTERVAL" and not typed_distance and isinstance(layer, QgsRasterLayer):
+
+
+
             continue
         crs = layer.crs()
         if not crs.isValid():
@@ -966,7 +1264,61 @@ def crs_plausibility(layer, new_crs) -> dict | None:
                 f"reproject with native:reprojectlayer TARGET_CRS {new_crs.authid()} if you want metres."
             ),
         }
-    return None
+    return _outside_area_of_use(layer, new_crs, extent)
+
+
+
+
+_AREA_OF_USE_MARGIN = 2.0
+
+
+def _centre_in_area_of_use(crs, point) -> bool | None:
+    """Whether `point`, read in `crs`, falls in that CRS's area of use; None when unknown."""
+    try:
+        bounds = crs.bounds()
+        if bounds is None or bounds.isEmpty():
+            return None
+        wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+        lonlat = point if crs.isGeographic() else \
+            QgsCoordinateTransform(crs, wgs84, QgsProject.instance()).transform(point)
+        x, y = lonlat.x(), lonlat.y()
+        if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
+            return False
+        m = _AREA_OF_USE_MARGIN
+        return (bounds.xMinimum() - m <= x <= bounds.xMaximum() + m
+                and bounds.yMinimum() - m <= y <= bounds.yMaximum() + m)
+    except Exception:  # noqa: BLE001 - a point a CRS cannot transform is outside it
+        return False
+
+
+def _outside_area_of_use(layer, new_crs, extent) -> dict | None:
+    """Refuse relabelling a layer whose declared CRS fits it with one that puts it off its grid."""
+
+
+
+
+
+
+    try:
+        current = layer.crs()
+        if not current.isValid() or current == new_crs:
+            return None
+        centre = extent.center()
+    except Exception:  # nosec B110 - a layer that cannot answer is not a layer to refuse over
+        return None
+    if _centre_in_area_of_use(current, centre) is not True or _centre_in_area_of_use(new_crs, centre) is not False:
+        return None
+    return {
+        "_error": (
+            f"'{layer.name()}' is declared {current.authid()} and its coordinates fit that CRS; read as "
+            f"{new_crs.authid()} they fall outside the area that CRS covers, so declaring it would move the layer."
+        ),
+        "code": "CRS_GUARD",
+        "suggestion": (
+            f"Reproject with native:reprojectlayer (gdal:warpreproject for a raster) TARGET_CRS "
+            f"{new_crs.authid()}. Setting the CRS relabels the coordinates, it does not move them."
+        ),
+    }
 
 
 _PROVENANCE_COMMAND_MAX = 2000

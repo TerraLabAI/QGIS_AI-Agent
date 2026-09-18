@@ -9,6 +9,7 @@ from qgis.core import QgsCoordinateTransform, QgsFeatureRequest, QgsProject, Qgs
 from qgis.utils import iface
 
 from ..core import ground
+from ..core.feature_requests import feature_request
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
@@ -30,6 +31,45 @@ def _safe_feature_count(layer):
     if str(layer.providerType() or "") in _REMOTE_VECTOR_PROVIDERS:
         return None
     return layer.featureCount()
+
+
+def _extent_block(extent, crs) -> dict:
+    """An extent with the CRS its four numbers are written in, the unit's name and its size."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+    from ..core.context import crs_units
+
+    block = {"xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
+             "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),
+             "crs": crs.authid() if crs is not None else ""}
+    if crs is None or not crs.isValid():
+        return block
+    try:
+        block["units"] = crs_units(crs)
+
+        digits = 6 if crs.isGeographic() else 2
+        width, height = extent.width(), extent.height()
+        block["width"] = round(width, digits)
+        block["height"] = round(height, digits)
+        centre = extent.center()
+        scale = ground.metres_per_unit(crs, centre.x(), centre.y())
+    except Exception:  # noqa: BLE001 - a frame we cannot complete still names its CRS
+        return block
+    if ground.distorted(scale):
+        block["ground_width_m"] = round(width * scale, 1)
+        block["ground_height_m"] = round(height * scale, 1)
+    return block
 
 
 def _layer_kind(layer) -> str:
@@ -86,12 +126,10 @@ def _get_project_context(args: dict) -> dict:
             "crs": canvas_crs.authid(),
             "crs_is_geographic": canvas_crs.isGeographic(),
             "crs_units": "degrees" if canvas_crs.isGeographic() else "meters",
-            "extent": {
-                "xmin": canvas.extent().xMinimum(),
-                "ymin": canvas.extent().yMinimum(),
-                "xmax": canvas.extent().xMaximum(),
-                "ymax": canvas.extent().yMaximum(),
-            },
+
+
+
+            "extent": _extent_block(canvas.extent(), canvas_crs),
             "scale": canvas.scale(),
             "width_px": canvas.width(),
             "height_px": canvas.height(),
@@ -117,10 +155,7 @@ def _get_project_context(args: dict) -> dict:
         if verbose:
             ext = layer.extent()
             if ext and not ext.isEmpty():
-                info["extent"] = {
-                    "xmin": ext.xMinimum(), "ymin": ext.yMinimum(),
-                    "xmax": ext.xMaximum(), "ymax": ext.yMaximum(),
-                }
+                info["extent"] = _extent_block(ext, layer.crs())
         if isinstance(layer, QgsVectorLayer):
             fc = _safe_feature_count(layer)
             info["feature_count"] = fc if fc is not None else "unknown"
@@ -292,7 +327,7 @@ def _field_entries(layer, compute_unique: bool) -> tuple[list, dict]:
         if i in countable_indexes and compute_unique and i not in skipped_fields and spent < _SAMPLE_BUDGET_CHARS:
             if len(distinct[i]) <= 15:
                 entry["unique_values"] = sorted(
-                    [v for v in distinct[i] if v is not None], key=lambda x: str(x),
+                    [v for v in distinct[i] if v is not None], key=str,
                 )
                 if partial:
                     entry["unique_values_from_first"] = _SURVEY_FEATURES
@@ -335,12 +370,7 @@ def _get_layer_info(args: dict) -> dict:
         "layer_id": layer.id(),
         "type": _layer_kind(layer),
         "crs": layer.crs().authid(),
-        "extent": {
-            "xmin": layer.extent().xMinimum(),
-            "ymin": layer.extent().yMinimum(),
-            "xmax": layer.extent().xMaximum(),
-            "ymax": layer.extent().yMaximum(),
-        },
+        "extent": _extent_block(layer.extent(), layer.crs()),
     }
 
 
@@ -406,7 +436,7 @@ def _get_layer_info(args: dict) -> dict:
             return v
 
         features = []
-        for feat in layer.getFeatures(QgsFeatureRequest().setLimit(5)):
+        for feat in layer.getFeatures(feature_request(geometry=False, limit=5)):
             features.append({f.name(): _truncate(feat[f.name()]) for f in layer.fields()})
 
 
@@ -468,6 +498,12 @@ def _zoom_to_layer(args: dict) -> dict:
         "zoomed_to": layer.name(),
         "layer_id": layer.id(),
         "canvas_crs": canvas.mapSettings().destinationCrs().authid(),
+
+
+        **({"layer_crs": layer_crs.authid()} if layer_crs.isValid() and layer_crs != canvas_crs else {}),
         "scale": canvas.scale(),
-        "extent": {"xmin": ext.xMinimum(), "ymin": ext.yMinimum(), "xmax": ext.xMaximum(), "ymax": ext.yMaximum()},
+
+
+
+        "extent": _extent_block(ext, canvas.mapSettings().destinationCrs()),
     }

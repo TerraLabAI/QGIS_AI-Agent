@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import http.client
+import socket
 import threading
 import urllib.error
 import urllib.parse
@@ -13,7 +14,7 @@ import urllib.request
 
 from .logger import log_warning
 from .net_failure import LocalUrlRefused, _transient
-from .security import validate_url, vetted_addresses
+from .security import _as_address, refused_addresses, validate_url, vetted_addresses
 
 
 
@@ -23,6 +24,10 @@ from .security import validate_url, vetted_addresses
 
 
 _PINNED = threading.local()
+
+
+
+_RESOLVE_AT_CONNECT = "resolve-at-connect"
 
 
 def _pin_table() -> dict:
@@ -48,6 +53,8 @@ def _pin(url: str) -> None:
             f"{host} answered with a local address between the check and the connection.")
     if addresses:
         _pin_table()[host] = addresses
+    elif host and _as_address(host) is None:
+        _pin_table()[host] = _RESOLVE_AT_CONNECT
 
 
 def check_url(url: str) -> None:
@@ -253,6 +260,8 @@ class _GuardedConnection:
             self.timeout = budget if not full else min(budget, full)
         try:
             pinned = self._pinned_addresses()
+            if pinned == _RESOLVE_AT_CONNECT:
+                pinned = self._resolve_and_vet()
             if pinned:
                 self._connect_pinned(pinned)
             else:
@@ -265,6 +274,15 @@ class _GuardedConnection:
                     sock.settimeout(full)
                 except OSError:
                     pass
+
+    def _resolve_and_vet(self) -> tuple:
+        host = str(self.host or "")
+        infos = socket.getaddrinfo(host, self.port, 0, socket.SOCK_STREAM)
+        addresses = tuple(dict.fromkeys(info[4][0] for info in infos if info[4]))
+        reason = refused_addresses(f"http://{host}:{self.port}/", addresses)
+        if reason:
+            raise LocalUrlRefused(reason)
+        return addresses
 
     def _connect_pinned(self, addresses: tuple) -> None:
         """Open the socket to one of *addresses*, trying each as urllib would."""

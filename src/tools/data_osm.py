@@ -16,6 +16,7 @@ import urllib.request
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..core import catalog, limits, net, tuning
+from ..core.host_platform import remove_quietly, remove_tree
 from ..core.policy import create_managed_temp_dir
 from . import volume_guard
 from .data_common import (
@@ -123,6 +124,16 @@ def _osm_from_hosted(plan: list, box, args: dict, km2: float) -> dict:
     filters = {theme: wanted for theme, wanted in plan if wanted}
     if filters:
         made["filters"] = filters
+
+
+    partial = [layer["theme"] for layer in layers
+               if layer.get("truncated") or layer.get("coverage") == "partial"]
+    if partial or errors:
+        made["coverage"] = "partial"
+    if partial:
+        made["truncated"] = True
+        made["_note"] += (f" {', '.join(partial)} stopped at the service's limit or lost a clip: part of the box is "
+                          "missing from the map, not empty. Say so; a smaller box gives all of it.")
     return made
 
 
@@ -244,7 +255,7 @@ def _osm_area_refusal(km2: float, box=None, args: dict | None = None) -> dict | 
     if themes:
         what = (f"{km2:,.0f} square kilometres is over the {ceiling:,.0f} TerraLab's tiles clip "
                 f"{', '.join(themes)} to in one fetch_osm_data call; the request was not sent."
-                + volume_guard.LIFT_HINT)
+                + volume_guard.CLIP_TO_HINT + volume_guard.LIFT_HINT)
     else:
         what = (f"{km2:,.0f} square kilometres is over the {ceiling:,.0f} one fetch_osm_data "
                 "call may cover; the request was not sent.")
@@ -275,7 +286,6 @@ _FOOTPRINTS_URL = "https://terra-lab.ai/api/building-footprints"
 _FOOTPRINT_SOURCES = ("microsoft", "google", "openstreetmap", "overture")
 _FOOTPRINT_SOURCE_INPUTS = (*_FOOTPRINT_SOURCES, "osm")
 _FOOTPRINT_DEFAULT_SOURCES = ("microsoft", "openstreetmap")
-_FOOTPRINT_SERVICE_SOURCES = ("microsoft", "google", "openstreetmap")
 _FOOTPRINT_LABELS = {"microsoft": "Microsoft Buildings",
                      "google": "Google Open Buildings",
                      "openstreetmap": "OSM Buildings",
@@ -285,7 +295,6 @@ _FOOTPRINT_LABELS = {"microsoft": "Microsoft Buildings",
 
 
 
-_FOOTPRINT_MAX_KM2 = volume_guard.FOOTPRINTS_MAX_KM2
 _FOOTPRINT_MAX_SPAN_DEG = 0.5
 
 
@@ -296,6 +305,9 @@ def _fetch_building_footprints(args: dict) -> dict:
     box, problem = _footprint_box(args.get("bbox") or {})
     if box is None:
         return {"_error": problem}
+    problem = volume_guard.not_degrees(*box)
+    if problem:
+        return {"_error": problem, "code": "INVALID_ARGS"}
     west, south, east, north = box
 
 
@@ -601,6 +613,10 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
         return {"_error": f"bbox is inverted: west {west}, east {east}, south {south}, north {north}.",
                 "code": "INVALID_ARGS",
                 "suggestion": "Pass west < east and south < north, in EPSG:4326 degrees."}
+    problem = volume_guard.not_degrees(west, south, east, north)
+    if problem:
+        return {"_error": problem, "code": "INVALID_ARGS",
+                "suggestion": "Pass the bbox of the place in EPSG:4326 degrees, longitude and latitude."}
 
     try:
         area_km2 = _bbox_km2(south, west, north, east)
@@ -880,7 +896,6 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
 
 def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, layer_name: str, box) -> dict:
     """``_fetch_osm_data`` for a call the server verified as the user's request for all of it."""
-    import shutil
     import time
 
     started = time.monotonic()
@@ -921,7 +936,9 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         download_bytes = os.path.getsize(answer_path)
         for name in os.listdir(directory):
             if name.endswith(".json"):
-                os.remove(os.path.join(directory, name))
+
+
+                remove_quietly(os.path.join(directory, name))
         if converted.get("_error"):
             return converted
         warning = fetched.get("warning", "")
@@ -1003,7 +1020,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         return {"_error": "Invalid response from Overpass API"}
     finally:
         if not kept:
-            shutil.rmtree(directory, ignore_errors=True)
+            remove_tree(directory)
 
 
 def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: dict, deadline: float,
@@ -1037,11 +1054,11 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         try:
             remark = _OverpassFile(path).remark()
         except ValueError:
-            os.remove(path)
+            remove_quietly(path)
             raise
         if remark:
             if any(marker in remark.lower() for marker in _OVERPASS_INSTANCE_FAULTS):
-                os.remove(path)
+                remove_quietly(path)
                 raise ValueError(f"Invalid response from Overpass API: {remark[:120]}")
             partial[url] = (path, remark)
             raise ValueError(f"Overpass query timed out: {remark}")
@@ -1117,3 +1134,25 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
     return {"_error": f"{down_prefix}Overpass could not deliver this load{_overpass_why(errors)}.",
             "suggestion": ("Say what stopped it. A smaller area, or the ways with out geom; instead of a recursion, "
                            "asks less of the server.")}
+
+
+
+
+__all__ = [
+    "QgsProject",
+    "_FOOTPRINT_DEFAULT_SOURCES",
+    "_FOOTPRINT_SOURCES",
+    "_FOOTPRINT_SOURCE_INPUTS",
+    "_MAX_DOWNLOAD_SIZE",
+    "_fetch_building_footprints",
+    "_fetch_osm_data",
+    "_fetch_osm_data_preflight",
+    "_layer_from_source",
+    "_osm_area_refusal",
+    "_osm_endpoints",
+    "_osm_from_hosted",
+    "_osm_stream_convert",
+    "_overture_clip",
+    "_own_overpass_unreachable",
+    "_run_on_main_thread",
+]

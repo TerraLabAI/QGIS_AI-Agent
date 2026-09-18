@@ -341,6 +341,11 @@ _MAX_HOSTS = 40
 
 _CAP_KM2 = (1.0, 5_000.0)
 _CAP_SPAN_DEG = (0.05, 10.0)
+
+
+
+
+_CAP_BY_THEME = {"divisions": ((1.0, 30_000_000.0), (0.05, 60.0))}
 _MAX_CAP_ROWS = 60
 
 
@@ -455,8 +460,9 @@ def _clean_caps(value: Any, where: str) -> dict | None:
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
             log_warning(f"Server policy {where}.{theme} is not a [km2, degrees] pair, ignored")
             continue
-        km2 = _clamp_float(pair[0], *_CAP_KM2, where=f"{where}.{theme}.km2")
-        span = _clamp_float(pair[1], *_CAP_SPAN_DEG, where=f"{where}.{theme}.degrees")
+        km2_range, span_range = _CAP_BY_THEME.get(theme.strip().lower(), (_CAP_KM2, _CAP_SPAN_DEG))
+        km2 = _clamp_float(pair[0], *km2_range, where=f"{where}.{theme}.km2")
+        span = _clamp_float(pair[1], *span_range, where=f"{where}.{theme}.degrees")
         if km2 is None or span is None:
             continue
         out[theme.strip().lower()] = (km2, span)

@@ -20,15 +20,15 @@
 
 from __future__ import annotations
 
-import contextlib
 import math
 import os
 import time
+import uuid
 
 from qgis.core import Qgis, QgsCoordinateReferenceSystem, QgsProject, QgsRasterLayer, QgsUnitTypes
 
 from ..core import limits, net, output_paths, security
-from ..core.host_platform import retry_file_op
+from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
@@ -339,8 +339,7 @@ def _unlink(gdal, path: str) -> None:
 
 def _remove(path: str) -> None:
     if path:
-        with contextlib.suppress(OSError):
-            os.remove(path)
+        remove_quietly(path)
 
 
 def _build_overviews(gdal, dataset, method: str, levels: list, progress) -> None:
@@ -386,7 +385,7 @@ def _overviews(gdal, path: str, method: str, progress) -> None:
             _build_overviews(gdal, dataset, method, levels, progress)
     except Exception as exc:  # noqa: BLE001 - raised again below, once the dataset is closed
         failure = exc.with_traceback(None)
-    dataset = None
+    del dataset
     if failure is not None:
         raise failure
 
@@ -480,7 +479,9 @@ def _georeference_raster(args: dict) -> dict:
                 "INVALID_ARGS",
                 "Remove that layer with remove_layer and call again, or leave output_path out to write a new file.")
 
-    token = f"{os.getpid()}_{time.monotonic_ns()}"
+
+
+    token = uuid.uuid4().hex[:16]
     gcp_vrt = f"/vsimem/georef_{token}.vrt"
     plan_vrt = f"/vsimem/georef_{token}_plan.vrt"
     part = ""
@@ -505,13 +506,13 @@ def _georeference_raster(args: dict) -> dict:
         plan = gdal.Warp(plan_vrt, gcp_vrt, format="VRT", dstSRS=facts["crs"], **method)
         natural = _pixel_size(plan.GetGeoTransform())
         cols, rows = plan.RasterXSize, plan.RasterYSize
-        plan = None
+        del plan
         if pixel_size:
             _unlink(gdal, plan_vrt)
             plan = gdal.Warp(plan_vrt, gcp_vrt, format="VRT", dstSRS=facts["crs"], xRes=pixel_size,
                              yRes=pixel_size, **method)
             cols, rows = plan.RasterXSize, plan.RasterYSize
-            plan = None
+            del plan
         refused = _size_refusal(cols, rows, pixel_size or natural, facts["units"])
         if refused:
             return refused
@@ -519,14 +520,18 @@ def _georeference_raster(args: dict) -> dict:
         folder = os.path.dirname(target)
         os.makedirs(folder, exist_ok=True)
         part = os.path.join(folder, f".{os.path.basename(target)}.{token}.part.tif")
+        if not security.fits_path(part, len(".aux.xml")):
+
+
+            part = os.path.join(folder, f".georef-{token}.part.tif")
         options = gdal.WarpOptions(
             format="GTiff", dstSRS=facts["crs"], xRes=pixel_size, yRes=pixel_size,
             resampleAlg="near" if paletted else _RESAMPLING[resampling],
 
             dstAlpha=not has_nodata, multithread=True, warpMemoryLimit=_WARP_MEMORY, creationOptions=_CREATION,
             callback=progress, **method)
-        written = gdal.Warp(part, gcp_vrt, options=options)
-        written = None  # noqa: F841 - closing the dataset flushes it to disk
+
+        gdal.Warp(part, gcp_vrt, options=options)
         _overviews(gdal, part, "NEAREST" if paletted else "AVERAGE", progress)
         try:
             retry_file_op(os.replace, part, target)

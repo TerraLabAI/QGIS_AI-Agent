@@ -183,6 +183,9 @@ class ToolCard(QWidget):
 
         self.repeat_ids = [tool_call_id]
         self.repeats = 1
+
+
+        self.failures = 0
         self._expanded = False
         self._hovering = False
 
@@ -476,6 +479,8 @@ class ToolCard(QWidget):
 
         if not ok and _CANCELLED_RE.match(self.summary) and self.ended != "denied":
             self.ended = "stopped"
+        if not ok and self.ended not in ("denied", "stopped"):
+            self.failures += 1
         try:
             self.duration_s = float(duration_s or 0.0)
         except (TypeError, ValueError):

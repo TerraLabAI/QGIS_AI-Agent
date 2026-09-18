@@ -26,7 +26,6 @@
 from __future__ import annotations
 
 import math
-import platform
 import sys
 import threading
 import time
@@ -38,6 +37,7 @@ from qgis.PyQt.QtCore import QTimer
 
 from ..api.terralab_client import TerraLabClient, plugin_version, qgis_version
 from . import telemetry_events as ev
+from .host_platform import os_info
 from .log_scrub import is_secret_key, scrub_secrets
 from .privacy_notice import has_accepted_privacy_notice
 
@@ -52,6 +52,11 @@ PRE_AUTH_MAX = 50
 FLUSH_INTERVAL_S = 60
 TIMEOUT_S = 5.0
 RETRY_BACKOFF_S = 2.0
+
+
+
+
+FINAL_TIMEOUT_MS = 3_000
 STRING_MAX = 64
 ENABLED_CACHE_S = 5.0
 MAX_INFLIGHT = 4
@@ -71,8 +76,8 @@ _lock = threading.Lock()
 _batch: list = []
 _pending_pre_auth: list = []
 _session_id = uuid.uuid4().hex
-_enabled_cache: bool | None = None
-_enabled_cache_at = 0.0
+
+_enabled_cache: dict = {"value": None, "at": 0.0}
 _flush_timer: QTimer | None = None
 _auth_provider = None
 _inflight: list = []
@@ -85,15 +90,15 @@ _first_run_key = "AIAgent/telemetry_first_run_sent"
 
 def is_telemetry_enabled() -> bool:
     """The shared opt-out, read at most every few seconds. Unreadable means off."""
-    global _enabled_cache, _enabled_cache_at
     now = time.monotonic()
-    if _enabled_cache is not None and now - _enabled_cache_at < ENABLED_CACHE_S:
-        return _enabled_cache
+    cached = _enabled_cache["value"]
+    if cached is not None and now - _enabled_cache["at"] < ENABLED_CACHE_S:
+        return cached
     try:
         value = bool(QgsSettings().value(TELEMETRY_ENABLED_KEY, True, type=bool))
     except Exception:  # nosec B110 - telemetry must not block QGIS
         value = False
-    _enabled_cache, _enabled_cache_at = value, now
+    _enabled_cache.update(value=value, at=now)
     return value
 
 
@@ -103,14 +108,13 @@ def set_telemetry_enabled(enabled: bool) -> None:
 
 
 
-    global _enabled_cache
     if not enabled:
         track(ev.TELEMETRY_OPT_CHANGED, {"enabled": False}, flush_now=True)
     try:
         QgsSettings().setValue(TELEMETRY_ENABLED_KEY, bool(enabled))
     except Exception:  # nosec B110 - telemetry must not block QGIS
         pass
-    _enabled_cache = None
+    _enabled_cache["value"] = None
     if enabled:
         track(ev.TELEMETRY_OPT_CHANGED, {"enabled": True}, flush_now=True)
     else:
@@ -203,12 +207,13 @@ def clean(properties: dict | None) -> dict:
 
 
 def _base_properties() -> dict:
+    system, release, machine = os_info()
     props = {
         "product_id": PRODUCT_ID,
         "plugin_version": plugin_version(),
-        "os": platform.system(),
-        "os_version": platform.release(),
-        "arch": platform.machine(),
+        "os": system,
+        "os_version": release,
+        "arch": machine,
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
         "qgis_version": qgis_version() or "unknown",
         "session_id": _session_id,
@@ -260,6 +265,7 @@ def track(event: str, properties: dict | None = None, flush_now: bool = False) -
             with _lock:
                 if len(_pending_pre_auth) < PRE_AUTH_MAX:
                     _pending_pre_auth.append(record)
+            _arm_flush_timer()
         return
     with _lock:
         _batch.append(record)
@@ -267,6 +273,7 @@ def track(event: str, properties: dict | None = None, flush_now: bool = False) -
         urgent = flush_now or event in FLUSH_NOW or len(_batch) >= BATCH_MAX
     if urgent:
         flush()
+    _arm_flush_timer()
 
 
 def _trim_locked() -> None:
@@ -291,8 +298,10 @@ def _on_main_thread() -> bool:
         return False
 
 
-def flush() -> None:
+def flush(final: bool = False) -> None:
     """Hand the queued batch to the sender."""
+
+
 
 
 
@@ -328,7 +337,7 @@ def flush() -> None:
     if not events:
         return
     for start in range(0, len(events), POST_MAX):
-        _start_flush_task(events[start:start + POST_MAX], dict(headers))
+        _start_flush_task(events[start:start + POST_MAX], dict(headers), final)
 
 
 def _auth_headers() -> dict:
@@ -344,7 +353,7 @@ def _auth_headers() -> dict:
 class _TelemetryFlushTask(QgsTask):
     """A silent task that uses TerraLabClient and QGIS proxy settings."""
 
-    def __init__(self, events: list, auth: dict):
+    def __init__(self, events: list, auth: dict, final: bool = False):
         holder = getattr(QgsTask, "Flag", QgsTask)
         flags = holder.CanCancel
         for name in ("Hidden", "Silent"):
@@ -356,19 +365,27 @@ class _TelemetryFlushTask(QgsTask):
 
 
         self._auth = dict(auth)
+        self._final = bool(final)
 
     def run(self) -> bool:
-        for attempt in range(2):
+        attempts = 1 if self._final else 2
+        for attempt in range(attempts):
             if self.isCanceled():
                 return False
             try:
-                result = TerraLabClient().send_telemetry_batch(self._events, self._auth)
+                result = TerraLabClient().send_telemetry_batch(
+                    self._events, self._auth, timeout_ms=FINAL_TIMEOUT_MS if self._final else None)
                 if not isinstance(result, dict) or not result.get("error"):
                     return True
             except Exception:  # nosec B110 - telemetry must not block QGIS
                 pass
-            if attempt == 0:
-                time.sleep(RETRY_BACKOFF_S)
+            if attempt + 1 < attempts:
+
+                end = time.monotonic() + RETRY_BACKOFF_S
+                while time.monotonic() < end:
+                    if self.isCanceled():
+                        return False
+                    time.sleep(0.1)
         return False
 
     def finished(self, _result: bool) -> None:
@@ -380,10 +397,10 @@ class _TelemetryFlushTask(QgsTask):
             pass
 
 
-def _start_flush_task(events: list, auth: dict) -> None:
+def _start_flush_task(events: list, auth: dict, final: bool = False) -> None:
     task = None
     try:
-        task = _TelemetryFlushTask(events, auth)
+        task = _TelemetryFlushTask(events, auth, final)
         _inflight.append(task)
         if not QgsApplication.taskManager().addTask(task):
             _inflight.remove(task)
@@ -410,11 +427,33 @@ def start_flush_timer() -> None:
         _flush_timer = None
 
 
+def _arm_flush_timer() -> None:
+    """Main thread. Wake the minute timer when something waits to be shipped."""
+    timer = _flush_timer
+    if timer is None:
+        return
+    try:
+        if not timer.isActive():
+            timer.start()
+    except Exception:  # nosec B110 - telemetry must not block QGIS
+        pass
+
+
 def _on_timer() -> None:
     try:
         flush()
     except Exception:  # nosec B110 - telemetry must not block QGIS
         pass
+
+
+    with _lock:
+        idle = not _batch and not _pending_pre_auth
+    timer = _flush_timer
+    if idle and timer is not None:
+        try:
+            timer.stop()
+        except Exception:  # nosec B110 - telemetry must not block QGIS
+            pass
 
 
 def stop_flush_timer() -> None:
@@ -443,7 +482,7 @@ def shutdown() -> None:
     global _auth_provider
 
     try:
-        flush()
+        flush(final=True)
     except Exception:  # nosec B110 - telemetry must not block QGIS
         pass
     stop_flush_timer()

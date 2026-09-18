@@ -29,6 +29,7 @@ import importlib
 import json
 import os
 import sys
+import time
 import traceback
 import types
 
@@ -59,6 +60,41 @@ class LayerCopyFailed(Exception):
         self.layer_id = layer_id
 
 
+class _OnAnyFailure:
+    """``with _OnAnyFailure(handle):`` is ``try: ..."""
+
+
+
+
+
+
+    def __init__(self, handle) -> None:
+        self._handle = handle
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if exc_type is None:
+            return False
+        self._handle(exc)
+        return True
+
+
+def _replace(source: str, target: str) -> None:
+
+
+    for pause in (0.05, 0.1, 0.2, 0.3, 0.5, 0.85):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            time.sleep(pause)
+    os.replace(source, target)
+
+
 def _write(path: str, value: dict) -> None:
     temporary = path + ".partial"
     with open(temporary, "w", encoding="utf-8") as handle:
@@ -66,7 +102,7 @@ def _write(path: str, value: dict) -> None:
         json.dump(value, handle, ensure_ascii=True)
         handle.flush()
         os.fsync(handle.fileno())
-    os.replace(temporary, path)
+    _replace(temporary, path)
 
 
 def _load_guard(plugin_root: str):
@@ -326,17 +362,20 @@ def _run(job: dict, status_path: str) -> int:
 
     _write(status_path, {"phase": "running"})
     code = str(job.get("code") or "")
-    exception = None
-    exception_traceback = ""
+    caught: list = []
+
+    def _keep(exc: BaseException) -> None:
+
+
+        caught.extend((exc, traceback.format_exc()[-8_000:]))
+
     try:
-        exec(compile(code, _SNIPPET_FILE, "exec"), namespace)  # nosec B102 - execute_code, user-approved
-    except BaseException as exc:  # noqa: BLE001 - the parent reads every failure from the status file
-        exception = exc
 
-
-        exception_traceback = traceback.format_exc()[-8_000:]
+        with _OnAnyFailure(_keep):
+            exec(compile(code, _SNIPPET_FILE, "exec"), namespace)  # nosec B102 - execute_code, user-approved
     finally:
         sink.flush()
+    exception, exception_traceback = caught or (None, "")
 
     status: dict = {"phase": "done", "stdout_dropped": sink.dropped}
     if _TRAPPED:
@@ -393,34 +432,33 @@ def main(argv: list[str]) -> int:
     if len(argv) != 3:
         return 2
     job_path, status_path = argv[1:]
-    try:
-        with open(job_path, encoding="utf-8") as handle:
-            job = json.load(handle)
-    except BaseException as exc:  # noqa: BLE001 - a job that cannot be read is a setup failure
+    failed: list = []
+
+    def _report(exc: BaseException) -> None:
+        failed.append(exc)
         _write(status_path, {
             "phase": "setup",
             "ok": False,
             "setup_error": f"{type(exc).__name__}: {exc}",
             "traceback": traceback.format_exc()[-4_000:],
         })
+
+
+    job: dict = {}
+    with _OnAnyFailure(_report), open(job_path, encoding="utf-8") as handle:
+        job = json.load(handle)
+    if failed:
         return 1
-    job_file_left = False
     try:
         os.remove(job_path)
     except OSError:
 
 
-        job_file_left = True  # noqa: F841 - bandit B110 rejects the bare pass this replaces
-    try:
-        return _run(job, status_path)
-    except BaseException as exc:  # noqa: BLE001 - any setup failure is reported, never a bare process death
-        _write(status_path, {
-            "phase": "setup",
-            "ok": False,
-            "setup_error": f"{type(exc).__name__}: {exc}",
-            "traceback": traceback.format_exc()[-4_000:],
-        })
-        return 1
+        pass
+    with _OnAnyFailure(_report):
+        exit_code = _run(job, status_path)
+
+    return 1 if failed else exit_code
 
 
 if __name__ == "__main__":

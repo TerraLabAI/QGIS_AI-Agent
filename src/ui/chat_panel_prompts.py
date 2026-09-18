@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import time
 
+from qgis.PyQt.QtCore import QTimer
+
 from ..core.protocol import StopCode
 from .cards import (
     ErrorCard,
@@ -50,11 +52,21 @@ class _ChatPanelPrompts:
                 reveal(True)
         card = PermissionCard(tool_call_id, sentence, dict(args or {}), name=name)
         card.decided.connect(self.permission_decided.emit)
-        self.set_status_line(run_id, self.tr("Waiting for your answer..."))
+        self.set_status_line(run_id, self.tr("Waiting for your approval: Allow or Deny below."))
         run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
+
+
+
+        QTimer.singleShot(0, self._show_pending_card)
+
+    def _show_pending_card(self) -> None:
+        try:
+            self.message_list.scroll_to_bottom()
+        except (AttributeError, RuntimeError):
+            pass
 
     def ask_question(self, tool_call_id: str, run_id: str, question: str, options,
                      allow_free_text: bool, recommended: int = -1, why: str = "",
@@ -290,11 +302,30 @@ class _ChatPanelPrompts:
         self.header.open_checkpoints()
 
     def show_restore_warning(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                             whole: bool = True) -> None:
-        card = RestoreWarningCard(checkpoint_id, discard, edits, whole)
+                             whole: bool = True, point: str = "") -> None:
+        """The one confirmation a restore may be waiting on."""
+
+
+
+        old = getattr(self, "_restore_card", None)
+        if old is not None:
+            try:
+                old.hide()
+                old.deleteLater()
+            except RuntimeError:
+                pass
+        card = RestoreWarningCard(checkpoint_id, discard, edits, whole, point=point)
         card.confirmed.connect(self._on_restore_confirmed)
+        card_id = id(card)
+        card.destroyed.connect(lambda *_a: self._forget_restore_card(card_id))
+        self._restore_card = card
         self._add(card)
         self.message_list.scroll_to_bottom()
+
+    def _forget_restore_card(self, card_id: int) -> None:
+        card = getattr(self, "_restore_card", None)
+        if card is not None and id(card) == card_id:
+            self._restore_card = None
 
     def _on_restore_confirmed(self, checkpoint_id: str, discard: bool) -> None:
         if discard:

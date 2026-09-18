@@ -21,6 +21,12 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("AgentController", text)
 
 
+def _has_change(rows) -> bool:
+    """Whether a propose_edits table holds a row the user can apply."""
+    return isinstance(rows, list) and any(
+        isinstance(row, dict) and row.get("kind") in ("added", "removed") for row in rows[:PROPOSAL_MAX_ROWS])
+
+
 class _ControllerOffers:
 
 
@@ -37,6 +43,18 @@ class _ControllerOffers:
         if not hasattr(self._panel, slot):
             refused = {"code": ClientErrorCode.CANCELLED, "message": tr("This plugin build cannot show that card."),
                        "suggestion": "Ask the user with ask_user instead."}
+            self._session.send_tool_error(tool_call_id, run_id, refused["code"], refused["message"],
+                                          refused["suggestion"])
+            self._remember_proposal_answer(tool_call_id, None, refused)
+            self._close_call(tool_call_id)
+            return
+        if name == "propose_edits" and not _has_change(args.get("rows")):
+
+
+            refused = {"code": ClientErrorCode.INVALID_ARGS,
+                       "message": "propose_edits has no row to apply: every row is unchanged or has no kind.",
+                       "suggestion": "Send the rows again with kind added for each new value (removed for a "
+                                     "deletion), and cells as text, one per column."}
             self._session.send_tool_error(tool_call_id, run_id, refused["code"], refused["message"],
                                           refused["suggestion"])
             self._remember_proposal_answer(tool_call_id, None, refused)

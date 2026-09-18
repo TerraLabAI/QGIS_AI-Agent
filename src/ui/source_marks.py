@@ -17,6 +17,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import hashlib
@@ -33,10 +35,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.licence import date_text
 from .external_links import open_external_url
-from .font_scale import scale_qss_font_px, widget_pixel_ratio
+from .font_scale import scale_point_size, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for, render_pixmap
-from .shared import event_pos
+from .shared import event_pos, paint_styled_ground, round_popup_corners
 from .style import (
     FONT_BODY,
     FONT_HINT,
@@ -48,7 +51,6 @@ from .style import (
     RADIUS_CARD,
     RADIUS_CONTROL,
     SURFACE,
-    drop_shadow,
     hover_pill,
     qcolor,
 )
@@ -95,6 +97,13 @@ _NAME_QSS = scale_qss_font_px(
 _HOST_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; border: none; }}"
 )
+_VERIFY_QSS = scale_qss_font_px(
+    f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
+    f"QLabel:hover {{ color: {INK}; text-decoration: underline; }}"
+)
+
+_DATASET_KEYS = ("product", "data_date", "license", "page_url")
+_DOT = " \u00b7 "
 
 
 
@@ -210,6 +219,11 @@ def _clean(items) -> list:
         entry = {"name": name, "url": url, "host": source_host(url) or name,
                  "glyph": _mark_glyph(item.get("glyph"), cid),
                  "id": cid, "key": cid or source_host(url) or name}
+        for key in _DATASET_KEYS:
+            value = str(item.get(key) or "").strip()
+            if key == "page_url" and not value.startswith(("https://", "http://")):
+                value = ""
+            entry[key] = value
 
 
 
@@ -237,7 +251,7 @@ class SourcesButton(QWidget):
         self._hover = False
         self._popover: SourcesPopover | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(24)
+        self.setFixedHeight(scale_px_length(24))
 
 
 
@@ -280,9 +294,9 @@ class SourcesButton(QWidget):
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
         font = QFont(self.font())
-        font.setPixelSize(FONT_BODY)
+        font.setPixelSize(scale_point_size(FONT_BODY))
         text_w = QFontMetrics(font).horizontalAdvance(self._label())
-        return QSize(6 + self._stack_width() + 6 + text_w + 8, 24)
+        return QSize(6 + self._stack_width() + 6 + text_w + 8, scale_px_length(24))
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt override
         return self.sizeHint()
@@ -332,7 +346,7 @@ class SourcesButton(QWidget):
                 painter.drawEllipse(QRectF(left, y, MARK_PX, MARK_PX))
                 painter.drawPixmap(left, y, pixmap)
             font = QFont(self.font())
-            font.setPixelSize(FONT_BODY)
+            font.setPixelSize(scale_point_size(FONT_BODY))
             painter.setFont(font)
             painter.setPen(QPen(qcolor(INK if self._hover else INK_2)))
             text_left = x + self._stack_width() + 6
@@ -342,8 +356,29 @@ class SourcesButton(QWidget):
             painter.end()
 
 
+class _VerifyLink(QLabel):
+    """The small ``Verify`` at the right of a described source: a click opens the dataset page."""
+
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText(self.tr("Verify"))
+        self.setStyleSheet(_VERIFY_QSS)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event):  # noqa: N802 - Qt override
+        event.accept()
+
+    def mouseReleaseEvent(self, event):  # noqa: N802 - Qt override
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
+            self.clicked.emit()
+        event.accept()
+
+
 class _SourceRow(QWidget):
     """One row of the sheet: the mark, the name over the host, the open-link glyph under the pointer."""
+
 
 
     clicked = pyqtSignal(str)
@@ -367,13 +402,23 @@ class _SourceRow(QWidget):
         col = QVBoxLayout(words)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(1)
+        described = any(item.get(key) for key in _DATASET_KEYS)
+        page_url = item.get("page_url", "") if described else ""
+        if described and not self._url and page_url:
+            self._url = page_url
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
-        name = ElidedLabel(item["name"], words)
+        top = _DOT.join(part for part in (item["name"], item.get("product", "")) if part) if described else item["name"]
+        name = ElidedLabel(top, words)
         name.setStyleSheet(_NAME_QSS)
         col.addWidget(name)
-        host = ElidedLabel(item["host"] if item["host"] != item["name"] else (self._url or ""),
-                           words, mode=Qt.TextElideMode.ElideMiddle)
+        if described:
+            under = _DOT.join(part for part in (date_text(item.get("data_date")), item.get("license", "")) if part)
+        else:
+            under = item["host"] if item["host"] != item["name"] else (self._url or "")
+        host = ElidedLabel(under, words, mode=Qt.TextElideMode.ElideRight if described
+                           else Qt.TextElideMode.ElideMiddle)
         host.setStyleSheet(_HOST_QSS)
         host.setVisible(bool(host.full_text()))
         col.addWidget(host)
@@ -384,6 +429,12 @@ class _SourceRow(QWidget):
         self._link.setPixmap(pixmap_for(self, "link", _LINK_PX, qcolor(INK_3)))
         self._link.setVisible(False)
         row.addWidget(self._link, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._has_verify = bool(page_url)
+        if page_url:
+            verify = _VerifyLink(self)
+            verify.setToolTip(page_url)
+            verify.clicked.connect(lambda: self.clicked.emit(page_url))
+            row.addWidget(verify, 0, Qt.AlignmentFlag.AlignVCenter)
         self.setToolTip(self._url)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(item["name"])
@@ -394,7 +445,7 @@ class _SourceRow(QWidget):
 
 
         self._hover = True
-        self._link.setVisible(bool(self._url))
+        self._link.setVisible(bool(self._url) and not self._has_verify)
         self.update()
 
     def focusOutEvent(self, event):  # noqa: N802 - Qt override
@@ -414,7 +465,7 @@ class _SourceRow(QWidget):
     def enterEvent(self, event):  # noqa: N802 - Qt override
         super().enterEvent(event)
         self._hover = True
-        self._link.setVisible(bool(self._url))
+        self._link.setVisible(bool(self._url) and not self._has_verify)
         self.update()
 
     def leaveEvent(self, event):  # noqa: N802 - Qt override
@@ -447,6 +498,7 @@ class SourcesPopover(QFrame):
 
     def __init__(self, items: list, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        round_popup_corners(self)
         self.setObjectName("sourcesPopover")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(
@@ -486,7 +538,15 @@ class SourcesPopover(QFrame):
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         col.addWidget(scroll)
         self.setFixedWidth(_POPOVER_WIDTH)
-        drop_shadow(self, "raised")
+
+
+
+
+
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_styled_ground(self)
+        super().paintEvent(event)
 
     def _open(self, url: str) -> None:
         self.hide()

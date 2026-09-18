@@ -105,7 +105,7 @@ def layouts_type_text(sequences) -> bool:
         return False
     try:
         import ctypes
-        from ctypes import wintypes
+        import ctypes.wintypes as wintypes
 
         user32 = ctypes.WinDLL("user32")
         user32.GetKeyboardLayoutList.argtypes = [ctypes.c_int, ctypes.POINTER(wintypes.HKL)]

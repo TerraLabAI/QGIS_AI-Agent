@@ -38,6 +38,7 @@ from .snapshot import (
     release_snapshot,
     snapshots_dir,
 )
+from .writeback import write_atomic
 
 
 
@@ -174,10 +175,19 @@ def _clean_log(value) -> list:
     return calls
 
 
-def _layer_put_back(snapshot, item: dict, same_project: bool) -> tuple[bool, str]:
+
+
+
+
+_SESSION_TOOLS = frozenset({"qgis_edit_begin", "qgis_edit_rollback", "qgis_edit_restore_aids"})
+
+
+def _layer_put_back(snapshot, item: dict, same_project: bool, tool: str = "") -> tuple[bool, str]:
     """Whether restoring the state before the run brings this layer change back, and why not."""
     if not same_project:
         return False, NOT_BACKED_OTHER_PROJECT
+    if tool in _SESSION_TOOLS and item.get("what") == "changed":
+        return True, ""
     what, lid = item.get("what"), str(item.get("id") or "")
     if item.get("provider") == "memory":
 
@@ -208,7 +218,7 @@ def _log_rows(before) -> list[dict]:
         called_in = call.get("project_file") or ""
         same = (not called_in and not captured_in) or any(_same_file(called_in, name) for name in files)
         for item in call.get("layers") or []:
-            restored, reason = _layer_put_back(snapshot, item, same)
+            restored, reason = _layer_put_back(snapshot, item, same, str(call.get("tool") or ""))
             row = {"tool": call.get("tool", ""), "what": item.get("what", ""), "layer": item.get("name", ""),
                    "restored": restored, "reason": reason}
             row.update({key: item[key] for key in ("before", "after", "fields") if key in item})
@@ -258,10 +268,42 @@ def _unbacked_reason(record, layer_id: str) -> str:
     return NOT_BACKED_TOO_LARGE if too_large else NOT_BACKED_UNKNOWN
 
 
+_SAME_KEYS = ("name", "source", "crs", "feature_count", "style", "subset", "stamp")
+
+
+def _same_state(older, newer) -> bool:
+    """Whether two captures recorded the same project: same layers, tree, CRS, styles, counts and files."""
+
+
+
+
+
+
+
+    a, b = getattr(older, "snapshot", None), getattr(newer, "snapshot", None)
+    if a is None or b is None or not getattr(a, "captured", False) or not getattr(b, "captured", False):
+        return False
+    if (a.layer_ids or set(a.layers)) != (b.layer_ids or set(b.layers)) or set(a.layers) != set(b.layers):
+        return False
+    if (a.project_state or {}) != (b.project_state or {}):
+        return False
+    for lid, record in a.layers.items():
+        other = b.layers.get(lid) or {}
+        if not isinstance(record, dict):
+            return False
+        for key in _SAME_KEYS:
+            left, right = record.get(key), other.get(key)
+            if key == "stamp":
+                left, right = tuple(left or ()), tuple(right or ())
+            if left != right:
+                return False
+    return True
+
+
 class Checkpoint:
     __slots__ = ("id", "kind", "run_id", "run_index", "thread_id", "snapshot",
                  "changed_layers", "layers", "created_at", "prompt",
-                 "project_file", "project_files", "project_generation", "log")
+                 "project_file", "project_files", "project_generation", "log", "twin")
 
     def __init__(self, kind: str, run_id: str, run_index: int, thread_id: str,
                  snapshot: RunSnapshot, changed_layers: int = 0, layers: list | None = None,
@@ -287,6 +329,10 @@ class Checkpoint:
         self.project_generation = 0
 
         self.log: list = []
+
+
+
+        self.twin = False
 
     @property
     def available(self) -> bool:
@@ -365,7 +411,7 @@ class Checkpoint:
                 "run_index": self.run_index, "changed_layers": self.changed_layers,
                 "layers": list(self.layers), "prompt": self.prompt,
                 "created_at": self.created_at, "project_file": self.project_file,
-                "project_files": list(self.project_files), "log": self.log,
+                "project_files": list(self.project_files), "log": self.log, "twin": bool(self.twin),
                 "snapshot": self.snapshot.to_record() if self.snapshot is not None else None}
 
     @classmethod
@@ -407,6 +453,7 @@ class Checkpoint:
 
         entry.project_generation = None
         entry.log = _clean_log(record.get("log"))
+        entry.twin = record.get("twin") is True
         return entry
 
 
@@ -602,10 +649,7 @@ class CheckpointHistory:
                 if dropped:
                     log_warning(f"Checkpoint history for {thread_id} dropped {len(dropped)} oldest entries "
                                 "to stay under the index size cap")
-            temporary = path + ".tmp"
-            with open(temporary, "w", encoding="utf-8") as fh:
-                fh.write(text)
-            retry_file_op(os.replace, temporary, path)
+            write_atomic(path, text)
         except Exception as exc:  # noqa: BLE001 - a history write never breaks a run
             log_warning(f"Checkpoint history not written ({path}): {exc}")
             return
@@ -855,6 +899,11 @@ class CheckpointHistory:
             del entries[current + 1:]
         entry = Checkpoint(kind, run_id, run_index, thread_id, snapshot, changed_layers, layers, prompt)
         entry.project_generation = self._generation
+        if kind == KIND_BEFORE and fork and entries and entries[-1].kind == KIND_AFTER:
+            try:
+                entry.twin = _same_state(entries[-1], entry)
+            except Exception as exc:  # noqa: BLE001 - an unread record only costs a second row
+                log_warning(f"Checkpoint state comparison failed: {exc}")
         if not entries:
 
 
@@ -890,6 +939,52 @@ class CheckpointHistory:
         self._save(thread_id)
 
 
+
+    def file_versions(self, thread_id: str, entry: Checkpoint) -> list[tuple[str, str]]:
+        """``(original, copy)`` pairs that put each file the chat copied back as it stood at ``entry``."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self._ensure(thread_id)
+        entries = self._entries.get(thread_id, [])
+        target = next((i for i, e in enumerate(entries) if e.id == entry.id), None)
+        if target is None:
+            return []
+
+        def groups(e: Checkpoint) -> dict:
+            snapshot = e.snapshot
+            if snapshot is None or not hasattr(snapshot, "file_groups"):
+                return {}
+            try:
+                return snapshot.file_groups()
+            except Exception as exc:  # noqa: BLE001 - one unreadable checkpoint drops only its copies
+                log_warning(f"Checkpoint copies not read: {exc}")
+                return {}
+
+        held = [groups(e) for e in entries]
+        own = held[target]
+        pairs: list[tuple[str, str]] = []
+        for key in dict.fromkeys(k for g in held for k in g):
+            if key in own or os.path.splitext(key)[1].lower() in (".qgs", ".qgz"):
+                continue
+            later = next((i for i in range(target + 1, len(entries)) if key in held[i]), None)
+            if later is not None and entries[later].kind == KIND_BEFORE:
+                pairs.extend(held[later][key])
+                continue
+            earlier = next((i for i in range(target - 1, -1, -1) if key in held[i]), None)
+            if earlier is not None and entries[earlier].kind == KIND_AFTER:
+                pairs.extend(held[earlier][key])
+        return pairs
 
     def entries(self, thread_id: str) -> list[Checkpoint]:
         self._ensure(thread_id)
@@ -934,26 +1029,38 @@ class CheckpointHistory:
                 return i
         return None
 
+    def twins(self, thread_id: str) -> set[str]:
+        """Ids of the before entries that hold the same state as the entry just before them."""
+        self._ensure(thread_id)
+        entries = self._entries.get(thread_id, [])
+        return {entries[i].id for i in range(1, len(entries))
+                if entries[i].twin and entries[i].kind == KIND_BEFORE and entries[i - 1].kind == KIND_AFTER}
+
     def previous(self, thread_id: str) -> Checkpoint | None:
-        """The nearest available entry before the current one."""
+        """The nearest available entry before the current one that is another state."""
         self._ensure(thread_id)
         index = self.current_index(thread_id)
         entries = self._entries.get(thread_id, [])
         if index is None:
             index = len(entries)
+        twins = self.twins(thread_id)
+
+        while 0 < index < len(entries) and entries[index].id in twins:
+            index -= 1
         for entry in reversed(entries[:index]):
-            if entry.available:
+            if entry.available and entry.id not in twins:
                 return entry
         return None
 
     def next(self, thread_id: str) -> Checkpoint | None:
-        """The nearest available entry after the current one."""
+        """The nearest available entry after the current one that is another state."""
         self._ensure(thread_id)
         index = self.current_index(thread_id)
         if index is None:
             return None
+        twins = self.twins(thread_id)
         for entry in self._entries.get(thread_id, [])[index + 1:]:
-            if entry.available:
+            if entry.available and entry.id not in twins:
                 return entry
         return None
 
@@ -996,10 +1103,13 @@ class CheckpointHistory:
 
         logs = {entry.run_id: _log_rows(entry) for entry in entries
                 if entry.kind == KIND_BEFORE and entry.run_id and entry.log}
+        twins = self.twins(thread_id)
         rows = []
         for i, entry in enumerate(entries):
             row = entry.describe(entry.id == current_id, start=(i == 0),
                                  other_project=not self.belongs_here(entry))
+
+            row["same_as_previous"] = entry.id in twins
             log = logs.get(entry.run_id) if entry.kind != KIND_EDITS else None
             if log:
                 row["log"] = log

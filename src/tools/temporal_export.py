@@ -46,7 +46,7 @@ from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSize
 
 from ..core import limits, output_paths, security
-from ..core.host_platform import retry_file_op
+from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.tool_registry import tool_error
 
@@ -162,7 +162,10 @@ def _folder(args: dict, layer: str, prefix: str, first: int, last: int):
         return tool_error(error, "PERMISSION_DENIED",
                           "Pick a folder under the project folder, your home folder or the temp folder.")
     existed = os.path.isdir(folder)
-    problem = _prepare_frame_folder(folder, prefix + "0")
+
+
+
+    problem = _prepare_frame_folder(folder, prefix + "0.part")
     if problem:
         return tool_error(problem, "INVALID_ARGS", "Pass another out_dir.")
     if existed:
@@ -453,11 +456,8 @@ class FrameExport:
     @staticmethod
     def _remove(*paths: str) -> None:
         for path in paths:
-            try:
-                if os.path.isfile(path):
-                    os.remove(path)
-            except OSError as exc:
-                log_warning(f"{TOOL}: {path} not removed: {exc}")
+            if os.path.isfile(path) and not remove_quietly(path):
+                log_warning(f"{TOOL}: {path} not removed: another program holds it.")
 
     def _remove_folder(self) -> None:
         """The folder this call made, once empty and no frame of it still renders."""

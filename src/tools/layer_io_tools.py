@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import time
 import uuid
 
@@ -23,10 +22,12 @@ from qgis.core import (
 )
 
 from ..core import ground, limits
-from ..core.host_platform import retry_file_op
+from ..core.host_platform import release_pooled_handles, remove_quietly, retry_file_op
+from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.tool_registry import tool_error
+from . import vector_write
 from ._compat import FIELD_TYPES
 from .csv_loader import CSV_EXTENSIONS
 from .layer_lookup import _find_layer, _layer_not_found_error
@@ -416,6 +417,10 @@ def _release_layers_at_path(path: str, skip_ids=None, delete_existing: bool = Fa
         if not file_part or not _same_file(file_part, path):
             continue
         removed.append(layer.name())
+
+
+
+        release_pooled_handles(layer)
         project.removeMapLayer(layer_id)
 
     if not delete_existing:
@@ -437,13 +442,6 @@ def _release_layers_at_path(path: str, skip_ids=None, delete_existing: bool = Fa
     return removed
 
 
-
-
-_EXPORT_SIDECARS = (".shp", ".shx", ".dbf", ".prj", ".cpg", ".qix", ".qmd", ".sbn", ".sbx", ".fix",
-                    ".gpkg", ".gpkg-wal", ".gpkg-shm", ".geojson", ".json", ".csv", ".csvt", ".kml",
-                    ".xlsx", ".vrt")
-
-
 def _staging_path(path: str) -> str:
     """A sibling of *path* to write to first, in the same directory."""
 
@@ -453,7 +451,17 @@ def _staging_path(path: str) -> str:
 
     directory = os.path.dirname(path) or "."
     stem, ext = os.path.splitext(os.path.basename(path))
-    return os.path.join(directory, f".{stem}.ai-agent-{uuid.uuid4().hex[:8]}.partial{ext}")
+    tag = uuid.uuid4().hex[:8]
+    staging = os.path.join(directory, f".{stem}.ai-agent-{tag}.partial{ext}")
+    from ..core import security
+
+
+
+
+
+    if len(staging) + 8 >= security._MAX_PATH and not security._long_paths_ok():
+        staging = os.path.join(directory, f".ai-{tag}.partial{ext}")
+    return staging
 
 
 def _staged_files(staging: str) -> list:
@@ -553,6 +561,9 @@ def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], str]:
         crs = layer.crs().authid()
         temporary = geometry + (f"?crs={crs}" if crs else "")
         detached.append(state)
+
+
+        release_pooled_handles(layer)
         layer.setDataSource(temporary, state["name"], "memory")
         if not layer.isValid() or layer.providerType() != "memory":
             _restore_detached_layers(detached)
@@ -597,10 +608,43 @@ def _publish_export(staging: str, path: str, driver: str) -> tuple[str, list[str
 def _discard_staged_write(staging: str) -> None:
     """Remove the staged export, whatever state it reached. The destination is untouched."""
     for produced_path in _staged_files(staging):
-        try:
-            os.remove(produced_path)
-        except OSError:  # nosec B110 - a leftover .partial is not worth an error of its own
-            continue
+        remove_quietly(produced_path)
+
+
+
+
+
+
+
+
+_EXPORT_ERROR_LINES_KEPT = 3
+
+
+
+_NON_FINITE_PHRASE = "non-finite values"
+
+
+def _collapse_repeats(error_msg: str) -> tuple[str, int]:
+    """(the message with each repeated line written once and counted, the largest count)."""
+
+
+
+
+    lines = [line.strip() for line in (error_msg or "").splitlines() if line.strip()]
+    counts: dict[str, int] = {}
+    order: list[str] = []
+    for line in lines:
+        if line not in counts:
+            counts[line] = 0
+            order.append(line)
+        counts[line] += 1
+    if not order or len(order) == len(lines):
+        return (error_msg or ""), 0
+    kept = [f"{line} (x{counts[line]})" if counts[line] > 1 else line
+            for line in order[:_EXPORT_ERROR_LINES_KEPT]]
+    if len(order) > _EXPORT_ERROR_LINES_KEPT:
+        kept.append(f"and {len(order) - _EXPORT_ERROR_LINES_KEPT} other messages")
+    return " ".join(kept), max(counts.values())
 
 
 def _export_failure_message(path: str, error_msg: str) -> str:
@@ -615,7 +659,92 @@ def _export_failure_message(path: str, error_msg: str) -> str:
         return (f"Export failed: {error_msg} On Windows a file that a loaded layer still holds "
                 f"cannot be replaced. Remove the layer reading {os.path.basename(path)} from the "
                 f"project first, or export to a different file name.")
-    return f"Export failed: {error_msg}"
+    collapsed, repeats = _collapse_repeats(error_msg)
+    if _NON_FINITE_PHRASE in (error_msg or ""):
+        many = f"{repeats} features hold" if repeats > 1 else "A feature holds"
+        return (f"Export failed: {collapsed} {many} a coordinate that is NaN or infinite, which no "
+                f"OGR format can write; the rest of the layer was not written either. Such "
+                f"coordinates come from a transform or a calculation that failed upstream, so they "
+                f"cannot be repaired by reprojecting again: find them with check_geometry_validity, "
+                f"drop them (run_processing native:extractbyexpression with "
+                f"is_valid($geometry) AND $geometry IS NOT NULL) and export the result.")
+    return f"Export failed: {collapsed}"
+
+
+
+
+
+
+
+
+
+
+
+SHAPEFILE_FIELD_NAME_MAX = 10
+
+
+def _is_shapefile(layer) -> bool:
+    """True when this vector layer is stored as an ESRI Shapefile."""
+    try:
+        if "esri shapefile" in str(layer.dataProvider().storageType() or "").casefold():
+            return True
+    except Exception as exc:  # noqa: BLE001 - a provider that cannot say is judged on its path
+        log_warning(f"_is_shapefile: storageType() failed: {exc}")
+    try:
+        source = str(layer.source() or "").split("|", 1)[0]
+    except Exception:  # noqa: BLE001 - nothing to read, nothing to refuse
+        return False
+    return source.casefold().endswith(".shp")
+
+
+def shapefile_field_name_error(layer, field_name: str) -> dict | None:
+    """The refusal for a field name an ESRI Shapefile cannot store, or None."""
+    name = str(field_name or "")
+    if len(name) <= SHAPEFILE_FIELD_NAME_MAX or not _is_shapefile(layer):
+        return None
+    short = name[:SHAPEFILE_FIELD_NAME_MAX]
+    try:
+        taken = {field.name().casefold() for field in layer.fields()}
+    except Exception:  # noqa: BLE001 - a layer that cannot list its fields still gets the rule
+        taken = set()
+    if short.casefold() in taken:
+        stem = short[:SHAPEFILE_FIELD_NAME_MAX - 1]
+        suffix = 2
+        while f"{stem}{suffix}".casefold() in taken and suffix < 10:
+            suffix += 1
+        short = f"{stem}{suffix}"
+    return tool_error(
+        f"{name!r} is {len(name)} characters and {layer.name()!r} is an ESRI Shapefile, which stores "
+        f"field names in a dBASE header of {SHAPEFILE_FIELD_NAME_MAX} characters. The provider would "
+        f"write {short!r} instead and QGIS would then refuse the whole edit.",
+        code="INVALID_ARGS",
+        suggestion=(f"Call again with field_name={short!r}, or export_layer the layer to GeoPackage "
+                    f"and add the field on the copy, where the full name fits."),
+    )
+
+
+
+
+
+
+_FIELD_MISMATCH_MARKERS = ("ESRI Shapefile", "typeName")
+
+
+def commit_failure_error(layer, errors: list, suggestion: str = "") -> dict:
+    """The refusal for a commit QGIS would not make, with the cause named when it is a name."""
+    joined = "; ".join(str(line) for line in (errors or []))
+    collapsed, _ = _collapse_repeats(joined)
+    if all(marker in joined for marker in _FIELD_MISMATCH_MARKERS) and _is_shapefile(layer):
+        return tool_error(
+            f"Commit failed: {collapsed}",
+            code="EXECUTION_FAILED",
+            suggestion=(f"The shapefile stored the field under a shorter name: dBASE keeps "
+                        f"{SHAPEFILE_FIELD_NAME_MAX} characters. Use a field_name of at most "
+                        f"{SHAPEFILE_FIELD_NAME_MAX} characters, or export_layer to GeoPackage "
+                        f"and work on the copy. The layer is unchanged."),
+        )
+    return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED",
+                      suggestion=suggestion or "The layer is unchanged; read the message and change the approach.")
 
 
 def _field_kind_name(field) -> str:
@@ -846,7 +975,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
             copied = gdal.Translate(staging, source, format=driver)
             if copied is None:
                 raise RuntimeError(gdal.GetLastErrorMsg() or "GDAL could not write the copy")
-            copied = None  # noqa: F841 - closing the dataset flushes it to disk
+            del copied
         else:
             from qgis.core import QgsRasterFileWriter, QgsRasterPipe
 
@@ -871,10 +1000,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
             retry_file_op(os.replace, produced, target_stem + produced[len(staged_stem):])
     except Exception as exc:  # noqa: BLE001 - the message is the answer, the staged file is ours to remove
         for produced in _raster_staged_files(staging):
-            try:
-                os.remove(produced)
-            except OSError:  # nosec B112 - a leftover .partial is not worth an error of its own
-                continue
+            remove_quietly(produced)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
                           "Check the folder is writable, or write to another folder.")
     written = QgsRasterLayer(path, "check")
@@ -1008,9 +1134,17 @@ def _export_layer(args: dict) -> dict:
         if os.path.exists(path):
 
 
+
+
+
+            import sqlite3
+
+            from ..core.snapshot_files import _sqlite_copy
+
             try:
-                shutil.copy2(path, staging)
-            except OSError as exc:
+                _sqlite_copy(path, staging)
+            except (OSError, sqlite3.Error) as exc:
+                _discard_staged_write(staging)
                 return {"_error": f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
                         "_code": "EXECUTION_FAILED",
                         "suggestion": "Check there is room on the volume and that the folder is writable."}
@@ -1019,6 +1153,11 @@ def _export_layer(args: dict) -> dict:
             replaced_layer_in_place = True
     if geometry_written:
         options.layerOptions = [csv_option]
+    if driver == "CSV" and os.name == "nt":
+
+
+
+        options.layerOptions = list(options.layerOptions or []) + ["WRITE_BOM=YES"]
     if args.get("geometryless"):
         options.overrideGeometryType = enum_member(QgsWkbTypes, "Type", "NoGeometry")
     if layer.isSpatial() and crs != layer.crs():
@@ -1145,11 +1284,23 @@ def _add_field(args: dict) -> dict:
 
 
 
-    was_editing = layer.isEditable()
-    if not was_editing:
-        if not layer.startEditing():
-            return {"_error": f"Cannot start editing on layer '{layer.name()}'", "_code": "INVALID_ARGS"}
+    if layer.fields().indexOf(field_name) < 0:
+        too_long = shapefile_field_name_error(layer, field_name)
+        if too_long:
+            return too_long
 
+
+
+
+
+
+
+    started_here, cannot_edit = vector_write.open_edit(layer, "add fields")
+    if cannot_edit:
+        return cannot_edit
+    was_editing = not started_here
+
+    type_plan: dict = {}
     existing_index = layer.fields().indexOf(field_name)
     reused = existing_index >= 0
     existing_kind = ""
@@ -1177,7 +1328,17 @@ def _add_field(args: dict) -> dict:
                                f"the field as it stands."),
             }
     else:
-        layer.addAttribute(QgsField(field_name, qtype))
+
+
+
+
+        type_plan = vector_write.plan_field_type(layer, qtype)
+        if type_plan.get("type_name"):
+            new_field = QgsField(field_name, type_plan["type"], type_plan["type_name"],
+                                 type_plan["length"], type_plan["precision"])
+        else:
+            new_field = QgsField(field_name, type_plan.get("type", qtype))
+        layer.addAttribute(new_field)
         layer.updateFields()
 
 
@@ -1186,10 +1347,12 @@ def _add_field(args: dict) -> dict:
     if idx < 0:
         if not was_editing:
             layer.rollBack()
-        return {
-            "_error": f"Provider refused to add field '{field_name}' (read-only source?).",
-            "_code": "INVALID_ARGS",
-        }
+        return tool_error(
+            f"The provider refused to add field {field_name!r} to {layer.name()!r}.",
+            code="EXECUTION_FAILED",
+            suggestion=("The source is read-only or cannot hold this name: export_layer to "
+                        "GeoPackage and add the field on the copy."),
+        )
 
     populated_features = 0
     if expr is not None:
@@ -1223,8 +1386,11 @@ def _add_field(args: dict) -> dict:
     if not was_editing:
         if not layer.commitChanges():
             errors = layer.commitErrors()
-            layer.rollBack()
-            return {"_error": f"Commit failed: {'; '.join(errors)}"}
+
+
+
+            vector_write.force_out_of_edit(layer)
+            return commit_failure_error(layer, errors)
 
     result = {
         "field_added": field_name,
@@ -1238,6 +1404,10 @@ def _add_field(args: dict) -> dict:
         "populated_features": populated_features,
         "committed": not was_editing,
     }
+    if type_plan.get("note"):
+        result["type_note"] = type_plan["note"]
+    if type_plan.get("type_name"):
+        result["provider_type"] = type_plan["type_name"]
     if was_editing:
         result["note"] = "added to the open edit session (not committed, commit or discard it yourself)"
 

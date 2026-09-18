@@ -20,19 +20,19 @@ from collections import OrderedDict
 
 from qgis.PyQt.QtCore import QObject, pyqtSignal
 
-from . import background, follow, layer_order, scratch, stalls  # noqa: F401  background kept for tests
+from . import background, follow, layer_order, scratch, stalls
 from .checkpoints import CheckpointHistory
-from .executor_calls import _ExecutorCalls, tr  # noqa: F401  tr re-exported
-
-
-
-from .executor_deliver import _ExecutorDeliver, _first_check_warning, _task_ids_started  # noqa: F401
+from .executor_calls import _ExecutorCalls
+from .executor_deliver import _ExecutorDeliver
 from .executor_execute import _ExecutorExecute
-from .executor_guards import _LIFTABLE_TOOLS, _ExecutorGuards, _is_number, _metric_algs  # noqa: F401
+from .executor_guards import _ExecutorGuards
 from .executor_idempotency import IdempotencyTable
 from .executor_runs import _ExecutorRuns
 from .snapshot import RunSnapshot
 from .watchdog import MainThreadWatchdog
+
+
+__all__ = ["ToolExecutor", "background"]
 
 
 class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorExecute, _ExecutorDeliver, _ExecutorGuards, QObject):

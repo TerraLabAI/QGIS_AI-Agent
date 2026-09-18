@@ -185,14 +185,10 @@ class QuotaCard(QWidget):
             self._escape.setText(get_support_email())
         else:
             self.state = "free_out"
+
+
             self._title.setText(self.tr("Your free runs are used up"))
-            if reset_text:
-                self._note.setText(self.tr("You used all {n} free runs this month. They come back on {date}.")
-                                   .format(n=limit, date=reset_text))
-            else:
-                self._note.setText(
-                    self.tr("You used all {n} free runs this month. They come back on your renewal date.")
-                    .format(n=limit))
+            self._note.hide()
             self._body.hide()
             self._ghost.hide()
 
@@ -200,11 +196,12 @@ class QuotaCard(QWidget):
 
 
 
-            points = get_served_pro_points()
+
+            points = get_served_pro_points()[:2]
             self._pitch.setText(" · ".join(points) if points else
-                                self.tr("{n} runs a month, higher effort levels and Autopilot.")
+                                self.tr("{n} runs a month and higher effort levels.")
                                 .format(n=get_pro_runs_per_month()))
-            self._button.setText(self.tr("Keep working with Pro"))
+            self._button.setText(self.tr("Get Pro"))
             self._route_button(self.upgrade_requested.emit)
             self._plan.show()
             self._escape.setText(self.tr("Custom needs? Write to us: {email}").format(email=get_support_email()))

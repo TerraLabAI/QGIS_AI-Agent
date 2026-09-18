@@ -56,7 +56,6 @@ _PHOTON_URL = "https://geocode.terra-lab.ai"
 
 _BAN_URL = "https://data.geopf.fr/geocodage"
 _CARTOCIUDAD_URL = "https://www.cartociudad.es/geocoder/api/geocoder"
-_PELIAS_URL = "https://api.geocode.earth/v1"
 
 _DEFAULT_GEOCODE_PROVIDER = "photon"
 
@@ -333,8 +332,27 @@ def _parse_nominatim_reverse(payload) -> dict | None:
 
 
 
+
+
+
+
+_PHOTON_COUNTRY_WORDS = {"usa": "United States", "us": "United States", "u.s.": "United States",
+                         "u.s.a.": "United States", "uk": "United Kingdom", "u.k.": "United Kingdom",
+                         "uae": "United Arab Emirates"}
+
+
+def _photon_query(query: str) -> str:
+    """The query with a trailing country abbreviation spelt out."""
+    parts = str(query or "").split(",")
+    if len(parts) > 1:
+        full = _PHOTON_COUNTRY_WORDS.get(parts[-1].strip().lower())
+        if full:
+            parts[-1] = " " + full
+    return ",".join(parts)
+
+
 def _photon_forward_url(base, query, limit, country_codes, viewbox, layers=(), extra=()) -> str:
-    params: dict = {"q": query, "limit": limit}
+    params: dict = {"q": _photon_query(query), "limit": limit}
     if viewbox:
 
 
@@ -424,12 +442,46 @@ def _parse_photon_reverse(payload) -> dict | None:
 _BAN_COUNTRY_WORDS = ("france", "fr", "francia", "frankreich")
 
 
+
+
+
+
+_ARRONDISSEMENT_CITIES = "paris|lyon|marseille"
+_ARRONDISSEMENT_NAMED = re.compile(
+    r"^\s*(\d{1,2})\s*(?:er|re|e|ème|eme|è|th|st|nd|rd)?\s+arrondissement\s+(?:de\s+|du\s+|of\s+)?"
+    r"(" + _ARRONDISSEMENT_CITIES + r")\s*$", re.IGNORECASE)
+_ARRONDISSEMENT_OFFICIAL = re.compile(
+    r"^\s*(" + _ARRONDISSEMENT_CITIES + r")\s+(\d{1,2})\s*(?:er|re|e|ème|eme)?\s+arrondissement\s*$",
+    re.IGNORECASE)
+
+
+def _arrondissement_key(text: str):
+    """``("lyon", 2)`` for either spelling of an arrondissement municipal, else None."""
+
+
+
+
+
+    value = str(text or "").split(",")[0]
+    match = _ARRONDISSEMENT_NAMED.match(value)
+    if match:
+        return match.group(2).lower(), int(match.group(1))
+    match = _ARRONDISSEMENT_OFFICIAL.match(value)
+    if match:
+        return match.group(1).lower(), int(match.group(2))
+    return None
+
+
 def _ban_query(query: str) -> str:
     """The query without a trailing country, unless that is all there is."""
     parts = [part.strip() for part in str(query or "").split(",")]
     while len(parts) > 1 and parts[-1].lower().strip(". ") in _BAN_COUNTRY_WORDS:
         parts.pop()
     trimmed = ", ".join(part for part in parts if part)
+    key = _arrondissement_key(trimmed) if len(parts) == 1 else None
+    if key:
+        city, number = key
+        trimmed = "{} {}{} Arrondissement".format(city.capitalize(), number, "er" if number == 1 else "e")
     return trimmed or str(query or "").strip()
 
 
@@ -1226,3 +1278,32 @@ def _measure_distance(args: dict) -> dict:
         "distance_m": round(dist_m, 1),
         "distance_km": round(dist_m / 1000, 3),
     }
+
+
+
+
+__all__ = [
+    "_BACKEND_GEOCODE_BATCH_MAX",
+    "_DEFAULT_GEOCODE_PROVIDER",
+    "_GEOCODE_PROVIDERS",
+    "_GEOCODE_PROVIDER_IDS",
+    "_PHOTON_URL",
+    "_PLACE_AREA_LAYERS",
+    "_add_geocode_layer",
+    "_arrondissement_key",
+    "_backend_geo",
+    "_geocode",
+    "_geocode_fetch",
+    "_geocode_one_address",
+    "_get_route",
+    "_http_get",
+    "_measure_distance",
+    "_parse_cartociudad_forward",
+    "_parse_nominatim_forward",
+    "_parse_photon_forward",
+    "_photon_forward_url",
+    "_resolve_geocode_provider",
+    "_reverse_geocode",
+    "_run_on_main_thread",
+    "_without_generic_place_words",
+]

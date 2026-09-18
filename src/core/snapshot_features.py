@@ -22,6 +22,7 @@ import zlib
 
 from qgis.core import QgsProject, QgsVectorLayer
 
+from .host_platform import remove_quietly
 from .logger import log, log_warning
 from .qt_compat import enum_member, field_type
 from .snapshot_files import sqlite_read_only_uri
@@ -79,8 +80,6 @@ MAX_SIGNATURE_TOTAL = 60_000
 
 
 MAX_CAPTURE_SECONDS = 0.35
-
-_CLOCK_EVERY = 200
 
 
 def _signature(feature) -> int:
@@ -184,11 +183,10 @@ def _materialised_ceiling():
 
 
 def _remove_copy(path: str) -> None:
+
+
     for suffix in ("", "-wal", "-shm", "-journal"):
-        try:
-            os.remove(path + suffix)
-        except OSError:
-            pass
+        remove_quietly(path + suffix)
 
 
 def refill_from_copy(layer, path: str, table: str = MEMORY_COPY_LAYER) -> int:
@@ -241,7 +239,7 @@ def refill_from_copy(layer, path: str, table: str = MEMORY_COPY_LAYER) -> int:
         size = len(batch)
         flush()
         added += size
-    source = None
+    del source
     layer.updateExtents()
     return added
 
@@ -458,7 +456,7 @@ class _FeaturePass:
         finally:
 
 
-            writer = None
+            del writer
         if not error and written != count:
             error = f"read {written} of {count} features"
         if error:
@@ -574,10 +572,19 @@ class _FeaturePass:
 
     def _work(self):
         request = _no_geometry_request()
+        from .net import current_cancel_check
+
+        cancelled = current_cancel_check() or (lambda: False)
         for lid, source, signed, memory, count, full in self._plan:
+            if cancelled():
+                raise InterruptedError("Snapshot cancelled")
             if memory:
                 reader, expected = (full[0], full[1]) if full is not None else (source, count)
-                features = list(reader.getFeatures())
+                features = []
+                for feature in reader.getFeatures():
+                    features.append(feature)
+                    if len(features) % 2000 == 0 and cancelled():
+                        raise InterruptedError("Snapshot cancelled")
                 if len(features) != expected:
 
 
@@ -593,6 +600,8 @@ class _FeaturePass:
             iterator = source.getFeatures(request) if request is not None else source.getFeatures()
             for feature in iterator:
                 out[feature.id()] = _signature(feature)
+                if len(out) % 2000 == 0 and cancelled():
+                    raise InterruptedError("Snapshot cancelled")
                 if len(out) > MAX_SIGNATURE_FEATURES:
                     out = None
                     break

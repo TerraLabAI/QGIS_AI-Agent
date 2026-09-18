@@ -30,7 +30,7 @@ import threading
 import time
 from typing import Callable
 
-from .host_platform import retry_file_op
+from .host_platform import remove_quietly, retry_file_op
 from .logger import log_warning
 
 DEFAULT_DELAY_MS = 150
@@ -57,10 +57,8 @@ def write_atomic(path: str, text: str) -> None:
             os.fsync(fh.fileno())
         retry_file_op(os.replace, tmp, path)
     finally:
-        try:
-            os.remove(tmp)
-        except FileNotFoundError:
-            pass
+
+        remove_quietly(tmp)
 
 
 _DRAIN_TIMEOUT_S = 2.0

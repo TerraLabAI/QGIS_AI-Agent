@@ -1,16 +1,6 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""The restore sheet: every state of this chat, as a timeline you can walk."""
-
-
-
-
-
-
-
-
-
-
+"""The restore sheet: every state of this chat, one line each, newest first."""
 
 
 
@@ -52,7 +42,6 @@ import os
 from qgis.PyQt.QtCore import QDateTime, QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
-    QApplication,
     QFrame,
     QLabel,
     QScrollArea,
@@ -77,13 +66,13 @@ from .attach_menu import place_below
 from .font_scale import scale_qss_font_px
 from .history_popup import relative_time
 from .popover_rows import _POPOVER_QSS, _ROW_PAD_X, _ROW_PAD_Y, _TILE, _Row
+from .shared import paint_styled_ground, round_popup_corners, screen_area_at
 from .style import (
     FONT_BODY,
     FONT_HINT,
     FONT_MICRO,
     HAIRLINE,
     INK,
-    INK_2,
     INK_3,
     LINE,
     LINE_STRONG,
@@ -116,19 +105,12 @@ _SHEET_QSS = _POPOVER_QSS + scale_qss_font_px(
 
     f"QFrame#checkpointSheet {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_PANEL}px; }}"
-    "QFrame#checkpointSheet QLabel#exampleTitle { font-weight: 600; }"
+
+    "QFrame#checkpointSheet QLabel#exampleTitle { font-weight: 400; }"
 
     f"QLabel#checkpointHeading {{ font-size: {FONT_BODY}px; font-weight: 600; color: {INK};"
     " background: transparent; }"
     f"QLabel#checkpointPromise {{ font-size: {FONT_HINT}px; color: {INK_3};"
-    " background: transparent; }"
-
-    f"QLabel#checkpointRun {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {INK_3};"
-    " background: transparent; }"
-    f"QLabel#checkpointAsked {{ font-size: {FONT_HINT}px; color: {INK_2};"
-    " background: transparent; }"
-
-    f"QLabel#checkpointChanges {{ font-size: {FONT_HINT}px; color: {INK_3};"
     " background: transparent; }"
 
 
@@ -184,33 +166,6 @@ def _when(entry: dict) -> str:
     return relative_time(moment.toString(Qt.DateFormat.ISODate)) if moment.isValid() else ""
 
 
-def group_caption(entry: dict, tr) -> str:
-    """The first line of a group: which run these states belong to, and when."""
-
-
-
-
-
-    if entry.get("kind") == KIND_EDITS:
-        head = tr("Your own changes")
-    else:
-        head = tr("Run {n}").format(n=_whole(entry.get("run_index")))
-    when = _when(entry)
-    return f"{head} · {when}" if when else head
-
-
-def group_prompt(entry: dict, tr) -> str:
-    """The second line of a group: what that run was asked, or where it sits."""
-    if entry.get("kind") == KIND_EDITS:
-        return tr("Made in QGIS, outside the agent")
-    asked = str(entry.get("prompt") or "").strip()
-    if asked:
-        return asked
-    if entry.get("start") or _whole(entry.get("run_index")) <= 1:
-        return tr("The first thing this chat did")
-    return ""
-
-
 def _change_text(row: dict, tr) -> str:
     """One change of a run's log, in the fewest words that say it."""
     name = str(row.get("layer") or os.path.basename(str(row.get("file") or "")) or "?")
@@ -229,76 +184,99 @@ def _change_text(row: dict, tr) -> str:
     return tr("{name} changed").format(name=name)
 
 
-def group_changes(entry: dict, tr) -> tuple[str, str]:
-    """The third line of a group, what Undo to before this run puts back, and a tooltip of every change."""
+_SHORT_REQUEST = 48
 
 
+def _request(entry: dict, limit: int = 0) -> str:
+    """What the entry's run was asked, on one line, cut to ``limit`` characters when given."""
+    text = _one_line(entry.get("prompt"))
+    if limit and len(text) > limit:
+        text = text[:limit].rstrip() + "\u2026"
+    return text
 
 
+def _is_start(entry: dict) -> bool:
+    return entry.get("kind") not in (KIND_AFTER, KIND_EDITS) and (
+        bool(entry.get("start")) or _whole(entry.get("run_index")) <= 1)
 
-    rows = [row for row in (entry.get("log") or []) if isinstance(row, dict)]
-    if not rows or entry.get("kind") == KIND_EDITS:
-        return "", ""
-    back = list(dict.fromkeys(_change_text(row, tr) for row in rows if row.get("restored")))
-    line = tr("Undo puts back: {changes}").format(changes=", ".join(back)) if back else ""
-    tip = [tr("What this run changed:")]
-    for row in rows:
-        text = _change_text(row, tr)
-        if row.get("restored"):
-            tip.append(f"• {text}")
-        else:
-            why = _long_reason(str(row.get("reason") or ""), tr)
-            tip.append("• " + tr("{change}, not put back: {why}").format(change=text, why=why))
-    return line, "\n".join(tip)
+
+def visible_entries(entries) -> list[dict]:
+    """The states worth a row, oldest first: a before entry that holds the same state as the after entry just before it is folded into that row."""
+
+
+    shown: list[dict] = []
+    for entry in entries or []:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("same_as_previous") and shown:
+            if entry.get("current"):
+                shown[-1] = {**shown[-1], "current": True}
+            continue
+        shown.append(entry)
+    return shown
 
 
 def checkpoint_title(entry: dict, tr) -> str:
-    """The row's own line: which side of its run this state is."""
-
-
-
-
-
-
+    """The row's one line: the state named by what produced it, in the user's words."""
     kind = entry.get("kind")
-    if kind == KIND_AFTER:
-        return tr("After this run")
     if kind == KIND_EDITS:
-        return tr("Before you continued")
-    if entry.get("start") or _whole(entry.get("run_index")) <= 1:
+        return tr("Your own changes")
+    asked = _request(entry)
+    if kind == KIND_AFTER:
+        return asked or tr("Request {n}").format(n=_whole(entry.get("run_index")))
+    if _is_start(entry):
         return tr("Start of this chat")
-    return tr("Before this run")
+    return tr("Before: {request}").format(request=asked or tr("request {n}").format(n=_whole(entry.get("run_index"))))
+
+
+def point_name(entry: dict, tr) -> str:
+    """The state as a sentence names it: "before “Remove the roads layer”"."""
+    kind = entry.get("kind")
+    if kind == KIND_EDITS:
+        return tr("your own changes")
+    asked = _request(entry, _SHORT_REQUEST)
+    if kind == KIND_AFTER:
+        return tr("after “{request}”").format(request=asked) if asked else tr("after request {n}").format(
+            n=_whole(entry.get("run_index")))
+    if _is_start(entry):
+        return tr("the start of this chat")
+    return tr("before “{request}”").format(request=asked) if asked else tr("before request {n}").format(
+        n=_whole(entry.get("run_index")))
 
 
 def checkpoint_note(entry: dict, tr) -> str:
-    """The row's second line: what going there does, in as few words as fit."""
-
-
-
-
-
-
+    """A second line only when the row cannot be restored here, saying why."""
     if not entry.get("available", True):
         return tr("No longer available")
     if entry.get("other_project"):
         name = str(entry.get("project") or "")
         return tr("Belongs to {name}").format(name=name) if name else tr("Belongs to a closed project")
-    kind = entry.get("kind")
-    if kind == KIND_AFTER:
-        changed = _whole(entry.get("changed_layers"))
-        if changed == 0:
-
-            return tr("Project changed")
-        if changed == 1:
-            return tr("1 layer changed")
-        return tr("%n layers changed", "", changed)
-    if kind == KIND_EDITS:
-        return tr("Your own edits")
-    if entry.get("start") or _whole(entry.get("run_index")) <= 1:
-        return tr("Nothing had been changed yet")
-
-
     return ""
+
+
+def checkpoint_details(entry: dict, tr) -> str:
+    """The tooltip of a row: when, the whole request, and what it changed."""
+    lines = []
+    when = _when(entry)
+    kind = entry.get("kind")
+    if kind == KIND_EDITS:
+        head = tr("Made in QGIS, outside the agent")
+    elif kind == KIND_AFTER:
+        head = tr("The project after this request")
+    elif _is_start(entry):
+        head = tr("The project before the first request")
+    else:
+        head = tr("The project before this request")
+    lines.append(f"{head} · {when}" if when else head)
+    asked = _request(entry)
+    if asked and kind != KIND_EDITS:
+        lines.append(f"“{asked}”")
+    if kind == KIND_AFTER:
+        changes = list(dict.fromkeys(_change_text(row, tr) for row in entry.get("log") or []
+                                     if isinstance(row, dict)))
+        if changes:
+            lines.append(tr("Changed: {changes}").format(changes=", ".join(changes[:6])))
+    return "\n".join(lines)
 
 
 def checkpoint_tag(entry: dict, tr) -> str:
@@ -306,7 +284,7 @@ def checkpoint_tag(entry: dict, tr) -> str:
     if entry.get("other_project"):
         return ""
     if entry.get("current"):
-        return tr("You are here")
+        return tr("Now")
     if not entry.get("available", True):
         return ""
     return tr("Restore")
@@ -428,74 +406,6 @@ def _paint_spine(widget, up: bool, down: bool) -> None:
         painter.end()
 
 
-class _RunCaption(QWidget):
-    """A group head: ``Run 2 · 3 min ago`` over what that run was asked."""
-
-    def __init__(self, caption: str, prompt: str, spine: bool = True, parent=None, changes: str = "",
-                 changes_tip: str = ""):
-        super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._full_prompt = _one_line(prompt)
-        self._spine = bool(spine)
-        self._width_hint = 0
-        column = QVBoxLayout(self)
-        column.setContentsMargins(_ROW_PAD_X + _TILE + 8, 6, _ROW_PAD_X, 2)
-        column.setSpacing(1)
-        self._full_caption = str(caption or "")
-        self._caption = QLabel(caption, self)
-        self._caption.setObjectName("checkpointRun")
-        self._caption.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        column.addWidget(self._caption)
-        self._prompt = QLabel(self)
-        self._prompt.setObjectName("checkpointAsked")
-        self._prompt.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self._prompt.setVisible(bool(self._full_prompt))
-        column.addWidget(self._prompt)
-
-
-        self._full_changes = _one_line(changes)
-        self._changes = QLabel(self)
-        self._changes.setObjectName("checkpointChanges")
-        self._changes.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self._changes.setVisible(bool(self._full_changes))
-        if changes_tip:
-            self._changes.setToolTip(changes_tip)
-        column.addWidget(self._changes)
-        self._elide()
-
-    def set_width_hint(self, width: int) -> None:
-        self._width_hint = max(0, int(width or 0))
-
-    def _elide(self) -> None:
-        width = max(40, (self._width_hint or self.width()) - (_ROW_PAD_X + _TILE + 8) - _ROW_PAD_X)
-        self._caption.setText(self._caption.fontMetrics().elidedText(
-            self._full_caption, Qt.TextElideMode.ElideRight, width))
-        if self._full_prompt:
-            self._prompt.setText(self._prompt.fontMetrics().elidedText(
-                self._full_prompt, Qt.TextElideMode.ElideRight, width))
-            self._prompt.setToolTip(self._full_prompt)
-        changes = getattr(self, "_changes", None)
-        if changes is not None and self._full_changes:
-            changes.setText(changes.fontMetrics().elidedText(
-                self._full_changes, Qt.TextElideMode.ElideRight, width))
-
-    def resizeEvent(self, event):  # noqa: N802 - Qt override
-        super().resizeEvent(event)
-        self._elide()
-
-    def paintEvent(self, event):  # noqa: N802 - Qt override
-        super().paintEvent(event)
-        if self._spine:
-            painter = QPainter(self)
-            try:
-                pen = QPen(QColor(LINE))
-                pen.setWidth(1)
-                painter.setPen(pen)
-                painter.drawLine(_SPINE_X, 0, _SPINE_X, self.height())
-            finally:
-                painter.end()
-
-
 class _CheckpointRow(_Row):
     """A checkpoint row, with the third line when a restore leaves data behind."""
 
@@ -549,14 +459,13 @@ class _CheckpointRow(_Row):
 
 
 class _DiscardRow(_Row):
-    """The last row: red title, and the full sentence as its tooltip when the panel is too narrow to show it whole."""
-
+    """The last row: one line under a red glyph, what it reaches in its tooltip."""
 
     def __init__(self, title: str, note: str, parent=None):
 
 
 
-        super().__init__("trash", ERROR_TEXT, title, note, "", parent)
+        super().__init__("trash", ERROR_TEXT, title, "", "", parent)
         self.setToolTip(f"{title}\n{note}")
 
     def _elide(self) -> None:
@@ -575,6 +484,7 @@ class CheckpointSheet(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        round_popup_corners(self)
         self.setObjectName("checkpointSheet")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_SHEET_QSS)
@@ -702,18 +612,8 @@ class CheckpointSheet(QFrame):
                 widget.deleteLater()
         self._rows = []
         self._focus = -1
-        shown = [e for e in reversed(entries or []) if isinstance(e, dict)][:_MAX_ROWS]
-        group = object()
+        shown = list(reversed(visible_entries(entries)))[:_MAX_ROWS]
         for position, entry in enumerate(shown):
-            key = (entry.get("kind") == KIND_EDITS, _whole(entry.get("run_index")),
-                   str(entry.get("run_id") or ""))
-            if key != group:
-                group = key
-                changes, changes_tip = group_changes(entry, self.tr)
-                self._col.addWidget(_RunCaption(group_caption(entry, self.tr),
-                                                group_prompt(entry, self.tr),
-                                                spine=position > 0, parent=self._host,
-                                                changes=changes, changes_tip=changes_tip))
             self._col.addWidget(self._row_for(entry, first=position == 0,
                                               last=position == len(shown) - 1))
         self._col.addStretch(1)
@@ -730,7 +630,7 @@ class CheckpointSheet(QFrame):
         start = next((e for e in entries if isinstance(e, dict) and e.get("start")), None)
         whole = bool(start is not None and start.get("available", True))
         discard = _DiscardRow(self.tr("Discard everything from this chat"),
-                              self.tr("Back to the project as it was before the first run") if whole
+                              self.tr("Back to the project as it was before the first request") if whole
                               else self.tr("Back to the oldest state still kept"), self)
         discard.setEnabled(any(e.get("available", True) and not e.get("other_project") for e in shown))
         discard.clicked.connect(lambda: self._choose(self.discard_all_requested))
@@ -758,8 +658,10 @@ class CheckpointSheet(QFrame):
                              checkpoint_note(entry, self.tr), checkpoint_tag(entry, self.tr),
                              warning, self._host, here=current,
                              spine_up=not first, spine_down=not last)
+        tip = checkpoint_details(entry, self.tr)
         if warning:
-            row.setToolTip(checkpoint_tooltip(entry, self.tr))
+            tip = tip + "\n\n" + checkpoint_tooltip(entry, self.tr)
+        row.setToolTip(tip)
         row.setEnabled(available)
 
 
@@ -841,22 +743,25 @@ class CheckpointSheet(QFrame):
         listed = self._host.sizeHint().height()
         if listed <= 0:
             listed = self._col.sizeHint().height()
-        return height + max(0, listed + 2 - self._scroll.sizeHint().height())
+
+
+        return max(_MIN_HEIGHT, height + listed + 2 - self._scroll.sizeHint().height())
 
     def _room_for(self, anchor: QWidget) -> int:
         """What the screen leaves for the sheet on the better side of ``anchor``: ``place_below`` opens below when it fits and above when it does not."""
 
 
         top_left = anchor.mapToGlobal(QPoint(0, 0))
-        screen = QApplication.screenAt(top_left) if hasattr(QApplication, "screenAt") else None
-        if screen is None:
-            screen = QApplication.primaryScreen()
-        if screen is None:
+        area = screen_area_at(top_left, anchor)
+        if area is None:
             return 1 << 20
-        area = screen.availableGeometry()
         below = area.bottom() - (top_left.y() + anchor.height() + 6) - 8
         above = (top_left.y() - 6) - area.top() - 8
         return max(_MIN_HEIGHT, below, above)
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_styled_ground(self)
+        super().paintEvent(event)
 
     def resizeEvent(self, event):  # noqa: N802 - Qt override
         super().resizeEvent(event)

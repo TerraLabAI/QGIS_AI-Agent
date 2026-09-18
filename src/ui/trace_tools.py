@@ -72,7 +72,7 @@ _CHEVRON_PX = 12
 SEARCH_TOOLS = frozenset({
     "search_open_data", "geocode", "reverse_geocode", "search_stac_items",
     "search_earthdata_collections", "search_earthdata_granules", "search_gee_catalog",
-    "web_search", "qgis_docs", "search_plugin_repository", "list_stac_collections",
+    "search_web", "find_data_on_web", "qgis_docs", "search_plugin_repository", "list_stac_collections",
 })
 CODE_TOOLS = frozenset({"execute_code", "run_processing", "evaluate_expression", "run_code",
                         "run_python", "run_model"})
@@ -403,7 +403,11 @@ class ActivityRow(QWidget):
         ended = "" if running else str(getattr(last, "ended", "") or "")
 
 
-        failed = not running and last.ok is False and ended not in ("denied", "stopped")
+
+
+        failures = 0 if running else self.failures()
+        failed = not running and last.ok is False and ended not in ("denied", "stopped") \
+            and failures >= self.repeats
         declined = failed or ended in ("denied", "stopped")
         self._label.setStyleSheet(_SECOND_QSS if declined else _LABEL_QSS)
         colour = first.glyph_colour() if callable(getattr(first, "glyph_colour", None)) \
@@ -419,12 +423,14 @@ class ActivityRow(QWidget):
         n = self.repeats
         self._count.setText(f"× {n}")
         self._count.setVisible(n > 1)
-        self._sync_outcome(running, failed, ended)
+        self._sync_outcome(running, failed, ended, failures if failures and not failed else 0)
         line = ", ".join(card.line() for card in self.cards)
         self.setToolTip(line if len(line) > 40 else "")
 
-    def _sync_outcome(self, running: bool, failed: bool, ended: str = "") -> None:
+    def _sync_outcome(self, running: bool, failed: bool, ended: str = "", some_failed: int = 0) -> None:
         """What the last finished call came back with, after the chips."""
+
+
         self._clear_result_chips()
         text = ""
         if failed:
@@ -433,22 +439,15 @@ class ActivityRow(QWidget):
             text = self.tr("denied")
         elif ended == "stopped":
             text = self.tr("stopped")
+        elif some_failed and not running:
+            text = self.tr("{failed} of {total} did not work").format(
+                failed=some_failed, total=self.repeats)
+            self._add_result_chips(self.cards[-1])
         elif not running:
             last = self.cards[-1]
-            if is_search_tool(last.name):
-                rows = search_results(last.detail) if last.ok else []
-                ratio = widget_pixel_ratio(self)
-                for name, source in rows[:MAX_RESULTS]:
-                    chip = SubjectChip(name, source_mark_pixmap(source or name, CHIP_MARK_PX, ratio),
-                                       self._flow_host)
-                    chip._is_result = True
-                    self._flow.removeWidget(self._outcome)
-                    self._flow.addWidget(chip)
-                    self._flow.addWidget(self._outcome)
-                    self._chips.append(chip)
-                    self._chip_texts.add(chip.text().lower())
-                if len(rows) > MAX_RESULTS:
-                    text = f"+{len(rows) - MAX_RESULTS}"
+            extra = self._add_result_chips(last)
+            if extra:
+                text = f"+{extra}"
             if not text:
                 facts = result_facts(last.summary)
                 if facts["count"] is not None:
@@ -459,6 +458,35 @@ class ActivityRow(QWidget):
                     text = f"→ {facts['layer']}"
         self._outcome.setText(text)
         self._outcome.setVisible(bool(text))
+
+    def _add_result_chips(self, card: ToolCard) -> int:
+        """A search's first results as chips; how many more there were."""
+        if not is_search_tool(card.name) or not card.ok:
+            return 0
+        rows = search_results(card.detail)
+        ratio = widget_pixel_ratio(self)
+        for name, source in rows[:MAX_RESULTS]:
+            chip = SubjectChip(name, source_mark_pixmap(source or name, CHIP_MARK_PX, ratio),
+                               self._flow_host)
+            chip._is_result = True
+            self._flow.removeWidget(self._outcome)
+            self._flow.addWidget(chip)
+            self._flow.addWidget(self._outcome)
+            self._chips.append(chip)
+            self._chip_texts.add(chip.text().lower())
+        return max(0, len(rows) - MAX_RESULTS)
+
+    def failures(self) -> int:
+        """How many calls of the line did not work (denied and stopped not counted)."""
+        total = 0
+        for card in self.cards:
+            count = getattr(card, "failures", None)
+            if not isinstance(count, int):
+
+                count = int(getattr(card, "repeats", 1) or 1) if card.ok is False \
+                    and getattr(card, "ended", "") not in ("denied", "stopped") else 0
+            total += count
+        return total
 
 
 

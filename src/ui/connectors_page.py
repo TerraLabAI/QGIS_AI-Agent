@@ -693,7 +693,7 @@ class ConnectorsPage(QWidget):
 
 
 
-                empty = WrapLabel(self.tr("Nothing matches that.") if query
+                empty = WrapLabel(self.tr("No connectors match") if query
                                   else self.tr("The list arrives when the panel connects."), self)
                 empty.setStyleSheet(_EMPTY_QSS)
                 empty.setAlignment(Qt.AlignmentFlag.AlignCenter)

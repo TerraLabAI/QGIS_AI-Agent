@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import difflib
 
-from ._layers import layer_not_found, resolve_layer
+from ._layers import layer_not_found, resolve_layer, resolve_layer_note
 
 
 def _find_layer(name_or_id: str):
@@ -21,11 +21,22 @@ def _find_layer(name_or_id: str):
 
 
 
+
     return resolve_layer(name_or_id)
 
 
+def _find_layer_note(name_or_id: str) -> tuple:
+    """``(layer, note)``: the same lookup, plus the sentence a result should carry."""
+
+
+
+
+
+    return resolve_layer_note(name_or_id)
+
+
 def _layer_not_found_error(name_or_id: str) -> dict:
-    """An error with a code, the closest layer names and the next tool to call."""
+    """An error with a code, the closest layers with their ids, and the next call to make."""
 
 
 

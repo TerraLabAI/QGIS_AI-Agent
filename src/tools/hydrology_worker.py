@@ -196,7 +196,12 @@ def _delineate(args: dict, checkpoint) -> dict:
         return tool_error(
             "Nothing drains to that cell: the outlet is a ridge or the DEM is flat there.", "EXECUTION_FAILED",
             "Place the outlet on the stream just downstream of the lake or dam, or widen snap_m so it finds it.")
-    touches_edge = bool(mask[0, :].any() or mask[-1, :].any() or mask[:, 0].any() or mask[:, -1].any())
+
+
+    sides = ((mask[0, :], r_min == 0), (mask[-1, :], r_max == facts["height"]),
+             (mask[:, 0], c_min == 0), (mask[:, -1], c_max == facts["width"]))
+    touches_edge = any(edge.any() for edge, _dem_end in sides)
+    only_dem_edge = touches_edge and all(dem_end for edge, dem_end in sides if edge.any())
 
 
 
@@ -243,7 +248,13 @@ def _delineate(args: dict, checkpoint) -> dict:
         water_km2 = float(water.sum()) * cell_x_m * cell_y_m / 1e6
         out["water_note"] = (f"{water_km2:.1f} km2 of the analysed area is a flat at exactly 0 m (the sea, or nodata "
                              "written as 0) and was left out as open water: flow ends at its shore.")
-    if touches_edge:
+    if only_dem_edge:
+
+
+        out["warning"] = (f"The watershed reaches the edge of {facts['name']} itself, so it is cut where the DEM "
+                          "ends. A larger radius_km or a coarser DEM cannot change that: report the basin as cut "
+                          "by the DEM's extent, or load a DEM that covers more of the area upstream.")
+    elif touches_edge:
         out["warning"] = _cut_warning(radius_km, max(cell_x_m, cell_y_m), max_cells)
     if facts["geographic"]:
         out["crs_note"] = _degrees_note(facts, lat)
@@ -542,7 +553,6 @@ def _metres_per_unit(crs_wkt: str) -> float:
 
 
 
-    unit = 1.0
     try:
         from osgeo import osr
 

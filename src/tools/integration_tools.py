@@ -15,19 +15,14 @@
 
 from __future__ import annotations
 
+from ..core.feature_requests import feature_request
 from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry
-from ._widgets import AI_SEGMENT_KEYS
+from . import sibling_setup as _setup
+from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
 from .adapters.ai_edit_access import ACCESS as AIEDIT
 
 AISEG_KEYS = list(AI_SEGMENT_KEYS)
-
-TERRALAB_SIGNUP_URL = (
-    "https://terra-lab.ai/register"
-    "?product=ai-agent"
-    "&utm_source=qgis&utm_medium=mcp&utm_campaign=ai-agent"
-)
-AISEG_REGISTER_URL = "https://terra-lab.ai/ai-segmentation?utm_source=qgis&utm_medium=mcp&utm_campaign=ai-agent"
 
 
 def _find_plugin(candidate_keys: list[str]):
@@ -37,28 +32,6 @@ def _find_plugin(candidate_keys: list[str]):
         if plugin is not None:
             return key, plugin
     return None, None
-
-
-def _plugin_dirs() -> list[str]:
-    import os
-
-    import qgis.utils
-    dirs = [path for path in (getattr(qgis.utils, "plugin_paths", None) or []) if isinstance(path, str)]
-    try:
-        from qgis.core import QgsApplication
-        dirs.append(os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins"))
-    except Exception:  # nosec B110 - no QGIS application (a unit test)
-        pass
-    return dirs
-
-
-def _enabled_in_plugin_manager(folder: str) -> bool:
-    """The Plugin Manager's own tick for this folder (``PythonPlugins/<folder>``)."""
-    try:
-        from qgis.core import QgsSettings
-        return bool(QgsSettings().value("PythonPlugins/" + folder, False, type=bool))
-    except Exception:  # noqa: BLE001 - no settings means no tick
-        return False
 
 
 def aiseg_presence() -> dict:
@@ -71,54 +44,15 @@ def aiseg_presence() -> dict:
 
 
 
-
-
-
-
-    import os
-
-    import qgis.utils
-    loaded = getattr(qgis.utils, "plugins", None) or {}
-    for key in AISEG_KEYS:
-        plugin = loaded.get(key)
-        if plugin is not None:
-            return {"state": "loaded", "folder": key, "plugin": plugin}
-    available = set(getattr(qgis.utils, "available_plugins", None) or [])
-    folder = next((key for key in AISEG_KEYS if key in available), None)
-    if folder is None:
-        folder = next((key for base in _plugin_dirs() for key in AISEG_KEYS
-                       if os.path.isfile(os.path.join(base, key, "metadata.txt"))), None)
-    if folder is None:
-        return {"state": "absent", "folder": None, "plugin": None}
-    started = folder in (getattr(qgis.utils, "active_plugins", None) or [])
-    enabled = started or _enabled_in_plugin_manager(folder)
-    return {"state": "not_started" if enabled else "disabled", "folder": folder, "plugin": None}
+    return _setup.presence(AISEG_KEYS)
 
 
 def aiseg_not_running_status(presence: dict) -> dict:
     """The status answer when there is no live plugin object, by what is on disk."""
-    if presence.get("state") == "disabled":
-        return {
-            "installed": True, "enabled": False, "ready": False, "state": "PLUGIN_DISABLED",
-            "plugin_folder": presence.get("folder"),
-            "action_required": ("AI Segmentation is installed but switched off. Tick it in "
-                                "Plugins > Manage and Install Plugins > Installed."),
-        }
-    if presence.get("state") == "not_started":
-        return {
-            "installed": True, "enabled": True, "ready": False, "state": "PLUGIN_NOT_STARTED",
-            "plugin_folder": presence.get("folder"),
-            "action_required": ("AI Segmentation is installed and switched on but did not start in this "
-                                "QGIS session. Restart QGIS; if it still does not start, reinstall it from "
-                                "Plugins > Manage and Install Plugins."),
-        }
-    return {
-        "installed": False,
-        "ready": False,
-        "state": "NOT_INSTALLED",
-        "action_required": "Install 'AI Segmentation by TerraLab' from QGIS Plugin Manager.",
-        "register_url": AISEG_REGISTER_URL,
-    }
+    out = _setup.not_running("ai_segment", presence)
+    if presence.get("folder"):
+        out["plugin_folder"] = presence["folder"]
+    return out
 
 
 def _aiseg_module(plugin, dotted: str):
@@ -551,17 +485,20 @@ def _aiedit_get_resolutions(args: dict) -> dict:
 
 
 def _aiedit_status(args: dict) -> dict:
+    """Installed, switched on, signed in: the first missing one is the step ``setup`` takes."""
     try:
+        found = _setup.presence(AI_EDIT_KEYS)
+        if found["plugin"] is None:
+            return _setup.not_running("ai_edit", found)
         status = AIEDIT.status()
-        if not status.get("installed"):
-            status.setdefault(
-                "action_required",
-                "Install 'AI Edit by TerraLab' from QGIS Plugin Manager.",
-            )
-            status.setdefault("signup_url", TERRALAB_SIGNUP_URL)
+        if _setup.signed_in("ai_edit", found["plugin"]) is False or status.get("state") == "NEEDS_ACTIVATION":
+            return _setup.signed_out("ai_edit", status)
+        if status.get("state") == "NO_PANEL":
+            status["action_required"] = "The AI Edit panel is closed. setup opens it."
+            status["next_step"] = _setup.SETUP_HINT.format(tool="ai_edit")
         return status
     except Exception as e:
-        return {"installed": False, "ready": False, "_error": str(e)}
+        return {"ready": False, "_error": f"AI Edit status failed: {e}"}
 
 
 def _aiedit_generate(args: dict) -> dict:
@@ -573,7 +510,7 @@ def _aiedit_generate(args: dict) -> dict:
     if args.get("bbox") is None and not use_canvas:
         return {"_error": "Provide bbox [xmin,ymin,xmax,ymax] (or {xmin,...}) or use_canvas_extent:true."}
     try:
-        return AIEDIT.run_generation({
+        result = AIEDIT.run_generation({
             "prompt": args.get("prompt", ""),
             "bbox": args.get("bbox"),
             "use_canvas_extent": use_canvas,
@@ -581,6 +518,10 @@ def _aiedit_generate(args: dict) -> dict:
             "reference_layers": args.get("reference_layers"),
             "template_id": args.get("template_id"),
         })
+
+        if isinstance(result, dict) and "ai_edit_generation_status" in str(result.get("note") or ""):
+            result["note"] = result["note"].replace("ai_edit_generation_status", "ai_edit action generation_status")
+        return result
     except Exception as e:
         log_warning(f"AI Edit generation failed: {e}")
         return {"_error": f"AI Edit generation failed: {str(e)}"}
@@ -630,6 +571,14 @@ def _aiedit_select_version(args: dict) -> dict:
 
 def _aiseg_status(args: dict) -> dict:
     """The one status answer: ``ai_segment_status`` and ``ai_segment`` action status both land here."""
+
+
+
+
+
+
+
+
     try:
         presence = aiseg_presence()
         plugin = presence["plugin"]
@@ -639,23 +588,25 @@ def _aiseg_status(args: dict) -> dict:
         api = getattr(plugin, "mcp_api", None)
         if api is None:
             return {"installed": True, "ready": False, "state": "NEEDS_UPDATE",
-                    "action_required": "Update AI Segmentation from QGIS Plugin Manager for MCP support."}
+                    "action_required": "Update AI Segmentation from QGIS Plugin Manager."}
 
         status = api.get_status()
-        if isinstance(status, dict) and status.get("state") == "MODEL_NOT_LOADED":
-            status = _aiseg_without_local_model(status)
+        if not isinstance(status, dict):
+            return {"ready": False, "_error": "AI Segmentation returned no status."}
+        if status.get("state") in ("MODEL_NOT_DOWNLOADED", "MODEL_NOT_LOADED"):
+            status = _aiseg_cloud_ready(status)
+        for key in ("model_loaded", "register_url"):
+            status.pop(key, None)
+        if _setup.signed_in("ai_segment", plugin) is False:
+            return _setup.signed_out("ai_segment", status)
         return status
     except Exception as e:
 
         return {"ready": False, "_error": f"AI Segmentation status failed: {e}"}
 
 
-def _aiseg_without_local_model(status: dict) -> dict:
-    """The status when the on-device model is installed but not loaded."""
-
-
-
-
+def _aiseg_cloud_ready(status: dict) -> dict:
+    """The status when the plugin's answer is about its on-device model."""
 
 
 
@@ -664,13 +615,8 @@ def _aiseg_without_local_model(status: dict) -> dict:
     rasters = [layer.name() for layer in QgsProject.instance().mapLayers().values()
                if isinstance(layer, QgsRasterLayer)]
     status = dict(status)
-    status["model_loaded"] = False
     status["available_raster_layers"] = rasters
-    status["on_device_model"] = (
-        "Not loaded. Only the panel's Semi-Auto clicks use it; detect_auto is a cloud "
-        "call and runs without it. ai_segment action 'load_model' loads it for free "
-        "if you need it; never send the user to the panel for that."
-    )
+    status["runs_in"] = "cloud: detect_auto needs no local model, download or Install click"
     if rasters:
         status["ready"] = True
         status["state"] = "READY"
@@ -771,7 +717,9 @@ def _aiseg_color_by_instance(result) -> None:
             return
         layer = layers[0]
         cats = []
-        for i, feat in enumerate(layer.getFeatures()):
+        for i, feat in enumerate(layer.getFeatures(feature_request(attributes=[], geometry=False, limit=3001))):
+            if i >= 3000:
+                return
             hue = (i * 0.61803398875) % 1.0
             r, g, b = colorsys.hsv_to_rgb(hue, 0.68, 0.98)
             rr, gg, bb = int(r * 255), int(g * 255), int(b * 255)

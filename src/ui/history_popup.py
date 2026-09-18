@@ -54,7 +54,7 @@ from qgis.PyQt.QtWidgets import (
 from .card_base import reduced_motion
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
-from .shared import event_pos
+from .shared import event_pos, keep_on_screen, screen_area_at
 from .style import (
     ACCENT_INK,
     FONT_BASE,
@@ -315,7 +315,7 @@ class _Row(QWidget):
         self._delete = None
         if deletable:
             self._delete = IconButton(self, "trash", 14, tr("Delete chat"))
-            self._delete.setFixedSize(24, 24)
+            self._delete.setFixedSize(28, 28)
             self._delete.clicked.connect(self.delete_clicked.emit)
             self._delete.hide()
             row.addWidget(self._delete, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -524,7 +524,11 @@ class HistoryPopup(QWidget):
         origin = panel.mapToGlobal(QPoint(0, 0))
         x = origin.x() + (panel.width() - self.width()) // 2
         y = origin.y() + SHEET_TOP - _SHADOW
-        self._final = QPoint(x, y)
+
+
+        centre = origin + QPoint(panel.width() // 2, SHEET_TOP)
+        area = screen_area_at(centre, panel)
+        self._final = QPoint(*keep_on_screen(x, y, self.width(), self.height(), area))
         self.move(self._final)
         self.show()
         self._pop_in(panel)
@@ -701,7 +705,13 @@ class HistoryPopup(QWidget):
 
 
         mine = _same_project(path, self._current_project)
-        row = _Row(title, True, self._content, meta=when if mine else project)
+        meta = when if mine else project
+
+
+        stamp = str(item.get("updated_at") or item.get("updated_at_iso") or "")
+        if mine and not self._search.text().strip() and date_band(stamp) == BAND_YESTERDAY:
+            meta = ""
+        row = _Row(title, True, self._content, meta=meta)
         row.setToolTip("\n".join(p for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
         row.set_current(thread_id == self._current_thread)
         row.clicked.connect(lambda t=thread_id: self._on_pick(t))

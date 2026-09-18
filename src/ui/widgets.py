@@ -407,8 +407,6 @@ class IconButton(QToolButton):
 
 
 
-_FooterIconButton = IconButton
-
 
 class ClickableArea(QWidget):
     """A strip of passive widgets that answers a click as one control."""
@@ -425,5 +423,3 @@ class ClickableArea(QWidget):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
 
-
-_ClickableFooterArea = ClickableArea

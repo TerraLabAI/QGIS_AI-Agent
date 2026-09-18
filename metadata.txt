@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.1.0
+version=1.2.0
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.2.0
+    - Undo history: step to any earlier point in a chat and see what each run changed
+    - Your message is kept and resent automatically if the connection drops and comes back
+    - Long conversations are compacted instead of cut off; your own messages stay visible
+    - Windows: long paths, Excel CSVs, mapped drives and OneDrive folders work in loads and exports
+
     1.1.0
     - Charts, animation over time, watersheds from an elevation model, and georeferencing a scanned map
     - Undo restores large layers, shapefiles and GeoPackages, and history survives a QGIS restart

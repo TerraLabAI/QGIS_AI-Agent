@@ -63,6 +63,56 @@ def _task_ids_started(name: str, result) -> set:
 _LAYER_KEYS = ("layer_name", "layer", "layer_id", "input", "INPUT", "target_layer", "output_name", "name")
 
 
+
+
+_INPUT_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
+
+_NAMES_A_NEW_LAYER = {"execute_sql": ("layer_name",)}
+
+
+def _resolved_layer_note(name: str, args: dict, result) -> str:
+    """What the layer lookup forgave on this call, said for every tool rather than five."""
+
+
+
+
+
+
+
+
+    if not isinstance(result, dict) or "_error" in result:
+        return ""
+    skip = _NAMES_A_NEW_LAYER.get(name, ())
+    notes: list[str] = []
+    for key in _INPUT_LAYER_KEYS:
+        if key in skip:
+            continue
+        value = args.get(key)
+        if not isinstance(value, str) or not value.strip():
+            continue
+
+
+
+
+        if result.get("asked_for") == value and result.get("layer_id"):
+            continue
+        try:
+            from ..tools._layers import resolve_layer_note
+
+            _layer, note = resolve_layer_note(value)
+        except Exception as exc:  # noqa: BLE001 - a note never costs a result
+            log_warning(f"Layer note for {name} not read: {exc}")
+            continue
+        if note and note not in notes:
+            notes.append(note)
+    text = " ".join(notes)
+    if not text:
+        return ""
+
+    said = " ".join(str(result.get(key) or "") for key in ("note", "_note", "message"))
+    return "" if text in said else text
+
+
 def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
@@ -163,7 +213,7 @@ class _ExecutorDeliver:
 
         with stalls.probe("licence.credit"):
             added = self.stacker.take_added()
-            licence.credit_added(added, result)
+            licence.credit_added(added, result, tool=name)
 
             stamp_thread(added, self._threads.get(run_id, ""))
         with stalls.probe("result.scrub"):
@@ -181,6 +231,13 @@ class _ExecutorDeliver:
 
         if grouped and isinstance(result, dict) and "_error" not in result:
             result["grouped_into"] = grouped
+
+
+
+        with stalls.probe("layer.note"):
+            resolved = _resolved_layer_note(name, args, result)
+        if resolved:
+            result["layer_note"] = resolved
         error = self._error_of(result)
         if error is not None:
             code, message, suggestion = error

@@ -19,7 +19,6 @@ from qgis.core import (
     QgsApplication,
     QgsBookmark,
     QgsCoordinateReferenceSystem,
-    QgsCredentials,
     QgsDataSourceUri,
     QgsExpressionContextUtils,
     QgsMapThemeCollection,
@@ -33,6 +32,7 @@ from qgis.core import (
 )
 from qgis.utils import iface
 
+from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .core_tools import _jsonable_value
 
@@ -295,16 +295,6 @@ def _saved_connection(provider: str, connection: str):
     return conn, None
 
 
-class _QuietCredentials(QgsCredentials):
-    """Refuse every credential request instead of opening the Enter Credentials dialog."""
-
-    def request(self, realm, username, password, message=""):
-        return False, username, password
-
-    def requestMasterPassword(self, password, stored=False):
-        return False, password
-
-
 def _bookmark_summary(bookmark, scope: str) -> dict:
     extent = bookmark.extent()
     return {
@@ -456,17 +446,13 @@ def _create_postgresql_connection(args: dict) -> dict:
 
 
 
-    previous = QgsCredentials.instance()
-    quiet = _QuietCredentials()
-    quiet.setInstance(quiet)
     try:
-        connection = metadata.createConnection(uri.uri(False), {})
-        connection.executeSql("SELECT 1")
+        with no_login_prompt():
+            connection = metadata.createConnection(uri.uri(False), {})
+            connection.executeSql("SELECT 1")
     except Exception as e:
         return tool_error(f"Failed to connect to PostgreSQL ({target}): {e}", "EXECUTION_FAILED",
                           "Check the host, port, database, service name and credentials, then call again.")
-    finally:
-        quiet.setInstance(previous)
 
     metadata.saveConnection(connection, name)
     details = {key: given[key] for key in ("host", "database", "auth_config_id", "service") if given[key]}

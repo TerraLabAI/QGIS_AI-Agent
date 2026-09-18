@@ -13,6 +13,7 @@ import os
 
 from qgis.core import (
     QgsApplication,
+    QgsCoordinateTransform,
     QgsLayoutItem,
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
@@ -134,6 +135,14 @@ def register_layout_tools(registry: ToolRegistry):
                 },
                 "continuous_ramp": {
                     "type": "boolean",
+                },
+                "layers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "hide_layers": {
+                    "type": "array",
+                    "items": {"type": "string"},
                 },
             },
             "required": ["layout_name", "x", "y"],
@@ -267,10 +276,115 @@ def _scalebar_unit(label: str):
 
 
 def _first_map_item(layout):
-    for item in layout.items():
-        if isinstance(item, QgsLayoutItemMap):
-            return item
-    return None
+    """The map a legend, a scale bar or a north arrow should follow."""
+
+
+
+
+
+
+
+
+    try:
+        reference = layout.referenceMap()
+    except (AttributeError, RuntimeError):
+        reference = None
+    if isinstance(reference, QgsLayoutItemMap):
+        return reference
+    maps = [item for item in layout.items() if isinstance(item, QgsLayoutItemMap)]
+    if not maps:
+        return None
+    return max(maps, key=lambda item: item.sceneBoundingRect().width() * item.sceneBoundingRect().height())
+
+
+def _page_scale(layout) -> float:
+    """How much bigger this page is than A4, on the diagonal. 1.0 when unreadable."""
+    try:
+        page = _page_summary(layout)
+        width, height = float(page["width_mm"] or 0), float(page["height_mm"] or 0)
+        if width <= 0 or height <= 0:
+            return 1.0
+        return max(0.7, min(2.2, ((width * height) / (210.0 * 297.0)) ** 0.5))
+    except Exception:  # noqa: BLE001 - a page that will not measure keeps A4 sizes
+        return 1.0
+
+
+def _legend_font(legend, member: str, size: float, bold: bool) -> None:
+    """Set one component of a legend's text, on both QGIS font APIs."""
+    from qgis.core import QgsLegendStyle
+    from qgis.PyQt.QtGui import QFont
+
+    component = enum_member(QgsLegendStyle, "Style", member, None)
+    if component is None:
+        return
+    font = QFont()
+    font.setPointSizeF(size)
+    font.setBold(bold)
+    if hasattr(legend, "setStyleFont"):
+        legend.setStyleFont(component, font)
+        return
+    style = legend.rstyle(component)
+    text_format = style.textFormat()
+    text_format.setFont(font)
+    text_format.setSize(size)
+    style.setTextFormat(text_format)
+
+
+def _legend_entries(legend) -> list:
+    """What the legend prints, layer by layer: ``[{"layer": name, "classes": [...]}]``."""
+
+
+
+
+
+    entries = []
+    try:
+        model = legend.model()
+        for node in model.rootGroup().findLayers():
+            layer = node.layer()
+            name = (layer.name() if layer is not None else node.name()) or ""
+            classes = []
+            for legend_node in model.layerLegendNodes(node):
+                try:
+                    from qgis.PyQt.QtCore import Qt
+
+                    text = legend_node.data(enum_member(Qt, "ItemDataRole", "DisplayRole"))
+                except Exception:  # noqa: BLE001 - a node with no label prints none
+                    text = None
+                if text:
+                    classes.append(str(text))
+            entries.append({"layer": name, "classes": classes[:40]})
+    except Exception:  # noqa: BLE001 - a legend we cannot read still exported fine
+        return []
+    return entries
+
+
+def _legend_pick_layers(legend, keep, drop) -> list:
+    """Keep only *keep* and remove *drop* from the legend; the names taken out."""
+
+
+
+
+
+    keep_keys = {str(name).strip().casefold() for name in keep or () if str(name).strip()}
+    drop_keys = {str(name).strip().casefold() for name in drop or () if str(name).strip()}
+    if not keep_keys and not drop_keys:
+        return []
+    removed = []
+    try:
+        legend.setAutoUpdateModel(False)
+        root = legend.model().rootGroup()
+        for node in list(root.findLayers()):
+            layer = node.layer()
+            name = (layer.name() if layer is not None else node.name()) or ""
+            key = name.strip().casefold()
+            if (keep_keys and key not in keep_keys) or key in drop_keys:
+                parent = node.parent() or root
+                parent.removeChildNode(node)
+                removed.append(name)
+    except Exception:  # noqa: BLE001 - a legend that will not be edited keeps every layer
+        return removed
+    return removed
 
 
 def _page_summary(layout) -> dict:
@@ -333,6 +447,83 @@ def _with_new_item(layout, item) -> dict:
     summary["new_item_uuid"] = item.uuid()
     summary["new_item_type"] = type(item).__name__
     return summary
+
+
+def _keep_item_inside_page(layout, item, force_content_size: bool = False) -> list[str]:
+    """Keep an item on its containing page after QGIS determines its size."""
+
+
+
+
+
+
+    warnings = []
+    try:
+
+
+
+        try:
+            layout.refresh()
+        except (AttributeError, RuntimeError):
+            pass
+        try:
+            item.refresh()
+        except (AttributeError, RuntimeError):
+            pass
+        item_rect = item.sceneBoundingRect()
+        if force_content_size and isinstance(item, QgsLayoutItemLegend):
+
+
+
+            try:
+                from qgis.core import QgsLegendRenderer
+                size = QgsLegendRenderer(item.model(), item.legendSettings()).minimumSize()
+                if size.width() > 0 and size.height() > 0:
+                    item.attemptResize(_mm_size(size.width(), size.height()))
+                    item_rect = item.sceneBoundingRect()
+            except (AttributeError, RuntimeError, TypeError):
+                pass
+        pages = layout.pageCollection()
+        page = None
+        for candidate in (pages.page(i) for i in range(pages.pageCount())):
+            page_rect = candidate.mapRectToScene(candidate.rect())
+            if page_rect.contains(item_rect.center()) or page_rect.intersects(item_rect):
+                page = candidate
+                break
+        if page is None:
+            page = pages.page(0)
+        page_rect = page.mapRectToScene(page.rect())
+        width, height = item_rect.width(), item_rect.height()
+        page_width, page_height = page_rect.width(), page_rect.height()
+        x, y = item_rect.x(), item_rect.y()
+
+        if width > page_width:
+            warnings.append(
+                f"{type(item).__name__} is {width:.1f} mm wide but the containing page is "
+                f"{page_width:.1f} mm wide; it was kept at that size and may clip."
+            )
+        else:
+            x = min(max(x, page_rect.left()), page_rect.right() - width)
+
+        if height > page_height:
+            warnings.append(
+                f"{type(item).__name__} is {height:.1f} mm high but the containing page is "
+                f"{page_height:.1f} mm high; it was kept at that size and may clip."
+            )
+        else:
+            y = min(max(y, page_rect.top()), page_rect.bottom() - height)
+
+        if abs(x - item_rect.x()) > 0.001 or abs(y - item_rect.y()) > 0.001:
+            item.attemptMove(_mm_point(x, y))
+    except Exception as exc:  # nosec B110 - placement must not block layout creation
+        warnings.append(f"Could not verify {type(item).__name__} placement on the page: {exc}")
+    return warnings
+
+
+def _item_geometry(item) -> dict:
+    rect = item.sceneBoundingRect()
+    return {"x": round(rect.x(), 2), "y": round(rect.y(), 2),
+            "width": round(rect.width(), 2), "height": round(rect.height(), 2)}
 
 
 def _find_north_arrow_svg():
@@ -414,7 +605,27 @@ def _add_layout_map(args: dict) -> dict:
             return {"_error": "extent must be [xmin, ymin, xmax, ymax]"}
         rect = QgsRectangle(extent[0], extent[1], extent[2], extent[3])
     else:
-        rect = iface.mapCanvas().extent()
+        canvas = iface.mapCanvas()
+        rect = canvas.extent()
+
+
+
+
+        settings = canvas.mapSettings() if hasattr(canvas, "mapSettings") else None
+        canvas_crs = settings.destinationCrs() if settings is not None else None
+        project = QgsProject.instance()
+        project_crs = project.crs()
+        if (canvas_crs is not None and canvas_crs.isValid() and project_crs.isValid()
+                and canvas_crs != project_crs):
+            try:
+                rect = QgsCoordinateTransform(
+                    canvas_crs, project_crs, project.transformContext()
+                ).transformBoundingBox(rect)
+            except Exception as exc:
+                return {
+                    "_error": f"Could not transform the canvas extent into {project_crs.authid()}: {exc}",
+                    "code": "INVALID_EXTENT",
+                }
 
 
 
@@ -464,16 +675,81 @@ def _add_layout_map(args: dict) -> dict:
         result["scale"] = int(round(map_item.scale()))
         if scale_note:
             result["scale_note"] = scale_note
+
+    frame_note = _framing_note(map_item, rect, args["width"], args["height"])
+    if frame_note:
+        result["framing_note"] = frame_note
+    shown = map_item.extent()
+    result["extent_shown"] = [round(shown.xMinimum(), 6), round(shown.yMinimum(), 6),
+                              round(shown.xMaximum(), 6), round(shown.yMaximum(), 6)]
     return result
 
 
+def _framing_note(map_item, asked, width_mm, height_mm) -> str:
+    """What to say when the frame shows much more ground than was asked for."""
+
+
+
+
+
+
+
+    try:
+        shown = map_item.extent()
+        asked_w, asked_h = float(asked.width()), float(asked.height())
+        if not (asked_w > 0 and asked_h > 0 and shown.width() > 0 and shown.height() > 0):
+            return ""
+        fill = (asked_w * asked_h) / (shown.width() * shown.height())
+        if fill >= 0.72:
+            return ""
+        ratio = asked_w / asked_h
+        fitted_h = float(width_mm) / ratio
+        fitted_w = float(height_mm) * ratio
+        better = (f"width {float(width_mm):.0f} by height {fitted_h:.0f} mm"
+                  if fitted_h <= float(height_mm) * 1.6
+                  else f"width {fitted_w:.0f} by height {float(height_mm):.0f} mm")
+        return (f"The extent asked for fills only {fill * 100:.0f}% of this frame: the frame keeps its own "
+                f"shape, so the rest is empty ground on two sides. A frame of {better} matches the extent. "
+                "The map itself is correct; only the empty margin is not.")
+    except Exception:  # noqa: BLE001 - a frame we cannot measure says nothing
+        return ""
+
+
+def _same_label(item, text: str, x, y) -> bool:
+    """An existing label with this text within a millimetre of this spot."""
+    if not isinstance(item, QgsLayoutItemLabel):
+        return False
+    if str(item.text() or "") != text:
+        return False
+    rect = item.sceneBoundingRect()
+    return abs(rect.x() - float(x)) <= 1.0 and abs(rect.y() - float(y)) <= 1.0
+
+
 def _add_layout_label(args: dict) -> dict:
+    """Add a label, or move the one already saying this rather than stack a second on it."""
+
+
+
+
+
+
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
 
+    text = args["text"]
+    existing = next((item for item in layout.items() if _same_label(item, text, args["x"], args["y"])), None)
+    if existing is not None:
+        existing.attemptResize(_mm_size(args["width"], args["height"]))
+        result = _with_new_item(layout, existing)
+        result["reused_existing_label"] = True
+        result["note"] = ("This label was already on the layout at this spot with this text, so it was "
+                          "resized rather than drawn a second time over itself. The sheet is as you "
+                          "wanted it; move on.")
+        return result
+
     label = QgsLayoutItemLabel(layout)
-    label.setText(args["text"])
+    label.setText(text)
 
     font = QFont()
     font.setPointSizeF(float(args.get("font_size", 14)))
@@ -498,6 +774,13 @@ def _add_layout_label(args: dict) -> dict:
 
 
 def _add_layout_legend(args: dict) -> dict:
+    """A legend a reader can actually use, on the first call."""
+
+
+
+
+
+
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
@@ -507,19 +790,80 @@ def _add_layout_legend(args: dict) -> dict:
         legend.setTitle(args["title"])
 
     linked = args.get("linked_to_map", True)
-    if linked:
-        map_item = _first_map_item(layout)
-        if map_item:
-            legend.setLinkedMap(map_item)
+    map_item = _first_map_item(layout) if linked else None
+    if map_item:
+        legend.setLinkedMap(map_item)
+
+
+
+        try:
+            legend.setLegendFilterByMapEnabled(True)
+        except (AttributeError, RuntimeError):
+            pass
     legend.setAutoUpdateModel(True)
-    if args.get("continuous_ramp"):
-        legend.setAutoUpdateModel(True)
+
+
+
+
+    scale = _page_scale(layout)
+    body = max(7.0, min(14.0, 8.5 * scale))
+    for member, size, bold in (("Title", body * 1.3, True), ("Group", body * 1.05, True),
+                               ("Subgroup", body, True), ("SymbolLabel", body, False)):
+        try:
+            _legend_font(legend, member, size, bold)
+        except Exception:  # nosec B110 - legend styling is optional
+            pass
 
     legend.attemptMove(_mm_point(args["x"], args["y"]))
-    if args.get("width") is not None and args.get("height") is not None:
-        legend.attemptResize(_mm_size(args["width"], args["height"]))
+
+
     layout.addLayoutItem(legend)
-    return _with_new_item(layout, legend)
+    removed = _legend_pick_layers(legend, args.get("layers"), args.get("hide_layers"))
+    try:
+        legend.updateLegend()
+    except (AttributeError, RuntimeError):
+        pass
+
+    sized = args.get("width") is not None and args.get("height") is not None
+    if sized:
+        legend.attemptResize(_mm_size(args["width"], args["height"]))
+    else:
+
+
+        try:
+            legend.setResizeToContents(True)
+            legend.adjustBoxSize()
+        except (AttributeError, RuntimeError):
+            pass
+    entries = _legend_entries(legend)
+    rows = sum(1 + len(entry["classes"]) for entry in entries)
+    if rows > 14 and not sized:
+
+        try:
+            legend.setColumnCount(2 if rows <= 30 else 3)
+            legend.adjustBoxSize()
+        except (AttributeError, RuntimeError):
+            pass
+
+    placement_warnings = _keep_item_inside_page(layout, legend, force_content_size=not sized)
+    result = _with_new_item(layout, legend)
+    actual_geometry = _item_geometry(legend)
+    result["actual_geometry"] = actual_geometry
+    if abs(actual_geometry["x"] - float(args["x"])) > 0.01 or abs(actual_geometry["y"] - float(args["y"])) > 0.01:
+        result["placement_adjustment"] = {
+            "requested": {"x": float(args["x"]), "y": float(args["y"])},
+            "actual": actual_geometry,
+        }
+    result["entries"] = entries
+    result["linked_map"] = map_item.uuid() if map_item else None
+    if placement_warnings:
+        result["placement_warnings"] = placement_warnings
+    if removed:
+        result["removed_from_legend"] = removed
+    if not entries:
+        result["empty_note"] = ("The legend has no entries: the map it follows draws nothing, or every "
+                                "layer is switched off. Check the map with get_layout_info first.")
+    return result
 
 
 def _add_layout_scalebar(args: dict) -> dict:
@@ -565,7 +909,17 @@ def _add_layout_scalebar(args: dict) -> dict:
 
     scalebar.attemptMove(_mm_point(args["x"], args["y"]))
     layout.addLayoutItem(scalebar)
+    placement_warnings = _keep_item_inside_page(layout, scalebar)
     result = _with_new_item(layout, scalebar)
+    actual_geometry = _item_geometry(scalebar)
+    result["actual_geometry"] = actual_geometry
+    if abs(actual_geometry["x"] - float(args["x"])) > 0.01 or abs(actual_geometry["y"] - float(args["y"])) > 0.01:
+        result["placement_adjustment"] = {
+            "requested": {"x": float(args["x"]), "y": float(args["y"])},
+            "actual": actual_geometry,
+        }
+    if placement_warnings:
+        result["placement_warnings"] = placement_warnings
     if label:
         result["units_label"] = label
         if unit is None:
@@ -608,7 +962,10 @@ def _get_layout_info(args: dict) -> dict:
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
-    return _layout_summary(layout)
+    result = _layout_summary(layout)
+    from ..core.layout_quality import assess_layout
+    result["layout_checks"] = assess_layout(layout)
+    return result
 
 
 def _remove_print_layout(args: dict) -> dict:

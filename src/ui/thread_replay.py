@@ -139,6 +139,12 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
 
             panel._wire_answer(bubble, run_id)
             bubble.finish_streaming()
+
+        sources = m.get("sources")
+        if isinstance(sources, list):
+            bubble.set_sources([x for x in sources[:50] if isinstance(x, dict)])
+        blocks = panel.message_list.traces_of(run_id) if run_id else []
+        bubble.set_footnote(panel._run_footnote(blocks, usage))
         panel._add(bubble, animate=False)
 
 
@@ -148,6 +154,8 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
                         has_text=bool(text), with_changes=not changes)
         if changes and run_id:
             panel.add_run_changes(run_id, changes, animate=False)
+
+        panel._mark_compaction(usage, animate=False)
 
 
 def _replay_summary(panel, status: str, summary: str, usage, verification, has_text: bool,

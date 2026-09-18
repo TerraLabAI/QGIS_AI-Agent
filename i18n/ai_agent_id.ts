@@ -885,6 +885,82 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Izinkan / Tolak</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Sebelum: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Diubah: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Tombol riwayat chat</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Tombol chat baru</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Tidak ada contoh yang cocok</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Sekarang</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Permintaan {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>Proyek setelah permintaan ini</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>Proyek sebelum permintaan pertama</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>Proyek sebelum permintaan ini</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>layer ini tidak lagi ada dalam proyek.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>setelah permintaan {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>setelah “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>sebelum permintaan {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>sebelum “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>permintaan {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>awal chat ini</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>perubahan Anda sendiri</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Buka panel dengan Ctrl+Alt+A, atau ketik "ai" diikuti dengan pertanyaan di bilah locator (Ctrl+K). Klik kanan layer, fitur, atau peta untuk bertanya tentangnya.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent dari TerraLab adalah agen AI Anda di dalam QGIS: memuat data, menata layer, menjalankan analisis, dan membuat tata letak. AI Agent meminta persetujuan sebelum perubahan berisiko dan Anda dapat membatalkan eksekusi.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS berganti tema. Muat ulang AI Agent, atau mulai ulang QGIS, agar panel mengikuti.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Buka panel AI Agent: minta apa saja di QGIS dan AI Agent akan mengerjakannya.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tampilkan</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>Agen sedang menunggu persetujuan Anda.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Agen AI Anda di dalam QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Pendaftaran gratis dan hanya perlu 15 detik di browser Anda.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Agen AI Anda di dalam QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>stopped</source>
             <translation>dihentikan</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} dari {total} tidak berhasil</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agent</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Dibatalkan</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>Tidak ada layer, fitur, atau file yang berubah</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>Urutan layer atau grup berubah</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Titik ini milik proyek {name}. Buka proyek tersebut untuk kembali ke sana.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer dalam proyek</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Kembali ke {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Tidak dapat sepenuhnya kembali ke {point}. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Tidak ada hasil</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Tidak terhubung ke layanan agen, jadi tidak ada yang dikirim. Sedang menyambungkan kembali: pesan Anda tetap tersimpan, dan Coba lagi akan mengirimkannya setelah koneksi kembali.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>Mode izin berubah. Perubahan ini berlaku mulai tindakan berikutnya.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>Mode izin berubah. Perubahan ini berlaku mulai tindakan berikutnya; kartu yang terbuka masih memerlukan jawaban Anda.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>Pesan tidak dapat dikirim: koneksi ke layanan agen terputus.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>setelah permintaan {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>setelah “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>sebelum permintaan {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>sebelum “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>data dikembalikan ke {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>awal chat ini</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>perubahan Anda sendiri</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layer dalam proyek</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <translation>Beri agen AI tugas di QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Obrolan panjang: pesan lama akan dilipat mulai dari sini. Untuk topik baru, mulai thread baru (+ di header).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Percakapan diringkas</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>Agen menyimpan ringkasan percakapan sebelumnya. Pesan Anda tetap terlihat.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Terus bekerja dengan Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n langkah</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 langkah</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Tidak ada yang dapat ditambahkan dari tindakan seret-lepas itu.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Ulangi: maju ke {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Dihentikan</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>Pesan tidak dapat dikirim. Pesan masih ada di sini; coba lagi.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Batalkan: kembali ke {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>Menunggu persetujuan Anda: pilih Izinkan atau Tolak di bawah.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>Tidak ada yang terhapus. Anda selalu bisa kembali.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Kembali ke proyek seperti sebelum permintaan pertama</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>yang terbesar</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>Koneksi kembali. Pesan Anda telah dikirim.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Tidak terhubung ke layanan agen. Tekan untuk mencoba lagi sekarang; pesan Anda tetap tersimpan.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Tidak terhubung ke layanan agen. Sedang menyambungkan kembali.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Tidak terhubung ke layanan agen. Sedang menyambungkan kembali; ketik pesan, dan pesan akan dikirim.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Tidak terhubung ke layanan agen. Pesan Anda tetap di sini dan akan dikirim segera setelah koneksi kembali.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Menyambungkan kembali ke layanan agen. Tekan untuk mencoba lagi sekarang; pesan Anda tetap tersimpan.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Menyambungkan kembali ke layanan agen. Ketik pesan, dan pesan akan dikirim.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Menyambungkan kembali ke layanan agen. Pesan Anda tetap di sini dan akan dikirim segera setelah koneksi kembali.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Coba sambungkan kembali</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Enable</source>
             <translation>Aktifkan</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Tidak ada konektor yang cocok</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Unlock with Pro</source>
             <translation>Buka dengan Pro</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>Tingkat upaya dapat diubah setelah eksekusi ini selesai</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Urungkan perubahan agen: kembali ke kondisi proyek sebelumnya</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Lihat fitur yang dibuka oleh Pro</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>oleh TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>Tidak ada di proyek</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Hapus</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Tampilkan lebih sedikit baris</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>ekspresi</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} proses per bulan, tingkat upaya lebih tinggi, dan Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} eksekusi per bulan dan tingkat upaya yang lebih tinggi.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Klik untuk menampilkannya di panel Layers.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Ini kembali ke kondisi terlama yang masih tersimpan, bukan ke awal mula: kondisi yang lebih awal sudah dibersihkan untuk menghemat ruang disk.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Kembali ke {point}? Perubahan Anda sendiri sejak saat itu akan hilang.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Penggunaan pribadi, non-komersial</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Hapus</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Tingkatkan</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4963,6 +5265,10 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} fitur. Klik untuk memilihnya di panel Layers.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>layer ini tidak lagi ada dalam proyek.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5275,6 +5581,43 @@ Klik untuk menampilkannya di panel Layers.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>Yang ditemukan QGIS saat membaca kembali hasilnya. Klik untuk membacanya.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Halaman dataset</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Tanggal tidak diketahui</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Live, dimuat {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>File Anda sendiri</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>Sumber Anda sendiri</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} lainnya</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verifikasi</translation>
         </message>
     </context>
 </TS>

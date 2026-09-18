@@ -14,6 +14,7 @@ from qgis.PyQt.QtGui import QKeyEvent, QKeySequence
 from qgis.PyQt.QtWidgets import QApplication, QLineEdit, QPlainTextEdit, QShortcut, QTextEdit
 
 from ..core.background import run_sliced
+from .checkpoint_sheet import point_name, visible_entries
 from .thread_replay import replay_steps
 from .trace import RunFootnote
 
@@ -138,7 +139,11 @@ class _ChatPanelThreads:
 
     def _history_neighbour(self, step: int) -> str:
         """The id of the available entry ``step`` away from the current one."""
-        entries = [e for e in self._history if isinstance(e, dict)]
+
+
+
+
+        entries = visible_entries(self._history)
         at = next((i for i, e in enumerate(entries) if e.get("current")), None)
         if at is None:
             at = len(entries) if step < 0 else -1
@@ -182,6 +187,62 @@ class _ChatPanelThreads:
 
         self._history = all_entries[-200:]
         self.header.set_checkpoints(self._history)
+        self._sync_answer_restores()
+
+    def _answer_points(self) -> dict:
+        """run id -> (mode, checkpoint id, tooltip) for each answer's undo glyph."""
+
+
+
+
+
+
+        shown = visible_entries(self._history)
+        now = next((i for i, e in enumerate(shown) if e.get("current")), None)
+
+        order = {str(e.get("id") or ""): i for i, e in enumerate(shown)}
+        points: dict = {}
+        for entry in self._history:
+            if not isinstance(entry, dict) or entry.get("kind") != "after":
+                continue
+            run_id = str(entry.get("run_id") or "")
+            before = next((e for e in self._history if isinstance(e, dict) and e.get("kind") == "before"
+                           and str(e.get("run_id") or "") == run_id), None)
+            if not run_id or before is None or now is None:
+                continue
+            usable = [e for e in (entry, before) if e.get("available", True) and not e.get("other_project")]
+            if len(usable) < 2:
+                continue
+            after_at = order.get(str(entry.get("id") or ""))
+            if after_at is None:
+                continue
+            if now >= after_at:
+                points[run_id] = ("undo", str(before.get("id") or ""),
+                                  self.tr("Undo: back to {point}").format(point=point_name(before, self.tr)))
+            else:
+                points[run_id] = ("redo", str(entry.get("id") or ""),
+                                  self.tr("Redo: forward to {point}").format(point=point_name(entry, self.tr)))
+        return points
+
+    def _sync_answer_restores(self) -> None:
+        """Every answer's undo glyph matches where the project stands now."""
+        points = self._answer_points() if self._current_run is None else {}
+        for run_id, run in list(self._runs.items()):
+            bubble = getattr(run, "bubble", None)
+            if bubble is None or not bubble.is_finished():
+                continue
+            mode, _cid, tip = points.get(run_id, ("", "", ""))
+            try:
+                bubble.set_restore(mode, tip)
+            except RuntimeError:
+                continue
+
+    def _on_answer_restore(self, run_id: str) -> None:
+        if self._current_run is not None:
+            return
+        point = self._answer_points().get(run_id)
+        if point and point[1]:
+            self.restore_requested.emit(point[1], False)
 
     def note_project_state(self, text: str) -> None:
         """Where the project stands after a restore ("Back to before run 2")."""
@@ -263,7 +324,7 @@ class _ChatPanelThreads:
         self._changed_layers = []
         self._run_changes = None
         self.set_history([])
-        self._long_chat_nudged = False
+        self._compaction_marked = False
         self._show_thread_surface()
 
     def load_thread(self, messages) -> None:
@@ -298,4 +359,5 @@ class _ChatPanelThreads:
     def _replay_done(self) -> None:
         """The end of a replay: the thread surface, and the bottom in view."""
         self._show_thread_surface()
+        self._sync_answer_restores()
         self.message_list.scroll_to_bottom()

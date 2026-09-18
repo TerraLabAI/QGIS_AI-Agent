@@ -186,11 +186,11 @@ class RunTrace(QWidget):
             self.plan.changed.connect(self._on_plan_changed)
             self.plan.row_added.connect(self._fade_up)
             self.plan.details_orphaned.connect(self._readopt_rows)
-            self.plan.set_steps(list(steps or []))
+            self.plan.set_steps(steps or [])
             self._body_col.insertWidget(0, self.plan)
             self._adopt_loose_rows()
         else:
-            self.plan.set_steps(list(steps or []))
+            self.plan.set_steps(steps or [])
         self._sync_head()
         return self.plan
 

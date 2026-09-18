@@ -28,13 +28,29 @@ import json
 import math
 import os
 import traceback
-from copy import deepcopy
 from typing import Any, Callable
 
+from .host_platform import expand_leading_env
 from .logger import log_warning
 from .serialization import reads_the_outside_world
 
 DANGER_LEVELS = ("read", "write", "destructive")
+
+
+def _schema_copy(value: Any) -> Any:
+    """A copy of a JSON schema: new dicts and lists, the same leaves."""
+
+
+
+
+
+    if isinstance(value, dict):
+        return {key: _schema_copy(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_schema_copy(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_schema_copy(item) for item in value)
+    return value
 
 
 
@@ -62,11 +78,14 @@ def _expand_home(arguments: dict) -> dict:
 
 
 
+
+
+
     def walk(value):
         if isinstance(value, str):
             if value == "~" or value.startswith(("~/", "~\\")):
                 return os.path.expanduser(value)
-            return value
+            return expand_leading_env(value)
         if isinstance(value, dict):
             return {key: walk(item) for key, item in value.items()}
         if isinstance(value, list):
@@ -256,14 +275,14 @@ class Tool:
         return {
             "name": self.name,
             "description": self.description,
-            "parameters": strip_schema_titles(deepcopy(self.input_schema)),
+            "parameters": strip_schema_titles(_schema_copy(self.input_schema)),
             "danger": self.danger,
             "annotations": self.annotations,
         }
 
     @classmethod
     def _normalize_schema(cls, schema: dict) -> dict:
-        normalized = deepcopy(schema)
+        normalized = _schema_copy(schema)
         cls._normalize_schema_in_place(normalized)
         return normalized
 
@@ -330,8 +349,10 @@ class ToolRegistry:
         """The facade tools in their fixed order, restricted to what is registered."""
         return [name for name in VISIBLE_TOOLS if name in self._tools]
 
-    def manifest_hash(self) -> str:
-        canonical = json.dumps(self.manifest(), sort_keys=True, separators=(",", ":"))
+    def manifest_hash(self, manifest: list[dict] | None = None) -> str:
+        """The digest of ``manifest``, built here when the caller has none yet."""
+        canonical = json.dumps(self.manifest() if manifest is None else manifest,
+                               sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def execute(self, name: str, arguments: dict) -> dict:

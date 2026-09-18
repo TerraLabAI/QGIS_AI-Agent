@@ -96,7 +96,7 @@ class ActivationCard(QWidget):
         head.setContentsMargins(0, 0, 0, 0)
         head.setSpacing(7)
         head.addStretch(1)
-        title = QLabel(self.tr("Drive QGIS in plain language"), self)
+        title = QLabel(self.tr("Your AI agent inside QGIS"), self)
         title.setStyleSheet(_TITLE_QSS)
         head.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
         mark = QLabel(self)

@@ -191,6 +191,17 @@ class Composer(QFrame):
         self._compact_controls = False
         self._last_sent = ""
         self._offline = False
+
+
+
+        self._conn_state = "online"
+
+
+        self._pending_send = False
+
+
+
+        self._sticky_hint = False
         self._items: list[dict] = []
         self._tags: dict[str, AttachmentTag] = {}
         self._chips = ChipRow()
@@ -261,6 +272,10 @@ class Composer(QFrame):
         self._send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._send_btn.setProperty("running", False)
+
+
+
+        self._send_btn.setProperty("offline", False)
         self._send_btn.clicked.connect(self._on_send_or_stop)
         row.addWidget(self._send_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
@@ -364,6 +379,10 @@ class Composer(QFrame):
         self._input.set_text(text)
 
     def clear(self) -> None:
+
+
+        self._pending_send = False
+        self._clear_hint()
         self._input.clear()
 
     def focus_input(self) -> None:
@@ -462,6 +481,15 @@ class Composer(QFrame):
             level = names.get(self._effort_chip.chosen(), "")
             line = self.tr("Pro unlocks {level} effort. Or pick Low.")
             self._input.setPlaceholderText(line.format(level=level))
+        elif self._offline:
+
+
+
+
+            self._input.setPlaceholderText(
+                self.tr("Not connected to the agent service. Reconnecting; type, it will be sent.")
+                if self._conn_state != "connecting" else
+                self.tr("Reconnecting to the agent service. Type, it will be sent."))
         else:
             self._input.setPlaceholderText(self._placeholder)
 
@@ -470,15 +498,29 @@ class Composer(QFrame):
         self._placeholder = text or ""
         self._apply_placeholder()
 
-    def show_hint(self, text: str) -> None:
+    def show_hint(self, text: str, *, sticky: bool = False) -> None:
         """One muted line under the text, gone after a moment."""
+
+
+
+
         self._hint.setStyleSheet(_HINT_QSS)
         self._hint.setText(text)
+        self._sticky_hint = bool(sticky)
         self._hint.show()
-        self._hint_timer.start(_HINT_MS)
+        self._hint_timer.stop()
+        if not sticky:
+            self._hint_timer.start(_HINT_MS)
 
-    def show_warning(self, text: str, *, offer_send_anyway: bool = False) -> None:
+    def show_warning(self, text: str, *, offer_send_anyway: bool = False, sticky: bool = False,
+                     focus: bool = True) -> None:
         """The same line in amber, for a message the box would not send."""
+
+
+
+
+
+
 
 
 
@@ -490,14 +532,38 @@ class Composer(QFrame):
             self._hint.setText(f'{text} <a href="send-anyway">{link}</a>')
         else:
             self._hint.setText(text)
+        self._sticky_hint = bool(sticky)
         self._hint.show()
-        self._hint_timer.start(_HINT_WARN_MS)
-        self._input.setFocus(Qt.FocusReason.OtherFocusReason)
+        self._hint_timer.stop()
+        if not sticky:
+            self._hint_timer.start(_HINT_WARN_MS)
+        if focus:
+
+
+
+
+            self._input.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def hint_text(self) -> str:
         return self._hint.text() if self._hint.isVisible() else ""
 
     def _clear_warning(self) -> None:
+        """A keystroke clears the nudge it answers; a sticky line stays."""
+
+
+
+
+        if self._sticky_hint:
+            if self._pending_send and not (self.text().strip() or self._items):
+
+
+                self._pending_send = False
+                self._clear_hint()
+            return
+        self._clear_hint()
+
+    def _clear_hint(self) -> None:
+        self._sticky_hint = False
         if self._hint.isVisible():
             self._hint_timer.stop()
             self._hint.hide()
@@ -787,6 +853,15 @@ class Composer(QFrame):
             self.remove_chip(kind, value)
         self._chips.clear()
 
+    def peek_chips(self) -> list:
+        """The chips the next message would carry; the row keeps them."""
+
+
+
+
+        self._input.drop_stale_mentions(layer_name)
+        return self.chips()
+
     def take_chips(self) -> list:
         """The chips of the message being sent; the row empties."""
 
@@ -817,6 +892,7 @@ class Composer(QFrame):
         repolish(self._send_btn)
         self._paint_send()
         self._sync_send_enabled()
+        self._sync_effort_run_lock()
 
     def is_running(self) -> bool:
         return self._running
@@ -829,18 +905,85 @@ class Composer(QFrame):
         self._apply_placeholder()
         self._attach_btn.setEnabled(not (self._blocked or self._effort_locked))
         self._permission_chip.setEnabled(not self._blocked)
-        self._effort_chip.setEnabled(not self._blocked)
+        self._sync_effort_run_lock()
         self._paint_send()
         self._sync_send_enabled()
+
+    def _sync_effort_run_lock(self) -> None:
+        """The effort chip stays put for a blocked account (``set_blocked``) and for a run in progress, permission and question cards included: the."""
+
+
+
+
+
+        self._effort_chip.set_run_locked(self._running and not self._blocked)
+        self._effort_chip.setEnabled(not (self._blocked or self._running))
 
     def is_blocked(self) -> bool:
         return self._blocked
 
-    def set_offline(self, offline: bool) -> None:
+    def set_offline(self, offline: bool, state: str = "") -> None:
         """No server: the user can still type, Send waits for the line."""
+
+
+
+
+
+        was_offline = self._offline
         self._offline = bool(offline)
+        self._conn_state = str(state or ("offline" if offline else "online"))
+        if self._send_btn.property("offline") != self._offline:
+            self._send_btn.setProperty("offline", self._offline)
+            repolish(self._send_btn)
         self._sync_send_enabled()
         self._paint_send()
+        self._apply_placeholder()
+
+
+
+        self._sync_effort_run_lock()
+        if self._offline:
+
+
+            if self._pending_send:
+                self.show_warning(self._offline_line(), sticky=True, focus=False)
+            return
+        if was_offline and self._pending_send:
+            self._flush_pending_send()
+        elif was_offline and self._sticky_hint:
+            self._clear_hint()
+
+    def _offline_line(self) -> str:
+        """What the line under the box says while a message waits for the socket."""
+        if self._conn_state == "connecting":
+            return self.tr("Reconnecting to the agent service. Your message stays here and "
+                           "goes out as soon as the connection is back.")
+        return self.tr("Not connected to the agent service. Your message stays here and goes "
+                       "out as soon as the connection is back.")
+
+    def _flush_pending_send(self) -> None:
+        """The line came back with a message waiting: send it, and say so."""
+
+
+
+
+        self._pending_send = False
+        self._clear_hint()
+        if self._running or self._blocked or self._effort_locked:
+            return
+        if not (self.text().strip() or self._items):
+            return
+
+
+        self._submit(check_quality=False)
+        self.show_hint(self.tr("Connection is back. Your message was sent."))
+
+    def has_pending_send(self) -> bool:
+        """True while a message pressed offline is waiting for the line."""
+        return self._pending_send
+
+    def connection_state(self) -> str:
+        return self._conn_state
 
     def _paint_send(self) -> None:
 
@@ -864,11 +1007,22 @@ class Composer(QFrame):
             self._send_btn.setIcon(icon_for(self._send_btn, "lock", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
             self._send_btn.setToolTip(self.tr("Unlock this effort level with Pro."))
             self._send_btn.setAccessibleName(self.tr("Unlock with Pro"))
+        elif self._offline:
+
+
+
+
+            self._send_btn.setIcon(
+                icon_for(self._send_btn, "undo", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
+            self._send_btn.setToolTip(
+                self.tr("Reconnecting to the agent service. Press to try again now; your message is kept.")
+                if self._conn_state == "connecting" else
+                self.tr("Not connected to the agent service. Press to try again now; your message is kept."))
+            self._send_btn.setAccessibleName(self.tr("Retry the connection"))
         else:
             self._send_btn.setIcon(
                 icon_for(self._send_btn, "arrow_up", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
-            self._send_btn.setToolTip(self.tr("Offline. Reconnecting...") if self._offline
-                                      else self._send_help())
+            self._send_btn.setToolTip(self._send_help())
             self._send_btn.setAccessibleName(self.tr("Send"))
 
     def _sync_send_enabled(self) -> None:
@@ -885,6 +1039,12 @@ class Composer(QFrame):
         if self._effort_locked:
             self._send_btn.setEnabled(True)
             return
+        if self._offline:
+
+
+
+            self._send_btn.setEnabled(True)
+            return
         self._send_btn.setEnabled(bool(self.text().strip()) or bool(self._items))
 
     def _on_submit(self) -> None:
@@ -894,10 +1054,16 @@ class Composer(QFrame):
         if self._running or self._blocked:
             return
         if self._offline and not self._effort_locked:
+
+
+
+
             if self.text().strip() or self._items:
-                self.show_warning(self.tr("Not connected to the agent service. Reconnecting now, "
-                                          "your message is kept."))
-                self.reconnect_requested.emit()
+                self._pending_send = True
+            self.show_warning(self._offline_line() if self._pending_send else
+                              self.tr("Not connected to the agent service. Reconnecting now."),
+                              sticky=True)
+            self.reconnect_requested.emit()
             return
         if self._effort_locked:
             self.upgrade_requested.emit()

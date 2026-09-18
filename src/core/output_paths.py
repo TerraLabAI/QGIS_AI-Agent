@@ -20,6 +20,8 @@ import os
 import re
 import unicodedata
 
+from .host_platform import expand_leading_env
+
 DEFAULT_SUBFOLDER = "TerraLab exports"
 
 
@@ -142,6 +144,10 @@ def resolve(value, default_name: str = ""):
         return value, ""
     if text.startswith("~"):
         text = os.path.expanduser(text)
+
+
+
+    text = expand_leading_env(text)
     if _is_absolute(text):
         moved = _redirected(text)
         path, how = (moved, "known_folder") if moved else (text, "")
@@ -197,6 +203,33 @@ def resolve_write_paths(name: str, args: dict, write_path_args: dict) -> list[di
                 inner = str(command.get("name") or "")
                 if inner and inner != "batch_commands":
                     changes += resolve_write_paths(inner, command["arguments"], write_path_args)
+    return changes
+
+
+def resolve_processing_outputs(args: dict, output_keys) -> list[dict]:
+    """Rewrite, in place, the file destinations of a run_processing call."""
+
+
+
+
+
+
+
+    changes: list[dict] = []
+    params = args.get("parameters") if isinstance(args, dict) else None
+    if not isinstance(params, dict) or not output_keys:
+        return changes
+    for key in output_keys:
+        before = params.get(key)
+        if not isinstance(before, str) or "|" in before:
+            continue
+        extension = os.path.splitext(before.strip())[1]
+        if len(extension) < 2 or not extension[1:].isalnum():
+            continue
+        after, how = resolve(before)
+        if after != before:
+            params[key] = after
+            changes.append({"arg": f"parameters.{key}", "from": before, "to": after, "how": how})
     return changes
 
 

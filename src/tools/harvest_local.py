@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import sqlite3
@@ -204,7 +205,8 @@ def _looks_like_geojson(path: str) -> bool:
 
 
 def _finite(values) -> bool:
-    return all(isinstance(v, (int, float)) and v == v and abs(v) != float("inf") for v in values)
+    return all(isinstance(v, (int, float))
+               and not (isinstance(v, float) and (math.isnan(v) or math.isinf(v))) for v in values)
 
 
 def _to_4326(minx, miny, maxx, maxy, srs):
@@ -317,7 +319,7 @@ def _vector_facts(path: str, size: int):
             detail = f"{layer_count} layers" + (f": {detail}" if detail else "")
         return bbox, crs, detail or None
     finally:
-        dataset = None
+        del dataset
 
 
 def _raster_facts(path: str):
@@ -355,7 +357,7 @@ def _raster_facts(path: str):
         bbox = _to_4326(min(xs), min(ys), max(xs), max(ys), srs)
         return bbox, crs, detail
     finally:
-        dataset = None
+        del dataset
 
 
 def _describe_file(path: str, ext: str, size: int):

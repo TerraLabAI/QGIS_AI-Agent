@@ -20,11 +20,14 @@ from qgis.utils import iface
 
 from ..core import layer_order
 from ..core.context import view_area_km2
+from ..core.host_platform import remove_quietly
 from ..core.provider_uri import crs_problem  # noqa: E402
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .core_tools import _find_layer, _layer_not_found_error
+from ._layers import closest_layers, closest_names, match_names
+from .core_tools import _layer_not_found_error
+from .layer_lookup import _find_layer_note
 
 
 
@@ -261,11 +264,14 @@ def register_layer_tools(registry: ToolRegistry):
 
 
 def _set_active_layer(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer, note = _find_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
     iface.setActiveLayer(layer)
-    return {"active_layer": layer.name()}
+    out = {"active_layer": layer.name(), "layer_id": layer.id()}
+    if note:
+        out["note"] = note
+    return out
 
 
 def _get_active_layer(args: dict) -> dict:
@@ -283,14 +289,45 @@ def _get_active_layer(args: dict) -> dict:
     }
 
 
+def _visibility_candidates(missing: list[str], limit: int = 4) -> list[dict]:
+    """The closest layers to the names that matched nothing, each with its id."""
+
+
+
+
+
+
+
+    layers = [layer for layer in QgsProject.instance().mapLayers().values() if layer is not None]
+    out: list[dict] = []
+    seen: set[str] = set()
+    for name in missing:
+        for candidate in closest_layers(str(name), layers):
+            if candidate["id"] in seen:
+                continue
+            seen.add(candidate["id"])
+            out.append(candidate)
+            if len(out) >= limit:
+                return out
+    return out
+
+
 def _set_layers_visibility(args: dict) -> dict:
     visible = bool(args.get("visible"))
     root = QgsProject.instance().layerTreeRoot()
     targets: dict[str, object] = {}
+
+
+    missing: list[str] = []
+    notes: list[str] = []
     for name in args.get("layers") or []:
-        layer = _find_layer(str(name))
-        if layer is not None:
-            targets[layer.id()] = layer
+        layer, note = _find_layer_note(str(name))
+        if layer is None:
+            missing.append(str(name))
+            continue
+        targets[layer.id()] = layer
+        if note:
+            notes.append(note)
     pattern = str(args.get("pattern") or "").strip().lower()
     if pattern:
         for layer in QgsProject.instance().mapLayers().values():
@@ -298,14 +335,27 @@ def _set_layers_visibility(args: dict) -> dict:
                 targets[layer.id()] = layer
     group_name = str(args.get("group") or "").strip()
     if group_name:
-        group = root.findGroup(group_name)
+        group = _find_group(root, group_name)
         if group is None:
-            return _layer_not_found_error(group_name)
+            return _group_not_found(root, group_name)
         for node in group.findLayers():
             if node.layer() is not None:
                 targets[node.layer().id()] = node.layer()
     if not targets:
-        return tool_error("No layer matched.", "INVALID_ARGS", "Pass layers, a pattern or a group that exists.")
+        if len(missing) == 1:
+            return _layer_not_found_error(missing[0])
+        listed = ", ".join(repr(name) for name in missing)
+        close = _visibility_candidates(missing) if missing else []
+        if close:
+            listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in close)
+            return tool_error(
+                f"No layer matched: {listed}. Did you mean: {listing}?", "LAYER_NOT_FOUND",
+                f"Call the tool again with those ids, starting with {close[0]['id']!r}, "
+                f"which is {close[0]['name']!r}.")
+        return tool_error(
+            f"No layer matched{': ' + listed if listed else ''}.",
+            "LAYER_NOT_FOUND" if missing else "INVALID_ARGS",
+            "Call list_layers and pass the names or ids it gives, or a pattern or group that exists.")
     changed: list[str] = []
     for layer_id, layer in targets.items():
         node = root.findLayer(layer_id)
@@ -319,12 +369,23 @@ def _set_layers_visibility(args: dict) -> dict:
                     parent.setItemVisibilityChecked(True)
                 parent = parent.parent()
         changed.append(layer.name())
-    return {"visible": visible, "matched": len(targets), "changed": changed,
-            "unchanged": len(targets) - len(changed)}
+    out = {"visible": visible, "matched": len(targets), "changed": changed,
+           "unchanged": len(targets) - len(changed)}
+    if missing:
+        out["not_found"] = missing
+        note = "No layer answers to " + ", ".join(repr(name) for name in missing) + "."
+        close = _visibility_candidates(missing)
+        if close:
+            out["_candidates"] = close
+            note += " Closest: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in close) + "."
+        notes.append(note + " The rest were set, so do not send the whole call again.")
+    if notes:
+        out["note"] = " ".join(notes)
+    return out
 
 
 def _set_layer_visibility(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer, note = _find_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
 
@@ -340,12 +401,16 @@ def _set_layer_visibility(args: dict) -> dict:
                     parent.setItemVisibilityChecked(True)
                     unhidden_groups.append(parent.name())
                 parent = parent.parent()
-    return {
-        "layer": args["layer_name"],
+    out = {
+        "layer": layer.name(),
+        "layer_id": layer.id(),
         "visible": args["visible"],
         "effective_visible": node.isVisible() if node is not None else args["visible"],
         "unhidden_parent_groups": unhidden_groups,
     }
+    if note:
+        out["note"] = note
+    return out
 
 
 def _default_gpkg_path(layer_name: str = "") -> str | None:
@@ -469,7 +534,7 @@ def _create_memory_layer(args: dict) -> dict:
 
 
 def _save_layer_to_gpkg(args: dict) -> dict:
-    layer = _find_layer(args["layer"])
+    layer, note = _find_layer_note(args["layer"])
     if not layer:
         return _layer_not_found_error(args["layer"])
     if not isinstance(layer, QgsVectorLayer):
@@ -558,6 +623,8 @@ def _save_layer_to_gpkg(args: dict) -> dict:
         out["style_warning"] = (f"The data was saved but the style could not be copied: "
                                 f"{style_error or 'the layer has no renderer to clone'}. "
                                 f"Restyle the saved layer if it matters.")
+    if note:
+        out["note"] = note
     return out
 
 
@@ -590,9 +657,9 @@ def _create_layer_group(args: dict) -> dict:
     root = QgsProject.instance().layerTreeRoot()
 
     if parent_name:
-        container = root.findGroup(parent_name)
+        container = _find_group(root, parent_name)
         if container is None:
-            return {"_error": f"Parent group not found: {parent_name}"}
+            return _group_not_found(root, parent_name)
     else:
         container = root
 
@@ -605,52 +672,175 @@ def _create_layer_group(args: dict) -> dict:
     return {"created": name, "existed": False}
 
 
+def _group_names(root) -> list[str]:
+    """Every group name in the tree, outermost first."""
+    out: list[str] = []
+
+    def walk(node):
+        for child in node.children():
+            if isinstance(child, QgsLayerTreeGroup):
+                out.append(child.name())
+                walk(child)
+
+    walk(root)
+    return out
+
+
+def _find_group(root, name: str):
+    """A group by name, forgiving about case and separators, as a layer lookup is."""
+
+
+
+
+
+    wanted = str(name or "").strip()
+    if not wanted:
+        return None
+    group = root.findGroup(wanted)
+    if group is not None:
+        return group
+    names = _group_names(root)
+    matched, _stage = match_names(wanted, names)
+    if len(matched) != 1:
+        return None
+    return root.findGroup(matched[0])
+
+
+def _group_not_found(root, name: str) -> dict:
+    """An error naming the groups that do exist, so one retry is enough."""
+    names = _group_names(root)
+    message = f"Group not found: {name!r}."
+    if names:
+        close = closest_names(str(name or ""), names) or names[:6]
+        message += " Groups in this project: " + ", ".join(repr(item) for item in close) + "."
+        advice = "Pass one of those group names, or create_layer_group first."
+    else:
+        message += " The project has no group."
+        advice = "Call create_layer_group first, then move the layer into it."
+    return tool_error(message, "INVALID_ARGS", advice)
+
+
 def _move_layer_to_group(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer, note = _find_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
 
     root = QgsProject.instance().layerTreeRoot()
-    group = root.findGroup(args["group_name"])
+    group = _find_group(root, args["group_name"])
     if group is None:
-        return {"_error": f"Group not found: {args['group_name']}"}
+        return _group_not_found(root, args["group_name"])
 
     node = root.findLayer(layer.id())
     if node is None:
-        return {"_error": "Layer not found in tree"}
+        return tool_error(
+            f"{layer.name()!r} (id {layer.id()}) is in the project but on no map, so it has no place to move from.",
+            "INVALID_ARGS",
+            "Add it to the layer tree first, or pick a layer list_layers shows in the tree.")
 
     clone = node.clone()
     group.insertChildNode(0, clone)
     node.parent().removeChildNode(node)
 
-    return {"moved": args["layer_name"], "to_group": args["group_name"]}
+    out = {"moved": layer.name(), "layer_id": layer.id(), "to_group": group.name()}
+    if note:
+        out["note"] = note
+    return out
+
+
+
+
+
+
+
+_CRS_AUTHORITIES = ("EPSG", "ESRI", "IGNF")
+
+
+def _resolve_crs(text) -> tuple:
+    """``(crs, used)``: the CRS ``text`` names, or the same code under an authority that has it."""
+
+    given = str(text or "").strip()
+    crs = QgsCoordinateReferenceSystem(given)
+    if crs.isValid() or not given:
+        return crs, given
+    _, _, number = given.rpartition(":")
+    number = number.strip()
+    if not number.isdigit():
+        return crs, given
+    for authority in _CRS_AUTHORITIES:
+        candidate = QgsCoordinateReferenceSystem(f"{authority}:{number}")
+        if candidate.isValid():
+            return candidate, f"{authority}:{number}"
+    return crs, given
+
+
+def _zone_prefixed_easting(crs, x) -> tuple | None:
+    """An easting written with its zone number in front, and the easting itself."""
+
+
+
+
+
+
+
+    import re
+
+    match = re.search(r"zone\s*(\d+)", str(crs.description() or ""), re.IGNORECASE)
+    if not match:
+        return None
+    zone = match.group(1)
+    try:
+        digits = str(int(abs(float(x))))
+    except (TypeError, ValueError):
+        return None
+    if not digits.startswith(zone) or len(digits) <= len(zone):
+        return None
+    stripped = float(digits[len(zone):])
+
+    if not 100_000.0 <= stripped <= 900_000.0:
+        return None
+    return stripped, int(zone)
 
 
 def _transform_coordinates(args: dict) -> dict:
-    source = QgsCoordinateReferenceSystem(args["source_crs"])
-    target = QgsCoordinateReferenceSystem(args["target_crs"])
+    source, source_used = _resolve_crs(args["source_crs"])
+    target, target_used = _resolve_crs(args["target_crs"])
 
     if not source.isValid():
         return {"_error": f"Invalid source CRS: {args['source_crs']}"}
     if not target.isValid():
         return {"_error": f"Invalid target CRS: {args['target_crs']}"}
 
+    def _outside(detail: str) -> dict:
+        prefixed = _zone_prefixed_easting(source, args["x"])
+        if prefixed:
+            stripped, zone = prefixed
+            return tool_error(
+                detail, "INVALID_ARGS",
+                f"x {args['x']} carries the zone number in front, as German and Gauss-Kruger data write it: "
+                f"in {source_used} ({source.description()}) that easting is {stripped:,.0f}. Call again with "
+                f"x={stripped:.0f}, and take the leading {zone} off every other easting from the same source.")
+        return tool_error(detail, "INVALID_ARGS",
+                          f"Check that ({args['x']}, {args['y']}) really is in {source_used}: an easting and a "
+                          "northing the wrong way round, or degrees given to a projected CRS, land outside it.")
+
     try:
         transform = QgsCoordinateTransform(source, target, QgsProject.instance())
         point = transform.transform(QgsPointXY(args["x"], args["y"]))
     except Exception as e:
-        return {"_error": f"Coordinate transform failed: {e}"}
+        return _outside(f"Coordinate transform failed: {e}")
 
     x, y = point.x(), point.y()
 
 
 
     if not (math.isfinite(x) and math.isfinite(y)):
-        return {"_error": (f"The transform from {args['source_crs']} to {args['target_crs']} produced no "
-                           f"usable coordinate for ({args['x']}, {args['y']}): the point is outside the "
-                           f"area that operation covers."),
-                "_code": "INVALID_ARGS"}
-    return {"x": x, "y": y, "crs": args["target_crs"]}
+        return _outside(f"The transform from {source_used} to {target_used} produced no usable coordinate "
+                        f"for ({args['x']}, {args['y']}): the point is outside the area that operation covers.")
+    out = {"x": x, "y": y, "crs": target_used}
+    if source_used != str(args["source_crs"]).strip() or target_used != str(args["target_crs"]).strip():
+        out["note"] = (f"Read {args['source_crs']} as {source_used} and {args['target_crs']} as {target_used}: "
+                       "that code belongs to another authority. Use those spellings from here on.")
+    return out
 
 
 def _get_canvas_extent(args: dict) -> dict:
@@ -781,11 +971,18 @@ def _extent_span(box, crs) -> dict:
 
 
 def _set_project_crs(args: dict) -> dict:
-    crs = QgsCoordinateReferenceSystem(args["crs"])
+    crs, used = _resolve_crs(args["crs"])
     if not crs.isValid():
-        return {"_error": f"Invalid CRS: {args['crs']}"}
+        return tool_error(
+            f"Invalid CRS: {args['crs']}", "INVALID_ARGS",
+            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "IGNF:LAMB93. A code copied out of ArcGIS is usually an ESRI one.")
     QgsProject.instance().setCrs(crs)
-    return {"project_crs": args["crs"]}
+    out = {"project_crs": used}
+    if used != str(args["crs"]).strip():
+        out["note"] = (f"{args['crs']} is not an EPSG code; {used} is the same system under the authority "
+                       f"that publishes it ({crs.description()}). Use {used} from here on.")
+    return out
 
 
 def _write_failure(project, path: str) -> str:
@@ -818,10 +1015,9 @@ def _write_failure(project, path: str) -> str:
                 reason = f"folder is not writable: {folder} ({exc.strerror or exc})"
             else:
                 os.close(handle)
-                try:
-                    os.remove(probe)
-                except OSError:  # nosec B110 - a leftover probe is not the user's problem
-                    pass
+
+
+                remove_quietly(probe)
                 if os.path.exists(path) and not os.access(path, os.W_OK):
                     reason = "the file exists and is not writable"
     return f"Failed to save project to {path}" + (f": {reason}" if reason else "")
@@ -870,27 +1066,60 @@ def _scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]
     return memory_layers, temporary_layers
 
 
+def _new_project_path() -> str:
+    """Where a project that has never been saved goes when the call names no path."""
+
+
+
+
+
+
+
+    import os
+    from datetime import datetime
+
+    from ..core import output_paths
+
+    folder = os.path.join(output_paths.standard_folder("documents"), output_paths.DEFAULT_SUBFOLDER)
+    title = str(QgsProject.instance().title() or "").strip()
+    stem = output_paths.safe_file_name(title or f"QGIS project {datetime.now():%Y-%m-%d}", "QGIS project")
+    path, number = os.path.join(folder, f"{stem}.qgz"), 2
+    while os.path.exists(path):
+        path, number = os.path.join(folder, f"{stem}_{number}.qgz"), number + 1
+    os.makedirs(folder, exist_ok=True)
+    return path
+
+
 def _save_project(args: dict) -> dict:
     from ..core.security import validate_path
     project = QgsProject.instance()
     path = args.get("path")
+    chosen = ""
     if path:
         path_error = validate_path(path, write=True)
         if path_error:
             return {"_error": path_error}
         ok = project.write(path)
+    elif not project.fileName():
+        chosen = _new_project_path()
+        path_error = validate_path(chosen, write=True)
+        if path_error:
+            return {"_error": path_error}
+        ok = project.write(chosen)
     else:
-        if not project.fileName():
-            return {"_error": "Project has never been saved. Provide a path."}
         path_error = validate_path(project.fileName(), write=True)
         if path_error:
             return {"_error": path_error}
         ok = project.write()
 
     if not ok:
-        return {"_error": _write_failure(project, path or project.fileName())}
+        return {"_error": _write_failure(project, path or chosen or project.fileName())}
 
-    result: dict = {"saved": project.fileName()}
+    result: dict = {"saved": project.fileName() or path or chosen}
+    if chosen:
+        result["path_chosen"] = chosen
+        result["note"] = (f"This project had never been saved and the call named no path, so it was written to "
+                          f"{chosen}. Tell the user where it is; save_project with a path moves it elsewhere.")
     memory_layers, temporary_layers = _scratch_layers_summary(project)
     if memory_layers:
         result["memory_layers"] = memory_layers
@@ -905,6 +1134,23 @@ def _save_project(args: dict) -> dict:
     return result
 
 
+
+
+
+
+
+_FOREIGN_PROJECTS = {
+    ".ppkx": "an ArcGIS Pro project package",
+    ".aprx": "an ArcGIS Pro project",
+    ".mxd": "an ArcMap document",
+    ".mpkx": "an ArcGIS Pro map package",
+    ".mpk": "an ArcMap map package",
+    ".lpkx": "an ArcGIS Pro layer package",
+    ".lpk": "an ArcMap layer package",
+    ".qpt": "a QGIS print layout template, not a project",
+}
+
+
 def _load_project(args: dict) -> dict:
     import os
 
@@ -915,6 +1161,13 @@ def _load_project(args: dict) -> dict:
         return {"_error": path_error}
     if not os.path.exists(path):
         return {"_error": f"File not found: {path}"}
+    foreign = _FOREIGN_PROJECTS.get(os.path.splitext(path)[1].lower())
+    if foreign:
+        return tool_error(
+            f"{path} is {foreign}; QGIS opens .qgz and .qgs projects only. Nothing was read.",
+            "INVALID_ARGS",
+            "Ask the user for the .qgz or .qgs file. The data inside such a package is not reachable "
+            "from here; a shapefile or GeoPackage extracted from it can be added with add_data.")
 
     project = QgsProject.instance()
 
@@ -946,10 +1199,12 @@ def _create_new_project(args: dict) -> dict:
 
 
 
-    crs = args.get("crs", "EPSG:4326")
-    crs_obj = QgsCoordinateReferenceSystem(crs)
+    crs_obj, crs = _resolve_crs(args.get("crs", "EPSG:4326"))
     if not crs_obj.isValid():
-        return {"_error": f"Invalid CRS: {crs}"}
+        return tool_error(
+            f"Invalid CRS: {args.get('crs')}", "INVALID_ARGS",
+            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "IGNF:LAMB93. Nothing was cleared; the project is as it was.")
 
     path = args.get("path")
     if path:

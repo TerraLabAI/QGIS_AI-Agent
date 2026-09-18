@@ -46,6 +46,32 @@ def clean(url: str) -> str:
     return text
 
 
+def host_of(url) -> str:
+    """The lower-case host of a URL, port and userinfo dropped; "" when there is none."""
+    try:
+        parts = urllib.parse.urlsplit(str(url or "").strip())
+    except ValueError:
+        return ""
+    return (parts.hostname or "").lower()
+
+
+def host_is(url_or_host, domain: str) -> bool:
+    """True when the host is ``domain`` or a subdomain of it, compared by DNS label."""
+
+
+
+
+
+
+    text = str(url_or_host or "").strip()
+    if "://" in text:
+        host = host_of(text)
+    else:
+        host = text.rsplit("@", 1)[-1].split("/", 1)[0].split(":", 1)[0].strip(".").lower()
+    domain = str(domain or "").strip().strip("/").lstrip(".").lower()
+    return bool(domain) and (host == domain or host.endswith("." + domain))
+
+
 class Resolved(NamedTuple):
     """``url`` to fetch; ``kind`` is "unchanged", "file", "listing", "inline" or "unreachable"."""
     url: str
@@ -171,7 +197,7 @@ def resolve(url: str) -> Resolved:
         return Resolved(f"https://www.google.com/maps/d/kml?mid={urllib.parse.quote(mid)}&forcekml=1", "file",
                         "A Google My Maps map: its KML export serves every layer of the map.")
 
-    if host.endswith("dropbox.com") and segments[:1] in (["s"], ["scl"], ["sh"]):
+    if host_is(host, "dropbox.com") and segments[:1] in (["s"], ["scl"], ["sh"]):
         pairs = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
                  if k.lower() not in ("dl", "raw")]
         pairs.append(("dl", "1"))
@@ -248,7 +274,7 @@ def _portal_page(parts, host: str, segments: list) -> Resolved | None:
 
 
     base = f"{parts.scheme}://{parts.netloc}"
-    if host.endswith("data.gouv.fr") and "datasets" in segments:
+    if host_is(host, "data.gouv.fr") and "datasets" in segments:
         index = segments.index("datasets")
         if index + 1 < len(segments) and index <= 1:
             slug = segments[index + 1]
@@ -267,11 +293,11 @@ def _portal_page(parts, host: str, segments: list) -> Resolved | None:
         item_id = _query(parts).get("id", "")
         if _HEX32.match(item_id):
             prefix = parts.path[: -len("/home/item.html")]
-            host_base = "https://www.arcgis.com" if host.endswith("arcgis.com") else base + prefix
+            host_base = "https://www.arcgis.com" if host_is(host, "arcgis.com") else base + prefix
             return Resolved(f"{host_base}/sharing/rest/content/items/{item_id}?f=json", "listing",
                             "An ArcGIS item page: the item says which service or file it is.",
-                            listing="arcgis_item", optional=not host.endswith("arcgis.com"))
-    if host.endswith("hub.arcgis.com") and len(segments) >= 2 and segments[0] == "datasets":
+                            listing="arcgis_item", optional=not host_is(host, "arcgis.com"))
+    if host_is(host, "hub.arcgis.com") and len(segments) >= 2 and segments[0] == "datasets":
         slug = segments[1]
         found = re.match(r"^([0-9a-f]{32})_(\d+)$", slug)
         if found:
@@ -396,6 +422,31 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
                 files.append(dict(_file(attributes.get("name") or row.get("id") or "", attributes["url"]),
                                   service=str(attributes.get("type") or "")))
     return files[:_MAX_FILES]
+
+
+def listing_terms(listing: str, payload) -> dict:
+    """``{licence?, publisher?}`` a portal's own API states for the dataset, when it states them."""
+
+
+
+
+
+    out: dict = {}
+    doc = payload if isinstance(payload, dict) else {}
+    if listing == "ckan":
+        doc = doc.get("result") if isinstance(doc.get("result"), dict) else {}
+        licence = doc.get("license_title") or doc.get("license_id")
+    elif listing == "datagouv":
+        licence = doc.get("license")
+    else:
+        return out
+    owner = doc.get("organization")
+    publisher = owner.get("title") or owner.get("name") if isinstance(owner, dict) else ""
+    if isinstance(licence, str) and licence.strip() and licence.strip().lower() != "notspecified":
+        out["licence"] = licence.strip()[:120]
+    if isinstance(publisher, str) and publisher.strip():
+        out["publisher"] = publisher.strip()[:120]
+    return out
 
 
 

@@ -16,12 +16,12 @@
 from __future__ import annotations
 
 import os
-import platform
 import sys
 from urllib.parse import quote
 
 from qgis.PyQt.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout
 
+from ..core.host_platform import os_info, os_label
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
 from ..core.settings import account_dir
@@ -48,8 +48,8 @@ def diagnostic_text(error_message: str = "", run_id: str = "") -> str:
         f"Version: {plugin_version() or 'unknown'}",
         "",
         "--- System ---",
-        f"OS: {platform.system()} {platform.release()}",
-        f"Architecture: {platform.machine()}",
+        f"OS: {os_label()}",
+        f"Architecture: {os_info()[2]}",
         f"Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     ])
     try:

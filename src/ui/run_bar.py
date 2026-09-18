@@ -39,7 +39,6 @@ ACTION_ZOOM = "zoom"
 ACTION_TABLE = "table"
 ACTION_PROPERTIES = "properties"
 
-_MAX_CHIPS = 6
 
 
 
@@ -61,9 +60,6 @@ _CHIP_QSS = (
     f"QPushButton:disabled {{ color: {MUTED};"
     f" background: {TINT_HOVER}; border: 1px solid {HAIRLINE}; }}"
     "QPushButton::menu-indicator { image: none; width: 0px; }"
-)
-_MORE_QSS = (
-    f"QLabel {{ color: {MUTED}; font-size: {FONT_HINT}px; background: transparent; border: none; }}"
 )
 
 

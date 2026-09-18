@@ -26,13 +26,13 @@
 from __future__ import annotations
 
 import calendar
-import contextlib
 import datetime as _dt
 import math
 import os
 import re
 import threading
 import time
+import uuid
 from array import array
 from bisect import bisect_right
 
@@ -48,7 +48,7 @@ from qgis.core import (
 )
 
 from ..core import background, limits, net, output_paths, security
-from ..core.host_platform import retry_file_op
+from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .data_tools import _run_on_main_thread
@@ -352,9 +352,9 @@ def _read(state: dict, plan: dict, values: _Values, cancelled) -> None:
 
     def reader(source, request, feedback):
         try:
-            _fetch(source, request, state, plan, values, halted)
-        except BaseException as exc:  # noqa: BLE001 - handed to the waiting call, which raises it
-            failure.append(exc)
+
+            with background.on_any_failure(failure.append):
+                _fetch(source, request, state, plan, values, halted)
         finally:
             over.set()
 
@@ -945,8 +945,7 @@ def _is_cancelled(check) -> bool:
 
 def _remove(path: str) -> None:
     if path:
-        with contextlib.suppress(OSError):
-            os.remove(path)
+        remove_quietly(path)
 
 
 def _note(plan: dict, state: dict, values: _Values) -> str:
@@ -991,7 +990,13 @@ def _create_chart(args: dict) -> dict:
         return _stopped()
     target = plan["target"]
     folder = os.path.dirname(target)
-    part = os.path.join(folder, f".{os.path.basename(target)}.{os.getpid()}_{time.monotonic_ns()}.part")
+
+    tag = uuid.uuid4().hex[:12]
+    part = os.path.join(folder, f".{os.path.basename(target)}.{tag}.part")
+    if not security.fits_path(part):
+
+
+        part = os.path.join(folder, f".chart-{tag}.part")
     try:
         image = _render(plan, chart, _note(plan, state, values))
         os.makedirs(folder, exist_ok=True)

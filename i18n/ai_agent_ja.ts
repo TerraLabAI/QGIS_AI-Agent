@@ -885,6 +885,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>許可 / 拒否</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>変更前: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>変更後: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>チャット履歴ボタン</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>新しいチャットボタン</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>一致する例はありません</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>現在</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>リクエスト {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>このリクエスト後のプロジェクト</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>最初のリクエスト前のプロジェクト</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>このリクエスト前のプロジェクト</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>このlayerはプロジェクトにもうありません。</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>リクエスト {n} の後</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>“{request}” の後</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>リクエスト {n} の前</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>“{request}” の前</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>リクエスト {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>このチャットの開始時点</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>あなた自身の変更</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>パネルは Ctrl+Alt+A で開くか、ロケータバー (Ctrl+K) に "ai" の後に質問を入力します。レイヤ、フィーチャ、地図を右クリックして質問することもできます。</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>TerraLab の AI Agent は QGIS 内の AI エージェントです。データを読み込み、layer のスタイルを設定し、分析を実行してレイアウトを作成します。リスクのある変更の前には確認を求め、実行を元に戻すこともできます。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGISのテーマが変更されました。パネルに反映するにはAI Agentを再読み込みするか、QGISを再起動してください。</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>QGIS で何でも依頼すると作業してくれる AI Agent パネルを開きます。</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>表示</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>エージェントは承認を待っています。</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>QGIS 内の AI エージェント</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>登録は無料、ブラウザで15秒です。</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>QGIS 内の AI エージェント</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>stopped</source>
             <translation>停止</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{total} 件中 {failed} 件は実行できませんでした</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>エージェント</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>元に戻しました</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>レイヤ、地物、ファイルに変更はありません</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>layer の順序またはグループが変更されました</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>このポイントはプロジェクト{name}に属しています。そのプロジェクトを開いて戻ってください。</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>プロジェクト内の layer 1 件</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>{point} に戻します。</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>{point} に完全には戻れませんでした。{reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>結果なし</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>エージェントサービスに接続されていないため、何も送信されませんでした。現在再接続中です。メッセージは保持され、接続が戻ると再試行で送信されます。</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>権限モードが変更されました。次のアクションから適用されます。</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>権限モードが変更されました。次のアクションから適用されます。開いているカードには引き続き回答が必要です。</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>メッセージを送信できませんでした。エージェントサービスへの接続が切断されています。</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>リクエスト {n} の後</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>“{request}” の後</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>リクエスト {n} の前</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>“{request}” の前</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>データを {files} に戻しました</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>このチャットの開始時点</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>あなた自身の変更</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>プロジェクト内に layer が {n} 件あります</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>QGISでAIエージェントにタスクを指示...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>チャットが長くなっています。ここから古いメッセージは折りたたまれます。新しい話題には、新しいスレッドを開始してください（ヘッダーの+）。</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>会話が要約されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>エージェントは以前のやり取りの要約を保持しています。メッセージは表示されたままです。</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Proで作業を続ける</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n ステップ</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 ステップ</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>そのドロップから追加できるものはありませんでした。</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>やり直し: {point} まで進む</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>停止しました</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>メッセージを送信できませんでした。ここに残っています。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>元に戻す: {point} まで戻る</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>承認を待っています。下の「許可」または「拒否」を選択してください。</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>何も削除されません。いつでも戻れます。</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>最初のリクエスト前の状態のプロジェクトに戻す</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>最大のもの</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>接続が戻りました。メッセージを送信しました。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>エージェントサービスに接続されていません。今すぐ再試行するには押してください。メッセージは保持されます。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>エージェントサービスに接続されていません。現在再接続中です。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>エージェントサービスに接続されていません。再接続中です。入力すると送信されます。</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>エージェントサービスに接続されていません。メッセージはここに残り、接続が戻るとすぐに送信されます。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>エージェントサービスに再接続しています。今すぐ再試行するには押してください。メッセージは保持されます。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>エージェントサービスに再接続しています。入力すると送信されます。</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>エージェントサービスに再接続しています。メッセージはここに残り、接続が戻るとすぐに送信されます。</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>接続を再試行</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Enable</source>
             <translation>有効にする</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>一致するコネクターはありません</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Unlock with Pro</source>
             <translation>Proで解放</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>この実行が終了した後に推論レベルを変更できます</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>エージェントの変更を元に戻す：このプロジェクトを以前の状態に戻す</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを利用する</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Proで利用できる機能を見る</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>TerraLab 提供</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>プロジェクトにありません</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>削除</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>表示する行を減らす</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>式</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Click to show it in the Layers panel.</source>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>月{n}回の実行、より高いエフォートレベル、Autopilot。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを利用する</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>月 {n} 回の実行と、より高い推論レベルを利用できます。</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>これは、最初ではなく、まだ保持されている最も古い状態に戻ります。それ以前のものはディスク容量を節約するために消去されました。</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>{point} に戻りますか？それ以降に行ったあなた自身の変更は失われます。</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Click to show it in the Layers panel.</source>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · 個人の非商用利用</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>削除</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>アップグレード</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4963,6 +5265,10 @@ Click to show it in the Layers panel.</source>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d}件のフィーチャ。クリックしてレイヤーパネルで選択。</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>このlayerはプロジェクトにもうありません。</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5275,6 +5581,43 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>結果を読み込み直した際にQGISが見つけた内容。クリックして確認。</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>データセットページ</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>日付不明</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>ライブ、{day} に読み込み済み</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>自分のファイル</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>自分のソース</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} 件追加</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>確認</translation>
         </message>
     </context>
 </TS>

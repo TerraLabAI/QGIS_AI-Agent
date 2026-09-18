@@ -11,7 +11,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from qgis.core import QgsCoordinateTransform, QgsDataSourceUri, QgsProject, QgsRasterLayer, QgsVectorLayer
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsDataSourceUri,
+    QgsProject,
+    QgsRasterLayer,
+    QgsVectorLayer,
+)
 
 from ..core import limits, links, net, tuning
 from ..core.follow import view_kept
@@ -19,9 +26,11 @@ from ..core.layer_order import mark_truncated_count
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import crs_problem, encode_uri_url
-from . import elevation_style, ogc_inspect
+from ..core.quiet_credentials import no_login_prompt
+from ..core.tool_registry import tool_error
+from . import elevation_style, ogc_inspect, volume_guard
 from .data_basemaps import _stacked
-from .data_common import _CACHE_CATALOG_S, _USER_AGENT, _run_on_main_thread
+from .data_common import _CACHE_CATALOG_S, _USER_AGENT, _avoid_reserved_name, _run_on_main_thread
 
 
 
@@ -116,7 +125,8 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
                                "service as a WMS with add_wms_layer.")}
 
     def _create():
-        made = QgsRasterLayer(uri, name, "wms")
+        with no_login_prompt():
+            made = QgsRasterLayer(uri, name, "wms")
         if not made.isValid():
             return {"_invalid": True}
         with view_kept():
@@ -377,6 +387,8 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
                 "_code": "EXECUTION_FAILED",
                 "_suggestion": "Check the box overlaps the coverage (wgs84_bbox in inspect_data_source)."}
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(name or coverage)).strip("_")[:60] or "coverage"
+
+    stem = _avoid_reserved_name(stem)
     path = os.path.join(create_managed_temp_dir("wcs"), f"{stem}.tif")
     try:
         with open(path, "wb") as handle:
@@ -397,6 +409,103 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
                           "this machine: slope, contours, hillshade and zonal statistics run on it directly.")}
 
     return _run_on_main_thread(_create, timeout=60)
+
+
+
+
+
+
+
+
+
+
+
+_WMS_CAPS_MAX_BYTES = 8 * 1024 * 1024
+_WMS_CAPS_TTL_S = 900
+_WMS_NAMES_SHOWN = 8
+_WMS_SERVER_TEXT_CHARS = 240
+
+
+_WMS_BLOCK_RE = re.compile(rb"<(?:\w+:)?(Style|Service)\b.*?</(?:\w+:)?\1>", re.DOTALL | re.IGNORECASE)
+_WMS_NAME_RE = re.compile(rb"<(?:\w+:)?Name>\s*([^<]+?)\s*</(?:\w+:)?Name>")
+_WMS_EXCEPTION_RE = re.compile(rb"<(?:\w+:)?(?:ServiceException|ExceptionText)[^>]*>\s*(.*?)\s*</", re.DOTALL)
+_MARKUP_RE = re.compile(rb"<[^>]*>")
+
+
+def _server_words(body: bytes) -> str:
+    """What a non-XML answer says, with its markup taken out, short enough to read."""
+    text = _MARKUP_RE.sub(b" ", body[:4000]).decode("utf-8", "replace")
+    return " ".join(text.split())[:_WMS_SERVER_TEXT_CHARS]
+
+
+def _wms_capabilities(url: str) -> tuple[bytes, str]:
+    """(the GetCapabilities body, "") or (b"", why it could not be read)."""
+
+
+
+
+    query = {"SERVICE": "WMS", "REQUEST": "GetCapabilities", "VERSION": "1.3.0"}
+    probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
+    try:
+        answer = net.fetch(probe, timeout=20, max_bytes=_WMS_CAPS_MAX_BYTES,
+                           total_timeout=25, cache_ttl=_WMS_CAPS_TTL_S)
+    except urllib.error.HTTPError as exc:
+        return b"", f"it answered HTTP {exc.code} to a GetCapabilities request"
+    except Exception as exc:  # noqa: BLE001 - a service that will not describe itself is still reported
+        log_warning(f"WMS capabilities probe failed for {url}: {exc}")
+        return b"", f"it could not be reached: {exc}"
+    return answer.body or b"", ""
+
+
+def _wms_layer_names(body: bytes) -> list[str]:
+    """The layer names a WMS capabilities document publishes."""
+    names: list[str] = []
+    for found in _WMS_NAME_RE.finditer(_WMS_BLOCK_RE.sub(b"", body)):
+        name = found.group(1).decode("utf-8", "replace").strip()
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+_WMS_KEEP_PARAMETERS = ("Keep every parameter the user's link carried (authkey, token, map=) in url, "
+                        "then check the address with inspect_data_source.")
+
+
+def _wms_failure(url: str, wanted: list[str], qgis_message: str = "") -> dict:
+    """Why this WMS layer is invalid, read off the service rather than guessed."""
+    detail = f" QGIS said: {qgis_message.strip()}" if (qgis_message or "").strip() else ""
+    body, why = _wms_capabilities(url)
+    if why:
+        return tool_error(f"The WMS at {url} did not load: {why}.{detail}",
+                          code="EXECUTION_FAILED", suggestion=_WMS_KEEP_PARAMETERS)
+    exception = _WMS_EXCEPTION_RE.search(body)
+    if exception:
+        return tool_error(
+            f"The WMS at {url} answered with a service exception: {_server_words(exception.group(1))}",
+            code="EXECUTION_FAILED",
+            suggestion="Fix what the exception names, or read the service root with inspect_data_source.")
+    names = _wms_layer_names(body)
+    if not names:
+        return tool_error(
+            f"{url} answered, but not with WMS capabilities. The server said: {_server_words(body)}",
+            code="EXECUTION_FAILED",
+            suggestion=("The address is wrong, not the network. A MapServer address carries its map file in "
+                        "map= and that file has to exist on that server. Read the service root with "
+                        "inspect_data_source and take the address and the layer names out of what it lists."))
+    missing = [one for one in wanted if one not in names]
+    if missing:
+        shown = ", ".join(names[:_WMS_NAMES_SHOWN])
+        more = "" if len(names) <= _WMS_NAMES_SHOWN else f", and {len(names) - _WMS_NAMES_SHOWN} more"
+        return tool_error(
+            f"The WMS at {url} does not publish {', '.join(repr(one) for one in missing)}. "
+            f"It offers: {shown}{more}.",
+            code="EXECUTION_FAILED",
+            suggestion="Call add_wms_layer again with one of the layer names above.")
+    return tool_error(
+        f"{url} publishes {', '.join(wanted)}, but QGIS could not build the layer from it.{detail}",
+        code="EXECUTION_FAILED",
+        suggestion=("The address and the layer are right, so it is the CRS or the image format: read the ones "
+                    "this service offers with inspect_data_source and call again with one of them."))
 
 
 def _add_wms_layer(args: dict) -> dict:
@@ -429,21 +538,26 @@ def _add_wms_layer(args: dict) -> dict:
     )
 
     def _create():
-        layer = QgsRasterLayer(uri, name, "wms")
+        with no_login_prompt():
+            layer = QgsRasterLayer(uri, name, "wms")
         if not layer.isValid():
 
 
-
-            return {"_error": f"Failed to connect to WMS: {url}", "code": "EXECUTION_FAILED",
-                    "suggestion": "Keep every parameter the user's link carried (authkey, token, map=) in url, "
-                                  "then check the layer name with inspect_data_source on that url."}
+            try:
+                said = str(layer.error().summary() or "")
+            except Exception:  # noqa: BLE001 - a provider that says nothing still gets diagnosed
+                said = ""
+            return {"_wms_invalid": True, "qgis_message": said}
         with view_kept():
             QgsProject.instance().addMapLayer(layer)
         out = {"layer_name": layer.name(), "layer_id": layer.id(), "url": url, "wms_layers": layers}
         out.update(_stacked(layer))
         return out
 
-    return _run_on_main_thread(_create, timeout=30)
+    made = _run_on_main_thread(_create, timeout=30)
+    if isinstance(made, dict) and made.get("_wms_invalid"):
+        return _wms_failure(url, names, made.get("qgis_message") or "")
+    return made
 
 
 
@@ -646,7 +760,7 @@ def _wfs_hits(url: str, typename: str, crs: str) -> int | None:
         return None
 
 
-def _wfs_restrict_to_view(hits: int) -> bool:
+def _wfs_restrict_to_view(hits: int, max_features: int | None = None) -> bool:
     """Whether a type name of *hits* features is loaded for the map view only."""
 
 
@@ -654,7 +768,14 @@ def _wfs_restrict_to_view(hits: int) -> bool:
 
 
 
-    return hits > WFS_WARN_FEATURES
+
+
+
+
+
+
+
+    return hits > WFS_WARN_FEATURES or (max_features is not None and hits > max_features)
 
 
 def _misses_the_view(layer) -> str:
@@ -701,6 +822,91 @@ def _mark_wfs_truncated(layer_id: str, count) -> None:
         mark_truncated_count(layer, count)
 
 
+def _bbox_ring_filter(west: float, south: float, east: float, north: float) -> str:
+    """The provider filter for a box already in the request's own CRS and units."""
+
+
+
+
+
+
+
+
+
+
+    ring = f"{west} {south},{east} {south},{east} {north},{west} {north},{west} {south}"
+    return f"intersects_bbox($geometry, geom_from_wkt('POLYGON(({ring}))'))"
+
+
+def _wfs_area(bbox):
+    """The provider filter for a [west, south, east, north] box in degrees, "" for none, or an error."""
+
+
+
+
+
+
+
+
+
+    if bbox in (None, "", [], {}):
+        return ""
+    try:
+        if isinstance(bbox, dict):
+            west, south, east, north = (float(bbox[k]) for k in ("xmin", "ymin", "xmax", "ymax"))
+        else:
+            west, south, east, north = (float(v) for v in bbox)
+    except (KeyError, TypeError, ValueError):
+        return {"_error": f"bbox must be [west, south, east, north] in EPSG:4326, got {bbox!r}.",
+                "code": "INVALID_ARGS", "suggestion": "Pass four numbers in degrees, or leave bbox out."}
+    wrong = volume_guard.not_degrees(west, south, east, north)
+    if wrong:
+        return {"_error": wrong, "code": "INVALID_ARGS",
+                "suggestion": "Pass the box in EPSG:4326 degrees, west, south, east, north."}
+    if not (west < east and south < north):
+        return {"_error": "bbox must have west < east and south < north.", "code": "INVALID_ARGS",
+                "suggestion": "Pass [west, south, east, north] in degrees."}
+    return _bbox_ring_filter(west, south, east, north)
+
+
+def _canvas_extent_in(crs: str) -> list[float] | None:
+    """The current map canvas extent, reprojected to *crs*, its own units."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+    try:
+        from qgis.utils import iface as qgis_iface
+
+        canvas = qgis_iface.mapCanvas() if qgis_iface is not None else None
+        if canvas is None:
+            return None
+        extent = canvas.extent()
+        if extent.isEmpty():
+            return None
+        src = canvas.mapSettings().destinationCrs()
+        dst = QgsCoordinateReferenceSystem(crs)
+        if not dst.isValid():
+            return None
+        if src.isValid() and src != dst:
+            extent = QgsCoordinateTransform(src, dst, QgsProject.instance()).transformBoundingBox(extent)
+        box = [extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum()]
+        if any(not math.isfinite(v) for v in box):
+            return None
+        return box
+    except Exception:  # noqa: BLE001 - no canvas box is not a reason to fail the load
+        return None
+
+
 def _add_wfs_layer(args: dict) -> dict:
 
     url = ogc_inspect.service_base(links.clean(args["url"]))
@@ -708,13 +914,19 @@ def _add_wfs_layer(args: dict) -> dict:
     name = args.get("name") or f"WFS - {typename}"
     crs = args.get("crs", "EPSG:4326")
     ceiling = limits.current("MAX_FEATURES_PER_CALL")
+    area = _wfs_area(args.get("bbox"))
+    if isinstance(area, dict):
+        return area
+
+
+    default_cap = ceiling if volume_guard.lifted(args) else 1000
     try:
 
 
 
 
 
-        max_features = max(1, min(int(args.get("max_features") or 1000), ceiling))
+        max_features = max(1, min(int(args.get("max_features") or default_cap), ceiling))
     except (TypeError, ValueError):
         return {"_error": f"max_features must be a whole number from 1 to "
                 f"{ceiling}, got {args.get('max_features')!r}.",
@@ -727,8 +939,28 @@ def _add_wfs_layer(args: dict) -> dict:
                 "_suggestion": "Pass the CRS on its own, without any other provider parameter."}
 
     hits = _wfs_hits(url, typename, crs)
-    restrict = _wfs_restrict_to_view(hits) if hits is not None else False
+    whole = hits
+    if area:
+
+
+        hits = None
+    restrict = _wfs_restrict_to_view(hits, max_features) if hits is not None else False
     warning = suggestion = ""
+
+
+
+
+
+
+
+
+    view_filter = ""
+    if restrict and not area:
+        canvas_box = _run_on_main_thread(_canvas_extent_in, crs, timeout=10)
+        if isinstance(canvas_box, list):
+            west, south, east, north = canvas_box
+            if west < east and south < north:
+                view_filter = _bbox_ring_filter(west, south, east, north)
 
 
 
@@ -743,11 +975,19 @@ def _add_wfs_layer(args: dict) -> dict:
     source.setParam("version", "2.0.0")
     source.setParam("maxNumFeatures", str(max_features))
     if restrict:
+
+
+
         source.setParam("restrictToRequestBBOX", "1")
+    if area or view_filter:
+
+
+        source.setParam("filter", area or view_filter)
     uri = source.uri(False)
 
     def _create():
-        layer = QgsVectorLayer(uri, name, "WFS")
+        with no_login_prompt():
+            layer = QgsVectorLayer(uri, name, "WFS")
         if not layer.isValid():
 
 
@@ -774,20 +1014,28 @@ def _add_wfs_layer(args: dict) -> dict:
         return {"_error": _wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits)}
     if out.get("_error"):
         return out
+    if area:
+        out["bbox"] = [round(v, 6) for v in args["bbox"]] if isinstance(args.get("bbox"), (list, tuple)) \
+            else args.get("bbox")
+        if whole is not None:
+            out["features_in_type"] = whole
     if hits is not None:
         out["features_available"] = hits
         out["estimated_bytes"] = hits * WFS_WIRE_BYTES_PER_FEATURE
-        out["restricted_to_view"] = restrict
-    if restrict:
+
+
+
+        out["restricted_to_view"] = bool(view_filter)
+    if view_filter:
 
 
 
 
 
 
-        warning = (f"Only the features under the map view are fetched: this type name has "
-                   f"{hits:,} of them. An expression filter, get_features or a Processing run "
-                   "sees nothing outside the current view, however right the field name is.")
+        warning = (f"Only the features under the map view are fetched, up to {max_features:,}: this "
+                   f"type name has {hits:,} of them. An expression filter, get_features or a Processing "
+                   "run sees nothing outside the current view, however right the field name is.")
         suggestion = ("Narrow at the source: set_layer_filter sends the expression to the "
                       "service, so the layer holds that subset wherever the map is. Zoom to the "
                       "area first if what you want is the view's features.")
@@ -807,7 +1055,7 @@ def _add_wfs_layer(args: dict) -> dict:
                    and count in _wfs_silent_pages() and count < max_features)
 
 
-    if not restrict and isinstance(count, int) and count > 0 and (
+    if not view_filter and isinstance(count, int) and count > 0 and (
             (count == max_features and (hits is None or hits > count))
             or silent_page or (hits is not None and count < hits)):
 
@@ -837,8 +1085,12 @@ def _add_wfs_layer(args: dict) -> dict:
                        "is probably truncated.")
         suggestion = (f"Narrow at the source: set_layer_filter sends the expression to the service, which "
                       f"then answers the matching features, up to {ceiling:,} for one layer. More than that "
-                      f"needs a narrower filter, not a larger number.")
-    if restrict and count == 0 and hits:
+                      f"needs a narrower filter, or the view zoomed to the area, not a larger number.")
+    if view_filter and count == 0 and hits:
+
+
+
+
 
 
 

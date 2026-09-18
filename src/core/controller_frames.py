@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import time
 
@@ -49,12 +50,30 @@ class _ControllerFrames:
 
 
 
+    def _on_connection_failed(self, facts) -> None:
+        """A connection that never reached its session: the reconnect loop says nothing else, and a fleet-wide outage shows up here first."""
+
+
+
+        props = {"stage": "connect", "duration_ms": None}
+        if isinstance(facts, dict):
+            props.update(facts)
+        props["in_run"] = self._run is not None
+        telemetry.track(ev.CONNECTION_FAILED, props)
+
+    def _connection_facts(self) -> dict:
+        """Route, server and last HTTP status for a run-stage connection event."""
+        facts = getattr(self._session, "failure_facts", None)
+        if not callable(facts):
+            return {}
+        try:
+            got = facts()
+        except Exception:  # noqa: BLE001 - telemetry facts never raise
+            return {}
+        return {k: got[k] for k in ("http_status", "route", "server") if k in got}
+
     def _on_state_changed(self, state: str, detail: str) -> None:
         self._panel_call("set_connection_state", state, detail)
-        if state == "offline" and detail and self._run is None:
-
-
-            telemetry.track(ev.CONNECTION_FAILED, {"stage": "connect", "error_code": "OFFLINE", "duration_ms": None})
         if state == "signed_out" and self._account.has_activation_key:
 
             self._account.refresh_activation_async(force=True)
@@ -290,6 +309,52 @@ class _ControllerFrames:
                 "danger": call.get("danger"), "sentence": call.get("sentence"), "ok": None})
         self._executor.handle_tool_call(call)
 
+    def _on_server_tool(self, frame: dict) -> None:
+        """A call the server answered itself (a web search, a catalog search), already over."""
+
+
+
+
+
+        run_id = str(frame.get("run_id") or "")
+        if run_id not in self._agent_text:
+            return
+        tool_call_id = str(frame.get("tool_call_id") or "")[:256]
+        cards = getattr(getattr(self._panel, "message_list", None), "tool_card", None)
+        if callable(cards) and cards(tool_call_id) is not None:
+            return
+        self._heard(run_id)
+        self._touch_watchdog()
+        name = str(frame.get("name") or "")[:200]
+        args = frame.get("args") if isinstance(frame.get("args"), dict) else {}
+        ok = frame.get("ok") is True
+        try:
+            duration = max(0.0, float(frame.get("duration_ms") or 0) / 1000.0)
+        except (TypeError, ValueError, OverflowError):
+            duration = 0.0
+        detail = ""
+        if ok:
+            result = frame.get("result") if isinstance(frame.get("result"), dict) else {}
+            listed = result.get("results") if isinstance(result.get("results"), list) else None
+            rows = [{"title": str(r.get("title") or "")[:300], "url": str(r.get("url") or "")[:500]}
+                    for r in (listed or [])[:20] if isinstance(r, dict)]
+            if rows:
+                detail = json.dumps({"results": rows}, ensure_ascii=False)
+            summary = tr("No results") if listed is not None and not rows else ""
+        else:
+            code = str(frame.get("code") or "")[:60]
+            message = " ".join(str(frame.get("message") or "").split())[:300]
+            summary = f"{code}: {message}" if code and message else (message or code)
+        self._panel_call("add_tool_call", tool_call_id, run_id, name, args, "read", "")
+        self._panel_call("finish_tool_call", tool_call_id, ok, summary, duration, detail)
+        self._text_break[run_id] = True
+        self._answer_start[run_id] = len(self._agent_text.get(run_id, ""))
+        if self._thread_id:
+            self._store.append_tool_call(self._thread_id, run_id, {
+                "tool_call_id": tool_call_id, "name": name, "args": args, "danger": "read",
+                "sentence": "", "ok": ok, "summary": summary, "duration_s": round(duration, 2),
+                "detail": detail, "server_side": True})
+
     def _on_tool_started(self, call: dict) -> None:
         self._pause_watchdog()
         self._panel_call("set_status_line", str(call.get("run_id") or ""),
@@ -313,6 +378,7 @@ class _ControllerFrames:
         self._runs.wait_user(tool_call_id)
         self._pause_watchdog()
         self._panel_call("ask_permission", tool_call_id, run_id, sentence, args)
+        self._approval_pending(tool_call_id, True)
 
     def _on_question_needed(self, tool_call_id: str, run_id: str, question: str, options,
                             allow_free_text: bool, recommended: int = -1, why: str = "") -> None:
@@ -356,6 +422,7 @@ class _ControllerFrames:
             "run_id": self._call_runs.get(tool_call_id, ""), "tool": name, "danger": danger,
             "decision": decision, "edited": edited})
         self._runs.user_answered(tool_call_id)
+        self._approval_pending(tool_call_id, False)
         if decision == Decision.DENY:
             self._close_call(tool_call_id)
         self._touch_watchdog()
@@ -364,6 +431,26 @@ class _ControllerFrames:
 
         self._panel_call("resolve_permission", tool_call_id, decision)
         self._executor.on_permission_decided(tool_call_id, decision, edits if edited else None)
+
+    def _approval_pending(self, tool_call_id: str, waiting: bool) -> None:
+        """Keep the set of unanswered permission cards and say when it turns empty or not."""
+
+
+
+
+        pending = self.__dict__.setdefault("_approvals_waiting", set())
+        before = bool(pending)
+        if waiting:
+            pending.add(tool_call_id)
+        elif tool_call_id:
+            pending.discard(tool_call_id)
+        else:
+            pending.clear()
+        if bool(pending) != before:
+            try:
+                self.approval_waiting.emit(bool(pending))
+            except (AttributeError, RuntimeError):
+                pass
 
     def _close_call(self, tool_call_id: str) -> None:
         """Forget a call that ends without a result."""
@@ -382,6 +469,7 @@ class _ControllerFrames:
 
 
         self._runs.user_answered(tool_call_id)
+        self._approval_pending(tool_call_id, False)
         if decision == Decision.DENY:
             self._close_call(tool_call_id)
             self._touch_watchdog()
@@ -435,6 +523,7 @@ class _ControllerFrames:
         self._replay_run = None
         self._watchdog.stop()
         self._diff_timer.stop()
+        self._approval_pending("", False)
         closing = self._runs.owns(run_id)
         ended: list = []
         try:
@@ -505,7 +594,9 @@ class _ControllerFrames:
                     lines += [str(v) for v in verification[key] if v]
         elif isinstance(verification, (list, tuple)):
             lines += [str(v) for v in verification if v]
-        changes = describe_diff(diff) if diff is not None else []
+
+
+        changes = [tr(line) for line in describe_diff(diff)] if diff is not None else []
         if diff is not None and not changes and status == RunStatus.DONE:
             changes = [tr("No layer, feature or file changed")]
 
@@ -652,9 +743,21 @@ class _ControllerFrames:
                    "glyph": str(item.get("glyph") or "globe")}
             if item.get("id"):
                 row["id"] = str(item["id"])
+
+
+            for key in ("product", "data_date", "license", "page_url"):
+                value = str(item.get(key) or "").strip()
+                if value and (key != "page_url" or value.startswith(("https://", "http://"))):
+                    row[key] = value[:300]
             rows.append(row)
         if rows:
             self._panel_optional("set_sources", run_id, rows)
+
+            if self._thread_id:
+                try:
+                    self._store.update_agent_message(self._thread_id, run_id, {"sources": rows}, create=False)
+                except Exception as exc:  # noqa: BLE001 - the sources are already on screen
+                    log_warning(f"Run {run_id[:8]}: its sources were not stored: {exc}")
 
     def _on_counts(self, run_id: str, tool_calls: int, messages: int) -> None:
         if run_id not in self._agent_text:

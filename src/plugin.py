@@ -57,6 +57,11 @@ _DOCK_WIDTH_PX = 400
 _SLOW_PROMPT_S = 0.25
 
 
+
+_CONFIG_REFRESH_MS = 30 * 60 * 1000
+_CONFIG_MIN_GAP_S = 60.0
+
+
 def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentPlugin", text)
 
@@ -84,6 +89,7 @@ class AIAgentPlugin:
         self._suppressed_update_versions: set[str] = set()
         self._update_refresh_requested = False
         self._loaded_at = time.monotonic()
+        self._config_asked_at = None
         self._app_events = None
 
     def _register_shortcut(self, sequence: str) -> bool:
@@ -181,8 +187,8 @@ class AIAgentPlugin:
             icon = QIcon()
         self.action = QAction(icon, PLUGIN_NAME, self.iface.mainWindow())
         self.action.setObjectName("aiAgentToggleDock")
-        self.action.setToolTip("AI Agent by TerraLab\n" + tr("Drive QGIS in plain language"))
-        self.action.setWhatsThis(tr("Open the AI Agent panel and drive QGIS in plain language."))
+        self.action.setToolTip("AI Agent by TerraLab\n" + tr("Your AI agent inside QGIS"))
+        self.action.setWhatsThis(tr("Open the AI Agent panel: ask for anything in QGIS and it does the work."))
 
 
 
@@ -193,6 +199,12 @@ class AIAgentPlugin:
                 self.action.setShortcutContext(shortcut_context)
         self.action.triggered.connect(self.toggle_dock)
         self._install_app_events()
+        try:
+            from .core import view3d_guard
+
+            view3d_guard.install()
+        except Exception as exc:  # noqa: BLE001 - a crash guard never stops the plugin
+            log_warning(f"3D view guard not installed: {exc}")
         try:
             from .ui.locator import register as register_locator
 
@@ -264,10 +276,22 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001 - bookkeeping never blocks the load
             log_warning(f"Version bookkeeping skipped: {exc}")
 
-    def _open_at_startup(self):
+    def _open_at_startup(self, registry_turn_done: bool = False):
 
 
         if self._unloading:
+            return
+        if not registry_turn_done and self.registry is None and self.dock is None:
+
+
+
+
+
+            try:
+                self.registry = self._build_registry()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Tool registry not built at startup: {exc}")
+            QTimer.singleShot(0, lambda: self._open_at_startup(True))
             return
         created = self.dock is None
         self._ensure_dock()
@@ -291,15 +315,27 @@ class AIAgentPlugin:
 
     def _on_dock_visibility_changed(self, visible: bool) -> None:
         """Refresh served product settings when the user opens the dock."""
-        if not visible or self._unloading:
+
+
+
+
+
+        if self._unloading:
+            return
+        if not visible:
+            if self._config_refresh_timer is not None:
+                self._config_refresh_timer.stop()
             return
 
         QTimer.singleShot(0, self._fit_dock)
-        self._refresh_server_config()
+        asked = self._config_asked_at
+        if asked is None or time.monotonic() - asked >= _CONFIG_MIN_GAP_S:
+            self._refresh_server_config()
         if self._config_refresh_timer is None:
             self._config_refresh_timer = QTimer(self.dock)
-            self._config_refresh_timer.setInterval(30 * 60 * 1000)
+            self._config_refresh_timer.setInterval(_CONFIG_REFRESH_MS)
             self._config_refresh_timer.timeout.connect(self._refresh_server_config)
+        if not self._config_refresh_timer.isActive():
             self._config_refresh_timer.start()
 
     def _fit_dock(self) -> None:
@@ -340,6 +376,7 @@ class AIAgentPlugin:
     def _refresh_server_config(self) -> None:
         if self._config_task is not None and self._config_task.is_active():
             return
+        self._config_asked_at = time.monotonic()
         try:
             from .api.account import GenericRequestTask
             from .api.terralab_client import TerraLabClient
@@ -531,6 +568,12 @@ class AIAgentPlugin:
         snapshot_style.shutdown()
 
     @staticmethod
+    def _stop_3d_view_guard() -> None:
+        from .core import view3d_guard
+
+        view3d_guard.shutdown()
+
+    @staticmethod
     def _stop_dependency_installs() -> None:
         """A pip install cannot be interrupted, so the reload must hand it over instead of walking away from it: the thread to the application object."""
 
@@ -612,13 +655,15 @@ class AIAgentPlugin:
     def unload(self):
         self._unloading = True
         try:
-            telemetry.track(ev.PLUGIN_UNLOADED, {"session_ms": int((time.monotonic() - self._loaded_at) * 1000)},
-                            flush_now=True)
+            telemetry.track(ev.PLUGIN_UNLOADED, {"session_ms": int((time.monotonic() - self._loaded_at) * 1000)})
+            telemetry.flush(final=True)
         except Exception:  # nosec B110 - telemetry never blocks an unload
             pass
         stop_log_capture()
+        with contextlib.suppress(Exception):
+            self._on_approval_waiting(False)
         for stop in (self._stop_profiler, self._stop_snapshot_jobs, self._stop_style_watch,
-                     self._stop_dependency_installs, self._stop_processing_tasks):
+                     self._stop_3d_view_guard, self._stop_dependency_installs, self._stop_processing_tasks):
             try:
                 stop()
             except Exception as exc:  # noqa: BLE001
@@ -776,7 +821,7 @@ class AIAgentPlugin:
         pin = dict(chip) if isinstance(chip, dict) and chip.get("value") else None
         if not text and pin is None:
             return
-        chosen_at = time.monotonic()
+        chosen_at = time.perf_counter()
         QTimer.singleShot(0, lambda: self._deliver_prompt(text, pin, chosen_at))
 
     def _deliver_prompt(self, text: str, chip=None, chosen_at: float = 0.0):
@@ -788,11 +833,12 @@ class AIAgentPlugin:
 
 
 
-        started = time.monotonic()
+
+        started = time.perf_counter()
         self._show_dock()
         self._prefill_composer(text, chip)
         waited = (started - chosen_at) if chosen_at else 0.0
-        took = time.monotonic() - started
+        took = time.perf_counter() - started
         if waited > _SLOW_PROMPT_S or took > _SLOW_PROMPT_S:
             log_warning(f"Prompt card was slow: waited {waited:.2f}s for the event loop, "
                         f"fill took {took:.2f}s")
@@ -873,6 +919,8 @@ class AIAgentPlugin:
             self.controller.layer_action_requested.connect(self._on_layer_action)
             self.controller.settings_requested.connect(self.open_settings)
             self.controller.notice.connect(self._on_notice)
+            if hasattr(self.controller, "approval_waiting"):
+                self.controller.approval_waiting.connect(self._on_approval_waiting)
             self.iface.addDockWidget(_DOCK_AREA, dock)
             self.dock = dock
             self._watch_screen(dock)
@@ -926,6 +974,48 @@ class AIAgentPlugin:
             except (AttributeError, RuntimeError):
                 pass
         self._push(message, kind)
+
+    def _on_approval_waiting(self, waiting: bool) -> None:
+        """A permission card waits: make sure the user can tell, wherever they are."""
+
+
+
+
+
+
+
+
+        bar_item = getattr(self, "_approval_bar_item", None)
+        if not waiting:
+            self._approval_bar_item = None
+            if bar_item is not None:
+                with contextlib.suppress(RuntimeError, AttributeError, TypeError):
+                    self.iface.messageBar().popWidget(bar_item)
+            return
+        dock = self.dock
+        try:
+            main_window = self.iface.mainWindow()
+            dock_seen = bool(dock is not None and dock.isVisible() and not dock.visibleRegion().isEmpty())
+            window_active = bool(main_window is not None and main_window.isActiveWindow()
+                                 and not main_window.isMinimized())
+        except RuntimeError:
+            return
+        if not window_active and main_window is not None:
+            with contextlib.suppress(RuntimeError, AttributeError):
+                QApplication.alert(main_window, 0)
+        if dock_seen or bar_item is not None:
+            return
+        try:
+            from qgis.PyQt.QtWidgets import QPushButton
+
+            bar = self.iface.messageBar()
+            item = bar.createMessage(PLUGIN_NAME, tr("The agent is waiting for your approval."))
+            button = QPushButton(tr("Show"), item)
+            button.clicked.connect(self._show_dock)
+            item.layout().addWidget(button)
+            self._approval_bar_item = bar.pushWidget(item, Qgis.MessageLevel.Warning, 0) or item
+        except (RuntimeError, AttributeError, TypeError) as exc:
+            log_warning(f"Approval reminder not shown: {exc}")
 
     def _push(self, message: str, kind: str = "info"):
         level = Qgis.MessageLevel.Warning if kind == "warning" else Qgis.MessageLevel.Info
@@ -1033,6 +1123,20 @@ class AIAgentPlugin:
             self._push(tr("AI Agent could not open its settings: {error}").format(error=exc),
                        "warning")
 
+    def _open_plans_from_settings(self, dialog) -> None:
+        """Settings > Upgrade: the AI Agent plans, signed in when the key allows."""
+        def report(link: str) -> None:
+            telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "settings", "checkout_link": link})
+
+        account = self.controller.account if self.controller is not None else None
+        if account is not None:
+            account.open_plans("plugin_settings", on_outcome=report)
+            return
+        from .ui.external_links import open_external_url
+        from .ui.shared import get_pricing_url
+        report("fallback")
+        open_external_url(get_pricing_url(), parent=dialog)
+
     def _open_settings(self):
         """The same account panel as AI Segmentation and AI Edit, with the agent's default mode between the plan and the contact cards."""
 
@@ -1062,8 +1166,7 @@ class AIAgentPlugin:
         dialog.improve_toggled.connect(
             lambda on, d=dialog: self._improve_choice(d, on))
         dialog.values_changed.connect(self._apply_settings_values)
-        dialog.upgrade_requested.connect(
-            lambda: telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "settings"}))
+        dialog.upgrade_requested.connect(lambda d=dialog: self._open_plans_from_settings(d))
 
 
         dialog.prompt_chosen.connect(self._prompt_from_settings)

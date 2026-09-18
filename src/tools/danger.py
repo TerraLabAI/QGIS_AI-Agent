@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 from typing import Any
@@ -42,6 +43,10 @@ DANGER: dict[str, str] = {
     "get_renderer_info": "read",
     "raster_sample": "read",
     "get_raster_band_stats": "read",
+
+
+
+    "flash_features": "read",
     "get_provider_capabilities": "read",
     "check_geometry_validity": "read",
     "batch_commands": "write",
@@ -54,6 +59,7 @@ DANGER: dict[str, str] = {
     "set_layer_temporal": "write",
 
     "export_animation_frames": "write",
+
     "export_layer": "destructive",
     "add_field": "write",
 
@@ -360,6 +366,8 @@ AI_EDIT_ACTION_DANGER = {
     "cancel": "write",
     "generate": "destructive",
     "vectorize": "destructive",
+
+    "setup": "write",
 }
 AI_SEGMENT_ACTION_DANGER = {
     "status": "read",
@@ -369,6 +377,7 @@ AI_SEGMENT_ACTION_DANGER = {
     "set_zone": "write",
     "cancel": "write",
     "detect_auto": "destructive",
+    "setup": "write",
 }
 
 
@@ -438,6 +447,178 @@ PAID_ALGORITHMS = frozenset({
 
 
 _OFF_MACHINE_PROVIDERS = ("ORS Tools:",)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+_CODE_MODULES = frozenset({
+    "qgis", "qgis.core", "qgis.gui", "qgis.utils",
+    "qgis.PyQt", "qgis.PyQt.QtCore", "qgis.PyQt.QtGui",
+    "collections", "datetime", "itertools", "json", "math", "re", "statistics",
+})
+
+
+
+_CODE_CALLABLE_NAMES = frozenset({
+    "abs", "all", "any", "bool", "dict", "divmod", "enumerate", "filter", "float",
+    "format", "frozenset", "int", "isinstance", "issubclass", "iter", "len", "list",
+    "map", "max", "min", "next", "print", "range", "repr", "reversed", "round",
+    "set", "sorted", "str", "sum", "tuple", "zip",
+    "QColor", "QgsCoordinateReferenceSystem", "QgsCoordinateTransform",
+    "QgsDistanceArea", "QgsExpression", "QgsExpressionContext", "QgsFeatureRequest",
+    "QgsGeometry", "QgsPoint", "QgsPointXY", "QgsRectangle", "QgsRubberBand",
+    "QgsVertexMarker",
+})
+
+
+
+
+
+_CODE_CALLABLE_ATTRS = frozenset({
+
+    "flashFeatureIds", "flashGeometries", "refresh", "refreshAllLayers",
+    "setToGeometry", "addGeometry", "show", "hide", "reset",
+
+    "mapCanvas", "mapSettings", "instance", "activeLayer", "mapLayersByName", "mapLayer",
+    "mapLayers", "layerTreeRoot", "findLayer", "homePath", "fileName", "title",
+    "scale", "center", "size",
+
+    "name", "id", "source", "crs", "extent", "fields", "featureCount",
+    "getFeature", "getFeatures", "selectedFeatures", "selectedFeatureIds",
+    "selectedFeatureCount", "geometryType", "wkbType", "isValid", "isSpatial",
+    "dataProvider", "providerType", "storageType", "subsetString", "uniqueValues",
+    "minimumValue", "maximumValue", "fieldNameIndex", "attributeAliases",
+    "displayExpression", "renderer", "bandCount", "rasterUnitsPerPixelX",
+    "rasterUnitsPerPixelY",
+
+    "attributes", "attribute", "geometry", "hasGeometry", "asWkt", "asJson",
+    "asPoint", "asPolyline", "asPolygon", "asMultiPoint", "asMultiPolyline",
+    "asMultiPolygon", "boundingBox", "centroid", "pointOnSurface", "area",
+    "length", "buffer", "intersection", "difference", "distance", "isEmpty",
+    "isNull", "isGeosValid", "constGet", "vertices", "type",
+
+    "setFilterExpression", "setFilterFid", "setFilterFids", "setLimit",
+    "setNoAttributes", "setSubsetOfAttributes", "setFlags",
+
+    "xMinimum", "yMinimum", "xMaximum", "yMaximum", "width", "height",
+    "authid", "description", "toProj", "toWkt", "mapUnits", "isGeographic",
+    "transform", "transformBoundingBox", "measureLength", "measureArea",
+    "convertLengthMeasurement", "convertAreaMeasurement", "setEllipsoid",
+    "evaluate", "prepare", "hasParserError", "parserErrorString",
+    "referencedColumns", "appendScopes", "globalProjectLayerScopes", "setFeature",
+    "displayString", "toString",
+
+    "add", "append", "count", "endswith", "extend", "get", "index", "items",
+    "join", "keys", "lower", "replace", "sort", "split", "startswith", "strip",
+    "update", "upper", "values",
+})
+
+
+
+_CODE_FORBIDDEN_NAMES = frozenset({
+    "__import__", "breakpoint", "compile", "delattr", "eval", "exec", "getattr",
+    "globals", "input", "locals", "memoryview", "open", "setattr", "vars",
+})
+
+
+def _code_import_ok(node) -> bool:
+    """True when this import names only modules on the read-only list."""
+    if isinstance(node, ast.ImportFrom):
+
+
+        if node.level:
+            return False
+        return str(node.module or "") in _CODE_MODULES
+    return all(str(alias.name or "") in _CODE_MODULES for alias in node.names)
+
+
+def _code_call_ok(node) -> bool:
+    """True when this call names an allowed method or an allowed constructor."""
+
+
+
+
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id in _CODE_CALLABLE_NAMES
+    if isinstance(func, ast.Attribute):
+        return func.attr in _CODE_CALLABLE_ATTRS
+    return False
+
+
+def _assigns_an_attribute(targets) -> bool:
+    """True when any of these assignment targets is ``x.y``, unpacking included."""
+
+
+
+
+
+
+
+    for target in targets:
+        if isinstance(target, ast.Attribute):
+            return True
+        if isinstance(target, (ast.Tuple, ast.List)) and _assigns_an_attribute(target.elts):
+            return True
+        if isinstance(target, ast.Starred) and _assigns_an_attribute([target.value]):
+            return True
+    return False
+
+
+def code_is_read_only(code: Any) -> bool:
+    """True when this snippet can only read values or paint the canvas overlay."""
+
+
+
+    text = str(code or "").strip()
+    if not text:
+        return False
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if not _code_import_ok(node):
+                return False
+        elif isinstance(node, ast.Call):
+            if not _code_call_ok(node):
+                return False
+        elif isinstance(node, ast.Attribute):
+
+
+            if node.attr.startswith("__"):
+                return False
+        elif isinstance(node, ast.Name):
+            if node.id in _CODE_FORBIDDEN_NAMES:
+                return False
+        elif isinstance(node, ast.Assign):
+            if _assigns_an_attribute(node.targets):
+                return False
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+            if _assigns_an_attribute([node.target]):
+                return False
+        elif isinstance(node, ast.Delete):
+            if _assigns_an_attribute(node.targets):
+                return False
+        elif isinstance(node, (ast.Await, ast.AsyncFunctionDef, ast.AsyncFor, ast.AsyncWith)):
+            return False
+    return True
 
 
 _RANK = {"read": 0, "write": 1, "destructive": 2}
@@ -541,8 +722,41 @@ def plugin_algorithm_danger(algorithm_id: str) -> str | None:
     return "destructive"
 
 
+def _export_target_taken(args: dict) -> bool:
+    """True when ``export_layer``'s path already holds a file."""
+
+
+
+
+
+
+    path = args.get("path")
+    if not isinstance(path, str) or not path.strip():
+        return True
+    try:
+
+
+        return os.path.exists(os.path.expanduser(path.strip().split("|", 1)[0]))
+    except Exception:  # noqa: BLE001 - a path no filesystem call can judge is treated as taken
+        return True
+
+
 def effective_danger(name: str, args: dict | None = None) -> str:
     """The level to enforce for one call."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -563,6 +777,24 @@ def effective_danger(name: str, args: dict | None = None) -> str:
         return AI_SEGMENT_ACTION_DANGER.get(str(args.get("action") or ""), level)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if name == "execute_code" and code_is_read_only(args.get("code")):
+        return "read"
+
+
     if name == "match_lines_to_roads" and str(args.get("task_id") or "").strip():
         return "read"
 
@@ -574,6 +806,8 @@ def effective_danger(name: str, args: dict | None = None) -> str:
         args.get("list_only") or not str(args.get("action_path") or "").strip()
     ):
         return "read"
+    if name == "export_layer":
+        return "destructive" if _export_target_taken(args) else "write"
     if name == "run_processing":
         by_algorithm = plugin_algorithm_danger(str(args.get("algorithm_id") or ""))
         if by_algorithm or _processing_writes_to_disk(args):

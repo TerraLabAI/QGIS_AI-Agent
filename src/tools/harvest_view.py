@@ -398,7 +398,7 @@ class _HillshadeTask(QgsTask):
             if dataset is None:
                 self.error = gdal.GetLastErrorMsg() or "GDAL DEMProcessing produced no output."
                 return False
-            dataset = None
+            del dataset
             if not os.path.exists(self.output_path):
                 self.error = "GDAL reported success but the output file is missing."
                 return False

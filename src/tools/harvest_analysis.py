@@ -38,9 +38,11 @@ from qgis.core import (
 )
 
 from ..core import limits
+from ..core.feature_requests import feature_request
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
 from ._layers import layer_not_found, resolve_layer
 
@@ -256,8 +258,7 @@ def _sql_table_name(name: str, used: set) -> str:
 
 def _capped_count(layer, cap: int):
     """Rows up to ``cap``, or ``">cap"`` past it: never the whole result twice."""
-    request = QgsFeatureRequest()
-    request.setLimit(cap + 1)
+    request = feature_request(attributes=[], geometry=False, limit=cap + 1)
     try:
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
     except Exception:  # nosec B110 - a hint
@@ -360,7 +361,7 @@ def _execute_sql(args: dict) -> dict:
     fields = [f.name() for f in vlayer.fields()]
     rows = []
     truncated = False
-    for i, feat in enumerate(vlayer.getFeatures()):
+    for i, feat in enumerate(vlayer.getFeatures(feature_request(geometry=False, limit=limit + 1))):
         if i >= limit:
             truncated = True
             break
@@ -439,15 +440,39 @@ def _field_calculator(args: dict) -> dict:
 
     idx = layer.fields().indexOf(field_name)
     created = False
+    type_plan: dict = {}
+    if idx < 0:
+
+
+
+        from .layer_io_tools import shapefile_field_name_error
+
+        too_long = shapefile_field_name_error(layer, field_name)
+        if too_long:
+            return too_long
 
     ctx = QgsExpressionContext()
     ctx.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
     expr.prepare(ctx)
-    if not layer.startEditing():
+
+
+
+    if layer.isEditable():
         return tool_error(
-            f"Could not start editing {layer.name()!r}.",
+            f"{layer.name()!r} has unsaved edits open.",
             "EDIT_FAILED",
-            "The provider may be read-only; export_layer to GeoPackage and retry on the copy.",
+            "Call qgis_edit_commit to keep them or qgis_edit_rollback to discard them, then calculate.",
+        )
+
+
+    started_here, cannot_edit = vector_write.open_edit(layer, "add fields")
+    if cannot_edit:
+        return cannot_edit
+    if not started_here:
+        return tool_error(
+            f"Could not take the edit session on {layer.name()!r}.",
+            "EDIT_FAILED",
+            "Close any other editor of this layer and call again.",
         )
 
 
@@ -457,8 +482,17 @@ def _field_calculator(args: dict) -> dict:
     if idx < 0:
         field_type = str(args.get("field_type") or "double")
         new_field = _make_field(field_name, field_type, args.get("length", 0), args.get("precision", 0))
+
+
+
+
+        type_plan = vector_write.plan_field_type(layer, new_field.type(),
+                                                 new_field.length(), new_field.precision())
+        if type_plan.get("type_name"):
+            new_field = QgsField(field_name, type_plan["type"], type_plan["type_name"],
+                                 type_plan["length"], type_plan["precision"])
         if not layer.addAttribute(new_field):
-            layer.rollBack()
+            vector_write.force_out_of_edit(layer)
             return tool_error(
                 f"The provider refused to add field {field_name!r}.",
                 "INVALID_ARGS",
@@ -472,7 +506,8 @@ def _field_calculator(args: dict) -> dict:
     refused: list = []
     eval_errors = 0
     first_error = ""
-    for feat in layer.getFeatures():
+    request = feature_request(expression=expr, fields=layer.fields())
+    for feat in layer.getFeatures(request):
         ctx.setFeature(feat)
         value = expr.evaluate(ctx)
         if expr.hasEvalError():
@@ -483,7 +518,7 @@ def _field_calculator(args: dict) -> dict:
 
 
 
-                layer.rollBack()
+                vector_write.force_out_of_edit(layer)
                 return tool_error(
                     f"The expression failed on feature {feat.id()}: {first_error}. "
                     f"Nothing was written and the layer is unchanged.",
@@ -498,11 +533,16 @@ def _field_calculator(args: dict) -> dict:
         else:
             refused.append(feat.id())
     if not layer.commitChanges():
-        errors = "; ".join(layer.commitErrors())
-        layer.rollBack()
-        return tool_error(
-            f"Commit failed: {errors}", "COMMIT_FAILED", "Check the field type matches the expression result."
-        )
+        errors = layer.commitErrors()
+
+
+        vector_write.force_out_of_edit(layer)
+        from .layer_io_tools import commit_failure_error
+
+        failure = commit_failure_error(layer, errors,
+                                       suggestion="Check the field type matches the expression result.")
+        failure["code"] = "COMMIT_FAILED"
+        return failure
     out = {
         "layer_id": layer.id(),
         "name": layer.name(),
@@ -513,6 +553,8 @@ def _field_calculator(args: dict) -> dict:
         "count_units": "features",
         "on_error": on_error,
     }
+    if created and type_plan.get("note"):
+        out["type_note"] = type_plan["note"]
     if refused:
         out["refused"] = refused[:20]
         out["refused_count"] = len(refused)

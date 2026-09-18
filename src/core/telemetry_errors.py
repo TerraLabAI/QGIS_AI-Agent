@@ -25,7 +25,7 @@ def short_traceback_hash(error: BaseException) -> str:
 
 
 def track_plugin_error(stage: str, error_code: str, run_id: str = "", module: str = "",
-                       traceback_hash: str = "") -> None:
+                       traceback_hash: str = "", slot: str = "", where: str = "") -> None:
     """Record structured, path-free failure data. User text never enters telemetry."""
     props = {"stage": stage or "other", "error_code": error_code or "UNKNOWN"}
     if run_id:
@@ -34,6 +34,13 @@ def track_plugin_error(stage: str, error_code: str, run_id: str = "", module: st
         props["module"] = module.rsplit(".", 1)[-1]
     if traceback_hash:
         props["traceback_hash"] = traceback_hash
+
+
+
+    if slot:
+        props["slot"] = slot[:60]
+    if where:
+        props["where"] = where[:64]
     try:
         from . import telemetry
         telemetry.track(ev.PLUGIN_ERROR, props)
@@ -41,13 +48,28 @@ def track_plugin_error(stage: str, error_code: str, run_id: str = "", module: st
         pass
 
 
-def report_exception(error: BaseException, stage: str, module: str = "", run_id: str = "") -> None:
+def innermost_frame(error: BaseException) -> str:
+    """``file.py:line:function`` of the deepest frame, basename only; "" when unknown."""
+    try:
+        frames = traceback.extract_tb(error.__traceback__)
+        if not frames:
+            return ""
+        frame = frames[-1]
+        return f"{os.path.basename(frame.filename)}:{frame.lineno}:{frame.name}"
+    except Exception:  # nosec B110 - error tracking must not recurse
+        return ""
+
+
+def report_exception(error: BaseException, stage: str, module: str = "", run_id: str = "",
+                     slot: str = "") -> None:
     """Log and track an exception without leaking its message or filesystem path."""
     code = error.__class__.__name__ or "Exception"
     fingerprint = short_traceback_hash(error)
-    track_plugin_error(stage, code, run_id, module, fingerprint)
+    where = innermost_frame(error)
+    track_plugin_error(stage, code, run_id, module, fingerprint, slot=slot, where=where)
     detail = scrub_secrets(scrub_user_paths(str(error).splitlines()[0] if str(error) else ""))
-    log_warning(f"Unhandled {code} in {module or 'unknown'} ({stage}) [{fingerprint or '-'}]: {detail[:160]}")
+    log_warning(f"Unhandled {code} in {module or 'unknown'}{'.' + slot if slot else ''} ({stage}) at {where or '?'} "
+                f"[{fingerprint or '-'}]: {detail[:160]}")
 
 
 def slot_guard(stage: str):

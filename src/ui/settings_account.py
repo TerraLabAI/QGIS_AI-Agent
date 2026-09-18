@@ -393,7 +393,10 @@ class AccountPageMixin:
 
 
 
-        self.upgrade_requested.emit()
+
+        if self.receivers(self.upgrade_requested) > 0:
+            self.upgrade_requested.emit()
+            return
         open_external_url(get_pricing_url(), parent=self)
 
     def _on_retry(self) -> None:

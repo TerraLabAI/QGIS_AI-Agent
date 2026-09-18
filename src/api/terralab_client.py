@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import json
 import os
-import platform
 import random
 import re
 import time
@@ -32,6 +31,7 @@ from qgis.core import Qgis, QgsBlockingNetworkRequest, QgsMessageLog
 from qgis.PyQt.QtCore import QByteArray, QCoreApplication, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
+from ..core.host_platform import os_info
 from ..core.log_scrub import scrub_secrets
 
 PRODUCT_ID = "ai-agent"
@@ -55,7 +55,7 @@ _SslFailed = getattr(_NE, "SslHandshakeFailedError", None)
 _ContentDenied = getattr(_NE, "ContentAccessDenied", None)
 _AuthRequired = getattr(_NE, "AuthenticationRequiredError", None)
 _UnknownNetwork = getattr(_NE, "UnknownNetworkError", None)
-_NoError = getattr(_NE, "NoError", 0)
+_NoNetworkError = getattr(_NE, "NoError", 0)
 _CONNECT_FAILURE_ERRORS = set(filter(None, [
     getattr(_NE, "TemporaryNetworkFailureError", None),
     getattr(_NE, "NetworkSessionFailedError", None),
@@ -155,7 +155,7 @@ def config_query(product: str, lang: str = "") -> str:
     if qgis_version():
         params["qgis"] = qgis_version()
     try:
-        params["os"] = platform.system()
+        params["os"] = os_info()[0]
     except Exception:  # nosec B110 - OS hint is optional
         pass
     return f"/api/plugin/config?{urlencode(params)}"
@@ -370,14 +370,14 @@ class TerraLabClient:
         return self._request("GET", config_query(product, lang),
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def send_telemetry_batch(self, events: list, auth: dict) -> dict:
+    def send_telemetry_batch(self, events: list, auth: dict, timeout_ms: int | None = None) -> dict:
         """Send telemetry through QGIS's network stack and proxy settings."""
         if not isinstance(events, list):
             return {"error": "Invalid telemetry batch", "code": "CLIENT_ERROR"}
         safe_events = [event for event in events[:50] if isinstance(event, dict)]
         body = json.dumps({"events": safe_events}, separators=(",", ":")).encode("utf-8")
         return self._request("POST", "/api/plugin/track", auth=auth, body=body,
-                             timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
+                             timeout_ms=timeout_ms or _TIMEOUT_INTERACTIVE, require_body=True)
 
     def get_plugin_login_link(self, target: str, cta_source: str, auth: dict | None = None,
                               locale: str | None = None) -> dict:
@@ -519,6 +519,17 @@ class TerraLabClient:
 
         reply = blocker.reply()
         http_status = _http_status_of(reply)
+
+
+
+
+        try:
+            reply_error = reply.error() if reply is not None else _UnknownNetwork
+        except Exception:  # noqa: BLE001 - a reply without error() is read as before
+            reply_error = _NoNetworkError
+        if reply_error != _NoNetworkError:
+            code, msg = _classify_network_error(blocker)
+            return ({"error": msg, "code": code}, http_status, False)
         raw_body, why = self._read_body(reply)
         if raw_body is None:
             if why == "RESPONSE_TOO_LARGE":

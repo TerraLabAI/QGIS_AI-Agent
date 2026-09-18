@@ -72,6 +72,35 @@ def _any_table_without_geometry(layer_ids) -> bool:
                 continue
     return False
 
+def _temporary_suffix(definition, layer_ids=()) -> str:
+    """Prefer self-contained native formats for outputs the user did not name."""
+
+
+
+
+
+    for method, choices in (("supportedOutputVectorLayerExtensions", ("gpkg", "fgb", "geojson", "sqlite")),
+                            ("supportedOutputRasterLayerExtensions", ("tif", "tiff"))):
+        supported_method = getattr(definition, method, None)
+        if not callable(supported_method):
+            continue
+        try:
+            supported = {str(ext).lower().lstrip(".") for ext in supported_method()}
+        except Exception as exc:  # noqa: BLE001 - a provider without a format list keeps its default
+            log_warning(f"_temporary_suffix: {method} failed: {exc}")
+            continue
+        for ext in choices:
+            if ext in supported:
+                if ext == "gpkg" and _fid_blocks_geopackage(layer_ids):
+                    return _fid_safe_suffix(definition, layer_ids)
+                return "." + ext
+    try:
+        extension = str(definition.defaultFileExtension() or "").lstrip(".")
+    except Exception:  # noqa: BLE001 - a directory output has no extension
+        return ""
+    return "." + extension if extension and re.fullmatch(r"[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*", extension) else ""
+
+
 def _fid_safe_suffix(definition, layer_ids=()) -> str:
     """A temporary format that keeps a text or repeated fid field as it is: FlatGeobuf first."""
 
@@ -80,7 +109,8 @@ def _fid_safe_suffix(definition, layer_ids=()) -> str:
 
 
     try:
-        supported = {str(ext).lower() for ext in definition.supportedOutputVectorLayerExtensions()}
+        supported = {str(ext).lower().lstrip(".")
+                     for ext in definition.supportedOutputVectorLayerExtensions()}
     except Exception:  # noqa: BLE001 - a destination that cannot say keeps the GeoPackage
         return ".gpkg"
     order = ("sqlite", "geojson", "fgb") if _any_table_without_geometry(layer_ids) else ("fgb", "geojson", "sqlite")
@@ -308,6 +338,34 @@ def _release_table_layers(path: str, table: str, skip_ids=None) -> list:
     return removed
 
 
+def modified_destination_layers(path: str, table: str | None = None, skip_ids=None) -> list[str]:
+    """Names of open layers at this destination which carry unsaved edits."""
+
+
+
+
+
+
+    modified: list[str] = []
+    skip_ids = set(skip_ids or ())
+    wanted = f"layername={table}".casefold() if table else ""
+    for layer_id, layer in QgsProject.instance().mapLayers().items():
+        if layer_id in skip_ids:
+            continue
+        parts = str(layer.source() or "").split("|")
+        if not parts[0] or not _same_file(parts[0], path):
+            continue
+        if wanted and not any(part.strip().casefold() == wanted for part in parts[1:]):
+            continue
+        try:
+            dirty = bool(layer.isModified())
+        except Exception:  # noqa: BLE001 - a layer without an edit buffer cannot lose one
+            dirty = False
+        if dirty:
+            modified.append(str(layer.name() or layer_id))
+    return modified
+
+
 def _has_proj_db(folder: str) -> bool:
     """Whether ``folder`` is a PROJ data folder, rather than only named one."""
     try:
@@ -363,7 +421,9 @@ def _provider_hint(algorithm_id: str) -> dict:
     registry = QgsApplication.processingRegistry()
     try:
         counts: dict = {}
+        every_id: list = []
         for alg in registry.algorithms():
+            every_id.append(alg.id())
             counts[alg.id().split(":", 1)[0]] = counts.get(alg.id().split(":", 1)[0], 0) + 1
         registered = {p.id() for p in registry.providers()}
     except Exception:  # noqa: BLE001 - a registry that will not answer gives no hint
@@ -387,8 +447,19 @@ def _provider_hint(algorithm_id: str) -> dict:
         return {"suggestion": "No provider is called " + prefix + " here. Providers: "
                               + ", ".join(sorted(counts)) + "."}
 
+
+
+
+
+
+    elsewhere = sorted({other for other in every_id
+                        if other.split(":", 1)[-1].casefold() == name.casefold() and other != text})
+    if elsewhere:
+        return {"suggestion": f"There is no {text}, but the same algorithm name is registered as "
+                              + ", ".join(elsewhere) + ". Call that id, with the same parameters.",
+                "closest_algorithms": elsewhere}
     import difflib
-    pool = [a.id() for a in registry.algorithms() if a.id().startswith(prefix + ":")]
+    pool = [a for a in every_id if a.startswith(prefix + ":")]
     close = difflib.get_close_matches(text, pool, n=3, cutoff=0.6) or \
         difflib.get_close_matches(name, [p.split(":", 1)[1] for p in pool], n=3, cutoff=0.6)
     if close:
@@ -398,10 +469,64 @@ def _provider_hint(algorithm_id: str) -> dict:
     return {}
 
 
-def _missing_destinations(alg, parameters: dict) -> list:
-    """Destination parameters that name a file which does not exist after the run."""
-    missing = []
-    for definition in alg.parameterDefinitions():
+
+
+
+
+
+
+_SIBLING_EXTENSIONS = (".sdat", ".sgrd", ".tif", ".tiff", ".vrt", ".asc", ".img", ".bil",
+                       ".gpkg", ".shp", ".geojson", ".json", ".gml", ".kml", ".csv", ".dbf")
+
+
+def written_path_for(path: str) -> str:
+    """The file the run really wrote for this destination, or "" when nothing is there."""
+
+
+
+
+
+
+    if not path:
+        return ""
+    if os.path.exists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    folder = os.path.dirname(stem)
+    if not folder or not os.path.isdir(folder):
+        return ""
+    for candidate_ext in _SIBLING_EXTENSIONS:
+        if candidate_ext == ext.lower():
+            continue
+        candidate = stem + candidate_ext
+        if os.path.isfile(candidate):
+            return candidate
+    base = os.path.basename(stem).casefold()
+    try:
+        entries = os.listdir(folder)
+    except OSError:
+        return ""
+    for entry in entries:
+        entry_stem, entry_ext = os.path.splitext(entry)
+        if entry_stem.casefold() == base and entry_ext.lower() in _SIBLING_EXTENSIONS:
+            return os.path.join(folder, entry)
+    return ""
+
+
+def destination_report(alg, parameters: dict) -> tuple:
+    """``(missing, written)``: the destinations with no file, and the real path of each one that has."""
+
+
+
+
+
+    missing: list = []
+    written: dict = {}
+    try:
+        definitions = alg.parameterDefinitions()
+    except Exception:  # noqa: BLE001 - an algorithm that cannot list its parameters reports nothing
+        return missing, written
+    for definition in definitions:
         if not getattr(definition, "isDestination", lambda: False)():
             continue
         value = parameters.get(definition.name())
@@ -411,9 +536,78 @@ def _missing_destinations(alg, parameters: dict) -> list:
         path = target[0] if target else value.split("|", 1)[0]
         if not os.path.isabs(path):
             continue
-        if not os.path.exists(path):
-            missing.append(f"{definition.name()} ({os.path.basename(path)})")
-    return missing
+
+
+        real = path if (target and os.path.exists(path)) else ("" if target else written_path_for(path))
+        if real:
+            written[definition.name()] = real
+        else:
+
+
+            missing.append(f"{definition.name()} ({path})")
+    return missing, written
+
+
+def _missing_destinations(alg, parameters: dict) -> list:
+    """Destination parameters that name a file which does not exist after the run."""
+    return destination_report(alg, parameters)[0]
+
+
+_LAYER_DESTINATION_TYPES = frozenset({
+    "sink",
+    "vectorDestination",
+    "rasterDestination",
+    "meshDestination",
+    "pointCloudDestination",
+    "vectorTileDestination",
+})
+
+
+def output_evidence_problem(alg, parameters: dict, outputs: dict) -> str:
+    """Explain the first destination QGIS wrote but cannot read back."""
+
+
+
+
+
+
+
+
+
+    if not isinstance(outputs, dict):
+        return "Processing returned no output map."
+    try:
+        definitions = alg.parameterDefinitions()
+    except Exception:  # noqa: BLE001 - an algorithm that cannot describe outputs gives no extra proof
+        return ""
+    for definition in definitions:
+        if not getattr(definition, "isDestination", lambda: False)():
+            continue
+        try:
+            kind = str(definition.type())
+        except Exception as exc:  # noqa: BLE001 - an unknown destination type keeps the existence-only check
+            log_warning(f"destination check: a definition's type() failed: {exc}")
+            continue
+        if kind not in _LAYER_DESTINATION_TYPES:
+            continue
+        name = definition.name()
+        summary = outputs.get(name)
+        if isinstance(summary, dict) and summary.get("readable") is True:
+            continue
+        value = parameters.get(name)
+        target = _gpkg_table_target(value) if isinstance(value, str) else None
+        if target:
+            where = f"{target[0]} table {target[1]}"
+        elif isinstance(value, str):
+            where = value
+        else:
+            where = str(value or name)
+        detail = ""
+        if isinstance(summary, dict):
+            detail = str(summary.get("unreadable") or summary.get("warning") or "")
+        suffix = f" ({detail})" if detail else ""
+        return f"{name} is not a readable {kind} at {where}{suffix}."
+    return ""
 
 
 def _inputs_as_layers(alg, parameters: dict, message: str) -> dict | None:
@@ -466,4 +660,3 @@ def _is_optional(param) -> bool:
         return bool(param.flags() & flag)
     except (TypeError, ValueError, AttributeError):
         return False
-

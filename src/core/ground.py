@@ -148,6 +148,7 @@ def area_expression_error(layer) -> float | None:
             QgsWkbTypes,
         )
 
+        from .feature_requests import feature_request, first_feature
         from .qt_compat import enum_member
 
 
@@ -158,7 +159,9 @@ def area_expression_error(layer) -> float | None:
         if layer is None or layer.geometryType() != polygon:
             return None
         project = QgsProject.instance()
-        feature = next(layer.getFeatures(), None)
+
+
+        feature = first_feature(layer, feature_request(attributes=[], limit=1))
         if feature is None or not feature.hasGeometry():
             return None
 

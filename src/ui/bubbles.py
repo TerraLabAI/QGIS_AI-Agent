@@ -335,7 +335,7 @@ class FeedbackRow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(2)
         self._up = _Thumb(self, True, self.tr("Good answer"))
         self._down = _Thumb(self, False, self.tr("Bad answer"))
@@ -343,7 +343,6 @@ class FeedbackRow(QWidget):
         self._down.clicked.connect(lambda: self._on_click(False))
         row.addWidget(self._up)
         row.addWidget(self._down)
-        row.addStretch(1)
 
     def _on_click(self, up: bool) -> None:
         chosen = self._up if up else self._down
@@ -371,8 +370,13 @@ class AgentBubble(QWidget):
 
 
 
+
+
     link_activated = pyqtSignal(str)
     feedback = pyqtSignal(bool)
+
+
+    restore_clicked = pyqtSignal()
 
     def __init__(self, text: str = "", parent=None):
         super().__init__(parent)
@@ -383,13 +387,37 @@ class AgentBubble(QWidget):
         self._view.link_activated.connect(self.link_activated.emit)
         self._view.height_changed.connect(self._on_text_height)
         self._col.addWidget(self._view)
-        self._sources = SourcesButton(self)
+
+        self._actions = QWidget(self)
+        actions = QHBoxLayout(self._actions)
+        actions.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        actions.setSpacing(4)
+        self._sources = SourcesButton(self._actions)
         self._sources.hide()
-        self._col.addWidget(self._sources, 0, Qt.AlignmentFlag.AlignLeft)
-        self._feedback = FeedbackRow(self)
+        actions.addWidget(self._sources, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._note = QLabel(self._actions)
+        self._note.setObjectName("answerNote")
+        self._note.setTextFormat(Qt.TextFormat.PlainText)
+        self._note.hide()
+        self._note_text = ""
+        actions.addWidget(self._note, 0, Qt.AlignmentFlag.AlignVCenter)
+        actions.addStretch(1)
+
+
+
+        self._restore = IconButton(self._actions, "undo", 15, "")
+        self._restore.setObjectName("answerRestore")
+        self._restore.setProperty("agentAction", "restore")
+        self._restore.clicked.connect(self.restore_clicked.emit)
+        self._restore.hide()
+        self._undone = False
+        actions.addWidget(self._restore, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._feedback = FeedbackRow(self._actions)
         self._feedback.hide()
         self._feedback.voted.connect(self.feedback.emit)
-        self._col.addWidget(self._feedback)
+        actions.addWidget(self._feedback, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._actions.hide()
+        self._col.addWidget(self._actions)
         self._fade = None
         self._text = ""
         self._pending: list[str] = []
@@ -428,6 +456,7 @@ class AgentBubble(QWidget):
         self._flush_pending(final=True)
         self._view.set_streaming(False)
         self._feedback.setVisible(bool(self._text))
+        self._sync_actions()
 
     def is_finished(self) -> bool:
         return self._finished
@@ -495,9 +524,56 @@ class AgentBubble(QWidget):
         """``[{name, url, glyph?}]``: the stacked marks and ``N sources``."""
         self._sources.set_sources(items)
         self._sources.setVisible(bool(self._sources.sources()))
+        self._sync_actions()
 
     def sources(self) -> list:
         return self._sources.sources()
+
+    def set_footnote(self, text: str) -> None:
+        """What the run took (``11 steps``), on the action row after the sources."""
+        self._note_text = str(text or "").strip()
+        self._sync_actions()
+
+    def set_restore(self, mode: str, tooltip: str = "") -> None:
+        """``undo`` while this request's changes are in the project, ``redo`` once a restore took them out (the row also says ``Undone``), ``""`` for."""
+
+        mode = mode if mode in ("undo", "redo") else ""
+        if mode:
+            self._restore.set_icon(mode, 15)
+            self._restore.setToolTip(tooltip)
+            self._restore.setAccessibleName(tooltip)
+        self._restore.setVisible(bool(mode))
+        self._undone = mode == "redo"
+        self._sync_actions()
+
+    def restore_mode(self) -> str:
+        if self._restore.isHidden():
+            return ""
+        return "redo" if self._undone else "undo"
+
+    def set_changes(self, row: QWidget, animate: bool = True) -> None:
+        """The run's layer chips, between the prose and the action row."""
+        self._col.insertWidget(self._col.indexOf(self._actions), row)
+        row.show()
+        if animate:
+            self._fade_up(row)
+        self._on_text_height(0)
+
+    def _sync_actions(self) -> None:
+        """The row shows when something on it does; the steps take a dot after the sources."""
+        has_sources = bool(self._sources.sources())
+        text = self._note_text
+        if self._undone:
+            text = " · ".join(part for part in (text, self.tr("Undone")) if part)
+        if text and has_sources:
+            text = "· " + text
+        self._note.setText(text)
+        self._note.setVisible(bool(text))
+        shown = (has_sources or bool(text) or not self._feedback.isHidden()
+                 or not self._restore.isHidden())
+        if shown != (not self._actions.isHidden()):
+            self._actions.setVisible(shown)
+            self._on_text_height(0)
 
     def _fade_up(self, widget: QWidget) -> None:
         """The site's fade-up: opacity 0 to 1."""

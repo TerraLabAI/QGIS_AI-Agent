@@ -42,7 +42,11 @@ _INLINE_CODE = re.compile(r"`([^`\n]*)`")
 
 _POSIX = r"~?/[^\n\x00<>\"'`|*?]*"
 _WINDOWS = r"[A-Za-z]:[\\/][^\n\x00<>\"'`|*?]*"
-_CANDIDATE = re.compile(rf"(?<![\w~]){_WINDOWS}|(?<![\w~]){_POSIX}")
+
+
+
+_UNC = r"\\\\[^\s\\/\x00<>\"'`|*?]+\\[^\n\x00<>\"'`|*?]*"
+_CANDIDATE = re.compile(rf"(?<![\w~\\]){_UNC}|(?<![\w~]){_WINDOWS}|(?<![\w~]){_POSIX}")
 
 _TRAILING = ".,;:!?"
 
@@ -114,6 +118,14 @@ def suffix_of(path: str) -> str:
     return os.path.splitext(name)[1].lstrip(".").lower()
 
 
+def is_remote_or_device(path: str) -> bool:
+    """A path that starts with two slashes of either kind: a share, or a device namespace (the ?-prefixed and .-prefixed forms)."""
+
+
+
+    return bool(_UNC_PREFIX.match(str(path or "").lstrip()))
+
+
 def is_safe_to_open(path: str) -> bool:
     """Whether this path may be handed to the desktop's own handler."""
 
@@ -122,11 +134,13 @@ def is_safe_to_open(path: str) -> bool:
 
 
 
+
+
     text = str(path or "")
-    if not text:
+    if not text or is_remote_or_device(text):
         return False
     suffix = suffix_of(text)
-    if suffix in BUNDLE_SUFFIXES:
+    if suffix in BUNDLE_SUFFIXES or suffix.startswith("{") or ":" in os.path.splitdrive(text)[1]:
         return False
     if os.path.isdir(text):
         return True
@@ -136,6 +150,8 @@ def is_safe_to_open(path: str) -> bool:
 def reveal_target(path: str) -> str:
     """The folder to show instead of opening ``path`` itself."""
     text = str(path or "")
+    if is_remote_or_device(text):
+        return text
     parent = os.path.dirname(text.rstrip("/\\")) or text
     return parent if os.path.isdir(parent) else text
 
@@ -153,7 +169,7 @@ def reveal_local_file(path: str, parent=None) -> bool:
     from .external_links import open_local_path
 
     text = str(path or "")
-    if not text:
+    if not text or is_remote_or_device(text):
         return False
     if os.path.exists(text):
         command = None
@@ -285,12 +301,23 @@ def _link(path: str) -> str:
     return f"[{escape_markdown_label(path)}]({file_url(path)})"
 
 
+def _plain(text: str) -> str:
+    """A path that stays text, with its backslashes kept by the markdown parser."""
+
+
+
+
+
+
+    return text.replace("\\", "\\\\")
+
+
 def _link_bare(match, budget: _ExistsBudget) -> str:
     candidate = match.group(0)
     path = _longest_existing(candidate, budget)
     if not path:
-        return candidate
-    return _link(path) + candidate[len(path):]
+        return _plain(candidate)
+    return _link(path) + _plain(candidate[len(path):])
 
 
 def _link_inline_code(match, budget: _ExistsBudget) -> str:
@@ -332,6 +359,8 @@ def linkify_paths(text: str) -> str:
     masked = _FENCED.sub(keep, text)
     masked = _INLINE_CODE.sub(lambda m: _link_inline_code(m, budget), masked)
 
+
     masked = _FENCED.sub(keep, masked)
+    masked = _INLINE_CODE.sub(keep, masked)
     masked = _CANDIDATE.sub(lambda m: _link_bare(m, budget), masked)
     return re.sub(r"\x00(\d+)\x00", restore, masked)

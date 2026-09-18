@@ -42,6 +42,7 @@ from collections import OrderedDict
 
 from ..core import code_guard, code_split, net, tuning
 from ..core.background import run_on_main_thread
+from ..core.host_platform import remove_tree
 from ..core.logger import log_warning
 from ..core.policy import AGENT_HOME, create_managed_temp_dir
 from ..core.serialization import cut_string
@@ -742,7 +743,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             }
         return {"_fallback": "setup", "detail": detail}
     finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
+        remove_tree(work_dir)
 
 
 def run(args: dict, run_in_qgis, api_help) -> dict:
@@ -820,6 +821,7 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
         return _in_qgis(args, run_in_qgis)
     exc_type = outcome.pop("_exc_type", "")
     exc_message = outcome.pop("_exc_message", "")
+    help_text = ""
     if exc_type in ("AttributeError", "NameError", "TypeError"):
         try:
             exc = {"AttributeError": AttributeError, "NameError": NameError, "TypeError": TypeError}[exc_type](
@@ -827,8 +829,19 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
             help_text = run_on_main_thread(api_help, exc, timeout=10)
         except Exception:  # noqa: BLE001 - a hint that cannot be built is a hint the client does without
             help_text = ""
-        if help_text:
-            outcome["api"] = help_text
+    if not help_text:
+
+
+
+        try:
+            from .advanced_code import code_help
+
+            help_text = code_help(exc_type, exc_message)
+        except Exception:  # noqa: BLE001 - a hint that cannot be built is one the client does without
+            help_text = ""
+    if help_text:
+        outcome["api"] = help_text
+        outcome.setdefault("suggestion", help_text)
     return outcome
 
 

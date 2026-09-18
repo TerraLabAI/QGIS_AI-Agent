@@ -30,6 +30,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import json
@@ -72,7 +75,7 @@ def _serialise(thread: dict) -> str:
 
 
 
-    text = json.dumps(thread, ensure_ascii=False, default=str)
+    text = json.dumps(thread, ensure_ascii=False, default=str, separators=(",", ":"))
     size = len(text.encode("utf-8"))
     if size <= MAX_THREAD_BYTES:
         return text
@@ -83,8 +86,9 @@ def _serialise(thread: dict) -> str:
     while messages and size > target:
         cut = max(1, int(len(messages) * (1.0 - target / float(size))))
         messages = messages[cut:]
-        text = json.dumps(dict(thread, messages=messages, dropped_messages=total - len(messages)),
-                          ensure_ascii=False, default=str)
+        text = json.dumps(dict(thread, messages=messages,
+                               dropped_messages=int(thread.get("dropped_messages") or 0) + total - len(messages)),
+                          ensure_ascii=False, default=str, separators=(",", ":"))
         size = len(text.encode("utf-8"))
     log_warning(f"Conversation {thread.get('id')} is larger than the {MAX_THREAD_BYTES // (1024 * 1024)} MB "
                 f"a stored chat may be: its {total - len(messages)} oldest messages were not written. "
@@ -215,6 +219,10 @@ class ThreadStore:
         self._writer.close()
 
     def load(self, thread_id: str) -> dict | None:
+        try:
+            path = self._path(thread_id)
+        except ValueError:
+            return None
         cached = self._cache.get(thread_id)
         if cached is not None:
             return cached
@@ -227,10 +235,18 @@ class ThreadStore:
         data = self._read(path)
         if data is None:
             return None
-        if data["id"] != thread_id:
+        if data["id"] != thread_id or not self._belongs_to_account(data):
             return None
         self._cache[thread_id] = data
         return data
+
+    def _belongs_to_account(self, data: dict) -> bool:
+        owner = data.get("account")
+        if not self._account:
+            return True
+        if self._account == SIGNED_OUT:
+            return False
+        return owner in (None, "", self._account)
 
     @staticmethod
     def _read(path: str) -> dict | None:
@@ -259,14 +275,15 @@ class ThreadStore:
     def _files_newest_first(self) -> list[tuple[float, str]]:
         entries = []
         try:
-            for name in os.listdir(self._dir):
-                if not name.endswith(".json"):
-                    continue
-                path = os.path.join(self._dir, name)
-                try:
-                    entries.append((os.path.getmtime(path), path))
-                except OSError:
-                    continue
+            with os.scandir(self._dir) as listing:
+                for entry in listing:
+                    if not entry.name.endswith(".json"):
+                        continue
+                    try:
+                        if entry.is_file(follow_symlinks=False):
+                            entries.append((entry.stat(follow_symlinks=False).st_mtime, entry.path))
+                    except OSError:
+                        continue
         except OSError:
             return []
         entries.sort(reverse=True)
@@ -298,8 +315,7 @@ class ThreadStore:
                 data = self._read(path)
                 if data is None or not data.get("id") or not data.get("messages"):
                     continue
-                if (self._account and isinstance(data.get("account"), str)
-                        and data["account"] and data["account"] != self._account):
+                if not self._belongs_to_account(data):
                     continue
                 rows[data["id"]] = self._row_of(data, mtime)
         finally:
@@ -380,7 +396,16 @@ class ThreadStore:
     def append_message(self, thread_id: str, message: dict) -> None:
         thread = self.load(thread_id)
         if thread is None:
+            try:
+                path = self._path(thread_id)
+            except ValueError:
+                return
+            if os.path.lexists(path) or thread_id in self._deleted or self._closed:
+                return
             thread = {"id": thread_id, "title": "", "created_at": now_iso(), "messages": []}
+            owner = _writer_account(self._account)
+            if owner:
+                thread["account"] = owner
         message = dict(message)
         message.setdefault("ts", now_iso())
         thread["messages"].append(message)
@@ -394,6 +419,8 @@ class ThreadStore:
             return
         for msg in reversed(thread["messages"]):
             if msg.get("role") == "agent" and msg.get("run_id") == run_id:
+                if all(key in msg and msg[key] == value for key, value in patch.items()):
+                    return
                 msg.update(patch)
                 break
         else:
@@ -428,7 +455,10 @@ class ThreadStore:
         thread = self.load(thread_id)
         if thread is None:
             return
-        thread["title"] = (title or "").strip()[:120]
+        title = (title or "").strip()[:120]
+        if thread.get("title") == title:
+            return
+        thread["title"] = title
         thread["updated_at"] = now_iso()
         self._save(thread)
 
@@ -453,6 +483,10 @@ class ThreadStore:
         """Writer thread: drop the oldest files past the cap."""
 
         for _, path in self._files_newest_first()[MAX_KEPT_FILES:]:
+
+            data = self._read(path)
+            if data is None or not self._belongs_to_account(data):
+                continue
             try:
 
 

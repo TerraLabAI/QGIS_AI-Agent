@@ -143,11 +143,10 @@ def store_avatar_bytes(url: str, data: bytes) -> None:
 
 
 
+
+
+
         retry_file_op(os.replace, part, path)
-
-
-
-        part = ""
     except OSError:
         if part:
             try:

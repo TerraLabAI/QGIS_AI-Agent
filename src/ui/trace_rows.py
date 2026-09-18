@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 from html import escape
+from itertools import islice
 
 from qgis.PyQt.QtCore import (
     QAbstractAnimation,
@@ -338,8 +339,8 @@ class StepRow(QWidget):
 
     def set_label(self, label: str, count: str = "") -> None:
         """The same step, reworded by a later plan of the same run."""
-        self._label.setText(label)
-        self._count.setText(count or "")
+        self._label.setText(str(label or "")[:240])
+        self._count.setText(str(count or "")[:80])
         self._count.setVisible(bool(count))
 
     def detail_count(self) -> int:
@@ -394,6 +395,8 @@ class TraceSteps(QWidget):
 
     details_orphaned = pyqtSignal(list)
 
+    _MAX_STEPS = 100
+
     def __init__(self, steps=None, parent=None):
         super().__init__(parent)
         self._rows: dict[str, StepRow] = {}
@@ -415,7 +418,9 @@ class TraceSteps(QWidget):
 
         if isinstance(steps, (str, bytes)) or not hasattr(steps, "__iter__"):
             steps = []
-        steps = [step for step in steps if isinstance(step, dict)]
+
+
+        steps = [step for step in islice(steps, self._MAX_STEPS) if isinstance(step, dict)]
         kept: dict[str, StepRow] = {}
         order: list[StepRow] = []
         fresh: list[StepRow] = []
@@ -426,8 +431,8 @@ class TraceSteps(QWidget):
 
             if step_id in kept:
                 continue
-            label = str(step.get("label") or "")
-            count = str(step.get("count") or "")
+            label = str(step.get("label") or "")[:240]
+            count = str(step.get("count") or "")[:80]
             row = self._rows.pop(step_id, None)
             if row is None:
                 row = StepRow(step_id, label, count, self)
@@ -554,4 +559,4 @@ class ThoughtRow(QWidget):
 
 
 __all__ = ["Chevron", "GLYPH_PX", "GLYPH_SLOT_PX", "HoverRow", "ROW_MIN_PX", "STEP_INDENT_PX",
-           "StepRow", "ThoughtRow", "TraceSteps", "fade_up"]
+           "StepRow", "ThoughtRow", "TraceSteps", "_LABEL_QSS", "fade_up"]

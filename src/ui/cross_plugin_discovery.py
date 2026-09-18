@@ -96,6 +96,34 @@ def is_sibling_installed(product_id: str) -> bool:
     return bool(sibling and _find_installed_plugin(sibling["keys"]) is not None)
 
 
+
+DOCK_MIN_HEIGHT = 420
+
+
+def _give_room(dock) -> None:
+    """Grow a panel squeezed to nothing by the docks above it."""
+
+
+
+
+
+    try:
+        if dock.height() >= DOCK_MIN_HEIGHT:
+            return
+        window = dock.parent()
+        if not callable(getattr(window, "resizeDocks", None)):
+            from qgis.utils import iface
+            window = iface.mainWindow() if iface is not None else None
+        resize = getattr(window, "resizeDocks", None)
+        if not callable(resize):
+            return
+        from qgis.PyQt.QtCore import Qt
+        wanted = max(DOCK_MIN_HEIGHT, dock.sizeHint().height())
+        resize([dock], [min(wanted, max(200, window.height() - 200))], Qt.Orientation.Vertical)
+    except Exception:  # noqa: BLE001 - a panel that will not grow still opened
+        return
+
+
 def _activate_dock(plugin) -> bool:
     """Ensure a sibling plugin's dock widget is visible."""
 
@@ -116,6 +144,7 @@ def _activate_dock(plugin) -> bool:
 
 
             if dock.isVisible():
+                _give_room(dock)
                 return True
         except Exception:  # noqa: BLE001
             continue  # nosec B112

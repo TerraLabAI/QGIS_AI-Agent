@@ -22,7 +22,6 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
-    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -36,8 +35,10 @@ from ..core.plan import autopilot_allowed, stated
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
+from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
 from .style import (
     _BTN_MODE,
+    ACCENT,
     BTN_SMALL_PX,
     FIELD,
     FONT_BODY,
@@ -54,7 +55,7 @@ from .style import (
     SURFACE,
     repolish,
 )
-from .styles import BRAND_BLUE, BRAND_GREEN, BRAND_RED
+from .styles import BRAND_BLUE, BRAND_RED
 
 CAREFUL, ASK, AUTO = "careful", "ask", "auto"
 MODES = (CAREFUL, ASK, AUTO)
@@ -80,7 +81,7 @@ DEFAULT_MODE = ASK
 
 MODE_VISUALS = {
     CAREFUL: ("shield", BRAND_BLUE),
-    ASK: ("shield_check", BRAND_GREEN),
+    ASK: ("shield_check", ACCENT),
     AUTO: ("bolt", BRAND_RED),
 }
 _TILE_SIZE = 26
@@ -298,6 +299,7 @@ class PermissionPopover(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        round_popup_corners(self)
         self.setObjectName("permissionPopover")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_POPOVER_QSS)
@@ -342,6 +344,10 @@ class PermissionPopover(QFrame):
             row.fit_to_width(width)
             height += row.height()
         self.setFixedHeight(height)
+
+    def paintEvent(self, event):  # noqa: N802 - Qt override
+        paint_styled_ground(self)
+        super().paintEvent(event)
 
     def _on_picked(self, approval: str) -> None:
         self.hide()
@@ -520,10 +526,12 @@ class PermissionChip(QToolButton):
         self.setProperty("active", True)
         repolish(self)
         y = above.y() - popover.height() - 6
-        screen = QApplication.screenAt(above) if hasattr(QApplication, "screenAt") else None
-        if screen is not None and y < screen.availableGeometry().top():
+        area = screen_area_at(above, self)
+        if area is not None and y < area.top():
             y = above.y() + self.height() + 6
-        popover.move(above.x(), y)
+
+
+        popover.move(*keep_on_screen(above.x(), y, popover.width(), popover.height(), area))
         popover.show()
 
     def eventFilter(self, watched, event):  # noqa: N802 - Qt override

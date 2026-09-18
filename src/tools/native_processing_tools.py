@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from html import unescape
@@ -66,6 +67,15 @@ _EXCLUDED = frozenset({
     "native:openurl",
     "native:uploadgpsdata",
 })
+
+
+
+
+
+
+
+_CATALOG_BUDGET_BYTES = 600_000
+_CORE_NAMESPACES = ("native", "processing", "gdal", "pdal", "3d")
 
 _CONTROL_KEYS = frozenset({"output_name", "async", "confirm_large", "invalid_geometry_filter"})
 _ARRAY_TYPES = frozenset({
@@ -382,20 +392,34 @@ def register_native_processing_tools(registry: ToolRegistry) -> int:
     except Exception as exc:  # noqa: BLE001 - keep the rest of the catalog alive
         log_warning(f"QGIS Processing tools unavailable: {exc}")
         return 0
-    for algorithm in algorithms:
-        if not _eligible(algorithm):
-            continue
+
+    def rank(algorithm) -> int:
+        namespace = _PROVIDER_NAMESPACES.get(_provider(algorithm)[0].casefold(), "")
+        return _CORE_NAMESPACES.index(namespace) if namespace in _CORE_NAMESPACES else len(_CORE_NAMESPACES)
+
+    spent = 0
+    left_out = 0
+    for algorithm in sorted((a for a in algorithms if _eligible(a)), key=rank):
         name = _tool_name(algorithm)
         if not name or len(name) > 128 or registry.has_tool(name):
             continue
+        schema = _schema_for(algorithm)
+        size = len(name) + len(json.dumps(schema, ensure_ascii=False, separators=(",", ":"), default=str))
+        if spent + size > _CATALOG_BUDGET_BYTES:
+            left_out += 1
+            continue
+        spent += size
 
 
 
         registry.register(RuntimeTool(
             name=name,
-            input_schema=_schema_for(algorithm),
+            input_schema=schema,
             handler=_handler(str(algorithm.id())),
             danger="write",
         ))
         added += 1
+    if left_out:
+        log_warning(f"{left_out} Processing algorithms left out of the tool catalog to keep it under "
+                    f"{_CATALOG_BUDGET_BYTES // 1000} kB; run_processing still runs them")
     return added

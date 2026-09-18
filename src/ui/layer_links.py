@@ -31,9 +31,9 @@
 
 
 
+
 from __future__ import annotations
 
-import os
 import re
 
 from qgis.PyQt.QtCore import QPoint, QRectF, QSize, Qt, pyqtSignal
@@ -43,6 +43,7 @@ from qgis.PyQt.QtWidgets import QLabel, QMenu, QSizePolicy, QWidget
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
 from .file_links import escape_markdown_label
+from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
 from .layer_icons import layer_name, resolve_layer
 from .markdown_view import GONE_SCHEME
@@ -66,7 +67,7 @@ from .style import (
 )
 
 
-_CHIP_PX = CHIP_PX
+_CHIP_PX = scale_px_length(CHIP_PX)
 _CHIP_PAD_PX = 6
 
 _PART_GAP_PX = SPACE_TIGHT
@@ -114,16 +115,6 @@ def _counts(item: dict) -> tuple[int, int, int]:
         elif delta < 0:
             removed = -delta
     return added, removed, changed
-
-
-def _size_words(size: int) -> str:
-    """A byte count the way a file browser says it."""
-    value = float(max(0, int(size)))
-    for unit in ("B", "KB", "MB", "GB"):
-        if value < 1024 or unit == "GB":
-            return f"{int(value)} {unit}" if unit == "B" else f"{value:.1f} {unit}"
-        value /= 1024
-    return f"{int(size)} B"
 
 
 
@@ -183,11 +174,12 @@ def _name_font(px: int = FONT_HINT, weight: int = 500):
     from qgis.PyQt.QtGui import QFont, QGuiApplication
 
     font = QFont(QGuiApplication.font())
-    font.setPixelSize(px)
-    try:
-        font.setWeight(QFont.Weight(weight))
-    except Exception:  # noqa: BLE001 - Qt5 takes the 0-99 scale
-        font.setWeight(enum_member(QFont, "Weight", "Medium"))
+    font.setPixelSize(scale_point_size(px))
+
+
+
+
+    font.setWeight(enum_member(QFont, "Weight", "Medium" if weight >= 500 else "Normal"))
     return font
 
 
@@ -481,27 +473,6 @@ class _LayerChip(_Chip):
         menu.deleteLater()
 
 
-class _FileChip(_Chip):
-    """A file the run wrote: its name in mono; a click shows it in the system file browser."""
-
-    reveal_requested = pyqtSignal(str)
-
-    def __init__(self, item: dict, parent=None):
-        super().__init__("file", INK_2, parent)
-        self.path = str(item.get("path") or "")
-        name = os.path.basename(self.path.rstrip("/\\")) or self.path
-        self.set_parts([(_short_name(name), INK, mono_font(FONT_HINT, 400))])
-        lines = [self.path]
-        size = item.get("size_bytes")
-        if isinstance(size, int) and not isinstance(size, bool):
-            lines.append(_size_words(size))
-        lines.append(self.tr("Click to show it in its folder."))
-        self.setToolTip("\n".join(lines))
-        self.setAccessibleName(name)
-        self._refresh_cursor()
-        self.clicked.connect(lambda: self.reveal_requested.emit(self.path))
-
-
 class _WarningsChip(_Chip):
     """The run's warnings as one muted chip; a click opens their sentences under the row."""
 
@@ -557,8 +528,8 @@ class RunChangesRow(QWidget):
 
 
 
+
     layer_action_requested = pyqtSignal(str, str)
-    file_reveal_requested = pyqtSignal(str)
 
     def __init__(self, changes, parent=None):
         super().__init__(parent)
@@ -575,12 +546,6 @@ class RunChangesRow(QWidget):
             chip = _LayerChip(item, self)
             chip.action_requested.connect(self.layer_action_requested.emit)
             self._chips.append(chip)
-        self._files: list[_Chip] = []
-        for item in listed("files"):
-            if isinstance(item, dict) and item.get("path"):
-                chip = _FileChip(item, self)
-                chip.reveal_requested.connect(self.file_reveal_requested.emit)
-                self._files.append(chip)
         sentences = [text for text in listed("warnings") if isinstance(text, str) and text.strip()]
         self._warnings = _WarningsChip(sentences, self) if sentences else None
         self._notes: list[QLabel] = []
@@ -610,13 +575,13 @@ class RunChangesRow(QWidget):
 
 
     def is_empty(self) -> bool:
-        return not self._chips and not self._files and self._warnings is None
+        return not self._chips and self._warnings is None
 
     def layers(self) -> list:
         return list(self._layers)
 
     def chips(self) -> list:
-        return [*self._chips, *self._files, *([self._warnings] if self._warnings is not None else [])]
+        return [*self._chips, *([self._warnings] if self._warnings is not None else [])]
 
     def warnings_open(self) -> bool:
         return self._open
@@ -652,7 +617,7 @@ class RunChangesRow(QWidget):
         """The height the row needs at ``width``; with ``place``, put every child there."""
         available = max(1, int(width) - 2)
         chips = self._chips
-        tail = [*self._files, *([self._warnings] if self._warnings is not None else [])]
+        tail = [self._warnings] if self._warnings is not None else []
         widths = [min(available, chip.sizeHint().width()) for chip in chips]
         tail_widths = [min(available, chip.sizeHint().width()) for chip in tail]
         shown = len(chips)

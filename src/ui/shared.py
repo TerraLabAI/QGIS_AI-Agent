@@ -70,7 +70,53 @@ def exec_menu(menu, pos):
 
 
 
+    round_popup_corners(menu)
     return QMenu.exec(menu, pos)
+
+
+def round_popup_corners(popup) -> None:
+    """Let a popup's rounded stylesheet corners show what lies behind them."""
+
+
+
+
+
+
+
+
+
+
+
+    from qgis.PyQt.QtCore import QT_VERSION, Qt
+
+    try:
+        if popup.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
+            return
+        if QT_VERSION < 0x060000 or not isinstance(popup, QMenu):
+            flags = popup.windowFlags()
+            if not flags & Qt.WindowType.FramelessWindowHint:
+                popup.setWindowFlags(flags | Qt.WindowType.FramelessWindowHint)
+        popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    except (AttributeError, RuntimeError, TypeError):
+        pass
+
+
+def paint_styled_ground(widget) -> None:
+    """Paint the stylesheet background of a translucent top-level ``widget``."""
+
+
+
+
+    from qgis.PyQt.QtGui import QPainter
+    from qgis.PyQt.QtWidgets import QStyle, QStyleOption
+
+    option = QStyleOption()
+    option.initFrom(widget)
+    painter = QPainter(widget)
+    try:
+        widget.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, option, painter, widget)
+    finally:
+        painter.end()
 
 
 
@@ -392,7 +438,7 @@ _qgis_plugins: list = []
 _hidden_plugins: list = []
 
 
-_hidden_plugins_received = False
+_hidden_state = {"received": False}
 _tool_names: list = []
 
 
@@ -484,10 +530,10 @@ def set_hidden_plugins(folders) -> None:
 
 
 
-    global _hidden_plugins, _hidden_plugins_received
+    global _hidden_plugins
     cleaned = sorted({str(f).strip() for f in (folders or []) if str(f or "").strip()})
     _hidden_plugins = cleaned
-    _hidden_plugins_received = True
+    _hidden_state["received"] = True
 
 
 
@@ -508,8 +554,8 @@ def get_hidden_plugins() -> set:
 
 
 
-    global _hidden_plugins, _hidden_plugins_received
-    if _hidden_plugins_received:
+    global _hidden_plugins
+    if _hidden_state["received"]:
         return set(_hidden_plugins)
     if not _hidden_plugins:
         store = _connector_store()
@@ -518,7 +564,7 @@ def get_hidden_plugins() -> set:
                 cached = store.hidden_plugins
                 if cached is not None:
                     _hidden_plugins = [str(f) for f in (cached or [])]
-                    _hidden_plugins_received = True
+                    _hidden_state["received"] = True
                     return set(_hidden_plugins)
             except Exception as exc:  # noqa: BLE001
                 _connector_warning(f"Hidden plugin cache not read: {exc}")
@@ -1095,6 +1141,46 @@ def available_screen_rect(widget):
         return None
     available = screen.availableGeometry()
     return None if available.isEmpty() else available
+
+
+def screen_area_at(point, widget=None):
+    """The usable area of the screen under the global ``point``, or None."""
+
+
+
+
+
+
+
+    from qgis.PyQt.QtGui import QGuiApplication
+
+    screen = None
+    try:
+        screen = QGuiApplication.screenAt(point)
+    except (AttributeError, RuntimeError, TypeError):
+        screen = None
+    if screen is None and widget is not None:
+        try:
+            screen = widget.screen()
+        except (AttributeError, RuntimeError):
+            screen = None
+    if screen is None:
+        screen = QGuiApplication.primaryScreen()
+    if screen is None:
+        return None
+    area = screen.availableGeometry()
+    return None if area.isEmpty() else area
+
+
+def keep_on_screen(x: int, y: int, width: int, height: int, area) -> tuple:
+    """``(x, y)`` moved just enough for a ``width`` by ``height`` box to sit inside ``area``: past the Windows taskbar, whichever edge it is."""
+
+
+    if area is None:
+        return int(x), int(y)
+    x = max(area.left(), min(int(x), area.left() + area.width() - int(width)))
+    y = max(area.top(), min(int(y), area.top() + area.height() - int(height)))
+    return int(x), int(y)
 
 
 def size_within_screen(dialog, width: int, height: int,

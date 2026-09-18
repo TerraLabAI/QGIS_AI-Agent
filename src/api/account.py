@@ -687,14 +687,28 @@ class Account(QObject):
         self._clear_local_session()
         log("Signed out")
 
-    def open_website(self, target: str, cta_source: str, fallback_url: str) -> None:
+    def open_website(self, target: str, cta_source: str, fallback_url: str,
+                     on_outcome=None) -> None:
         """Open `target` signed in through a one-time login link, else the plain URL."""
+
+
+
+
         auth = self.get_auth_header()
         fallback_url = str(fallback_url or "")
         if not _openable_https(fallback_url):
             return
+
+        def _go(url: str, checkout_link: str) -> None:
+            if on_outcome is not None:
+                try:
+                    on_outcome(checkout_link)
+                except Exception:  # nosec B110 - telemetry never blocks a click
+                    pass
+            QDesktopServices.openUrl(QUrl(url))
+
         if not auth:
-            QDesktopServices.openUrl(QUrl(fallback_url))
+            _go(fallback_url, "fallback")
             return
         if self._login_link_task is not None and self._login_link_task.is_active():
             return
@@ -707,7 +721,10 @@ class Account(QObject):
 
 
             url = result.get("url") if isinstance(result, dict) else None
-            QDesktopServices.openUrl(QUrl(url if _openable_https(url) else fallback_url))
+            if _openable_https(url):
+                _go(url, "direct")
+            else:
+                _go(fallback_url, "fallback")
 
         def _done(*_args):
             self._login_link_task = None
@@ -715,7 +732,7 @@ class Account(QObject):
         task = GenericRequestTask(tr("Opening your TerraLab account"),
                                   lambda: client.get_plugin_login_link(target, cta_source, auth=auth, locale=locale))
         task.succeeded.connect(_open)
-        task.failed.connect(lambda _m, _c: QDesktopServices.openUrl(QUrl(fallback_url)))
+        task.failed.connect(lambda _m, _c: _go(fallback_url, "fallback"))
         task.succeeded.connect(_done)
         task.failed.connect(_done)
         self._login_link_task = task
@@ -724,8 +741,13 @@ class Account(QObject):
     def open_dashboard(self) -> None:
         self.open_website(f"/dashboard/{PRODUCT_ID}", "plugin_menu", get_dashboard_url())
 
-    def open_plans(self, cta_source: str = "plugin_quota") -> None:
-        self.open_website("/pricing", cta_source, get_plans_page_url(cta_source))
+    def open_plans(self, cta_source: str = "plugin_quota", on_outcome=None) -> None:
+        """The AI Agent plans, signed in when the key allows it."""
+
+
+
+
+        self.open_website("/pricing", cta_source, get_plans_page_url(cta_source), on_outcome)
 
     def is_valid_key(self, key: str) -> bool:
         return bool(KEY_RE.match((key or "").strip()))

@@ -34,6 +34,49 @@ _OTHER_LABEL = "Other"
 _OTHER_COLOR = "#9e9e9e"
 
 
+def _style_to_put_back(layer) -> str:
+    """The style this layer draws with now, read just before a call replaces it."""
+
+
+
+
+    try:
+        from ..core.snapshot import style_xml
+
+        return style_xml(layer)
+    except Exception as exc:  # noqa: BLE001 - a way back is a courtesy, never a failed style
+        log_warning(f"Previous style not read: {exc}")
+        return ""
+
+
+def _previous_style_keys(layer, kept: str) -> dict:
+    """The result keys that say how to put the style this call replaced back."""
+
+
+
+
+
+
+
+    if not kept:
+        return {}
+    try:
+        from ..core.snapshot import remember_style
+
+        path = remember_style(layer, kept)
+    except Exception as exc:  # noqa: BLE001 - as above: the style itself is applied
+        log_warning(f"Previous style not kept: {exc}")
+        return {}
+    if not path:
+        return {}
+    return {
+        "previous_style_qml": path,
+        "previous_style_note": ("this replaced the layer's own symbology; apply_style_qml with this "
+                                "layer_name and this path puts back exactly what it looked like before "
+                                "this call, and nothing else of the project"),
+    }
+
+
 def _failure_of(result) -> str | None:
     """The error message of one command's result, in either shape the executor reads."""
     if not isinstance(result, dict):
@@ -180,7 +223,6 @@ class _CommandRun:
         if not self.deferred:
             return self.registry.execute(command["name"], arguments)
 
-        outcome = {"_error": "The command did not run."}
         try:
             with layer_order.adopted(self.run_token):
                 outcome = self.registry.execute(command["name"], arguments)
@@ -348,7 +390,13 @@ def _set_layer_style(args: dict) -> dict:
         return _layer_not_found_error(target)
 
     if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer {target!r} is not a vector layer"}
+
+
+
+
+
+
+        return _style_raster_layer(layer, target, args)
 
     style_type = str(args.get("style_type") or "").strip()
     if not style_type:
@@ -372,6 +420,13 @@ def _set_layer_style(args: dict) -> dict:
                            "is a polygon layer. Nothing was changed."),
                 "code": "INVALID_ARGS",
                 "suggestion": "Leave size_expression out, or use a graduated style on the field to show its values."}
+
+
+
+
+
+
+    style_type, coerced_note = _style_for_geometry(layer, style_type, args)
 
 
 
@@ -399,6 +454,10 @@ def _set_layer_style(args: dict) -> dict:
                 "_error": f"Unknown color ramp: {color_ramp_name!r}.",
                 "available_ramps": default_style.colorRampNames(),
             }
+
+
+
+    kept_style = _style_to_put_back(layer)
 
     fold_note: dict = {}
     if style_type == "single":
@@ -466,7 +525,7 @@ def _set_layer_style(args: dict) -> dict:
             else:
                 hue = (i * 37) % 360
                 symbol.setColor(QColor.fromHsl(hue, 178, 128))
-            categories.append(QgsRendererCategory(value, symbol, str(value)))
+            categories.append(QgsRendererCategory(value, symbol, _category_label(value)))
         if folded or folded is None:
 
 
@@ -563,6 +622,7 @@ def _set_layer_style(args: dict) -> dict:
                 "code": "INVALID_ARGS",
                 "suggestion": "Check the field holds numbers on at least one feature, or pick another field.",
             }
+        _readable_range_labels(renderer, args.get("units"))
         layer.setRenderer(renderer)
 
     elif style_type == "cluster":
@@ -595,6 +655,10 @@ def _set_layer_style(args: dict) -> dict:
     if iface is not None and iface.layerTreeView() is not None:
         iface.layerTreeView().refreshLayerSymbology(layer.id())
     result = {"styled": layer.name(), "type": style_type}
+    result.update(_previous_style_keys(layer, kept_style))
+    result.update(_wider_than_the_selection(layer))
+    if coerced_note:
+        result["style_type_changed"] = coerced_note
     if ramp is not None:
         result["color_ramp"] = color_ramp_name
     if args.get("classification_mode"):
@@ -625,6 +689,111 @@ def _set_layer_style(args: dict) -> dict:
     if args.get("null_class_color"):
         result["null_class_note"] = "Use apply_style_qml to add the requested NULL rule."
     return result
+
+
+
+
+
+_VECTOR_ONLY_ARGS = ("field", "fill", "stroke_color", "stroke_width", "size", "size_expression",
+                     "cluster_distance", "min_size", "max_size", "label_color", "null_class_color")
+
+
+def _wider_than_the_selection(layer) -> dict:
+    """Say when a style call just repainted a whole layer to point at a selection."""
+
+
+
+
+
+
+
+
+
+    try:
+        selected = int(layer.selectedFeatureCount())
+        total = int(layer.featureCount())
+    except Exception:  # noqa: BLE001 - a provider with no counts says nothing
+        return {}
+    if selected <= 0 or total <= selected:
+        return {}
+    return {
+        "affects": f"how all {total:,} features of {layer.name()!r} draw, not only the {selected} selected",
+        "highlight_instead": ("a style is permanent and covers the whole layer; to point at particular "
+                              "features without touching symbology, call flash_features with their fids "
+                              "or an expression: it blinks them three times over half a second and "
+                              "changes nothing"),
+    }
+
+
+def _style_raster_layer(layer, target: str, args: dict) -> dict:
+    """set_layer_style on a raster: a colour ramp with legend labels a reader can use."""
+    from qgis.core import QgsRasterLayer
+
+    from .elevation_style import apply_ramp_style
+
+    if not isinstance(layer, QgsRasterLayer):
+        kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "unknown"
+        return {"_error": f"Layer {target!r} is a {kind} layer, and set_layer_style paints vectors and rasters.",
+                "code": "INVALID_ARGS",
+                "suggestion": "Use set_layer_property to change its opacity, or apply_style_qml with a "
+                              "style file written for this kind of layer."}
+
+    bands = layer.bandCount()
+    opacity = args.get("opacity")
+    if bands != 1:
+
+
+        return {"_error": f"Layer {target!r} has {bands} bands, so it is drawn as a colour image and has no "
+                          "single value to classify.",
+                "code": "INVALID_ARGS",
+                "suggestion": "Colour ramps need one band. Use set_layer_property to change its opacity, "
+                              "or pick one band with run_processing native:rastercalc first."}
+
+    color_ramp = str(args.get("color_ramp") or "").strip()
+    kept_style = _style_to_put_back(layer)
+    outcome = apply_ramp_style(
+        layer, band=int(args.get("band") or 1), ramp_name=color_ramp,
+        classes=_requested_classes(args), unit=str(args.get("units") or ""))
+    if outcome.get("_error"):
+        return outcome
+
+    applied_opacity = _apply_layer_opacity(layer, opacity)
+    layer.triggerRepaint()
+    if iface is not None and iface.layerTreeView() is not None:
+        iface.layerTreeView().refreshLayerSymbology(layer.id())
+    result = {"styled": layer.name(), "type": "raster_ramp", **outcome}
+    result.update(_previous_style_keys(layer, kept_style))
+    if color_ramp:
+        result["color_ramp"] = color_ramp
+    elif args.get("color"):
+        result["color_note"] = ("One colour paints every pixel the same, so the classes use the default "
+                                "elevation tints. Pass color_ramp for a named QGIS ramp (Terrain, Viridis, "
+                                "Spectral, Blues).")
+    if applied_opacity is not None:
+        result["opacity"] = applied_opacity
+    ignored = [key for key in _VECTOR_ONLY_ARGS if args.get(key) not in (None, "")]
+    if ignored:
+        result["not_applied"] = ignored
+        result["not_applied_note"] = ("a raster has no symbols, so these changed nothing; a raster takes "
+                                      "color_ramp, classes, band, units and opacity")
+    mode = str(args.get("classification_mode") or "").strip()
+    if mode and mode != "equal_interval":
+        result["classification_mode"] = "equal_interval"
+        result["classification_note"] = (f"{mode} classes need a histogram of every pixel; the classes here "
+                                         "are equal intervals over the band's range.")
+    return result
+
+
+def _apply_layer_opacity(layer, opacity):
+    """Set the layer opacity when one was asked for; the value that landed, or None."""
+    if opacity is None:
+        return None
+    try:
+        value = float(max(0.0, min(1.0, float(opacity))))
+    except (TypeError, ValueError):
+        return None
+    layer.setOpacity(value)
+    return value
 
 
 def _requested_classes(args: dict) -> int:
@@ -679,6 +848,67 @@ def _value_frequencies(layer, index: int, scan_cap: int) -> tuple[dict, int]:
     return counts, scanned
 
 
+def _readable_range_labels(renderer, unit=None) -> None:
+    """Rewrite a graduated renderer's class labels so a legend reads them."""
+
+
+
+
+
+
+    try:
+        ranges = list(renderer.ranges())
+        if not ranges:
+            return
+        span = abs(float(ranges[-1].upperValue()) - float(ranges[0].lowerValue()))
+        digits = 0 if span >= 50 else (1 if span >= 5 else (2 if span >= 0.5 else 4))
+        tail = f" {unit}" if unit else ""
+        for index, item in enumerate(ranges):
+            low, high = float(item.lowerValue()), float(item.upperValue())
+            renderer.updateRangeLabel(index, f"{low:,.{digits}f} - {high:,.{digits}f}{tail}")
+    except Exception as exc:  # noqa: BLE001 - a renderer that will not relabel keeps QGIS's own labels
+        log_warning(f"_readable_range_labels: relabeling failed: {exc}")
+
+
+def _category_label(value) -> str:
+    """What a categorized class prints in the legend: '(no value)' rather than 'NULL'."""
+    try:
+        if value is None:
+            return "(no value)"
+        text = str(value).strip()
+    except Exception:  # noqa: BLE001 - a value that will not print is an empty class
+        return "(no value)"
+    return text if text and text.upper() != "NULL" else "(no value)"
+
+
+def _geometry_word(layer) -> str:
+    """'point', 'line' or 'polygon' for this layer, '' when it has no geometry."""
+    from qgis.core import QgsWkbTypes
+
+    for word, member in (("point", "PointGeometry"), ("line", "LineGeometry"), ("polygon", "PolygonGeometry")):
+        if layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", member, None):
+            return word
+    return ""
+
+
+def _style_for_geometry(layer, style_type: str, args: dict) -> tuple:
+    """``(style to apply, what changed and why)``: a style the layer's geometry can wear."""
+
+
+
+
+
+    if style_type != "cluster":
+        return style_type, ""
+    word = _geometry_word(layer)
+    if word in ("", "point"):
+        return style_type, ""
+    field = args.get("field")
+    chosen = "categorized" if field and layer.fields().indexOf(str(field)) >= 0 else "single"
+    return chosen, (f"Clusters group points and {layer.name()!r} is a {word} layer, so it was styled "
+                    f"{chosen} instead. Nothing else about the request changed.")
+
+
 def _symbol_layer_property(member: str):
     """``QgsSymbolLayer.Property.Size`` on Qt6, ``PropertySize`` on Qt5."""
     from qgis.core import QgsSymbolLayer
@@ -715,7 +945,11 @@ def _cluster_renderer(layer, args: dict):
     )
     from qgis.PyQt.QtGui import QColor, QFont
 
-    if layer.geometryType() != QgsWkbTypes.GeometryType.PointGeometry:
+
+
+
+
+    if layer.geometryType() != enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"):
         return {"_error": f"Layer {layer.name()!r} is not a point layer.",
                 "suggestion": "Clusters group points. Use single, categorized or graduated here."}
 
@@ -932,6 +1166,141 @@ def _take_screenshot(args: dict) -> dict:
     return {"image_base64": image_to_base64(image, fmt, quality), "width": width, "height": height, "format": fmt}
 
 
+
+
+
+_FLASH_DEFAULT_FLASHES = 3
+_FLASH_DEFAULT_DURATION_MS = 500
+_FLASH_MAX_FLASHES = 10
+_FLASH_MAX_DURATION_MS = 5000
+
+
+_FLASH_MAX_FEATURES = 200
+
+
+def _flash_ids(layer, args: dict) -> tuple:
+    """``(ids, error)``: the feature ids this call points at, read from the layer."""
+
+
+
+
+
+    from qgis.core import QgsFeatureRequest
+
+    raw = args.get("fids")
+    expression = str(args.get("expression") or "").strip()
+    if raw is None and not expression:
+        return [], {"_error": "flash_features needs 'fids' or 'expression'.",
+                    "_code": "INVALID_ARGS",
+                    "_suggestion": "Pass fids: [554], or expression: \"name = 'Ilha'\". "
+                                   "get_features returns the fid of every row it prints."}
+    if raw is not None and expression:
+        return [], {"_error": "Pass either 'fids' or 'expression', not both.",
+                    "_code": "INVALID_ARGS",
+                    "_suggestion": "Use 'fids' when you already know the ids, 'expression' otherwise."}
+
+    if raw is not None:
+        wanted = list(raw) if isinstance(raw, (list, tuple, set)) else [raw]
+        try:
+            wanted = [int(value) for value in wanted]
+        except (TypeError, ValueError):
+            return [], {"_error": "'fids' must be whole feature ids.",
+                        "_code": "INVALID_ARGS",
+                        "_suggestion": "Pass the fid values get_features printed, as numbers."}
+        if not wanted:
+            return [], {"_error": "'fids' is empty.", "_code": "INVALID_ARGS",
+                        "_suggestion": "Name at least one feature id, or pass an expression."}
+
+
+
+        wanted = list(dict.fromkeys(wanted))
+        request = QgsFeatureRequest().setFilterFids(wanted)
+        request.setNoAttributes()
+    else:
+        wanted = None
+        invalid = _expression_error(layer, expression, "Expression")
+        if invalid:
+            return [], invalid
+        request = QgsFeatureRequest().setFilterExpression(expression)
+    request.setLimit(_FLASH_MAX_FEATURES + 1)
+
+    found: list = []
+    try:
+        for feature in layer.getFeatures(request):
+            found.append(int(feature.id()))
+    except Exception as e:  # noqa: BLE001 - a provider that cannot answer says so
+        return [], {"_error": f"Reading the features to flash failed: {e}"}
+    if len(found) > _FLASH_MAX_FEATURES:
+        return [], {"_error": f"More than {_FLASH_MAX_FEATURES} features match: a flash that covers the map "
+                              "points at nothing.",
+                    "_code": "INVALID_ARGS",
+                    "_suggestion": "Narrow the expression, or use set_layer_style to show the whole group."}
+    if not found:
+        if wanted is not None:
+            return [], {"_error": f"No feature of {layer.name()!r} carries any of these ids: "
+                                  f"{', '.join(str(v) for v in wanted[:20])}.",
+                        "_code": "INVALID_ARGS",
+                        "_suggestion": "Call get_features on this layer and use the fid it prints."}
+        return [], {"_error": f"No feature of {layer.name()!r} matches {expression!r}.",
+                    "_code": "INVALID_ARGS",
+                    "_suggestion": "Call get_features with the same expression to see what it selects."}
+    return found, None
+
+
+def _flash_features(args: dict) -> dict:
+    """Blink features on the map canvas, changing no style, no selection, no data."""
+
+
+
+
+
+
+
+
+    layer = _find_layer(args["layer_name"])
+    if not layer:
+        return _layer_not_found_error(args["layer_name"])
+    if not isinstance(layer, QgsVectorLayer):
+        return {"_error": f"Layer {layer.name()!r} is not a vector layer, and only features can be flashed.",
+                "_code": "INVALID_ARGS",
+                "_suggestion": "Name a vector layer. To point at part of a raster, zoom to it instead."}
+
+    canvas = iface.mapCanvas() if iface is not None else None
+    if canvas is None or not hasattr(canvas, "flashFeatureIds"):
+        return {"_error": "This QGIS has no map canvas feature flash.",
+                "_code": "EXECUTION_FAILED",
+                "_suggestion": "Use select_features to mark the features, then zoom_to_selected."}
+
+    ids, error = _flash_ids(layer, args)
+    if error:
+        return error
+
+    flashes = max(1, min(int(args.get("flashes") or _FLASH_DEFAULT_FLASHES), _FLASH_MAX_FLASHES))
+    duration = max(50, min(int(args.get("duration") or _FLASH_DEFAULT_DURATION_MS), _FLASH_MAX_DURATION_MS))
+
+    from qgis.PyQt.QtGui import QColor
+
+    try:
+
+
+        canvas.flashFeatureIds(layer, ids, QColor(255, 0, 0, 255), QColor(255, 0, 0, 0), flashes, duration)
+    except Exception as e:  # noqa: BLE001 - a canvas that refuses the flash says why
+        return {"_error": f"Flashing the features failed: {e}"}
+
+    return {
+        "layer": layer.name(),
+        "flashed": len(ids),
+        "feature_ids": ids[:50],
+        "flashes": flashes,
+        "duration_ms": duration,
+        "changed_nothing": True,
+        "note": (f"{len(ids)} feature(s) of {layer.name()!r} blink {flashes} times over {duration} ms. "
+                 "The layer's symbology, its selection and its data are untouched and nothing stays on "
+                 "screen, so this is what points at a feature temporarily; a style call is permanent and "
+                 "covers the whole layer."),
+    }
+
+
 def _expression_error(layer, text: str, argument: str = "Label expression") -> dict | None:
     """None when *text* is an expression this layer can evaluate, else why not."""
 
@@ -1018,9 +1387,11 @@ def _set_layer_labels(args: dict) -> dict:
 
     enabled = args.get("enabled", True)
     if not enabled:
+        kept_style = _style_to_put_back(layer)
         layer.setLabelsEnabled(False)
         layer.triggerRepaint()
-        return {"labels": "disabled", "layer": args["layer_name"]}
+        return {"labels": "disabled", "layer": args["layer_name"],
+                **_previous_style_keys(layer, kept_style)}
 
     field = args["field"]
     size = args.get("size", 10)
@@ -1083,11 +1454,14 @@ def _set_layer_labels(args: dict) -> dict:
         settings.scaleVisibility = True
         settings.minimumScale = min_scale
         settings.maximumScale = max_scale
+
+    kept_style = _style_to_put_back(layer)
     labeling = QgsVectorLayerSimpleLabeling(settings)
     layer.setLabeling(labeling)
     layer.setLabelsEnabled(True)
     layer.triggerRepaint()
     out = {"labels": "enabled", "layer": args["layer_name"], "field": field}
+    out.update(_previous_style_keys(layer, kept_style))
     if min_scale or max_scale:
         out["scale_visibility"] = {
             "min_scale": min_scale, "max_scale": max_scale,

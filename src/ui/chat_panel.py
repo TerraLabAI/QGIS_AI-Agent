@@ -23,17 +23,7 @@ from .bubbles import StatusLine
 from .chat_panel_layout import _ChatPanelLayout
 from .chat_panel_prompts import _ChatPanelPrompts
 from .chat_panel_runs import _ChatPanelRuns
-
-
-
-
-from .chat_panel_shared import (
-    _is_nothing_changed,  # noqa: F401 - re-exported
-    _layer_id_named,  # noqa: F401 - re-exported
-    _Run,
-    _turn_divider,  # noqa: F401 - re-exported
-    _wrap,
-)
+from .chat_panel_shared import _Run, _wrap
 from .chat_panel_threads import _ChatPanelThreads
 from .composer import Composer
 from .dock.about import UpdateBanner
@@ -95,6 +85,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
     pairing_cancel_requested = pyqtSignal()
     dashboard_requested = pyqtSignal()
     upgrade_requested = pyqtSignal()
+
+    pro_pill_requested = pyqtSignal()
     reconnect_requested = pyqtSignal()
     help_requested = pyqtSignal(str)
     update_clicked = pyqtSignal(str)
@@ -117,7 +109,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
 
 
         self._reopened_tools: dict[str, bool] = {}
-        self._long_chat_nudged = False
+        self._compaction_marked = False
         self._current_run: str | None = None
         self._explain_runs = True
         self._show_tool_details = True
@@ -138,6 +130,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
         self._model_label = ""
 
         self._usage = (0, 0, "", True)
+
+
+        self._plan_known = False
+        self._paid_plan = False
 
         self._col = QVBoxLayout(self)
         self._col.setContentsMargins(0, 0, 0, 0)

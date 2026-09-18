@@ -50,7 +50,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .card_base import mono_font
-from .font_scale import scale_qss_font_px
+from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .shared import qt_enum_int, resolve_qt_enum
 from .style import (
@@ -77,7 +77,7 @@ from .style import (
 from .widgets import ElidedLabel
 
 _HEAD_PX = 40
-_GUTTER_PX = 28
+_GUTTER_PX = scale_px_length(28)
 _PAD_PX = 12
 _LINE_HEIGHT = 1.6
 
@@ -491,7 +491,7 @@ class CodeBlock(QFrame):
         self._copy.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self._copy.setCursor(Qt.CursorShape.PointingHandCursor)
         self._copy.setAutoRaise(True)
-        self._copy.setFixedHeight(24)
+        self._copy.setFixedHeight(28)
         self._copy.setIcon(_copy_icon(self))
         self._copy.setIconSize(QSize(11, 11))
         self._copy.setText(self.tr("Copy"))

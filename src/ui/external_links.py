@@ -135,8 +135,17 @@ def open_external_url(url: str, parent=None) -> bool:
 
 def open_local_path(path: str, parent=None) -> bool:
     """Open a local file or folder, or hand the user the path instead."""
+
+
+
+
     from qgis.PyQt.QtCore import QUrl
 
+    from .file_links import is_safe_to_open
+
+    if not is_safe_to_open(path):
+        _show_refusal(path, parent=parent)
+        return False
     if _try_open(QUrl.fromLocalFile(path)):
         return True
     _show_address(path, parent=parent, kind=FOLDER)

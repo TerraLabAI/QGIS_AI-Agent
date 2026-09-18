@@ -41,6 +41,61 @@ _ALIVE: set = set()
 
 
 
+
+
+
+
+
+
+
+
+_TASKS_LOCK = threading.Lock()
+_TASKS: dict[int, dict] = {}
+_CURRENT = threading.local()
+
+
+def _task_started(key: int, description: str) -> dict:
+    entry = {"description": str(description or "")[:120], "started": time.monotonic(), "beat": time.monotonic()}
+    with _TASKS_LOCK:
+        _TASKS[key] = entry
+    return entry
+
+
+def _task_ended(key: int) -> None:
+    with _TASKS_LOCK:
+        _TASKS.pop(key, None)
+
+
+def heartbeat() -> None:
+    """Mark the current worker as alive."""
+
+
+
+
+    entry = getattr(_CURRENT, "entry", None)
+    if entry is not None:
+        entry["beat"] = time.monotonic()
+
+
+def running_tasks() -> list:
+    """The background work in flight: description, seconds running, seconds quiet."""
+
+
+
+
+
+    now = time.monotonic()
+    with _TASKS_LOCK:
+        entries = list(_TASKS.values())
+    out = [{"description": e["description"], "running_s": round(now - e["started"], 1),
+            "quiet_s": round(now - e["beat"], 1)} for e in entries]
+    out.sort(key=lambda item: item["running_s"])
+    return out
+
+
+
+
+
 class _MainThreadInvoker(QObject):
     """Runs a callable on the Qt main thread when emitted from a worker thread."""
 
@@ -147,7 +202,9 @@ def run_on_main_thread(fn, *args, timeout=10):
     cancel_check = net.current_cancel_check()
 
     def _trampoline():
-        started = time.monotonic()
+
+
+        started = time.perf_counter()
         try:
             if expired.is_set() or (cancel_check is not None and cancel_check()):
                 raise InterruptedError("Main-thread work cancelled before it started")
@@ -155,15 +212,21 @@ def run_on_main_thread(fn, *args, timeout=10):
         except Exception as exc:  # noqa: BLE001 - handed back to the caller
             result_queue.put(("err", exc))
         finally:
-            spent = time.monotonic() - started
+            spent = time.perf_counter() - started
             if spent > SLOW_MAIN_THREAD_S:
                 log_warning(f"Main thread held {spent * 1000:.0f} ms by {_describe(fn)}: "
                             f"QGIS was blocked for that long. Move what does not need "
                             f"PyQGIS back to the worker.")
 
+
+
+
+
+    heartbeat()
     main_thread_invoker().invoke(_trampoline)
     try:
         tag, payload = result_queue.get(timeout=timeout)
+        heartbeat()
     except queue.Empty as exc:
         expired.set()
         raise TimeoutError(
@@ -177,7 +240,7 @@ def run_on_main_thread(fn, *args, timeout=10):
 
 
 def _task_flags(task_cls, hidden: bool):
-    """CanCancel, plus Hidden/Silent when this QGIS knows them."""
+    """CanCancel and CancelWithoutPrompt, plus Hidden/Silent when this QGIS knows them."""
 
 
 
@@ -187,6 +250,12 @@ def _task_flags(task_cls, hidden: bool):
     flags = getattr(holder, "CanCancel", None)
     if flags is None:
         return None
+
+
+
+    quiet = getattr(holder, "CancelWithoutPrompt", None)
+    if quiet is not None:
+        flags = flags | quiet
     if hidden:
         for name in ("Hidden", "Silent"):
             extra = getattr(holder, name, None)
@@ -210,15 +279,37 @@ def _release_later(task) -> None:
         _ALIVE.discard(task)
 
 
-_TASK_CLASS = None
+class on_any_failure:
+    """``with on_any_failure(handle):`` is ``try: ..."""
+
+
+
+
+
+
+
+    def __init__(self, handle: Callable[[BaseException], None]):
+        self._handle = handle
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        if exc_type is None:
+            return False
+        self._handle(exc)
+        return True
+
+
+
+_TASK = {"class": None}
 
 
 def _task_class():
     """Build the QgsTask subclass once, lazily: importing qgis.core at module import time would tie the executor's import to a real QGIS."""
 
-    global _TASK_CLASS
-    if _TASK_CLASS is not None:
-        return _TASK_CLASS
+    if _TASK["class"] is not None:
+        return _TASK["class"]
     from qgis.core import QgsTask
 
     class _CallTask(QgsTask):
@@ -231,6 +322,10 @@ def _task_class():
         def __init__(self, description: str, work: Callable[[], Any],
                      on_done: Callable[[Any, str], None], flags):
             super().__init__(description, flags)
+
+
+
+            self._description = description
             self._work = work
             self._on_done = on_done
             self._result: Any = None
@@ -241,16 +336,26 @@ def _task_class():
 
 
             net.set_cancel_check(self.isCanceled)
+
+
+
+
+            _CURRENT.entry = _task_started(id(self), self._description)
             try:
-                if self.isCanceled():
-                    raise InterruptedError("Background work cancelled before it started")
-                self._result = self._work()
-            except BaseException as exc:  # noqa: BLE001 - the handler's failure is the result
-                self._result = None
-                self._error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()[-2000:]}"
+
+                with on_any_failure(self._fail):
+                    if self.isCanceled():
+                        raise InterruptedError("Background work cancelled before it started")
+                    self._result = self._work()
             finally:
                 net.set_cancel_check(None)
+                _task_ended(id(self))
+                _CURRENT.entry = None
             return True
+
+        def _fail(self, exc: BaseException) -> None:
+            self._result = None
+            self._error = f"{type(exc).__name__}: {exc}\n{traceback.format_exc()[-2000:]}"
 
         def finished(self, ok: bool) -> None:
 
@@ -262,7 +367,7 @@ def _task_class():
             finally:
                 _release_later(self)
 
-    _TASK_CLASS = _CallTask
+    _TASK["class"] = _CallTask
     return _CallTask
 
 
@@ -384,6 +489,10 @@ def breathe(index: int, every: int = BREATHE_EVERY) -> None:
 
     if index % every == 0:
         time.sleep(0)
+
+
+
+        heartbeat()
 
 
 def run_off_thread(description: str, work: Callable[[], Any],

@@ -38,112 +38,22 @@
 
 from __future__ import annotations
 
-import heapq
-import json
-import math
-import struct
-import time
-
-from qgis.core import (
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
-    QgsDistanceArea,
-    QgsFeature,
-    QgsFeatureRequest,
-    QgsField,
-    QgsGeometry,
-    QgsPointXY,
-    QgsProject,
-    QgsRasterLayer,
-    QgsVectorLayer,
-    QgsWkbTypes,
-)
-
-from ..core import limits, machine, net
-from ..core.qt_compat import field_type
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
+from ..core.tool_registry import Tool, ToolRegistry
 from .hydrology_layers import (
-    _add_drainage_layers,
-    _add_stream_layers,
-    _add_watershed_layer,
-    _dem_facts,
-    _ellipsoid_area_km2,
-    _finite,
-    _guessed_crs,
-    _mask_geometry,
-    _outlet_error,
-    _outlet_from_layer,
-    _parse_crs,
     _resolve_outlet,
-    _single_point,
-    _style_dem,
-    _style_streams,
 )
 from .hydrology_terrain import (
-    _BYTES_PER_CELL,
-    _CHAIN_MARGIN_SHARE,
     _CHAIN_MAX_MARGIN_KM,
-    _CHAIN_MIN_MARGIN_M,
-    _CHAIN_TIME_SHARE,
-    _CHECK_EVERY,
-    _D8,
-    _DEFAULT_RADIUS_KM,
-    _DEFAULT_SNAP_M,
-    _EXIT_CANDIDATES,
-    _EXIT_WHY,
     _MAX_ORDER,
     _MAX_RADIUS_KM,
-    _MAX_STREAM_SEGMENTS,
-    _MEMORY_SHARE,
-    _MIN_THRESHOLD_CELLS,
-    _MIN_THRESHOLD_M2,
-    _MIN_WATER_CELLS,
-    _MIN_WATER_M2,
-    _OTHER_EXITS,
-    _OUTLET_FORMS,
-    _SINK_SHARE,
-    _THRESHOLD_SHARE,
-    _UTM_MAX_LAT,
-    _WATER_LEVEL,
-    _accumulate,
-    _authid,
-    _bbox_around,
-    _border_nodata,
-    _box_geometry,
     _d8_downstream,
-    _dilate,
-    _envelope,
-    _exit_cells,
-    _longest_flow_path,
-    _open_water,
-    _parse_bbox,
-    _polygonise,
-    _priority_flood,
-    _rasterise,
-    _segment_rows,
-    _sinks,
-    _srs,
     _strahler_network,
-    _upstream_of,
 )
 from .hydrology_worker import (
-    _cell_cap,
-    _cell_metres,
-    _clock_refusal,
-    _cut_warning,
-    _degrees_note,
     _delineate_watershed,
-    _drainage,
     _extract_stream_network,
     _map_drainage,
-    _outlet_off_land,
-    _outlet_summary,
-    _snap,
-    _Stopped,
-    _stopped_answer,
 )
-from .layer_lookup import _find_layer, _layer_not_found_error
 
 
 def register_hydrology_tools(registry: ToolRegistry):
@@ -249,4 +159,11 @@ def register_hydrology_tools(registry: ToolRegistry):
     ))
 
 
-__all__ = ["register_hydrology_tools"]
+
+
+__all__ = [
+    "register_hydrology_tools",
+    "_d8_downstream",
+    "_resolve_outlet",
+    "_strahler_network",
+]

@@ -673,6 +673,42 @@ _RUN_SERIAL = 0
 _ADOPTING: list = []
 
 
+
+
+
+_RECENT_IDS: list = []
+MAX_RECENT_IDS = 40
+
+
+def note_added(layer_id: str) -> None:
+    """Remember that an agent call added this layer, newest last."""
+    text = str(layer_id or "")
+    if not text:
+        return
+    if text in _RECENT_IDS:
+        _RECENT_IDS.remove(text)
+    _RECENT_IDS.append(text)
+    del _RECENT_IDS[:-MAX_RECENT_IDS]
+
+
+def recent_layer_ids(project=None) -> list:
+    """The ids of the layers the agent added lately that the project still holds, newest first."""
+    try:
+        if project is None:
+            from qgis.core import QgsProject
+
+            project = QgsProject.instance()
+        present = project.mapLayers()
+    except Exception:  # noqa: BLE001 - no project, nothing to point at
+        return []
+    return [layer_id for layer_id in reversed(_RECENT_IDS) if layer_id in present]
+
+
+def forget_recent() -> None:
+    """Drop the remembered ids. A new project shares none of them."""
+    del _RECENT_IDS[:]
+
+
 def current_run():
     """The token of the run whose layers are watched now, or None outside a run."""
 
@@ -773,6 +809,7 @@ class Stacker:
 
             self._added.append(layer)
             self._added_ids.append(layer.id())
+            note_added(layer.id())
             if not is_backdrop(layer):
 
                 self._pending.append(layer)

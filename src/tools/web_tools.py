@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+import math
 import posixpath
 import re
 import urllib.error
@@ -179,6 +180,7 @@ def _link_first(url: str) -> tuple[dict, dict | None]:
             for entry in files])
         return link, {"url": link["resolved_from"], "resolved_from": link["resolved_from"],
                       "listing_url": link["url"], "file_count": len(files), "layers": files,
+                      **{k: link[k] for k in ("licence", "publisher") if link.get(k)},
                       "chars": len(text), "text": text, "note": link["note"]}
     return link, None
 
@@ -402,10 +404,8 @@ def _embedded_json(body: str) -> str:
 
 
 _PDF_STREAM_RE = re.compile(rb"stream(?:\r\n|\n|\r)(.*?)(?:\r\n|\n|\r)?endstream", re.DOTALL)
-_PDF_LITERAL_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)\s*(?:Tj|'|\")")
-_PDF_ARRAY_RE = re.compile(rb"\[((?:\\.|[^\]])*)\]\s*TJ")
 _PDF_ARRAY_PART_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)|(-?\d+(?:\.\d+)?)")
-_PDF_TOKEN_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)\s*(?:Tj|'|\")|\[((?:\\.|[^\]])*)\]\s*TJ|\b(?:Td|TD|T\*|Tm)\b")
+_PDF_TOKEN_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)\s*(?:Tj|'|\")|\[((?:\\.|[^\\\]])*)\]\s*TJ|\b(?:Td|TD|T\*|Tm)\b")
 _PDF_TITLE_RE = re.compile(rb"/Title\s*\(((?:\\.|[^\\)]){1,300})\)")
 _PDF_ESCAPES = {b"n": b"\n", b"r": b"\r", b"t": b"\t", b"b": b"", b"f": b"", b"(": b"(", b")": b")", b"\\": b"\\"}
 _PDF_MAX_STREAMS = 2000
@@ -607,7 +607,7 @@ def _number(value) -> float | None:
         number = float(value)
     except (TypeError, ValueError):
         return None
-    return number if number == number else None
+    return None if math.isnan(number) else number
 
 
 def _attribute(value):

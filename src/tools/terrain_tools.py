@@ -40,8 +40,8 @@ from __future__ import annotations
 
 import math
 import os
-import shutil
 import time
+import uuid
 
 from qgis.core import (
     QgsCategorizedSymbolRenderer,
@@ -66,6 +66,7 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 
 from ..core import limits, net
+from ..core.host_platform import remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import field_type
@@ -604,7 +605,10 @@ def _create_tiff(gdal, path: str, grid: dict, dtype, options, nodata):
 
 def _gdal_product(gdal, grid: dict, source: str, product: str, path: str, cancelled) -> None:
     """Slope or the multi-directional hillshade over the window, with GDAL's own code."""
-    vrt = f"/vsimem/terrain_{os.getpid()}_{time.monotonic_ns()}.vrt"
+
+
+
+    vrt = f"/vsimem/terrain_{uuid.uuid4().hex}.vrt"
     gdal.Translate(vrt, grid["dataset"], format="VRT",
                    srcWin=[grid["col0"], grid["row0"], grid["width"], grid["height"]])
 
@@ -647,7 +651,7 @@ def _finish(gdal, np, path: str, overviews: bool = True) -> dict:
     if nodata is not None:
         values = values[raw != nodata]
     values = values[np.isfinite(values)]
-    dataset = None
+    del dataset
     if values.size == 0:
         return {"p2": 0.0, "p98": 1.0, "abs98": 1.0}
     p2, p98 = (float(v) for v in np.percentile(values, [2, 98]))
@@ -763,7 +767,7 @@ def _terrain_visualisation(args: dict) -> dict:
     if failure is not None:
 
 
-        shutil.rmtree(folder, ignore_errors=True)
+        remove_tree(folder)
         return failure
     seconds = time.monotonic() - started
 
@@ -797,7 +801,7 @@ def _terrain_visualisation(args: dict) -> dict:
     try:
         added = _run_on_main_thread(_add_products, entries, timeout=60)
     except InterruptedError:
-        shutil.rmtree(folder, ignore_errors=True)
+        remove_tree(folder)
         return tool_error("Stopped before the relief images were added.", "CANCELLED",
                           "Nothing was added to the project.")
     by_product = {a["product"]: a for a in added}
@@ -968,7 +972,7 @@ def _detect_terrain_anomalies(args: dict) -> dict:
     try:
         return _detect_anomalies(args, folder)
     finally:
-        shutil.rmtree(folder, ignore_errors=True)
+        remove_tree(folder)
 
 
 def _detect_anomalies(args: dict, folder: str) -> dict:

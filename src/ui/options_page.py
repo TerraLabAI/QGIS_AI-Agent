@@ -28,8 +28,8 @@ class AIAgentOptionsPage(QgsOptionsPageWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
-        intro = QLabel(tr("AI Agent by TerraLab drives QGIS in plain language: load data, style layers, run "
-                          "analyses, build layouts. It asks before risky changes and you can undo a run."))
+        intro = QLabel(tr("AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs "
+                          "analyses and builds layouts. It asks before risky changes and you can undo a run."))
         intro.setWordWrap(True)
         layout.addWidget(intro)
         hints = QLabel(tr('Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator '

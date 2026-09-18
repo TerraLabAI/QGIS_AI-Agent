@@ -146,7 +146,8 @@ SCOPED_OPTIONS: dict[str, str] = {
     "CPL_VSIL_CURL_AUTHORIZATION_HEADER_ALLOWED_IF_REDIRECT": "NO",
 }
 
-_applied = False
+
+_state = {"applied": False}
 
 
 def _qgis_extra_cas() -> bytes:
@@ -190,7 +191,6 @@ def _ca_bundle_with_qgis_extras():
 
     from .host_platform import retry_file_op
     from .policy import AGENT_HOME
-    from .security import safe_open
 
     current = None
     try:
@@ -212,8 +212,11 @@ def _ca_bundle_with_qgis_extras():
     os.makedirs(os.path.dirname(target), exist_ok=True)
 
 
+
+
+
     temp = target + ".new"
-    with safe_open(temp, "wb") as handle:
+    with open(temp, "wb") as handle:
         handle.write(base if base.endswith(b"\n") else base + b"\n")
         handle.write(extra)
     try:
@@ -225,8 +228,7 @@ def _ca_bundle_with_qgis_extras():
 
 def apply_persistent() -> bool:
     """Set the process-wide options once. True when GDAL was reachable."""
-    global _applied
-    if _applied:
+    if _state["applied"]:
         return True
     try:
         from osgeo import gdal
@@ -251,7 +253,7 @@ def apply_persistent() -> bool:
         bundle = None
     if bundle:
         gdal.SetConfigOption("GDAL_HTTP_CAINFO", bundle)
-    _applied = True
+    _state["applied"] = True
     return True
 
 

@@ -30,6 +30,7 @@ from qgis.PyQt.QtCore import pyqtSignal
 from ..core.context import layer_geometry_label
 from ..core.layer_mime import card_kind_line, cheap_feature_count
 from .attach_card import TILE_GLYPH, AttachCard
+from .font_scale import widget_pixel_ratio
 from .layer_icons import layer_icon, layer_name, resolve_layer
 
 _KIND_GLYPHS = {
@@ -78,13 +79,10 @@ class LayerCard(AttachCard):
         kind = str(chip.get("kind") or "")
         value = str(chip.get("value") or "")
         layer = resolve_layer(value) if kind == "layer" else None
-        pixmap = None
-        if layer is not None:
-            icon = layer_icon(layer)
-            if not icon.isNull():
-                pixmap = icon.pixmap(TILE_GLYPH, TILE_GLYPH)
-        super().__init__(chip_display(chip), "", pixmap, parent, closable=closable,
+        super().__init__(chip_display(chip), "", None, parent, closable=closable,
                          clickable=(kind == "layer"), glyph=_KIND_GLYPHS.get(kind, "pin"))
+        if layer is not None:
+            self._set_layer_icon(layer_icon(layer))
         self.chip = chip
         self.kind = kind
         self.value = value
@@ -96,6 +94,24 @@ class LayerCard(AttachCard):
         else:
             self.set_kind(self._kind_word())
             self.set_tooltip(self._tooltip(None))
+
+    def _set_layer_icon(self, icon) -> None:
+        """The layer's own QGIS icon in the tile, at the screen's pixels."""
+
+
+
+
+
+
+
+        if icon is None or icon.isNull():
+            return
+        side = max(1, int(round(TILE_GLYPH * widget_pixel_ratio(self))))
+        pixmap = icon.pixmap(side, side)
+        if pixmap.isNull():
+            return
+        pixmap.setDevicePixelRatio(max(1.0, max(pixmap.width(), pixmap.height()) / float(TILE_GLYPH)))
+        self._tile.setPixmap(pixmap)
 
     def follow_project(self, gone=frozenset()) -> None:
         """Match the layer as the project holds it now: its current name, or a card that reads as removed."""

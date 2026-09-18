@@ -6,7 +6,7 @@ from __future__ import annotations
 from .base import GenericAdapter, PluginAdapter
 
 _REGISTRY: list[PluginAdapter] = []
-_BUILTINS_LOADED = False
+_builtins: dict = {"loaded": False}
 
 
 def register_adapter(adapter: PluginAdapter):
@@ -14,10 +14,9 @@ def register_adapter(adapter: PluginAdapter):
 
 
 def _load_builtins():
-    global _BUILTINS_LOADED
-    if _BUILTINS_LOADED:
+    if _builtins["loaded"]:
         return
-    _BUILTINS_LOADED = True
+    _builtins["loaded"] = True
 
 
 

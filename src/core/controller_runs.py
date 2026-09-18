@@ -44,9 +44,14 @@ class _ControllerRuns:
             self.notice.emit("info", tr("A run is in progress. Stop it or wait for it to finish."))
             return
         if not self._session.is_online:
+
+
+
+
             if self._session.state != "connecting":
                 self._panel_call("set_connection_state", "connecting", "")
                 self._session.connect_to_server()
+            log_warning(f"Send refused, socket is {self._session.state}; the message is kept for Retry")
 
 
             key = "unsent-" + uuid.uuid4().hex
@@ -55,7 +60,8 @@ class _ControllerRuns:
                 "chips": [c for c in (chips or []) if isinstance(c, dict)],
                 "attachments": [a for a in (attachments or []) if isinstance(a, dict)]})
             self._panel_call("show_error", None, "OFFLINE",
-                             tr("Not connected to the agent service yet. Reconnecting, retry in a moment."),
+                             tr("Not connected to the agent service, so nothing was sent. Reconnecting now: "
+                                "your message is kept, and Retry sends it once the connection is back."),
                              True, "", key)
             return
         mode = mode if mode in (Mode.ASK, Mode.AGENT) else self._settings.mode
@@ -131,7 +137,13 @@ class _ControllerRuns:
             self._fail_unsent_run(run_id, exc, began, dict(record, chips=asked_chips, attachments=sent_attachments))
             return
         if not sent:
-            self._panel_call("show_error", run_id, "OFFLINE", tr("The message could not be sent."), True, "")
+
+
+
+            log_warning(f"Run {run_id} never left the socket ({self._session.state})")
+            self._panel_call("show_error", run_id, "OFFLINE",
+                             tr("The message could not be sent: the connection to the agent service is down."),
+                             True, "")
             self._finish_run(run_id, RunStatus.FAILED,
                              tr("Not connected to the agent service. Retry once the connection is back."), {}, None)
         else:
@@ -322,7 +334,8 @@ class _ControllerRuns:
             self._panel_call("show_error", run_id, "LOST", message, True, "")
             track_plugin_error("resume", "LOST", run_id)
             telemetry.track(ev.CONNECTION_FAILED, {"stage": "resume", "error_code": "LOST",
-                                                   "duration_ms": self._run_age_ms(run)})
+                                                   "duration_ms": self._run_age_ms(run),
+                                                   **self._connection_facts()})
         finally:
             self._finish_run(run_id, RunStatus.FAILED, message, {}, None)
 
@@ -361,7 +374,8 @@ class _ControllerRuns:
             self._panel_call("show_error", run["run_id"], code, message, True, "")
             track_plugin_error("watchdog", code, run["run_id"])
             telemetry.track(
-                ev.CONNECTION_FAILED, {"stage": "run", "error_code": code, "duration_ms": self._run_age_ms(run)}
+                ev.CONNECTION_FAILED, {"stage": "run", "error_code": code, "duration_ms": self._run_age_ms(run),
+                                       **self._connection_facts()}
             )
         finally:
             self._finish_run(run["run_id"], RunStatus.FAILED, message, {}, None)

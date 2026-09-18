@@ -17,6 +17,7 @@ from . import background, code_guard, stalls
 from .executor_guards import BATCH_TOOL, CODE_TOOL
 from .log_scrub import scrub_result, scrub_secrets
 from .logger import log, log_warning
+from .plan import autopilot_allowed
 from .protocol import Approval, Danger, Decision, Mode, recommended_index
 from .protocol import ClientErrorCode as Err
 from .run_report import VERIFY_RUN, build_report
@@ -44,6 +45,7 @@ class _ExecutorCalls:
     def handle_tool_call(self, call: dict) -> None:
         if self._closed or not isinstance(call, dict):
             return
+        self._wake_watchdog()
         tool_call_id = str(call.get("tool_call_id") or "")
         run_id = str(call.get("run_id") or "")
         name = str(call.get("name") or "")
@@ -114,8 +116,12 @@ class _ExecutorCalls:
 
 
 
+
+
         mode = self._run_mode.get(run_id, (self._settings.mode, ""))[0]
         approval = self._settings.approval
+        if approval == Approval.AUTO and not autopilot_allowed():
+            approval = Approval.ASK
         if mode == Mode.ASK and danger != Danger.READ:
             self._fail(call, Err.READ_ONLY_MODE,
                        tr("Question mode is read only: {tool} would modify the project.").format(tool=name),
@@ -324,21 +330,11 @@ class _ExecutorCalls:
         return ((approval == Approval.CAREFUL and danger != Danger.READ)
                 or (approval == Approval.ASK and danger == Danger.DESTRUCTIVE))
 
-    def on_approval_changed(self, approval: str) -> None:
-        """The user picked another permission level while cards were open: the cards the new level would not have shown are allowed now."""
+    def open_cards(self) -> int:
+        """Permission cards waiting for an answer."""
 
 
-        for tool_call_id, call in list(self._pending.items()):
-            if call.get("always") or call.get("costly"):
-                continue
-            if self._asks(approval, str(call.get("danger") or Danger.READ)):
-                continue
-            self._pending.pop(tool_call_id, None)
-            run_id = str(call.get("run_id") or "")
-            log(f"ALLOW {call.get('name')} (permission level is now {approval})")
-            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
-            self.permission_resolved.emit(tool_call_id, Decision.ALLOW)
-            self._execute(call)
+        return len(self._pending)
 
     def on_permission_decided(self, tool_call_id: str, decision: str, edits: dict | None = None) -> None:
         """The user's answer to a permission card, with the arguments they may have changed."""

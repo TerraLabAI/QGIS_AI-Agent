@@ -146,12 +146,24 @@ _LAYER_ERROR_RE = re.compile(r"Could not load source layer for \w+: (?P<value>.+
 
 _SUBPROCESS_IMPORT_RE = re.compile(
     r"ImportError|ModuleNotFoundError|you should not try to import numpy", re.IGNORECASE)
+
+
+
+
+
+
+_SUBPROCESS_TRACEBACK_RE = re.compile(
+    r"Traceback \(most recent call last\)[\s\S]{0,4000}?(gdal_[\w.]+\.py|osgeo_utils)", re.IGNORECASE)
 _NATIVE_TWIN = {
     "gdal:rastercalculator": "native:rastercalc",
     "gdal:merge": "gdal:buildvirtualraster, then gdal:translate",
     "gdal:polygonize": "native:polygonize",
     "gdal:sieve": "native:sieve",
     "gdal:fillnodata": "native:fillnodata",
+    "gdal:aspect": "native:aspect",
+    "gdal:slope": "native:slope",
+    "gdal:hillshade": "native:hillshade",
+    "gdal:gridinversedistance": "qgis:idwinterpolation",
 }
 
 
@@ -166,6 +178,15 @@ def _processing_error(algorithm_id: str, detail: str, alg=None) -> dict:
              else "Run the native: algorithm for this operation instead of the gdal: one.")
             + f" {algorithm_id} is a Python script GDAL runs in another interpreter, and that "
               "interpreter cannot import numpy or osgeo here. The native ones run inside QGIS."
+        )
+        return result
+    if _SUBPROCESS_TRACEBACK_RE.search(detail):
+        twin = _NATIVE_TWIN.get(algorithm_id)
+        result["suggestion"] = (
+            (f"Run {twin} instead." if twin
+             else "Run the native: algorithm for this operation instead of the gdal: one.")
+            + f" {algorithm_id} died inside the Python script GDAL runs in a separate interpreter, "
+              "so the same call fails the same way. The native ones run inside QGIS."
         )
         return result
 
@@ -194,3 +215,15 @@ def _processing_error(algorithm_id: str, detail: str, alg=None) -> dict:
             pass
     return result
 
+
+
+
+__all__ = [
+    "_FIELD_EXISTS_RE",
+    "_LAYER_ERROR_RE",
+    "_SUBPROCESS_TRACEBACK_RE",
+    "_goes_to_task",
+    "_processing_error",
+    "_threadable",
+    "_unsafe_processing_algorithm",
+]

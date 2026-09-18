@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import math
 import time
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt, QTimer
@@ -71,7 +72,7 @@ def format_elapsed(seconds: float) -> str:
         seconds = float(seconds)
     except (TypeError, ValueError, OverflowError):
         seconds = 0.0
-    if seconds != seconds or seconds == float("inf"):
+    if math.isnan(seconds) or math.isinf(seconds):
         seconds = 0.0
     seconds = max(0.0, seconds)
     if seconds < 60:
@@ -88,7 +89,10 @@ class _Ticker(QWidget):
         super().__init__(parent)
         self._wanted = False
         self._motion = True
-        self._clock = time.monotonic()
+
+
+
+        self._clock = time.perf_counter()
         self._timer = QTimer(self)
         self._timer.setInterval(max(16, min(int(interval_ms), 60_000)))
         self._timer.timeout.connect(self.update)
@@ -123,7 +127,7 @@ class _Ticker(QWidget):
         super().hideEvent(event)
 
     def _elapsed(self) -> float:
-        return time.monotonic() - self._clock
+        return time.perf_counter() - self._clock
 
 
 class DotsLoader(_Ticker):

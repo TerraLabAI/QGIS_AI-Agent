@@ -15,7 +15,7 @@ from qgis.PyQt.QtWidgets import QApplication, QWidget
 from ..core.layer_mime import mime_has_layers
 from ..core.telemetry_errors import slot_guard
 from .bubbles import UserBubble
-from .chat_panel_shared import _turn_divider
+from .chat_panel_shared import CompactionDivider, _turn_divider
 from .dock.about import show_contact_dialog, show_shortcuts_dialog
 from .external_links import open_external_url
 from .shared import (
@@ -25,12 +25,8 @@ from .shared import (
     get_free_runs,
     get_support_email,
     get_tutorial_url,
-    get_upgrade_url,
 )
-from .trace import RunFootnote
 
-
-_LONG_CHAT_SHARE = 0.7
 
 
 
@@ -62,6 +58,7 @@ class _ChatPanelLayout:
         h.new_thread_requested.connect(self.new_thread_requested.emit)
         h.account_clicked.connect(self.open_settings_requested.emit)
         h.settings_clicked.connect(self.open_settings_requested.emit)
+        h.pro_pill_clicked.connect(self._on_pro_pill)
 
         self.update_banner.update_clicked.connect(self.update_clicked.emit)
         self.update_gate.update_clicked.connect(self.update_clicked.emit)
@@ -127,9 +124,24 @@ class _ChatPanelLayout:
         if not self._require_privacy_notice(self._on_send):
             return
 
-        chips = self.composer.take_chips()
 
-        self.send_requested.emit(text, "", "", chips, attachments)
+        chips = self.composer.peek_chips()
+
+
+
+
+
+
+        before = self._last_run
+        try:
+            self.send_requested.emit(text, "", "", chips, attachments)
+        except Exception:  # noqa: BLE001 - the box must never empty on a failed send
+            self.composer.show_warning(
+                self.tr("The message could not be sent. It is still here; try again."), sticky=True)
+            raise
+        if self._last_run == before:
+            return
+        self.composer.take_chips()
         self.composer.clear()
         self.composer.clear_attachments()
 
@@ -217,9 +229,30 @@ class _ChatPanelLayout:
 
 
 
-        self.upgrade_requested.emit()
+
+
         _used, _limit, _period_end, is_subscriber = self._usage
-        open_external_url(get_dashboard_url() if is_subscriber else get_upgrade_url(), parent=self)
+        if is_subscriber:
+            self.dashboard_requested.emit()
+            open_external_url(get_dashboard_url(), parent=self)
+            return
+        self.upgrade_requested.emit()
+
+    def _on_pro_pill(self) -> None:
+        """The header's "Get Pro": shown to a free account only, so it always means the offer; the controller opens it signed in."""
+
+        if self._paid_plan:
+            return
+        self.pro_pill_requested.emit()
+
+    def _set_plan_paid(self, paid: bool) -> None:
+        self._plan_known = True
+        self._paid_plan = bool(paid)
+        self._sync_pro_pill()
+
+    def _sync_pro_pill(self) -> None:
+        """The pill: a signed-in free account only, never before the plan is known."""
+        self.header.set_pro_pill_visible(self._signed_in and self._plan_known and not self._paid_plan)
 
     def open_help(self, kind: str) -> None:
         """The Help page of the settings dialog calls this: one entry point for the tutorial, the shortcuts, contact and the problem report."""
@@ -267,8 +300,15 @@ class _ChatPanelLayout:
         if self.composer.take_drop(event.mimeData()):
             event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
-        else:
-            event.ignore()
+            return
+
+
+
+
+
+        if not self.composer.hint_text():
+            self.composer.show_warning(self.tr("Nothing could be added from that drop."))
+        event.ignore()
 
     def resizeEvent(self, event):  # noqa: N802 - Qt override
         super().resizeEvent(event)
@@ -425,15 +465,21 @@ class _ChatPanelLayout:
             self._signed_in = False
             self.header.clear_account()
 
+            self._plan_known = False
+            self._sync_pro_pill()
+
 
             self.activation.show_signed_out(detail or "")
             self._show_thread_surface()
             return
         if state == "online":
             self._signed_in = True
+            self._sync_pro_pill()
             self.activation.pairing_finished()
             self.activation.clear_message()
-            self.composer.set_offline(False)
+
+
+            self.composer.set_offline(False, "online")
             self._show_thread_surface()
             return
         if not self._signed_in:
@@ -442,7 +488,11 @@ class _ChatPanelLayout:
             if state == "error" and detail:
                 self.activation.set_message(detail, "error")
             return
-        self.composer.set_offline(True)
+
+
+
+
+        self.composer.set_offline(True, state)
 
     def set_model_label(self, label: str) -> None:
         """Kept for the controller; nothing is shown (owner's decision)."""
@@ -460,13 +510,19 @@ class _ChatPanelLayout:
             limit = max(0, int(runs_limit or 0))
         except (TypeError, ValueError, OverflowError):
             limit = 0
-        if is_subscriber is None:
-            is_subscriber = limit > get_free_runs()
+
+
+
+        stated = is_subscriber is not None
+        if not stated:
+            is_subscriber = self._paid_plan if self._plan_known else limit > get_free_runs()
         self._usage = (used, limit, str(period_end_iso or "")[:80], bool(is_subscriber))
         self._apply_quota()
         sidebar = getattr(self, "sidebar", None)
         if sidebar is not None:
             sidebar.set_paid(bool(is_subscriber))
+        if stated:
+            self._set_plan_paid(bool(is_subscriber))
 
     def set_display_options(self, explain_runs: bool, show_tool_details: bool) -> None:
         """Settings > General: the Done card after a run, the activity block."""
@@ -492,22 +548,24 @@ class _ChatPanelLayout:
         except Exception:  # noqa: BLE001 - a field that cannot say is treated as empty
             return False
 
-    def _nudge_long_chat(self, usage: dict) -> None:
-        """Past 70 % of the history budget, one muted line, once per thread: the server folds old turns from there on, so answers lose detail."""
+    def _mark_compaction(self, usage, animate: bool = True) -> None:
+        """The compaction divider, once per thread, after the first run whose history the server compacted: ``usage.compaction_folds`` above 0 means."""
+
+
+
 
         try:
-            used, budget = float(usage.get("context_tokens") or 0), float(usage.get("context_budget") or 0)
-        except (TypeError, ValueError):
+            folds = int((usage or {}).get("compaction_folds") or 0)
+        except (AttributeError, TypeError, ValueError):
             return
-        if budget <= 0 or used / budget < _LONG_CHAT_SHARE or self._long_chat_nudged:
+        if folds <= 0 or self._compaction_marked:
             return
-        self._long_chat_nudged = True
-        note = RunFootnote()
-        note.setWordWrap(True)
-        note.setText(self.tr("Long chat: older messages get folded from here. "
-                             "For a new topic, start a new thread (+ in the header)."))
-        note.show()
-        self._add(note)
+        self._compaction_marked = True
+        divider = CompactionDivider(
+            self.tr("Conversation compacted"),
+            self.tr("The agent keeps a summary of the earlier exchanges. Your messages stay visible."))
+        divider.show()
+        self._add(divider, animate=animate)
 
 
 
@@ -532,6 +590,7 @@ class _ChatPanelLayout:
     def set_paid_plan(self, paid: bool) -> None:
         """Whether the account may pick the paid efforts and Autopilot; a free one sees Upgrade."""
         self.composer.set_paid_plan(paid)
+        self._set_plan_paid(paid)
 
     def add_context_chip(self, chip: dict) -> None:
         """A layer card above the composer, for the next message only."""

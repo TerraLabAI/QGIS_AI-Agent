@@ -260,7 +260,15 @@ _RENDER_PASS_SECONDS = 120.0
 
 
 
-_RENDER_TOTAL_SECONDS = 165.0
+
+
+
+
+_RENDER_TOTAL_SECONDS = 130.0
+
+
+_FALLBACK_SECONDS = 30.0
+_FALLBACK_MAX_SIDE = 640
 
 _RENDER_PASS_FLOOR_S = 8.0
 
@@ -310,7 +318,8 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
     run_on_main_thread(start, timeout=30)
     budget = max(_RENDER_PASS_FLOOR_S, min(float(budget), _RENDER_PASS_SECONDS))
-    if not done.wait(budget):
+    stopped = _wait_or_stop(done, budget)
+    if stopped or not done.is_set():
         def cancel():
             try:
                 job = _JOBS_ALIVE.get(holder.get("key"))
@@ -319,6 +328,8 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
             except Exception:  # nosec B110 - a job past its budget is dropped either way
                 pass
         run_on_main_thread(cancel, timeout=10)
+        if stopped:
+            return None, [{"layer_id": "", "message": _STOPPED}]
         return None, [{"layer_id": "", "message": f"render not finished after {budget:.0f} s"}]
     if "image" not in holder:
         return None, [{"layer_id": "", "message": "the render job ended without an image"}]
@@ -327,6 +338,38 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
 
 _JOBS_ALIVE: dict = {}
+_STOPPED = "render stopped by the user"
+
+_STOP_POLL_S = 0.25
+
+
+def _stop_requested() -> bool:
+    """Whether the run this worker belongs to was stopped (core/net_state's check)."""
+    from ..core.net_state import current_cancel_check
+
+    check = current_cancel_check()
+    try:
+        return bool(check()) if check is not None else False
+    except Exception:  # noqa: BLE001 - a broken check never stops a render
+        return False
+
+
+def _wait_or_stop(done, budget: float) -> bool:
+    """Wait for ``done`` up to ``budget`` seconds; True when Stop came first."""
+
+
+
+
+
+    deadline = time.monotonic() + budget
+    while not done.is_set():
+        if _stop_requested():
+            return True
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return False
+        done.wait(min(_STOP_POLL_S, left))
+    return False
 
 
 def _image_is_uniform(image) -> bool:
@@ -355,6 +398,223 @@ def _image_is_uniform(image) -> bool:
     return True
 
 
+def _dominant_share(image) -> float:
+    """The share of a sampled grid that is the single most common colour."""
+
+
+
+
+
+
+
+
+    try:
+        width, height = image.width(), image.height()
+        if width < 2 or height < 2:
+            return 1.0
+        counts: dict = {}
+        steps = 24
+        for row in range(steps):
+            y = row * (height - 1) // (steps - 1)
+            for column in range(steps):
+                x = column * (width - 1) // (steps - 1)
+                pixel = image.pixel(x, y)
+                counts[pixel] = counts.get(pixel, 0) + 1
+        return max(counts.values()) / float(steps * steps)
+    except Exception:  # noqa: BLE001 - an image we cannot sample is not called empty
+        return 0.0
+
+
+
+
+
+_REMOTE_PROVIDERS = frozenset({"wms", "wmts", "xyz", "wfs", "arcgismapserver",
+                               "arcgisfeatureserver", "afs", "ams", "vectortile", "oapif"})
+
+
+def _slow_layer_names(layers) -> list:
+    """The names of the layers in *layers* that draw over the network or from pixels."""
+    names = []
+    for layer in layers or ():
+        try:
+            provider = ""
+            try:
+                provider = str(layer.providerType() or "").lower()
+            except (AttributeError, RuntimeError):
+                provider = ""
+            if provider in _REMOTE_PROVIDERS or isinstance(layer, (QgsRasterLayer, _vector_tile_class())):
+                names.append(layer.name())
+        except (AttributeError, RuntimeError):
+            continue
+    return names
+
+
+def _extent_in(layer, destination) -> QgsRectangle | None:
+    """A layer's own extent expressed in *destination*, or None when it has none worth using."""
+
+
+
+
+    try:
+        if _is_tiled_raster(layer):
+            return None
+        rect = QgsRectangle(layer.extent())
+        if rect.isNull() or rect.isEmpty():
+            return None
+        source = layer.crs()
+        if source.isValid() and destination.isValid() and source != destination:
+            rect = QgsCoordinateTransform(source, destination, QgsProject.instance()).transformBoundingBox(rect)
+        return rect if not (rect.isNull() or rect.isEmpty()) else None
+    except Exception:  # noqa: BLE001 - a layer whose extent cannot be read frames nothing
+        return None
+
+
+def _framing(layers, destination, extent) -> tuple:
+    """``(data extent, names with nothing inside *extent*, names with something)``."""
+
+
+
+
+    data: QgsRectangle | None = None
+    outside, inside = [], []
+    for layer in layers or ():
+        rect = _extent_in(layer, destination)
+        if rect is None:
+            continue
+        data = QgsRectangle(rect) if data is None else data
+        data.combineExtentWith(rect)
+        try:
+            (inside if rect.intersects(extent) else outside).append(layer.name())
+        except (AttributeError, RuntimeError):
+            continue
+    return data, outside, inside
+
+
+def _bbox_of(rect) -> dict:
+    return {"xmin": rect.xMinimum(), "ymin": rect.yMinimum(),
+            "xmax": rect.xMaximum(), "ymax": rect.yMaximum()}
+
+
+def _layer_stamp(layer) -> str:
+    """Everything about one layer that changes what it draws, as one string."""
+
+
+
+
+
+    parts = []
+    try:
+        parts.append(str(layer.id()))
+        parts.append(f"{float(layer.opacity()):.4f}")
+        parts.append(str(int(layer.blendMode())))
+        parts.append(layer.extent().toString(9))
+    except Exception:  # noqa: BLE001 - a layer that will not answer is not cacheable
+        return ""
+    try:
+        from qgis.core import QgsMapLayerStyle
+
+        style = QgsMapLayerStyle()
+        style.readFromLayer(layer)
+        xml = style.xmlData()
+        if not xml:
+            return ""
+        parts.append(hashlib.sha256(xml.encode("utf-8", "replace")).hexdigest())
+    except Exception:  # noqa: BLE001 - no readable style is no stamp
+        return ""
+    if isinstance(layer, QgsVectorLayer):
+        try:
+            if layer.isEditable():
+                return ""
+            parts.append(str(layer.featureCount()))
+            parts.append(str(layer.subsetString() or ""))
+            parts.append(str(layer.undoStack().index()))
+        except Exception:  # noqa: BLE001
+            return ""
+    return "|".join(parts)
+
+
+
+
+
+
+
+_RENDER_CACHE: dict = {}
+_RENDER_CACHE_MAX = 2
+
+
+_RENDER_CACHE_TTL_S = 240.0
+
+_RENDER_CACHE_MAX_LAYERS = 24
+
+
+def _render_fingerprint(settings, layers, args) -> str:
+    """One string for "this exact picture", or "" when the render must not be cached."""
+    if not layers or len(layers) > _RENDER_CACHE_MAX_LAYERS:
+        return ""
+    stamps = [_layer_stamp(layer) for layer in layers]
+    if any(not stamp for stamp in stamps):
+        return ""
+    try:
+        size = settings.outputSize()
+        parts = [
+            f"{size.width()}x{size.height()}",
+            settings.destinationCrs().authid() or settings.destinationCrs().toWkt(),
+            settings.extent().toString(9),
+            str(args.get("background") or ""),
+
+
+            str(QgsProject.instance().fileName() or ""),
+            str(QgsProject.instance().count()),
+        ]
+    except Exception:  # noqa: BLE001 - settings we cannot read are not cacheable
+        return ""
+    parts.extend(stamps)
+    return hashlib.sha256("|".join(parts).encode("utf-8", "replace")).hexdigest()
+
+
+def _current_run_token():
+    try:
+        from ..core import layer_order
+
+        return layer_order.current_run()
+    except Exception:  # noqa: BLE001 - outside a run the cache simply never matches
+        return None
+
+
+def _cached_render(fingerprint: str):
+    """The previous render of this exact picture, or None."""
+    if not fingerprint:
+        return None
+    entry = _RENDER_CACHE.get(fingerprint)
+    if entry is None:
+        return None
+    if time.monotonic() - entry["at"] > _RENDER_CACHE_TTL_S or entry["run"] != _current_run_token():
+        _RENDER_CACHE.pop(fingerprint, None)
+        return None
+    return entry
+
+
+def _keep_render(fingerprint: str, image, plan: dict, passes: int) -> None:
+    if not fingerprint or image is None:
+        return
+    while len(_RENDER_CACHE) >= _RENDER_CACHE_MAX:
+        _RENDER_CACHE.pop(next(iter(_RENDER_CACHE)), None)
+    _RENDER_CACHE[fingerprint] = {
+        "at": time.monotonic(), "run": _current_run_token(), "image": image, "passes": passes,
+        "layers_rendered": plan["layers_rendered"], "width": plan["width"], "height": plan["height"],
+    }
+
+
+def _shrink_for_fallback(settings, width, height) -> tuple:
+    """Main thread: take the settings down to a size a slow map can actually finish."""
+    longest = max(1, max(int(width), int(height)))
+    scale = min(1.0, _FALLBACK_MAX_SIDE / float(longest))
+    small_w = max(64, int(round(width * scale)))
+    small_h = max(64, int(round(height * scale)))
+    settings.setOutputSize(QSize(small_w, small_h))
+    return small_w, small_h
+
+
 def _render_stable_async(settings, max_passes: int = 3, warm: bool = False):
     """``_render_stable`` with every wait on the worker."""
 
@@ -380,6 +640,8 @@ def _render_stable_async(settings, max_passes: int = 3, warm: bool = False):
             break
         got, got_errors = _render_pass_async(settings, left)
         passes += 1
+        if got is None and any(e.get("message") == _STOPPED for e in got_errors):
+            return None, passes, False, got_errors
         if got is None:
 
 
@@ -399,29 +661,43 @@ def _render_stable_async(settings, max_passes: int = 3, warm: bool = False):
     return image, passes, False, errors
 
 
-def _render_map(args: dict) -> dict:
-    """Worker thread (``background=True``): the settings are built on the main thread, every render waits here, and the JPEG is encoded here."""
-
-    planned = run_on_main_thread(_plan_render, args, timeout=30)
-    if "_error" in planned:
-        return planned
-    settings, layers_rendered, width, height, warm = (planned["settings"], planned["layers_rendered"],
-                                                      planned["width"], planned["height"], planned["warm"])
-    extent_note = planned.get("extent_note") or ""
-    image, passes, stable, render_errors = _render_stable_async(settings, warm=warm)
-    if image is None:
-        return {"_error": "The map did not finish rendering in time.",
-                "suggestion": "Render fewer layers (layer_names), a smaller extent, or a smaller image.",
-                "render_errors": render_errors}
+def _blank_note(image, planned: dict) -> dict:
+    """What to say about a picture with nothing in it, or {} when there is something."""
 
 
 
-    blank = {"blank": True,
-             "note": ("Every pixel is the same colour. Over a tile layer this is usually tiles that have "
-                      "not arrived yet: render again before concluding a layer is wrong. If the second "
-                      "render is blank too, the layers and the numbers you computed still stand: report "
-                      "them and say the preview did not draw. Do not stop the work for a blank preview.")
-             } if _image_is_uniform(image) else {}
+
+
+
+    uniform = _image_is_uniform(image)
+    if not uniform and _dominant_share(image) < 0.995:
+        return {}
+    note = {"blank": True}
+    outside, inside = planned.get("off_extent") or [], planned.get("in_extent") or []
+    data = planned.get("data_extent")
+    if outside and not inside and data:
+        note["note"] = (
+            "Nothing was drawn: none of these layers has data inside the extent that was rendered. "
+            f"Outside it: {', '.join(outside[:8])}. Render again with extent set to data_extent, "
+            "or call zoom_to_layer first. This is a framing mistake, not a broken layer.")
+        note["data_extent"] = data
+        note["off_extent"] = outside
+        return note
+    note["note"] = ("Every pixel is the same colour. Over a tile layer this is usually tiles that have "
+                    "not arrived yet: render again before concluding a layer is wrong. If the second "
+                    "render is blank too, the layers and the numbers you computed still stand: report "
+                    "them and say the preview did not draw. Do not stop the work for a blank preview.")
+    if data:
+        note["data_extent"] = data
+        note["note"] += (" The layers' own data sits inside data_extent: render with that extent if the "
+                         "view is not over them.")
+    return note
+
+
+def _render_answer(args: dict, image, planned: dict, passes: int, stable: bool, render_errors: list) -> dict:
+    """The result of a finished render: the file or the JPEG, plus everything measured about it."""
+    width, height = planned["width"], planned["height"]
+    common = {"layers_rendered": planned["layers_rendered"], "render_stable": stable, "passes": passes}
     save_path = args.get("save_path")
     if save_path:
         path_error = validate_path(save_path, write=True)
@@ -434,37 +710,160 @@ def _render_map(args: dict) -> dict:
         if not image.save(save_path, fmt):
             return {"_error": f"Could not write image to {save_path}"}
 
-        result = {
-            "saved_path": save_path, "width": width, "height": height, "format": fmt.lower(),
-            "layers_rendered": layers_rendered, "render_stable": stable, "passes": passes,
-        }
-        result.update(blank)
-        if extent_note:
-            result["extent_note"] = extent_note
-        if render_errors:
-            result["render_errors"] = render_errors
-        return result
+        result = {"saved_path": save_path, "width": image.width(), "height": image.height(),
+                  "format": fmt.lower(), **common}
+    else:
+        raw, sent = _jpeg_under_cap(image)
+        result = {"image_base64": base64.b64encode(raw).decode("ascii"),
+                  "width": sent.width(), "height": sent.height(),
+                  "format": "jpeg", "image_bytes": len(raw), **common}
+        if (sent.width(), sent.height()) != (width, height):
+            result["downscaled_from"] = {"width": width, "height": height}
+    result.update(_blank_note(image, planned))
+    keys = ["extent_note", "size_note"]
+    if planned.get("off_extent"):
 
-    raw, sent = _jpeg_under_cap(image)
-    result = {
-        "image_base64": base64.b64encode(raw).decode("ascii"), "width": sent.width(), "height": sent.height(),
-        "format": "jpeg", "image_bytes": len(raw),
-        "layers_rendered": layers_rendered, "render_stable": stable, "passes": passes,
-    }
-    result.update(blank)
-    if extent_note:
-        result["extent_note"] = extent_note
-    if (sent.width(), sent.height()) != (width, height):
-        result["downscaled_from"] = {"width": width, "height": height}
+
+        keys += ["off_extent", "data_extent"]
+    for key in keys:
+        value = planned.get(key)
+        if value and key not in result:
+            result[key] = value
     if render_errors:
         result["render_errors"] = render_errors
     return result
 
 
+def _render_map(args: dict) -> dict:
+    """Worker thread (``background=True``): the settings are built on the main thread, every render waits here, and the JPEG is encoded here."""
+
+    planned = run_on_main_thread(_plan_render, args, timeout=30)
+    if "_error" in planned:
+        return planned
+    settings, width, height, warm = (planned["settings"], planned["width"],
+                                     planned["height"], planned["warm"])
+
+
+
+
+    fingerprint = planned.get("fingerprint") or ""
+    cached = _cached_render(fingerprint)
+    if cached is not None:
+        kept = dict(planned)
+        kept.update(width=cached["width"], height=cached["height"],
+                    layers_rendered=cached["layers_rendered"])
+        result = _render_answer(args, cached["image"], kept, cached["passes"], True, [])
+        if "_error" not in result:
+            result["unchanged"] = True
+            result["note"] = ("Nothing on the map changed since the last render_map of this run, so this is "
+                              "that same picture, returned without rendering again. Calling render_map once "
+                              "more will give the same image: change the map, the extent or the size first, "
+                              "or move on with what you have.")
+        return result
+
+    image, passes, stable, render_errors = _render_stable_async(settings, warm=warm)
+    if image is None and any(e.get("message") == _STOPPED for e in render_errors):
+        return {"_error": "The render was stopped.", "code": "CANCELLED"}
+    reduced = None
+    if image is None and not _stop_requested():
+
+
+
+        small = run_on_main_thread(_shrink_for_fallback, settings, width, height, timeout=10)
+        image, render_errors = _render_pass_async(settings, _FALLBACK_SECONDS)
+        passes += 1
+        stable = False
+        reduced = small
+    if image is None and any(e.get("message") == _STOPPED for e in render_errors):
+        return {"_error": "The render was stopped.", "code": "CANCELLED"}
+    if image is None:
+        slow = planned.get("slow_layers") or []
+        error = {"_error": "The map did not finish rendering in time, at full size or at 640 pixels.",
+                 "suggestion": ("Hide the heaviest layer with set_layers_visibility, then render again. "
+                                + (f"These draw over the network or from pixels: {', '.join(slow[:6])}."
+                                   if slow else "Or render a smaller extent.")),
+                 "render_errors": render_errors}
+        if slow:
+            error["slow_layers"] = slow
+        return error
+    if reduced is not None:
+        planned = dict(planned)
+        planned["width"], planned["height"] = reduced
+    result = _render_answer(args, image, planned, passes, stable, render_errors)
+    if "_error" in result:
+        return result
+    if reduced is not None:
+        result["reduced_from"] = {"width": width, "height": height}
+        result["reduced_note"] = (f"The map was too slow to draw at {width} by {height}, so this is "
+                                  f"{reduced[0]} by {reduced[1]}. Hide a heavy layer or render a smaller "
+                                  "extent before asking for the full size again.")
+    elif stable and not result.get("blank") and not render_errors:
+        _keep_render(fingerprint, image, planned, passes)
+    return result
+
+
+def _view_size(args: dict) -> tuple:
+    """The image size of a render_map call."""
+
+
+
+    width, height = args.get("width"), args.get("height")
+    if width and height:
+        return int(width), int(height)
+    aspect = 0.0
+    if not args.get("extent"):
+        try:
+            canvas = iface.mapCanvas()
+            if canvas.width() > 0 and canvas.height() > 0:
+                aspect = canvas.width() / canvas.height()
+        except Exception:  # noqa: BLE001 - no canvas outside QGIS
+            aspect = 0.0
+    if not 0.2 <= aspect <= 5.0:
+        return int(width or 800), int(height or 600)
+    if width:
+        return int(width), max(64, round(int(width) / aspect))
+    if height:
+        return max(64, round(int(height) * aspect)), int(height)
+    area = 800 * 600
+    return max(64, round((area * aspect) ** 0.5)), max(64, round((area / aspect) ** 0.5))
+
+
+def _clamp_render_size(asked_width, asked_height) -> tuple:
+    """(width, height, note) for a render of *asked_width* by *asked_height*."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    asked_width, asked_height = max(1, int(asked_width)), max(1, int(asked_height))
+    max_w = limits.current("MAX_RENDER_WIDTH_PX")
+    max_h = limits.current("MAX_RENDER_HEIGHT_PX")
+    width, height = min(asked_width, max_w), min(asked_height, max_h)
+    if (width, height) == (asked_width, asked_height):
+        return width, height, ""
+    shape = min(width / float(asked_width), height / float(asked_height))
+    width = max(64, min(width, int(round(asked_width * shape))))
+    height = max(64, min(height, int(round(asked_height * shape))))
+    note = (f"Asked for {asked_width} by {asked_height}, rendered at {width} by {height}: "
+            f"this machine renders at most {max_w} by {max_h} pixels. Nothing downstream reads "
+            "more, so ask for this size or less from now on.")
+    return width, height, note
+
+
 def _plan_render(args: dict) -> dict:
     """Main thread: the settings of a render_map call, or the error that stops it."""
-    width = min(args.get("width", 800), limits.current("MAX_RENDER_WIDTH_PX"))
-    height = min(args.get("height", 600), limits.current("MAX_RENDER_HEIGHT_PX"))
+    asked_width, asked_height = _view_size(args)
+    width, height, size_note = _clamp_render_size(asked_width, asked_height)
 
     settings = QgsMapSettings()
     settings.setOutputSize(QSize(width, height))
@@ -489,6 +888,29 @@ def _plan_render(args: dict) -> dict:
         settings.setDestinationCrs(canvas_crs)
     else:
         settings.setDestinationCrs(QgsProject.instance().crs())
+
+
+
+
+    layer_names = args.get("layer_names")
+    if layer_names:
+        layers = []
+        missing = []
+        for name in layer_names:
+            layer = _find_layer(name)
+            if layer is not None:
+                layers.append(layer)
+            else:
+                missing.append(name)
+        if missing:
+
+
+
+            error = _layer_not_found_error(missing[0])
+            error["_missing_layers"] = missing
+            return error
+    else:
+        layers = list(iface.mapCanvas().layers())
 
     extent = args.get("extent")
     degrees_note = ""
@@ -517,31 +939,40 @@ def _plan_render(args: dict) -> dict:
     else:
         settings.setExtent(iface.mapCanvas().extent())
 
-    layer_names = args.get("layer_names")
-    if layer_names:
-        layers = []
-        missing = []
-        for name in layer_names:
-            layer = _find_layer(name)
-            if layer is not None:
-                layers.append(layer)
-            else:
-                missing.append(name)
-        if missing:
-
-
-
-            error = _layer_not_found_error(missing[0])
-            error["_missing_layers"] = missing
-            return error
-    else:
-        layers = list(iface.mapCanvas().layers())
     settings.setLayers(layers)
+
+
+
+
+    destination = settings.destinationCrs()
+    data_rect, outside, inside = _framing(layers, destination, settings.extent())
+    frame_note = ""
+    if data_rect is not None and not inside and outside and not extent and layer_names:
+
+
+
+
+
+        padded = QgsRectangle(data_rect)
+        padded.grow(max(data_rect.width(), data_rect.height()) * 0.05 or 1.0)
+        settings.setExtent(padded)
+        frame_note = ("The view held none of these layers, so the render was framed on their own extent "
+                      f"({', '.join(outside[:8])}) instead of the canvas. Call zoom_to_layer if the user "
+                      "should be looking there too.")
+        data_rect, outside, inside = _framing(layers, destination, settings.extent())
 
     _apply_background(settings, args.get("background"))
     warm = bool(args.get("warmup", True)) and any(_is_tiled_raster(layer) for layer in layers)
-    return {"settings": settings, "layers_rendered": [layer.name() for layer in layers],
-            "width": width, "height": height, "warm": warm, "extent_note": degrees_note}
+    notes = [note for note in (degrees_note, frame_note) if note]
+    plan = {"settings": settings, "layers_rendered": [layer.name() for layer in layers],
+            "width": width, "height": height, "warm": warm, "extent_note": " ".join(notes),
+            "slow_layers": _slow_layer_names(layers), "off_extent": outside, "in_extent": inside}
+    if size_note:
+        plan["size_note"] = size_note
+    if data_rect is not None:
+        plan["data_extent"] = _bbox_of(data_rect)
+    plan["fingerprint"] = _render_fingerprint(settings, layers, args)
+    return plan
 
 
 def _plan_detection_reveal(args: dict) -> dict:
@@ -564,8 +995,7 @@ def _plan_detection_reveal(args: dict) -> dict:
     out_dir = args["out_dir"]
     steps = min(MAX_FRAME_STEPS, max(1, int(args.get("steps", 24))))
     order = args.get("order", "random")
-    width = min(args.get("width", 1920), limits.current("MAX_RENDER_WIDTH_PX"))
-    height = min(args.get("height", 1080), limits.current("MAX_RENDER_HEIGHT_PX"))
+    width, height, size_note = _clamp_render_size(args.get("width", 1920), args.get("height", 1080))
     prefix = _safe_frame_prefix(args.get("prefix"), "reveal_")
     random_colors = args.get("random_colors", True)
     fill_color = args.get("fill_color", "#3FB984")
@@ -672,11 +1102,14 @@ def _plan_detection_reveal(args: dict) -> dict:
         settings.setLayers([mem] + base_layers if background != "transparent" else [mem])
         return settings
 
-    return {"out_dir": out_dir, "prefix": prefix, "steps": steps, "width": width,
+    plan = {"out_dir": out_dir, "prefix": prefix, "steps": steps, "width": width,
             "height": height, "frame_settings": frame_settings, "order": order,
             "feature_count": total, "layer": src.name(),
             "warm": bool(args.get("warmup", True)) and bool(base_layers),
             "layers_rendered": [src.name()] + [lyr.name() for lyr in base_layers]}
+    if size_note:
+        plan["size_note"] = size_note
+    return plan
 
 
 def _render_detection_reveal(args: dict) -> dict:
@@ -725,6 +1158,8 @@ def _render_detection_reveal(args: dict) -> dict:
         "render_stable": all(stable_flags),
         "passes": max(pass_counts) if pass_counts else 0,
     }
+    if planned.get("size_note"):
+        result["size_note"] = planned["size_note"]
     if all_errors:
         result["render_errors"] = all_errors
     return result
@@ -736,8 +1171,7 @@ def _plan_camera_move(args: dict) -> dict:
 
     out_dir = args["out_dir"]
     steps = min(MAX_FRAME_STEPS, max(2, int(args.get("steps", 60))))
-    width = min(args.get("width", 1920), limits.current("MAX_RENDER_WIDTH_PX"))
-    height = min(args.get("height", 1080), limits.current("MAX_RENDER_HEIGHT_PX"))
+    width, height, size_note = _clamp_render_size(args.get("width", 1920), args.get("height", 1080))
     prefix = _safe_frame_prefix(args.get("prefix"), "camera_")
     background = args.get("background")
     dest_crs = QgsProject.instance().crs()
@@ -812,10 +1246,13 @@ def _plan_camera_move(args: dict) -> dict:
         settings.setLayers(layers)
         return settings
 
-    return {"out_dir": out_dir, "prefix": prefix, "steps": len(frame_rects),
+    plan = {"out_dir": out_dir, "prefix": prefix, "steps": len(frame_rects),
             "width": width, "height": height, "frame_settings": frame_settings,
             "warm": bool(args.get("warmup", True)),
             "layers_rendered": [layer.name() for layer in layers]}
+    if size_note:
+        plan["size_note"] = size_note
+    return plan
 
 
 def _render_camera_move(args: dict) -> dict:
@@ -864,6 +1301,8 @@ def _render_camera_move(args: dict) -> dict:
         "render_stable": all(stable_flags),
         "passes": max(pass_counts) if pass_counts else 0,
     }
+    if planned.get("size_note"):
+        result["size_note"] = planned["size_note"]
     if all_errors:
         result["render_errors"] = all_errors
     return result

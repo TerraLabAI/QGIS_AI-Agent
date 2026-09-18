@@ -470,7 +470,7 @@ def _declare_nan_nodata(path: str) -> None:
             band = dataset.GetRasterBand(index)
             if band.DataType in (gdal.GDT_Float32, gdal.GDT_Float64) and band.GetNoDataValue() is None:
                 band.SetNoDataValue(float("nan"))
-        dataset = None
+        del dataset
     except Exception as exc:  # noqa: BLE001 - a file we cannot tag is still a readable raster
         log_warning(f"Downloaded raster: nodata not declared: {exc}")
 
@@ -495,6 +495,14 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                     "_suggestion": "Run the tool that produced this url again; its answer is held for a "
                                    "short while only, and the new url loads the same area.",
                     "url": url}
+        if isinstance(exc, net.FetchTooLarge):
+
+
+
+            return {"_error": f"That raster cannot be streamed and is too large to download: {exc}",
+                    "_code": "EXECUTION_FAILED",
+                    "_suggestion": "Take a coarser or hosted Cloud-Optimized version of the same data "
+                                   "(find_datasets), or a smaller area's file.", "url": url}
         return {"_error": f"Could not download that raster: {exc}", "_code": "EXECUTION_FAILED",
                 "_suggestion": "Check the address serves the file itself, not a page about it.", "url": url}
     body = response.body
@@ -504,7 +512,8 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                 "_suggestion": "Run the tool that produced this url again." if one_shot
                                else "Check the address serves the file itself.", "url": url}
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
-    path = os.path.join(create_managed_temp_dir("eodata"), f"{stem[:60]}.tif")
+
+    path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}.tif")
     try:
         with open(path, "wb") as handle:
             handle.write(body)
@@ -543,6 +552,43 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
     return _run_on_main_thread(_create, timeout=60)
 
 
+def _probe_raster_url(url: str) -> tuple[int, str]:
+    """(HTTP status or 0, plain cause) for a raster address GDAL could not open."""
+
+
+
+
+
+    request = urllib.request.Request(url, headers={"Range": "bytes=0-3"})
+    try:
+        response = net.fetch(request, timeout=10, max_bytes=64, total_timeout=15)
+    except urllib.error.HTTPError as exc:
+        code = int(getattr(exc, "code", 0) or 0)
+        causes = {
+            401: "the host asks for credentials (HTTP 401)",
+            403: "the host refuses access to this file (HTTP 403)",
+            404: "the file does not exist at this address (HTTP 404)",
+            410: "the file was removed from this address (HTTP 410)",
+            429: "the host is rate limiting requests (HTTP 429)",
+        }
+        if code in causes:
+            return code, causes[code] + "."
+        if code >= 500:
+            return code, f"the host failed to serve the file (HTTP {code})."
+        return code, f"the host answered HTTP {code}."
+    except net.FetchTooLarge:
+        return 200, ("the address answers (HTTP 200) but ignores range requests, so the file cannot "
+                     "be streamed; download it instead.")
+    except Exception as exc:  # noqa: BLE001 - the probe only explains a failure
+        return 0, f"the host could not be reached ({type(exc).__name__})."
+    body = bytes(getattr(response, "body", b"") or b"")[:4]
+    if body[:2] not in (b"II", b"MM"):
+        return 200, ("the address answers (HTTP 200) but the content is not a GeoTIFF; "
+                     "it may be a web page or another format.")
+    return 200, ("the file is a TIFF (HTTP 200) but GDAL could not stream it; it may not be "
+                 "Cloud-Optimized, or the server ignores range requests.")
+
+
 def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: dict | None = None) -> dict:
 
 
@@ -578,10 +624,7 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         layer = QgsRasterLayer(f"/vsicurl/{final_url}", name or "COG", "gdal")
         if not layer.isValid():
             return {
-                "_error": (
-                    "Could not open the raster. The URL may not be a valid Cloud-Optimized GeoTIFF, "
-                    "or it may be private (needs a SAS token / auth) or unreachable."
-                ),
+                "_error": "Could not open the raster.",
                 "_code": "INVALID_ARGS",
 
 
@@ -614,6 +657,20 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
     result = _run_on_main_thread(_create, timeout=60)
     if result.get("_error"):
+        if result.get("_error") == "Could not open the raster.":
+            status, cause = _probe_raster_url(final_url)
+            result["_error"] = f"Could not open the raster: {cause}"
+            if status:
+                result["http_status"] = status
+            if status in (401, 403):
+                result["_code"] = "PERMISSION_DENIED"
+                result["_suggestion"] = ("The host refuses this file without credentials. Take the same data "
+                                         "from an open source, or sign the address if the catalog offers it.")
+            elif status and status != 200 and status != 206:
+                result["_code"] = "NETWORK_ERROR" if status >= 500 or status == 429 else "INVALID_ARGS"
+                result["_suggestion"] = ("The file is not at this address. Search the catalog again for a current "
+                                         "asset URL." if status in (404, 410) else
+                                         "The host did not serve the file. Try again later or use another source.")
         return result
     if note:
         result["_note"] = note
@@ -822,6 +879,15 @@ def _add_stac_layer(args: dict) -> dict:
         "collection": item.get("collection"),
         "asset_key": chosen_key,
     }
+
+
+    from ..core.data_date import from_range
+
+    props = item.get("properties") if isinstance(item.get("properties"), dict) else {}
+    acquired = from_range(props.get("start_datetime") or props.get("datetime"),
+                          props.get("end_datetime") or props.get("datetime"))
+    if acquired:
+        extra["data_date"] = acquired
     result = _add_cog(final_url, name, note=note, extra=extra)
     dataset_docs.attach(result, item_url)
     return result

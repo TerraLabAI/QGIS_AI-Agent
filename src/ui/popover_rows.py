@@ -178,3 +178,12 @@ class _Row(QWidget):
             finally:
                 painter.end()
         super().paintEvent(event)
+
+
+__all__ = [
+    "_POPOVER_QSS",
+    "_ROW_PAD_X",
+    "_ROW_PAD_Y",
+    "_Row",
+    "_TILE",
+]

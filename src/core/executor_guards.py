@@ -46,10 +46,26 @@ _LAYER_FREE_TOOLS = frozenset({
     "set_layer_visibility", "set_layers_visibility", "set_layer_order", "move_layer_to_group",
     "create_layer_group", "set_canvas_extent", "set_canvas_scale", "zoom_to_layer",
     "zoom_to_selected", "set_layer_style", "set_raster_style", "set_layer_labels", "apply_style_qml",
+
+
+
+    "set_layer_crs", "set_project_crs", "set_layer_filter",
+
+
+
+    "add_features", "update_features", "delete_features", "update_feature_geometry",
+    "select_features", "select_by_attribute", "select_by_geometry", "clear_selection",
 })
 
 
 _LIFTABLE_TOOLS = frozenset({"add_data", "fetch_osm_data", "fetch_overture"})
+
+
+
+
+
+
+_LAYERS_PER_ROUND = 4
 
 
 CODE_TOOL = "execute_code"
@@ -120,19 +136,28 @@ class _ExecutorGuards:
             return None
         adding = [(inner, inner_args) for inner, inner_args in self._calls_in(name, args or {})
                   if inner not in _LAYER_FREE_TOOLS]
+        if not adding:
+
+
+            return None
         if volume_guard is not None and adding and all(volume_guard.lifted(a) for _inner, a in adding):
             return None
         added = self.stacker.added_count()
-        cap = limits.current("MAX_LAYERS_PER_RUN")
-        if added < cap:
+        cap = max(1, int(limits.current("MAX_LAYERS_PER_RUN")))
+        rounds = self._layer_rounds(run_id, added)
+        ceiling = cap * _LAYERS_PER_ROUND
+        if len(rounds) < cap and added < ceiling:
             return None
 
 
         liftable = volume_guard is not None and bool(adding) and all(
             inner in _LIFTABLE_TOOLS for inner, _a in adding)
+        over = (f"This run has added layers in {len(rounds)} calls, the cap for one answer ({cap}); "
+                f"{added} of them are still in the project."
+                if len(rounds) >= cap else
+                f"This run has added {added} layers to the project, the cap for one answer ({ceiling}).")
         return {
-            "error": (f"This run has added {added} layers to the project, the cap for one answer "
-                      f"({cap}). Every layer costs a redraw of the tree and the "
+            "error": (over + " Every layer costs a redraw of the tree and the "
                       "canvas, and a project nobody asked to grow this much is its own kind of damage."
                       + (volume_guard.LIFT_HINT if liftable else "")),
 
@@ -146,6 +171,39 @@ class _ExecutorGuards:
                            "of one per source works too. Only if every layer is needed, stop, tell the user "
                            "what was added and what is left, and ask whether to continue in a new message."),
         }
+
+    def _layer_rounds(self, run_id: str, added: int) -> list:
+        """The layers this run put on the map, grouped by the call that brought them."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        held = getattr(self, "_layer_rounds_held", None)
+        if held is None or held[0] != run_id:
+            held = self._layer_rounds_held = (run_id, [])
+        rounds = held[1]
+        counted = sum(rounds)
+        if added > counted:
+            rounds.append(added - counted)
+        while added < counted and rounds:
+            gone = min(counted - added, rounds[-1])
+            rounds[-1] -= gone
+            counted -= gone
+            if not rounds[-1]:
+                rounds.pop()
+        return rounds
 
     def _drop_unused_bbox(self, name: str, args: dict) -> None:
         """A bbox a tool does not take costs nothing, so it must not refuse the call."""
@@ -172,7 +230,12 @@ class _ExecutorGuards:
         if guards is None or not isinstance(args, dict):
             return
         try:
-            for change in output_paths.resolve_write_paths(name, args, guards.WRITE_PATH_ARGS):
+            changes = output_paths.resolve_write_paths(name, args, guards.WRITE_PATH_ARGS)
+            if name == "run_processing" and effective_danger is not None:
+                from ..tools.danger import _processing_output_params
+                keys = _processing_output_params(str(args.get("algorithm_id") or ""))
+                changes += output_paths.resolve_processing_outputs(args, keys)
+            for change in changes:
                 log(f"PATH {name}.{change['arg']} -> {change['to']} ({change['how']})")
         except Exception as exc:  # noqa: BLE001 - the path as written still meets every guard
             log_warning(f"output path resolution failed for {name}: {exc}")

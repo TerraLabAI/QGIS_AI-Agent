@@ -52,6 +52,10 @@ BACKOFF_S = (1, 2, 4, 8, 16, 30)
 
 
 
+SAVED_SESSION_MAX_AGE_S = 24 * 3600
+
+
+
 CANCEL_RESENDS = 3
 
 MAX_PENDING_CANCELS = 16
@@ -137,7 +141,12 @@ class AgentSession(QObject):
 
 
     sources = pyqtSignal(str, object)
+
+    server_tool = pyqtSignal(object)
     counts = pyqtSignal(str, int, int)
+
+
+    connection_failed = pyqtSignal(object)
 
     def __init__(self, settings, account, identity_provider: Callable[[], dict],
                  manifest_provider: Callable[[], tuple], parent=None):
@@ -178,6 +187,8 @@ class AgentSession(QObject):
         self._last_manifest_hash = ""
         self._model_label = ""
         self._last_failure: tuple[str, str, int] | None = None
+        self._reached_session = False
+        self._failed_streak = 0
 
 
         self._pending_cancels: dict[str, int] = {}
@@ -208,6 +219,8 @@ class AgentSession(QObject):
         return self._model_label
 
     def connect_to_server(self) -> None:
+        if not self._session_id:
+            self._claim_saved_session()
         self._user_closed = False
         self._auth_failed = False
         self._auth_message = ""
@@ -226,6 +239,8 @@ class AgentSession(QObject):
         self._reconnect.stop()
         if wait and self._pending_cancels:
             self._flush_before_close()
+        if wait:
+            self._save_session()
         self._pending_cancels.clear()
         self._ws.close(1000, "client closing", wait_ms=1500 if wait else 0)
         self._set_state("offline", "")
@@ -250,6 +265,61 @@ class AgentSession(QObject):
     def forget_session(self) -> None:
         self._session_id = None
         self._last_seq = 0
+        self._write_saved("")
+
+
+
+
+
+
+
+
+
+
+
+    def _key_tag(self) -> str:
+        import hashlib
+
+        key = str(getattr(self._account, "activation_key", "") or "")
+        return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12] if key else ""
+
+    def _write_saved(self, value: str) -> None:
+        try:
+            if hasattr(type(self._settings), "saved_session"):
+                self._settings.saved_session = value
+        except Exception as exc:  # noqa: BLE001 - a settings write never stops a connection
+            log_warning(f"Session id not stored: {exc}")
+
+    def _save_session(self) -> None:
+        tag = self._key_tag()
+        if not (self._session_id and tag):
+            return
+        self._write_saved(f"{tag}|{self._session_id}|{int(self._last_seq)}|{int(time.time())}")
+
+    def _claim_saved_session(self) -> None:
+        try:
+            saved = str(getattr(self._settings, "saved_session", "") or "") \
+                if hasattr(type(self._settings), "saved_session") else ""
+        except Exception:  # noqa: BLE001 - an unreadable value is no saved session
+            saved = ""
+        if not saved:
+            return
+        self._write_saved("")
+        parts = saved.split("|")
+        if len(parts) != 4 or not parts[0] or parts[0] != self._key_tag():
+            return
+        try:
+            last_seq, saved_at = int(parts[2]), int(parts[3])
+        except ValueError:
+            return
+        if not (0 <= time.time() - saved_at <= SAVED_SESSION_MAX_AGE_S):
+            return
+        session_id = parts[1]
+        if not session_id or len(session_id) > 128 or not all(c.isalnum() or c in "._-" for c in session_id):
+            return
+        self._session_id = session_id
+        self._last_seq = max(0, last_seq)
+        log(f"Resuming the session this profile left ({session_id[:8]})")
 
     def set_run_open(self, open_: bool) -> None:
         """A run is open: ping every 3 s and give the link up after 9 s of silence."""
@@ -330,6 +400,7 @@ class AgentSession(QObject):
             return
         url = self._settings.server_url
         self._set_state("connecting", "")
+        self._reached_session = False
         identity = self._identity_provider()
         headers = {"User-Agent": f"QGIS-AI-Agent/{identity.get('plugin_version', '?')}"}
         clocks = socket_clocks()
@@ -372,6 +443,11 @@ class AgentSession(QObject):
 
 
 
+        if self._user_closed:
+
+
+            self._ws.close(1000, "client closing")
+            return
         try:
             identity = self._identity_provider()
             manifest_hash, manifest = self._manifest_provider()
@@ -415,6 +491,7 @@ class AgentSession(QObject):
         if self._state == "online" or self._user_closed:
             return
         log_warning(f"No session frame within {self._hello_deadline.interval() // 1000}s of hello, reconnecting")
+        self._last_failure = ("hello_timeout", "", 0)
         self._ws.close(1000, "no session frame")
 
     def _on_ws_disconnected(self, code: int, reason: str) -> None:
@@ -459,10 +536,46 @@ class AgentSession(QObject):
         clocks = socket_clocks()
         base = min(clocks["backoff_max_s"], clocks["backoff_min_s"] * (2 ** min(self._attempt, 16)))
         delay = base + random.uniform(0.0, 1.0)  # nosec B311 - reconnect jitter is not security relevant
+        if not self._reached_session:
+
+
+
+            self._failed_streak += 1
+            if self._failed_streak in (1, 5):
+                self._report_failure(code)
         self._attempt += 1
         self._log_failure(code, reason)
         self._set_state("offline", "")
         self._reconnect.start(int(delay * 1000))
+
+    def failure_facts(self, code: int = 0) -> dict:
+        """What the last drop was, as telemetry may carry it: no URL, no message."""
+
+
+
+
+        kind, _message, status = self._last_failure or ("", "", 0)
+        try:
+            from .settings import DEFAULT_SERVER_URL
+            default = str(self._settings.server_url or "") == DEFAULT_SERVER_URL
+        except Exception:  # noqa: BLE001 - facts for telemetry never raise
+            default = True
+        return {
+            "error_code": (kind or (f"CLOSE_{int(code)}" if code else "OFFLINE")).upper(),
+            "http_status": int(status or 0),
+            "route": "proxy" if getattr(self._ws, "proxy_label", "") else "direct",
+            "server": "default" if default else "custom",
+            "ws_close_code": int(code or 0),
+        }
+
+    def _report_failure(self, code: int) -> None:
+        facts = self.failure_facts(code)
+        facts["attempt"] = int(self._failed_streak)
+        facts["resuming"] = bool(self._session_id)
+        try:
+            self.connection_failed.emit(facts)
+        except (AttributeError, RuntimeError):
+            pass
 
     def _log_failure(self, code: int = 1006, reason: str = "") -> None:
         """The cause of the drop, once, in the log only."""
@@ -552,6 +665,11 @@ class AgentSession(QObject):
 
 
     def _on_frame(self, text: str) -> None:
+        if self._user_closed:
+
+
+
+            return
         try:
             frame = protocol.decode(text)
         except ProtocolError as exc:
@@ -630,6 +748,8 @@ class AgentSession(QObject):
         tuning.apply(frame.get("policy"))
         self._session_id = str(frame.get("session_id") or self._session_id or "") or None
         self._attempt = 0
+        self._reached_session = True
+        self._failed_streak = 0
         if self._resume_asked and frame.get("resumed") is False:
 
 
@@ -731,6 +851,12 @@ class AgentSession(QObject):
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []
         items = [i for i in raw if isinstance(i, dict) and i.get("name")]
         self.sources.emit(str(frame.get("run_id") or ""), items)
+
+    def _on_server_tool(self, frame: dict) -> None:
+        if not frame.get("tool_call_id") or not frame.get("name") or not isinstance(frame.get("ok"), bool):
+            self._note_bad_frame("server_tool", "missing tool_call_id, name or ok")
+            return
+        self.server_tool.emit(frame)
 
     def _on_counts(self, frame: dict) -> None:
         try:

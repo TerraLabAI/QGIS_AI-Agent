@@ -885,6 +885,82 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>{name}: {fields}</source>
             <translation>{name}: {fields}</translation>
         </message>
+        <message>
+            <source>Allow / Deny</source>
+            <translation>Consenti / Nega</translation>
+        </message>
+        <message>
+            <source>Before: {request}</source>
+            <translation>Prima: {request}</translation>
+        </message>
+        <message>
+            <source>Changed: {changes}</source>
+            <translation>Modificato: {changes}</translation>
+        </message>
+        <message>
+            <source>Chat history button</source>
+            <translation>Pulsante cronologia chat</translation>
+        </message>
+        <message>
+            <source>New chat button</source>
+            <translation>Pulsante nuova chat</translation>
+        </message>
+        <message>
+            <source>No examples match</source>
+            <translation>Nessun esempio corrisponde</translation>
+        </message>
+        <message>
+            <source>Now</source>
+            <translation>Adesso</translation>
+        </message>
+        <message>
+            <source>Request {n}</source>
+            <translation>Richiesta {n}</translation>
+        </message>
+        <message>
+            <source>The project after this request</source>
+            <translation>Il progetto dopo questa richiesta</translation>
+        </message>
+        <message>
+            <source>The project before the first request</source>
+            <translation>Il progetto prima della prima richiesta</translation>
+        </message>
+        <message>
+            <source>The project before this request</source>
+            <translation>Il progetto prima di questa richiesta</translation>
+        </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Questo layer non è più nel progetto.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>dopo la richiesta {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>dopo “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>prima della richiesta {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>prima di “{request}”</translation>
+        </message>
+        <message>
+            <source>request {n}</source>
+            <translation>richiesta {n}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>l'inizio di questa chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>le tue modifiche</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -1050,6 +1126,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
             <translation>Apri il pannello con Ctrl+Alt+A, oppure digita "ai" seguito da una domanda nella barra del localizzatore (Ctrl+K). Fai clic con il tasto destro su un layer, un elemento o la mappa per chiedere informazioni all'IA.</translation>
         </message>
+        <message>
+            <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
+            <translation>AI Agent by TerraLab è il tuo agente AI dentro QGIS: carica dati, applica stili ai layer, esegue analisi e crea layout. Chiede prima di modifiche rischiose e puoi annullare un'esecuzione.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentPlugin</name>
@@ -1099,6 +1179,22 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
             <translation>QGIS ha cambiato tema. Ricarica AI Agent o riavvia QGIS per aggiornare il pannello.</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
+            <translation>Apri il pannello AI Agent: chiedi qualsiasi cosa in QGIS e lui fa il lavoro.</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostra</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your approval.</source>
+            <translation>L'agente è in attesa della tua approvazione.</translation>
+        </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Il tuo agente AI dentro QGIS</translation>
         </message>
     </context>
     <context>
@@ -1530,6 +1626,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
             <translation>Registrarsi è gratis e richiede 15 secondi, nel browser.</translation>
         </message>
+        <message>
+            <source>Your AI agent inside QGIS</source>
+            <translation>Il tuo agente AI dentro QGIS</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -1558,6 +1658,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>stopped</source>
             <translation>interrotto</translation>
         </message>
+        <message>
+            <source>{failed} of {total} did not work</source>
+            <translation>{failed} di {total} non hanno funzionato</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -1565,6 +1669,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
             <translation>Agente</translation>
+        </message>
+        <message>
+            <source>Undone</source>
+            <translation>Annullato</translation>
         </message>
     </context>
     <context>
@@ -1618,6 +1726,11 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
             <translation>Nessun layer, elemento o file modificato</translation>
+        </message>
+        <message>
+            <location filename="src/core/snapshot_report.py" />
+            <source>Layer order or groups changed</source>
+            <translation>Ordine dei layer o gruppi modificato</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -1866,6 +1979,70 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
             <translation>Questo punto appartiene al progetto {name}. Apri quel progetto per tornare a esso.</translation>
         </message>
+        <message>
+            <source>1 layer in the project</source>
+            <translation>1 layer nel progetto</translation>
+        </message>
+        <message>
+            <source>Back to {point}.</source>
+            <translation>Torna a {point}.</translation>
+        </message>
+        <message>
+            <source>Could not fully go back to {point}. {reason}</source>
+            <translation>Impossibile tornare completamente a {point}. {reason}</translation>
+        </message>
+        <message>
+            <source>No results</source>
+            <translation>Nessun risultato</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Non connesso al servizio agente, quindi nulla è stato inviato. Riconnessione in corso: il tuo messaggio è conservato e Riprova lo invierà appena la connessione torna attiva.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action.</source>
+            <translation>Modalità di autorizzazione modificata. Si applica dalla prossima azione.</translation>
+        </message>
+        <message>
+            <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
+            <translation>Modalità di autorizzazione modificata. Si applica dalla prossima azione; la scheda aperta ha ancora bisogno della tua risposta.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to the agent service is down.</source>
+            <translation>Il messaggio non può essere inviato: la connessione al servizio agente è interrotta.</translation>
+        </message>
+        <message>
+            <source>after request {n}</source>
+            <translation>dopo la richiesta {n}</translation>
+        </message>
+        <message>
+            <source>after “{request}”</source>
+            <translation>dopo “{request}”</translation>
+        </message>
+        <message>
+            <source>before request {n}</source>
+            <translation>prima della richiesta {n}</translation>
+        </message>
+        <message>
+            <source>before “{request}”</source>
+            <translation>prima di “{request}”</translation>
+        </message>
+        <message>
+            <source>data put back in {files}</source>
+            <translation>dati ripristinati in {files}</translation>
+        </message>
+        <message>
+            <source>the start of this chat</source>
+            <translation>l'inizio di questa chat</translation>
+        </message>
+        <message>
+            <source>your own changes</source>
+            <translation>le tue modifiche</translation>
+        </message>
+        <message>
+            <source>{n} layers in the project</source>
+            <translation>{n} layer nel progetto</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -1999,9 +2176,14 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <translation>Dai un compito all'agente AI in QGIS...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Long chat: older messages get folded from here. For a new topic, start a new thread (+ in the header).</source>
-            <translation>Conversazione lunga: i messaggi vecchi vengono nascosti da qui. Per un nuovo tema, avvia una nuova conversazione (+ nellintestazione).</translation>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>Conversation compacted</source>
+            <translation>Conversazione compattata</translation>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_layout.py" />
+            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
+            <translation>L'agente conserva un riepilogo degli scambi precedenti. I tuoi messaggi restano visibili.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -2057,6 +2239,38 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Keep working with Pro</source>
             <translation>Continua a lavorare con Pro</translation>
+        </message>
+        <message>
+            <source>%n steps</source>
+            <translation>%n passaggi</translation>
+        </message>
+        <message>
+            <source>1 step</source>
+            <translation>1 passaggio</translation>
+        </message>
+        <message>
+            <source>Nothing could be added from that drop.</source>
+            <translation>Non è stato possibile aggiungere nulla da quel trascinamento.</translation>
+        </message>
+        <message>
+            <source>Redo: forward to {point}</source>
+            <translation>Rifai: avanti fino a {point}</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Interrotto</translation>
+        </message>
+        <message>
+            <source>The message could not be sent. It is still here; try again.</source>
+            <translation>Il messaggio non può essere inviato. È ancora qui; riprova.</translation>
+        </message>
+        <message>
+            <source>Undo: back to {point}</source>
+            <translation>Annulla: torna a {point}</translation>
+        </message>
+        <message>
+            <source>Waiting for your approval: Allow or Deny below.</source>
+            <translation>In attesa della tua approvazione: Consenti o Nega qui sotto.</translation>
         </message>
     </context>
     <context>
@@ -2139,6 +2353,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
         <message>
             <source>Nothing is deleted. You can always come back.</source>
             <translation>Nulla viene eliminato. Puoi sempre tornare indietro.</translation>
+        </message>
+        <message>
+            <source>Back to the project as it was before the first request</source>
+            <translation>Torna al progetto com'era prima della prima richiesta</translation>
         </message>
     </context>
     <context>
@@ -2302,6 +2520,42 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/composer.py" />
             <source>the largest one</source>
             <translation>il più grande</translation>
+        </message>
+        <message>
+            <source>Connection is back. Your message was sent.</source>
+            <translation>La connessione è tornata. Il tuo messaggio è stato inviato.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Non connesso al servizio agente. Premi per riprovare ora; il tuo messaggio è conservato.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting now.</source>
+            <translation>Non connesso al servizio agente. Riconnessione in corso.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
+            <translation>Non connesso al servizio agente. Riconnessione in corso; scrivi, verrà inviato.</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Non connesso al servizio agente. Il tuo messaggio resta qui e verrà inviato appena la connessione torna attiva.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
+            <translation>Riconnessione al servizio agente in corso. Premi per riprovare ora; il tuo messaggio è conservato.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Type, it will be sent.</source>
+            <translation>Riconnessione al servizio agente in corso. Scrivi, verrà inviato.</translation>
+        </message>
+        <message>
+            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Riconnessione al servizio agente in corso. Il tuo messaggio resta qui e verrà inviato appena la connessione torna attiva.</translation>
+        </message>
+        <message>
+            <source>Retry the connection</source>
+            <translation>Riprova la connessione</translation>
         </message>
     </context>
     <context>
@@ -2662,6 +2916,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Enable</source>
             <translation>Abilita</translation>
         </message>
+        <message>
+            <source>No connectors match</source>
+            <translation>Nessun connettore corrisponde</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -2784,6 +3042,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Unlock with Pro</source>
             <translation>Sblocca con Pro</translation>
         </message>
+        <message>
+            <source>Effort can be changed after this run ends</source>
+            <translation>Il livello di sforzo può essere modificato dopo la fine di questa esecuzione</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -2903,6 +3165,18 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <location filename="src/ui/header.py" />
             <source>Undo the agent's changes: back to an earlier state of this project</source>
             <translation>Annulla le modifiche dell'agente: torna a uno stato precedente di questo progetto</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Ottieni Pro</translation>
+        </message>
+        <message>
+            <source>See what Pro unlocks</source>
+            <translation>Scopri cosa sblocca Pro</translation>
+        </message>
+        <message>
+            <source>by TerraLab</source>
+            <translation>di TerraLab</translation>
         </message>
     </context>
     <context>
@@ -3057,6 +3331,10 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <location filename="src/ui/layer_card.py" />
             <source>Not in the project</source>
             <translation>Non nel progetto</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Rimuovi</translation>
         </message>
     </context>
     <context>
@@ -3240,6 +3518,10 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
             <translation>Mostra meno righe</translation>
+        </message>
+        <message>
+            <source>expression</source>
+            <translation>espressione</translation>
         </message>
     </context>
     <context>
@@ -3512,6 +3794,14 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>{n} runs a month, higher effort levels and Autopilot.</source>
             <translation>{n} esecuzioni al mese, livelli di impegno più alti e Autopilot.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Ottieni Pro</translation>
+        </message>
+        <message>
+            <source>{n} runs a month and higher effort levels.</source>
+            <translation>{n} esecuzioni al mese e livelli di sforzo più elevati.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -3629,6 +3919,10 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
         <message>
             <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
             <translation>Torna allo stato più vecchio ancora conservato, non all'inizio assoluto: quelli precedenti sono stati eliminati per risparmiare spazio su disco.</translation>
+        </message>
+        <message>
+            <source>Go back to {point}? Your own changes since then will be lost.</source>
+            <translation>Torna a {point}? Le tue modifiche da allora andranno perse.</translation>
         </message>
     </context>
     <context>
@@ -4507,6 +4801,14 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>{plan} · Personal, non-commercial use</source>
             <translation>{plan} · Uso personale, non commerciale</translation>
         </message>
+        <message>
+            <source>Delete</source>
+            <translation>Elimina</translation>
+        </message>
+        <message>
+            <source>Upgrade</source>
+            <translation>Aggiorna</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -4969,6 +5271,10 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
             <translation>{n:+d} elementi. Fai clic per selezionarlo nel pannello Layer.</translation>
         </message>
+        <message>
+            <source>This layer is no longer in the project.</source>
+            <translation>Questo layer non è più nel progetto.</translation>
+        </message>
     </context>
     <context>
         <name>_MoreLabel</name>
@@ -5283,6 +5589,43 @@ Fai clic per mostrarlo nel pannello Layer.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>What QGIS found when it read the result back. Click to read it.</source>
             <translation>Cosa ha trovato QGIS rileggendo il risultato. Fai clic per leggerlo.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentLicence</name>
+        <message>
+            <source>Dataset page</source>
+            <translation>Pagina del dataset</translation>
+        </message>
+        <message>
+            <source>Date unknown</source>
+            <translation>Data sconosciuta</translation>
+        </message>
+        <message>
+            <source>Live, loaded {day}</source>
+            <translation>Live, caricato {day}</translation>
+        </message>
+        <message>
+            <source>Your own file</source>
+            <translation>Il tuo file</translation>
+        </message>
+        <message>
+            <source>Your own source</source>
+            <translation>La tua fonte</translation>
+        </message>
+    </context>
+    <context>
+        <name>_MoreChip</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} altri</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VerifyLink</name>
+        <message>
+            <source>Verify</source>
+            <translation>Verifica</translation>
         </message>
     </context>
 </TS>

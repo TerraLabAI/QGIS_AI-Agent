@@ -126,7 +126,7 @@ class ExampleCard(QFrame):
         painter = QPainter(self)
         try:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            painter.setPen(QPen(QColor(139, 172, 39, 200), 2))
+            painter.setPen(QPen(QColor(67, 160, 71, 200), 2))
             painter.setBrush(QBrush(Qt.BrushStyle.NoBrush))
             painter.drawRoundedRect(QRectF(self.rect()).adjusted(1, 1, -1, -1),
                                     RADIUS_CARD, RADIUS_CARD)

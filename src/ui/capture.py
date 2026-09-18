@@ -16,6 +16,7 @@ from qgis.PyQt.QtCore import QPoint, QRect, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen, QPixmap
 from qgis.PyQt.QtWidgets import QApplication, QMainWindow, QWidget
 
+from .font_scale import scale_point_size, scale_px_length
 from .shared import event_pos
 from .styles import BRAND_BLUE
 
@@ -242,10 +243,10 @@ class RegionCapture(QWidget):
                 painter.fillRect(self.rect(), dim)
             if self._hint:
                 font = QFont(self.font())
-                font.setPixelSize(13)
+                font.setPixelSize(scale_point_size(13))
                 font.setBold(True)
                 painter.setFont(font)
-                text_rect = QRect(0, 12, self.width(), 24)
+                text_rect = QRect(0, 12, self.width(), scale_px_length(24))
                 painter.setPen(QColor(0, 0, 0, 160))
                 painter.drawText(text_rect.translated(1, 1), Qt.AlignmentFlag.AlignHCenter, self._hint)
                 painter.setPen(QColor("#ffffff"))

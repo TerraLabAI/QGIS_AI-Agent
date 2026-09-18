@@ -8,19 +8,19 @@ from qgis.core import QgsApplication
 from ..core.policy import MAX_LIST_CHARS
 from .processing_destinations import _is_optional, _provider_hint
 
-_ALGORITHMS_CACHE: list[tuple] = []
-_ALGORITHMS_CACHE_COUNT: int = -1
+
+_algorithms: dict = {"rows": [], "count": -1}
 
 
 def _list_algorithms(args: dict) -> dict:
-    global _ALGORITHMS_CACHE, _ALGORITHMS_CACHE_COUNT
     registry = QgsApplication.processingRegistry()
     algs = registry.algorithms()
 
 
-    if len(algs) != _ALGORITHMS_CACHE_COUNT:
-        _ALGORITHMS_CACHE = [(a.id(), a.displayName(), a.group()) for a in algs]
-        _ALGORITHMS_CACHE_COUNT = len(algs)
+    if len(algs) != _algorithms["count"]:
+        _algorithms["rows"] = [(a.id(), a.displayName(), a.group()) for a in algs]
+        _algorithms["count"] = len(algs)
+    rows = _algorithms["rows"]
 
     search = (args.get("search") or "").lower()
     limit = max(int(args.get("limit", 0) or 0), 0)
@@ -29,7 +29,7 @@ def _list_algorithms(args: dict) -> dict:
     matched = 0
     size = 0
     over_budget = False
-    for alg_id, name, group in _ALGORITHMS_CACHE:
+    for alg_id, name, group in rows:
         if search and search not in alg_id.lower() and search not in name.lower():
             continue
         matched += 1
@@ -45,7 +45,7 @@ def _list_algorithms(args: dict) -> dict:
         results.append(entry)
 
     out = {
-        "total": len(_ALGORITHMS_CACHE),
+        "total": len(rows),
         "matched": matched,
         "count": len(results),
         "algorithms": results,
@@ -72,6 +72,10 @@ def _parameter_help(param) -> dict:
         "required": not _is_optional(param),
         "default": param.defaultValue(),
     }
+    if getattr(param, "isDestination", lambda: False)():
+
+
+        answer["destination"] = True
     if str(param.type()).lower() == "enum":
         try:
             choices = list(param.options())
@@ -99,6 +103,19 @@ def _get_algorithm_help(args: dict) -> dict:
         "description": alg.shortDescription() or alg.shortHelpString(),
         "parameters": params,
     }
+
+
+
+    example: dict = {}
+    for param in params:
+        if param.get("destination"):
+            example[param["name"]] = "TEMPORARY_OUTPUT"
+        elif param["required"]:
+            example[param["name"]] = f"<{param['type']}>"
+    out["required"] = [p["name"] for p in params if p["required"] and not p.get("destination")]
+    out["example_call"] = {"tool": "run_processing",
+                           "arguments": {"algorithm_id": alg.id(), "parameters": example,
+                                         "output_name": "<the layer name for the user>"}}
 
 
 

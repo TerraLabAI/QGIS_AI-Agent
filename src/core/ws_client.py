@@ -76,6 +76,11 @@ MAX_QUEUED_BYTES = 32 * 1024 * 1024
 
 
 
+_WAKE = ("wake", b"")
+_WRITER_IDLE_S = 5.0
+
+
+
 
 
 
@@ -298,8 +303,14 @@ class WsConnection:
                 raise WsConnectionLost("outgoing byte budget exceeded; reconnect to resume")
             self._outstanding += 1
             try:
-                target = self._control_outbox if opcode in (OP_PING, OP_PONG, OP_CLOSE) else self._outbox
+                control = opcode in (OP_PING, OP_PONG, OP_CLOSE)
+                target = self._control_outbox if control else self._outbox
                 target.put_nowait((opcode, payload))
+                if control and self._outbox.empty():
+                    try:
+                        self._outbox.put_nowait(_WAKE)
+                    except queue.Full:
+                        pass
             except queue.Full as exc:
                 self._outstanding -= 1
                 raise WsConnectionLost("outgoing queue full; reconnect to resume") from exc
@@ -318,7 +329,7 @@ class WsConnection:
                 self._write_controls()
                 if self._writer_closed:
                     return
-                item = self._outbox.get(timeout=0.1)
+                item = self._outbox.get(timeout=_WRITER_IDLE_S)
             except queue.Empty:
                 continue
             except WsError:
@@ -326,6 +337,8 @@ class WsConnection:
                 return
             if item is None:
                 return
+            if item is _WAKE:
+                continue
             with self._send_state:
                 if isinstance(item[1], bytes):
                     self._queued_bytes = max(0, self._queued_bytes - len(item[1]))
@@ -539,7 +552,7 @@ class WsConnection:
                     item = outbox.get_nowait()
                 except queue.Empty:
                     break
-                if item is not None:
+                if item is not None and item is not _WAKE:
                     self._outstanding = max(0, self._outstanding - 1)
         self._queued_bytes = 0
 

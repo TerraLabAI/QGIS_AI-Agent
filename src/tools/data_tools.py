@@ -5,8 +5,6 @@
 
 from __future__ import annotations
 
-from qgis.core import QgsProject, QgsRasterLayer
-
 from ..core import limits, net, tuning
 from ..core.tool_registry import Tool, ToolRegistry
 from . import volume_guard
@@ -115,8 +113,38 @@ from .data_portals import (
     _parse_ckan_results,
     _portal_text,
     _search_open_data,
-    deduce_listing_kind,
 )
+
+
+def _reads_what_fits(name: str, handler):
+    """*handler* with a box only just over its ceiling shrunk back to it."""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def read(args, *rest, **kwargs):
+        clamped = volume_guard.clamp_to_cap(name, args) if isinstance(args, dict) else {}
+        out = handler(args, *rest, **kwargs)
+        if clamped and isinstance(out, dict) and not out.get("_error"):
+            out["bbox_read"] = clamped["bbox"]
+            out["area_km2"] = clamped["area_km2"]
+            out["asked_km2"] = clamped["asked_km2"]
+            out["_note"] = (out.get("_note") + " " if out.get("_note") else "") + clamped["note"]
+        return out
+
+    read.__name__ = getattr(handler, "__name__", name)
+    read.__doc__ = getattr(handler, "__doc__", None)
+    return read
 
 
 def register_data_tools(registry: ToolRegistry):
@@ -237,7 +265,7 @@ def register_data_tools(registry: ToolRegistry):
             },
             "required": ["bbox"],
         },
-        handler=_fetch_building_footprints,
+        handler=_reads_what_fits("fetch_building_footprints", _fetch_building_footprints),
         background=True,
     ))
 
@@ -275,9 +303,9 @@ def register_data_tools(registry: ToolRegistry):
             },
             "required": ["theme"],
         },
-        handler=_fetch_overture,
+        handler=_reads_what_fits("fetch_overture", _fetch_overture),
         background=True,
-        preflight=_fetch_overture_preflight,
+        preflight=_reads_what_fits("fetch_overture", _fetch_overture_preflight),
     ))
 
     registry.register(Tool(
@@ -518,3 +546,77 @@ def _refresh_served_vocabularies() -> None:
     """Put the served vocabulary into the registered schemas. Socket thread."""
     for schema, key, shipped, aliases in _ENUM_NODES:
         schema["enum"] = list(dict.fromkeys((*tuning.service_list(key, shipped), *aliases)))
+
+
+
+
+__all__ = [
+    "register_data_tools",
+    "VECTOR_TILE_EXTENSIONS",
+    "WFS_WARN_FEATURES",
+    "WFS_WIRE_BYTES_PER_FEATURE",
+    "_BACKEND_GEOCODE_BATCH_MAX",
+    "_CACHE_GEOCODE_S",
+    "_DEFAULT_GEOCODE_PROVIDER",
+    "_FOOTPRINT_DEFAULT_SOURCES",
+    "_GEOCODE_PROVIDERS",
+    "_GEOCODE_TIMEOUT",
+    "_NOMINATIM_URL",
+    "_OPEN_DATA_PORTALS",
+    "_OSM_THEMES",
+    "_OSRM_PROFILES",
+    "_OVERTURE_API",
+    "_OVERTURE_TILES",
+    "_OWN_GEOCODE_TIMEOUT",
+    "_PHOTON_URL",
+    "_USER_AGENT",
+    "_WFS_CAPS_MAX_BYTES",
+    "_WFS_MATCHED_RE",
+    "_WFS_TYPENAME_RE",
+    "_WINDOWS_FORBIDDEN_CHARS",
+    "_WINDOWS_RESERVED_NAMES",
+    "_add_oapif_layer",
+    "_add_vector_over_range_requests",
+    "_add_vector_tile_layer",
+    "_add_wcs_layer",
+    "_avoid_reserved_name",
+    "_bbox_km2",
+    "_canvas_viewbox_4326",
+    "_extract_remote_vector",
+    "_footprint_box",
+    "_geocode_one_address",
+    "_geometry_counts",
+    "_hub_resources",
+    "_normalise_format_preference",
+    "_oapif_collection",
+    "_osm_area_refusal",
+    "_osm_from_hosted",
+    "_osm_to_geojson",
+    "_osrm_base",
+    "_overture_clip",
+    "_overture_extract",
+    "_overture_matches",
+    "_overture_tile",
+    "_overture_tile_url",
+    "_overture_tiles",
+    "_own_overpass_unreachable",
+    "_parse_arcgis_hub_results",
+    "_parse_cartociudad_forward",
+    "_parse_ckan_results",
+    "_parse_nominatim_forward",
+    "_parse_photon_forward",
+    "_portal_text",
+    "_project_crs_transform",
+    "_resolve_tilejson",
+    "_run_on_main_thread",
+    "_safe_filename",
+    "_twin_of",
+    "_wfs_failure",
+    "_wfs_hits",
+    "_wfs_restrict_to_view",
+    "expand_link",
+    "hosted_department_url",
+    "limits",
+    "net",
+    "volume_guard",
+]

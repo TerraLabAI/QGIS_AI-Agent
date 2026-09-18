@@ -588,7 +588,7 @@ class RestoreWarningCard(_Card):
     cancelled = pyqtSignal()
 
     def __init__(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                 whole: bool = True, parent=None):
+                 whole: bool = True, parent=None, point: str = ""):
         super().__init__(None, parent, frame_qss=_ASK_CARD_QSS)
         self.set_margins(*_ASK_MARGINS)
         self._col.setSpacing(SPACE_OUTER)
@@ -603,6 +603,8 @@ class RestoreWarningCard(_Card):
             text = self.tr("This drops everything the agent did in this chat, and your own changes since.")
         elif discard:
             text = self.tr("This drops everything the agent did in this chat.")
+        elif point:
+            text = self.tr("Go back to {point}? Your own changes since then will be lost.").format(point=point)
         else:
             text = self.tr("Manual changes since this point will be lost.")
         body = QWidget(self)
