@@ -9,6 +9,41 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-20
+
+### Added
+
+- Styling reaches the whole of QGIS: every renderer, symbol layer, effect and blend mode by
+  name, sub-symbols, diagrams, label placement, raster classes and rating tables, point cloud
+  and mesh styling, and conditional formatting in the attribute table.
+- Print layouts and reports: legends curated entry by entry, `.qpt` templates, atlas at a fixed
+  scale, coordinate grids, 3D map items, elevation profiles, nested reports and DOCX exports,
+  and a preview that draws the project's layer order before printing.
+- New ground: mesh and point cloud layers, 3D Tiles, 3D views with building extrusion, GTFS
+  feeds, hot spots (Getis-Ord Gi*, local Moran's I), flow lines, animated maps as GIF or MP4,
+  elevation models exported for Blender, SketchUp and 3D printing, and styles, models and
+  scripts imported from QGIS Hub.
+- Attribute forms, relations, snapping, temporal playback, canvas decorations, topology checks
+  and Processing scripts are configured from the chat.
+- One zone of interest shared with AI Edit and AI Segmentation: draw it once, every plugin
+  works inside it.
+
+### Changed
+
+- A refusal about size now delivers the whole zone anyway: coarser pixels, tiled reads and
+  background downloads instead of an empty result.
+- An answer opens with the result rather than with the check that verified it, and a tool
+  shows one card per answer instead of repeating the same question for each layer.
+- Long tasks are allowed to finish: earlier turns are folded rather than cut off.
+
+### Fixed
+
+- The panel speaks the language QGIS is set to. A language stored by an earlier build no
+  longer overrides it, and is removed at the next start.
+- Watersheds, geocoded tables, merged folders, CAD and KML imports and CSV files keep their
+  rows, encoding and coordinate system instead of losing them silently.
+- A silent WMS server no longer freezes QGIS while a layer is built.
+
 ## [1.2.0] - 2026-09-18
 
 ### Added
