@@ -9,6 +9,66 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-21
+
+### Added
+
+- Undo from the chat takes back an edit already saved to its file, the same way as the Undo
+  arrow in the panel.
+- An approval card for a Processing run or a GeoPackage save says what happens on disk: the file
+  created or replaced, and whether the input is overwritten or only read.
+
+### Changed
+
+- Python code the agent runs asks for approval only when it changes files or the project: a
+  snippet that only reads runs without a card (about 1 card in 17 code requests instead of 11).
+  A snippet that writes, deletes or edits still shows its own card.
+- Python run by the agent can now open zip archives, find files with wildcards, make a
+  scratch folder and use `pathlib` paths. Every path still passes the same file check, and
+  the permission card still asks before any code runs.
+- Point labels take the Cartographic placement by default, and labels gain priority, drawing
+  order, obstacle, capitalization, letter spacing, opacity and repeat distance, so a map can
+  put town names in front and let region and relief names sit back.
+- A processing chain the agent built can be saved as a Graphical Modeler model and opened in
+  the Model Designer, laid out top to bottom with inputs on top and each output beside its step.
+  A saved model can ask for a point clicked on the map, an extent, the project's CRS and
+  bounded numbers with a help line each, and frames its parts in coloured boxes.
+- Several layers reprojected in one batch come out named after their source and CRS
+  (`roads_28992`) instead of "Reprojected", or after a pattern the agent gives; a table
+  written into a GeoPackage is named after the table, not the file.
+- A finished project can be packaged as one GeoPackage: every layer as a table, small rasters
+  inside, each style as the table's default and the project itself, so the file opens styled
+  from the Browser on another computer. Web layers keep their address and large rasters go in
+  a folder beside it.
+
+### Fixed
+
+- A clip to a country, a region or a city keeps only the areas inside it: a neighbour that
+  shares a border (Loreto and Amazonas around Brazil's states) is no longer kept.
+- A WFS link without a layer name loads the layer it names, or lists the layers the service
+  offers when there are several, instead of refusing.
+- Nothing in the chat is wider than the panel: a long address, path or code word wraps inside
+  its card. The address card is one sentence, with the full address behind Show the address.
+- Python written for PyQt5 or PyQt6 runs on QGIS 4, which ships only one of them.
+- Watershed outlets resolve to the exact point feature or coordinates given, and a basin that
+  reaches the edge of the elevation model is cut where the data ends, with a warning.
+- A watershed on a fine elevation model is computed at a coarser cell that fits instead of being
+  refused, and the result states the cell size used.
+- A download or a service the agent could not read says what the service answered, not only
+  that it failed.
+- An invalid geometry that stops a Processing run or a Python snippet is named as such, in any
+  QGIS language, so the agent repairs the geometry instead of guessing at the cause.
+- A layer id the agent writes with the layer's own spelling finds that exact layer, never a
+  layer with the same name.
+- A large Overture area that goes over the download size is fetched again in smaller pieces
+  instead of failing, and says so when it is still too large.
+- The highest and lowest values of a local raster are measured on every pixel, so a summit is
+  no longer missed.
+- An ArcGIS item's web address loads as the item it names.
+- Removing a layer that the same run added no longer asks for approval; a layer that was in
+  the project before still does.
+- A scale bar in a print layout has two segments by default, so it fits beside the map.
+
 ## [1.3.0] - 2026-09-20
 
 ### Added
