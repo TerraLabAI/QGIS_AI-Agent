@@ -3,15 +3,15 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 285+ tools and 50+ open data connectors.
+description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 285+ tools and 60 open data connectors.
 about=
     It works on your own layers, in the project you already have open, and shows each step as it goes.
 
     • 285+ tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
 
-    • 50+ open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 46 more, with 400+ ready datasets and each one's licence
+    • 60 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 53 more
 
-    • 30+ national and city portals across 11 countries, plus the EU-wide and global ones
+    • A catalog of 530+ ready datasets, from national sources in 97 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.3.1
+version=1.4.0
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,18 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.4.0
+    - Attach any file up to 200 MB (PDF, Word, Excel, text); a run can end with an HTML report you keep
+    - A library of 46 guided examples with pictures, and a Data sources page for every connector
+    - Fewer approval cards: Autopilot runs Python on its own, and calls waiting together share one card
+    - Going back keeps your own unsaved edits; faster start-up, and Windows text and paths no longer cut
+
+    1.3.2
+    - A short connection drop (under 15 s) no longer shows a warning; the run keeps going
+    - Filtered OpenStreetMap and Overture downloads fetch only matches; districts come as polygons
+    - Run SQL in the database behind a saved connection; web layers no longer freeze QGIS
+    - A CSV with no CRS lands in the right place; a fetched box area is no longer quoted as the data's
+
     1.3.1
     - Save a chain of steps as a Graphical Modeler model, or package a whole project as one GeoPackage
     - A clip to a country or city keeps only what lies inside; a WFS link with no layer name still loads
@@ -49,18 +61,6 @@ changelog=
     - Your message is kept and resent automatically if the connection drops and comes back
     - Long conversations are compacted instead of cut off; your own messages stay visible
     - Windows: long paths, Excel CSVs, mapped drives and OneDrive folders work in loads and exports
-
-    1.1.0
-    - Charts, animation over time, watersheds from an elevation model, and georeferencing a scanned map
-    - Undo restores large layers, shapefiles and GeoPackages, and history survives a QGIS restart
-    - When a step fails, the panel says why and what to try instead of showing an empty result
-    - Chats stay private to each account, @ lists your layers, and search understands your language
-
-    1.0.2
-    - Satellite imagery arrives as a file on your disk, so a project with several scenes stays responsive
-    - A vegetation index from Sentinel reads the right bands and measures the ground, not the clouds
-    - Only a file you would go looking for asks for approval; a scratch result no longer interrupts the run
-    - Your memory is a folder of Markdown files you can read and edit, and a run survives a reconnection
 
 tags=ai,artificial intelligence,agent,assistant,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
 category=Plugins

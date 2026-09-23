@@ -9,6 +9,88 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-23
+
+### Added
+
+- Any file up to 200 MB can be attached to a message: PDF, Word, PowerPoint, Excel, text, Markdown,
+  HTML or XML. The panel previews it and the agent reads it.
+- A run can end with a self-contained HTML report the user keeps, and the files a run produced show
+  as cards under its answer, each opening with one click.
+- The Examples library: 46 guided examples with pictures. An example whose data is not in the
+  project asks one question with fixed choices, then runs its steps. Data sources have their own
+  page inside the library, one picture card per connector.
+- The agent can look at what it delivered (a map, a print layout page, a file on disk) before it
+  answers, without opening a second project.
+- A free account sees how many free runs are left under the message box, with one click to Pro.
+- Styles classify by a QGIS expression, take fixed class limits, reverse ramps and draw features
+  with no value; layout maps take their own CRS and layers and leave the project's view alone.
+
+### Changed
+
+- Fewer approval cards. Autopilot runs Python code without asking, calls that wait together share
+  one card with one Allow or Deny, reading a public web page needs no card, and a code card says in
+  plain words what the code does, with the Python behind one link.
+- The plan is its own card above the work it pilots and says how far it got; the activity block
+  keeps each call on one short line while the agent works.
+- Going back shows one row per request with Undo or Put back. Unsaved edits are saved before a
+  restore and kept under "Your own changes", and a code rollback never throws away an unsaved edit.
+- The message box grows to 40% of the panel's height; chat history shows on an empty chat only.
+- The first start after an install or an update is about a third faster, and long chats paint and
+  resize faster.
+- The agent reads and writes only inside the project, its attachments and the TerraLab exports
+  folder; it no longer lists the user's other folders.
+
+### Fixed
+
+- Deleting a chat deletes its file, its undo index and its snapshots.
+- On Windows, panel labels and buttons are no longer cut; saves reach the user's own folders on
+  OneDrive or a server share; deep project folders, GeoPackage tables and Excel CSVs with accents
+  work; and a file held by another program gets a clear next step.
+- Vector basemaps (OpenFreeMap Positron, Liberty, Dark) draw their streets on QGIS 3.44.
+- A large raster no longer freezes QGIS while a layout page draws, and a 300 dpi print keeps its
+  300 dpi.
+- A large ArcGIS feature service the user agreed to load is loaded: the yes (or a request for the
+  whole area) now reaches it, where it was refused again with the same count.
+- An OpenStreetMap query always stays inside the area of the call, so a query written without the
+  area no longer searches the whole world for minutes; a slow query no longer marks the
+  OpenStreetMap server as down for the next five minutes.
+- When the OpenStreetMap server refuses a query, the agent reads the server's own reason (the line
+  and the mistake) instead of a bare "HTTP 400".
+- The agent can move a whole layer group up or down the Layers panel, with every layer in it.
+
+## [1.3.2] - 2026-09-21
+
+### Added
+
+- The agent can run SQL in the database behind a saved connection (a PostGIS query, an update, a new
+  index) after showing the statement for approval; rows stop at 1,000 and layers from that
+  connection reload so a change shows on the map.
+
+### Changed
+
+- A short connection drop (under 15 seconds, for example while the service restarts) no longer
+  shows a warning: Send waits with its arrow and the run keeps going. The plugin reconnects at
+  once when the service says it is restarting.
+- A filtered OpenStreetMap or Overture download fetches only the matching features, so large
+  areas that used to fail as too big now load.
+- City districts and other boundaries from OpenStreetMap load as polygons, clipped to the place
+  asked for, without the neighbouring areas.
+- The area of a fetched box is reported as the box's area, so the agent no longer quotes it as
+  the area of the features.
+- A CSV with no stated CRS is placed from where its points land, and a layer with a wrong CRS
+  can be relabelled in one step.
+
+### Fixed
+
+- Hosted map tiles that QGIS's own reader could not reach behind a proxy load through the
+  plugin's connection.
+- Reading an ArcGIS, WFS or OGC API feature service no longer freezes QGIS while features
+  arrive, including from Python the agent runs.
+- Raster statistics give the true minimum and maximum of a local raster, not a sample's.
+- The raster calculator computes the area asked for instead of a whole satellite tile.
+- An ArcGIS item's REST address opens as the item.
+
 ## [1.3.1] - 2026-09-21
 
 ### Added
