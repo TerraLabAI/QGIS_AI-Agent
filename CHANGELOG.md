@@ -9,6 +9,24 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-09-24
+
+### Changed
+
+- A load is never refused or questioned for its number of features: a table, a file or a city's
+  buildings go into the project on the first call, whatever their size, and a download of any size
+  is written to disk instead of refused past 100 MB. Only data QGIS would have to hold in memory
+  (points read from JSON, an ArcGIS service) keeps a ceiling, set from what this computer can hold.
+- Fewer approval cards for code that only reads: checking a value's type or reading a named
+  attribute no longer asks.
+- Clipping Overture data to a country or city finds the boundary faster.
+
+### Fixed
+
+- A raster style with a typed minimum and maximum keeps that range instead of being refused.
+- Paris open data searches work again, on the city's new portal address.
+- Planetary Computer imagery loads with one signed access for all its files.
+
 ## [1.4.0] - 2026-09-23
 
 ### Added
