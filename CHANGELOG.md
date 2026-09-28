@@ -9,6 +9,10 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-09-28
+
+The content of 1.5.1, which the QGIS plugin repository never published.
+
 ## [1.5.1] - 2026-09-28
 
 ### Added

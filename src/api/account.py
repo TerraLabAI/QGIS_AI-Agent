@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+import string
 import time
 from typing import Any, Callable
 
@@ -96,7 +97,7 @@ def get_plans_page_url(cta_source: str = "plugin") -> str:
     return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
 
 
-_MATCH_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_MATCH_ALPHABET = "".join(c for c in string.ascii_uppercase + string.digits if c not in "01IO")
 
 
 def pairing_match_code(code: str) -> str:
