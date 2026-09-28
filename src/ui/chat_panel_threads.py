@@ -64,7 +64,7 @@ class _ChatPanelThreads:
             sidebar.home_requested.connect(self.new_thread_requested.emit)
             sidebar.search_requested.connect(lambda: self.header.history_menu().show_over(self))
             sidebar.thread_selected.connect(self.thread_selected.emit)
-            sidebar.upgrade_requested.connect(self._on_upgrade)
+            sidebar.upgrade_requested.connect(lambda: self._on_upgrade("sidebar"))
             self.header.set_sidebar(sidebar)
         sidebar.sync_visible(signed_in and empty)
 
@@ -180,6 +180,7 @@ class _ChatPanelThreads:
 
     def set_current_thread(self, thread_id: str | None) -> None:
         self.header.set_current_thread(thread_id or "")
+        self.set_queue_thread(thread_id or "")
 
     def set_history(self, entries: list) -> None:
 
@@ -229,6 +230,12 @@ class _ChatPanelThreads:
         except (AttributeError, RuntimeError):
             pass
         points = self._answer_points() if not running else {}
+        self._sync_edit()
+        for run_id, card in list(self._error_cards.items()):
+            try:
+                card.set_undo_retry(points.get(run_id, ("",))[0] == "undo")
+            except RuntimeError:
+                self._error_cards.pop(run_id, None)
         for run_id, run in list(self._runs.items()):
             bubble = getattr(run, "bubble", None)
             if bubble is None or not bubble.is_finished():
@@ -305,8 +312,7 @@ class _ChatPanelThreads:
         note.setWordWrap(True)
 
 
-        note.setText(self.tr("Noted for later: {0}. You can remove it in Settings > Memory.")
-                     .format(text.rstrip(" .!?;,")))
+        note.setText(self.tr("Added to memory: {0}").format(text.rstrip(" .!?;,")))
         note.show()
         self._add(note)
         self.message_list.scroll_to_bottom()
@@ -332,7 +338,7 @@ class _ChatPanelThreads:
         self.composer.clear_attachments()
 
 
-        self.composer._last_sent = ""
+        self.composer.forget_last_sent()
 
     def clear_thread(self) -> None:
         self._replay_generation += 1
@@ -345,7 +351,14 @@ class _ChatPanelThreads:
         self._status = None
         self._current_run = None
         self._run_requests = {}
+        self._last_user_bubble = None
+
+        self.set_queue_thread(None)
+        self._error_cards = {}
         self.composer.set_running(False)
+
+        if self.composer.end_edit():
+            self.edit_requested.emit("")
 
         self.composer.clear_chips()
         self._changed_count = 0

@@ -148,22 +148,6 @@ def layer_ids_from_mime(mime) -> list[str]:
 
 
 
-def mention_span(before: str) -> tuple[int, int] | None:
-
-
-
-    at = before.rfind("@")
-    if at < 0:
-        return None
-    if at > 0 and not before[at - 1].isspace():
-        return None
-    word = before[at + 1:]
-    if any(ch.isspace() for ch in word):
-        return None
-    start = at - 1 if at > 0 and before[at - 1] == " " else at
-    return start, len(before)
-
-
 
 
 def layer_chip(layer) -> dict | None:

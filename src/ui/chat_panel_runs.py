@@ -61,6 +61,16 @@ class _ChatPanelRuns:
             self._add(run.bubble)
         return run.bubble
 
+    def answer_row(self, run_id: str, animate: bool = True) -> AgentBubble:
+
+
+        bubble = AgentBubble()
+        bubble.link_activated.connect(self._on_bubble_link)
+        bubble.set_wordless(True)
+        self._wire_answer(bubble, run_id)
+        self._add(bubble, animate=animate)
+        return bubble
+
     def _trace_for(self, run_id: str) -> RunTrace:
 
 
@@ -130,23 +140,110 @@ class _ChatPanelRuns:
         self.composer.set_running(True)
 
 
+        self.composer.end_edit()
+
+
 
         self._changed_count = 0
 
         self._sync_answer_restores()
         self._show_thread_surface()
+        self._sync_queue()
 
     def append_user_message(self, run_id: str, text: str, chips, attachments) -> None:
         if self._live_run(run_id) is None:
             return
         self._last_run = run_id or self._last_run
         self._run_requests[run_id] = str(text or "")
-        self._add_user(UserBubble(text, list(chips or []), list(attachments or [])))
+        bubble = UserBubble(text, list(chips or []), list(attachments or []))
+        bubble.run_id = str(run_id or "")
+        self._add_user(bubble)
         if run_id == self._current_run:
             self._sync_answer_restores()
         self._show_thread_surface()
 
         QTimer.singleShot(0, self.message_list.scroll_to_bottom)
+
+    def set_edit_available(self, available: bool) -> None:
+
+
+        self._edit_available = bool(available)
+        self._sync_edit()
+
+    def _set_last_user(self, bubble) -> None:
+        previous, self._last_user_bubble = self._last_user_bubble, bubble
+        if previous is not None and previous is not bubble:
+            try:
+                previous.set_editable(False)
+            except RuntimeError:
+                pass
+        self._sync_edit()
+
+    def _sync_edit(self) -> None:
+
+        bubble = self._last_user_bubble
+        if bubble is None:
+            return
+        try:
+            bubble.set_editable(self._edit_available and self._current_run is None and bool(bubble.run_id))
+        except RuntimeError:
+            self._last_user_bubble = None
+
+    def _on_edit_bubble(self, bubble) -> None:
+        if bubble is self._last_user_bubble and self._current_run is None and bubble.run_id:
+            self.edit_requested.emit(bubble.run_id)
+
+    def begin_edit(self, run_id: str, text: str, chips, attachments=()) -> None:
+
+
+
+
+        c = self.composer
+        c.end_edit()
+        c.clear_chips()
+        c.clear_attachments()
+        c.set_text(str(text or ""))
+        for chip in chips or []:
+            if isinstance(chip, dict):
+                c.add_chip(dict(chip))
+        missing = c.restore_attachments(list(attachments or []))
+        line = self.tr("Editing your last message.")
+        if missing:
+            line += " " + missing[:1].upper() + missing[1:] + "."
+        point = self._answer_points().get(str(run_id or ""))
+        link = None
+        if point and point[0] == "undo" and point[1]:
+            link = (self.tr("Undo what this message did"), "restore:" + point[1])
+        c.show_edit_line(line, link)
+        c.focus_input()
+
+    def drop_turn(self, run_id: str) -> None:
+
+
+
+        run_id = str(run_id or "")
+        widgets = [w for w in self.message_list.widgets() if w is not self._status]
+        start = next((i for i, w in enumerate(widgets)
+                      if run_id and isinstance(w, UserBubble) and w.run_id == run_id), None)
+        if start is None:
+            return
+
+        end = next((i for i in range(start + 1, len(widgets))
+                    if isinstance(widgets[i], UserBubble) and widgets[i].run_id not in ("", run_id)),
+                   len(widgets))
+        doomed = widgets[start:end]
+
+
+        if start > 0 and widgets[start - 1].objectName() == "turnDivider":
+            doomed.insert(0, widgets[start - 1])
+            if end < len(widgets) and widgets[end - 1].objectName() == "turnDivider":
+                doomed.remove(widgets[end - 1])
+        for widget in doomed:
+            self.message_list.remove_widget(widget)
+        for registry in (self._runs, self._run_requests, self._error_cards, self._cleanup_cards):
+            registry.pop(run_id, None)
+        if self._last_user_bubble in doomed:
+            self._last_user_bubble = None
 
     def reset_answer(self, run_id: str) -> None:
 
@@ -277,6 +374,8 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
+
+        self._schedule_queue_after_run(status)
         if run is not None and run.bubble is not None:
             run.bubble.flush()
         usage = usage if isinstance(usage, dict) else {}
@@ -335,6 +434,12 @@ class _ChatPanelRuns:
         if not repeat and (status != "done" or (self._explain_runs and (summary or lines))):
             self._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
                                      duration_s=seconds))
+        if run is not None and run.bubble is None and status != "done":
+
+
+
+
+            run.bubble = self.answer_row(run_id)
         if run is not None and run.bubble is not None:
             run.bubble.finish_streaming()
         self._add_layer_links(run_id)
@@ -395,6 +500,7 @@ class _ChatPanelRuns:
             return
         bubble.setProperty("wired", True)
         bubble.feedback.connect(lambda up: self.feedback.emit(run_id, bool(up)))
+        bubble.feedback_reason.connect(lambda code, text: self.feedback_reason.emit(run_id, str(code), str(text)))
         bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
 
     def set_sources(self, run_id: str, items) -> None:

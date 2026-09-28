@@ -34,7 +34,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import http_headers, limits, links, net
 from ..core.qt_compat import field_type
-from ..core.security import is_local_url
+from ..core.security import is_local_url, local_url_refusal
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import volume_guard
 from .data_tools import _USER_AGENT, _run_on_main_thread, expand_link
@@ -119,11 +119,10 @@ def register_web_tools(registry: ToolRegistry):
 def _fetch(url: str) -> tuple[object | None, dict | None]:
 
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
-        return None, tool_error("URL must use http or https.", "INVALID_ARGS", "Pass an http(s) URL.")
+        return None, tool_error("URL must use http or https.", "INVALID_ARGS", "http(s) only.")
     if is_local_url(url):
-        return None, tool_error("URLs on this machine or on link-local addresses are not fetched.", "PERMISSION_DENIED",
-                                "Use a public URL, or ask the user to export the data to a file and load it "
-                                "with add_data.")
+        return None, tool_error(local_url_refusal(url), "PERMISSION_DENIED",
+                                "A public URL works, or add_data loads an exported file directly.")
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT})
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_MAX_BYTES,
@@ -131,17 +130,17 @@ def _fetch(url: str) -> tuple[object | None, dict | None]:
         raw, content_type = answer.body, str(answer.headers.get("content-type") or "")
     except net.FetchTooLarge:
         return None, tool_error(f"The document is over {_MAX_BYTES // (1024 * 1024)} MB.", "INVALID_ARGS",
-                                "Ask the API for fewer records, a bbox, or one page at a time.")
+                                "Fewer records, a bbox, or paging fit under the size.")
     except net.FetchDeadline as e:
         return None, tool_error(f"{url} did not answer in time: {e}", "NETWORK_ERROR",
-                                "Ask the API for fewer records, or try again later.")
+                                "Such timeouts are often brief.")
     except net.FetchCancelled:
-        return None, tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return None, tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except urllib.error.HTTPError as e:
         return None, tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR",
-                                "Check the URL and its parameters; some APIs need a smaller area or a key.")
+                                "Some APIs need a smaller area or a key in the URL parameters.")
     except (urllib.error.URLError, OSError) as e:
-        return None, tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR", "Check the URL and the connection.")
+        return None, tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR", "The URL or connection, likely.")
     try:
 
 
@@ -176,7 +175,7 @@ def _link_first(url: str) -> tuple[dict, dict | None]:
         return link, link["error"]
     if link["kind"] == "unreachable":
         return link, tool_error(link["note"], "INVALID_ARGS",
-                                "Ask the user for the link of the file itself, shared with anyone who has the link.")
+                                "A link to the file itself, shared with anyone who has it, loads directly.")
     if link["kind"] == "listing":
         files = link.get("files") or []
 
@@ -200,7 +199,7 @@ def _fetch_json(args: dict) -> dict:
             doc, error = json.loads(link["inline"]), None
         except ValueError as e:
             doc, error = None, tool_error(f"The data inside the link is not JSON: {e}", "NOT_JSON",
-                                          "Ask the user to export it as a file.")
+                                          "A file export has valid JSON.")
     else:
         doc, error = _fetch(url)
     if error is not None:
@@ -209,7 +208,7 @@ def _fetch_json(args: dict) -> dict:
     part = _walk(doc, path) if path else doc
     if path and part is None:
         return tool_error(f"Nothing at path '{path}'.", "INVALID_ARGS",
-                          "Call again without path to see the document's shape.")
+                          "Without path, this shows the document's shape.")
     try:
         max_chars = max(200, min(int(args.get("max_chars") or _DEFAULT_MAX_CHARS), _MAX_CHARS_CAP))
     except (TypeError, ValueError):
@@ -287,12 +286,11 @@ _BINARY_EXTS = (".zip", ".tif", ".tiff", ".gpkg", ".kmz", ".fgb", ".parquet", ".
 def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
 
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
-        return None, "", tool_error("URL must use http or https.", "INVALID_ARGS", "Pass an http(s) URL.")
+        return None, "", tool_error("URL must use http or https.", "INVALID_ARGS", "http(s) only.")
     if is_local_url(url):
-        return None, "", tool_error("URLs on this machine or on link-local addresses are not fetched.",
+        return None, "", tool_error(local_url_refusal(url),
                                     "PERMISSION_DENIED",
-                                    "Use a public URL, or ask the user to export the data to a file and load it "
-                                    "with add_data.")
+                                    "A public URL works, or add_data loads an exported file directly.")
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT_TEXT})
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_MAX_BYTES,
@@ -300,16 +298,17 @@ def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
         return answer.body, str(answer.headers.get("content-type") or ""), None
     except net.FetchTooLarge:
         return None, "", tool_error(f"The document is over {_MAX_BYTES // (1024 * 1024)} MB.",
-                                    "INVALID_ARGS", "Ask for a smaller page or one section of it.")
+                                    "INVALID_ARGS", "A smaller page or one section fits the size.")
     except net.FetchDeadline as e:
-        return None, "", tool_error(f"{url} did not answer in time: {e}", "NETWORK_ERROR", "Try again later.")
+        return None, "", tool_error(f"{url} did not answer in time: {e}", "NETWORK_ERROR",
+                                    "Such timeouts are often brief.")
     except net.FetchCancelled:
-        return None, "", tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return None, "", tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except urllib.error.HTTPError as e:
-        return None, "", tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR", "Check the URL.")
+        return None, "", tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR", "The HTTP status says why.")
     except (urllib.error.URLError, OSError) as e:
         return None, "", tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR",
-                                    "Check the URL and the connection.")
+                                    "The URL or connection, likely.")
 
 
 def _cell_text(fragment: str) -> str:
@@ -485,7 +484,7 @@ def _fetch_text(args: dict) -> dict:
         return error
     if len(raw) > _MAX_BYTES:
         return tool_error(f"The page is over {_MAX_BYTES // (1024 * 1024)} MB.", "INVALID_ARGS",
-                          "Read one section, or a smaller page.")
+                          "One section, or a smaller page, fits.")
     try:
         max_chars = max(200, min(int(args.get("max_chars") or _DEFAULT_MAX_CHARS), _MAX_CHARS_CAP))
     except (TypeError, ValueError):
@@ -515,8 +514,8 @@ def _fetch_text(args: dict) -> dict:
         if not text:
             out.update({"chars": 0, "text": "",
                         "note": ("A PDF whose text could not be read here: it draws its letters through its own "
-                                 "font tables, or it is scanned. Ask the user for the passage they need, or for "
-                                 "a web page of the same document.")})
+                                 "font tables, or it is scanned. The passage needed, or a web page of it, reads "
+                                 "where this text could not.")})
             return out
         body_text = text
     else:
@@ -654,7 +653,7 @@ def _add_points_from_json(args: dict) -> dict:
     lon_key = str(args.get("lon_key") or "").strip()
     if not lat_key or not lon_key:
         return tool_error("lat_key and lon_key are required.", "INVALID_ARGS",
-                          "Name the record keys holding the latitude and the longitude.")
+                          "They name the record keys holding the latitude and the longitude.")
     doc, error = _fetch(url)
     if error is not None:
         return error

@@ -413,7 +413,10 @@ def restore_group(pairs: list) -> None:
         remove_quietly(aside)
 
 
-def _copy_files(folder: str, copies: list, label: str) -> bool:
+def _copy_files(folder: str, copies: list, label: str) -> str:
+
+
+    src = folder
     try:
         os.makedirs(folder, exist_ok=True)
         for src, dst in copies:
@@ -422,14 +425,18 @@ def _copy_files(folder: str, copies: list, label: str) -> bool:
             else:
                 shutil.copy2(src, dst)
     except (OSError, sqlite3.Error) as exc:
-        log_warning(f"Backup of {label} failed: {exc}")
+
+        reason = f"{type(exc).__name__}: {exc}"
+        if not getattr(exc, "filename", None):
+            reason = f"{src}: {reason}"
+        log_warning(f"Backup of {label} failed: {reason}")
 
 
         for _src, dst in copies:
             for suffix in ("", "-wal", "-shm", "-journal"):
                 remove_quietly(dst + suffix)
-        return False
-    return True
+        return reason
+    return ""
 
 
 def resolve_layers(args: dict) -> list:

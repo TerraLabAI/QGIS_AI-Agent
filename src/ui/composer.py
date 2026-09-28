@@ -29,6 +29,7 @@ from __future__ import annotations
 import html
 import os
 import sys
+import uuid
 
 from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage
@@ -166,6 +167,11 @@ class Composer(QFrame):
 
     send_clicked = pyqtSignal()
     stop_clicked = pyqtSignal()
+
+
+    queue_clicked = pyqtSignal()
+
+    queue_recall_requested = pyqtSignal()
     files_attached = pyqtSignal(object)
     files_dropped = pyqtSignal(object)
     context_add_requested = pyqtSignal(str)
@@ -175,12 +181,16 @@ class Composer(QFrame):
     layer_card_clicked = pyqtSignal(str)
     permission_mode_changed = pyqtSignal(str)
     effort_changed = pyqtSignal(str)
-    upgrade_requested = pyqtSignal()
+
+    upgrade_requested = pyqtSignal(str)
     example_chosen = pyqtSignal(str)
 
     reconnect_requested = pyqtSignal()
 
     notice_link_activated = pyqtSignal(str)
+
+
+    edit_dropped = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -190,6 +200,9 @@ class Composer(QFrame):
         self.setAcceptDrops(False)
         self.setProperty("focused", False)
         self._running = False
+
+        self._queue_full = False
+        self._queued = 0
         self._blocked = False
 
 
@@ -202,6 +215,10 @@ class Composer(QFrame):
 
         self._compact_controls = False
         self._last_sent = ""
+
+
+
+        self._last_sent_items = []
         self._offline = False
 
 
@@ -222,6 +239,8 @@ class Composer(QFrame):
 
 
         self._sticky_hint = False
+
+        self._editing = False
         self._items: list[dict] = []
         self._tags: dict[str, AttachmentTag] = {}
         self._chips = ChipRow()
@@ -261,7 +280,7 @@ class Composer(QFrame):
         row.addSpacing(_CHIP_GAP - SPACE_OUTER)
         self._permission_chip = PermissionChip(self)
         self._permission_chip.mode_changed.connect(self.permission_mode_changed.emit)
-        self._permission_chip.upgrade_requested.connect(self.upgrade_requested.emit)
+        self._permission_chip.upgrade_requested.connect(lambda: self.upgrade_requested.emit("autopilot"))
         row.addWidget(self._permission_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
 
@@ -271,6 +290,9 @@ class Composer(QFrame):
         self._input.submitted.connect(self._on_submit)
         self._input.textChanged.connect(self._sync_send_enabled)
         self._input.textChanged.connect(self._clear_warning)
+        self._input.textChanged.connect(self._drop_edit_when_empty)
+        self.attachments_changed.connect(self._drop_edit_when_empty)
+        self.chips_changed.connect(self._drop_edit_when_empty)
         self._input.mentions_changed.connect(self._on_mentions_changed)
         self._input.files_requested.connect(self._on_add_files)
         self._input.recall_requested.connect(self._recall_last)
@@ -281,7 +303,7 @@ class Composer(QFrame):
 
         self._effort_chip = EffortChip(self)
         self._effort_chip.effort_changed.connect(self._on_effort_pick)
-        self._effort_chip.upgrade_requested.connect(self.upgrade_requested.emit)
+        self._effort_chip.upgrade_requested.connect(lambda: self.upgrade_requested.emit("effort"))
         row.addWidget(self._effort_chip, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._send_btn = QToolButton(self)
@@ -292,6 +314,7 @@ class Composer(QFrame):
         self._send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._send_btn.setProperty("running", False)
+        self._send_btn.setProperty("queue", False)
 
 
 
@@ -603,6 +626,25 @@ class Composer(QFrame):
             self._hint_timer.stop()
             self._hint.hide()
 
+    def show_edit_line(self, text: str, link: tuple[str, str] | None = None) -> None:
+
+
+        self.show_hint(text, sticky=True, link=link)
+        self._editing = True
+
+    def end_edit(self) -> bool:
+
+        was, self._editing = self._editing, False
+        if was:
+            self._clear_hint()
+        return was
+
+    def _drop_edit_when_empty(self) -> None:
+
+        if self._editing and not (self.text().strip() or self._items or len(self._chips)):
+            self.end_edit()
+            self.edit_dropped.emit()
+
 
 
     def examples_dialog(self) -> ExamplesDialog:
@@ -800,7 +842,30 @@ class Composer(QFrame):
         self._report_rejections(unsupported, unreadable, over, heavy)
         return accepted
 
+    def restore_attachments(self, items) -> str:
+
+
+
+        unreadable = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            if item.get("kind") == "image" and item.get("data_base64"):
+                back = dict(item, id=uuid.uuid4().hex)
+            else:
+                back = attachment_from_path(str(item.get("path") or ""))
+            if back is None:
+                unreadable.append(str(item.get("name") or item.get("path") or ""))
+            else:
+                self.add_attachment(back)
+        return self._rejection_line((), unreadable, 0)
+
     def _report_rejections(self, unsupported, unreadable, over: int, heavy=()) -> None:
+        line = self._rejection_line(unsupported, unreadable, over, heavy)
+        if line:
+            self.show_hint(line)
+
+    def _rejection_line(self, unsupported, unreadable, over: int, heavy=()) -> str:
 
         parts = []
         if unsupported:
@@ -815,8 +880,7 @@ class Composer(QFrame):
         if over:
             parts.append(self.tr("{n} left out, {total} at most")
                          .format(n=over, total=MAX_ATTACHMENTS))
-        if parts:
-            self.show_hint("; ".join(parts))
+        return "; ".join(parts)
 
     def remove_attachment(self, key: str) -> None:
         tag = self._tags.pop(str(key), None)
@@ -957,6 +1021,18 @@ class Composer(QFrame):
     def is_running(self) -> bool:
         return self._running
 
+    def set_queue_count(self, count: int, cap: int) -> None:
+
+
+        self._queued = max(0, int(count))
+        self._queue_full = self._queued >= int(cap)
+        self._paint_send()
+        self._sync_send_enabled()
+
+    def queues(self) -> bool:
+
+        return self._running and not self._blocked and bool(self.text().strip())
+
     def set_blocked(self, blocked: bool, placeholder: str = "") -> None:
 
         self._blocked = bool(blocked)
@@ -1067,7 +1143,18 @@ class Composer(QFrame):
 
         paper = paper_of(self._send_btn)
         disabled = paper
-        if self._running:
+        queue = self.queues()
+        if self._send_btn.property("queue") != queue:
+            self._send_btn.setProperty("queue", queue)
+            repolish(self._send_btn)
+        if queue:
+
+            self._send_btn.setIcon(icon_for(self._send_btn, "lu.corner-down-left", _DISC_GLYPH, qcolor(INK)))
+            self._send_btn.setToolTip(
+                self.tr("The queue holds 5 messages. Send or remove one first.") if self._queue_full else
+                self.tr("Queue it: the agent reads it at its next step (Enter)"))
+            self._send_btn.setAccessibleName(self.tr("Queue"))
+        elif self._running:
 
 
 
@@ -1102,7 +1189,9 @@ class Composer(QFrame):
 
     def _sync_send_enabled(self) -> None:
         if self._running:
-            self._send_btn.setEnabled(True)
+            if bool(self._send_btn.property("queue")) != self.queues():
+                self._paint_send()
+            self._send_btn.setEnabled(not (self.queues() and self._queue_full))
             return
 
 
@@ -1126,7 +1215,16 @@ class Composer(QFrame):
         self._submit(check_quality=True)
 
     def _submit(self, *, check_quality: bool) -> None:
-        if self._running or self._blocked:
+        if self._running:
+
+            if self.queues() and not self._queue_full:
+                too_large = self._too_large()
+                if too_large:
+                    self.show_warning(too_large)
+                    return
+                self.queue_clicked.emit()
+            return
+        if self._blocked:
             return
         if self._offline and not self._effort_locked:
 
@@ -1144,7 +1242,7 @@ class Composer(QFrame):
             self.reconnect_requested.emit()
             return
         if self._effort_locked:
-            self.upgrade_requested.emit()
+            self.upgrade_requested.emit("effort")
             return
         if not (self.text().strip() or self._items):
             return
@@ -1170,15 +1268,32 @@ class Composer(QFrame):
 
 
         self._last_sent = self.text()
+        self._last_sent_items = [dict(item) for item in self._items]
         self.send_clicked.emit()
 
     def _recall_last(self) -> None:
+        if self._queued and not self._input.isReadOnly() and not self.text():
+
+            self.queue_recall_requested.emit()
+            return
 
 
 
         if self._input.isReadOnly() or self._blocked or not self._last_sent:
             return
         self.set_text(self._last_sent)
+        for item in self._last_sent_items:
+            self.add_attachment(dict(item))
+
+    def remember_sent(self, text: str, items=()) -> None:
+
+        self._last_sent = str(text or "")
+        self._last_sent_items = [dict(item) for item in items or [] if isinstance(item, dict)]
+
+    def forget_last_sent(self) -> None:
+
+        self._last_sent = ""
+        self._last_sent_items = []
 
     def _on_hint_link(self, href: str) -> None:
 
@@ -1224,7 +1339,7 @@ class Composer(QFrame):
         return ""
 
     def _on_send_or_stop(self) -> None:
-        if self._running:
+        if self._running and not self.queues():
             self.stop_clicked.emit()
         else:
             self._on_submit()

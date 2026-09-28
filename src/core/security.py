@@ -597,8 +597,8 @@ def _scope_problem(expanded: str, real: str) -> str | None:
     if any(_under(c, root) for c in candidates for root in roots):
         return None
     return (f"{expanded} is outside the project, its layers' folders and the files the user gave; the agent "
-            "does not read or list other folders of this computer. Ask the user to attach the file in the "
-            "chat or to type its full path, and never search their folders for it.")
+            "does not read or list other folders of this computer. Attaching the file in the chat, or "
+            "typing its full path, reaches it.")
 
 
 def _hidden_component(path: str, roots: list[str]) -> str | None:
@@ -610,6 +610,22 @@ def _hidden_component(path: str, roots: list[str]) -> str | None:
         if part.startswith(".") and part not in (".", "..") and not _is_agent_dir_name(part):
             return part
     return None
+
+
+def _is_style_undo_file(path: str) -> bool:
+
+
+
+
+
+
+
+
+    folder, name = os.path.split(path)
+    if not name.lower().endswith(".qml") or os.path.basename(folder) != "style_undo":
+        return False
+    accounts = os.path.dirname(os.path.dirname(folder))
+    return any(_norm(accounts) == _norm(os.path.join(state, "accounts")) for state in _state_dirs())
 
 
 def _read_denied(path: str, roots: list[str]) -> str | None:
@@ -812,7 +828,7 @@ def _windows_path_problem(path: str) -> str | None:
 
     drive, tail = ntpath.splitdrive(path)
     if drive and not tail.startswith(("/", "\\")):
-        return "Use an absolute Windows path such as C:/data/file.gpkg, not a drive-relative path."
+        return "C:/data/file.gpkg is an absolute Windows path; a drive-relative one does not work."
     for part in re.split(r"[\\/]", tail):
         if not part or part in (".", ".."):
             continue
@@ -900,6 +916,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
         real = os.path.realpath(expanded)
     except Exception:
         real = expanded
+    if not write and all(_is_style_undo_file(c) for c in (expanded, real)):
+        return None
     roots = _explicit_roots()
     for candidate in dict.fromkeys((expanded, real)):
         reason = _read_denied(candidate, roots)
@@ -928,8 +946,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
         return ("Writes are limited to the project folder, the temp folder, attached files' folders and your "
                 "home folder or mounted volumes.")
     if overwrite is False and os.path.isfile(real):
-        remedy = overwrite_remedy or ("Pass overwrite=true only after the user agreed to replace it, "
-                                       "or choose a new file name.")
+        remedy = overwrite_remedy or ("overwrite=true replaces the file; that is the user's call. "
+                                       "A new file name avoids it.")
         return f"{expanded} already exists. {remedy}"
     return None
 
@@ -1082,13 +1100,6 @@ def host_is_vouched(host: str) -> bool:
 
     host = str(host or "").strip().lower().rstrip(".")
     return bool(host) and (host in _user_hosts or host in _vouched_hosts)
-
-
-def forget_vouched_hosts() -> None:
-
-    global _vouched_thread
-    _vouched_hosts.clear()
-    _vouched_thread = None
 
 
 def vouched_for_thread(thread_id) -> None:
@@ -1308,6 +1319,33 @@ def is_local_url(url: str, resolve: bool = True) -> bool:
     return False
 
 
+def local_url_refusal(url: str) -> str:
+
+
+
+
+
+
+
+    base = "URLs on this machine or on link-local addresses are not fetched."
+    try:
+        host = _host_of(url)
+    except ValueError:
+        return base
+    if (not host or _as_address(host) is not None or host in _LOCAL_HOSTS or host.endswith(".localhost")
+            or host in _METADATA_NAMES):
+        return base
+    local = []
+    for text in resolve_host(host):
+        address = _as_address(text)
+        if address is not None and _address_is_local(address):
+            local.append(text)
+    if not local:
+        return base
+    return (f"{host} resolves to {', '.join(local)} on this computer, a local address, so it is not fetched; "
+            "a public name answered so usually means a DNS filter, hosts file or proxy on this network.")
+
+
 def is_private_url(url: str, resolve: bool = True) -> bool:
 
     try:
@@ -1374,6 +1412,8 @@ def refused_addresses(url: str, addresses) -> str | None:
 
 
 
+    from .net_hosts import OWN_HOSTS
+
     host = _host_of(url)
     for text in addresses:
         address = _as_address(text)
@@ -1382,7 +1422,7 @@ def refused_addresses(url: str, addresses) -> str | None:
         if _address_is_local(address) and not is_paired_backend_url(url):
             return f"{host} resolved to a local address at connection time."
         if (_address_is_private(address) and _user_text_seen and host not in _user_hosts
-                and not is_paired_backend_url(url)):
+                and host not in OWN_HOSTS and not is_paired_backend_url(url)):
             return f"{host} resolved to a private network address the user did not name."
     return None
 
@@ -1430,12 +1470,16 @@ def validate_url(url: str) -> str | None:
 
 
     if is_local_url(text) and not is_paired_backend_url(text):
-        return "URLs on this machine or on link-local addresses are not fetched."
+        return local_url_refusal(text)
     if is_private_url(text) and _user_text_seen and not is_paired_backend_url(text):
+        from .net_hosts import OWN_HOSTS
+
         host = _host_of(text)
-        if host not in _user_hosts:
-            return (f"{host} is a private network address the user did not name; ask the user for the "
-                    "address before fetching it.")
+
+
+        if host not in _user_hosts and host not in OWN_HOSTS:
+            return (f"{host} is a private network address the user did not name; fetching it needs the "
+                    "user naming it first.")
     return None
 
 

@@ -51,7 +51,6 @@ from .data_osm_geometry import (
     _OVERPASS_TIMEOUT_MARKERS,
     _beyond_bbox,
     _bounded_query,
-    _geometry_counts,
     _LoadStopped,
     _osm_stream_convert,
     _osm_to_geojson,
@@ -69,6 +68,10 @@ from .data_overture import (
     _overture_layer,
 )
 from .data_overture_extract import _lifted_deadline, _overture_clip, continue_in_background
+
+
+_OSM_FAMILY_OF = {"Point": "points", "MultiPoint": "points", "LineString": "lines",
+                  "MultiLineString": "lines", "Polygon": "polygons", "MultiPolygon": "polygons"}
 
 
 def _osm_from_hosted(plan: list, box, args: dict, km2: float) -> dict:
@@ -138,7 +141,7 @@ def _osm_from_hosted(plan: list, box, args: dict, km2: float) -> dict:
     if partial:
         made["truncated"] = True
         made["_note"] += (f" {', '.join(partial)} stopped at the service's limit or lost a clip: part of the box is "
-                          "missing from the map, not empty. Say so; a smaller box gives all of it.")
+                          "missing from the map, not empty; a smaller box gives all of it.")
     if later:
         return continue_in_background(later, made)
     return made
@@ -227,7 +230,7 @@ def _osm_fallback_warning(endpoint_used, own_failed: bool) -> str:
     else:
         why = "this session's Overpass list does not name TerraLab's own instance"
     return (f"{why}, so this came from the public mirror {host}, a volunteer service that is slower and may "
-            "refuse large boxes. Tell the user the answer came from a public fallback.")
+            "refuse large boxes. The answer came from a public fallback.")
 
 
 def _osm_area_refusal(km2: float, box=None, args: dict | None = None) -> dict | None:
@@ -335,7 +338,7 @@ def _fetch_building_footprints(args: dict) -> dict:
     span = max(east - west, north - south)
     if span > _FOOTPRINT_MAX_SPAN_DEG:
         return {"_error": f"Each side of the box must stay under {_FOOTPRINT_MAX_SPAN_DEG} degrees.",
-                "suggestion": "Ask for a smaller extent, or one arrondissement or district at a time."}
+                "suggestion": "A smaller extent, or one arrondissement or district at a time, fits."}
     area_km2 = _bbox_km2(south, west, north, east)
     cap_km2 = volume_guard.footprints_max_km2()
     if area_km2 > cap_km2:
@@ -395,11 +398,11 @@ def _fetch_building_footprints(args: dict) -> dict:
             except (ValueError, OSError, AttributeError):
                 pass
             return None, {"_error": detail or f"The footprint service answered {error.code}.",
-                          "suggestion": "Draw a smaller box." if error.code in (400, 413)
-                          else "Try again shortly."}
+                          "suggestion": "A smaller box." if error.code in (400, 413)
+                          else "Usually brief."}
         except (net.FetchDeadline, net.FetchTruncated, net.NetworkUnreachable, OSError) as error:
             return None, {"_error": f"Could not reach the footprint service: {error}",
-                          "suggestion": "Use fetch_osm_data with way[building] for the same box instead."}
+                          "suggestion": "fetch_osm_data with way[building] reads the same box."}
         try:
             return json.loads(answer.body), None
         except (ValueError, UnicodeDecodeError):
@@ -472,7 +475,7 @@ def _fetch_building_footprints(args: dict) -> dict:
                 if not layer.isValid():
                     return {"_error": f"Could not build a layer from the {name} footprints."}
                 QgsProject.instance().addMapLayer(layer)
-                return {"layer_name": layer.name(), "feature_count": layer.featureCount()}
+                return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount()}
 
             made = _run_on_main_thread(_create, timeout=45)
         if made.get("_error"):
@@ -489,14 +492,14 @@ def _fetch_building_footprints(args: dict) -> dict:
             return {"features": 0,
                     "message": "Overture published no buildings for this box",
                     "empty_sources": empty,
-                    "suggestion": "Add microsoft and openstreetmap to sources for the same box."}
+                    "suggestion": "microsoft and openstreetmap in sources cover the same box."}
         return {"layers": added, "empty_sources": empty, "crs": "EPSG:4326",
                 "box_km2": round(area_km2, 1)}
     if not added:
         return {"features": 0,
                 "message": "No building footprints published for this box by " + ", ".join(sources),
                 "empty_sources": empty,
-                "suggestion": 'OpenStreetMap covers most cities; try sources=["openstreetmap"].'}
+                "suggestion": 'OpenStreetMap covers cities; sources=["openstreetmap"] fits.'}
     return {"layers": added, "empty_sources": empty, "crs": "EPSG:4326",
             "box_km2": round(area_km2, 1), "extracted_on": payload.get("extractedOn", "")}
 
@@ -622,7 +625,7 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
         return {"_error": f"bbox must provide either {{south, west, north, east}} or "
                 f"{{xmin, ymin, xmax, ymax}}; got keys {sorted(bbox)}.",
                 "code": "INVALID_ARGS",
-                "suggestion": "Pass the four numbers in EPSG:4326 degrees under one of those two key sets."}
+                "suggestion": "The four numbers are in EPSG:4326 degrees, under one of those two key sets."}
     try:
         inverted = float(east) <= float(west) or float(north) <= float(south)
     except (TypeError, ValueError):
@@ -632,11 +635,11 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
 
         return {"_error": f"bbox is inverted: west {west}, east {east}, south {south}, north {north}.",
                 "code": "INVALID_ARGS",
-                "suggestion": "Pass west < east and south < north, in EPSG:4326 degrees."}
+                "suggestion": "west < east and south < north, in EPSG:4326 degrees."}
     problem = volume_guard.not_degrees(west, south, east, north)
     if problem:
         return {"_error": problem, "code": "INVALID_ARGS",
-                "suggestion": "Pass the bbox of the place in EPSG:4326 degrees, longitude and latitude."}
+                "suggestion": "The bbox of the place is in EPSG:4326 degrees, longitude and latitude."}
 
     try:
         area_km2 = _bbox_km2(south, west, north, east)
@@ -687,22 +690,31 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             "query": final_query,
         }
 
-    uri = _vector_source_from_features(geojson["features"], layer_name, "osm")
+
+
+    by_family: dict[str, list] = {}
+    for feature in geojson["features"]:
+        by_family.setdefault(_OSM_FAMILY_OF.get(feature["geometry"]["type"], "points"), []).append(feature)
+    several = len(by_family) > 1
+
+    planned = []
+    for family in _LIFTED_FAMILIES:
+        if family in by_family:
+            shown = f"{layer_name} {family}" if several else layer_name
+            planned.append((family, shown, _vector_source_from_features(by_family[family], shown, "osm")))
 
     def _create():
-        layer = _layer_from_source(uri, layer_name)
-        if not layer.isValid():
+        added = []
+        for family, shown, uri in planned:
+            layer = _layer_from_source(uri, shown)
+            if not layer.isValid():
+                continue
+            QgsProject.instance().addMapLayer(layer)
+            added.append({"layer_name": layer.name(), "layer_id": layer.id(),
+                          "feature_count": layer.featureCount(), "geometry_type": _OSM_GEOMETRY_TYPES[family]})
+        if not added:
             return {"_error": "Failed to create layer from OSM data"}
-        QgsProject.instance().addMapLayer(layer)
-        return {
-            "layer_name": layer.name(),
-            "layer_id": layer.id(),
-            "feature_count": layer.featureCount(),
-            "geometry_type": (
-                layer.geometryType().name
-                if hasattr(layer.geometryType(), "name")
-                else str(layer.geometryType())
-            ),
+        out = {
             "crs": "EPSG:4326",
             "source_endpoint": endpoint_used,
 
@@ -710,8 +722,15 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             "licence": "ODbL 1.0",
             "attribution": _OSM_ATTRIBUTION,
         }
-
-    mix = _geometry_counts(geojson["features"])
+        if several:
+            for entry in added:
+                entry.update(licence="ODbL 1.0", attribution=_OSM_ATTRIBUTION)
+            out["layers"] = added
+            out["feature_count"] = sum(entry["feature_count"] for entry in added)
+            out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[f]: len(by_family[f]) for f, _s, _u in planned}
+        else:
+            out.update(added[0])
+        return out
 
     out = _run_on_main_thread(_create, timeout=30)
     if not out.get("_error"):
@@ -721,16 +740,12 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
         elif own_host and own_host in str(endpoint_used or "").lower():
             out["served_by"] = "TerraLab Overpass"
 
-
-
-        if len(mix) > 1:
-            out["geometry_mix"] = mix
         out["box_km2"] = round(area_km2, 1)
         if truncated_remark:
             out["truncated"] = True
             out["warning"] = (f"Overpass gave up partway through this query and answered with what it had: "
-                              f"{truncated_remark}. Some features are likely missing; ask for a smaller "
-                              "bbox for a complete answer.")
+                              f"{truncated_remark}. Some features are likely missing; a smaller "
+                              "bbox gives a complete answer.")
         if fallback_note:
             out["warning"] = (out.get("warning", "") + " " + fallback_note).strip()
         reach = _beyond_bbox(geojson["features"], (west, south, east, north))
@@ -847,8 +862,8 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             return {"_error": (f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
                                "which is not answering or not served to this session."),
                     "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    "suggestion": (f"Ask for at most {public_cap:,.0f} km\u00b2, or call "
-                                   "fetch_overture with the matching theme, which is served from our tiles.")}
+                    "suggestion": (f"At most {public_cap:,.0f} km\u00b2 fits, or fetch_overture with the "
+                                   "matching theme, served from our tiles.")}
         if raw is None and fell_back and area_km2 > public_cap:
 
 
@@ -857,7 +872,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             return {"_error": (f"TerraLab's own Overpass instance did not answer{_overpass_why(errors)}, and "
                                f"{area_km2:,.0f} square kilometres is more than the public mirrors are asked for."),
                     "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    "suggestion": f"Try again in a few minutes, or ask for at most {public_cap:,.0f} km\u00b2 now."}
+                    "suggestion": f"Such failures are usually brief; at most {public_cap:,.0f} km\u00b2 fits now."}
         if raw is None and fell_back:
 
 
@@ -911,9 +926,9 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             return {"_error": (f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
                                f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added."),
                     "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    "suggestion": ("If the user asked for all of it, call again with full_extent: it streams to "
-                                   "disk. Else lighten the tags over the same box, or fetch_overture for a hosted "
-                                   "theme.")}
+                    "suggestion": ("full_extent, for all of it, streams to disk instead of holding memory. "
+                                   "Lighter tags over the same box, or fetch_overture for a hosted theme, "
+                                   "fit otherwise.")}
         elif any("Invalid response from Overpass API" in str(error) for error in errors):
             return {"_error": f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data."}
         else:
@@ -1017,9 +1032,9 @@ def _overpass_tiled(query: str, tiles: list, args: dict, area_km2: float) -> dic
             return {"_error": (f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
                                f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added."),
                     "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    "suggestion": ("If the user asked for all of it, call again with full_extent: it streams to "
-                                   "disk. Else lighten the tags over the same box, or fetch_overture for a hosted "
-                                   "theme.")}
+                    "suggestion": ("full_extent, for all of it, streams to disk instead of holding memory. "
+                                   "Lighter tags over the same box, or fetch_overture for a hosted theme, "
+                                   "fit otherwise.")}
         if not first:
             first = got
         elif got.get("truncated_remark") and not first.get("truncated_remark"):
@@ -1068,7 +1083,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
             return {"_error": (f"The disk has {(free or 0) / 1024 ** 3:.1f} GB free, too little to write a load of "
                                "this size and convert it."),
                     "code": limits.CEILING_CODE,
-                    "suggestion": "Say so: the user can free some disk space, or ask for a smaller area."}
+                    "suggestion": "Freeing some disk space, or a smaller area, fits."}
         fetched = _osm_stream_fetch(final_query, directory, area_km2, args,
                                     started + clock * _OSM_STREAM_DOWNLOAD_SHARE, query_timeout, cap)
         if fetched.get("_error") or fetched.get("empty"):
@@ -1145,14 +1160,13 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         remark = fetched.get("remark")
         out["_note"] = (f"{'Loaded in part' if remark or converted['stopped'] else 'Loaded in full'}, as the user "
                         f"asked for all of it: {total:,} features, {_human_bytes(size)} on disk in a GeoPackage, "
-                        f"streamed from Overpass ({_human_bytes(download_bytes)} of answer) in {wall:.0f} s. "
-                        "Tell the user the size.")
+                        f"streamed from Overpass ({_human_bytes(download_bytes)} of answer) in {wall:.0f} s.")
         if remark or converted["stopped"]:
             out["truncated"] = True
             out["warning"] = (f"Overpass gave up partway through this query and answered with what it had: {remark}. "
                               "Some features are likely missing." if remark else
                               "Writing the layer stopped when this call's time ran out, so part of the answer is "
-                              "missing: say so, and offer the rest in a smaller area.")
+                              "missing; a smaller area gets the rest.")
         if warning:
             out["warning"] = (out.get("warning", "") + " " + warning).strip()
         reach = _reach_past(converted["extent"], box)
@@ -1241,8 +1255,8 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         return {"_error": (f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
                            "which is not answering or not served to this session."),
                 "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                "suggestion": (f"Ask for at most {public_cap:,.0f} km², or call "
-                               "fetch_overture with the matching theme, which is served from our tiles.")}
+                "suggestion": (f"At most {public_cap:,.0f} km² fits, or fetch_overture with the "
+                               "matching theme, served from our tiles.")}
     if path is None and own_failed and area_km2 > public_cap:
 
 
@@ -1252,8 +1266,8 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         return {"_error": (f"TerraLab's own Overpass instance is not answering, and {area_km2:,.0f} square "
                            "kilometres is more than a public mirror is sent."),
                 "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                "suggestion": (f"Say so. Try again in a few minutes, ask for at most {public_cap:,.0f} km\u00b2, or "
-                               "call fetch_overture with the matching theme, which is served from our tiles.")}
+                "suggestion": (f"Such failures are usually brief; at most {public_cap:,.0f} km\u00b2 fits, or "
+                               "fetch_overture with the matching theme, served from our tiles.")}
     warning = ""
     if path is None and fell_back:
         if own_failed:
@@ -1274,14 +1288,14 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
     rejected = _overpass_rejection(errors)
     if rejected:
         return {"_error": f"Overpass rejected the query: {rejected}", "query": final_query,
-                "suggestion": "The servers are up; fix the query it names, or narrow the box, and call again."}
+                "suggestion": "The servers are up; the query it names, or a narrower box, fixes it."}
     if links and all(links):
 
 
         return link_failure()
     return {"_error": f"{down_prefix}Overpass could not deliver this load{_overpass_why(errors)}.",
-            "suggestion": ("Say what stopped it. A smaller area, or the ways with out geom; instead of a recursion, "
-                           "asks less of the server.")}
+            "suggestion": ("A smaller area, or the ways with out geom instead of a recursion, asks "
+                           "less of the server.")}
 
 
 

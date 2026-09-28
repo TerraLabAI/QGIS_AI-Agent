@@ -39,7 +39,7 @@ def _unsafe_processing_algorithm(algorithm_id: str) -> dict | None:
     return tool_error(
         f"{algorithm_id} is blocked because its installed implementation edits the source "
         "layer from Processing and is unsafe for AI Agent execution.",
-        "INVALID_ARGS", "Do not retry this algorithm.",
+        "INVALID_ARGS", "Every call of it is blocked.",
         hint="processing_unsafe_algorithm", variant=folded, algorithm=folded)
 
 
@@ -76,6 +76,35 @@ def _threadable(alg) -> bool:
         return _model_steps_may_leave(alg)
     except Exception:  # noqa: BLE001
         return False
+
+
+MAIN_THREAD_NOTE = ("This algorithm runs on QGIS's main thread (it declares NoThreading, or its steps "
+                    "touch what only the main thread may): QGIS does not respond to the user until the "
+                    "whole run ends, however long that is, and run_processing answers only then.")
+
+
+SEPARATE_QGIS_NOTE = ("This algorithm declares NoThreading. When every layer it reads is a file layer "
+                      "(no selection, filter or unsaved edits) and every output is a file, run_processing "
+                      "runs it in a separate QGIS process, which takes a few seconds to start, and this "
+                      "QGIS stays responsive; otherwise it runs on QGIS's main thread and QGIS does not "
+                      "respond to the user until the whole run ends.")
+
+
+def main_thread_facts(alg) -> dict:
+
+
+
+
+
+
+
+    if _threadable(alg):
+        return {}
+    from .processing_child import child_capable
+
+    if str(alg.id()).casefold() not in _unsafe_algorithms() and child_capable(alg):
+        return {"main_thread": "unless_files", "main_thread_note": SEPARATE_QGIS_NOTE}
+    return {"main_thread": True, "main_thread_note": MAIN_THREAD_NOTE}
 
 
 def _model_steps_may_leave(alg) -> bool:
@@ -302,11 +331,11 @@ def raster_nodata_defaults(alg, algorithm_id: str, parameters: dict) -> tuple[di
             value = declared.pop()
             out["NODATA_INPUT"] = value
             notes.append(f"NODATA_INPUT {_plain_number(value)} by default: every tile declares NoData "
-                         f"{_plain_number(value)}. Send NODATA_INPUT with another value to change it.")
+                         f"{_plain_number(value)}. NODATA_INPUT with another value changes it.")
             if parameters.get(key) in (None, ""):
                 out[key] = value
                 notes.append(f"{key} {_plain_number(value)} by default, the tiles' own NoData, so "
-                             f"{cells} stay NoData. Send {key} with another value to change it.")
+                             f"{cells} stay NoData. {key} with another value changes it.")
             return out, notes
         if declared != {None} or parameters.get(key) not in (None, ""):
             return out, notes
@@ -319,8 +348,8 @@ def raster_nodata_defaults(alg, algorithm_id: str, parameters: dict) -> tuple[di
             marker = markers.pop()
             out["NODATA_INPUT"] = marker
             notes.append(f"NODATA_INPUT {_plain_number(marker)} by default: every tile's minimum is "
-                         f"{_plain_number(marker)}, declared by none. Send NODATA_INPUT with another value if "
-                         f"{_plain_number(marker)} is a real measurement.")
+                         f"{_plain_number(marker)}, declared by none. NODATA_INPUT with another value keeps "
+                         f"{_plain_number(marker)} as a real measurement.")
         who = "the tiles declare"
     else:
         if parameters.get(key) not in (None, ""):
@@ -336,8 +365,8 @@ def raster_nodata_defaults(alg, algorithm_id: str, parameters: dict) -> tuple[di
         return out, notes
     out[key] = value
     notes.append(f"{key} {_plain_number(value)} by default: {who} no NoData, so "
-                 f"{cells} would be stored as 0 and read as real values. Send {key} with another value "
-                 f"to change it.")
+                 f"{cells} would be stored as 0 and read as real values. {key} with another value "
+                 f"changes it.")
     return out, notes
 
 
@@ -526,7 +555,7 @@ def align_raster_grids(alg, algorithm_id: str, parameters: dict) -> tuple[dict, 
             names = ", ".join(_grid_words(layers[i]) for i in foreign)
             return parameters, [], tool_error(
                 f"{names} {'is' if len(foreign) == 1 else 'are'} not in the CRS of the first input, "
-                f"{_grid_words(reference)}.", "INVALID_ARGS", "Reproject the inputs to one CRS first.",
+                f"{_grid_words(reference)}.", "INVALID_ARGS", "The inputs need one CRS.",
                 hint="grid_mixed_crs", algorithm=str(algorithm_id), inputs=names,
                 first=_grid_words(reference), crs=reference.crs().authid() or "the first input CRS",
                 count=len(foreign))
@@ -596,4 +625,5 @@ __all__ = [
     "raster_nodata_defaults",
     "_threadable",
     "_unsafe_processing_algorithm",
+    "main_thread_facts",
 ]

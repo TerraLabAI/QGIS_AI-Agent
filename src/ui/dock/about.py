@@ -311,6 +311,8 @@ def shortcut_columns() -> tuple:
     during = (
         (tr("Stop the run"), "", key_or(esc_key, tr("Stop button"))),
         (tr("Answer a permission card"), "", word(tr("Allow / Deny"))),
+        (tr("Queue a message"), tr("Sends when the agent finishes"), key(enter_key)),
+        (tr("Edit the last queued message"), tr("In an empty box"), key(native("Up"))),
     )
     chats = (
         (tr("Open a recent chat"), "", word(tr("Chat history button"))),

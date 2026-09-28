@@ -43,17 +43,17 @@ def _crs(value, fallback):
 def _pick_coordinate(args: dict) -> dict:
     canvas = iface.mapCanvas()
     if canvas is None:
-        return tool_error("The QGIS map canvas is not available.", "EXECUTION_FAILED", "Open a map view first.")
+        return tool_error("The QGIS map canvas is not available.", "EXECUTION_FAILED", "No map view is open.")
     if args.get("zoom_scale") is not None:
         canvas.zoomScale(float(args["zoom_scale"]))
     canvas_crs = canvas.mapSettings().destinationCrs()
     source_crs = _crs(args.get("crs"), canvas_crs)
     if args.get("crs") and source_crs is None:
-        return tool_error(f"Invalid crs {args['crs']!r}.", "INVALID_ARGS", "Pass an authority such as EPSG:4326.")
+        return tool_error(f"Invalid crs {args['crs']!r}.", "INVALID_ARGS", "EPSG:4326 is a valid authority.")
     raw = args.get("canvas_pixel")
     if raw is not None:
         if args.get("point") is not None:
-            return tool_error("Pass canvas_pixel or point, not both.", "INVALID_ARGS", "Choose one coordinate source.")
+            return tool_error("canvas_pixel or point, never both.", "INVALID_ARGS", "Only one coordinate source.")
         try:
             point = canvas.getCoordinateTransform().toMapCoordinates(
                 int(round(float(raw[0]))), int(round(float(raw[1])))
@@ -62,7 +62,7 @@ def _pick_coordinate(args: dict) -> dict:
             return tool_error(
                 "canvas_pixel must be [x, y] in viewport pixels.",
                 "INVALID_ARGS",
-                "Read the pixel from the canvas viewport.",
+                "canvas_pixel is in viewport pixels.",
             )
         source, source_crs = "canvas_pixel", canvas_crs
     elif args.get("point") is not None:
@@ -70,7 +70,7 @@ def _pick_coordinate(args: dict) -> dict:
             point = QgsPointXY(float(args["point"][0]), float(args["point"][1]))
         except (TypeError, ValueError, IndexError):
             return tool_error(
-                "point must be a numeric [x, y].", "INVALID_ARGS", "Pass coordinates in crs or the canvas CRS."
+                "point must be a numeric [x, y].", "INVALID_ARGS", "point is in crs or the canvas CRS."
             )
         source = "point"
     elif args.get("layer_name"):
@@ -79,24 +79,24 @@ def _pick_coordinate(args: dict) -> dict:
             return tool_error(
                 "layer_name must identify a vector layer.",
                 "INVALID_ARGS",
-                "Pass a vector layer containing the target geometry.",
+                "layer_name needs a vector layer with the geometry.",
             )
         feature_id = args.get("feature_id")
         if feature_id is None:
             return tool_error(
-                "feature_id is required when selecting a geometry.", "INVALID_ARGS", "Pass the target feature id."
+                "feature_id is required when selecting a geometry.", "INVALID_ARGS", "feature_id is the target."
             )
         feature = layer.getFeature(int(feature_id))
         if not feature.isValid() or feature.geometry().isNull():
             return tool_error(
-                f"No geometry was found for feature {feature_id}.", "INVALID_ARGS", "Pass an existing feature id."
+                f"No geometry was found for feature {feature_id}.", "INVALID_ARGS", "feature_id must exist."
             )
         vertices = list(feature.geometry().vertices())
         index = args.get("vertex_index")
         if index is not None:
             if index >= len(vertices):
                 return tool_error(
-                    "vertex_index is outside the target geometry.", "INVALID_ARGS", "Pass an existing vertex index."
+                    "vertex_index is outside the target geometry.", "INVALID_ARGS", "vertex_index must exist."
                 )
             point = QgsPointXY(vertices[index])
         else:
@@ -106,7 +106,7 @@ def _pick_coordinate(args: dict) -> dict:
         return tool_error(
             "No coordinate source was provided.",
             "INVALID_ARGS",
-            "Pass canvas_pixel, point, or layer_name with feature_id.",
+            "canvas_pixel, point, or layer_name with feature_id.",
         )
     tolerance = float(args.get("snap_tolerance") or 0.0)
     snapped = False
@@ -137,7 +137,7 @@ def _pick_coordinate(args: dict) -> dict:
     target_crs = _crs(args.get("output_crs"), source_crs)
     if args.get("output_crs") and target_crs is None:
         return tool_error(
-            f"Invalid output_crs {args['output_crs']!r}.", "INVALID_ARGS", "Pass an authority such as EPSG:4326."
+            f"Invalid output_crs {args['output_crs']!r}.", "INVALID_ARGS", "EPSG:4326 is a valid authority."
         )
     if target_crs != source_crs:
         point = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance()).transform(point)

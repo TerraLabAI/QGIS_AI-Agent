@@ -153,7 +153,7 @@ def _plan(args: dict) -> dict:
         return _layer_not_found_error(ref)
     if not isinstance(table, QgsVectorLayer):
         return tool_error(f"{table.name()} is not a vector layer or table.", "INVALID_ARGS",
-                          "Pass the origin-destination table, a vector layer or a geometryless CSV.")
+                          "the origin-destination table, a vector layer or a geometryless CSV.")
     fields = table.fields()
     plan: dict = {"table_id": table.id(), "table_name": table.name(), "notes": []}
     for key in ("origin_field", "destination_field"):
@@ -184,7 +184,7 @@ def _plan(args: dict) -> dict:
     coord_given = all(str(args.get(k) or "").strip() for k in coord_keys)
     if not places_name and not coord_given:
         return tool_error(
-            "Name a places layer with places_key_field, or all four of origin_x_field, origin_y_field, "
+            "A places layer with places_key_field, or all four of origin_x_field, origin_y_field, "
             "destination_x_field and destination_y_field on the table itself.", "INVALID_ARGS",
             "A places layer matches origin_field/destination_field to a key column; coordinate fields skip "
             "the lookup and use the table's own x/y values.")
@@ -194,7 +194,7 @@ def _plan(args: dict) -> dict:
             return _layer_not_found_error(places_name)
         if not isinstance(places, QgsVectorLayer) or not places.isSpatial():
             return tool_error(f"{places.name()} has no geometry to draw a flow line to.", "INVALID_ARGS",
-                              "Pass a point, line or polygon layer as places_layer.")
+                              "places_layer takes a point, line or polygon layer.")
         key_name = str(args.get("places_key_field") or "").strip()
         key_index = places.fields().indexOf(key_name)
         if key_index < 0:
@@ -217,7 +217,7 @@ def _plan(args: dict) -> dict:
         crs = QgsCoordinateReferenceSystem(crs_text) if crs_text else None
         if crs_text and not crs.isValid():
             return tool_error(f"coordinate_crs {crs_text!r} is not a CRS QGIS recognises.", "INVALID_ARGS",
-                              "Pass an EPSG code, for example EPSG:4326.")
+                              "an EPSG code, for example EPSG:4326.")
         table_crs_known = table.isSpatial() and table.crs().isValid()
         if crs is None:
             crs = table.crs() if table_crs_known else QgsCoordinateReferenceSystem("EPSG:4326")
@@ -257,15 +257,15 @@ def _output_target(args: dict, layer_name: str):
             target += ".gpkg"
         elif extension != ".gpkg":
             return None, None, tool_error(f"{os.path.basename(target)} is not a GeoPackage name.", "INVALID_ARGS",
-                                          "End output_path in .gpkg: the tool writes a GeoPackage.")
+                                          "output_path ends in .gpkg, a GeoPackage.")
         error = security.validate_path(target, write=True)
         if error:
             return None, None, tool_error(error, "PERMISSION_DENIED",
-                                          "Pick a path under the project folder, your home folder or the temp folder.")
+                                          "Allowed: the project folder, your home folder or the temp folder.")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                          "Tell the user the file exists and ask whether to replace it (overwrite "
-                                          "true) or name a new file.")
+                                          "The file exists; overwrite true replaces it, the user's call; a "
+                                          "new output_path avoids it.")
         return target, table_name, None
     stem = re.sub(r"\s+", "_", output_paths.safe_file_name(layer_name, "flow_lines"))[:120]
     folder = expanded or output_paths.default_folder()
@@ -274,10 +274,10 @@ def _output_target(args: dict, layer_name: str):
         if not os.path.exists(candidate):
             error = security.validate_path(candidate, write=True)
             if error:
-                return None, None, tool_error(error, "PERMISSION_DENIED", "Pass output_path under your home folder.")
+                return None, None, tool_error(error, "PERMISSION_DENIED", "output_path under your home folder.")
             return candidate, table_name, None
     return None, None, tool_error(f"{folder} already holds 999 flow line files named {stem}.", "INVALID_ARGS",
-                                  "Pass output_path with a new file name.")
+                                  "output_path with a new file name.")
 
 
 
@@ -309,7 +309,7 @@ def _open_places(plan: dict, state: dict) -> dict | None:
     layer = QgsProject.instance().mapLayer(plan["places_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{plan['places_name']} left the project before it was read.", "EXECUTION_FAILED",
-                          "Load the places layer again and ask for the flow lines again.")
+                          "The places layer needs a reload; create_flow_lines then runs.")
     request = QgsFeatureRequest()
     request.setSubsetOfAttributes([plan["places_key_index"]])
     request.setLimit(plan["max_places"] + 1)
@@ -383,7 +383,7 @@ def _open_table(plan: dict, state: dict):
     layer = QgsProject.instance().mapLayer(plan["table_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{plan['table_name']} left the project before it was read.", "EXECUTION_FAILED",
-                          "Load the table again and ask for the flow lines again.")
+                          "The table needs a reload; create_flow_lines then runs.")
     indexes = [plan["origin_field"]["index"], plan["destination_field"]["index"]]
     if plan["value_index"] is not None:
         indexes.append(plan["value_index"])
@@ -558,7 +558,7 @@ def _match_rows(rows: list, plan: dict, places_index: dict | None) -> tuple:
                     f"{plan['table_name']} has coordinates outside longitude/latitude ranges "
                     "(|x| over 180 or |y| over 90), but no coordinate_crs was given and the table "
                     "carries no CRS of its own, so EPSG:4326 was only a guess.", "INVALID_ARGS",
-                    "Pass coordinate_crs with the table's real CRS, for example EPSG:2154.")
+                    "coordinate_crs with the table's real CRS, for example EPSG:2154.")
             origin_point, destination_point = (ox, oy), (dx, dy)
             same_place = (round(ox, 9), round(oy, 9)) == (round(dx, 9), round(dy, 9))
         if _normalize_key(origin_text) == _normalize_key(destination_text) or same_place:
@@ -806,8 +806,8 @@ def _create_flow_lines(args: dict) -> dict:
         result = {"rows_read": state["read"], "lines_written": 0, **report}
         result["_error"] = "No row matched a place at both ends and was not a self-flow: no line was drawn."
         result["code"] = "INVALID_ARGS"
-        result["suggestion"] = "Check origin_field/destination_field against places_key_field's values, or pass " \
-                               "coordinate fields instead."
+        result["suggestion"] = "origin_field/destination_field may not match places_key_field's values; " \
+                               "coordinate fields are another way."
         return result
 
     shape, shape_auto = _decide_shape(plan, matched)

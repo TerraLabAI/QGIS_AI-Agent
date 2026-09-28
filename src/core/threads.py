@@ -38,6 +38,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import json
@@ -451,6 +453,33 @@ class ThreadStore:
                 self._save(thread)
                 return
         self.update_agent_message(thread_id, run_id, {"tool_calls": [dict(call)]})
+
+    def append_steer(self, thread_id: str, run_id: str, text: str) -> None:
+
+
+        thread = self.load(thread_id)
+        if thread is None or not str(text or "").strip():
+            return
+        for msg in reversed(thread["messages"]):
+            if msg.get("role") == "agent" and msg.get("run_id") == run_id:
+                msg.setdefault("steers", []).append(
+                    {"text": str(text), "after": len(msg.get("tool_calls") or []), "ts": now_iso()})
+                thread["updated_at"] = now_iso()
+                self._save(thread)
+                return
+
+    def drop_run(self, thread_id: str, run_id: str) -> None:
+
+
+        thread = self.load(thread_id) if run_id else None
+        if thread is None:
+            return
+        kept = [m for m in thread["messages"] if not (isinstance(m, dict) and m.get("run_id") == run_id)]
+        if len(kept) == len(thread["messages"]):
+            return
+        thread["messages"] = kept
+        thread["updated_at"] = now_iso()
+        self._save(thread)
 
     def set_title(self, thread_id: str, title: str) -> None:
         thread = self.load(thread_id)

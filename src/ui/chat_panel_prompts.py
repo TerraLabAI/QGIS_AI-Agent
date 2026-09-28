@@ -236,7 +236,7 @@ class _ChatPanelPrompts:
                 run.wait_started = 0.0
                 break
 
-    def resolve_permission(self, tool_call_id: str, decision: str, reason: str = "") -> None:
+    def resolve_permission(self, tool_call_id: str, decision: str, reason: str = "denied") -> None:
         self._restore_tool_card(tool_call_id)
         card = self.message_list.permission_card(tool_call_id)
         if card is None:
@@ -285,16 +285,19 @@ class _ChatPanelPrompts:
                      card) -> None:
 
 
+
+
         if decision != "deny":
             return
-        stopped = reason == "stopped"
         tool = self.message_list.tool_card(tool_call_id)
         if tool is not None and tool.ok is None:
-            tool.mark_unfinished("stopped" if stopped else "denied")
+            tool.mark_unfinished(reason)
+        elif reason == "stopped":
+            self._trace_for(run_id).add_note(f"{self.tr('Stopped')}: {said}")
+        elif reason == "unanswered":
+            self._trace_for(run_id).add_note(f"{self.tr('Not answered')}: {said}")
         else:
-            self._trace_for(run_id).add_note(
-                f"{self.tr('Stopped')}: {said}" if stopped else f"{card.decision_text('deny')}: {said}",
-                failed=not stopped)
+            self._trace_for(run_id).add_note(f"{card.decision_text('deny')}: {said}", failed=True)
 
     def show_error(self, run_id, code: str, message: str, retryable: bool,
                    details: str = "", retry_key: str = "") -> None:
@@ -320,6 +323,11 @@ class _ChatPanelPrompts:
         else:
             card.retry_requested.connect(self.retry_requested.emit)
         card.continue_requested.connect(self.continue_requested.emit)
+        if run_id and retryable:
+            card.undo_retry_requested.connect(self.undo_retry_requested.emit)
+            self._error_cards[run_id] = card
+            if self._current_run is None:
+                card.set_undo_retry(self._answer_points().get(run_id, ("",))[0] == "undo")
         self._add(card)
 
     def open_checkpoints(self) -> None:

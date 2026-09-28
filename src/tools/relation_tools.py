@@ -81,7 +81,7 @@ def register_relation_tools(registry: ToolRegistry):
 def _configure_relations(args: dict) -> dict:
     action = str(args.get("action") or "").strip().lower()
     if action not in _ACTIONS:
-        return tool_error(f"Unknown action {action!r}.", "INVALID_ARGS", "Use add, list or remove.")
+        return tool_error(f"Unknown action {action!r}.", "INVALID_ARGS", "add, list, remove.")
     if action == "list":
         return _list_relations(args)
     if action == "remove":
@@ -192,7 +192,7 @@ def _list_relations(args: dict) -> dict:
 def _vector(name, role: str):
     if not str(name or "").strip():
         return None, tool_error(f"{role} is required.", "INVALID_ARGS",
-                                "Name the layer by its name or id (list_layers).")
+                                "It takes a layer name or id (list_layers).")
     layer = resolve_layer(name)
     if layer is None:
         error = layer_not_found(name)
@@ -233,8 +233,8 @@ def _type_mismatch(parent_layer, parent_field, child_layer, child_field):
             f"{child_layer.name()}.{child_field.name()} is {_kind(child_field)}: no child would ever match "
             "its parent. Nothing was added.",
             "INVALID_ARGS",
-            "Make the two keys the same type first (field_calculator into a new field with to_int() or "
-            "to_string()), then add the relation on that field.")
+            "field_calculator into a new field with to_int() or to_string() gives the two keys one type; "
+            "the relation then holds on that field.")
     return None
 
 
@@ -408,7 +408,7 @@ def _add_relation(args: dict) -> dict:
                           parent_field.name(), child_layer, child_field.name(), strength)
         if not relation.isValid():
             return tool_error(f"QGIS refused the relation: {_invalid_reason(relation)}", "EXECUTION_FAILED",
-                              "Check both layers are loaded and both fields exist.")
+                              "Both layers must be loaded; both fields must exist.")
         checks = _key_checks(parent_layer, parent_field, child_layer, child_field)
         _manager().addRelation(relation)
         _show_on_form(parent_layer, relation)
@@ -448,7 +448,7 @@ def _add_relation(args: dict) -> dict:
     for relation in (first, second):
         if not relation.isValid():
             return tool_error(f"QGIS refused the relation: {_invalid_reason(relation)}", "EXECUTION_FAILED",
-                              "Check the three layers are loaded and the fields exist.")
+                              "The three layers must be loaded; the fields must exist.")
     parent_checks = _key_checks(parent_layer, parent_field, link_layer, link_parent)
     child_checks = _key_checks(child_layer, child_field, link_layer, link_child)
     added = []
@@ -489,7 +489,7 @@ def _invalid_reason(relation) -> str:
 def _remove_relation(args: dict) -> dict:
     key = str(args.get("relation_id") or args.get("name") or "").strip()
     if not key:
-        return tool_error("Pass relation_id (or name) of the relation to remove.", "INVALID_ARGS",
+        return tool_error("relation_id (or name) names the relation to remove.", "INVALID_ARGS",
                           "configure_relations with action list shows them.")
     relations = _manager().relations()
     relation = relations.get(key)
@@ -497,7 +497,7 @@ def _remove_relation(args: dict) -> dict:
         named = [r for r in relations.values() if r.name().casefold() == key.casefold()]
         if len(named) > 1:
             return tool_error(f"{len(named)} relations are named {key!r}.", "INVALID_ARGS",
-                              "Pass relation_id: " + ", ".join(r.id() for r in named)[:400])
+                              "relation_id: " + ", ".join(r.id() for r in named)[:400])
         relation = named[0] if named else None
     if relation is None:
         return tool_error(f"No relation {key!r} in this project.", "INVALID_ARGS",

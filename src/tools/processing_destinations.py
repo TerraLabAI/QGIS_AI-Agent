@@ -206,7 +206,7 @@ def _output_names(alg, parameters, label: str) -> tuple:
             return parameters, [], {
                 "_error": f"{said}; nothing was run.",
                 "code": "INVALID_ARGS",
-                "suggestion": f"Give each output once, under its exact name. Output names: {listed}."}
+                "suggestion": f"Each output takes one exact name. Output names: {listed}."}
         fixed[same[0]] = fixed.pop(key)
         renamed.append(f"{key} read as the output {same[0]}")
     stray = [key for key in unknown if _reads_as_destination(parameters[key])]
@@ -220,7 +220,7 @@ def _output_names(alg, parameters, label: str) -> tuple:
             "_error": (f"{label} has no parameter named {', '.join(stray)}, so its output would have gone to a "
                        f"temporary file instead of the path given; nothing was run. Output names: {listed}."),
             "code": "INVALID_ARGS",
-            "suggestion": f"Pass the path under the output's exact name. Output names: {listed}."}
+            "suggestion": f"An output's path goes under its exact name. Output names: {listed}."}
     said = f"{label} has no parameter named {', '.join(stray)}"
     if missing:
         said += (f", and its input {missing[0]} is not given" if len(missing) == 1
@@ -231,7 +231,7 @@ def _output_names(alg, parameters, label: str) -> tuple:
                  f"so it is not read as where to write.")
     if inputs:
         said += f" Input names: {', '.join(inputs)}."
-    suggestion = "Pass each value under the exact name of the input it is for"
+    suggestion = "Each value goes under the exact name of the input it is for"
     suggestion += f"; missing: {', '.join(missing)}." if missing else "."
     if len(taken) < len(stray):
         suggestion += f" A new file to write goes under an output name: {listed}."
@@ -374,6 +374,20 @@ def _has_proj_db(folder: str) -> bool:
         return False
 
 
+def _layout_minor(folder: str) -> int | None:
+
+    import sqlite3
+
+    try:
+        uri = "file:" + os.path.join(folder, "proj.db").replace("\\", "/") + "?mode=ro"
+        with sqlite3.connect(uri, uri=True) as db:
+            row = db.execute("SELECT value FROM metadata "
+                             "WHERE key = 'DATABASE.LAYOUT.VERSION.MINOR'").fetchone()
+        return int(row[0]) if row else None
+    except (sqlite3.Error, OSError, ValueError, TypeError):
+        return None
+
+
 def _ensure_proj_env() -> None:
 
 
@@ -386,17 +400,35 @@ def _ensure_proj_env() -> None:
 
 
 
-    if _has_proj_db(os.environ.get("PROJ_DATA", "")) or _has_proj_db(os.environ.get("PROJ_LIB", "")):
-        return
+
+
+
+
+
     try:
         from osgeo import osr
-        paths = list(osr.GetPROJSearchPaths())
+        paths = [p for p in osr.GetPROJSearchPaths() if _has_proj_db(p)]
     except Exception:  # nosec B110
-        return
-    for candidate in paths:
-        if os.path.isfile(os.path.join(candidate, "proj.db")):
-            os.environ["PROJ_LIB"] = candidate
+        paths = []
+
+
+    layouts = [(_layout_minor(p), p) for p in paths]
+    known = [pair for pair in layouts if pair[0] is not None]
+    own_minor, own = max(known, key=lambda pair: pair[0]) if known else (None, paths[0] if paths else "")
+    for var in ("PROJ_DATA", "PROJ_LIB"):
+        folder = os.environ.get(var, "")
+        if not _has_proj_db(folder):
+            continue
+        minor = _layout_minor(folder)
+        if own_minor is None or minor is None or minor >= own_minor:
             return
+        log_warning(f"{var}={folder} holds a proj.db with layout minor {minor}; this QGIS's PROJ "
+                    f"reads {own} (layout minor {own_minor}). GDAL steps use {own}.")
+        os.environ["PROJ_LIB"] = own
+        os.environ["PROJ_DATA"] = own
+        return
+    if own:
+        os.environ["PROJ_LIB"] = own
 
 
 
@@ -435,8 +467,8 @@ def _provider_hint(algorithm_id: str) -> dict:
     if prefix in registered and not counts.get(prefix):
         product = _OPTIONAL_PROVIDERS.get(prefix, prefix)
         return {"suggestion": f"The {prefix} provider is loaded but offers no algorithms in this "
-                              f"QGIS, which means {product} was not installed with it. Use an "
-                              f"algorithm from: " + ", ".join(sorted(counts)) + "."}
+                              f"QGIS, which means {product} was not installed with it. "
+                              f"Algorithms here: " + ", ".join(sorted(counts)) + "."}
     if prefix not in registered:
         product = _OPTIONAL_PROVIDERS.get(prefix)
         if product:
@@ -456,7 +488,7 @@ def _provider_hint(algorithm_id: str) -> dict:
                         if other.split(":", 1)[-1].casefold() == name.casefold() and other != text})
     if elsewhere:
         return {"suggestion": f"There is no {text}, but the same algorithm name is registered as "
-                              + ", ".join(elsewhere) + ". Call that id, with the same parameters.",
+                              + ", ".join(elsewhere) + ", with the same parameters.",
                 "closest_algorithms": elsewhere}
     import difflib
     pool = [a for a in every_id if a.startswith(prefix + ":")]

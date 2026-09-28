@@ -118,7 +118,7 @@ def snapshot(args: dict) -> dict:
     beside = os.path.join(folder, f"{safe_file_name(name, 'project')}_rasters")
     if not fits_path(stage) or not fits_path(os.path.join(beside, "x" * 40)):
         return tool_error("The path is too long for QGIS on Windows (260 characters).", "INVALID_ARGS",
-                          "Choose a shorter folder or file name.")
+                          "A shorter folder or file name fits.")
     wanted = os.path.normcase(os.path.normpath(output))
     ordered = [node.layer() for node in project.layerTreeRoot().findLayers() if node.layer() is not None]
     ordered += [layer for layer in project.mapLayers().values() if layer not in ordered]
@@ -128,7 +128,7 @@ def snapshot(args: dict) -> dict:
         path = _source_path(layer)
         if path and os.path.normcase(os.path.normpath(path)) == wanted:
             return tool_error(f"{layer.name()!r} reads {output}; the package cannot replace a file the project uses.",
-                              "INVALID_ARGS", "Choose another file name for the package.")
+                              "INVALID_ARGS", "Another file name avoids it.")
         entry = {"id": layer.id(), "name": layer.name()}
         if isinstance(layer, QgsVectorLayer) and layer.providerType() in _WRITTEN_PROVIDERS and (
                 layer.providerType() in ("memory", "virtual") or _is_local_file(path)):
@@ -449,7 +449,7 @@ def package(args: dict) -> dict:
     from ..core.background import run_on_main_thread
 
     cancelled_answer = tool_error("Project packaging was cancelled.", "CANCELLED",
-                                  "Run package_project again if you still need the GeoPackage.")
+                                  "package_project can be called again for the GeoPackage.")
     try:
         snap = run_on_main_thread(snapshot, args, timeout=20)
         if "_error" in snap:

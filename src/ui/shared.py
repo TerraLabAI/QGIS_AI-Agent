@@ -218,7 +218,12 @@ BOOK_A_CALL_URL = ""
 
 
 
-FREE_RUNS = 10
+
+
+FREE_RUNS = 7
+
+
+LEGACY_FREE_RUNS_MAX = 20
 PRO_RUNS_PER_MONTH = 300
 
 
@@ -847,6 +852,11 @@ def get_pro_price() -> str:
 
     return f"{amount} {currency}"
 
+
+def get_pro_price_excludes_tax() -> bool:
+
+    pricing = _served_config.get("pricing")
+    return isinstance(pricing, dict) and pricing.get("excludes_tax") is True
 
 def get_invoice_url() -> str:
     return _served_url("invoice_url", INVOICE_URL)

@@ -258,13 +258,13 @@ def apply_ramp_style(layer, band: int = 1, ramp_name: str = "", classes: int = 0
     band = max(1, int(band or 1))
     if band > layer.bandCount():
         return {"_error": f"Band {band} does not exist: {layer.name()!r} has {layer.bandCount()}.",
-                "code": "INVALID_ARGS", "suggestion": f"Pass band 1 to {layer.bandCount()}."}
+                "code": "INVALID_ARGS", "suggestion": f"band is 1 to {layer.bandCount()}."}
     if low is None or high is None:
         found = band_range(layer, band)
         if found is None:
             return {"_error": f"Band {band} of {layer.name()!r} has no readable minimum and maximum.",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "The band may be empty or all nodata. Check it with get_raster_info."}
+                    "suggestion": "get_raster_info shows if the band is empty or all nodata."}
         low, high = found
     low, high = float(low), float(high)
     steps = int(classes or 0)

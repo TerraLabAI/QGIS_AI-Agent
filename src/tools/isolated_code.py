@@ -839,8 +839,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                             "_error": f"execute_code stopped after {int(timeout_s)} s.",
                             "_code": "EXEC_TIMEOUT",
                             "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
-                            "suggestion": "Narrow the work (fewer features, one layer) or use "
-                                          "run_processing with async=true.",
+                            "suggestion": "Less work (fewer features, one layer) fits; run_processing "
+                                          "with async=true has no such limit.",
                             "isolated": True,
                         }
                     time.sleep(poll_s)
@@ -922,8 +922,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                           f"{process.returncode} before it finished. QGIS itself was not affected.",
                 "_code": "EXEC_CRASHED",
                 "stdout": _cap(stdout),
-                "suggestion": "Do not send the same code again unchanged: bound the work with a "
-                              "QgsFeatureRequest or use a dedicated tool.",
+                "suggestion": "The same unchanged code crashes again. Bound the work with a "
+                              "QgsFeatureRequest or a dedicated tool.",
                 "isolated": True,
             }
         detail = str(status.get("setup_error") or _tail(log_path) or f"exit code {process.returncode}")
@@ -940,7 +940,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                           f"read back: {detail}",
                 "_code": "EXEC_RUNTIME_ERROR",
                 "stdout": _cap(stdout),
-                "suggestion": "Its lines already ran: do not resend it unchanged. Put plain text in result.",
+                "suggestion": "Its lines already ran; resending repeats them. result needs plain text.",
                 "isolated": True,
             }
         return {"_fallback": "setup", "detail": detail}
@@ -1104,8 +1104,8 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
                       f"before it ran (a file they wrote is written) and the project was not changed.",
             "_code": "EXEC_RUNTIME_ERROR",
             "stdout": outcome.get("stdout", ""),
-            "suggestion": "Send only the project change as a new execute_code call, on its own; the "
-                          "lines before it already ran.",
+            "suggestion": "The lines before it already ran; the project change alone runs as a "
+                          "new execute_code call.",
         }
     if fallback == "setup":
         detail = outcome.get("detail") or "no detail"

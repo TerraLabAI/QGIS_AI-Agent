@@ -88,11 +88,10 @@ def missing_file(path: str, message: str) -> dict:
     elif folder and folder != os.path.dirname(path):
         out["deepest_existing_folder"] = folder
     if layers:
-        out["suggestion"] = ("A project layer carries this name: use it by name, or its path from "
-                             "project_layers. Do not build paths from layer names.")
+        out["suggestion"] = ("A project layer carries this name; project_layers gives its real path, "
+                             "which does not always match the layer name.")
     elif close:
-        out["suggestion"] = "Use one of closest_in_folder, or check the path with the user."
+        out["suggestion"] = "closest_in_folder lists close matches in that folder."
     else:
-        out["suggestion"] = ("Check the path with the user, or give a direct download URL. Do not build "
-                             "paths from layer names.")
+        out["suggestion"] = "No project layer or nearby file matches this path or layer name."
     return out

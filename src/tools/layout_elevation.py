@@ -112,7 +112,7 @@ def snapshot_3d_view(args: dict):
 
 
 
-    no_3d_hint = "Use take_screenshot for the 2D canvas."
+    no_3d_hint = "take_screenshot covers the 2D canvas."
     try:
         from qgis._3d import Qgs3DMapSettings
     except ImportError as exc:
@@ -124,12 +124,12 @@ def snapshot_3d_view(args: dict):
     if not views:
         return None, tool_error("No 3D map view is open, and the scene and camera are copied from one.",
                                 "INVALID_ARGS",
-                                "configure_3d_map_view opens one on QGIS 3.44 and newer; on older QGIS open "
-                                "View > 3D Map Views > New 3D Map View, frame the scene, then retry.")
+                                "configure_3d_map_view opens one on QGIS 3.44 and newer; older QGIS opens "
+                                "one at View > 3D Map Views > New 3D Map View.")
     index = int(args.get("view_index") or 0)
     if index not in range(len(views)):
         return None, tool_error(f"view_index {index} names no open 3D view ({len(views)} open).",
-                                "INVALID_ARGS", f"Use a view_index from 0 to {len(views) - 1}.")
+                                "INVALID_ARGS", f"view_index is 0 to {len(views) - 1}.")
     source = views[index]
     pose = source.cameraController().cameraPose()
     for key, apply in _CAMERA_OVERRIDES:
@@ -241,15 +241,15 @@ def _longest_line(geometry):
 def _curve(args: dict):
 
     if args.get("line_wkt") and args.get("line_layer"):
-        return None, None, None, tool_error("Pass line_layer with feature_id, or line_wkt, not both.",
-                                            "INVALID_ARGS", "Keep the one that holds the profile line.")
+        return None, None, None, tool_error("line_layer with feature_id, or line_wkt: not both.",
+                                            "INVALID_ARGS", "Only one holds the profile line.")
     if args.get("line_wkt"):
         geometry = QgsGeometry.fromWkt(str(args["line_wkt"]))
 
         crs = QgsCoordinateReferenceSystem(args.get("wkt_crs") or "EPSG:4326")
         if not crs.isValid():
             return None, None, None, tool_error(f"Unknown wkt_crs {args['wkt_crs']!r}.", "INVALID_ARGS",
-                                                "Pass an authority id such as EPSG:2154.")
+                                                "wkt_crs needs an id such as EPSG:2154.")
         source = "line_wkt"
     elif args.get("line_layer"):
         layer = _find_layer(args["line_layer"])
@@ -257,7 +257,7 @@ def _curve(args: dict):
             return None, None, None, _layer_not_found_error(args["line_layer"])
         if not isinstance(layer, QgsVectorLayer):
             return None, None, None, tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
-                                                "Pass a line layer, or the line as line_wkt.")
+                                                "line_layer needs a line layer, or line_wkt.")
         if args.get("feature_id") is None:
             if layer.featureCount() != 1:
                 return None, None, None, tool_error(
@@ -271,12 +271,12 @@ def _curve(args: dict):
                                                 "INVALID_ARGS", "get_features lists the ids.")
         geometry, crs, source = feature.geometry(), layer.crs(), f"{layer.name()} feature {feature.id()}"
     else:
-        return None, None, None, tool_error("No profile line: pass line_layer with feature_id, or line_wkt.",
+        return None, None, None, tool_error("No profile line: line_layer+feature_id, or line_wkt works.",
                                             "INVALID_ARGS", "A drawn line layer or a WKT LINESTRING both work.")
     line = _longest_line(geometry)
     if line is None:
         return None, None, None, tool_error(f"The profile line from {source} is not a line with a length.",
-                                            "INVALID_ARGS", "Pass a LINESTRING or a line feature.")
+                                            "INVALID_ARGS", "A LINESTRING or line feature only.")
     return line, crs, source, None
 
 
@@ -321,7 +321,7 @@ def _set_axis(axis, span: float) -> float:
 def _profile_layers(args: dict):
 
     names = args.get("layers")
-    advice = ("A raster DEM must be marked as an elevation surface first: set_layer_elevation does it, or "
+    advice = ("A raster DEM draws once marked as an elevation surface: set_layer_elevation does it, or "
               "Layer Properties > Elevation > Represents Elevation Surface.")
     if names:
         layers, lacking = [], []
@@ -346,7 +346,7 @@ def _add_layout_elevation_profile(args: dict) -> dict:
         from qgis.core import QgsLayoutItemElevationProfile, QgsProfilePlotRenderer, QgsProfileRequest
     except ImportError:
         return tool_error("A layout elevation profile needs QGIS 3.30 or newer.", "UNSUPPORTED_QGIS_VERSION",
-                          "Update QGIS, or use elevation_profile for the numbers along the line.")
+                          "elevation_profile gives the numbers along the line on older QGIS.")
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
@@ -387,7 +387,7 @@ def _add_layout_elevation_profile(args: dict) -> dict:
     if z_range.isEmpty() if hasattr(z_range, "isEmpty") else z_range.lower() > z_range.upper():
         return tool_error(f"Nothing along the profile line from {source} has an elevation: the line misses "
                           f"{', '.join(layer.name() for layer in layers[:5])}.", "INVALID_ARGS",
-                          "Draw the line across the DEM or the elevation layers; line_wkt is lon lat unless "
+                          "The line misses the DEM and the elevation layers; line_wkt is lon lat unless "
                           "wkt_crs names its CRS.")
     low, high = z_range.lower(), z_range.upper()
     margin = max((high - low) * 0.05, 1.0)

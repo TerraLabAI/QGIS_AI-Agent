@@ -53,7 +53,7 @@ def _mesh_layer(args: dict[str, Any]):
     if not isinstance(layer, QgsMeshLayer):
         return None, tool_error(
             f"Mesh layer {layer_name!r} was not found.", "INVALID_ARGS",
-            "Pass layer_name for a loaded mesh layer, or use action load with source.")
+            "layer_name names a loaded mesh layer; action load with source loads one.")
     return layer, None
 
 
@@ -145,7 +145,7 @@ def _configure_mesh_layer(args: dict[str, Any]) -> dict[str, Any]:
         source = security.expand_path(str(args.get("source") or ""))
         if not source or not os.path.exists(source):
             return tool_error("source must be an existing GRIB or NetCDF mesh file.", "INVALID_ARGS",
-                              "Pass a local .grib, .grb or .nc file.")
+                              "Local .grib, .grb or .nc only.")
         path_error = security.validate_path(source)
         if path_error:
             return tool_error(path_error, "PERMISSION_DENIED")
@@ -153,37 +153,37 @@ def _configure_mesh_layer(args: dict[str, Any]) -> dict[str, Any]:
         layer = QgsMeshLayer(source, name, "mdal")
         if not layer.isValid():
             return tool_error("QGIS MDAL could not open this mesh source.", "CAPABILITY_UNAVAILABLE",
-                              "Check that this QGIS build has MDAL support and that the file is a mesh dataset.")
+                              "This QGIS build's MDAL may lack support, or the file is not a mesh dataset.")
         QgsProject.instance().addMapLayer(layer)
         return _inspect(layer)
     layer, error = _mesh_layer(args)
     if error or layer is None:
         return error or tool_error("No mesh layer to work on.", "INVALID_ARGUMENT",
-                                   "Name a mesh layer with layer_name, or load one first.")
+                                   "layer_name names it; action load loads one.")
     if action == "inspect":
         return _inspect(layer)
     if action == "calculate":
         if not _algorithm_available("native:meshcalculator"):
             return tool_error("This QGIS build has no native mesh calculator.", "CAPABILITY_UNAVAILABLE",
-                              "Use a QGIS build or provider that exposes native:meshcalculator.")
+                              "native:meshcalculator is not available in this QGIS build.")
         parameters = dict(args.get("parameters") or {})
         parameters["INPUT"] = layer
         return _run_processing({"algorithm_id": "native:meshcalculator", "parameters": parameters})
     if action == "rasterize":
         if not _algorithm_available("native:meshrasterize"):
             return tool_error("This QGIS build has no native mesh rasterizer.", "CAPABILITY_UNAVAILABLE",
-                              "Use run_processing with an installed mesh rasterization algorithm.")
+                              "run_processing works with any installed mesh rasterizer.")
         parameters = dict(args.get("parameters") or {})
         parameters["INPUT"] = layer
         return _run_processing({"algorithm_id": "native:meshrasterize", "parameters": parameters})
     if action != "configure":
         return tool_error(
-            f"Unknown mesh action {action!r}.", "INVALID_ARGS", "Use inspect, load, configure, rasterize or calculate."
+            f"Unknown mesh action {action!r}.", "INVALID_ARGS", "inspect, load, configure, rasterize or calculate."
         )
     settings = _call(layer, "rendererSettings")
     if settings is None:
         return tool_error("Mesh renderer settings are unavailable in this QGIS build.", "CAPABILITY_UNAVAILABLE",
-                          "Inspect the layer or use a QGIS build with mesh rendering support.")
+                          "action inspect does not need renderer settings.")
     changed = {}
     for key, method in (
         ("scalar_group", "setActiveScalarDatasetGroup"),

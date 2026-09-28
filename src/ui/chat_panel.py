@@ -22,6 +22,7 @@ from qgis.PyQt.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
 from .bubbles import StatusLine
 from .chat_panel_layout import _ChatPanelLayout
 from .chat_panel_prompts import _ChatPanelPrompts
+from .chat_panel_queue import TRAY_TUCK, QueueStrip, _ChatPanelQueue
 from .chat_panel_runs import _ChatPanelRuns
 from .chat_panel_shared import _Run, _wrap
 from .chat_panel_threads import _ChatPanelThreads
@@ -43,12 +44,18 @@ from .update_gate import UpdateGate
 _CENTER_MS = 260
 
 
-class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanelLayout, QWidget):
+class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanelLayout, QWidget):
 
 
 
     send_requested = pyqtSignal(str, str, str, object, object)
     stop_requested = pyqtSignal(str)
+    steer_requested = pyqtSignal(str, str, str)
+    unsteer_requested = pyqtSignal(str, str)
+
+    queue_send_requested = pyqtSignal(str, object, object)
+    edit_requested = pyqtSignal(str)
+    undo_retry_requested = pyqtSignal(str)
 
 
 
@@ -58,6 +65,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
     feedback = pyqtSignal(str, bool)
+    feedback_reason = pyqtSignal(str, str, str)
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal(str, bool)
 
@@ -76,7 +84,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
     new_thread_requested = pyqtSignal()
     thread_selected = pyqtSignal(str)
     thread_delete_requested = pyqtSignal(str)
-    suggestion_clicked = pyqtSignal(str)
     chip_removed = pyqtSignal(str, str)
     files_dropped = pyqtSignal(object)
     open_settings_requested = pyqtSignal()
@@ -91,7 +98,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
     pairing_reopen_requested = pyqtSignal()
     pairing_cancel_requested = pyqtSignal()
     dashboard_requested = pyqtSignal()
-    upgrade_requested = pyqtSignal()
+
 
 
 
@@ -130,6 +137,11 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
         self._current_run: str | None = None
 
         self._run_requests: dict[str, str] = {}
+
+
+        self._last_user_bubble = None
+        self._edit_available = False
+        self._error_cards: dict = {}
         self._explain_runs = True
         self._show_tool_details = True
         self._last_run = ""
@@ -188,8 +200,17 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
         self._quota_host = _wrap(self.quota_card, (12, SPACE_CARD, 12, 0), self)
         self._quota_host.hide()
         self._col.addWidget(self._quota_host)
+
+
         self.composer = Composer(self)
         self._composer_host = _wrap(self.composer, (12, SPACE_CARD, 12, SPACE_TIGHT), self)
+        self.queue_strip = QueueStrip(self._composer_host)
+        host = self._composer_host.layout()
+        host.insertWidget(0, self.queue_strip)
+
+
+        host.setSpacing(-TRAY_TUCK)
+        self.composer.raise_()
         self._col.addWidget(self._composer_host)
 
         self.runs_line = RunsLeftLine(self)
@@ -221,6 +242,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
         self._drop_overlay = DropOverlay(self)
 
         self._wire()
+        self._init_queue()
         self._show_thread_surface()
 
     def detach_header(self) -> Header:
@@ -238,6 +260,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanel
         self.message_list.stop_animations()
         try:
             self._drop_overlay.stop_animations()
+        except (RuntimeError, AttributeError):
+            pass
+        try:
+            self.queue_strip.stop_animations()
         except (RuntimeError, AttributeError):
             pass
 

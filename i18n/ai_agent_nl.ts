@@ -1926,6 +1926,42 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>• {layer}: {reason}</source>
             <translation>• {layer}: {reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>Wijzig een label van de lay-out {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>Wijzig een kaart van de lay-out {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>Wijzig een noordpijl van de lay-out {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>Wijzig een schaalbalk van de lay-out {layout_name}</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>Bewerk het laatste bericht in de wachtrij</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>In een leeg vak</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>Zet een bericht in de wachtrij</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>Verwijder een item uit de lay-out {layout_name}</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>Wordt verzonden wanneer de agent klaar is</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Your AI agent inside QGIS</source>
             <translation>Je AI-agent in QGIS</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>De agent is klaar.</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>De agent wacht op je antwoord.</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>De agent is gestopt voordat hij klaar was.</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>Aangemeld als {} (vanaf {}).</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>Geen verbinding met terra-lab.ai. Nog steeds aan het proberen...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{n} results</source>
             <translation>{n} resultaten</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} s</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Undo</source>
             <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Waiting for your approval</source>
             <translation>Wachten op je goedkeuring</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>Toegevoegd aan het geheugen: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>Je laatste bericht bewerken.</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>Niet beantwoord</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>Niet verbonden met de agentservice. Het bericht blijft in de wachtrij staan.</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>Gepauzeerd · er wordt niets verstuurd totdat je kiest</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>In de wachtrij</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Dit bericht nu verzenden</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>De agent leest de eerdere gesprekken nu als een korter overzicht van je verzoeken en wat hij heeft gemaakt.</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>Ongedaan maken wat dit bericht deed</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · wordt verzonden wanneer de agent klaar is</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · de agent leest het bij zijn volgende stap</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} in de wachtrij</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>te groot, maximaal {mb} MB: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>In de wachtrij</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>In de wachtrij: de agent leest dit bij zijn volgende stap (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>De wachtrij kan 5 berichten bevatten. Verzend of verwijder er eerst een.</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Effort can be changed after this run ends</source>
             <translation>Inspanningsniveau kan worden gewijzigd nadat deze run is voltooid</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Inbegrepen in Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Update the plugin</source>
             <translation>Plugin bijwerken</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>Ongedaan maken en opnieuw proberen</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Klik om de pagina te openen.</translation>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>Werkt zelfstandig. Vraagt alleen over credits, installaties en andere plugins.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Neem Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Inbegrepen in Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>Pro geeft je {n} runs per maand.</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>Autopilot</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>Altijd opzegbaar</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>Gratis is voor persoonlijk en studiegebruik. Pro dekt werk voor klanten en werkgevers.</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>Gratis runs komen terug bij je maandelijkse reset.</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>Gratis runs komen terug op {date}.</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>Gemiddelde en hoge inzet voor moeilijkere taken</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>Geheugen en jouw instructies</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: meer en beter</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>Je hebt deze maand {n} taken uitgevoerd.</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/maand</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/maand excl. btw</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>{n} runs per maand</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · altijd opzegbaar</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Thought for {time}</source>
             <translation>Dacht {time} na</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>QGIS is gesloten voordat dit klaar was</translation>
         </message>
     </context>
     <context>
@@ -6594,6 +6798,10 @@ Klik om de pagina te openen.</translation>
             <source>{name}. Click to open.</source>
             <translation>{name}. Klik om te openen.</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>Bericht bewerken</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7060,6 +7268,34 @@ Klik om de pagina te openen.</translation>
             <source>Your own source</source>
             <translation>Je eigen bron</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>Datasetpagina en licentievoorwaarden</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>extent: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>invoer: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>parameters: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>bron: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>tool: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC, toegevoegd door AI Agent by TerraLab</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7208,6 +7444,14 @@ Dit bestand staat niet meer op de plek waar de run het schreef.</translation>
             <source>{n} runs a month with Pro</source>
             <translation>{n} runs per maand met Pro</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>Neem Pro voor hoge inzet</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: {n} runs per maand, gemiddelde en hoge inzet voor moeilijkere taken, Autopilot</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7232,6 +7476,59 @@ Dit bestand staat niet meer op de plek waar de run het schreef.</translation>
         <message>
             <source>Now</source>
             <translation>Nu</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>Heeft niet gedaan wat ik vroeg</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>Bedankt</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Te traag</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>Wat ging er mis? (optioneel)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Verkeerd resultaat</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Toon {n} meer</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>Dit bericht bewerken</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>Uit de wachtrij verwijderen</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Dit bericht nu verzenden</translation>
         </message>
     </context>
 </TS>

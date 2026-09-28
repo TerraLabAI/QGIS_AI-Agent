@@ -25,10 +25,12 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
+    QApplication,
     QFrame,
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -49,8 +51,15 @@ from .style import (
     _BTN_QUIET,
     _BTN_VOTE_DOWN,
     _BTN_VOTE_UP,
+    FONT_BODY,
     GREEN,
+    HOVER,
+    INK,
+    INK_2,
+    LINE,
+    LINE_STRONG,
     MOTION_FADE_UP_MS,
+    RADIUS_CHIP,
     RED,
     SPACE_TIGHT,
 )
@@ -76,6 +85,8 @@ _BUBBLE_BORDER = 1
 
 
 _STREAM_INTERVAL_MS = 40
+
+_COPIED_MS = 1500
 _STREAM_INTERVAL_MAX_MS = 250
 _STREAM_DUTY = 4
 
@@ -108,9 +119,15 @@ class UserBubble(QWidget):
     layer_clicked = pyqtSignal(str)
     source_clicked = pyqtSignal(str)
 
+    edit_requested = pyqtSignal()
+
     def __init__(self, text: str, chips=None, attachments=None, parent=None):
         super().__init__(parent)
         self._text = text or ""
+        self.run_id = ""
+        self._edit_row = None
+        self._edit = None
+        self._hovered = False
         self._chips = [c for c in (chips or []) if isinstance(c, dict)]
         self._attachments = [a for a in (attachments or []) if isinstance(a, dict)]
         outer = QVBoxLayout(self)
@@ -183,6 +200,41 @@ class UserBubble(QWidget):
 
 
         self._ideal = self._view.ideal_width() + 4 + 2 * _BUBBLE_BORDER
+
+    def set_editable(self, editable: bool) -> None:
+
+
+
+        editable = bool(editable) and bool(self._text.strip())
+        if editable and self._edit_row is None:
+            self._edit_row = QWidget(self)
+            self._edit_row.setFixedHeight(24)
+            row = QHBoxLayout(self._edit_row)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.addStretch(1)
+            self._edit = IconButton(self._edit_row, "pencil", 15, self.tr("Edit message"))
+            self._edit.setObjectName("userEdit")
+            self._edit.clicked.connect(self.edit_requested.emit)
+            row.addWidget(self._edit)
+            self.layout().addWidget(self._edit_row)
+        if self._edit_row is not None:
+            self._edit_row.setVisible(editable)
+            self._edit.setVisible(editable and self._hovered)
+
+    def is_editable(self) -> bool:
+        return self._edit_row is not None and self._edit_row.isVisibleTo(self)
+
+    def enterEvent(self, event):  # noqa: N802
+        self._hovered = True
+        if self._edit is not None and self.is_editable():
+            self._edit.show()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):  # noqa: N802
+        self._hovered = False
+        if self._edit is not None:
+            self._edit.hide()
+        super().leaveEvent(event)
 
     def _link_mentions(self) -> None:
 
@@ -409,7 +461,126 @@ class FeedbackRow(QWidget):
         self.voted.emit(up)
 
 
+FEEDBACK_REASON_MAX = 500
+_REASON_CHIP = (
+    "QPushButton { background: transparent;"
+    f" border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
+    f" color: {INK_2}; font-size: {FONT_BODY}px; padding: 2px 8px; }}"
+    f"QPushButton:hover {{ background: {HOVER}; color: {INK}; }}"
+    f"QPushButton:checked {{ border-color: {LINE_STRONG}; background: {HOVER}; color: {INK}; }}"
+)
+_REASON_FIELD = (
+    "QLineEdit { background: transparent;"
+    f" border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
+    f" color: {INK}; font-size: {FONT_BODY}px; padding: 2px 6px; }}"
+    f"QLineEdit:focus {{ border-color: {LINE_STRONG}; }}"
+)
+
+
+class FeedbackReason(QWidget):
+
+
+
+
+
+
+
+
+    sent = pyqtSignal(str, str)
+    closed = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("feedbackReason")
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        col.setSpacing(SPACE_TIGHT)
+        head = QHBoxLayout()
+        head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(4)
+        self._chips: dict[str, QPushButton] = {}
+
+        labels = {"wrong_result": self.tr("Wrong result"),
+                  "not_what_i_asked": self.tr("Did not do what I asked"),
+                  "too_slow": self.tr("Too slow")}
+        flow_host = QWidget(self)
+        flow = FlowLayout(flow_host)
+        flow.setContentsMargins(0, 0, 0, 0)
+        for code, label in labels.items():
+            chip = QPushButton(label, flow_host)
+            chip.setCheckable(True)
+            chip.setStyleSheet(_REASON_CHIP)
+            chip.setCursor(Qt.CursorShape.PointingHandCursor)
+            chip.setProperty("agentAction", "reason_" + code)
+            chip.toggled.connect(lambda on, c=code: self._on_chip(c, on))
+            self._chips[code] = chip
+            flow.addWidget(chip)
+        head.addWidget(flow_host, 1)
+        self._close = IconButton(self, "close", 14, self.tr("Close"))
+        self._close.clicked.connect(self._on_close)
+        head.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
+        col.addLayout(head)
+        line = QHBoxLayout()
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(4)
+        self._field = QLineEdit(self)
+        self._field.setMaxLength(FEEDBACK_REASON_MAX)
+        self._field.setPlaceholderText(self.tr("What went wrong? (optional)"))
+        self._field.setStyleSheet(_REASON_FIELD)
+        self._field.returnPressed.connect(self._on_send)
+        line.addWidget(self._field, 1)
+        self._send = QPushButton(self.tr("Send"), self)
+        self._send.setStyleSheet(_BTN_QUIET)
+        self._send.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._send.setProperty("agentAction", "reason_send")
+        self._send.clicked.connect(self._on_send)
+        line.addWidget(self._send)
+        col.addLayout(line)
+        self._thanks = QLabel(self.tr("Thanks"), self)
+        self._thanks.setObjectName("answerNote")
+        self._thanks.hide()
+        col.addWidget(self._thanks)
+
+    def _on_chip(self, code: str, on: bool) -> None:
+        if not on:
+            return
+        for other, chip in self._chips.items():
+            if other != code and chip.isChecked():
+                chip.setChecked(False)
+
+    def code(self) -> str:
+        return next((c for c, chip in self._chips.items() if chip.isChecked()), "")
+
+    def _on_send(self) -> None:
+        code, text = self.code(), self._field.text().strip()[:FEEDBACK_REASON_MAX]
+        if not code and not text:
+            return
+        self.sent.emit(code, text)
+        for i in range(self.layout().count() - 1):
+            item = self.layout().itemAt(i)
+            _set_layout_visible(item.layout() or None, False)
+        self._thanks.show()
+        QTimer.singleShot(_COPIED_MS * 2, self._on_close)
+
+    def _on_close(self) -> None:
+        self.hide()
+        self.closed.emit()
+
+
+def _set_layout_visible(layout, visible: bool) -> None:
+    if layout is None:
+        return
+    for i in range(layout.count()):
+        item = layout.itemAt(i)
+        if item.widget() is not None:
+            item.widget().setVisible(visible)
+        elif item.layout() is not None:
+            _set_layout_visible(item.layout(), visible)
+
+
 class AgentBubble(QWidget):
+
+
 
 
 
@@ -430,6 +601,8 @@ class AgentBubble(QWidget):
 
     link_activated = pyqtSignal(str)
     feedback = pyqtSignal(bool)
+
+    feedback_reason = pyqtSignal(str, str)
 
 
     restore_clicked = pyqtSignal()
@@ -472,9 +645,21 @@ class AgentBubble(QWidget):
         self._restore.hide()
         self._undone = False
         actions.addWidget(self._restore, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+        self._copy = IconButton(self._actions, "copy", 15, self.tr("Copy"))
+        self._copy.clicked.connect(self._on_copy)
+        self._copy.hide()
+        self._copied_timer = QTimer(self)
+        self._copied_timer.setSingleShot(True)
+        self._copied_timer.setInterval(_COPIED_MS)
+        self._copied_timer.timeout.connect(lambda: self._copy.set_icon("copy", 15))
+        actions.addWidget(self._copy, 0, Qt.AlignmentFlag.AlignVCenter)
         self._feedback = FeedbackRow(self._actions)
         self._feedback.hide()
         self._feedback.voted.connect(self.feedback.emit)
+        self._feedback.voted.connect(self._on_voted)
+        self._reason: FeedbackReason | None = None
         actions.addWidget(self._feedback, 0, Qt.AlignmentFlag.AlignVCenter)
         self._actions.hide()
         self._col.addWidget(self._actions)
@@ -516,7 +701,32 @@ class AgentBubble(QWidget):
         self._flush_pending(final=True)
         self._view.set_streaming(False)
         self._feedback.setVisible(bool(self._text))
+        self._copy.setVisible(bool(self._text))
         self._sync_actions()
+
+    def _on_voted(self, up: bool) -> None:
+
+        if up:
+            if self._reason is not None and not self._reason.isHidden():
+                self._reason.hide()
+                self._on_text_height(0)
+            return
+        if self._reason is not None:
+            return
+        self._reason = FeedbackReason(self)
+        self._reason.sent.connect(self.feedback_reason.emit)
+        self._reason.closed.connect(lambda: self._on_text_height(0))
+        self._col.addWidget(self._reason)
+        self._reason.show()
+        self._on_text_height(0)
+
+    def _on_copy(self) -> None:
+        try:
+            QApplication.clipboard().setText(self.text())
+        except (RuntimeError, AttributeError):
+            return
+        self._copy.set_icon("check", 15)
+        self._copied_timer.start()
 
     def is_finished(self) -> bool:
         return self._finished
@@ -593,6 +803,12 @@ class AgentBubble(QWidget):
 
         self._note_text = str(text or "").strip()
         self._sync_actions()
+
+    def set_wordless(self, wordless: bool) -> None:
+
+
+        self._view.setVisible(not wordless)
+        self._on_text_height(0)
 
     def set_restore(self, mode: str, tooltip: str = "") -> None:
 

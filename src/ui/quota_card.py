@@ -16,9 +16,15 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -30,11 +36,12 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .font_scale import scale_px_length, scale_qss_font_px
-from .shared import get_pro_price, get_pro_runs_per_month, get_support_email
+from .icons import pixmap_for
+from .shared import get_pro_price, get_pro_price_excludes_tax, get_pro_runs_per_month, get_support_email
 from .style import (
     _BTN_GHOST,
     _BTN_PRIMARY_WIDE,
-    _BTN_QUIET,
+    ACCENT,
     ACCENT_INK,
     BTN_PILL_PX,
     BTN_PRIMARY_WIDE_PX,
@@ -46,7 +53,6 @@ from .style import (
     INK_3,
     MUTED,
     RADIUS_PANEL,
-    SPACE_CARD,
     SPACE_TIGHT,
 )
 
@@ -58,6 +64,16 @@ _CARD_QSS = (
 _TITLE_QSS = f"font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
 _BODY_QSS = f"font-size: {FONT_BODY}px; color: palette(text);"
 _MUTED_QSS = f"font-size: {FONT_HINT}px; color: {MUTED};"
+_HEAD_QSS = f"font-size: {FONT_BODY}px; font-weight: 600; color: palette(text);"
+_PRICE_QSS = f"font-size: {FONT_BODY}px; font-weight: 500; color: palette(text);"
+
+
+_INVOICE_QSS = (
+    "QPushButton { background: transparent; border: none; padding: 2px 4px;"
+    f" color: {INK_3}; font-size: {FONT_HINT}px; font-weight: 400; }}"
+    f"QPushButton:hover {{ color: {MUTED}; text-decoration: underline; }}"
+)
+_CHECK_PX = 12
 _CARD_MARGINS = (16, 14, 16, 14)
 _COPIED_MS = 2000
 
@@ -69,6 +85,7 @@ _COUNTER_LINK_QSS = (
     f" color: {ACCENT_INK}; font-size: {FONT_HINT}px; font-weight: 500; }}"
     "QPushButton:hover { text-decoration: underline; }"
 )
+
 
 
 
@@ -110,15 +127,27 @@ class RunsLeftLine(QWidget):
             self._label.setText(self.tr("1 free run left") if left == 1
                                 else self.tr("{n} free runs left").format(n=left))
             self._label.setStyleSheet(scale_qss_font_px(_WARNING_QSS))
-            self._link.setText(self.tr("Get more runs"))
+
+            self._link.setText(self.tr("Get Pro for High effort"))
         else:
             self._label.setText(self.tr("{left} of {limit} free runs left").format(left=left, limit=limit))
             self._label.setStyleSheet(scale_qss_font_px(_COUNTER_QSS))
             self._link.setText(self.tr("Get Pro"))
-        self._link.setToolTip(self.tr("{n} runs a month with Pro").format(n=get_pro_runs_per_month()))
+        self._link.setToolTip(self.tr("Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot")
+                              .format(n=get_pro_runs_per_month()))
 
     def text(self) -> str:
         return f"{self._label.text()} {self._link.text()}"
+
+
+def pro_price_per_month() -> str:
+
+    price = get_pro_price()
+    if not price:
+        return ""
+    if get_pro_price_excludes_tax():
+        return QCoreApplication.translate("QuotaCard", "{amount}/month excl. VAT").format(amount=price)
+    return QCoreApplication.translate("QuotaCard", "{amount}/month").format(amount=price)
 
 
 class QuotaCard(QWidget):
@@ -159,13 +188,39 @@ class QuotaCard(QWidget):
         col.addWidget(self._note)
 
 
+
         self._plan = QWidget(self._card)
         plan = QVBoxLayout(self._plan)
-        plan.setContentsMargins(0, 0, 0, 0)
-        plan.setSpacing(SPACE_CARD + 2)
+        plan.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        plan.setSpacing(SPACE_TIGHT)
         self._pitch = QLabel(self._plan)
-        self._pitch.setStyleSheet(scale_qss_font_px(_BODY_QSS))
+        self._pitch.setStyleSheet(scale_qss_font_px(_HEAD_QSS))
         plan.addWidget(self._pitch)
+        self._checks: list[QLabel] = []
+        self._check_icons: list[QLabel] = []
+        for _ in range(4):
+            line = QHBoxLayout()
+            line.setContentsMargins(0, 0, 0, 0)
+            line.setSpacing(SPACE_TIGHT + 2)
+            tick = QLabel(self._plan)
+            tick.setFixedSize(scale_px_length(_CHECK_PX), scale_px_length(_CHECK_PX))
+            line.addWidget(tick, 0, Qt.AlignmentFlag.AlignTop)
+            text = QLabel(self._plan)
+            text.setStyleSheet(scale_qss_font_px(_BODY_QSS))
+            text.setWordWrap(True)
+            text.setTextFormat(Qt.TextFormat.PlainText)
+            line.addWidget(text, 1)
+            plan.addLayout(line)
+            self._check_icons.append(tick)
+            self._checks.append(text)
+        self._price = QLabel(self._plan)
+        self._price.setStyleSheet(scale_qss_font_px(_PRICE_QSS))
+        plan.addSpacing(2)
+        plan.addWidget(self._price)
+        self._use = QLabel(self._plan)
+        self._use.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
+        plan.addWidget(self._use)
+        plan.addSpacing(SPACE_TIGHT)
         self._button = QPushButton(self._plan)
         self._button.setStyleSheet(_BTN_PRIMARY_WIDE)
         self._button.setFixedHeight(scale_px_length(BTN_PRIMARY_WIDE_PX))
@@ -173,7 +228,7 @@ class QuotaCard(QWidget):
         self._button.setAutoDefault(False)
         plan.addWidget(self._button)
         self._invoice = QPushButton(self.tr("Invoice for my company"), self._plan)
-        self._invoice.setStyleSheet(_BTN_QUIET)
+        self._invoice.setStyleSheet(scale_qss_font_px(_INVOICE_QSS))
         self._invoice.setCursor(Qt.CursorShape.PointingHandCursor)
         self._invoice.setAutoDefault(False)
         self._invoice.clicked.connect(self.invoice_requested.emit)
@@ -196,7 +251,8 @@ class QuotaCard(QWidget):
         self._escape.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self._escape.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
         col.addWidget(self._escape)
-        for label in (self._title, self._note, self._body, self._escape, self._pitch):
+        for label in (self._title, self._note, self._body, self._escape, self._pitch,
+                      self._price, self._use):
             label.setWordWrap(True)
             label.setTextFormat(Qt.TextFormat.PlainText)
         outer.addWidget(self._card)
@@ -205,6 +261,8 @@ class QuotaCard(QWidget):
 
 
     def show_exhausted(self, is_subscriber: bool, limit: int, reset_text: str = "") -> None:
+
+
 
         self._title.show()
         if is_subscriber:
@@ -229,14 +287,29 @@ class QuotaCard(QWidget):
             self.state = "free_out"
 
 
+
             self._title.setText(self.tr("Your free runs are used up"))
-            for w in (self._note, self._body, self._ghost, self._escape):
+            for w in (self._body, self._ghost, self._escape):
                 w.hide()
-            runs = get_pro_runs_per_month()
-            price = get_pro_price()
-            self._pitch.setText(
-                self.tr("Pro gives you {n} runs a month for {amount}.").format(n=runs, amount=price) if price
-                else self.tr("Pro gives you {n} runs a month.").format(n=runs))
+            ran = self.tr("You ran {n} tasks this month.").format(n=limit) if limit > 1 else ""
+            back = (self.tr("Free runs come back on {date}.").format(date=reset_text) if reset_text
+                    else self.tr("Free runs come back at your monthly reset."))
+            self._note.setText(f"{ran} {back}".strip())
+            self._note.show()
+            self._pitch.setText(self.tr("Pro: more and better"))
+            lines = (
+                self.tr("{n} runs a month").format(n=get_pro_runs_per_month()),
+                self.tr("Medium and High effort for harder tasks"),
+                self.tr("Autopilot"),
+                self.tr("Memory and your instructions"),
+            )
+            for label, tick, line in zip(self._checks, self._check_icons, lines):
+                label.setText(line)
+                tick.setPixmap(pixmap_for(tick, "check", _CHECK_PX, QColor(ACCENT)))
+            price = pro_price_per_month()
+            self._price.setText(self.tr("{price} · cancel anytime").format(price=price) if price
+                                else self.tr("Cancel anytime"))
+            self._use.setText(self.tr("Free is for personal and study use. Pro covers work for clients and employers."))
             self._button.setText(self.tr("Get Pro"))
             self._route_button(lambda: self.checkout_requested.emit("exhausted_card"))
             self._plan.show()

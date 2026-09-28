@@ -358,8 +358,8 @@ def alias_fragile_paths(algorithm_id: str, parameters: dict, destination_names) 
                     "_error": (f"{key} is {real}, and {provider} cannot open a path with {_what_breaks()} in it; "
                                f"no safe alias of it could be made here: {reason}. Nothing was run."),
                     "code": "INVALID_ARGS",
-                    "suggestion": (f"Move the data to a folder whose whole path has no spaces or accents "
-                                   f"(for example {where}), or run the native: or gdal: algorithm for the same job."),
+                    "suggestion": (f"A folder whose whole path has no spaces or accents (for example {where}) "
+                                   f"works, and so does the native: or gdal: algorithm for the same job."),
                 }
             items[index] = built
             changed = True

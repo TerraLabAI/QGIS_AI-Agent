@@ -321,7 +321,7 @@ def resolve_layer_note(name_or_id: str) -> tuple:
         layer = _by_cut_id(layers, text)
         if layer is not None:
             return layer, (f"No layer has the id {text!r}; read it as the cut id of {layer.name()!r} "
-                           f"(id {layer.id()}). Pass that id whole next time.")
+                           f"(id {layer.id()}). The full id names it.")
     matched, _stage = match_names(text, list(by_name.keys()))
     if len(matched) != 1:
 
@@ -342,7 +342,7 @@ def resolve_layer_note(name_or_id: str) -> tuple:
         notes.append(f"No layer is named {text!r}; used {chosen.name()!r} (id {chosen.id()}).")
     if len(hits) > 1:
         notes.append(f"{len(hits)} layers are named {chosen.name()!r}; used {why} (id {chosen.id()}). "
-                     "Pass that id to act on a different one.")
+                     "That id selects this one from the rest.")
     return chosen, " ".join(notes)
 
 
@@ -559,15 +559,15 @@ def layer_not_found(name_or_id: str) -> dict:
         return {"_error": f"The layer reference has {len(text):,} characters; use the layer's name or id, "
                          "not its provider URI or geometry.",
                 "code": "LAYER_NOT_FOUND",
-                "suggestion": "Call list_layers and pass the id of the intended layer.",
+                "suggestion": "list_layers gives every layer's id.",
                 "_candidates": [{"id": layer.id(), "name": layer.name()} for layer in layers[:6]]}
     if not text.strip():
         return {"_error": "No layer name was given.", "code": "INVALID_ARGS",
-                "suggestion": "Pass layer_name, the layer's name or its id. list_layers shows both."}
+                "suggestion": "layer_name takes the layer's name or its id; list_layers shows both."}
     if not layers:
         return {"_error": f"Layer not found: {text!r}. The project holds no layer.",
                 "code": "LAYER_NOT_FOUND",
-                "suggestion": "Load a layer first (add_data), then call the tool again."}
+                "suggestion": "The project holds no layer; add_data loads one."}
     matched, _stage = match_names(text, names)
     if len(matched) > 1:
 
@@ -578,7 +578,7 @@ def layer_not_found(name_or_id: str) -> dict:
         return {
             "_error": f"Layer {text!r} matches several layers: {listing}.",
             "code": "LAYER_NOT_FOUND",
-            "suggestion": f"Call the tool again with one of those ids, for example {candidates[0]['id']!r}.",
+            "suggestion": f"One of those ids, for example {candidates[0]['id']!r}, names a specific layer.",
             "_suggestions": [c["name"] for c in candidates],
             "_candidates": candidates,
         }
@@ -587,12 +587,12 @@ def layer_not_found(name_or_id: str) -> dict:
     if close:
         listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in close)
         msg += f" Did you mean: {listing}?"
-        suggestion = f"Call the tool again with the id {close[0]['id']!r}, which is {close[0]['name']!r}."
+        suggestion = f"The id {close[0]['id']!r} names {close[0]['name']!r} specifically."
     else:
         shown = [{"id": layer.id(), "name": layer.name()} for layer in layers[:6]]
         msg += " Available: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in shown)
         msg += f" (+{len(layers) - len(shown)} more)." if len(layers) > len(shown) else "."
-        suggestion = "Pass one of the ids in this message, or call list_layers for the rest."
+        suggestion = "One of the ids here, or list_layers, names a specific layer."
     added = _added_here(project)
     if added and not close:
 
@@ -624,6 +624,8 @@ def _added_here(project, limit: int = 4) -> list[dict]:
 
 
 PINNED_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
+
+LAYER_LIST_KEYS = ("layers", "layer_names")
 
 OUTPUT_LAYER_KEYS = {"execute_sql": ("layer_name",)}
 
@@ -740,8 +742,8 @@ def pinned_layer_gone(args: dict, pins: dict) -> dict | None:
         return {
             "_error": message,
             "code": "LAYER_NOT_FOUND",
-            "suggestion": ("Do not call the tool again on another layer: the one this call named is gone. Tell the "
-                           "user; if they meant one of the layers above, ask them which before changing it."),
+            "suggestion": ("The layer this call named is gone; a candidate above needs the user's own "
+                           "choice before it changes anything."),
             "_candidates": holds,
         }
     return None
@@ -765,8 +767,8 @@ def _loose_name_refusal(value: str, candidates: list[dict]) -> dict:
     return {
         "_error": message,
         "code": "LAYER_NOT_FOUND",
-        "suggestion": ("Pass the id of the layer you mean. When the user's request does not say which one, "
-                       "ask them with ask_user before changing anything."),
+        "suggestion": ("The id of the layer you mean names the target; changing an unnamed layer needs "
+                       "the user's own choice through ask_user first."),
         "_ambiguous": len(candidates) > 1,
         "_candidates": shown,
     }

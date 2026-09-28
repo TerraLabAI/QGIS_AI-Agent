@@ -43,31 +43,32 @@ _FIELD_SAMPLE = 20
 
 
 
+
 _SHAPES: dict[str, str] = {
 
-    "add_vector_layer": "layer",
-    "add_data": "layer",
-    "add_cog_layer": "layer",
-    "add_xyz_layer": "layer",
-    "add_wms_layer": "layer",
-    "add_wfs_layer": "layer",
-    "add_vector_from_url": "layer",
-    "add_points_from_json": "layer",
-    "create_memory_layer": "layer",
-    "fetch_osm_data": "layer",
-    "fetch_building_footprints": "layer",
-    "fetch_overture": "layer",
-    "get_route": "layer",
-    "get_isochrone": "layer",
-    "delineate_watershed": "layer",
-    "extract_stream_network": "layer",
-    "map_drainage": "layer",
-    "terrain_visualisation": "layer",
-    "detect_terrain_anomalies": "layer",
-    "georeference_raster": "layer",
-    "save_layer_to_gpkg": "layer",
-    "import_csv": "layer",
-    "load_csv": "layer",
+    "add_vector_layer": "arrives",
+    "add_data": "arrives",
+    "add_cog_layer": "arrives",
+    "add_xyz_layer": "arrives",
+    "add_wms_layer": "arrives",
+    "add_wfs_layer": "arrives",
+    "add_vector_from_url": "arrives",
+    "add_points_from_json": "arrives",
+    "create_memory_layer": "arrives",
+    "fetch_osm_data": "arrives",
+    "fetch_building_footprints": "arrives",
+    "fetch_overture": "arrives",
+    "get_route": "arrives",
+    "get_isochrone": "arrives",
+    "delineate_watershed": "arrives",
+    "extract_stream_network": "arrives",
+    "map_drainage": "arrives",
+    "terrain_visualisation": "arrives",
+    "detect_terrain_anomalies": "arrives",
+    "georeference_raster": "arrives",
+    "save_layer_to_gpkg": "arrives",
+    "import_csv": "arrives",
+    "load_csv": "arrives",
 
     "set_layer_crs": "layer",
     "set_layer_style": "layer",
@@ -235,7 +236,9 @@ def _crs(layer) -> str:
 def _extent(layer) -> list[float] | None:
     try:
         rect = layer.extent()
-        if rect is None or rect.isEmpty():
+
+
+        if rect is None or rect.isNull():
             return None
         return [round(float(rect.xMinimum()), 6), round(float(rect.yMinimum()), 6),
                 round(float(rect.xMaximum()), 6), round(float(rect.yMaximum()), 6)]
@@ -253,8 +256,8 @@ def _field_facts(layer, field_name: str) -> tuple[dict, str]:
         return facts, ""
     if index < 0:
         facts["field_present"] = False
-        return facts, (f"Add the column again and read the error it returns: {field_name!r} is not on "
-                       f"{layer.name()!r} after this call.")
+        return facts, (f"{field_name!r} is not on {layer.name()!r} after this call; adding it again "
+                       f"returns the error.")
     facts["field_present"] = True
     try:
         facts["field_type"] = str(fields.at(index).typeName())
@@ -266,8 +269,8 @@ def _field_facts(layer, field_name: str) -> tuple[dict, str]:
     facts["sampled"] = sampled
     facts["non_null"] = filled
     if sampled and not filled:
-        return facts, (f"Fix the expression and write the column again: every one of {sampled} sampled rows "
-                       f"of {field_name!r} is empty.")
+        return facts, (f"Every one of {sampled} sampled rows of {field_name!r} is empty: the expression "
+                       f"wrote nothing.")
     return facts, ""
 
 
@@ -331,8 +334,99 @@ def _added_nothing(result: dict) -> bool:
 
 def _missing(ref: str) -> dict:
     return {"layer": ref, "present": False,
-            "warning": (f"Call list_layers and run the step again: {ref!r} is not in the project after "
-                        "this call.")}
+            "warning": (f"{ref!r} is not in the project after this call; list_layers shows what is "
+                        "there now.")}
+
+
+
+
+
+
+_SCHEMA_FIELDS = 24
+_SCHEMA_NAME_CHARS = 40
+
+
+def _schema(layer) -> dict:
+
+
+
+
+
+
+    from . import tuning
+
+    if not tuning.flag("results", "layer_facts", False) or not hasattr(layer, "fields"):
+        return {}
+    try:
+        from qgis.core import QgsWkbTypes
+
+        out: dict = {"geometry": str(QgsWkbTypes.displayString(layer.wkbType()))}
+        fields = layer.fields()
+        count = fields.count()
+        out["fields"] = ", ".join(f"{fields.at(i).name()[:_SCHEMA_NAME_CHARS]} {fields.at(i).typeName()}"
+                                  for i in range(min(count, _SCHEMA_FIELDS)))
+        if count > _SCHEMA_FIELDS:
+            out["fields_more"] = count - _SCHEMA_FIELDS
+        return out
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _listed(result: dict) -> list[dict]:
+
+
+    entries: list = []
+    for key in ("outputs", "layers"):
+        value = result.get(key)
+        entries.extend(value.values() if isinstance(value, dict) else value if isinstance(value, list) else ())
+    changed = result.get("changed")
+    if isinstance(changed, dict) and isinstance(changed.get("added"), list):
+        entries.extend(changed["added"])
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def _entry_id(entry: dict) -> str:
+    return _text(entry.get("layer_id")) or _text(entry.get("id"))
+
+
+def _one_layer(result: dict) -> bool:
+
+    own = _text(result.get("layer_id"))
+    return all(_entry_id(entry) in ("", own) for entry in _listed(result))
+
+
+def describe(result) -> None:
+
+
+
+    if not isinstance(result, dict) or "_error" in result:
+        return
+    try:
+        project = _project()
+        own = _text(result.get("layer_id")) if isinstance(result.get("verified"), dict) else ""
+        for entry in _listed(result):
+            lid = _entry_id(entry)
+            if not lid or lid == own or project is None:
+                continue
+            layer = project.mapLayer(lid)
+            if layer is None:
+                continue
+            facts = _schema(layer)
+            if not facts:
+                continue
+            if "layer_id" not in entry and "crs" not in entry:
+                crs = _crs(layer)
+                if crs:
+                    entry["crs"] = crs
+                count = _feature_count(layer)
+                if count is not None:
+                    entry["features"] = count
+            for key, value in facts.items():
+                if key == "geometry" and "geometry_type" in entry:
+                    continue
+                entry.setdefault(key, value)
+    except Exception:  # noqa: BLE001
+        return
 
 
 def verify(name: str, args, result) -> dict | None:
@@ -361,8 +455,7 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
         if layer is None:
             return {"layer": ref, "present": False, "removed": True}
         return {"layer": ref, "present": True, "removed": False,
-                "warning": (f"Say so instead of reporting it gone: {ref!r} is still in the project after "
-                            "remove_layer.")}
+                "warning": f"{ref!r} is still in the project after remove_layer."}
     if layer is None:
         if not ref or not strong or shared or _added_nothing(result):
             return None
@@ -379,13 +472,13 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
     extent = _extent(layer)
     if extent is not None:
         out["extent"] = extent
+    if shape == "arrives" and "fields" not in result and _one_layer(result):
+        out.update(_schema(layer))
     warning = ""
     if count == 0:
-        warning = (f"Check the source before building on it: {layer.name()!r} is in the project with "
-                   "0 features.")
+        warning = f"{layer.name()!r} is in the project with 0 features."
     elif extent is None and count is not None:
-        warning = (f"Check the geometries before drawing them: {layer.name()!r} has no extent, so nothing "
-                   "of it can be shown on the map.")
+        warning = (f"{layer.name()!r} has no extent, so nothing of it can be shown on the map.")
     if shape == "field":
         field_name = _field_name(args, result)
         if field_name:
@@ -421,6 +514,6 @@ def _index_range(args: dict, result: dict) -> dict | None:
         if not found or not found.get("warning"):
             return None
         return {"layer": layer.name(), "present": True, "value_range": found,
-                "warning": f"Check {layer.name()!r}: its {found['warning']}"}
+                "warning": f"{layer.name()!r}: {found['warning']}"}
     except Exception:  # noqa: BLE001
         return None

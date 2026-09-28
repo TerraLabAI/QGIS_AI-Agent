@@ -17,6 +17,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, QSize, Qt, pyqtSignal
@@ -35,10 +36,12 @@ from ..core.plan import autopilot_allowed, stated
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
+from .quota_card import pro_price_per_month
 from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
 from .style import (
     _BTN_MODE,
     ACCENT,
+    ACCENT_INK,
     BTN_SMALL_PX,
     FIELD,
     FONT_BODY,
@@ -155,8 +158,10 @@ _POPOVER_QSS = scale_qss_font_px(
     " background: transparent; border: none; }"
     f"QLabel#permissionHead {{ font-size: {FONT_MICRO}px; font-weight: 600;"
     f" letter-spacing: 0.7px; color: {INK_3}; background: transparent; border: none; }}"
-    f"QLabel#permissionTag {{ font-size: {FONT_MICRO}px; color: {INK_2}; background: {FIELD};"
-    f" border: 1px solid {LINE}; border-radius: 8px; padding: 1px 7px; }}"
+    f"QLabel#permissionTag {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {ACCENT_INK};"
+    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: 8px; padding: 1px 7px; }}"
+    f"QLabel#permissionPrice {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK};"
+    " background: transparent; border: none; }"
     "QLabel { background: transparent; border: none; }"
 )
 
@@ -198,7 +203,7 @@ class _ModeRow(QFrame):
         head.addStretch(1)
 
 
-        self._tag = QLabel(QCoreApplication.translate("PermissionChip", "With Pro"), self)
+        self._tag = QLabel(QCoreApplication.translate("PermissionChip", "Get Pro"), self)
         self._tag.setObjectName("permissionTag")
         self._tag.hide()
         head.addWidget(self._tag, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -210,6 +215,10 @@ class _ModeRow(QFrame):
         self._note.setObjectName("permissionNote")
         self._note.setWordWrap(True)
         col.addWidget(self._note)
+        self._price = QLabel(self)
+        self._price.setObjectName("permissionPrice")
+        self._price.hide()
+        col.addWidget(self._price)
         row.addLayout(col, 1)
         self._current = False
         self._locked = False
@@ -219,6 +228,12 @@ class _ModeRow(QFrame):
 
         self._locked = bool(locked)
         self._tag.setVisible(self._locked)
+        self._price.setVisible(self._locked)
+        if self._locked:
+            price = pro_price_per_month()
+            self._price.setText(
+                QCoreApplication.translate("PermissionChip", "Pro · {price}").format(price=price) if price
+                else QCoreApplication.translate("PermissionChip", "Included in Pro"))
         self._check.setVisible(not self._locked)
         if self._locked:
             self._check.clear()
@@ -244,6 +259,7 @@ class _ModeRow(QFrame):
         self.ensurePolished()
         self._name.ensurePolished()
         self._note.ensurePolished()
+        self._price.ensurePolished()
         text_width = max(60, width - 2 * _POPOVER_MARGIN - 2 * _ROW_PAD_X
                          - _TILE_SIZE - _ROW_SPACING)
         metrics = self._note.fontMetrics()
@@ -265,7 +281,8 @@ class _ModeRow(QFrame):
 
         head = max(self._name.sizeHint().height(),
                    self._tag.sizeHint().height() if self._locked else _CHECK_SIZE)
-        self.setFixedHeight(2 * _ROW_PAD_Y + head + 2 + note_height)
+        price = (2 + self._price.fontMetrics().height()) if self._locked else 0
+        self.setFixedHeight(2 * _ROW_PAD_Y + head + 2 + note_height + price)
 
     def enterEvent(self, event):  # noqa: N802
         self.setProperty("hover", True)

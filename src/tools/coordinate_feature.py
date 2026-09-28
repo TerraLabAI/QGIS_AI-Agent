@@ -58,7 +58,7 @@ def _crs(value: str | None) -> QgsCoordinateReferenceSystem | None:
 def _crs_decision(coords: list[list[float]], source: str | None) -> tuple[str | None, dict | None]:
     if source:
         if _crs(source) is None:
-            return None, {"_error": f"Invalid source_crs {source!r}; use an authority such as EPSG:4326.",
+            return None, {"_error": f"source_crs {source!r} is invalid; EPSG:4326 is a valid authority.",
                           "_code": "INVALID_ARGS"}
         return source, None
     if not coords:
@@ -68,8 +68,8 @@ def _crs_decision(coords: list[list[float]], source: str | None) -> tuple[str | 
 
     if degree_like:
         return "EPSG:4326", None
-    return None, {"_error": "Coordinate CRS is ambiguous or looks projected. Pass source_crs explicitly "
-                            "(for example EPSG:2154 or EPSG:4326).", "_code": "CRS_REQUIRED"}
+    return None, {"_error": "Coordinate CRS is ambiguous or looks projected; source_crs (EPSG:2154, "
+                            "EPSG:4326) names it explicitly.", "_code": "CRS_REQUIRED"}
 
 
 def _create_coordinate_feature(args: dict) -> dict:
@@ -105,7 +105,7 @@ def _create_coordinate_feature(args: dict) -> dict:
     target_authid = layer_authid or args.get("target_crs") or source_authid
     target = _crs(target_authid)
     if target is None:
-        return {"_error": "Pass a valid target_crs, such as EPSG:2154.", "_code": "INVALID_ARGS"}
+        return {"_error": "target_crs must be valid, e.g. EPSG:2154.", "_code": "INVALID_ARGS"}
     if target_layer is not None and target_layer.geometryType() != {"point": 0, "line": 1, "polygon": 2}[geometry_type]:
         return {"_error": f"target_layer geometry type is not {geometry_type}.", "_code": "INVALID_ARGS"}
     qpoints = [QgsPointXY(x, y) for x, y in points]

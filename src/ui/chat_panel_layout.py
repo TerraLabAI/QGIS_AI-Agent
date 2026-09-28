@@ -20,6 +20,7 @@ from .dock.about import show_contact_dialog, show_shortcuts_dialog
 from .external_links import open_external_url
 from .quota_card import WARN_AT_RUNS_LEFT
 from .shared import (
+    LEGACY_FREE_RUNS_MAX,
     format_reset_date,
     get_contact_call_url,
     get_dashboard_url,
@@ -71,7 +72,6 @@ class _ChatPanelLayout:
         a.pairing_cancel_requested.connect(self.pairing_cancel_requested.emit)
         a.account_clicked.connect(self.open_settings_requested.emit)
 
-        self.empty_state.suggestion_clicked.connect(self.suggestion_clicked.emit)
         self.empty_state.examples_requested.connect(self.open_examples)
         self.empty_state.tutorial_requested.connect(lambda: self._on_help("tutorial"))
         h.checkpoints_requested.connect(self.history_requested.emit)
@@ -93,6 +93,8 @@ class _ChatPanelLayout:
         c.send_clicked.connect(self._on_send)
         c.stop_clicked.connect(self._on_stop)
         c.notice_link_activated.connect(self._on_notice_link)
+
+        c.edit_dropped.connect(lambda: self.edit_requested.emit(""))
         c.files_dropped.connect(lambda paths: self.files_dropped.emit(list(paths)))
         c.attachments_changed.connect(self._on_attachments_changed)
         c.context_add_requested.connect(self.context_add_requested.emit)
@@ -216,7 +218,6 @@ class _ChatPanelLayout:
         if dialog is not None:
             dialog.deleteLater()
 
-    @slot_guard("panel_stop")
     def _on_stop(self) -> None:
         self.stop_requested.emit(self._current_run or self._last_run or "")
 
@@ -226,11 +227,8 @@ class _ChatPanelLayout:
             self.attachment_added.emit(count - self._attachment_count)
         self._attachment_count = count
 
-    def _on_dashboard(self) -> None:
-        self.dashboard_requested.emit()
-        open_external_url(get_dashboard_url(), parent=self)
+    def _on_upgrade(self, where: str) -> None:
 
-    def _on_upgrade(self) -> None:
 
 
 
@@ -245,7 +243,7 @@ class _ChatPanelLayout:
             self.dashboard_requested.emit()
             open_external_url(get_dashboard_url(), parent=self)
             return
-        self.upgrade_requested.emit()
+        self.plans_requested.emit(where)
 
     def _on_pro_pill(self) -> None:
 
@@ -397,8 +395,7 @@ class _ChatPanelLayout:
         left = max(0, limit - used)
         if left <= 0:
             self._runs_host.hide()
-            self.quota_card.show_exhausted(
-                is_subscriber, limit, format_reset_date(period_end) if is_subscriber else "")
+            self.quota_card.show_exhausted(is_subscriber, limit, format_reset_date(period_end))
             self.composer.set_blocked(True, self.tr("More runs next month") if is_subscriber
                                       else self.tr("Keep working with Pro"))
             self._quota_host.show()
@@ -472,6 +469,8 @@ class _ChatPanelLayout:
 
 
         bubble.source_clicked.connect(self._on_bubble_source)
+        bubble.edit_requested.connect(lambda b=bubble: self._on_edit_bubble(b))
+        self._set_last_user(bubble)
         self._add(bubble)
 
     def _on_bubble_source(self, connector: str) -> None:
@@ -566,7 +565,7 @@ class _ChatPanelLayout:
 
         stated = is_subscriber is not None
         if not stated:
-            is_subscriber = self._paid_plan if self._plan_known else limit > get_free_runs()
+            is_subscriber = self._paid_plan if self._plan_known else limit > max(get_free_runs(), LEGACY_FREE_RUNS_MAX)
         self._usage = (used, limit, str(period_end_iso or "")[:80], bool(is_subscriber))
         self._apply_quota()
         sidebar = getattr(self, "sidebar", None)
@@ -605,6 +604,7 @@ class _ChatPanelLayout:
 
 
 
+
         try:
             folds = int((usage or {}).get("compaction_folds") or 0)
         except (AttributeError, TypeError, ValueError):
@@ -614,7 +614,8 @@ class _ChatPanelLayout:
         self._compaction_marked = True
         divider = CompactionDivider(
             self.tr("Conversation compacted"),
-            self.tr("The agent keeps a summary of the earlier exchanges. Your messages stay visible."))
+            self.tr("The agent now reads the earlier exchanges as a shorter record "
+                    "that keeps your requests and what it made."))
         divider.show()
         self._add(divider, animate=animate)
 
@@ -659,6 +660,7 @@ class _ChatPanelLayout:
         self.activation.set_pairing_status(text)
 
     def set_pairing_note(self, text: str, kind: str = "warning") -> None:
+
 
 
         self.activation.set_pairing_note(text, kind)

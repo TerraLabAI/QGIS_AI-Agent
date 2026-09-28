@@ -78,8 +78,8 @@ RECOGNIZED_FAMILIES = frozenset({
     "ogc_api_collections", "ogc_api_tilesets",
 })
 
-_PICTURES_NOT_VALUES = ("A WMS or WMTS layer is a picture: it cannot give heights or values. For those use a "
-                        "WCS coverage (or a DEM file) of the same data.")
+_PICTURES_NOT_VALUES = ("A WMS or WMTS layer is a picture: it cannot give heights or values. A WCS "
+                        "coverage (or a DEM file) of the same data gives those.")
 
 
 def _local(tag: str) -> str:
@@ -293,7 +293,7 @@ def attach_layer_in_link(answer: dict, pasted: str, request: dict) -> dict:
 
         out["bbox_in_link"] = bbox
         said += (" bbox_in_link is the area the link asked for, in the CRS it names (EPSG:4326 in a WFS 2.0 "
-                 "or WMS 1.3.0 link is lat,lon): zoom there before loading, or pass it as a filter.")
+                 "or WMS 1.3.0 link is lat,lon): usable as the zoom extent or as a filter.")
     if service == "WFS" and request["request"].lower() == "getfeature":
         out["direct_download"] = {"tool": "add_vector_from_url", "args": {"url": pasted}}
         said += (" The link itself is a feature download: direct_download loads exactly what it asks for as "
@@ -715,9 +715,9 @@ def _wcs_entry(endpoint: str, coverage: str, title: str, bbox: list | None, crs:
 
 
 _WCS_MESSAGE = ("WCS capabilities read: coverages of real values (heights, temperatures), not pictures. Each "
-                "carries the add_data call that streams it. Add bbox [west, south, east, north] in EPSG:4326 "
-                "to the same call to download that box as a local GeoTIFF instead, which is what slope, "
-                "contours, hillshade and zonal statistics should run on.")
+                "carries the add_data call that streams it. bbox [west, south, east, north] in EPSG:4326 "
+                "on that call downloads the box as a local GeoTIFF, which slope, contours, hillshade and "
+                "zonal statistics need.")
 
 
 def _wcs10(final_url: str, root) -> dict:
@@ -857,8 +857,8 @@ def _listing(family: str, service: str, final_url: str, endpoint: str, root, ent
         out["import_method"] = entries[0]["add"]["tool"]
         out["import_arguments"] = entries[0]["add"]["args"]
     if not endpoint:
-        message += (" The document does not name its own address: ask the user for the service URL before "
-                    "loading anything from it.")
+        message += (" The document does not name its own address: nothing loads from it until the "
+                    "service URL is known.")
     out["message"] = message
     return out
 
@@ -977,7 +977,7 @@ def _arcgis(final_url: str, payload: dict) -> dict | None:
             out["folder_call"] = {"tool": "inspect_data_source",
                                   "args": {"url": f"{root}/{{FOLDER}}" + (f"?{access}" if access else "")}}
         out["message"] = ("ArcGIS REST directory. A MapServer or ImageServer loads as an image with its add call; "
-                          "inspect a FeatureServer to list its layers, and a folder to list its services."
+                          "inspecting a FeatureServer lists its layers, and a folder its services."
                           + (f" {skipped} services of other types (geocoding, geoprocessing) are left out."
                              if skipped else ""))
         return out

@@ -290,6 +290,7 @@ def register_facade_tools(registry: ToolRegistry):
         },
         handler=_ai_segment,
         action_danger=AI_SEGMENT_ACTION_DANGER,
+        argument_check=_integration.aiseg_imagery_refusal,
     ))
 
     registry.register(Tool(
@@ -327,7 +328,7 @@ def register_facade_tools(registry: ToolRegistry):
 def _ask_user_direct(args: dict) -> dict:
 
     return tool_error("ask_user needs the chat panel to show the question.",
-                      suggestion="Say the question in your answer and wait for the user's next message.")
+                      suggestion="A question written in the answer reaches the user; their next message replies.")
 
 
 def _is_url(source: str) -> bool:
@@ -427,8 +428,8 @@ def _service_layer(kind: str, source: str) -> str | dict:
     shown = names[:_SERVICE_NAMES_SHOWN]
     return {"loaded": False, "service": "WFS", "type_names": shown, "type_name_count": len(names),
             "note": (f"This WFS publishes {len(names)} type names and the call named none. "
-                     "Call add_data again with layer=<one of them>"
-                     + (", or inspect_data_source to see them all." if len(names) > len(shown) else "."))}
+                     "layer=<one of them> on add_data loads one"
+                     + (", or inspect_data_source lists them all." if len(names) > len(shown) else "."))}
 
 
 _SERVICE_NAMES_SHOWN = 40
@@ -448,7 +449,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         return tool_error(
             "That bbox is not a usable box.",
             "INVALID_ARGS",
-            "Pass [west, south, east, north] in EPSG:4326, west below east and south below north.",
+            "[west, south, east, north] in EPSG:4326, west below east and south below north.",
         )
     if kind == "vector":
         if _is_url(source):
@@ -526,7 +527,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WMS source needs the layer name to show.",
                 "INVALID_ARGS",
-                "Pass layer=<WMS layer name>. inspect_data_source lists what the service serves.",
+                "layer=<WMS layer name>. inspect_data_source lists what the service serves.",
             )
         wms_args = {"url": source, "layers": layer, "name": name}
         if crs:
@@ -537,7 +538,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WFS source needs the type name to load.",
                 "INVALID_ARGS",
-                "Pass layer=<WFS typename>. inspect_data_source lists what the service serves.",
+                "layer=<WFS typename>. inspect_data_source lists what the service serves.",
             )
 
 
@@ -551,7 +552,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WCS source needs the coverage to load.",
                 "INVALID_ARGS",
-                "Pass layer=<coverage id>. inspect_data_source lists what the service serves.",
+                "layer=<coverage id>. inspect_data_source lists what the service serves.",
             )
         return _data._add_wcs_layer({"url": source, "coverage": layer, "name": name, "crs": crs, "bbox": bbox})
     return tool_error(f"Unknown kind: {kind}", "INVALID_ARGS", f"kind must be one of {list(ADD_DATA_KINDS)}.")
@@ -665,7 +666,7 @@ def _merge_crs_check(described: dict, found: dict) -> None:
 def _add_data(args: dict) -> dict:
     source = _data.hosted_department_url(str(args.get("source") or "").strip())
     if not source:
-        return tool_error("source is empty.", "INVALID_ARGS", "Pass a path, URL, service endpoint or basemap name.")
+        return tool_error("source is empty.", "INVALID_ARGS", "a path, URL, service endpoint or basemap name.")
     args = dict(args, source=source)
 
 
@@ -678,7 +679,7 @@ def _add_data(args: dict) -> dict:
         return tool_error(
             f"The URL still carries the template field {{{names}}}: it stands for several files.",
             "INVALID_ARGS",
-            f"Replace {{{names}}} with one of the values the dataset's notes list (find_datasets shows them), "
+            f"{{{names}}} takes a value the dataset's notes list (find_datasets shows them), "
             "one call per file.")
 
 
@@ -686,7 +687,7 @@ def _add_data(args: dict) -> dict:
     refusal = net.withdrawn_reason(urllib.parse.urlsplit(source).hostname or "")
     if refusal:
         return tool_error(refusal, "INVALID_ARGS",
-                          "Call find_datasets for the same theme and add a row it returns.")
+                          "find_datasets lists rows for the same theme to add instead.")
 
 
 
@@ -774,7 +775,7 @@ def _plugin_missing(label: str, tool: str) -> dict:
     return tool_error(
         f"{label} is not installed in this QGIS.",
         "PERMISSION_DENIED",
-        f"Call {tool} action setup now (its card is the yes): it opens the Plugin Manager on {label}.",
+        f"{tool} action setup opens the Plugin Manager on {label} (its card is the yes).",
     )
 
 
@@ -783,7 +784,7 @@ def _signed_out(tool: str, label: str) -> dict:
     return tool_error(
         f"{label} is not connected to a TerraLab account.",
         "PERMISSION_DENIED",
-        f"Call {tool} action setup now (its card is the yes): it opens the one-click sign-in page.",
+        f"{tool} action setup opens the one-click sign-in page (its card is the yes).",
     )
 
 
@@ -805,7 +806,7 @@ def _aiseg_not_running(presence: dict) -> dict:
     return tool_error(
         f"AI Segmentation by TerraLab is installed but not running ({status['state']}).",
         "PERMISSION_DENIED",
-        ("Call ai_segment action setup: it switches the plugin on." if status["state"] == "PLUGIN_DISABLED"
+        ("ai_segment action setup switches the plugin on." if status["state"] == "PLUGIN_DISABLED"
          else status["action_required"]),
     )
 
@@ -822,14 +823,14 @@ def _ai_edit(args: dict) -> dict:
             return _plugin_missing("AI Edit by TerraLab", "ai_edit")
         return tool_error(
             "AI Edit by TerraLab is installed but not running.", "PERMISSION_DENIED",
-            ("Call ai_edit action setup: it switches the plugin on." if found["state"] == "disabled"
+            ("ai_edit action setup switches the plugin on." if found["state"] == "disabled"
              else _setup.not_running("ai_edit", found)["action_required"]),
         )
     if action == "generate":
         if not str(args.get("prompt") or "").strip():
             return tool_error(
                 "generate needs a prompt.", "INVALID_ARGS",
-                "Pass prompt, the edit to apply, plus bbox or use_canvas_extent.",
+                "prompt, the edit to apply, plus bbox or use_canvas_extent.",
             )
         if _setup.signed_in("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]) is False:
             return _signed_out("ai_edit", "AI Edit")
@@ -840,14 +841,14 @@ def _ai_edit(args: dict) -> dict:
         if args.get("index") is None:
             return tool_error(
                 "select_version needs index.", "INVALID_ARGS",
-                "Pass index: 0 = Original, 1 = V1, 2 = V2.",
+                "index: 0 = Original, 1 = V1, 2 = V2.",
             )
         return _integration._aiedit_select_version(args)
     if action == "vectorize":
         if not args.get("target_rgb"):
             return tool_error(
                 "vectorize needs target_rgb.", "INVALID_ARGS",
-                "Pass target_rgb as [r, g, b] 0-255, the color to trace.",
+                "target_rgb is [r, g, b] 0-255, the color to trace.",
             )
         return _integration._aiedit_vectorize(args)
     if action == "cancel":
@@ -1088,7 +1089,7 @@ def annotate_outputs(outputs: dict) -> tuple:
                 problems.append(f"{key} ({layer.name()}) has no features")
     if problems:
         return "ambiguous", (
-            "The algorithm finished but " + "; ".join(problems) + ". Check the inputs (CRS, extent, "
-            "filters, selection) before using this output."
+            "The algorithm finished but " + "; ".join(problems) + ". The inputs (CRS, extent, "
+            "filters, selection) may explain this output."
         )
     return "ok", ""

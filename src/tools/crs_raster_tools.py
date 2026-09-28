@@ -47,7 +47,7 @@ def _read_source(source: str) -> tuple[str, str] | dict:
         return str(source or "").strip(), ""
     error = security.validate_path(path)
     if error:
-        return tool_error(error, "PERMISSION_DENIED", "Pass a .prj file in an allowed project or home folder.")
+        return tool_error(error, "PERMISSION_DENIED", "A .prj file must sit in the project or home folder.")
     try:
         with open(path, encoding="utf-8") as handle:
             return path, handle.read().strip()
@@ -55,7 +55,7 @@ def _read_source(source: str) -> tuple[str, str] | dict:
         return tool_error(
             f"Could not read the .prj file: {exc}",
             "INVALID_ARGS",
-            "Check that the file is a UTF-8 or ASCII ESRI WKT file.",
+            "The file may not be a UTF-8 or ASCII ESRI WKT file.",
         )
 
 
@@ -78,7 +78,7 @@ def _identify_crs(args: dict) -> dict:
         return tool_error(
             "A WKT string or .prj path is required.",
             "INVALID_ARGS",
-            "Pass wkt for raw WKT or source/prj_path for a .prj file.",
+            "wkt takes raw WKT; source or prj_path takes a .prj file.",
         )
     loaded = _read_source(str(source))
     if isinstance(loaded, dict):
@@ -89,7 +89,7 @@ def _identify_crs(args: dict) -> dict:
         return tool_error(
             "QGIS could not identify a valid CRS from the supplied WKT or .prj file.",
             "INVALID_ARGS",
-            "Pass the complete WKT definition, not a shortened name.",
+            "The complete WKT is needed, not a shortened name.",
         )
     result = _crs_details(crs, source_label)
     result["matched_existing_crs"] = bool(crs.authid())
@@ -101,14 +101,14 @@ def _save_custom_crs(args: dict) -> dict:
     raw = str(args.get("wkt") or args.get("source") or "").strip()
     if not name or not raw:
         return tool_error(
-            "Both name and WKT are required.", "INVALID_ARGS", "Pass a short custom CRS name and its complete WKT."
+            "Both name and WKT are required.", "INVALID_ARGS", "name and wkt need values: a short name, full WKT."
         )
     if len(name) > 120:
-        return tool_error("The custom CRS name is too long.", "INVALID_ARGS", "Use at most 120 characters.")
+        return tool_error("The custom CRS name is too long.", "INVALID_ARGS", "120 characters is the cap.")
     crs = _crs_from_text(raw)
     if crs is None:
         return tool_error(
-            "The supplied definition is not a valid QGIS CRS.", "INVALID_ARGS", "Pass a complete WKT definition."
+            "The supplied definition is not a valid QGIS CRS.", "INVALID_ARGS", "wkt needs a complete WKT."
         )
 
 
@@ -116,7 +116,7 @@ def _save_custom_crs(args: dict) -> dict:
     srsid = registry.addUserCrs(crs, name)
     if int(srsid) < 0:
         return tool_error(
-            "QGIS could not save the custom CRS.", "EXECUTION_FAILED", "Choose a different name and try again."
+            "QGIS could not save the custom CRS.", "EXECUTION_FAILED", "Another name may save."
         )
     return {
         "saved": True,
@@ -146,7 +146,7 @@ def _raster_facts(value):
         return tool_error(
             f"Raster not found or invalid: {value}",
             "INVALID_ARGS",
-            "Pass a loaded raster layer name/id or an allowed raster file path.",
+            "value must be a raster layer name/id or an allowed file path.",
         )
     extent = layer.extent()
     return {
@@ -200,16 +200,16 @@ def _compare_rasters(args: dict) -> dict:
         return tool_error(
             "At least two rasters are required.",
             "INVALID_ARGS",
-            "Pass rasters as a list of loaded layer names/ids or file paths.",
+            "rasters is a list of loaded layer names/ids or file paths.",
         )
     if len(values) > 100:
         return tool_error(
-            "At most 100 rasters can be compared in one call.", "INVALID_ARGS", "Compare a smaller batch."
+            "At most 100 rasters can be compared in one call.", "INVALID_ARGS", "A smaller batch fits."
         )
     tolerance = float(args.get("tolerance", 1e-9))
     if not math.isfinite(tolerance) or tolerance < 0:
         return tool_error(
-            "tolerance must be a finite non-negative number.", "INVALID_ARGS", "Use a small value such as 1e-9."
+            "tolerance must be a finite non-negative number.", "INVALID_ARGS", "A small value fits, e.g. 1e-9."
         )
     facts = []
     for value in values:

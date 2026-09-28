@@ -50,6 +50,14 @@ RUN_HEARTBEAT_MS = 3_000
 
 
 HELLO_TIMEOUT_MS = 20_000
+
+
+
+
+
+
+HELLO_UPLOAD_CAP_S = 60.0
+HELLO_UPLOAD_RECHECK_MS = 5_000
 MAX_MISSED_PONGS = 2
 BACKOFF_S = (1, 2, 4, 8, 16, 30)
 
@@ -145,7 +153,7 @@ class AgentSession(QObject):
 
 
 
-    memory_note = pyqtSignal(str, str, str, str)
+    memory_note = pyqtSignal(str, str, str, str, str)
     status_line = pyqtSignal(str, str)
     state_changed = pyqtSignal(str, str)
 
@@ -154,6 +162,7 @@ class AgentSession(QObject):
 
     server_tool = pyqtSignal(object)
     counts = pyqtSignal(str, int, int)
+    steer_ack = pyqtSignal(str, str, bool)
 
 
     connection_failed = pyqtSignal(object)
@@ -188,6 +197,8 @@ class AgentSession(QObject):
 
 
         self._crash_note: dict | None = None
+        self._hello_sent_at = 0.0
+        self._hello_checked_at = 0.0
         self._attempt = 0
         self._awaiting_pongs = 0
         self._beat_at = 0.0
@@ -398,7 +409,7 @@ class AgentSession(QObject):
 
     def send_user_message(self, run_id: str, thread_id: str, text: str, attachments: list,
                           context: dict, mode: str, approval: str, effort: str = "low",
-                          example: str = "") -> bool:
+                          example: str = "", replaces_run_id: str = "") -> bool:
 
 
 
@@ -410,7 +421,8 @@ class AgentSession(QObject):
 
         attachments = [self._upload_pieces(att) for att in (attachments or [])]
         return self._send(protocol.user_message(
-            run_id, thread_id, text, attachments, context, mode, approval, effort, example))
+            run_id, thread_id, text, attachments, context, mode, approval, effort, example,
+            replaces_run_id if self.edit_last_available else ""))
 
     def _upload_pieces(self, att) -> object:
         if not isinstance(att, dict) or att.get("kind") != "document" or att.get("data_base64"):
@@ -437,11 +449,12 @@ class AgentSession(QObject):
         out["code_page"] = _ansi_encoding()
         return out
 
-    def send_tool_result(self, tool_call_id: str, run_id: str, result) -> bool:
-        return self._send(protocol.tool_result(tool_call_id, run_id, result))
+    def send_tool_result(self, tool_call_id: str, run_id: str, result, code_class: str = "") -> bool:
+        return self._send(protocol.tool_result(tool_call_id, run_id, result, code_class))
 
-    def send_tool_error(self, tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "") -> bool:
-        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion))
+    def send_tool_error(self, tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
+                        code_class: str = "") -> bool:
+        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion, code_class))
 
     def send_permission_response(self, tool_call_id: str, run_id: str, decision: str) -> bool:
         return self._send(protocol.permission_response(tool_call_id, run_id, decision))
@@ -450,9 +463,32 @@ class AgentSession(QObject):
 
         return self._send(protocol.busy(seconds, where, calls))
 
-    def send_feedback(self, run_id: str, up: bool) -> bool:
+    @property
+    def steer_available(self) -> bool:
 
-        return self._send(protocol.feedback(run_id, bool(up)))
+        return bool(getattr(self, "_steer", False)) and self.is_online
+
+    @property
+    def edit_last_available(self) -> bool:
+
+        return bool(getattr(self, "_edit_last", False)) and self.is_online
+
+    @property
+    def unsteer_available(self) -> bool:
+
+        return bool(getattr(self, "_unsteer", False)) and self.is_online
+
+    def send_unsteer(self, run_id: str, steer_id: str) -> bool:
+        return self._send(protocol.unsteer(run_id, steer_id))
+
+    def send_steer(self, run_id: str, steer_id: str, text: str) -> bool:
+        return self._send(protocol.steer(run_id, steer_id, text))
+
+    def send_feedback(self, run_id: str, up: bool, reason_code: str = "", reason: str = "") -> bool:
+
+
+
+        return self._send(protocol.feedback(run_id, bool(up), reason_code, reason))
 
     def send_cancel(self, run_id: str) -> bool:
 
@@ -585,6 +621,7 @@ class AgentSession(QObject):
         what = f"resume after seq {last_seq}" if self._session_id else "new"
         log(f"hello sent (manifest {'included' if include else 'by hash'}, {what} session)")
         self._send(frame)
+        self._hello_sent_at = self._hello_checked_at = time.monotonic()
         self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
         self._hello_deadline.start()
 
@@ -598,9 +635,36 @@ class AgentSession(QObject):
 
         if self._state == "online" or self._user_closed:
             return
+        if self._hello_still_leaving():
+            self._hello_deadline.start(HELLO_UPLOAD_RECHECK_MS)
+            return
         log_warning(f"No session frame within {self._hello_deadline.interval() // 1000}s of hello, reconnecting")
         self._last_failure = ("hello_timeout", "", 0)
         self._ws.close(1000, "no session frame")
+
+    def _hello_still_leaving(self) -> bool:
+
+
+
+
+
+
+
+        probe = getattr(self._ws, "link_moved_since", None)
+        if probe is None or not self._hello_sent_at:
+            return False
+        now = time.monotonic()
+        if now - self._hello_sent_at >= HELLO_UPLOAD_CAP_S:
+            return False
+        since, self._hello_checked_at = self._hello_checked_at, now
+        try:
+            _received, writing = probe(since)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Socket activity unreadable: {exc}")
+            return False
+        if writing:
+            log(f"Hello still uploading after {now - self._hello_sent_at:.0f} s, waiting for it")
+        return bool(writing)
 
     def _on_ws_disconnected(self, code: int, reason: str) -> None:
         self._heartbeat.stop()
@@ -899,6 +963,11 @@ class AgentSession(QObject):
         self._apply_heartbeat()
         self._heartbeat.start()
         self._model_label = str(frame.get("model_label") or "")
+
+
+        self._steer = frame.get("steer") is True
+        self._unsteer = frame.get("unsteer") is True
+        self._edit_last = frame.get("edit_last") is True
         self._set_state("online", self._model_label)
         for run_id in sorted(self._pending_cancels):
             self._send(protocol.cancel(run_id))
@@ -977,7 +1046,8 @@ class AgentSession(QObject):
 
     def _on_memory_note(self, frame: dict) -> None:
         self.memory_note.emit(str(frame.get("text") or ""), str(frame.get("kind") or ""),
-                              str(frame.get("scope") or ""), str(frame.get("run_id") or ""))
+                              str(frame.get("scope") or ""), str(frame.get("run_id") or ""),
+                              str(frame.get("replaces") or ""))
 
     def _on_sources(self, frame: dict) -> None:
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []
@@ -989,6 +1059,11 @@ class AgentSession(QObject):
             self._note_bad_frame("server_tool", "missing tool_call_id, name or ok")
             return
         self.server_tool.emit(frame)
+
+    def _on_steer_ack(self, frame: dict) -> None:
+        run_id, steer_id = str(frame.get("run_id") or ""), str(frame.get("steer_id") or "")
+        if run_id and steer_id:
+            self.steer_ack.emit(run_id, steer_id, frame.get("taken") is True)
 
     def _on_counts(self, frame: dict) -> None:
         try:

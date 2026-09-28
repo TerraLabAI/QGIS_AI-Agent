@@ -27,6 +27,7 @@ from .executor_code import _ExecutorCode
 from .executor_deliver import _ExecutorDeliver
 from .executor_execute import _ExecutorExecute
 from .executor_guards import _ExecutorGuards
+from .executor_hold import _ExecutorHold
 from .executor_idempotency import IdempotencyTable
 from .executor_runs import _ExecutorRuns
 from .executor_undo import _ExecutorUndo
@@ -38,7 +39,7 @@ __all__ = ["ToolExecutor", "background"]
 
 
 class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, _ExecutorExecute,
-                   _ExecutorDeliver, _ExecutorGuards, QObject):
+                   _ExecutorDeliver, _ExecutorGuards, _ExecutorHold, QObject):
     tool_started = pyqtSignal(object)
 
 
@@ -108,6 +109,10 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
         self._inflight: dict[str, tuple[str, str, float, bool]] = {}
 
 
+        self._dialog_waits: dict[str, tuple[float, str]] = {}
+        self._dialog_tick: float | None = None
+
+
         self._answered: OrderedDict[str, None] = OrderedDict()
 
         self._blocked: dict[str, str] = {}
@@ -137,6 +142,10 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
 
         self._code_escalated: dict[str, str] = {}
+
+
+        self._held: dict[str, tuple] = {}
+        self._hold_listening = False
         self.last_snapshot: RunSnapshot | None = None
         self.history = CheckpointHistory()
 

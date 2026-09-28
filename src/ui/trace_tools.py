@@ -29,8 +29,9 @@
 from __future__ import annotations
 
 import json
+import time
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from .card_base import format_duration
@@ -63,6 +64,11 @@ _CHEVRON_PX = 12
 _VERB_MIN_PX = 130
 _QWIDGETSIZE_MAX = (1 << 24) - 1
 _OUTCOME_MIN_PX = 90
+
+
+
+
+_ELAPSED_AFTER_S = 3.0
 
 
 SEARCH_TOOLS = frozenset({
@@ -253,6 +259,11 @@ class ActivityRow(QWidget):
         self._body_col.addWidget(self._results_host)
         self._body.hide()
         col.addWidget(self._body)
+
+        self._since = 0.0
+        self._ticker = QTimer(self)
+        self._ticker.setInterval(1000)
+        self._ticker.timeout.connect(self._sync_elapsed)
         self.add(card)
 
 
@@ -264,12 +275,19 @@ class ActivityRow(QWidget):
         card.hide()
         self._body_col.addWidget(card)
         self.cards.append(card)
+        self._since = time.monotonic()
         card.state_changed.connect(self.refresh)
         card.expanded_changed.connect(self._on_card_expanded)
         self.refresh()
 
     def _on_card_expanded(self, card: ToolCard, expanded: bool) -> None:
         card.setVisible(bool(expanded) and card.opens())
+        if not expanded and card.ok is None and not getattr(card, "ended", ""):
+
+
+
+            self._since = time.monotonic()
+            self._sync_elapsed()
         self._sync_open()
 
     @property
@@ -324,8 +342,10 @@ class ActivityRow(QWidget):
         self._icon.setVisible(not running)
         if running:
             self._spinner.start()
+            self._ticker.start()
         else:
             self._spinner.stop()
+            self._ticker.stop()
         connector = getattr(first, "connector", None) or {}
         label = str(connector.get("name") or "") or str(getattr(first, "_verb", "") or "")
         self._label.setText(label or describe_tool_call(first.name, first.args))
@@ -405,6 +425,8 @@ class ActivityRow(QWidget):
             text = self.tr("denied")
         elif ended == "stopped":
             text = self.tr("stopped")
+        elif running:
+            text = self._elapsed_text()
         elif some_failed and not running:
             text = self.tr("{failed} of {total} did not work").format(
                 failed=some_failed, total=self.repeats)
@@ -423,6 +445,32 @@ class ActivityRow(QWidget):
                     text = f"\u2192 {facts['layer']}"
         self._outcome.setText(text)
         self._outcome.setMinimumWidth(min(_OUTCOME_MIN_PX, self._outcome.sizeHint().width()) if text else 0)
+        self._outcome.setVisible(bool(text))
+
+    def _elapsed_text(self) -> str:
+
+
+
+        live = [card for card in self.cards if card.ok is None and not getattr(card, "ended", "")]
+        if not live or not self._since or any(card.is_expanded() for card in live):
+            return ""
+        elapsed = time.monotonic() - self._since
+        if elapsed < _ELAPSED_AFTER_S:
+            return ""
+        if elapsed < 59.5:
+            return self.tr("{count} s").format(count=int(elapsed))
+        return format_duration(elapsed)
+
+    def _sync_elapsed(self) -> None:
+
+
+        if not self.isVisible():
+            return
+        text = self._elapsed_text()
+        if text == self._outcome.full_text():
+            return
+        self._outcome.setText(text)
+        self._outcome.setMinimumWidth(0)
         self._outcome.setVisible(bool(text))
 
     def failures(self) -> int:
@@ -475,6 +523,7 @@ class ActivityRow(QWidget):
 
     def cleanup(self) -> None:
         self._spinner.stop()
+        self._ticker.stop()
         self._chevron.cleanup()
         for card in self.cards:
 

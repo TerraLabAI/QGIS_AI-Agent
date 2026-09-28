@@ -76,8 +76,6 @@ def _row(parent: QWidget, glyph: str, text: str) -> QPushButton:
 class EmptyState(QWidget):
 
 
-
-    suggestion_clicked = pyqtSignal(str)
     examples_requested = pyqtSignal()
     tutorial_requested = pyqtSignal()
 
@@ -150,7 +148,6 @@ class EmptyState(QWidget):
         rows_outer.addWidget(disclosure)
         self._disclosure = disclosure
         self._rows = rows
-        self._mention_row = None
 
         outer.addWidget(block)
         outer.addStretch(4)

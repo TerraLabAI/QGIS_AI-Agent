@@ -242,9 +242,9 @@ def _filter_miss_suggestion(empty: dict) -> str:
         useful = [f for f in empty["fields_available"]
                   if f not in ("osm_id", "osm_type", "other_tags", "id")
                   and not f.startswith("addr_")]
-        return "Filter on a field this theme carries: " + ", ".join((useful or empty["fields_available"])[:8]) + "."
+        return "Fields this theme carries: " + ", ".join((useful or empty["fields_available"])[:8]) + "."
     if empty.get("values_present"):
-        return "Ask again with one of the values in values_present, or drop the filter."
+        return "values_present lists the values this box holds."
     return ""
 
 
@@ -368,8 +368,8 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
 
         said = {"_error": detail or f"The Overture service answered {error.code}.",
                 "status": int(error.code),
-                "suggestion": ("Draw a smaller box." if error.code in (400, 413)
-                               else "Wait a moment and ask again.")}
+                "suggestion": ("A smaller box." if error.code in (400, 413)
+                               else "Often a brief wait fixes it.")}
         said.update(_overture_trace(getattr(error, "headers", None)))
         return said
     except net.FetchTooLarge as error:
@@ -380,7 +380,7 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
         return {"_error": f"The Overture answer for this box is larger than one download on this computer "
                           f"may read ({error.reason}).",
                 "code": limits.CEILING_CODE, "too_large": True,
-                "suggestion": "Ask for a smaller box."}
+                "suggestion": "A smaller box may fit."}
     except (net.FetchDeadline, net.FetchTruncated, net.NetworkUnreachable, OSError,
             http.client.HTTPException) as error:
 
@@ -394,7 +394,7 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
         if isinstance(error, net.FetchDeadline):
 
             return {"_error": f"The Overture service's answer did not arrive in time. {error.reason}",
-                    "suggestion": "Ask for a smaller box, which is a smaller answer to download."}
+                    "suggestion": "A smaller box makes a smaller answer to download."}
 
         return {"_error": f"Could not reach the Overture service: {error}",
                 **volume_guard.coded(hint="hosted_unreachable")}
@@ -439,6 +439,71 @@ def _overture_divisions_presence(box) -> dict:
         return {}
     return {str(subtype): int(count) for subtype, count in by_subtype.items()
            if isinstance(count, (int, float)) and count > 0}
+
+
+def _division_names(wanted, args: dict, outline) -> list:
+
+
+
+
+    raw = wanted.get("name") if isinstance(wanted, dict) else None
+    if raw is None and isinstance(args.get("clip_to"), str) and outline is not None \
+            and not str(outline.get("outline_source") or "").startswith(("layer ", "footprint ")):
+        raw = args["clip_to"].split(",")[0]
+    asked = raw if isinstance(raw, (list, tuple)) else [raw]
+    return [text for text in dict.fromkeys(str(one or "").strip() for one in asked) if text]
+
+
+
+
+_NAMED_LOOKUP_TIMEOUT = 20
+
+
+def _overture_divisions_named(box, names: list):
+
+
+
+
+
+
+
+
+
+
+
+
+    variants = [text for text in dict.fromkeys(v for name in names for v in (name, name.title()))
+                if "," not in text and "=" not in text][:_SERVICE_FILTER_CLAUSES]
+    if not variants:
+        return None
+    payload = _overture_call("divisions", box, timeout=_NAMED_LOOKUP_TIMEOUT, limit=20,
+                             where=",".join(f"name={text}" for text in variants))
+    if payload.get("_error") or not isinstance(payload.get("features"), list):
+        return None
+    order = {subtype: rank for rank, subtype in enumerate(_CLIP_SUBTYPE_ORDER)}
+    named = []
+    for feature in payload["features"]:
+        props = feature.get("properties") if isinstance(feature, dict) else None
+        if not isinstance(props, dict) or not props.get("subtype"):
+            continue
+        entry = {"subtype": str(props["subtype"]), "name": str(props.get("name") or "")}
+        bounds = _polys_bbox(_rings_of(feature.get("geometry")))
+        if bounds:
+            west, south, east, north = bounds
+            wide = (east - west) * 111.32 * math.cos(math.radians((south + north) / 2))
+            entry["extent_km"] = f"{max(wide, 0.1):.1f} by {max((north - south) * 110.57, 0.1):.1f}"
+        named.append(entry)
+    return sorted(named, key=lambda entry: order.get(entry["subtype"], len(order)))
+
+
+def _named_sentence(asked: list, names: list, named: list) -> str:
+
+    shown = " or ".join(repr(name) for name in names)
+    if not named:
+        return f"No division in this box is named {shown} exactly, at any level."
+    listed = "; ".join(f"{entry['subtype']} {entry['name']!r}"
+                       + (f" ({entry['extent_km']} km)" if entry.get("extent_km") else "") for entry in named[:6])
+    return f"No {' or '.join(asked)} division named {shown} in this box. Named so here: {listed}."
 
 
 def _overture_layer(features: list, name: str, args: dict) -> dict:
@@ -515,7 +580,7 @@ def _stream_split_refusal(theme: str, box, count: int) -> dict:
                            f"These {len(pieces)} boxes [west, south, east, north] cover it, each within "
                            f"{_OVERTURE_MAX_TILES} tiles: {listed}." + volume_guard.LIFT_HINT),
                 "code": limits.CEILING_CODE,
-                "suggestion": "Call fetch_overture once per box above, with the same theme, mode and filter.",
+                "suggestion": "fetch_overture once per box, with the same theme, mode and filter, covers it.",
                 **volume_guard.coded(hint="overture_too_big", variant="tiles")}
     calls = len(pieces) or -(-count // _OVERTURE_MAX_TILES)
     return {"_error": (f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}: "
@@ -598,13 +663,13 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
         return {"_error": f"None of the {_overture_source(theme)} {theme} tiles for this box could be opened.",
                 "missing_tiles": missing,
                 "coverage": "none",
-                "suggestion": 'Try mode "clip", which asks the service for the box instead.'}
+                "suggestion": 'mode "clip" asks the service for the box instead.'}
     out = {"mode": "stream", "theme": theme, "layers": layers, "tiles": [label for label, _ in urls],
            "missing_tiles": missing, "crs": "EPSG:4326",
            "coverage": "partial" if refused else "complete",
            "licence": _OVERTURE_LICENCES.get(theme, ""), "attribution": _overture_attribution(theme),
            "_note": "The tiles are read in place rather than copied: features load as the user pans, and a "
-                    'filter or a style applies to the whole tile. Use mode "clip" for a local copy of one '
+                    'filter or a style applies to the whole tile. mode "clip" gives a local copy of one '
                     "district."}
     if inferred:
 
@@ -612,7 +677,7 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
 
         out["subtype"] = inferred
         out["_note"] += (f" No subtype was named, so the {inferred} file was read, from the words of the "
-                         f"request itself. Say which level is on the map; the others are "
+                         f"request itself. That level is on the map; the others are "
                          f"{', '.join(s for s in _division_subtypes() if s != inferred)}.")
     if theme != "divisions":
 
@@ -623,7 +688,7 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
                  round(max(b[2] for b in bounds), 4), round(max(b[3] for b in bounds), 4)]
         out["tiles_extent"] = reach
         out["_note"] += (f" The layers hold whole tiles, [west, south, east, north] {reach}, not only the box: "
-                         'zoom to the box, and use clip_to or mode "clip" when the layer must stop at the place.')
+                         'clip_to or mode "clip" stops the layer at the place, zoomed to the box.')
     if refused:
         out["_note"] += (f" {len(refused)} of the {len(urls)} tiles covering this box could not be read, so "
                          f"part of the area is missing from the map, not empty.")
@@ -973,15 +1038,14 @@ def _divisions_subtypes_asked(wanted, args=None) -> tuple:
 
 
                     "code": "INVALID_ARGS",
-                    "suggestion": 'Pass filter {"subtype": "..."} with one of: '
+                    "suggestion": 'filter {"subtype": "..."} takes one of: '
                                   + ", ".join(known)
                                   + '. A commune or a city is "locality", a departemental arrondissement or a '
                                   'borough "localadmin" (the municipal arrondissements of Paris, Lyon and '
                                   'Marseille are in no Overture subtype: localadmin answers the whole city as '
                                   'one feature, use another source for those), a named quarter (Le Marais, '
                                   'Kitsilano, Kreuzberg) "macrohood", a smaller neighbourhood "neighborhood", '
-                                  'a department "county", a region "region". Call again with the subtype; '
-                                  'do not ask the user.'}
+                                  'a department "county", a region "region".'}
     unknown = [name for name in names if name not in known]
     if unknown and all(_DIVISION_WORDS.get(name) in known for name in unknown):
 
@@ -994,12 +1058,12 @@ def _divisions_subtypes_asked(wanted, args=None) -> tuple:
         word = unknown[0]
         return [], {"_error": f"{word!r} is not a divisions subtype. The subtypes are: {', '.join(known)}.",
                     "code": "INVALID_ARGS",
-                    "suggestion": 'Call again with one of them: a city is "locality", a state or province "region".'}
+                    "suggestion": 'One of them fits: a city is "locality", a state or province "region".'}
     if len(names) > _DIVISION_SUBTYPES_PER_CALL:
         return [], {"_error": (f"{len(names)} subtypes were named and one call reads at most "
                                f"{_DIVISION_SUBTYPES_PER_CALL}: each is a whole-world file."),
                     "code": "INVALID_ARGS",
-                    "suggestion": "Name the one or two subtypes the place really is."}
+                    "suggestion": "One or two subtypes fit one call."}
     return names, None
 
 
@@ -1129,7 +1193,7 @@ def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict
             return None, payload
         return None, {"_error": f"None of the {len(meta['missing_boxes'])} clips covering this area could be served.",
                       "missing_boxes": meta["missing_boxes"],
-                      "suggestion": 'Try mode "stream", or ask again in a moment.'}
+                      "suggestion": 'mode "stream", or a brief wait, may fit.'}
     meta["truncated"] = truncated
     meta["boxes"] = len(pieces)
     return features, meta
@@ -1152,6 +1216,7 @@ __all__ = [
     "_OVERTURE_TILE_ZOOM",
     "_add_vector_over_range_requests",
     "_clip_split_refusal",
+    "_division_names",
     "_divisions_subtypes_asked",
     "_filter_miss_suggestion",
     "_layer_from_source",
@@ -1160,6 +1225,8 @@ __all__ = [
     "_overture_attribution",
     "_overture_boxes",
     "_overture_call",
+    "_named_sentence",
+    "_overture_divisions_named",
     "_overture_divisions_presence",
     "_overture_feature_key",
     "_overture_filter_miss",

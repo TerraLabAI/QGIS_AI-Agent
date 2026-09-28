@@ -237,7 +237,7 @@ def posix_root_problem(path) -> str:
     folder = exports_folder()
     example = os.path.join(folder, safe_file_name(os.path.basename(text.rstrip("/")), "export.gpkg"))
     return (f"{text} is a Linux or macOS path, and this computer runs Windows: it would land at the root of "
-            f"the drive. Write a bare file name, which lands in {folder}, or a full Windows path such as "
+            f"the drive. A bare file name lands in {folder}; a full Windows path looks like "
             f"{example}.")
 
 

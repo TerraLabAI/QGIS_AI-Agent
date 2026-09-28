@@ -704,7 +704,7 @@ def _find_local_data(args: dict) -> dict:
             return tool_error(
                 f"Could not start the index task: {e}",
                 "INDEX_FAILED",
-                "Check get_message_log, then call find_local_data again.",
+                "get_message_log has detail; find_local_data can rerun.",
             )
         running = True
         started = True
@@ -716,7 +716,7 @@ def _find_local_data(args: dict) -> dict:
             return tool_error(
                 "Could not read the canvas extent in EPSG:4326.",
                 "INVALID_ARGS",
-                "Call get_canvas_extent; if the canvas is empty, set_canvas_extent first or drop within_canvas.",
+                "get_canvas_extent gives it; an empty canvas needs set_canvas_extent, or no within_canvas.",
             )
 
     results = []
@@ -729,7 +729,7 @@ def _find_local_data(args: dict) -> dict:
         except sqlite3.Error as e:
             if not running:
                 return tool_error(
-                    f"The index is unreadable: {e}", "INDEX_UNREADABLE", "Call find_local_data with refresh=true.",
+                    f"The index is unreadable: {e}", "INDEX_UNREADABLE", "refresh=true rebuilds it.",
                 )
 
     if running and not complete:
@@ -759,15 +759,15 @@ def _find_local_data(args: dict) -> dict:
     if status == "indexing":
         out["note"] = (
             f"The project's folders are being indexed ({index['files_indexed']} files so far"
-            f"{', just started' if started else ''}). Results are partial: call again in a few seconds "
-            "rather than asking the user to wait."
+            f"{', just started' if started else ''}). Results are partial; a call moments later "
+            "returns more."
         )
     elif status == "refreshing":
         out["note"] = "Results come from the previous index while it refreshes in the background."
     elif not results:
         out["note"] = (
-            "No indexed file matches. Try fewer words, drop within_canvas, or pass refresh=true "
-            "when the file is new. Only the project's folder, its layers' folders and the folders "
-            "of files the user attached or typed are indexed: ask the user for any other file."
+            "No indexed file matches. Fewer words, no within_canvas, or refresh=true for a new "
+            "file may find it. Only the project's folder, its layers' folders and the folders of "
+            "files the user attached or typed are indexed; other files are not."
         )
     return out

@@ -1926,6 +1926,42 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>• {layer}: {reason}</source>
             <translation>• {layer}: {reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>Ubah label pada layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>Ubah peta pada layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>Ubah panah utara pada layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>Ubah bilah skala pada layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>Edit pesan terakhir yang diantrekan</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>Di dalam kotak kosong</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>Antrekan pesan</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>Hapus satu item dari layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>Terkirim saat agen selesai</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Your AI agent inside QGIS</source>
             <translation>Agen AI Anda di dalam QGIS</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>Agen telah selesai.</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>Agen menunggu jawaban Anda.</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>Agen berhenti sebelum selesai.</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>Masuk sebagai {} (dari {}).</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>Tidak ada koneksi ke terra-lab.ai. Masih mencoba...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>{n} results</source>
             <translation>{n} hasil</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} dtk</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Undo</source>
             <translation>Batalkan</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Salin</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Waiting for your approval</source>
             <translation>Menunggu persetujuan Anda</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>Ditambahkan ke memori: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>Mengedit pesan terakhir Anda.</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>Belum dijawab</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>Tidak terhubung ke layanan agen. Pesan tetap diantrekan.</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>Dijeda · tidak ada yang dikirim hingga Anda memilih</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Diantrekan</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Kirim pesan ini sekarang</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>Agen kini membaca percakapan sebelumnya sebagai catatan yang lebih ringkas yang menyimpan permintaan Anda dan apa yang dibuatnya.</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>Urungkan efek pesan ini</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · dikirim saat agen selesai</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · agen membacanya pada langkah berikutnya</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} diantrekan</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>terlalu besar, maksimal {mb} MB: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>Antrekan</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>Antrekan: agen membacanya pada langkah berikutnya (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>Antrean menampung 5 pesan. Kirim atau hapus satu terlebih dahulu.</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Effort can be changed after this run ends</source>
             <translation>Tingkat upaya dapat diubah setelah eksekusi ini selesai</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Termasuk dalam Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Update the plugin</source>
             <translation>Perbarui plugin</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>Urungkan dan coba lagi</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Klik untuk membuka halamannya.</translation>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>Bekerja sendiri. Hanya bertanya soal kredit, instalasi, dan plugin lain.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Termasuk dalam Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>Pro memberi Anda {n} proses sebulan.</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>Autopilot</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>Batalkan kapan saja</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>Gratis untuk penggunaan pribadi dan studi. Pro mencakup pekerjaan untuk klien dan pemberi kerja.</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>Jalan gratis kembali pada reset bulanan Anda.</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>Jalan gratis kembali pada {date}.</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>Effort Medium dan High untuk tugas yang lebih sulit</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>Memori dan instruksi Anda</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: lebih banyak dan lebih baik</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>Anda menjalankan {n} tugas bulan ini.</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/bulan</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/bulan belum termasuk PPN</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>{n} jalan per bulan</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · batalkan kapan saja</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Thought for {time}</source>
             <translation>Berpikir selama {time}</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>QGIS ditutup sebelum ini selesai</translation>
         </message>
     </context>
     <context>
@@ -6594,6 +6798,10 @@ Klik untuk membuka halamannya.</translation>
             <source>{name}. Click to open.</source>
             <translation>{name}. Klik untuk membuka.</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>Edit pesan</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7060,6 +7268,34 @@ Klik untuk membuka halamannya.</translation>
             <source>Your own source</source>
             <translation>Sumber Anda sendiri</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>Halaman dataset dan ketentuan lisensi</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>jangkauan: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>input: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>parameter: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>sumber: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>alat: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC, ditambahkan oleh AI Agent by TerraLab</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7208,6 +7444,14 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>{n} runs a month with Pro</source>
             <translation>{n} proses sebulan dengan Pro</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>Dapatkan Pro untuk High effort</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: {n} jalan per bulan, effort Medium dan High untuk tugas yang lebih sulit, Autopilot</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7232,6 +7476,59 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Now</source>
             <translation>Sekarang</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>Tutup</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>Tidak melakukan apa yang saya minta</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Kirim</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>Terima kasih</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Terlalu lambat</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>Apa yang salah? (opsional)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Hasil salah</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Tampilkan {n} lagi</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>Edit pesan ini</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>Hapus dari antrean</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Kirim pesan ini sekarang</translation>
         </message>
     </context>
 </TS>

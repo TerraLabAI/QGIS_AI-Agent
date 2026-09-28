@@ -101,7 +101,7 @@ def _duplicate_groups(args: dict) -> dict:
         "groups": groups,
         "removed": removed,
         "removed_by_request": remove,
-        "note": ("No layers were removed. Pass remove=true only after reviewing the groups."
+        "note": ("No layers were removed. remove=true deletes each group's extra layers."
                   if not remove else "Kept the first layer in each group and removed later duplicates."),
     }
 

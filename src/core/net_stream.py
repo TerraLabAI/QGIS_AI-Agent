@@ -104,7 +104,7 @@ class _StreamInflater:
             except zlib.error:
                 if not self._fresh:
                     raise FetchTruncated("The compressed answer is damaged partway through, so the file is "
-                                         "incomplete. Try again.") from None
+                                         "incomplete.") from None
                 if self._first:
                     self._fall_back(handle)
                 else:
@@ -150,4 +150,4 @@ class _StreamInflater:
             if not self._worker.eof:
                 raise FetchTruncated(
                     "The compressed answer ended before its own end marker, so the file is "
-                    "incomplete. The connection dropped; try again.")
+                    "incomplete. The connection dropped.")

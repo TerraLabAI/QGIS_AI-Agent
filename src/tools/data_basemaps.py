@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 import posixpath
 import re
 import urllib.error
@@ -13,7 +14,7 @@ import urllib.request
 
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
-from ..core import catalog, net, security
+from ..core import catalog, limits, net, security
 from ..core.background import on_main_thread
 from ..core.context import quickmapservices_started
 from ..core.follow import view_kept
@@ -79,7 +80,7 @@ def _list_xyz_sources(args: dict) -> dict:
             "provider": "QuickMapServices",
             "groups": by_group,
             "count": len(qms_catalog),
-            "_note": "Add any of these with add_xyz_layer(source=<id or name>).",
+            "_note": "add_xyz_layer(source=<id or name>) adds any of these.",
         }
         browser = _browser_xyz_connections()
         if browser:
@@ -128,7 +129,7 @@ def _resolve_qms_source(catalog: dict, source: str):
         return matches[0], None
     if len(matches) > 1:
         labels = [f"{getattr(d, 'id', '?')} ({getattr(d, 'group', '?')})" for d in matches]
-        return None, {"_error": f"Ambiguous basemap '{source}', matches: {', '.join(labels)}. Use the id.",
+        return None, {"_error": f"Ambiguous basemap '{source}', matches: {', '.join(labels)}.",
                       "_code": "INVALID_ARGS"}
 
 
@@ -161,7 +162,7 @@ def _resolve_qms_source(catalog: dict, source: str):
             if len(best) == 1:
                 return best[0][1], None
             return None, {"_error": f"Several basemaps match '{source}': "
-                          f"{', '.join(ds_id for ds_id, _ in sorted(best)[:6])}. Use the id.",
+                          f"{', '.join(ds_id for ds_id, _ in sorted(best)[:6])}.",
                           "_code": "INVALID_ARGS"}
     return None, None
 
@@ -251,7 +252,7 @@ def _withdrawn_basemap(*urls) -> dict | None:
         reason = net.withdrawn_reason(host)
         if reason:
             return {"_error": reason, "_code": "INVALID_ARGS",
-                    "_suggestion": "Call list_xyz_sources and add one of the basemaps it names."}
+                    "_suggestion": "list_xyz_sources names other basemaps to add."}
     return None
 
 
@@ -416,7 +417,7 @@ def _add_preset_chain(preset: dict, name, source) -> dict:
         current = presets.get(str(current.get("fallback") or ""))
     return {"_error": "No basemap of this preset's chain could be loaded. " + " ".join(failures),
             "_code": "EXECUTION_FAILED",
-            "_suggestion": "Call list_xyz_sources and add another basemap."}
+            "_suggestion": "list_xyz_sources lists other basemaps to add."}
 
 
 def _add_xyz_layer(args: dict) -> dict:
@@ -447,7 +448,7 @@ def _add_xyz_layer(args: dict) -> dict:
                 out["warning"] = (f"The layer is in the project, but the tile of this view at zoom "
                                   f"{checked['z']} did not come back ({checked['reason']}): the map may "
                                   "show nothing here. The service may not cover this area, or the URL "
-                                  "template is wrong; say so rather than that the imagery is shown.")
+                                  "template may be wrong.")
         return out
 
 
@@ -535,7 +536,7 @@ def _add_xyz_layer(args: dict) -> dict:
     return {
         "_error": f"Unknown basemap '{source}'.",
         "_code": "INVALID_ARGS",
-        "_suggestion": "Call list_xyz_sources to see QuickMapServices ids/names.",
+        "_suggestion": "list_xyz_sources lists QuickMapServices ids/names.",
         "examples": available,
     }
 
@@ -680,6 +681,56 @@ def _oapif_collection(url: str) -> str | None:
     return f"{parts.scheme}://{parts.netloc}{found.group('collection')}"
 
 
+def _oapif_local_copy(collection: str, name: str) -> dict | None:
+
+
+
+
+
+
+
+
+
+
+
+
+    if on_main_thread():
+        return None
+    try:
+        from osgeo import gdal
+    except Exception:  # noqa: BLE001
+        return None
+    from ..core.host_platform import remove_quietly
+    from ..core.policy import create_managed_temp_dir
+    from .data_inspect import _safe_extract_stem
+
+
+    net.check_url(collection)
+    source = f"OAPIF:{collection}"
+
+
+    ceiling = int(limits.current("MAX_FEATURES_MATERIALISED"))
+    cancel = net.current_cancel_check()
+    path = os.path.join(create_managed_temp_dir("extract"), f"{_safe_extract_stem(name)}.gpkg")
+    try:
+        written = gdal.VectorTranslate(
+            path, source, format="GPKG", options=["-limit", str(ceiling + 1)],
+            callback=lambda _done, _message, _data: 0 if (cancel is not None and cancel()) else 1)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"OGC API - Features copy of {collection} failed: {exc}")
+        written = None
+    if written is None or (cancel is not None and cancel()):
+        written = None
+        remove_quietly(path)
+        return {"cancelled": True} if cancel is not None and cancel() else None
+    copied = written.GetLayer(0).GetFeatureCount() if written.GetLayerCount() else 0
+    written = None
+    if copied > ceiling:
+        remove_quietly(path)
+        return None
+    return {"path": path, "feature_count": int(copied)}
+
+
 def _add_oapif_layer(args: dict) -> dict:
 
 
@@ -697,8 +748,24 @@ def _add_oapif_layer(args: dict) -> dict:
     if not collection:
         return {"_error": f"{url} is not an OGC API - Features items endpoint.",
                 "code": "INVALID_ARGS",
-                "suggestion": "Pass a URL of the shape .../collections/<id>/items."}
+                "suggestion": "url must have the shape .../collections/<id>/items."}
     name = args.get("name") or collection.rsplit("/", 1)[-1]
+    local = _oapif_local_copy(collection, name)
+    if local is not None and local.get("cancelled"):
+        return {"_error": "The run was stopped while the collection was being read.", "code": "CANCELLED"}
+    if local is not None:
+        def _create_local():
+            layer = QgsVectorLayer(local["path"], name, "ogr")
+            if not layer.isValid():
+                return {"_invalid": True}
+            QgsProject.instance().addMapLayer(layer)
+            return {"layer_name": layer.name(), "layer_id": layer.id(),
+                    "feature_count": local["feature_count"], "url": collection,
+                    "provider": "OGC API - Features, local copy"}
+
+        out = _run_on_main_thread(_create_local, timeout=60)
+        if not out.get("_invalid"):
+            return out
 
     def _create():
         layer = QgsVectorLayer(f"OAPIF:{collection}", name, "ogr")
@@ -713,7 +780,7 @@ def _add_oapif_layer(args: dict) -> dict:
     if out.get("_invalid"):
         return {"_error": f"The OGC API - Features collection at {collection} would not load.",
                 "code": "EXECUTION_FAILED",
-                "suggestion": ("Check the collection exists with inspect_data_source. A GDAL older than "
+                "suggestion": ("inspect_data_source confirms the collection exists. A GDAL older than "
                                "3.0 has no OAPIF driver; the items page still reads a page at a time.")}
     return out
 
@@ -739,7 +806,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
 
             looks_like_style = "style" in urllib.parse.urlparse(url).path.lower()
-            suggestion = ("Pass the tile template, for example "
+            suggestion = ("source is the tile template, e.g. "
                           "https://host/tms/1.0.0/LAYER/{z}/{x}/{y}.pbf, or the "
                           "TileJSON URL of the service.")
             if looks_like_style:
@@ -764,7 +831,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
     if not _looks_like_xyz_url(url):
         return {"_error": "A vector tile source is a template with {z}, {x} and {y}.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Pass the tile template, for example "
+                "_suggestion": "source is the tile template, e.g. "
                                "https://host/tms/1.0.0/LAYER/{z}/{x}/{y}.pbf"}
 
     base = posixpath.basename(urllib.parse.urlparse(url).path)
@@ -793,7 +860,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
         if not layer.isValid():
             return {"_error": f"QGIS could not open the vector tile service at {url}.",
                     "_code": "INVALID_ARGS",
-                    "_suggestion": "Check the template resolves for one tile, and that the zoom range is right."}
+                    "_suggestion": "The template may not resolve for one tile, or the zoom range may be off."}
         out = {"layer_name": layer.name(), "layer_id": layer.id(), "url": url,
                "provider": "vector tiles", "zmin": zmin, "zmax": zmax}
         if tilejson_note:
@@ -816,8 +883,8 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
 
             out["_note"] = ("No style was passed, so QGIS draws these tiles with its own default "
-                            "renderer and the map will look almost empty. Add the service's MapLibre "
-                            "style with the style argument, or style the layer by hand.")
+                            "renderer and the map will look almost empty. The style argument takes the "
+                            "service's MapLibre style.")
         with view_kept():
             QgsProject.instance().addMapLayer(layer)
         out.update(_stacked(layer))

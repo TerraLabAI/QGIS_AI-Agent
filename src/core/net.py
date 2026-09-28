@@ -486,7 +486,7 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
             where = f"to {host}" if host else ""
             raise NetworkUnreachable(
                 f"The last {OFFLINE_STRIKES} requests {where} did not reach a server, so this one was "
-                f"not sent. Check the connection; the agent will try again in {held:.0f}s.")
+                f"not sent. The agent retries in {held:.0f}s.")
         try:
             if polite:
                 out = _send_politely(request, url, method, timeout, max_bytes, deadline, cancel,
@@ -591,7 +591,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
                 raise FetchTooLarge(
                     f"The server says the answer is {promised} bytes, over the {max_bytes} bytes "
-                    "this tool reads. Ask for less of it, or a narrower area.")
+                    "this tool reads. Less of it, or a narrower area, fits.")
 
 
 
@@ -606,8 +606,8 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
                     raise FetchTooSlow(
                         f"The answer is {promised / (1024 * 1024):.0f} MB and this connection has been "
                         f"delivering {rate:.0f} kB/s, so it needs about {needed / 60:.0f} minutes, over "
-                        f"the {budget:.0f} seconds this call has. Ask for a smaller area, a filtered "
-                        "extract, or a lower resolution.")
+                        f"the {budget:.0f} seconds this call has. A smaller area, a filtered "
+                        "extract, or a lower resolution fits.")
 
 
 
@@ -653,7 +653,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
             if promised is not None and len(body) < promised and request.get_method() != "HEAD":
                 raise FetchTruncated(
                     f"The download stopped after {len(body)} of the {promised} bytes the server "
-                    "said it was sending. The connection dropped; try again.")
+                    "said it was sending. The connection dropped.")
             inflated = _inflate(body, headers.get("content-encoding", ""), max_bytes)
             if inflated is not body:
 
@@ -673,7 +673,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
             raise urllib.error.HTTPError(
                 exc.url, exc.code,
                 "The network proxy asked for credentials that were not accepted. "
-                "Check the user name and password in QGIS Settings > Options > Network.",
+                "QGIS Settings > Options > Network holds the user name and password.",
                 exc.headers, None) from exc
         raise exc
     except urllib.error.URLError as exc:
@@ -808,7 +808,7 @@ def fetch_to_file(request, path: str, *, timeout: float, max_bytes: int, total_t
         where = f"to {host}" if host else ""
         raise NetworkUnreachable(
             f"The last {OFFLINE_STRIKES} requests {where} did not reach a server, so this one was "
-            f"not sent. Check the connection; the agent will try again in {held:.0f}s.")
+            f"not sent. The agent retries in {held:.0f}s.")
 
     def send(req, timeout_s, cap, until, stop, budget=None, connect_s=None):
         return _send_to_file(req, path, timeout_s, cap, until, stop, budget, connect_s)
@@ -860,18 +860,18 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                 raise FetchTooLarge(
                     f"The disk has {max(free or 0, 0) / (1024 ** 3):.1f} GB free and "
                     f"{STREAM_KEEP_FREE_BYTES / (1024 ** 3):.0f} GB of it is kept free, so nothing was "
-                    "written. Free some space, or ask for a smaller area.")
+                    "written. A smaller area or more space allows it.")
             if promised is not None and promised > cap:
                 raise FetchTooLarge(
                     f"The server says the answer is {promised} bytes, over the {cap} bytes this load "
-                    "may write. Ask for less of it, or a narrower area.")
+                    "may write. Less of it, or a narrower area, fits.")
             if promised is not None and budget:
                 needed = seconds_to_transfer(promised)
                 if needed is not None and needed > budget:
                     raise FetchTooSlow(
                         f"The answer is {promised / (1024 * 1024):.0f} MB and this connection has been "
                         f"delivering {link_kbps() or 0.0:.0f} kB/s, so it needs about {needed / 60:.0f} "
-                        f"minutes, over the {budget:.0f} seconds this call has. Ask for a smaller area.")
+                        f"minutes, over the {budget:.0f} seconds this call has. A smaller area fits.")
             inflater = _StreamInflater(headers.get("content-encoding", ""), cap)
             reader = getattr(response, "read1", None) or response.read
             wire = 0
@@ -894,7 +894,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
             if promised is not None and wire < promised:
                 raise FetchTruncated(
                     f"The download stopped after {wire} of the {promised} bytes the server "
-                    "said it was sending. The connection dropped; try again.")
+                    "said it was sending. The connection dropped.")
             if inflater.inflated:
                 headers.pop("content-encoding", None)
             headers["content-length"] = str(inflater.written)
@@ -905,7 +905,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
             except PermissionError as exc:
                 raise PermissionError(
                     exc.errno, f"The download finished but could not replace {path}: another program holds "
-                    f"that file open ({exc.strerror or exc}). Close it, or save under another name.") from exc
+                    f"that file open ({exc.strerror or exc}); another name avoids it.") from exc
             return Streamed(path, inflater.written, wire, headers, response.geturl())
     except urllib.error.HTTPError as exc:
         exc = _refusal_readable(exc)
@@ -913,7 +913,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
             raise urllib.error.HTTPError(
                 exc.url, exc.code,
                 "The network proxy asked for credentials that were not accepted. "
-                "Check the user name and password in QGIS Settings > Options > Network.",
+                "QGIS Settings > Options > Network holds the user name and password.",
                 exc.headers, None) from exc
         raise exc
     except urllib.error.URLError as exc:

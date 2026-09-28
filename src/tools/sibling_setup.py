@@ -148,7 +148,7 @@ def signed_in(tool: str, plugin) -> bool | None:
 
 
 
-SETUP_HINT = "Call {tool} action setup now, without asking first: its permission card is the yes."
+SETUP_HINT = "{tool} action setup carries its own permission card, which is the yes."
 
 
 def not_running(tool: str, found: dict) -> dict:
@@ -166,8 +166,8 @@ def not_running(tool: str, found: dict) -> dict:
                "action_required": f"{name} is installed but switched off. setup switches it on."}
     elif state == "not_started":
         out = {"installed": True, "enabled": True, "ready": False, "state": "PLUGIN_NOT_STARTED",
-               "action_required": (f"{name} is installed but did not start in this QGIS session. "
-                                   "Ask the person to restart QGIS.")}
+               "action_required": (f"{name} is installed but did not start in this QGIS session; "
+                                   "a restart starts it.")}
     else:
         out = {"installed": False, "ready": False, "state": "NOT_INSTALLED",
                "action_required": (f"{name} is not installed. setup opens the Plugin Manager on it; "
@@ -284,23 +284,23 @@ def setup(tool: str) -> dict:
             "done": "plugin_manager_opened",
             "tell_user": (f"The Plugin Manager is open on {name}: click Install. "
                           "It starts right away, no restart."),
-            "next_step": f"Stop here. When the person says it is installed, call {tool} action status.",
+            "next_step": f"{tool} action status reports it once the person says it is installed.",
         }
 
     if state == "disabled":
         if _switch_on(found["folder"]):
             log(f"setup: {label} switched on")
             return {"done": "plugin_switched_on",
-                    "next_step": f"Call {tool} action status: it names what is left, if anything."}
+                    "next_step": f"{tool} action status names what is left, if anything."}
         return {"done": "nothing",
                 "tell_user": (f"{label} could not be switched on here. Tick it in Plugins > "
                               "Manage and Install Plugins > Installed."),
-                "next_step": "Stop here and wait for the person."}
+                "next_step": "The person finishes this by hand."}
 
     if state == "not_started":
         return {"done": "nothing",
                 "tell_user": f"{label} is installed but did not start. Restart QGIS, then ask again.",
-                "next_step": "Stop here and wait for the person."}
+                "next_step": "The person finishes this by hand."}
 
     plugin = found["plugin"]
     if outdated(tool, plugin):
@@ -313,11 +313,11 @@ def setup(tool: str) -> dict:
         return {
             "done": "plugin_manager_opened",
             "tell_user": f"The Plugin Manager is open on {name}: click Upgrade.",
-            "next_step": f"Stop here. When the person says it is upgraded, call {tool} action status.",
+            "next_step": f"{tool} action status reports it once the person says it is upgraded.",
         }
     if signed_in(tool, plugin):
         return {"done": "nothing", "state": "READY",
-                "next_step": f"Nothing to set up. Call {tool} action status, then carry on."}
+                "next_step": f"Nothing to set up; {tool} action status confirms it."}
 
     if _press_connect(plugin):
         log(f"setup: {label} sign-in page opened")
@@ -325,13 +325,13 @@ def setup(tool: str) -> dict:
             "done": "sign_in_opened",
             "tell_user": (f"A terra-lab.ai page opened in your browser: click Connect to link {label} to "
                           "your TerraLab account (free). Then tell me, and I carry on."),
-            "next_step": (f"Stop here. When the person says it is done, call {tool} action status. "
-                          "Never call setup again for the same step."),
+            "next_step": (f"{tool} action status reports it once the person says it is done; "
+                          "setup repeats the same step if called again."),
         }
     from ..ui.cross_plugin_discovery import _activate_dock
     _activate_dock(plugin)
     return {
         "done": "panel_opened",
         "tell_user": f"The {label} panel is open: click Sign in there, then tell me.",
-        "next_step": f"Stop here. When the person says it is done, call {tool} action status.",
+        "next_step": f"{tool} action status reports it once the person says it is done.",
     }

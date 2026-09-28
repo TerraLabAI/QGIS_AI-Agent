@@ -104,28 +104,28 @@ def _dpi_for_ground(exporter, reference, metres, max_dpi: int, measure=None):
         metres = 0.0
     if not metres > 0 or not math.isfinite(metres):
         return {"_error": "meters_per_pixel must be a positive number.", "_code": "INVALID_ARGS",
-                "_suggestion": "Pass the ground size of one pixel in metres, for example 1.0."}
+                "_suggestion": "The ground size of one pixel, in metres, for example 1.0."}
     if _metres_per_map_unit(reference.crs()) is None:
         return {"_error": "The layout's map is in degrees, so a pixel size in metres has no single dpi.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Set the map to a projected CRS (the UTM zone of the area) first, or pass dpi."}
+                "_suggestion": "A projected CRS (the UTM zone of the area), or dpi directly, gives one dpi."}
     at_100 = measure() if measure is not None else _ground_per_pixel(exporter, reference, 100)[0]
     if not at_100 > 0:
         return {"_error": "The layout's map has no extent to measure a pixel size from.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Check the map item shows the area (get_layout_info), then export again."}
+                "_suggestion": "get_layout_info shows whether the map item covers the area."}
     dpi = 100.0 * at_100 / metres
     if dpi > max_dpi:
         finest = at_100 * 100.0 / max_dpi
         return limits.refusal(
             f"meters_per_pixel {metres:g}", f"{dpi:,.0f} dpi on this layout", f"{max_dpi} dpi",
-            f"Pass meters_per_pixel {math.ceil(finest * 100) / 100:.2f} or more here, or run_processing "
+            f"meters_per_pixel {math.ceil(finest * 100) / 100:.2f} or more fits here, or run_processing "
             f"native:rasterize with MAP_UNITS_PER_PIXEL {metres:g} and async=true for a GeoTIFF.")
     if dpi < 10:
         coarsest = at_100 * 10.0
         return {"_error": f"meters_per_pixel {metres:g} is coarser than 10 dpi on this layout.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": f"Pass meters_per_pixel {coarsest:.2f} or less, or make the layout page smaller."}
+                "_suggestion": f"meters_per_pixel {coarsest:.2f} or less fits here, or a smaller layout page."}
     return round(dpi, 4)
 
 
@@ -167,11 +167,11 @@ def _write_georeference(exporter, reference, image_path: str, dpi: float, fmt: s
     except OSError as exc:
         return {"_error": f"{os.path.basename(image_path)} was written, but its world file could not be: {exc}",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Tell the user the image is not georeferenced; export to a writable folder."}
+                "_suggestion": "The image is not georeferenced; a writable folder allows the world file."}
     if not os.path.isfile(world):
         return {"_error": f"{os.path.basename(image_path)} was written, but no world file is on disk.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Tell the user the image is not georeferenced; do not call it georeferenced."}
+                "_suggestion": "The image is not georeferenced."}
     crs = reference.crs()
     out = {"georeferenced": True, "world_file": world, "crs": crs.authid() or crs.description()}
     wkt = _crs_wkt(crs) if fmt != "tif" else ""
@@ -415,10 +415,10 @@ def _export_failure(result) -> dict:
     if result == enum_member(QgsLayoutExporter, "ExportResult", "FileError", None):
 
 
-        suggestion = "Export into another folder, such as the project folder, or ask the user where QGIS may write."
+        suggestion = "Another folder, such as the project folder, may accept it."
     else:
-        suggestion = ("Lower dpi, hide the heaviest layer with set_layers_visibility, or export a "
-                      "smaller page, then export again.")
+        suggestion = ("A lower dpi, the heaviest layer hidden with set_layers_visibility, or a "
+                      "smaller page reduces it.")
     return {"_error": f"The layout was not exported: {name}.",
             "_code": "EXECUTION_FAILED",
             "_suggestion": suggestion}
@@ -441,16 +441,16 @@ def _unwritable_target(output_path: str) -> dict | None:
         return None
     stem, extension = os.path.splitext(os.path.basename(output_path))
     if not os.access(output_path, os.W_OK):
-        why, then = "is read-only", "ask the user to make it writable"
+        why, then = "is read-only", "making it writable also works"
     else:
         try:
             retry_file_op(_open_to_append, output_path)
             return None
         except OSError:
-            why, then = "is open in another program", "ask the user to close it there and export again"
+            why, then = "is open in another program", "closing it there also works"
     return {"_error": f"{output_path} {why}, so the layout cannot be exported over it.",
             "_code": "EXECUTION_FAILED",
-            "_suggestion": f"Export under another file name, such as {stem}_2{extension}, or {then}."}
+            "_suggestion": f"Another file name, such as {stem}_2{extension}, avoids it; {then}."}
 
 
 def _add_without_undo(layout, label) -> None:
@@ -539,11 +539,11 @@ def _apply_scale(reference_map, wanted, layout_name: str):
         wanted = 0.0
     if not math.isfinite(wanted) or wanted < 1:
         return {"_error": "scale must be a number of 1 or more, the denominator of 1:scale.",
-                "_code": "INVALID_ARGS", "_suggestion": "Pass 25000 for a map at 1:25000."}
+                "_code": "INVALID_ARGS", "_suggestion": "25000 gives a map at 1:25000."}
     if reference_map is None:
         return {"_error": f"Layout '{layout_name}' has no map item, so it has no scale to set.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Add a map with add_layout_map first, then export with scale."}
+                "_suggestion": "add_layout_map adds a map; scale then applies to it."}
     before = QgsRectangle(reference_map.extent())
     reference_map.setScale(wanted)
     got = reference_map.scale()
@@ -551,7 +551,7 @@ def _apply_scale(reference_map, wanted, layout_name: str):
         reference_map.zoomToExtent(before)
         return {"_error": f"The map could not be set to 1:{wanted:,.0f}; it reads 1:{got:,.0f}.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Check the map item has a CRS and an extent (get_layout_info), then export again."}
+                "_suggestion": "get_layout_info shows whether the map item has a CRS and an extent."}
     after = reference_map.extent()
     if after.width() < before.width() * 0.999 or after.height() < before.height() * 0.999:
         return (f"At 1:{wanted:,.0f} the map frame shows {_ground_text(reference_map, after)} around "
@@ -605,8 +605,8 @@ def _output_folder(output_path: str, args: dict) -> tuple:
     if meant:
         return "", {"_error": f"The folder {folder} does not exist, and {meant} does.",
                     "_code": "INVALID_ARGS",
-                    "_suggestion": f"Write under {meant} instead; pass create_folder:true only if the user "
-                                   "asked for a new folder."}
+                    "_suggestion": f"{meant} exists; create_folder:true makes a new folder, which the user "
+                                   "asks for."}
     os.makedirs(folder, exist_ok=True)
     return folder, None
 
@@ -617,7 +617,7 @@ def _export_layout(args: dict) -> dict:
     fmt, fmt_error = _export_format(args, output_path)
     if fmt_error:
         return {"_error": fmt_error, "_code": "INVALID_ARGS",
-                "_suggestion": "Pass format that matches the file name, or drop format and let the "
+                "_suggestion": "format matching the file name, or no format at all, lets the "
                                "extension decide."}
 
 
@@ -643,7 +643,7 @@ def _export_layout(args: dict) -> dict:
         return {"_error": path_error}
 
     if not overwrite and os.path.exists(output_path):
-        return {"_error": f"File already exists: {output_path}. Use overwrite:true to replace it."}
+        return {"_error": f"File already exists: {output_path}. overwrite:true replaces it."}
     refused = _unwritable_target(output_path)
     if refused:
         return refused
@@ -675,11 +675,11 @@ def _export_layout(args: dict) -> dict:
 
     if wanted_ground is not None and fmt not in _IMAGE_FORMATS:
         return {"_error": f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
-                "_code": "INVALID_ARGS", "_suggestion": "Export to png, jpg or tif for a ground resolution."}
+                "_code": "INVALID_ARGS", "_suggestion": "png, jpg and tif take a ground resolution."}
     if georeference and fmt in ("svg", "qpt"):
         return {"_error": f"{'An SVG' if fmt == 'svg' else 'A layout template'} cannot carry a georeference.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Export to pdf for a GeoPDF, or png, jpg or tif for an image with a world file."}
+                "_suggestion": "pdf gives a GeoPDF; png, jpg and tif give an image with a world file."}
     exporter = QgsLayoutExporter(layout)
 
 
@@ -687,7 +687,7 @@ def _export_layout(args: dict) -> dict:
     if georeference and fmt in _IMAGE_FORMATS and reference is None:
         return {"_error": f"Layout '{layout_name}' has no map item, so the image cannot be georeferenced.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Add a map with add_layout_map first, or export without georeference."}
+                "_suggestion": "add_layout_map adds a map; without georeference the export needs none."}
     scale_note = ""
     pre_scale_extent = None
     if wanted_scale is not None:

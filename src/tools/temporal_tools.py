@@ -273,39 +273,40 @@ def _plan(args: dict) -> dict:
                                      ("begin and end", begin or end)) if given]
     if end_field and not field:
         return tool_error("end_field needs field, the date each feature starts.", "INVALID_ARGS",
-                          "Pass field with the start and end_field with the end.")
+                          "field holds the start and end_field the end.")
     if end_expression and not start_expression:
         return tool_error("end_expression needs start_expression.", "INVALID_ARGS",
-                          "Pass start_expression with the start and end_expression with the end.")
+                          "start_expression holds the start and end_expression the end.")
     if not ways:
         return tool_error("Nothing says where the layer's time is.", "INVALID_ARGS",
-                          "Pass field (a date, datetime, ISO text or year field), field and end_field, "
-                          "start_expression, or begin and end for a layer that shows one period.")
+                          "field (a date, datetime, ISO text or year field), field and end_field, "
+                          "start_expression, or begin and end (one period) give the layer's time.")
     if len(ways) > 1:
-        return tool_error(f"{' and '.join(ways)} are two ways to give the time; pass one.", "INVALID_ARGS",
-                          "Keep field for a date field, start_expression for a computed date, begin and end "
-                          "for one period.")
+        return tool_error(f"Only one of {' and '.join(ways)} sets the time.", "INVALID_ARGS",
+                          "field is a date field, start_expression a computed date, begin and end "
+                          "one period.")
     duration = args.get("duration")
     fps = args.get("fps")
     if fps is not None and (isinstance(fps, bool) or not isinstance(fps, (int, float))
                             or not math.isfinite(fps) or fps <= 0):
-        return tool_error("fps must be a positive number.", "INVALID_ARGS", "Pass a playback rate such as 12.")
+        return tool_error("fps must be a positive number.", "INVALID_ARGS", "A playback rate such as 12 fits.")
     if args.get("loop") is not None and not isinstance(args["loop"], bool):
         return tool_error(
-            "loop must be a boolean.", "INVALID_ARGS", "Pass true to loop playback or false to stop at the end."
+            "loop must be a boolean.", "INVALID_ARGS", "true loops playback; false stops at the end."
         )
     if duration is not None:
         if not (isinstance(duration, (int, float)) and duration > 0 and math.isfinite(duration)):
             return tool_error("duration must be a positive number.", "INVALID_ARGS",
-                              "Pass how long each feature stays visible, with duration_unit.")
+                              "duration, with duration_unit, is visible time.")
         if not field or end_field:
             return tool_error("duration applies to one date field: how long each feature stays after its date.",
-                              "INVALID_ARGS", "Pass field with duration, or end_field instead of duration.")
+                              "INVALID_ARGS", "duration applies with field, or end_field replaces it.")
         if args.get("duration_unit") not in UNITS:
-            return tool_error("duration needs duration_unit.", "INVALID_ARGS", f"Pass one of {', '.join(UNITS)}.")
+            return tool_error("duration needs duration_unit.", "INVALID_ARGS",
+                              f"One of {', '.join(UNITS)} fits.")
         if args["duration_unit"] in _MONTHS_IN and not float(duration).is_integer():
             return tool_error(f"A duration in {args['duration_unit']} must be a whole number.", "INVALID_ARGS",
-                              "Pass a whole number, or the duration in days or weeks.")
+                              "A whole number, or days or weeks, fits.")
     step = _step_arg(args)
     if isinstance(step, dict) and "_error" in step:
         return step
@@ -321,7 +322,7 @@ def _plan(args: dict) -> dict:
     else:
         if not (begin and end):
             return tool_error("A fixed period needs both begin and end.", "INVALID_ARGS",
-                              "Pass begin and end, for example 2019-06-01 and 2019-06-30, or 2019 and 2019.")
+                              "begin and end work, for example 2019-06-01 and 2019-06-30, or 2019 and 2019.")
         plan["kind"] = "fixed"
     return plan
 
@@ -332,14 +333,14 @@ def _step_arg(args: dict):
     if step is None and unit is None:
         return None
     if unit not in UNITS:
-        return tool_error("step needs step_unit.", "INVALID_ARGS", f"Pass step_unit, one of {', '.join(UNITS)}.")
+        return tool_error("step needs step_unit.", "INVALID_ARGS", f"step_unit is one of {', '.join(UNITS)}.")
     count = 1 if step is None else step
     if not (isinstance(count, (int, float)) and count > 0 and math.isfinite(count)):
         return tool_error("step must be a positive number.", "INVALID_ARGS",
-                          "Pass step 1 with step_unit, or leave both out.")
+                          "step 1 with step_unit works too.")
     if unit in _MONTHS_IN and not float(count).is_integer():
         return tool_error(f"A step in {unit} must be a whole number.", "INVALID_ARGS",
-                          f"Pass a whole number of {unit}, or a step in days or weeks.")
+                          f"A whole number of {unit}, or days or weeks, fits.")
     return (int(count) if float(count).is_integer() else float(count), unit)
 
 
@@ -437,7 +438,8 @@ def _field_source(layer, name: str) -> dict:
     if field.isDateOrTime():
         if "time" in type_name and "date" not in type_name:
             return tool_error(f"{field.name()} holds a time of day without a date.", "INVALID_ARGS",
-                              "Pass a date or datetime field, or start_expression that joins a date to this time.")
+                              "A date or datetime field, or start_expression joining a date to this "
+                              "time, fits.")
         kind = "date"
     elif field.isNumeric():
         kind = "number"
@@ -447,7 +449,7 @@ def _field_source(layer, name: str) -> dict:
         dates = [f.name() for f in fields if f.isDateOrTime()]
         return tool_error(f"{field.name()} is a {field.typeName()} field, not a date.", "INVALID_ARGS",
                           ("Date fields of the layer: " + ", ".join(dates[:8]) + ".") if dates else
-                          "Pass a date, datetime, ISO text or whole-year field, or start_expression.")
+                          "A date, datetime, ISO text or year field, or start_expression, fits.")
     source = _counters(field.name(), QgsExpression.quotedColumnRef(field.name()), kind)
     source["index"] = index
     return source
@@ -457,7 +459,7 @@ def _expression_source(layer, text: str, context) -> dict:
     expression = QgsExpression(text)
     if expression.hasParserError():
         return tool_error(f"The expression {text[:120]!r} does not parse: {expression.parserErrorString()[:160]}",
-                          "INVALID_ARGS", "Fix the expression; field names go in double quotes, text in single.")
+                          "INVALID_ARGS", "field names go in double quotes, text in single.")
     expression.prepare(context)
     source = _counters(text, "", "expression")
     source["expression"] = expression
@@ -477,22 +479,22 @@ def _open(args: dict, plan: dict) -> dict:
         state["kind"] = "raster"
     else:
         return tool_error(f"{layer.name()} is neither a vector nor a raster layer.", "INVALID_ARGS",
-                          "Pass a vector layer with a date field, or a raster with begin and end.")
+                          "A vector layer with a date field, or a raster begin/end, fits.")
     if plan["kind"] == "off":
         return state
     if state["kind"] == "raster" and plan["kind"] != "fixed":
         return tool_error(f"{layer.name()} is a raster: it has no fields to read dates from.", "INVALID_ARGS",
-                          "Pass begin and end, the period the raster shows: 2019-06-01 and 2019-06-30, "
+                          "begin and end are the period the raster shows: 2019-06-01 and 2019-06-30, "
                           "or 2019 and 2019 for a year.")
     if plan["kind"] == "fixed":
         begin, end = _bound(plan["begin"], False), _bound(plan["end"], True)
         for key, value in (("begin", begin), ("end", end)):
             if value is None:
                 return tool_error(f"{key} {plan[key]!r} is not a date QGIS can read.", "INVALID_ARGS",
-                                  f"Pass an ISO date or datetime ({_ISO_FORMS}) or a year (2019).")
+                                  f"An ISO date or datetime ({_ISO_FORMS}) or a year (2019) fits.")
         if end < begin:
             return tool_error(f"end {plan['end']} is before begin {plan['begin']}.", "INVALID_ARGS",
-                              "Swap them, or pass the period's first and last dates.")
+                              "begin holds the period's first date, end its last.")
         state.update(begin=begin, end=end)
         return state
     flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry")
@@ -634,22 +636,22 @@ def _refuse_values(source: dict, total: int) -> dict | None:
                    f"The expression {label[:80]!r} gives no date on {source['bad']} of {read} features, "
                    f"for example {source['sample']!r}.")
         if source["kind"] == "number":
-            advice = ("A number field is read as whole years (2019). For another encoding pass start_expression, "
+            advice = ("A number field is read as whole years (2019). Another encoding is start_expression, "
                       'for example make_date("year", "month", 1).')
         elif source["kind"] == "expression":
             advice = ('The expression must give a date or datetime: to_datetime("text", \'dd/MM/yyyy\') '
                       "or make_date(year, 1, 1).")
         else:
-            advice = (f"QGIS reads ISO dates ({_ISO_FORMS}) and years (2019). For another form pass start_expression "
-                      f"with to_datetime({source['ref'] or label}, 'dd/MM/yyyy') in the form the values use.")
+            advice = (f"QGIS reads ISO dates ({_ISO_FORMS}) and years (2019). For another form, start_expression "
+                      f"with to_datetime({source['ref'] or label}, 'dd/MM/yyyy') fits the values' own form.")
         return tool_error(message, "INVALID_ARGS", advice)
     if source["iso"] and source["years"]:
         return tool_error(f"{label} mixes dates ({source['iso']} values) and bare years ({source['years']} values, "
                           f"for example {source['year_sample']!r}).", "INVALID_ARGS",
-                          "Pass start_expression that reads both, or make the field one form first.")
+                          "start_expression that reads both works, or the field in one form first.")
     if not (source["iso"] or source["years"]):
         return tool_error(f"None of the {total} features has a value in {label}.", "INVALID_ARGS",
-                          "Pick the field that holds the dates, or check the layer's filter.")
+                          "The field with the dates, or the layer's filter, decides this.")
     return None
 
 
@@ -866,7 +868,7 @@ def _apply(state: dict, setting: dict) -> dict:
     layer = QgsProject.instance().mapLayer(state["layer_id"])
     if layer is None:
         return tool_error(f"{state['layer_name']} was removed while its dates were read.", "LAYER_NOT_FOUND",
-                          "Load it again, then call set_layer_temporal again.")
+                          "Reloading the layer lets set_layer_temporal run.")
     props = layer.temporalProperties()
     if isinstance(layer, QgsVectorLayer):
         _set_vector(props, setting)

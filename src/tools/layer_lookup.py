@@ -70,10 +70,10 @@ def _field_not_found_error(layer, field_name: str) -> dict:
     elif all_fields:
         msg += f" Available: {', '.join(repr(n) for n in all_fields[:12])}"
     if suggestions:
-        advice = f"Call the tool again with {suggestions[0]!r}, or one of the layer's other fields."
+        advice = f"{suggestions[0]!r} is the closest field; other fields also work."
     elif all_fields:
-        advice = ("Use one of the field names in this message, or get_layer_info for the full list. "
-                  "The layer itself was found; only the field name is wrong.")
+        advice = ("get_layer_info lists every field. "
+                  "The layer exists; the field name is wrong.")
     else:
         advice = "This layer carries no attribute fields, so no field name will work on it."
     return {"_error": msg, "code": "INVALID_ARGS", "suggestion": advice,

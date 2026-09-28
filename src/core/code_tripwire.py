@@ -385,7 +385,7 @@ class _Arm:
                             "tools (add_data, fetch_osm_data) carry the address card")
         elif kind == "process":
             if _from_snippet(3):
-                self.refuse("starts a program or loads native code, which code may not do")
+                self.refuse(f"starts a program or loads native code ({event}), which code may not do")
         elif kind == "setting":
             if _from_snippet(3):
                 self.refuse("changes a system setting, which code may not do")

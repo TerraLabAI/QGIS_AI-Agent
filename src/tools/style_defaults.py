@@ -164,6 +164,87 @@ def dominant_class_note(counts: list[int], field: str, mode_name: str) -> dict:
 
 
 
+
+
+_NEIGHBOUR_FEATURES = 300
+
+_CLOSE_DELTA_E = 10.0
+
+
+def _lab(color) -> tuple:
+
+    def linear(channel):
+        channel = channel / 255.0
+        return channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+
+    r, g, b = linear(color.red()), linear(color.green()), linear(color.blue())
+    x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+    y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+
+    def f(t):
+        return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
+    return 116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))
+
+
+def closest_class_colours(layer, renderer, remote: bool = False) -> dict:
+
+
+
+    from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils, QgsSpatialIndex, QgsWkbTypes
+
+    colours = {}
+    for category in renderer.categories():
+        value = category.value()
+        if category.renderState() and category.symbol() is not None and not isinstance(value, list) \
+                and value is not None and str(value).strip():
+            colours[str(value)] = (category.label() or str(value), _lab(category.symbol().color()))
+    if len(colours) < 2:
+        return {}
+
+    def distance(a, b):
+        return math.dist(colours[a][1], colours[b][1])
+
+    pairs = []
+    polygons = layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
+    if polygons and not remote and layer.featureCount() <= _NEIGHBOUR_FEATURES:
+        attribute = renderer.classAttribute()
+        expression = QgsExpression(QgsExpression.quotedColumnRef(attribute)
+                                   if layer.fields().indexOf(attribute) >= 0 else attribute)
+        context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+        features, classes = {}, {}
+        for feature in layer.getFeatures():
+            context.setFeature(feature)
+            features[feature.id()] = feature
+            classes[feature.id()] = str(expression.evaluate(context))
+        index = QgsSpatialIndex()
+        for feature in features.values():
+            index.addFeature(feature)
+        for fid, feature in features.items():
+            geometry = feature.geometry()
+            for other in index.intersects(geometry.boundingBox()):
+                a, b = classes[fid], classes.get(other)
+                if other <= fid or a == b or a not in colours or b not in colours:
+                    continue
+                if geometry.intersects(features[other].geometry()):
+                    pairs.append((distance(a, b), a, b))
+        between = "touching features"
+    else:
+        names = sorted(colours)
+        pairs = [(distance(a, b), a, b) for i, a in enumerate(names) for b in names[i + 1:]]
+        between = "classes"
+    if not pairs:
+        return {}
+    closest, a, b = min(pairs)
+    if closest >= _CLOSE_DELTA_E:
+        return {}
+    return {"closest_colours": {"classes": [colours[a][0], colours[b][0]], "delta_e": round(closest, 1),
+                                "between": between,
+                                "note": (f"colours under {_CLOSE_DELTA_E:.0f} delta E (CIE76) apart read as one "
+                                         "at a glance")}}
+
+
+
 _INTEGER_TYPES = ("Byte", "Int8", "UInt16", "Int16", "UInt32", "Int32")
 
 
@@ -480,5 +561,5 @@ def style_computed_hillshade(layer) -> dict:
     except Exception:  # noqa: BLE001
         return {}
     return {"renderer": "singlebandgray 0-255", "blend": "multiply" if mode is not None else "normal",
-            "note": ("already drawn as a hillshade: its values are light, not heights. Do not restyle it or "
-                     "shade it again; to see colours under it, style the DEM below it.")}
+            "note": ("already drawn as a hillshade: its values are light, not heights, so restyling "
+                     "changes only the light. Colours belong on the DEM below it.")}

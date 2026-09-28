@@ -143,28 +143,28 @@ def _source_facts(raster, crs_text) -> dict:
     if crs is None:
         return tool_error(
             f"crs {str(crs_text or '')[:60]!r} is not a CRS QGIS knows.", "INVALID_ARGS",
-            "Pass the CRS the points' x and y are in: EPSG:2154 for Lambert 93, EPSG:4326 for degrees, or a WKT.")
+            "the CRS the points' x and y are in: EPSG:2154 for Lambert 93, EPSG:4326 for degrees, or a WKT.")
     ref = str(raster or "").strip()
     expanded = security.expand_path(ref) if ref else ""
     if expanded and os.path.isfile(expanded):
         error = security.validate_path(expanded)
         if error:
-            return tool_error(error, "PERMISSION_DENIED", "Pick an image under the project folder or your home folder.")
+            return tool_error(error, "PERMISSION_DENIED", "Allowed: the project folder or your home folder.")
         name, source, path, layer_id = os.path.splitext(os.path.basename(expanded))[0], expanded, expanded, None
     else:
         layer = _find_layer(ref)
         if layer is None:
             if "/" in ref or "\\" in ref or os.path.splitext(ref)[1]:
                 return tool_error(f"No file at {expanded}.", "INVALID_ARGS",
-                                  "Check the path, or pass the loaded raster layer by name.")
+                                  "The path or the loaded raster layer name may be wrong.")
             return _layer_not_found_error(ref)
         if not isinstance(layer, QgsRasterLayer):
             return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
-                              "Pass the scanned map or image: a raster layer by name, or its file path.")
+                              "the scanned map or image: a raster layer by name, or its file path.")
         if layer.providerType() != "gdal":
             return tool_error(
                 f"{layer.name()} uses the {layer.providerType()} provider; only an image file can be georeferenced.",
-                "INVALID_ARGS", "Pass the scan's own file (JPEG, PNG, TIFF), by path or loaded with add_data.")
+                "INVALID_ARGS", "the scan's own file (JPEG, PNG, TIFF), by path or loaded with add_data.")
         source = str(layer.source() or "")
         path = source if os.path.isfile(source) else ""
         name, layer_id = layer.name(), layer.id()
@@ -194,7 +194,7 @@ def _add_raster(path: str, name: str) -> dict:
     layer = QgsRasterLayer(path, name, "gdal")
     if not layer.isValid():
         return tool_error(f"The GeoTIFF is written at {path}, but QGIS cannot open it.", "EXECUTION_FAILED",
-                          "Load it with add_data; if that fails too, report the file.")
+                          "add_data loads it; a failure there points at the file.")
     QgsProject.instance().addMapLayer(layer)
     rect = layer.extent()
     return {"layer_id": layer.id(), "layer_name": layer.name(),
@@ -208,12 +208,12 @@ def _too_few(transform: str, given: int) -> dict:
     missing = needed - given
     fallback = ""
     if transform != "polynomial_1" and given >= MIN_POINTS["polynomial_1"]:
-        fallback = f", or pass transform polynomial_1, which needs {MIN_POINTS['polynomial_1']}"
+        fallback = f", or transform polynomial_1 needs only {MIN_POINTS['polynomial_1']}"
     elif transform not in _AFFINE and given >= MIN_POINTS["helmert"]:
-        fallback = f", or pass transform helmert (a shift, a scale and a rotation), which needs {MIN_POINTS['helmert']}"
+        fallback = f", or transform helmert (a shift, a scale and a rotation) needs only {MIN_POINTS['helmert']}"
     return tool_error(
         f"{transform} needs at least {needed} control points; {given} given, {missing} missing.", "INVALID_ARGS",
-        f"Add {missing} more point{'s' if missing != 1 else ''} spread over the image{fallback}.")
+        f"{missing} more point{'s' if missing != 1 else ''} spread over the image{fallback}.")
 
 
 def _parse_points(points: list):
@@ -228,7 +228,7 @@ def _parse_points(points: list):
                 value = float("nan")
             if not math.isfinite(value):
                 return tool_error(f"Point {index} has no number for {key}.", "INVALID_ARGS",
-                                  'Pass every point as {"pixel": column, "line": row, "x": map x, "y": map y}.')
+                                  'every point as {"pixel": column, "line": row, "x": map x, "y": map y}.')
             values[key] = value
         parsed.append(values)
     return parsed
@@ -241,10 +241,10 @@ def _outside(points: list, width: int, height: int, name: str) -> dict | None:
         return None
     first = points[out[0] - 1]
     listed = ", ".join(str(i) for i in out[:8]) + (" and more" if len(out) > 8 else "")
-    advice = (f"pixel runs 0 to {width} from the left edge and line 0 to {height} from the top; read the "
-              "points on this image.")
+    advice = (f"pixel runs 0 to {width} from the left edge and line 0 to {height} from the top, "
+              "on this image.")
     if first["line"] < 0 <= -first["line"] <= height:
-        advice = ("Drop the minus sign from line: a QGIS .points file writes the row as a negative sourceY. "
+        advice = ("A QGIS .points file writes the row as a negative sourceY; line drops that minus sign. "
                   + advice)
     return tool_error(
         f"Point{'s' if len(out) > 1 else ''} {listed} lie{'' if len(out) > 1 else 's'} outside {name}, which is "
@@ -292,19 +292,19 @@ def _output_target(args: dict, facts: dict):
             target += ".tif"
         elif extension not in (".tif", ".tiff"):
             return None, tool_error(f"{os.path.basename(target)} is not a GeoTIFF name.", "INVALID_ARGS",
-                                    "End output_path in .tif: the tool writes a GeoTIFF.")
+                                    "output_path ends in .tif, a GeoTIFF.")
         if _same_file(target, facts["path"]):
             return None, tool_error(
                 "output_path is the image being georeferenced, and the tool never writes over it.", "INVALID_ARGS",
-                "Leave output_path out to write <name>_georeferenced.tif next to the image, or name another file.")
+                "output_path left out writes <name>_georeferenced.tif next to the image; another name works too.")
         error = security.validate_path(target, write=True)
         if error:
             return None, tool_error(error, "PERMISSION_DENIED",
-                                    "Pick a path under the project folder, your home folder or the temp folder.")
+                                    "Allowed: the project folder, your home folder or the temp folder.")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                    "Tell the user the file exists and ask whether to replace it (overwrite true) "
-                                    "or name a new file.")
+                                    "The file exists; overwrite true replaces it, the user's call; a new "
+                                    "output_path avoids it.")
         return target, None
 
     stem = output_paths.safe_file_name(f"{facts['name']}_georeferenced", "georeferenced")
@@ -323,7 +323,7 @@ def _output_target(args: dict, facts: dict):
         if target and writable and not security.validate_path(target, write=True):
             return target, None
     return None, tool_error("No folder next to the image or in the exports folder can take the GeoTIFF.",
-                            "PERMISSION_DENIED", "Pass output_path under your home folder.")
+                            "PERMISSION_DENIED", "output_path under your home folder.")
 
 
 def _round_up(value: float) -> float:
@@ -342,7 +342,7 @@ def _size_refusal(cols: int, rows: int, size: float, units: str) -> dict | None:
     fits = _round_up(size * math.sqrt(pixels / float(allowed)))
     return limits.refusal(
         "The georeferenced image", f"{cols:,} by {rows:,} pixels", f"{allowed:,} pixels",
-        f"Pass pixel_size {fits:g} or more (in {units}), or crop the scan to the part that matters first.")
+        f"pixel_size {fits:g} or more (in {units}) fits, or a crop to the part that matters.")
 
 
 def _pixel_size(geotransform) -> float:
@@ -352,7 +352,7 @@ def _pixel_size(geotransform) -> float:
 def _unsolvable(transform: str) -> dict:
     return tool_error(
         f"The control points fix no {transform} transform.", "INVALID_ARGS",
-        "Spread the points over the image: three on one line, or two at the same place, fix nothing.")
+        "Three points on one line, or two at the same place, fix nothing; spread matters.")
 
 
 def _affine(points: list, transform: str):
@@ -395,7 +395,7 @@ def _affine_refusal(points: list, transform: str) -> dict | None:
     if len(distinct) < 2:
         return tool_error(
             f"The control points sit at one place on the image, so they fix no {transform} transform.",
-            "INVALID_ARGS", "Pass at least two points far apart, for example two opposite corners of the image.")
+            "INVALID_ARGS", "at least two points far apart, for example two opposite corners of the image.")
     if transform == "linear":
         columns = [p["pixel"] for p in points]
         lines = [p["line"] for p in points]
@@ -403,7 +403,7 @@ def _affine_refusal(points: list, transform: str) -> dict | None:
             return tool_error(
                 "linear scales the columns and the rows on their own, and these points all share one "
                 f"{'column' if max(columns) - min(columns) <= _LINE_PX else 'row'}.", "INVALID_ARGS",
-                "Add a point in another column and another row, or pass transform helmert.")
+                "A point in another column and row fixes it, or transform helmert.")
     return None
 
 
@@ -654,12 +654,12 @@ def _georeference_raster(args: dict) -> dict:
         from osgeo import gdal
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "Use QGIS's Georeferencer (Layer > Georeferencer) instead.")
+                          "QGIS's Georeferencer (Layer > Georeferencer) still works.")
     gdal.UseExceptions()
     transform = str(args.get("transform") or "polynomial_1")
     if transform not in MIN_POINTS:
         return tool_error(f"transform {transform!r} is not one this tool knows.", "INVALID_ARGS",
-                          "Pass helmert (2 points or more), linear (2), polynomial_1 (3), polynomial_2 (6), "
+                          "helmert (2 points or more), linear (2), polynomial_1 (3), polynomial_2 (6), "
                           "polynomial_3 (10) or thin_plate_spline (3).")
     scale = args.get("target_scale")
     if scale is not None:
@@ -669,11 +669,11 @@ def _georeference_raster(args: dict) -> dict:
             scale = 0.0
         if not math.isfinite(scale) or scale < 1:
             return tool_error("target_scale must be the scale's denominator, 1 or more.", "INVALID_ARGS",
-                              "Pass 25000 for a map at 1:25,000, or leave it out.")
+                              "25000 for a map at 1:25,000, or leave it out.")
     resampling = str(args.get("resampling") or "nearest")
     if resampling not in _RESAMPLING:
         return tool_error(f"resampling {resampling!r} is not one this tool knows.", "INVALID_ARGS",
-                          f"Pass one of {', '.join(_RESAMPLING)}.")
+                          f"Valid: {', '.join(_RESAMPLING)}.")
     points = args.get("points") if isinstance(args.get("points"), list) else []
     if len(points) < MIN_POINTS[transform]:
         return _too_few(transform, len(points))
@@ -688,8 +688,8 @@ def _georeference_raster(args: dict) -> dict:
         return tool_error(
             f"The control points' pixel positions all lie on one line, so they fix no {transform} transform: "
             "nothing places the image away from that line.", "INVALID_ARGS",
-            "Add a point well off that line, for example three corners of the image; two points at the same "
-            "pixel count as one.")
+            "A point well off that line (three corners of the image, for example) fixes it; the same pixel "
+            "twice counts as one.")
     pixel_size = args.get("pixel_size")
     if pixel_size is not None:
         try:
@@ -698,7 +698,7 @@ def _georeference_raster(args: dict) -> dict:
             pixel_size = 0.0
         if not pixel_size > 0 or not math.isfinite(pixel_size):
             return tool_error("pixel_size must be a positive number.", "INVALID_ARGS",
-                              "Pass the ground size of one output pixel in the CRS units, or leave it out.")
+                              "the ground size of one output pixel in the CRS units, or leave it out.")
     started = time.monotonic()
     cancelled = net.current_cancel_check()
 
@@ -712,13 +712,13 @@ def _georeference_raster(args: dict) -> dict:
             return tool_error(
                 f"crs {facts['crs_authid'] or 'given'} is in degrees, and point {far} has x {p['x']:g}, "
                 f"y {p['y']:g}, which are not degrees.", "INVALID_ARGS",
-                "Pass the projected CRS these coordinates are in (EPSG:2154 for metres in France), or the points "
+                "the projected CRS these coordinates are in (EPSG:2154 for metres in France), or the points "
                 "as longitude and latitude.")
     try:
         dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     except RuntimeError as exc:
         return tool_error(f"GDAL could not open {facts['name']}: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "Pass the image file itself (JPEG, PNG, TIFF).")
+                          "the image file itself (JPEG, PNG, TIFF).")
     width, height = dataset.RasterXSize, dataset.RasterYSize
     refused = _outside(parsed, width, height, facts["name"])
     if refused:
@@ -744,7 +744,7 @@ def _georeference_raster(args: dict) -> dict:
             return tool_error(
                 f"{target} is the file the layer {listed} reads in this project, so it is not replaced.",
                 "INVALID_ARGS",
-                "Remove that layer with remove_layer and call again, or leave output_path out to write a new file.")
+                "remove_layer frees it; without output_path a new file is written.")
 
 
 
@@ -823,7 +823,7 @@ def _georeference_raster(args: dict) -> dict:
             failed = tool_error(
                 f"The georeferenced image was computed but could not replace {target}: the file is open, in this "
                 f"project or another program ({exc.strerror or exc}).", "EXECUTION_FAILED",
-                "Remove the layer that reads that file with remove_layer and call again, or leave output_path out.")
+                "remove_layer on the layer reading that file frees it; output_path left out is another route.")
         else:
             part = ""
     except InterruptedError:
@@ -831,7 +831,7 @@ def _georeference_raster(args: dict) -> dict:
     except (RuntimeError, OSError) as exc:
         failed = _stopped() if (cancelled is not None and cancelled()) else tool_error(
             f"Georeferencing {facts['name']} failed: {str(exc)[:200]}", "EXECUTION_FAILED",
-            "Check the image opens and the folder has room, then retry once.")
+            "The image or the folder may be the cause; a retry can help.")
     finally:
         _unlink(gdal, gcp_vrt)
         _unlink(gdal, plan_vrt)
@@ -886,8 +886,8 @@ def _georeference_raster(args: dict) -> dict:
         result["residuals_note"] = f"The {shown} largest of {len(residuals)} residuals."
     if _exact(transform, len(parsed)):
         result["note"] = ("The transform passes through every control point, so the residuals are 0 by "
-                          "construction and say nothing about accuracy: compare the result with a basemap, "
-                          "or add points.")
+                          "construction and say nothing about accuracy; a basemap comparison or more "
+                          "points show it.")
     if accuracy is not None:
         result["accuracy"] = accuracy
     points_file, why_not = _write_points(facts, target, _points_text(facts, parsed, errors, source_gt, natural))

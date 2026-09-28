@@ -70,11 +70,11 @@ COSTLY_TOOLS = {f"{name}_{action}": label for (name, action), label in COSTLY.it
 
 
 ZONE_ARGUMENTS = (
-    "Call again with the zone: use_zone true when the project holds a zone of interest (zone "
-    "action get says so, and zone action set makes one from a layer the user named), or bbox "
+    "use_zone true names a zone of interest already in the project (zone "
+    "action get says so; zone action set makes one from a layer the user named), or bbox "
     "[xmin,ymin,xmax,ymax] in the canvas CRS, or zone_wkt (a WKT polygon), or use_canvas_extent "
-    "true for the current view (get_canvas_extent gives you both). State the area to the user, "
-    f"and pass confirm_area_km2 above {CONFIRM_KM2:.0f} km²."
+    "true for the current view (get_canvas_extent gives both). Above "
+    f"{CONFIRM_KM2:.0f} km², confirm_area_km2 is the user's yes to the area once stated to them."
 )
 
 
@@ -233,7 +233,7 @@ def _balance_sentence(label: str, area: float) -> str:
         return ""
     if left < area:
         return (f" The account has {left:,.1f} km² of Automatic left this month, less than this zone "
-                "covers: say that, and offer a zone that fits.")
+                "covers.")
     return (f" The account has {left:,.1f} km² of Automatic left this month, "
             f"{left - area:,.1f} km² once this run is paid for.")
 
@@ -272,17 +272,15 @@ def check(name: str, args: dict) -> dict:
         if confirmed is None or abs(confirmed - area) > max(0.15, area * 0.1):
             return {
                 "error": (f"This {label} run covers {area:.1f} km² and spends the user's credits "
-                          f"accordingly.{_balance_sentence(label, area)} Tell the user the area and "
-                          "what it leaves them, wait for a yes, then call again with "
-                          f"confirm_area_km2={area:.1f}."),
+                          f"accordingly.{_balance_sentence(label, area)} confirm_area_km2={area:.1f} "
+                          "runs it once the user says yes to that area and what it leaves them."),
 
 
 
 
-                "suggestion": ("One zone is one run. Never cut it into tiles: a grid of rectangles "
-                               "sweeps ground outside the shape the user pointed at and bills every "
-                               "one of them. If the area is more than they want to spend, say so and "
-                               "let them name a smaller zone."),
+                "suggestion": ("One zone is one run: tiling into rectangles sweeps ground outside the "
+                               "shape the user pointed at and bills every tile. A smaller zone, when the "
+                               "cost is too high, is the user's to name."),
                 "code": limits.CEILING_CODE,
             }
     shown = f"{area:.2f} km²" if area < 1 else f"{area:.1f} km²"

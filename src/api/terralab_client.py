@@ -18,6 +18,7 @@
 
 
 
+
 from __future__ import annotations
 
 import json
@@ -27,7 +28,7 @@ import re
 import time
 from urllib.parse import quote, urlencode, urlsplit
 
-from qgis.core import Qgis, QgsBlockingNetworkRequest, QgsMessageLog
+from qgis.core import Qgis, QgsMessageLog, QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QByteArray, QCoreApplication, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
@@ -71,7 +72,6 @@ _REDIRECT_ATTR = getattr(_Attr, "RedirectPolicyAttribute", None)
 _RedirectPolicy = getattr(QNetworkRequest, "RedirectPolicy", QNetworkRequest)
 _NO_LESS_SAFE_REDIRECT = getattr(_RedirectPolicy, "NoLessSafeRedirectPolicy", None)
 _SAME_ORIGIN_REDIRECT = getattr(_RedirectPolicy, "SameOriginRedirectPolicy", None)
-_BLOCKING_NO_ERROR = getattr(getattr(QgsBlockingNetworkRequest, "ErrorCode", QgsBlockingNetworkRequest), "NoError", 0)
 
 _WORTH_ASKING_AGAIN_CODES = ("TIMEOUT", "NO_INTERNET")
 _RATE_LIMITED_STATUS = 429
@@ -312,10 +312,14 @@ def _classify_qt_error(qt_error, error_string: str, http_status: int | None,
     return "SERVER_ERROR", tr("The connection to the server was interrupted. Please try again.")
 
 
-def _classify_network_error(blocker: QgsBlockingNetworkRequest) -> tuple[str, str]:
-    reply = blocker.reply()
-    qt_error = reply.error() if reply else _UnknownNetwork
-    return _classify_qt_error(qt_error, blocker.errorMessage(), _http_status_of(reply),
+def _classify_network_error(reply, detail: str = "") -> tuple[str, str]:
+
+    try:
+        qt_error = reply.error() if reply is not None else _UnknownNetwork
+        detail = detail or reply.errorString()
+    except (AttributeError, RuntimeError):
+        qt_error = _UnknownNetwork
+    return _classify_qt_error(qt_error, detail, _http_status_of(reply),
                               service_reachable=server_reached_recently())
 
 
@@ -366,8 +370,9 @@ class TerraLabClient:
         return self._request("GET", "/api/plugin/account", auth=auth,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def get_config(self, product: str = PRODUCT_ID, lang: str = "") -> dict:
-        return self._request("GET", config_query(product, lang),
+    def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None) -> dict:
+
+        return self._request("GET", config_query(product, lang), auth=auth or None,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
     def send_telemetry_batch(self, events: list, auth: dict, timeout_ms: int | None = None) -> dict:
@@ -489,22 +494,41 @@ class TerraLabClient:
         except ValueError as err:
             return ({"error": str(err), "code": "CLIENT_ERROR"}, None, False)
 
-        blocker = QgsBlockingNetworkRequest()
+
+
+
+
+
+
 
 
 
 
 
         if method == "GET":
-            err = blocker.get(req, forceRefresh=True)
+            reply = QgsNetworkAccessManager.blockingGet(req, "", True)
         elif method == "POST":
-            err = blocker.post(req, QByteArray(body) if body else QByteArray())
+            reply = QgsNetworkAccessManager.blockingPost(req, QByteArray(body) if body else QByteArray())
         else:
             return ({"error": f"Unsupported method: {method}", "code": "CLIENT_ERROR"}, None, False)
 
-        if err != _BLOCKING_NO_ERROR:
-            reply = blocker.reply()
-            http_status = _http_status_of(reply)
+        http_status = _http_status_of(reply)
+
+
+
+
+        try:
+            reply_error = reply.error() if reply is not None else _UnknownNetwork
+        except Exception:  # noqa: BLE001
+            reply_error = _NoNetworkError
+        empty_get = False
+        if reply_error == _NoNetworkError and method == "GET":
+            try:
+                empty_get = reply is not None and not bytes(reply.content())
+            except (AttributeError, RuntimeError, TypeError):
+                empty_get = False
+        if reply_error != _NoNetworkError or empty_get:
+            detail = "empty response" if empty_get else ""
             if http_status is not None:
                 note_server_contact()
             if http_status == _RATE_LIMITED_STATUS and reply is not None:
@@ -517,24 +541,11 @@ class TerraLabClient:
                     except Exception:
                         parsed = None
                     if parsed is not None:
-                        code, msg = _classify_network_error(blocker)
+                        code, msg = _classify_network_error(reply, detail)
                         return (_error_shaped(parsed, code, msg), http_status, True)
-            code, msg = _classify_network_error(blocker)
+            code, msg = _classify_network_error(reply, detail)
             return ({"error": msg, "code": code}, http_status, False)
 
-        reply = blocker.reply()
-        http_status = _http_status_of(reply)
-
-
-
-
-        try:
-            reply_error = reply.error() if reply is not None else _UnknownNetwork
-        except Exception:  # noqa: BLE001
-            reply_error = _NoNetworkError
-        if reply_error != _NoNetworkError:
-            code, msg = _classify_network_error(blocker)
-            return ({"error": msg, "code": code}, http_status, False)
         raw_body, why = self._read_body(reply)
         if raw_body is None:
             if why == "RESPONSE_TOO_LARGE":

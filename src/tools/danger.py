@@ -169,7 +169,17 @@ def _processing_output_params(algorithm_id: str) -> set[str] | None:
         return None
 
 
-def _processing_writes_to_disk(args: dict) -> bool:
+def _processing_replaces_file(args: dict, own_files: frozenset = frozenset()) -> bool:
+
+
+
+
+
+
+
+
+
+
     parameters = args.get("parameters") if isinstance(args, dict) else None
     if not isinstance(parameters, dict):
         return False
@@ -183,7 +193,7 @@ def _processing_writes_to_disk(args: dict) -> bool:
         if not is_output:
             continue
         candidate = value.get("path") if isinstance(value, dict) else value
-        if looks_like_disk_path(candidate):
+        if looks_like_disk_path(candidate) and _target_taken(candidate, own_files):
             return True
     return False
 
@@ -253,7 +263,7 @@ def _declared_level(declared, args: dict, own_files: frozenset) -> str | None:
     if declared.processing is not None:
         algorithm, parameter_sets = declared.processing(args)
         if plugin_algorithm_danger(algorithm) or any(
-            _processing_writes_to_disk({"algorithm_id": algorithm, "parameters": parameters})
+            _processing_replaces_file({"algorithm_id": algorithm, "parameters": parameters}, own_files)
             for parameters in parameter_sets
         ):
             return "destructive"
@@ -263,6 +273,7 @@ def _declared_level(declared, args: dict, own_files: frozenset) -> str | None:
 
 
 def effective_danger(name: str, args: dict | None = None, own_files: frozenset = frozenset()) -> str:
+
 
 
 

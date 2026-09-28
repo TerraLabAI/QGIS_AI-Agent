@@ -187,7 +187,7 @@ def _run_alg(alg_id: str, params: dict):
         return None, tool_error(
             f"Algorithm not found: {alg_id}",
             "INVALID_ARGS",
-            "Call find_processing_algorithm with a description of the task to get the right id.",
+            "find_processing_algorithm gives the right id from a description of the task.",
         )
     feedback = QgsProcessingFeedback()
     try:
@@ -196,7 +196,7 @@ def _run_alg(alg_id: str, params: dict):
         return None, tool_error(
             f"{alg_id} failed: {e}",
             "PROCESSING_FAILED",
-            "Check the layer CRS with get_layer_crs and the parameters with get_algorithm_help.",
+            "get_layer_crs gives the layer CRS; get_algorithm_help gives the parameters.",
         )
     return result, None
 
@@ -316,7 +316,7 @@ def _zonal_statistics(args: dict) -> dict:
         return tool_error(
             f"band={band} is out of range: {rast.name()!r} has {rast.bandCount()} band(s).",
             "INVALID_ARGS",
-            f"Pass a band between 1 and {rast.bandCount()}.",
+            f"band is between 1 and {rast.bandCount()}.",
         )
     stats = [int(s) for s in (args.get("stats") or [0, 1, 2])]
     bad = [s for s in stats if s not in ZONAL_STATS]
@@ -324,7 +324,7 @@ def _zonal_statistics(args: dict) -> dict:
         return tool_error(
             f"Unknown stat code(s): {bad}.",
             "INVALID_ARGS",
-            "Use codes 0-11: " + ", ".join(f"{k}={v}" for k, v in ZONAL_STATS.items()) + ".",
+            "codes are 0-11: " + ", ".join(f"{k}={v}" for k, v in ZONAL_STATS.items()) + ".",
         )
 
 
@@ -338,7 +338,7 @@ def _zonal_statistics(args: dict) -> dict:
             nodata = float(nodata)
         except (TypeError, ValueError):
             return tool_error(f"nodata={args.get('nodata')!r} is not a number.", "INVALID_ARGS",
-                              "Pass the band value that marks missing data, e.g. -9999.")
+                              "nodata marks missing data, e.g. -9999.")
 
 
         values_raster = rast.clone()
@@ -350,8 +350,8 @@ def _zonal_statistics(args: dict) -> dict:
                 f"{rast.name()!r} band {band} declares no NoData, and its minimum is {sentinel:g}, the usual "
                 f"missing-data marker: a mean would count those cells as {sentinel:g}.",
                 "INVALID_ARGS",
-                f"Call zonal_statistics again with nodata={sentinel:g} to leave them out. If {sentinel:g} is a "
-                f"real measurement here, run native:zonalstatisticsfb through run_processing with confirm_large true.",
+                f"nodata={sentinel:g} leaves them out; native:zonalstatisticsfb through run_processing with "
+                f"confirm_large true reads {sentinel:g} as real.",
             )
 
 
@@ -411,7 +411,7 @@ def _spatial_join(args: dict) -> dict:
         return tool_error(
             f"Unknown predicate code(s): {bad}.",
             "INVALID_ARGS",
-            "Use codes 0-6: " + ", ".join(f"{k}={v}" for k, v in JOIN_PREDICATES.items()) + ".",
+            "codes are 0-6: " + ", ".join(f"{k}={v}" for k, v in JOIN_PREDICATES.items()) + ".",
         )
     raw_method = args.get("method", 1)
     names = {"one_to_many": 0, "first_match": 1, "largest_overlap": 2}
@@ -564,17 +564,18 @@ def _remote_input_too_large(referenced: list, refs: dict, pixels: int, grid=None
         units = ""
     if view:
         west, south, east, north = view[0]
-        advice = (f"Call raster_calculator again with bbox [{west:g}, {south:g}, {east:g}, {north:g}], the map "
+        advice = (f"bbox [{west:g}, {south:g}, {east:g}, {north:g}] is the map "
                   f"view: {view[1] / 1e6:,.1f} million pixels at the file's own pixel size, read straight from "
-                  "where it is published. For another place the user named, pass that place's box instead.")
+                  "where it is published; a named place's own box works too.")
     else:
         resample = (f"TARGET_RESOLUTION {size:g} ({units}; it reads the file's overviews)" if size > 0 else
                     "a coarser TARGET_RESOLUTION (it reads the file's overviews)")
-        advice = (("Pass a smaller bbox, or resample each remote input over this one first with run_processing "
-                   f"gdal:warpreproject, {resample}, then calculate on the copies.") if extent is not None else
-                  ("Pass bbox, the area the user asked about, to compute it at the file's own pixel size. For "
-                   f"the whole grid, resample each remote input first with run_processing gdal:warpreproject, "
-                   f"{resample}, then calculate on the copies."))
+        advice = (("a smaller bbox, or run_processing "
+                   f"gdal:warpreproject, {resample}, on each remote input first, then calculate on the copies.")
+                  if extent is not None else
+                  ("bbox, the area asked about, computes it at the file's own pixel size. For "
+                   f"the whole grid, run_processing gdal:warpreproject, "
+                   f"{resample}, on each remote input first, then calculate on the copies."))
     return tool_error(
         f"{', '.join(remote)} is read over HTTP where it is published, and this calculation covers "
         f"{pixels / 1e6:,.0f} million pixels; every block would be fetched across the network, which takes "
@@ -601,7 +602,7 @@ def _disk_room_for(directory: str, pixels: int):
         f"The result would be {needed / 1e6:,.0f} MB (Float32 over {pixels / 1e6:,.0f} million pixels) and the "
         f"drive holding the output folder has {free / 1e6:,.0f} MB free.",
         "INVALID_ARGS",
-        "Pass bbox, the study area, to compute only that part, or an output_path on a drive with room.")
+        "bbox, the study area, computes only that part; output_path can point to a drive with room.")
 
 
 def _band_references(rasters: list, entry_class):
@@ -632,7 +633,7 @@ def _raster_calculator(args: dict) -> dict:
 
     expression = str(args.get("expression") or "").strip()
     if not expression:
-        return tool_error("expression is empty.", "INVALID_ARGS", 'Pass band math such as "dem@1" * 2.')
+        return tool_error("expression is empty.", "INVALID_ARGS", 'band math, e.g. "dem@1" * 2.')
     wanted_path = str(args.get("output_path") or "").strip()
     temp_words = ("TEMPORARY_OUTPUT", "TEMP", "MEMORY")
     if not wanted_path or wanted_path.upper() in temp_words or wanted_path.startswith("memory:"):
@@ -652,7 +653,7 @@ def _raster_calculator(args: dict) -> dict:
     entries, refs, ambiguous = _band_references(rasters, QgsRasterCalculatorEntry)
     if not rasters:
         return tool_error(
-            "No raster layers loaded to compute from.", "INVALID_ARGS", "Load a raster with add_data first."
+            "No raster layers loaded to compute from.", "INVALID_ARGS", "add_data loads a raster."
         )
 
     referenced = []
@@ -673,7 +674,6 @@ def _raster_calculator(args: dict) -> dict:
             f"More than one loaded raster is named {', '.join(repr(n) for n in names)}, so a band "
             f"reference cannot say which one to read.",
             "INVALID_ARGS",
-            "Rename one of them, or remove the one you are not calculating on, then run again. "
             f"The layer ids involved are {sorted({i for ids in clashing.values() for i in ids})}.",
         )
     unknown = [r for r in referenced if r not in refs]
@@ -681,7 +681,7 @@ def _raster_calculator(args: dict) -> dict:
         return tool_error(
             f"Unknown raster reference(s): {unknown}.",
             "INVALID_ARGS",
-            f'Available references: {sorted(refs)[:20]}. Double-quote a name with spaces: "S2 B04 Red@1".',
+            f'Available references: {sorted(refs)[:20]}; quote a name with spaces: "S2 B04 Red@1".',
         )
 
     if args.get("reference_layer"):
@@ -704,7 +704,7 @@ def _raster_calculator(args: dict) -> dict:
     reprojected = sorted({refs[r].name() for r in referenced if refs[r].crs() != ref_layer.crs()})
     reprojected_note = (
         f"{', '.join(reprojected)} not in {ref_layer.crs().authid()}: resampled onto {ref_layer.name()}'s grid "
-        "(nearest neighbour). Tell the user; for continuous data warp them first (gdal:warpreproject, bilinear)."
+        "(nearest neighbour). Continuous data needs warping first (gdal:warpreproject, bilinear)."
     ) if reprojected else ""
     if warped:
         names = sorted(layer.name() for layer in rasters if layer.id() in warped)
@@ -727,13 +727,13 @@ def _raster_calculator(args: dict) -> dict:
         bbox = _parse_bbox(args.get("bbox"))
         if bbox is None:
             return tool_error("That bbox is not a usable box.", "INVALID_ARGS",
-                              "Pass [west, south, east, north] in EPSG:4326, west below east and south below north.")
+                              "[west, south, east, north] in EPSG:4326, west below east, south below north.")
         window = _calc_window(ref_layer, bbox)
         if window is None:
             return tool_error(
                 f"The bbox {bbox} does not overlap {ref_layer.name()}.", "INVALID_ARGS",
-                "Pass a box inside the reference layer (get_layer_info gives its extent), or load the scene that "
-                "covers this place.")
+                "bbox must sit inside the reference layer (get_layer_info gives its extent); another scene "
+                "may cover this place.")
         extent, cols, rows = window
 
 
@@ -779,8 +779,8 @@ def _raster_calculator(args: dict) -> dict:
                 "background as native:rastercalc; poll get_task_status. "
                 + ("That window" if windowed else "The whole grid")
                 + " is computed at full resolution, nothing is sampled, "
-                f"and the GeoTIFF is about {pixels * 4 / 1e6:,.0f} MB. Tell the user it is running rather than "
-                "waiting silently, and Stop cancels it.")
+                f"and the GeoTIFF is about {pixels * 4 / 1e6:,.0f} MB. It is running, not waiting silently, "
+                "and Stop cancels it.")
             started["computed"] = {"width": cols, "height": rows, "pixels": pixels, "sampled": False}
             if reprojected_note:
                 started["crs_note"] = reprojected_note
@@ -794,7 +794,7 @@ def _raster_calculator(args: dict) -> dict:
             f"native:rastercalc to run it in the background, and on the interface thread the cap is "
             f"{_CALC_MAX_PIXELS / 1e6:,.0f} million.",
             "INVALID_ARGS",
-            "Pass bbox, the study area ([west, south, east, north] in EPSG:4326), to compute only that part.")
+            "bbox, the study area ([west, south, east, north] in EPSG:4326), computes only that part.")
     replaced = []
     if os.path.isfile(output_path):
 
@@ -843,7 +843,7 @@ def _raster_calculator(args: dict) -> dict:
     code = int(calc.processCalculation())
     if code != 0:
         reason = _RASTER_CALC_ERRORS.get(code, f"error code {code}")
-        suggestion = "Check the expression and the band numbers."
+        suggestion = "the expression or a band number is wrong."
         if code == 4:
 
 
@@ -852,18 +852,18 @@ def _raster_calculator(args: dict) -> dict:
             if parser:
                 reason += f" ({parser})"
             suggestion = (
-                'Reference bands as "Layer name@1" with double quotes. The calculator knows + - * / ^, '
+                'Bands are "Layer name@1", double-quoted. The calculator knows + - * / ^, '
                 "comparisons, AND, OR, abs, min, max, sqrt, ln, log10, sin, cos, tan, asin, acos, atan and "
                 "if(condition, then, else); a function outside that list does not parse."
             )
         elif code == 1:
-            suggestion = "Pass an output_path in a writable folder with a .tif extension."
+            suggestion = "output_path needs a writable folder and a .tif extension."
         elif code == 5:
 
 
             suggestion = (
-                "QGIS could not allocate memory for this grid. Run the same expression with bbox, "
-                "the study area, so only that part is computed."
+                "QGIS could not allocate memory for this grid. bbox, the study area, computes only "
+                "that part."
             )
 
 
@@ -890,7 +890,7 @@ def _raster_calculator(args: dict) -> dict:
         except OSError:  # nosec B110
             pass
         removed = False if output_existed else _discard_partial_raster(output_path)
-        suggestion = "Pass output_path TEMPORARY_OUTPUT or a folder on another drive, then run the same expression."
+        suggestion = "output_path TEMPORARY_OUTPUT or a folder on another drive avoids it."
         if removed:
             suggestion += " The partial file was removed."
         return tool_error(
@@ -1187,8 +1187,8 @@ def _find_processing_algorithm(args: dict) -> dict:
         "matches": matches,
         "count": len(matches),
         "total": len(_algorithm_catalog()),
-        "next": "Call get_algorithm_help with the chosen id, then run_processing.",
+        "next": "get_algorithm_help gives the parameters for run_processing.",
     }
     if not matches:
-        out["suggestion"] = "Nothing scored. Try other words, add keywords, or call list_algorithms."
+        out["suggestion"] = "Nothing scored; other words may match, list_algorithms lists all."
     return out

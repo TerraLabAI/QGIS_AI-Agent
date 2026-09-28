@@ -46,8 +46,8 @@ OPTIONAL_DEPENDENCIES = {
             "no install."
         ),
         "post_install": (
-            "Run `earthengine authenticate` once in a terminal, then reload the plugin "
-            "(QGIS plugin manager) so the Earth Engine tools register."
+            "`earthengine authenticate` runs once in a terminal; the Earth Engine tools register "
+            "after a plugin reload (QGIS plugin manager)."
         ),
     },
 
@@ -167,7 +167,7 @@ def _resolve_feature(args: dict):
         if not spec:
             return None, {"_error": f"Unknown feature '{feature}'. Allowed features: {allowed}",
                           "code": "INVALID_ARGS",
-                          "suggestion": f"Pass one of: {allowed}."}
+                          "suggestion": f"features: {allowed}."}
         return feature, spec
 
     package = (args.get("package") or "").strip()
@@ -178,10 +178,10 @@ def _resolve_feature(args: dict):
         return None, {
             "_error": f"Package '{package}' is not whitelisted. Allowed features: {allowed}",
             "code": "INVALID_ARGS",
-            "suggestion": "Pass 'feature' instead; the agent installs only the packages in that table.",
+            "suggestion": "'feature' names a package in that table; the agent installs only those.",
         }
 
-    return None, {"_error": f"Provide 'feature' (one of {allowed}) or a whitelisted 'package'.",
+    return None, {"_error": f"Needs 'feature' (one of {allowed}) or a whitelisted 'package'.",
                   "code": "INVALID_ARGS",
                   "suggestion": f"check_optional_dependencies lists what is installed; features are {allowed}."}
 
@@ -206,8 +206,8 @@ def _pip_failure_message(rc: int, log_tail: str) -> tuple[str, dict]:
             or "used by another process" in log_tail.lower())
     if held:
         return ("This package is already partly installed and QGIS is holding one of its "
-                "files open, so pip could not replace it. Close and reopen QGIS, then "
-                "install again."), coded_fact(hint="pip_file_held")
+                "files open, so pip could not replace it. A QGIS restart frees the file "
+                "for the install."), coded_fact(hint="pip_file_held")
     return f"pip exited with code {rc}.", {}
 
 
@@ -479,7 +479,7 @@ def _check(args: dict) -> dict:
     missing = [d["feature"] for d in deps if not d["installed"]]
     if missing:
         out["_next"] = (
-            f"Call install_dependency {{feature:'{missing[0]}'}} to add it, then reload the plugin."
+            f"install_dependency {{feature:'{missing[0]}'}} adds it; the plugin needs a reload."
         )
     return out
 
@@ -507,7 +507,7 @@ class _InstallWorker(QThread):
             except Exception as e:
                 t["status"] = "error"
                 t["error"] = (
-                    f"In-process pip unavailable ({e}). Install manually: "
+                    f"In-process pip unavailable ({e}). A manual install: "
                     f"python -m pip install --user {self._package}"
                 )
                 self._record("failed: pip unavailable")
@@ -605,8 +605,8 @@ def _install(args: dict) -> dict:
     except OSError as exc:
         return {
             "_error": f"Cannot create the folder optional packages install into: {exc}",
-            "suggestion": "Install the package into this interpreter's environment yourself, "
-                          f"then reload the plugin: pip install {package}",
+            "suggestion": "An install into this interpreter's environment by hand, then a plugin "
+                          f"reload, works: pip install {package}",
         }
 
     orphan = _inflight_package()
@@ -614,8 +614,8 @@ def _install(args: dict) -> dict:
         return {
             "_error": f"An install of {orphan} started before the plugin was reloaded is still "
                       "running in this QGIS session.",
-            "suggestion": "Wait for it to finish, then reload the plugin. Two pip runs writing the "
-                          "same site-packages at once leave a half-installed package.",
+            "suggestion": "Two pip runs writing the same site-packages at once leave a half-installed "
+                          "package; a plugin reload after it finishes registers it.",
         }
 
     _sweep_finished_tasks()
@@ -681,5 +681,5 @@ def _install_status(args: dict) -> dict:
     if t["status"] == "complete":
         spec = OPTIONAL_DEPENDENCIES.get(t["feature"], {})
         out["post_install"] = spec.get("post_install", "")
-        out["_next"] = "Reload the plugin so the new tools register."
+        out["_next"] = "The new tools register after a plugin reload."
     return out

@@ -44,7 +44,7 @@ from ..core.settings import Settings
 from ..core.tool_registry import Tool, ToolRegistry
 
 _DISABLED = {"stored": False, "reason": "memory_disabled",
-             "message": "The user turned the memory off in Settings > Memory. Do not retry."}
+             "message": "The user turned the memory off in Settings > Memory."}
 
 
 def _project_path() -> str:
@@ -82,15 +82,15 @@ def _remember(args: dict) -> dict:
     path = _project_path()
     if scope == "project" and not path:
         return {"stored": False, "reason": "project_unsaved",
-                "message": "The project has not been saved, so a note cannot be pinned to it. "
-                           "Save the project first, or store this as a user note (scope user)."}
+                "message": "The project has not been saved, so a note cannot be pinned to it; "
+                           "scope user stores it without a project."}
 
     if replaces:
         note = add_memory_note(settings, text, "ai", kind, scope, project_key(path), replaces)
         if note is None:
             return {"stored": False, "reason": "unknown_id", "id": replaces,
-                    "message": "No note has that id. Call remember without replaces, or list what is "
-                               "stored by calling forget with no arguments."}
+                    "message": "No note has that id. remember without replaces adds a new one; "
+                               "forget with no arguments lists what is stored."}
         return {"stored": True, "updated": True, "note": _shown(note),
                 "notes": len(load_memory_notes(settings))}
 
@@ -110,15 +110,15 @@ def _remember(args: dict) -> dict:
             "reason": "duplicate" if same else "similar_note_exists",
             "existing": _shown(conflict),
             "message": ("That note is already stored, word for word. Nothing to do." if same else
-                        "A stored note already covers this. If the user is correcting it, call remember "
-                        f"again with replaces=\"{conflict['id']}\" and the new wording. If it is genuinely "
-                        "a different fact, say it in words that do not repeat the stored one."),
+                        "A stored note already covers this. remember with "
+                        f"replaces=\"{conflict['id']}\" updates it in place; wording that does not "
+                        "repeat it is a different fact."),
         }
 
     note = add_memory_note(settings, text, "ai", kind, scope, project_key(path))
     if note is None:
         return {"stored": False, "reason": "not_stored",
-                "message": "The note was empty after cleaning. Do not retry."}
+                "message": "The note was empty after cleaning."}
     return {"stored": True, "note": _shown(note),
             "notes": len(load_memory_notes(settings)), "max_notes": MEMORY_MAX_NOTES}
 
@@ -131,7 +131,7 @@ def _forget(args: dict) -> dict:
     notes = notes_for_project(settings, _project_path())
     if not wanted:
         return {"removed": False, "notes": [_shown(n) for n in notes],
-                "message": "Call forget again with the id of the note to remove."}
+                "message": "forget needs the id of the note to remove."}
     if remove_memory_note(settings, wanted):
         return {"removed": True, "id": wanted, "notes": len(load_memory_notes(settings))}
     return {"removed": False, "id": wanted, "notes": [_shown(n) for n in notes],

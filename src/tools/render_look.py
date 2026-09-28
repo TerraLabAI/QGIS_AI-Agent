@@ -111,7 +111,7 @@ def cropped(image, args: dict):
                             "width": round(width, 3), "height": round(height, 3)},
                    "crop_note": (f"This is the {round(width * 100)}% by {round(height * 100)}% piece of the "
                                  f"page starting at {round(x * 100)}%, {round(y * 100)}% from the top left, "
-                                 "drawn at full size. Leave crop out to see the whole page again.")}
+                                 "drawn at full size. Without crop the whole page shows.")}
 
 
 def _print_layouts(manager) -> list:
@@ -145,25 +145,25 @@ def layout_page_plan(args: dict) -> dict:
         if not names:
             return {"_error": "This project has no print layout to look at.",
                     "_code": "INVALID_ARGS",
-                    "_suggestion": "Build one with create_print_layout and add_layout_map first."}
+                    "_suggestion": "create_print_layout and add_layout_map build one."}
         if wanted:
             return {"_error": f"Layout not found: {wanted}", "_code": "INVALID_ARGS",
-                    "_suggestion": f"The project has {', '.join(names[:8])}."}
+                    "_suggestion": f"Layouts: {', '.join(names[:8])}."}
         return {"_error": "This project has more than one print layout.", "_code": "INVALID_ARGS",
-                "_suggestion": f"Pass layout_name: {', '.join(names[:8])}."}
+                "_suggestion": f"Layouts: {', '.join(names[:8])}."}
 
     pages = layout.pageCollection()
     count = int(pages.pageCount())
     if count <= 0:
         return {"_error": f"Layout '{layout.name()}' has no page.", "_code": "INVALID_ARGS",
-                "_suggestion": "Add a page in the layout, or create the layout again with a page size."}
+                "_suggestion": "A layout made with a page size has a page."}
     try:
         page = int(args.get("page") or 1)
     except (TypeError, ValueError):
         page = 1
     if not 1 <= page <= count:
         return {"_error": f"Layout '{layout.name()}' has {count} page(s), so page {page} does not exist.",
-                "_code": "INVALID_ARGS", "_suggestion": f"Pass page between 1 and {count}."}
+                "_code": "INVALID_ARGS", "_suggestion": f"Pages run 1 to {count}."}
 
     facts = assess_layout(layout)
     page_box = next((row for row in facts.get("pages_mm") or [] if row.get("page") == page), None)
@@ -173,7 +173,7 @@ def layout_page_plan(args: dict) -> dict:
     if image is None or image.isNull():
         return {"_error": f"QGIS could not draw page {page} of '{layout.name()}'.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Read get_layout_info, then check the page size and the map item's extent."}
+                "_suggestion": "get_layout_info shows the page size and the map item's extent."}
 
     outside = [row.get("item") for row in facts.get("items") or []
                if row.get("status") == "warning" and row.get("inside_page") is False]
@@ -225,7 +225,7 @@ def _pdf_with_qt(path: str, page: int, args: dict):
             continue
     if QPdfDocument is None:
         return None, ""
-    document = QPdfDocument()
+    document = QPdfDocument(None)
     document.load(path)
     count = int(document.pageCount() or 0)
     if count <= 0:
@@ -306,13 +306,13 @@ def file_image(args: dict) -> dict:
     if not path:
         return {"_error": "render_map with target file needs path, the file to look at.",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Pass the path the export returned, for example the PDF export_file wrote."}
+                "_suggestion": "export_file returns the path this needs, for example the PDF it wrote."}
     path_error = validate_path(path)
     if path_error:
         return {"_error": path_error, "_code": "INVALID_ARGS"}
     if not os.path.isfile(path):
         return {"_error": f"No file at {path}.", "_code": "INVALID_ARGS",
-                "_suggestion": "Check the path the export returned; export_file answers with the path it wrote."}
+                "_suggestion": "export_file answers with the path it wrote; that is what this needs."}
     try:
         page = int(args.get("page") or 1)
     except (TypeError, ValueError):
@@ -338,8 +338,8 @@ def file_image(args: dict) -> dict:
                               f"{why or gdal_why}.",
                     "_code": "EXECUTION_FAILED",
                     "pdf": structure,
-                    "_suggestion": "Export the same layout to PNG with export_file and look at that file, "
-                                   "or look at the layout page itself with target layout."}
+                    "_suggestion": "A PNG from export_file opens here; target layout shows the layout "
+                                   "page itself."}
         return {"image": image, "facts": {"source_file": path, "page": page, "pdf": structure}}
 
     if suffix == ".svg":
@@ -347,7 +347,7 @@ def file_image(args: dict) -> dict:
         if image is None:
             return {"_error": f"Could not read {os.path.basename(path)}: {why}.",
                     "_code": "EXECUTION_FAILED",
-                    "_suggestion": "Export to PNG with export_file and look at that file instead."}
+                    "_suggestion": "A PNG from export_file opens here."}
         return {"image": image, "facts": {"source_file": path}}
 
     if suffix not in _PIXMAP_SUFFIXES:
@@ -360,7 +360,7 @@ def file_image(args: dict) -> dict:
     if image.isNull():
         return {"_error": f"{os.path.basename(path)} did not decode as a picture.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Check the file is complete; export it again if a run wrote it."}
+                "_suggestion": "A run that wrote it can export it again."}
     facts = {"source_file": path, "file_pixels": {"width": image.width(), "height": image.height()}}
     return {"image": _under_render_cap(image, args), "facts": facts}
 

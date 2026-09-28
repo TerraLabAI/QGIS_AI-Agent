@@ -54,6 +54,10 @@ _PILL_PX = 28
 _PILL_ICON_PX = 14
 
 
+_LIST_QSS = (_SCROLL_AREA_QSS
+             + "QScrollBar::handle:vertical:disabled { background: transparent; }")
+
+
 class _Column(QWidget):
 
 
@@ -79,14 +83,24 @@ class MessageList(QScrollArea):
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+
+
+
+
+
+
+
+
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.verticalScrollBar().setEnabled(False)
         self.setAutoFillBackground(False)
         self.viewport().setAutoFillBackground(False)
 
 
 
         self._scroll_styled = False
-        self.setStyleSheet(_SCROLL_AREA_QSS)
+        self.setStyleSheet(_LIST_QSS)
 
         self._build_content()
 
@@ -145,7 +159,7 @@ class MessageList(QScrollArea):
         super().showEvent(event)
         if not self._scroll_styled:
             self._scroll_styled = True
-            self.setStyleSheet(_SCROLL_AREA_QSS)
+            self.setStyleSheet(_LIST_QSS)
             self._pill.setIcon(icon_for(self._pill, "arrow_down", _PILL_ICON_PX))
 
     def resizeEvent(self, event):  # noqa: N802
@@ -414,6 +428,7 @@ class MessageList(QScrollArea):
         self._update_pill()
 
     def _on_range_changed(self, _low: int, high: int) -> None:
+        self.verticalScrollBar().setEnabled(high > 0)
         if self._stick:
             self.verticalScrollBar().setValue(high)
         self._update_pill()

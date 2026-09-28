@@ -567,7 +567,7 @@ class AiEditAccess:
 
         if self.is_busy(inst):
             return {
-                "_error": "AI Edit is already generating. Poll ai_edit_generation_status and retry when idle.",
+                "_error": "AI Edit is already generating; ai_edit_generation_status reports when idle.",
                 "busy": True,
             }
 
@@ -678,7 +678,7 @@ class AiEditAccess:
                 "status": "submitted",
                 "prompt_len": len(prompt),
                 "resolution": applied_resolution,
-                "note": "Generation runs asynchronously. Poll with ai_edit_generation_status.",
+                "note": "Generation runs async; ai_edit_generation_status reports it.",
             }
             result["resolution_source"] = "call" if res_label else "panel"
             result["prompt_shown_in_panel"] = written
@@ -829,8 +829,8 @@ class AiEditAccess:
         if params.get("use_zone"):
             found = self._zone_of_interest()
             if found is None:
-                return {"_error": ("This project holds no zone of interest. Call zone action set to make one "
-                                   "from a layer the user named, or pass bbox / use_canvas_extent.")}
+                return {"_error": ("This project holds no zone of interest. zone action set makes one from a "
+                                   "layer the user named; bbox or use_canvas_extent also works.")}
             return QgsRectangle(found.boundingBox())
         if params.get("use_canvas_extent"):
             return iface.mapCanvas().extent()
@@ -849,7 +849,7 @@ class AiEditAccess:
                 return QgsRectangle(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
             except (TypeError, ValueError):
                 return {"_error": "bbox must be 4 numbers [xmin,ymin,xmax,ymax]."}
-        return {"_error": "Provide bbox [xmin,ymin,xmax,ymax] (or {xmin,...}) or use_canvas_extent:true."}
+        return {"_error": "Needs bbox [xmin,ymin,xmax,ymax] (or {xmin,...}) or use_canvas_extent:true."}
 
     @staticmethod
     def _zone_of_interest():
@@ -1066,7 +1066,7 @@ class AiEditAccess:
             return {"_error": "AI Edit plugin is not installed."}
         strip = self._version_strip(inst)
         if strip is None:
-            return {"_error": "AI Edit version strip not available. Run a generation first."}
+            return {"_error": "AI Edit version strip not available; a generation makes it."}
         try:
             count = int(strip.count())
             sel = int(strip.selected_index())
@@ -1096,13 +1096,13 @@ class AiEditAccess:
         dock = self.dock(inst)
         strip = self._version_strip(inst)
         if dock is None or strip is None:
-            return {"_error": "AI Edit version strip not available. Run a generation first."}
+            return {"_error": "AI Edit version strip not available; a generation makes it."}
         try:
             count = int(strip.count())
         except Exception:
             count = 0
         if count <= 0:
-            return {"_error": "No versions available yet. Run a generation first."}
+            return {"_error": "No versions yet; a generation creates one."}
         try:
             idx = int(index)
         except (TypeError, ValueError):
@@ -1170,7 +1170,7 @@ class AiEditAccess:
         else:
             raster = self._newest_result_raster(QgsProject.instance())
             if raster is None:
-                return {"_error": "No AI Edit result raster found in the AI-Edit group. Pass layer_name."}
+                return {"_error": "No AI Edit result raster in the AI-Edit group; layer_name names one."}
         if not isinstance(raster, QgsRasterLayer):
             return {"_error": f"Layer '{raster.name()}' is not a raster."}
 
@@ -1210,7 +1210,7 @@ class AiEditAccess:
 
             msg = getattr(err, "message", None) or str(err)
             return {"_error": f"Vectorize failed: {msg}",
-                    "_suggestion": "Try a wider tolerance, a different target_rgb, or a smaller simplify_factor."}
+                    "_suggestion": "A wider tolerance, target_rgb or simplify_factor may vectorize it."}
         if layer is None or not layer.isValid():
             return {"_error": "Vectorize produced no valid layer."}
 

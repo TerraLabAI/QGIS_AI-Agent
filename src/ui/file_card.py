@@ -194,7 +194,7 @@ def _pdf_first_page(path: str, side: int) -> QPixmap | None:
     except Exception:  # noqa: BLE001
         return None
     try:
-        document = QPdfDocument()
+        document = QPdfDocument(None)
         document.load(path)
 
 

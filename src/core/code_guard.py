@@ -54,6 +54,7 @@ import os
 import re
 import shutil
 import threading
+import time
 import types
 from typing import Any, Callable
 
@@ -274,6 +275,8 @@ _OS_ALLOWED = (
 )
 _SHUTIL_ALLOWED = ("disk_usage", "which", "copyfileobj", "get_terminal_size")
 
+_NO_FILE_CHANGE = "a snippet never removes, renames or overwrites a file, and writes a new file name instead."
+
 
 
 _SYS_ALLOWED = (
@@ -288,6 +291,14 @@ _IO_ALLOWED = ("StringIO", "BytesIO", "TextIOBase", "IOBase", "RawIOBase", "Buff
 
 class CodeTimeout(BaseException):
     pass
+
+
+
+
+
+
+
+WAITING_ON_USER = threading.Event()
 
 
 class CodeRefused(ValueError):
@@ -398,6 +409,9 @@ class _Checker(ast.NodeVisitor):
         self.names: list[str] = []
         self.checked_sql: set[int] = set()
 
+
+        self.dict_keys: set[int] = set()
+
     def _refuse(self, node: ast.AST, text: str, name: str = "") -> None:
         line = getattr(node, "lineno", 0)
         self.problems.append(f"line {line}: {text}")
@@ -419,6 +433,10 @@ class _Checker(ast.NodeVisitor):
         for alias in node.names:
             if _module_denied(f"{module}.{alias.name}") or alias.name in DENIED_ATTRS or alias.name in DENIED_NAMES:
                 self._refuse(node, f"{module}.{alias.name} is not available in execute_code", alias.name)
+        self.generic_visit(node)
+
+    def visit_Dict(self, node: ast.Dict) -> None:
+        self.dict_keys.update(id(key) for key in node.keys if isinstance(key, ast.Constant))
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
@@ -462,8 +480,9 @@ class _Checker(ast.NodeVisitor):
             match = _DENIED_LITERAL_RE.search(node.value)
             if match:
                 self._refuse(node, f"the string '{match.group(0)}' names a credential store or a guarded handler")
-            elif node.value in _DENIED_LITERALS or node.value in DENIED_DUNDERS:
-                self._refuse(node, f"the string '{node.value}' names a guarded attribute")
+            elif node.value in DENIED_DUNDERS or (node.value in _DENIED_LITERALS
+                                                  and id(node) not in self.dict_keys):
+                self._refuse(node, f"the string literal '{node.value}' is the name of a guarded attribute")
             else:
 
 
@@ -514,9 +533,9 @@ def _check(code: str) -> tuple[str | None, str]:
 _SQL_SENTENCE = ("execute_sql runs SQL on a GeoPackage or any layer; in a snippet, read a table with "
                  "QgsVectorLayer(f'{path}|layername=<table>', 'name', 'ogr').")
 _ARCHIVE_SENTENCE = ("package_project writes the zip: it copies the project and every local layer file into "
-                     "one archive. Call it instead of building the archive here.")
-_NETWORK_SENTENCE = ("The snippet cannot use the network. Read a page or a CSV with fetch_text, "
-                     "load a file at a URL with add_data (source=<url>), then continue in execute_code.")
+                     "one archive.")
+_NETWORK_SENTENCE = ("The snippet cannot use the network. fetch_text reads a page or a CSV, and "
+                     "add_data (source=<url>) loads a file at a URL for execute_code to use.")
 _TOOL_INSTEAD = {
     "sqlite3": _SQL_SENTENCE, "_sqlite3": _SQL_SENTENCE,
     "tarfile": _ARCHIVE_SENTENCE, "make_archive": _ARCHIVE_SENTENCE,
@@ -552,9 +571,9 @@ def refusal_for(code: str) -> dict | None:
 
 
         return {"error": refused, "code": "INVALID_ARGS",
-                "suggestion": "Fix the syntax at that line and call execute_code again."}
-    suggestion = _TOOL_INSTEAD.get(name) or ("Use the dedicated tools (get_features, run_processing, export_layer) "
-                                             "or rewrite the snippet without the refused names.")
+                "suggestion": "A corrected snippet at that line runs on the next call."}
+    suggestion = _TOOL_INSTEAD.get(name) or ("get_features, run_processing and export_layer do this without "
+                                             "the refused names.")
 
     return dict(error=refused, code="INVALID_ARGS", suggestion=suggestion,  # noqa: C408
                 hint="code_refused", variant=name)
@@ -562,13 +581,20 @@ def refusal_for(code: str) -> dict | None:
 
 
 
-def _trimmed_module(name: str, source: types.ModuleType, allowed: tuple, extra: dict | None = None) -> types.ModuleType:
+def _trimmed_module(name: str, source: types.ModuleType, allowed: tuple, extra: dict | None = None,
+                    missing: str = "") -> types.ModuleType:
     module = types.ModuleType(name, f"{name} as exposed to execute_code: a safe subset")
     for attr in allowed:
         if hasattr(source, attr):
             setattr(module, attr, getattr(source, attr))
     for key, value in (extra or {}).items():
         setattr(module, key, value)
+    if missing:
+
+
+        def _absent(attr):
+            raise AttributeError(f"execute_code's {name} has no {attr}: {missing}")
+        module.__getattr__ = _absent
     return module
 
 
@@ -635,7 +661,7 @@ def _guarded_copy(copier: Callable):
         src, dst = anchor(src), anchor(dst)
         for candidate, writing in ((src, False), (dst, True)):
 
-            remedy = "Choose a new destination name; this call has no overwrite option." if writing else None
+            remedy = "This call has no overwrite option; a new destination name avoids it." if writing else None
             error = validate_path(str(candidate), write=writing, overwrite=False if writing else None,
                                    overwrite_remedy=remedy, scoped=not writing)
             if error:
@@ -702,7 +728,7 @@ def _guarded_open(file, mode="r", *args, **kwargs):
     writing = any(flag in str(mode) for flag in "wax+")
 
 
-    remedy = "Choose a new file name; this call has no overwrite option." if writing else None
+    remedy = "This call has no overwrite option; a new file name avoids it." if writing else None
 
     error = validate_path(os.fspath(file), write=writing, overwrite=False if writing else None,
                            overwrite_remedy=remedy, scoped=not writing)
@@ -781,12 +807,12 @@ def _safe_os() -> types.ModuleType:
         extra[name] = _guarded_reader(getattr(os, name))
     for name in ("stat", "lstat"):
         extra[name] = _guarded_reader(getattr(os, name), scoped=False)
-    return _trimmed_module("os", os, _OS_ALLOWED, extra)
+    return _trimmed_module("os", os, _OS_ALLOWED, extra, _NO_FILE_CHANGE)
 
 
 def _safe_shutil() -> types.ModuleType:
     extra = {name: _guarded_copy(getattr(shutil, name)) for name in ("copy", "copy2", "copyfile")}
-    return _trimmed_module("shutil", shutil, _SHUTIL_ALLOWED, extra)
+    return _trimmed_module("shutil", shutil, _SHUTIL_ALLOWED, extra, _NO_FILE_CHANGE)
 
 
 def _safe_sys() -> types.ModuleType:
@@ -851,11 +877,13 @@ def _safe_base64() -> types.ModuleType:
 
 _GDAL_ALLOWED = ("Info", "VersionInfo", "UseExceptions", "DontUseExceptions", "GetLastErrorMsg",
                  "GetDataTypeName", "GetDataTypeSize", "GA_ReadOnly", "OF_READONLY", "OF_RASTER", "OF_VECTOR",
-                 "OF_VERBOSE_ERROR", "GetConfigOption")
+                 "OF_VERBOSE_ERROR", "GetConfigOption", "GetColorInterpretationName")
 _OGR_ALLOWED = ("CreateGeometryFromWkt", "CreateGeometryFromWkb", "CreateGeometryFromJson",
                 "CreateGeometryFromGML", "Geometry", "UseExceptions", "DontUseExceptions", "GetFieldTypeName",
-                "Feature", "FieldDefn", "GeomFieldDefn")
-_GDAL_CONSTANT_PREFIXES = ("GDT_", "GCI_", "wkb", "OFT", "OFST")
+                "Feature", "FieldDefn", "GeomFieldDefn", "GeometryTypeToName")
+
+
+_GDAL_CONSTANT_PREFIXES = ("GDT_", "GCI_", "wkb", "OFT", "OFST", "GRIORA_", "GMF_")
 
 
 
@@ -1331,8 +1359,13 @@ def run_with_timeout(fn: Callable[[], Any], seconds: float) -> Any:
     done = threading.Event()
 
     def _watch() -> None:
-        if done.wait(seconds):
-            return
+        remaining = seconds
+        while remaining > 0:
+            started = time.monotonic()
+            if done.wait(min(remaining, 0.5)):
+                return
+            if not WAITING_ON_USER.is_set():
+                remaining -= time.monotonic() - started
         with lock:
             if done.is_set():
                 return

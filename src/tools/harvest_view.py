@@ -144,7 +144,7 @@ def _vector_layer_or_error(name_or_id: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a vector layer.",
             "INVALID_ARGS",
-            "Pick a vector layer from list_layers.",
+            "list_layers gives the vector layers.",
         )
     return layer, None
 
@@ -191,8 +191,8 @@ def _set_layer_filter(args: dict) -> dict:
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session; QGIS refuses a filter change while editing.",
             "INVALID_ARGS",
-            "Commit or roll back the edits first (qgis_edit_commit / qgis_edit_rollback), then call "
-            "set_layer_filter again.",
+            "qgis_edit_commit or qgis_edit_rollback ends the edit session; set_layer_filter "
+            "runs after that.",
         )
     previous = layer.subsetString() or ""
     lifted = _lift_wfs_cap(layer) if expression else None
@@ -202,9 +202,9 @@ def _set_layer_filter(args: dict) -> dict:
         return tool_error(
             f"The provider rejected the filter {expression!r} on {layer.name()!r}.",
             "INVALID_ARGS",
-            "Check the field names with get_layer_info. OGR, GeoPackage and PostgreSQL layers take SQL "
+            "get_layer_info gives the field names. OGR, GeoPackage and PostgreSQL layers take SQL "
             "WHERE syntax (double quotes around field names, single quotes around text); memory layers "
-            "take a QGIS expression. validate_expression can check the expression first.",
+            "take a QGIS expression. validate_expression checks the expression.",
         )
     layer.triggerRepaint()
     count = _feature_count(layer)
@@ -230,7 +230,7 @@ def _set_layer_filter(args: dict) -> dict:
             out["truncated"] = True
             out["warning"] = (f"The service holds {count:,} features under this filter and the layer loads "
                               f"{cap:,} of them, the first in the service's own order.")
-            out["suggestion"] = "Narrow the filter, or filter one part at a time, to load the rest."
+            out["suggestion"] = "a narrower filter, or one part at a time, loads the rest."
     if expression and count == 0:
         out["_note"] = "The filter matches no feature: the layer shows nothing until the filter changes."
     return out
@@ -267,19 +267,19 @@ def _zoom_to_selected(args: dict) -> dict:
     else:
         layer = iface.activeLayer()
         if layer is None:
-            return tool_error("No active layer.", "INVALID_ARGS", "Pass layer_name, or set_active_layer first.")
+            return tool_error("No active layer.", "INVALID_ARGS", "layer_name or set_active_layer names it.")
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(
                 f"The active layer {layer.name()!r} is not a vector layer.",
                 "INVALID_ARGS",
-                "Pass layer_name with a vector layer that has a selection.",
+                "layer_name must be a vector layer with a selection.",
             )
     selected = layer.selectedFeatureCount()
     if selected == 0:
         return tool_error(
             f"Layer {layer.name()!r} has no selected features.",
             "INVALID_ARGS",
-            "Select features first with select_by_attribute, select_by_geometry or select_features.",
+            "select_by_attribute, select_by_geometry or select_features selects some.",
         )
     canvas = iface.mapCanvas()
     canvas.zoomToSelected(layer)
@@ -309,7 +309,7 @@ def _open_attribute_table(args: dict) -> dict:
         return tool_error(
             f"QGIS did not open the attribute table of {layer.name()!r}.",
             "ATTRIBUTE_TABLE_FAILED",
-            "Check get_layer_info: the layer may be invalid. accessibility_snapshot shows what is on screen.",
+            "get_layer_info may show the layer invalid; accessibility_snapshot shows what is on screen.",
         )
     out = {
         "layer_id": layer.id(),
@@ -483,18 +483,18 @@ def _hillshade_source(args: dict):
     else:
         layer = iface.activeLayer()
         if layer is None:
-            return None, tool_error("No active layer.", "INVALID_ARGS", "Pass layer_name with the DEM raster layer.")
+            return None, tool_error("No active layer.", "INVALID_ARGS", "layer_name names the DEM raster layer.")
     if not isinstance(layer, QgsRasterLayer):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a raster layer.",
             "INVALID_ARGS",
-            "Pass layer_name with a DEM raster (list_layers shows the rasters).",
+            "layer_name must be a DEM raster (list_layers shows the rasters).",
         )
     if layer.providerType() != "gdal":
         return None, tool_error(
             f"Layer {layer.name()!r} uses the {layer.providerType()} provider; the hillshade needs a GDAL raster.",
             "INVALID_ARGS",
-            "Use a GeoTIFF or a Cloud-Optimized GeoTIFF (add_cog_layer), not a WMS or XYZ layer.",
+            "a GeoTIFF or COG (add_cog_layer) is needed, not a WMS or XYZ layer.",
         )
     return layer, None
 
@@ -504,7 +504,7 @@ def _number(args: dict, key: str, default: float, low: float, high: float):
     raw = args.get(key)
     if raw is None:
         return default, None
-    hint = f"Pass {key} between {low} and {high}."
+    hint = f"{key} is between {low} and {high}."
     try:
         value = float(raw)
     except (TypeError, ValueError):
@@ -566,7 +566,7 @@ def _create_hillshade(args: dict) -> dict:
         return tool_error(
             f"band must be between 1 and {layer.bandCount()} for {layer.name()!r}.",
             "INVALID_ARGS",
-            "Pass the DEM band number, usually 1.",
+            "band is the DEM band, usually 1.",
         )
     values["band"] = band
     values["multidirectional"] = bool(args.get("multidirectional"))
@@ -586,8 +586,8 @@ def _create_hillshade(args: dict) -> dict:
                                          overwrite=bool(args.get("overwrite")))
         if problem:
             return tool_error(problem, "PERMISSION_DENIED",
-                              "Pick a path inside the project folder or the user's home, and pass "
-                              "overwrite true to replace a file that already exists.")
+                              "output_path must sit in the project folder or the user's home; overwrite "
+                              "true replaces an existing file.")
         parent = os.path.dirname(output_path)
         if parent:
             os.makedirs(parent, exist_ok=True)

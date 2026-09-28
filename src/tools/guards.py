@@ -162,42 +162,42 @@ def _check_argument_tree(value) -> dict | None:
         if seen > _MAX_ARGUMENT_NODES:
             return _refusal(
                 f"The arguments contain more than {_MAX_ARGUMENT_NODES:,} values.",
-                "Split the request into smaller calls.",
+                "Smaller calls would fit.",
             )
         if depth > _MAX_ARGUMENT_DEPTH:
             return _refusal(
                 f"{path} is nested more than {_MAX_ARGUMENT_DEPTH} levels deep.",
-                "Flatten the parameters or split the request into smaller calls.",
+                "Flatter parameters, or smaller calls, would fit.",
             )
         if isinstance(item, float) and not math.isfinite(item):
             return _refusal(
                 f"{path} must be a finite number, not {item!r}.",
-                "Pass an ordinary finite number.",
+                "an ordinary finite number.",
             )
         if isinstance(item, str) and len(item) > _MAX_ARGUMENT_STRING:
             return _refusal(
                 f"{path} is over {_MAX_ARGUMENT_STRING:,} characters.",
-                "Pass a file or URL instead of embedding that much text in one tool call.",
+                "A file or URL fits better than that much text in one tool call.",
             )
         if isinstance(item, str) and "\x00" in item:
             return _refusal(
                 f"{path} contains a NUL character that QGIS and filesystem APIs cannot handle.",
-                "Remove the NUL character and call again.",
+                "Without the NUL character it would work.",
             )
         if isinstance(item, dict):
             if seen + len(pending) + len(item) > _MAX_ARGUMENT_NODES:
                 return _refusal(
                     f"The arguments contain more than {_MAX_ARGUMENT_NODES:,} values.",
-                    "Split the request into smaller calls.",
+                    "Smaller calls would fit.",
                 )
             children = []
             for key, child in item.items():
                 if not isinstance(key, str):
-                    return _refusal(f"{path} contains a non-text key.", "Use JSON object keys made of text.")
+                    return _refusal(f"{path} contains a non-text key.", "JSON object keys are made of text.")
                 if len(key) > _MAX_ARGUMENT_KEY:
                     return _refusal(
                         f"{path} contains an object key over {_MAX_ARGUMENT_KEY} characters.",
-                        "Use short parameter names.",
+                        "Short parameter names fit.",
                     )
                 children.append((child, _argument_child_path(path, key), depth + 1))
             pending.extend(children)
@@ -205,7 +205,7 @@ def _check_argument_tree(value) -> dict | None:
             if seen + len(pending) + len(item) > _MAX_ARGUMENT_NODES:
                 return _refusal(
                     f"The arguments contain more than {_MAX_ARGUMENT_NODES:,} values.",
-                    "Split the request into smaller calls.",
+                    "Smaller calls would fit.",
                 )
             pending.extend((child, f"{path}[{index}]", depth + 1)
                            for index, child in enumerate(item))
@@ -243,7 +243,7 @@ def _check_extent_order(name: str, args: dict) -> dict | None:
         if xmax <= xmin or ymax <= ymin:
             return _refusal(
                 f"The {label} has no positive area: xmin/west and ymin/south must be below xmax/east and ymax/north.",
-                "Correct the coordinate order and pass a non-empty rectangle.",
+                "The coordinate order or an empty rectangle may be the cause.",
             )
     return None
 
@@ -265,7 +265,7 @@ def labels_field_refusal(args: dict) -> dict | None:
         return None
     return _refusal(
         "set_layer_labels needs 'field' to switch labels on: the field name, or an expression, to draw.",
-        "Pass the field to label with, or enabled=false to turn this layer's labels off.")
+        "the field to label with, or enabled=false to turn this layer's labels off.")
 
 
 def _leaves_outside(value, skip: set, depth: int = 0):
@@ -345,10 +345,10 @@ def _check_one_address(text: str) -> dict | None:
     if stripped.lower().startswith(tuning.names("vsi_cloud", _VSI_CLOUD)):
         return _refusal("Cloud bucket handlers (/vsis3, /vsigs, /vsiaz, ...) are not opened by the agent: they "
                         "would spend the user's own cloud credentials.",
-                        "Use a public https URL, or ask the user to download the file.")
+                        "A public https URL, or a downloaded file, works instead.")
     kind, rest = security.unwrap_vsi(stripped)
     if kind == "refused":
-        return _refusal("The standard streams are not opened by the agent.", "Name a file or a URL instead.")
+        return _refusal("The standard streams are not opened by the agent.", "A file or a URL works too.")
     stripped = rest if kind == "remote" else stripped
     stripped = _DRIVER_PREFIX_RE.sub("", stripped).strip().strip('"\'')
     scheme = _scheme_of(stripped)
@@ -356,11 +356,11 @@ def _check_one_address(text: str) -> dict | None:
         return None
     if scheme in tuning.names("denied_schemes", _DENIED_SCHEMES):
         return _refusal(f"{scheme}:// URLs are not fetched by the agent.",
-                        "Use an http(s) URL, or ask the user to attach or name the local file.")
+                        "An http(s) URL, or the local file attached or named, works instead.")
     if scheme in ("http", "https"):
         error = security.validate_url(stripped)
         if error:
-            return _refusal(error, "Use a public URL, or ask the user to confirm the address.")
+            return _refusal(error, "")
     return None
 
 
@@ -497,7 +497,7 @@ def settings_key_refusal(args: dict) -> dict | None:
     if (key.startswith(tuning.names("settings_deny_prefix", _SETTINGS_DENY_PREFIX))
             or any(word in key for word in tuning.names("settings_deny_words", _SETTINGS_DENY_WORDS))):
         return _refusal(f"The setting '{args.get('key')}' holds credentials, proxy or plugin state the agent never "
-                        "reads or writes.", "Ask the user to check that setting in QGIS themselves.",
+                        "reads or writes.", "That setting is visible only in QGIS itself.",
                         "PERMISSION_DENIED")
     return None
 
@@ -577,6 +577,17 @@ def _file_part(value: str) -> str:
     return match.group("path") if match else value.split("|", 1)[0]
 
 
+def _is_project_layer(value: str) -> bool:
+
+    try:
+        from qgis.core import QgsProject
+
+        project = QgsProject.instance()
+        return project.mapLayer(value) is not None or bool(project.mapLayersByName(value))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def layer_table_name(reference, strip: bool) -> str:
 
 
@@ -648,7 +659,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         expanded = security.expand_path(target)
         error = security.validate_path(expanded, write=True)
         if error:
-            return _refusal(error, "Pick a path under the project folder, your home folder or the temp folder.",
+            return _refusal(error, "Allowed: the project folder, your home folder or the temp folder.",
                             "PERMISSION_DENIED")
         if not os.path.exists(expanded):
             creates.append(os.path.realpath(expanded))
@@ -662,7 +673,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                 if table_exists is None:
                     return _refusal(
                         f"The existing GeoPackage cannot be inspected safely: {expanded}",
-                        "Close programs using the file, verify it is a valid GeoPackage, or choose another path.",
+                        "Another program may hold the file, or it is not a valid GeoPackage; another path helps.",
                     )
                 if not table_exists:
                     continue
@@ -671,9 +682,9 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                     continue
                 if not _overwrite_requested(args):
                     return _refusal(
-                        f"GeoPackage table '{table}' already exists in {expanded}. Pass overwrite=true only "
-                        "after the user agreed to replace that table, or choose another layer name.",
-                        "Tell the user which table exists and ask whether to replace it.",
+                        f"GeoPackage table '{table}' already exists in {expanded}. Replacing it is the user's "
+                        "call (overwrite=true); another layer name avoids it.",
+                        "overwrite=true replaces it once the user agrees.",
                     )
                 overwrites.append(os.path.realpath(expanded))
                 continue
@@ -684,9 +695,9 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                 continue
             if not _overwrite_requested(args):
                 return _refusal(
-                    f"{expanded} already exists. Pass overwrite=true only after the user agreed to replace it, "
-                    "or choose a new file name.",
-                    "Tell the user the file exists and ask whether to replace it or write a new file.")
+                    f"{expanded} already exists. Replacing it is the user's call (overwrite=true); "
+                    "a new file name avoids it.",
+                    "overwrite=true replaces it once the user agrees, or a new name avoids it.")
             overwrites.append(os.path.realpath(expanded))
 
 
@@ -699,6 +710,10 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
     written = {os.path.normcase(security.expand_path(target)) for target in writes}
     for value in _leaves_outside(args, skip):
         if not (looks_like_disk_path(value) or value.startswith("~") or os.path.isabs(value)):
+            continue
+
+
+        if _is_project_layer(value):
             continue
 
 
@@ -715,8 +730,8 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
         error = security.validate_read(part)
         if error:
-            return _refusal(error, "Ask the user to attach the file in the chat or to type its full path; "
-                                   "never search their folders for it.", "PERMISSION_DENIED")
+            return _refusal(error, "The file needs attaching in the chat or its full path typed; "
+                                   "the agent never searches folders for it.", "PERMISSION_DENIED")
     return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates}
 
 
@@ -835,9 +850,9 @@ def _check_created_features(args: dict) -> dict | None:
 
 
 
-                f"Retry with {key}={ceiling} at most, or cover the area in several calls and tell the "
-                "user why. A layer this size is also one QGIS draws slowly, so a coarser step is "
-                "usually the better answer, not a second attempt at the same number.")
+                f"{key}={ceiling} at most fits, or the area split across several calls. A "
+                "layer this size also draws slowly in QGIS, so a coarser step usually beats a second "
+                "attempt at the same number.")
     return None
 
 
@@ -889,7 +904,7 @@ def _check_raster_pixels(name: str, area_km2: float, args: dict) -> dict | None:
     fits = (area_km2 * 1e6 / ceiling) ** 0.5
     return limits.refusal(
         "The bounding box", f"{pixels:,.0f} pixels at {scale:g} m", f"{ceiling:,.0f} pixels",
-        f"Pass {key} {int(fits) + 1} or more (metres per pixel) for this box, or a smaller box.")
+        f"{key} {int(fits) + 1} or more (metres per pixel) fits this box, or a smaller box.")
 
 
 def _check_bbox_area(name: str, args: dict) -> dict | None:
@@ -923,13 +938,13 @@ def _check_bbox_area(name: str, args: dict) -> dict | None:
             written = "{" + ", ".join(f'"{k}": {v}' for k, v in zip(keys, (west, south, east, north))) + "}"
         else:
             written = f"[{west}, {south}, {east}, {north}]"
-        retry = (f"Retry with bbox {written} "
+        retry = (f"bbox {written} fits "
                  f"({limits.bbox_km2(south, west, north, east):,.0f} km2, same centre), or smaller. ")
     return limits.refusal(
         "The bounding box", f"{area:,.0f} km2", f"{ceiling:,.0f} km2 for one fetch",
-        retry + "Keep the city rather than the region, and tell the user which part you kept. Do not "
-        "ask the user. A public service either refuses a box this size or spends minutes on it. For "
-        "a whole country, download an extract and add the file instead.")
+        retry + "The city fits where the region does not. A public service "
+        "either refuses a box this size or spends minutes on it. A whole country needs an extract "
+        "downloaded and added as a file instead.")
 
 
 def _check_render_size(name: str, args: dict) -> dict | None:
@@ -950,9 +965,9 @@ def _check_render_size(name: str, args: dict) -> dict | None:
 
 
 
-                f"Retry with {key}={ceiling}, the largest this machine serves. "
+                f"{key}={ceiling} is the largest this machine serves. "
                 "Nothing downstream reads more: the panel shows a few hundred pixels and the model "
-                "reads it resized. For a large print, export the layout at a higher dpi instead.")
+                "reads it resized. A large print needs export_layout at a higher dpi.")
     width, height = _number(args.get("width")), _number(args.get("height"))
     if clamps and width and height:
 
@@ -963,7 +978,7 @@ def _check_render_size(name: str, args: dict) -> dict | None:
     if width and height and width * height > max_pixels:
         return limits.refusal(
             "The image asked for", f"{width * height:,.0f} pixels", f"{max_pixels:,} pixels",
-            f"Keep the two sides inside {max_w} by {max_h} together, not only one at a time.")
+            f"Both sides fit inside {max_w} by {max_h} together, not one at a time.")
 
 
 
@@ -1011,9 +1026,9 @@ def _check_materialised_features(name: str, args: dict) -> dict | None:
                 f"Layer '{args.get(key)}'", f"{count:,} features",
                 f"{ceiling:,} for {name}",
                 f"{name} reads every feature into memory before it starts, on the thread that draws "
-                "QGIS, so a layer this size freezes the window for minutes. Extract the part that "
-                "matters first (a filter, a clip to the area of interest, native:extractbyexpression) "
-                "and run this on the extract.")
+                "QGIS, so a layer this size freezes the window for minutes. A filter, a clip to the "
+                "area of interest, or native:extractbyexpression narrows it; this then runs on the "
+                "extract.")
     return None
 
 
@@ -1091,19 +1106,18 @@ def sql_problem(query: object) -> str | None:
     if not body:
         return "The query is empty."
     if ";" in body:
-        return ("execute_sql runs one statement. Split this into separate calls, "
-                "and remember that only a query can be run.")
+        return ("execute_sql runs one statement; separate calls handle more, and only a query runs.")
     head = body.lstrip("( \t\r\n")
     first = _SQL_WORD.match(head)
     if first is None or first.group(0).lower() not in _SQL_QUERY_STARTS:
         shown = (first.group(0) if first else head[:12]) or "nothing"
         return (f"execute_sql runs a query, and this starts with '{shown}'. "
-                "Use SELECT or WITH; to change data use the editing tools, which ask the user first.")
+                "SELECT or WITH runs here; the editing tools change data and ask the user first.")
     never = tuning.names("sql_never", _SQL_NEVER)
     for word in _SQL_WORD.findall(body):
         if word.lower() in never:
             return (f"'{word}' is not available in execute_sql: it reaches files and database state "
-                    "outside the layers being queried. Use SELECT over the layers instead.")
+                    "outside the layers being queried. SELECT over the layers works.")
     return None
 
 
@@ -1112,7 +1126,7 @@ def sql_refusal(args: dict) -> dict | None:
     problem = sql_problem(args.get("query") or args.get("sql"))
     if problem:
         return {"error": problem, "code": "INVALID_ARGS",
-                "suggestion": "Write one SELECT (or WITH ... SELECT) over the layer names."}
+                "suggestion": "one SELECT (or WITH ... SELECT) over the layer names."}
     return None
 
 
@@ -1127,8 +1141,8 @@ def paid_algorithm_refusal(args: dict) -> dict | None:
 
     if str(args.get("algorithm_id") or "").strip() in paid_algorithms():
         return _refusal("This algorithm spends imagery credits and is not run through run_processing.",
-                        "Call ai_edit_generate or ai_segment_detect_auto, which measure the zone and "
-                        "tell the user what it costs.", "PERMISSION_DENIED")
+                        "ai_edit_generate and ai_segment_detect_auto measure the zone and tell the "
+                        "user what it costs first.", "PERMISSION_DENIED")
     return None
 
 
@@ -1177,11 +1191,11 @@ class RunBudget:
         elapsed = time.monotonic() - self.started
         if elapsed > self.max_seconds:
             return (f"This run has used {int(elapsed // 60)} minutes, over the {int(self.max_seconds // 60)} minute "
-                    "cap. Stop here, summarise what was done, and ask the user to continue in a new message.")
+                    "cap; no further tool call runs in it, and a new user message starts a new run.")
         if poll:
             return None
         self.steps += 1
         if self.steps > self.max_steps:
-            return (f"This run has made {self.steps - 1} tool calls, the cap. Stop here, summarise what was done "
-                    "and what is left, and ask the user to continue in a new message.")
+            return (f"This run has made {self.steps - 1} tool calls, the cap; no further tool call "
+                    "runs in it, and a new user message starts a new run.")
         return None

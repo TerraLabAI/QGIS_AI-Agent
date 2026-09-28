@@ -168,7 +168,7 @@ def _reach(folder: str) -> dict:
         reach["note"] = (
             "Loaded, but it registers no menu and no Processing algorithms in this QGIS, "
             "so there is no way in from here. Usually a Python package it needs is missing; "
-            "get_message_log has the reason. Tell the user rather than offering a route."
+            "get_message_log has the reason."
         )
     return reach
 
@@ -400,7 +400,7 @@ def _trigger_plugin_action(args: dict) -> dict:
     action_path = args.get("action_path")
     plugin = plugins.get(name)
     if not plugin:
-        return {"_error": f"Plugin '{asked}' is not loaded. Check list_plugins for available names."}
+        return {"_error": f"Plugin '{asked}' is not loaded. list_plugins lists available names."}
 
     menu = _menu_of(name)
     if menu is None:
@@ -411,8 +411,8 @@ def _trigger_plugin_action(args: dict) -> dict:
         return _with_skill(name, {
             "_error": f"Plugin '{name}' registers no menu, so there is no action to trigger.",
             "code": "INVALID_ARGS",
-            "suggestion": "Look for a Processing provider from this plugin with list_algorithms, "
-                          "or open its dock with trigger_menu_action under View > Panels.",
+            "suggestion": "list_algorithms may list a Processing provider from this plugin; "
+                          "trigger_menu_action under View > Panels opens its dock.",
         })
 
     available = _explore_menu(menu)
@@ -420,7 +420,7 @@ def _trigger_plugin_action(args: dict) -> dict:
     if not action_path:
         return _with_skill(name, {
             "plugin": name, "available_actions": available,
-            "hint": "Call again with action_path to trigger one. A label containing a slash "
+            "hint": "action_path triggers one of these. A label containing a slash "
                     "(Import KML/KMZ) is passed whole; the path still splits on '/' between levels.",
         })
 
@@ -462,7 +462,7 @@ def _trigger_menu_action(args: dict) -> dict:
     if not action_path or list_only:
         return {
             "available_actions": _explore_menu(menu_bar),
-            "hint": "Call again with action_path to trigger one, e.g. 'Layer/Add Layer/Add Vector Layer...'.",
+            "hint": "action_path triggers one, e.g. 'Layer/Add Layer/Add Vector Layer...'.",
         }
 
     target_action, error = _resolve_menu_action(menu_bar, action_path)
@@ -498,7 +498,7 @@ def _trigger_menu_action(args: dict) -> dict:
         return {
             "triggered": action_path,
             "deferred": True,
-            "note": "Wait ~1s, then inspect with accessibility_snapshot/screenshot; dismiss a modal with close_dialog.",
+            "note": "Fires in about 1s; accessibility_snapshot/screenshot reads it, close_dialog dismisses a modal.",
         }
 
     target_action.trigger()
@@ -539,9 +539,9 @@ def _list_plugins(args: dict) -> dict:
         "count": len(plugins),
         "hint": "This is the whole list: a plugin absent from it is not installed, and one "
                 "present is. For any row with how_to_use_available, get_plugin_info returns "
-                "which tool drives it and the menu path or algorithm ids to use. If the user "
-                "named a plugin, drive that one; if a built-in tool does the job better, say "
-                "in one line which you used instead and why.",
+                "which tool drives it and the menu path or algorithm ids to use. A plugin the "
+                "user named is the intended tool; a built-in tool that does the job better is "
+                "a substitution worth a one-line note.",
     }
 
 
@@ -618,7 +618,7 @@ def _open_plugin_manager(args: dict) -> dict:
 
     asked = str(args.get("plugin_name") or "").strip()
     if not asked:
-        return {"_error": "plugin_name is empty: give the plugin's name as the QGIS Plugin Manager lists it.",
+        return {"_error": "plugin_name is empty; it takes the name as the QGIS Plugin Manager lists it.",
                 "code": "INVALID_ARGS"}
     from ..ui.cross_plugin_discovery import open_plugin_manager_later
     from .sibling_setup import presence
@@ -630,17 +630,17 @@ def _open_plugin_manager(args: dict) -> dict:
         if state == "loaded":
             return {"installed": True, "enabled": True, "plugin": name, "folder": folder,
                     "registers": _reach(folder),
-                    "next_step": ("Already installed and running, so nothing was opened. Call list_algorithms "
-                                  "with its provider id to find the algorithm.")}
+                    "next_step": ("Already installed and running, so nothing was opened. list_algorithms "
+                                  "with its provider id finds the algorithm.")}
         if state == "not_started":
             return {"installed": True, "enabled": True, "started": False, "plugin": name, "folder": folder,
                     "tell_user": f"{name} is installed but did not start. Restart QGIS, then ask again.",
-                    "next_step": "Stop here. get_message_log says why it failed to start."}
+                    "next_step": "get_message_log says why it failed to start."}
         opened = open_plugin_manager_later(name, _repository_page(folder))
         return {"installed": True, "enabled": False, "plugin": name, "folder": folder, "opened": opened,
                 "tell_user": (f"{name} is installed but switched off. The Plugin Manager is open on it: "
                               "tick its box to switch it on."),
-                "next_step": "Stop here. When the person says it is on, call list_algorithms."}
+                "next_step": "list_algorithms lists them once the person switches it on."}
 
     row = _repository_entry(asked)
     name = str(row.get("name") or asked)
@@ -648,8 +648,8 @@ def _open_plugin_manager(args: dict) -> dict:
     out = {"installed": False, "plugin": name, "opened": opened,
            "tell_user": (f"The QGIS Plugin Manager ({_MANAGER_PATH}) is open on {name}: click Install "
                          "plugin. It starts right away, no restart."),
-           "next_step": ("Stop here and wait for the person: they install it, not you. When they say it is "
-                         "done, call list_algorithms to find its algorithms.")}
+           "next_step": ("The person installs it, not the agent; list_algorithms finds its algorithms "
+                         "once it is done.")}
     if not row:
         out["note"] = ("QGIS has not listed a plugin by that exact name, so the manager is filtered on it and "
                        "shows what matches. If nothing does, the plugin is not in the repositories QGIS reads.")
@@ -672,7 +672,7 @@ def _reload_plugin(args: dict) -> dict:
     folder = resolve_plugin(asked) or asked
     if folder in ("AI_Agent", "QGIS_AI-Agent", "QGIS_AI-Agent-Team", "QGIS_AI_Agent", "qgis_ai_agent"):
         return {
-            "_error": "Cannot reload AI Agent from inside a run. Reload it from the QGIS plugin manager.",
+            "_error": "AI Agent cannot reload itself mid-run; the QGIS plugin manager reloads it.",
             "code": "PERMISSION_DENIED",
         }
 

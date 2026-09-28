@@ -143,7 +143,7 @@ def _delineate(args: dict, checkpoint) -> dict:
         from osgeo import gdal, ogr, osr
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"numpy or GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "Run the GRASS recipe instead: r.watershed then r.water.outlet.")
+                          "r.watershed then r.water.outlet (GRASS) works without them.")
     gdal.UseExceptions()
 
     facts = _run_on_main_thread(_dem_facts, str(args["dem"]))
@@ -157,19 +157,19 @@ def _delineate(args: dict, checkpoint) -> dict:
     radius_km = float(args.get("radius_km") or _DEFAULT_RADIUS_KM)
     if radius_km > _max_radius_km():
         return tool_error(f"radius_km {radius_km:g} is over the {_max_radius_km():g} km limit.", "INVALID_ARGS",
-                          f"Pass radius_km up to {_max_radius_km():g}, keeping the same outlet.")
+                          f"radius_km can go up to {_max_radius_km():g}, same outlet.")
     snap_m = float(args.get("snap_m") if args.get("snap_m") is not None else _DEFAULT_SNAP_M)
 
     dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
-                          "A layer QGIS draws but GDAL cannot reopen is usually a provider other than gdal "
-                          "(WMS, XYZ): load the DEM file itself with add_data.")
+                          "A layer QGIS draws but GDAL cannot reopen is often a provider other than gdal "
+                          "(WMS, XYZ); add_data loads the DEM file itself.")
     transform = dataset.GetGeoTransform()
     x0, dx, _, y0, _, dy = transform
     if dx == 0 or dy == 0:
         return tool_error("The DEM has no usable geotransform.", "EXECUTION_FAILED",
-                          "Load a georeferenced DEM: find_datasets 'elevation'.")
+                          "find_datasets 'elevation' lists georeferenced DEMs.")
 
     raster_srs = osr.SpatialReference()
     raster_srs.ImportFromWkt(facts["crs_wkt"])
@@ -189,7 +189,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     if not (0 <= col_c < facts["width"] and 0 <= row_c < facts["height"]):
         return tool_error(
             f"The outlet ({lon:.5f}, {lat:.5f}) lies outside {facts['name']}.", "INVALID_ARGS",
-            "Check the DEM's extent with get_layer_info, or load the tile that covers the outlet.")
+            "get_layer_info gives the DEM's extent; another tile may cover the outlet.")
     half_cols = int(radius_km * 1000.0 / cell_x_m)
     half_rows = int(radius_km * 1000.0 / cell_y_m)
     c_min, c_max = max(0, col_c - half_cols), min(facts["width"], col_c + half_cols + 1)
@@ -197,7 +197,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     src_width, src_height = c_max - c_min, r_max - r_min
     if src_width < 3 or src_height < 3:
         return tool_error("The window around the outlet holds fewer than three cells.", "INVALID_ARGS",
-                          "Increase radius_km.")
+                          "Bigger radius_km.")
 
 
 
@@ -213,7 +213,7 @@ def _delineate(args: dict, checkpoint) -> dict:
             f"The window is {src_width:,} by {src_height:,} cells at {cell_x_m:.1f} m; "
             f"{bound_by} allows {max_cells:,}, "
             f"under {_MIN_ROUTED_SIDE} by {_MIN_ROUTED_SIDE} even at a coarser cell.", "EXECUTION_FAILED",
-            "Close other programs to free memory, then call again with the same outlet and DEM.")
+            "More free memory raises this cap for the same outlet and DEM.")
     native_x_m, native_y_m = cell_x_m, cell_y_m
     dx, dy = dx * src_width / width, dy * src_height / height
     cell_x_m, cell_y_m = cell_x_m * src_width / width, cell_y_m * src_height / height
@@ -238,7 +238,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     invalid |= water
     if invalid.all():
         return tool_error("The DEM holds no data around the outlet.", "EXECUTION_FAILED",
-                          "The tile is empty there: load the neighbouring tile or another DEM.")
+                          "The tile is empty there; another tile or DEM may hold data.")
     original = dem.copy()
 
     filled = _priority_flood(dem, invalid, np, heapq, checkpoint)
@@ -255,7 +255,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     if cells < 2:
         return tool_error(
             "Nothing drains to that cell: the outlet is a ridge or the DEM is flat there.", "EXECUTION_FAILED",
-            "Place the outlet on the stream just downstream of the lake or dam, or widen snap_m so it finds it.")
+            "An outlet just downstream of the lake or dam, or a wider snap_m, reaches the stream.")
 
 
     sides = ((mask[0, :], r_min == 0), (mask[-1, :], r_max == facts["height"]),
@@ -283,7 +283,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     wkb = _polygonise(mask, (wx0, dx, 0.0, wy0, 0.0, dy), facts["crs_wkt"], gdal, ogr, osr)
     if wkb is None:
         return tool_error("The watershed mask could not be polygonised.", "EXECUTION_FAILED",
-                          "Retry with a slightly different outlet; if it persists, report the DEM.")
+                          "A different outlet sometimes helps; otherwise the DEM may be the cause.")
 
 
 
@@ -323,21 +323,21 @@ def _delineate(args: dict, checkpoint) -> dict:
 
         out["checks"] = {"warnings": [
             f"The watershed reaches the edge of {facts['name']} itself, so it is cut where the DEM ends. A larger "
-            "radius_km or a coarser DEM cannot change that: report the basin as cut by the DEM's extent, or load a "
-            "DEM that covers more of the area upstream."]}
+            "radius_km or a coarser DEM cannot change that: a DEM covering more of the area upstream would "
+            "include it."]}
     elif touches_edge and radius_km < _max_radius_km():
         wider = min(_max_radius_km(), math.ceil(radius_km * 2.0))
         out["checks"] = {"warnings": [
             f"The watershed reaches the edge of the {2 * radius_km:g} km analysis window, so it is incomplete. "
-            f"Call again with radius_km {wider:g}, keeping the same outlet and DEM: a window past the cell cap is "
-            "read at a coarser cell, so it fits."]}
+            f"radius_km up to {wider:g}, same outlet and DEM, would include more: windows past the cell cap "
+            "read at a coarser cell that fits."]}
     elif touches_edge:
         out["checks"] = {"warnings": [_cut_warning(radius_km, max(cell_x_m, cell_y_m), max_cells)]}
     if resampled:
         out["resample_note"] = (f"Routed at {(cell_x_m + cell_y_m) / 2.0:.1f} m; {facts['name']} is "
                                 f"{(native_x_m + native_y_m) / 2.0:.2g} m, and the {src_width:,} by {src_height:,} "
                                 f"cell window was averaged to {width:,} by {height:,} so it fits {bound_by} "
-                                f"({max_cells:,} cells). Pass a smaller radius_km for a finer outline.")
+                                f"({max_cells:,} cells). A smaller radius_km gives a finer outline.")
     if facts["geographic"]:
         out["crs_note"] = _degrees_note(facts, lat)
     return out
@@ -372,7 +372,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         from osgeo import gdal, ogr, osr
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"numpy or GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "Run the GRASS recipe instead: r.stream.extract then r.stream.order.")
+                          "r.stream.extract then r.stream.order (GRASS) works without them.")
     gdal.UseExceptions()
 
     facts = _run_on_main_thread(_dem_facts, str(args["dem"]))
@@ -381,11 +381,11 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
-                          "Load the DEM file itself with add_data: a WMS or XYZ layer holds no elevation values.")
+                          "add_data loads the DEM file itself: a WMS or XYZ layer holds no elevation values.")
     x0, dx, _, y0, _, dy = dataset.GetGeoTransform()
     if dx == 0 or dy == 0:
         return tool_error("The DEM has no usable geotransform.", "EXECUTION_FAILED",
-                          "Load a georeferenced DEM: find_datasets 'elevation'.")
+                          "find_datasets 'elevation' lists georeferenced DEMs.")
     raster_srs = osr.SpatialReference()
     raster_srs.ImportFromWkt(facts["crs_wkt"])
     wgs84 = osr.SpatialReference()
@@ -402,7 +402,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     radius_km = float(args.get("radius_km") or _DEFAULT_RADIUS_KM)
     if radius_km > _max_radius_km():
         return tool_error(f"radius_km {radius_km:g} is over the {_max_radius_km():g} km limit.", "INVALID_ARGS",
-                          f"Pass radius_km up to {_max_radius_km():g}, keeping the same outlet.")
+                          f"radius_km can go up to {_max_radius_km():g}, same outlet.")
     if args.get("outlet"):
         resolved = _run_on_main_thread(_resolve_outlet, args["outlet"], facts["crs_wkt"])
         if "_error" in resolved:
@@ -414,7 +414,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         if not (0 <= col_c < facts["width"] and 0 <= row_c < facts["height"]):
             return tool_error(f"The outlet ({resolved['lon']:.5f}, {resolved['lat']:.5f}) lies outside "
                               f"{facts['name']}.", "INVALID_ARGS",
-                              "Check the DEM's extent with get_layer_info, or load the tile that covers the outlet.")
+                              "get_layer_info gives the DEM's extent; another tile may cover the outlet.")
         half_cols = int(radius_km * 1000.0 / cell_x_m)
         half_rows = int(radius_km * 1000.0 / cell_y_m)
         c_min, c_max = max(0, col_c - half_cols), min(facts["width"], col_c + half_cols + 1)
@@ -431,7 +431,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         r_min, r_max = max(0, int(math.floor(rows[0])) - 2), min(facts["height"], int(math.ceil(rows[1])) + 2)
         if c_min >= c_max or r_min >= r_max:
             return tool_error(f"{mask['name']} does not overlap {facts['name']}.", "INVALID_ARGS",
-                              "Pass the DEM that covers the area, or check both extents with get_layer_info.")
+                              "The DEM covering the area works; get_layer_info gives both extents.")
         if cols[0] < 0 or rows[0] < 0 or cols[1] > facts["width"] or rows[1] > facts["height"]:
             warnings.append(f"{mask['name']} reaches beyond {facts['name']}: streams there are missing, and the "
                             "flow entering from outside the DEM is not counted.")
@@ -449,16 +449,16 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         if resolved is not None:
             fits_km = _fitting_radius_km(radius_km, col_c, row_c, cell_x_m, cell_y_m,
                                          facts["width"], facts["height"], max_cells)
-            advice = (f"Pass radius_km {fits_km:.1f} or less, or resample the DEM coarser with gdal:warpreproject "
-                      "when the basin is larger than that.")
+            advice = (f"radius_km {fits_km:.1f} or less fits; gdal:warpreproject resamples the DEM coarser for a "
+                      "larger basin.")
         else:
-            advice = ("Pass an outlet (the streams of its watershed) or a smaller mask_layer, or resample the DEM "
-                      "coarser with gdal:warpreproject.")
+            advice = ("An outlet (the streams of its watershed), a smaller mask_layer, or the DEM resampled "
+                      "coarser with gdal:warpreproject, fits.")
         return tool_error(f"The area is {width:,} by {height:,} cells at {cell_x_m:.1f} m; {bound_by} allows "
                           f"{max_cells:,}.", "INVALID_ARGS", advice)
     if width < 3 or height < 3:
         return tool_error("The area holds fewer than three cells of the DEM.", "INVALID_ARGS",
-                          "Increase radius_km, or pass a larger mask_layer.")
+                          "A larger radius_km or mask_layer gives cells.")
 
     band = dataset.GetRasterBand(1)
     dem = band.ReadAsArray(c_min, r_min, width, height).astype("float64")
@@ -470,7 +470,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     invalid |= water
     if invalid.all():
         return tool_error("The DEM holds no data over that area.", "EXECUTION_FAILED",
-                          "Load the tile that covers it, or another DEM.")
+                          "Another tile, or DEM, may cover it.")
     original = dem.copy()
     filled = _priority_flood(dem, invalid, np, heapq, checkpoint)
     down = _d8_downstream(filled, invalid, cell_x_m, cell_y_m, np)
@@ -489,7 +489,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         basin = _upstream_of(down, outlet_flat, width * height, np).reshape(height, width) & ~invalid
         if int(basin.sum()) < 2:
             return tool_error("Nothing drains to that cell: the outlet is a ridge or the DEM is flat there.",
-                              "EXECUTION_FAILED", "Place the outlet on a valley floor, or widen snap_m.")
+                              "EXECUTION_FAILED", "A valley outlet, or a wider snap_m, finds flow.")
         if basin[0, :].any() or basin[-1, :].any() or basin[:, 0].any() or basin[:, -1].any():
             warnings.append(_cut_warning(radius_km, max(cell_x_m, cell_y_m), max_cells))
         s_lon, s_lat, _ = to_wgs84.TransformPoint(window_gt[0] + (c_s + 0.5) * dx, window_gt[2] + (r_s + 0.5) * dy)
@@ -499,7 +499,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
                            facts["crs_wkt"], gdal, ogr, osr, np) & ~invalid
         if not basin.any():
             return tool_error(f"{mask['name']} covers no cell centre of {facts['name']} holding data.",
-                              "INVALID_ARGS", "Pass a larger polygon, or the DEM that covers it.")
+                              "INVALID_ARGS", "A larger polygon, or its DEM, holds data.")
     else:
         basin = ~invalid
 
@@ -520,8 +520,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         if not streams.any():
             most = int(accumulation[basin].max())
             return tool_error(f"No cell collects {threshold:,} cells of flow here (the most is {most:,}).",
-                              "INVALID_ARGS", f"Pass threshold_cells {max(2, most // 4):,} or less: the area is "
-                                              "small for the threshold.")
+                              "INVALID_ARGS", f"threshold_cells {max(2, most // 4):,} or less fits this small area.")
         cells, order, segments = _strahler_network(filled, down, streams, np)
         if len(segments) <= segment_cap:
             break
@@ -529,7 +528,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
             wanted = int(math.ceil(threshold * len(segments) / float(segment_cap)))
             return tool_error(f"That threshold draws {len(segments):,} stream segments; one call adds up to "
                               f"{segment_cap:,}.", "INVALID_ARGS",
-                              f"Pass threshold_cells {wanted:,} or more ({wanted * cell_km2:.3g} km2), "
+                              f"threshold_cells {wanted:,} or more ({wanted * cell_km2:.3g} km2), "
                               "or a smaller area.")
         raised_from = raised_from or threshold
         threshold *= 2
@@ -543,7 +542,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     if min_order > max_order:
         return tool_error(f"The highest Strahler order here is {max_order}, under min_order {min_order}.",
                           "INVALID_ARGS",
-                          f"Pass min_order {max_order} or less, or a smaller threshold_cells (now {threshold:,}) for a "
+                          f"min_order {max_order} or less fits; a smaller threshold_cells (now {threshold:,}) gives a "
                           "denser network with higher orders.")
     rows = _segment_rows(cells, order, segments, accumulation, window_gt, width, cell_x_m, cell_y_m, cell_km2,
                          min_order, np, down=down)
@@ -554,8 +553,8 @@ def _extract_streams(args: dict, checkpoint) -> dict:
                            if len(seg) + (1 if junction >= 0 else 0) >= 2})
         return tool_error(f"No stream of Strahler order {min_order} or more is longer than one cell here.",
                           "INVALID_ARGS",
-                          (f"Pass min_order {drawable[-1]} or less" if drawable else "Pass a smaller threshold_cells")
-                          + ", or move the outlet a little downstream of the confluence.")
+                          (f"min_order {drawable[-1]} or less fits" if drawable else "A smaller threshold_cells fits")
+                          + ", or an outlet a little downstream of the confluence.")
 
     path = None
     if resolved is not None and args.get("longest_flow_path"):
@@ -691,11 +690,12 @@ def _outlet_off_land(invalid, r_o, c_o, snap_m, cell_x_m, cell_y_m, water_any, n
     message = (f"The outlet is on {where}, {distance:,.0f} m from the nearest land cell of the DEM, farther than "
                f"snap_m {snap_m:g}.")
     if needed <= 5000:
-        suggestion = (f"Call again with snap_m {needed} and nothing else changed: the outlet moves to the strongest "
+        suggestion = (f"snap_m {needed}, nothing else changed, reaches the strongest "
                       "flow on the shore within that distance.")
     else:
-        suggestion = (f"Place the outlet on the coast or the river: the nearest land cell is {distance / 1000.0:.1f} "
-                      "km away, beyond the 5 km snap_m cap. Or call map_drainage with no outlet: it picks the mouth.")
+        suggestion = ("An outlet on the coast or the river is needed: the nearest land cell is "
+                      f"{distance / 1000.0:.1f} km away, beyond the 5 km snap_m cap. "
+                      "map_drainage with no outlet picks the mouth.")
     return tool_error(message, "INVALID_ARGS", suggestion)
 
 
@@ -723,22 +723,22 @@ def _cut_warning(radius_km: float, cell_m: float, max_cells: int) -> str:
     window = 2 * radius_km
     if radius_km >= _max_radius_km():
         return (f"The watershed reaches the edge of the {window:g} km analysis window, so it is incomplete. "
-                f"radius_km is already at its {_max_radius_km():g} km limit. Resampling cannot widen that window. "
-                "Keep the requested outlet and use map_drainage with a larger upstream bbox and a DEM covering "
-                "it, or report the partial basin and this extent limit. Do not replace the outlet to make it fit.")
+                f"radius_km is already at its {_max_radius_km():g} km limit; resampling cannot widen the window. "
+                "map_drainage with a larger upstream bbox and a DEM covering it keeps the requested outlet; "
+                "the basin is otherwise partial at this extent limit.")
 
 
 
     fits_km = min(_max_radius_km(), math.floor((math.sqrt(max_cells) - 1) * cell_m / 200.0) / 10.0)
     if radius_km + 0.1 < fits_km:
         return (f"The watershed reaches the edge of the {window:g} km analysis window, so it is incomplete. "
-                f"Call again with radius_km {fits_km:g}, keeping the same outlet and DEM.")
+                f"radius_km up to {fits_km:g}, same outlet and DEM, would include more.")
     coarser = int(math.ceil(max(cell_m * 1.5, 2000.0 * _max_radius_km() / math.sqrt(max_cells) * 1.1) / 10.0)) * 10
     return (f"The watershed reaches the edge of the {window:g} km analysis window, so it is incomplete. "
-            f"A larger window at this resolution may exceed {max_cells:,} cells. If the DEM covers the "
-            f"upstream area, resample a copy to {coarser} m with gdal:warpreproject and increase radius_km "
-            f"up to {_max_radius_km():g}, keeping the requested outlet. Coarser cells alone do not extend DEM "
-            "coverage; report the partial basin if the source data ends.")
+            f"A larger window at this resolution may exceed {max_cells:,} cells. A copy resampled to {coarser} m "
+            f"(gdal:warpreproject) with radius_km up to {_max_radius_km():g}, same outlet, covers more when the "
+            "DEM extends upstream. Coarser cells alone do not extend DEM coverage; the basin is partial if the "
+            "source data ends.")
 
 
 
@@ -776,7 +776,7 @@ def _map_drainage(args: dict) -> dict:
         from osgeo import gdal, ogr, osr
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"numpy or GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "Run delineate_watershed and extract_stream_network instead.")
+                          "delineate_watershed and extract_stream_network cover this.")
     gdal.UseExceptions()
     started = time.monotonic()
     cancel = net.current_cancel_check()
@@ -812,7 +812,7 @@ def _coarsened_note(coarsened, cell_m: float, max_cells: int, dem_name: str) -> 
     cells, was_m = coarsened
     return (f"The area and its margin were {cells:,} cells at {was_m:.0f} m, over the {max_cells:,} cell cap, so they "
             f"were routed at {cell_m:g} m, resampled in memory; {dem_name} itself is unchanged. Nothing needs "
-            "resampling by hand. Say the routing resolution in the answer.")
+            "resampling by hand.")
 
 
 def _stopped_answer(progress: dict) -> dict:
@@ -827,11 +827,11 @@ def _clock_refusal(progress: dict, elapsed: float, budget: float) -> dict:
                + (f", on {cells:,} cells (about {km2:,.0f} km2)" if cells and km2 else "")
                + ", and stopped before adding any layer.")
     if not km2 or not centre:
-        return tool_error(message, "INVALID_ARGS", "Pass a smaller area, or a 90 m DEM (get_dem demtype COP90).")
+        return tool_error(message, "INVALID_ARGS", "A smaller area or a 90 m DEM (get_dem demtype COP90) fits.")
     box = _bbox_around(centre[0], centre[1], math.sqrt(km2) / 2.0)
     return tool_error(message, "INVALID_ARGS",
-                      f"Pass bbox {json.dumps(box)} (a quarter of that area, around its centre) instead of area, or a "
-                      "90 m DEM for the whole area: get_dem demtype COP90, then its url as dem.")
+                      f"bbox {json.dumps(box)} (a quarter of that area, its centre) fits in place of area; a 90 m "
+                      "DEM covers the whole area: get_dem demtype COP90, then its url as dem.")
 
 
 def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> dict:
@@ -875,11 +875,11 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
-                          "Load the DEM file itself: get_dem, then its url as dem, or add_data.")
+                          "get_dem, then its url as dem, or add_data, loads the DEM file.")
     x0, dx, _, y0, _, dy = dataset.GetGeoTransform()
     if dx == 0 or dy == 0:
         return tool_error("The DEM has no usable geotransform.", "EXECUTION_FAILED",
-                          "Load a georeferenced DEM: get_dem, or find_datasets 'elevation'.")
+                          "get_dem, or find_datasets 'elevation', gives one georeferenced.")
     dem_srs = _srs(osr, wkt=facts["crs_wkt"])
     xs = sorted((x0, x0 + dx * facts["width"]))
     ys = sorted((y0, y0 + dy * facts["height"]))
@@ -932,7 +932,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     limited = {"west": ax0 - mx < fx0, "east": ax1 + mx > fx1, "south": ay0 - my < fy0, "north": ay1 + my > fy1}
     if wx0 >= wx1 or wy0 >= wy1:
         return tool_error(f"{label or 'The area'} does not overlap {facts['name']}.", "INVALID_ARGS",
-                          "Get the DEM of the area: get_dem with the area's bbox in degrees, then its url as dem.")
+                          "get_dem with the area's bbox in degrees, then its url as dem, is the DEM of the area.")
     warnings = []
 
 
@@ -977,12 +977,12 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
             f"{label or facts['name']} and its margin are {width:,} by {height:,} cells at {cell_x_m:.0f} m, about "
             f"{width * height * cell_km2:,.0f} km2; {bound_by} allows {max_cells:,} cells, about {fits_km2:,.0f} km2 "
             "at this resolution.", "INVALID_ARGS",
-            f"Pass bbox {json.dumps(_bbox_around(lon_c, lat_c, side_km))} ({side_km:.0f} km across, around the "
-            f"area's centre) only if a smaller area meets the request. To keep the whole area, resample a copy "
-            f"with gdal:warpreproject to {coarser_m} m in a projected metre CRS, preserving its extent, then pass "
-            "that DEM. Keep the requested outlet; do not shrink a watershed's upstream area just to fit the cap.")
+            f"bbox {json.dumps(_bbox_around(lon_c, lat_c, side_km))} ({side_km:.0f} km across, around the "
+            f"area's centre) fits a smaller area. For the whole area, a copy resampled to {coarser_m} m in a "
+            f"projected metre CRS (preserving its extent), as dem, keeps it; the requested outlet and its "
+            "upstream area stay as given, not shrunk to fit the cap.")
     if width < 3 or height < 3:
-        return tool_error("The area holds fewer than three cells of the DEM.", "INVALID_ARGS", "Pass a larger area.")
+        return tool_error("The area holds fewer than three cells of the DEM.", "INVALID_ARGS", "A larger area fits.")
 
     checkpoint()
     band = dataset.GetRasterBand(1)
@@ -997,7 +997,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         except RuntimeError as exc:
             checkpoint()
             return tool_error(f"GDAL could not reproject {facts['name']} to {analysis_id}: {exc}", "EXECUTION_FAILED",
-                              "Load the DEM file itself (get_dem, then its url as dem) and call again.")
+                              "get_dem, then its url as dem, loads the DEM file itself.")
         checkpoint()
         dem = warped.GetRasterBand(1).ReadAsArray().astype("float64")
         geotransform = warped.GetGeoTransform()
@@ -1026,7 +1026,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     invalid |= water
     if invalid.all():
         return tool_error(f"{facts['name']} holds no data over {label or 'that area'}.", "EXECUTION_FAILED",
-                          "Get the DEM of the area: get_dem with its bbox, then its url as dem.")
+                          "get_dem with its bbox, then its url as dem, is the DEM of the area.")
     original = np.where(invalid, np.nan, dem)
     filled = _priority_flood(dem, invalid, np, heapq, checkpoint)
     checkpoint()
@@ -1043,7 +1043,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
                             gdal, ogr, osr, np) & ~invalid
         if not inside.any():
             return tool_error(f"{label} covers no cell of {facts['name']} holding data.", "INVALID_ARGS",
-                              "Pass the DEM that covers the area, or a larger area.")
+                              "The covering DEM, or a larger area, holds data.")
     else:
         inside = ~invalid
 
@@ -1083,7 +1083,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         if not (0 <= col < width and 0 <= row < height):
             return tool_error(f"The outlet ({resolved['lon']:.5f}, {resolved['lat']:.5f}) lies outside the analysed "
                               f"window of {label or facts['name']}.", "INVALID_ARGS",
-                              "Pass an outlet inside the area, or leave outlet out: the tool then picks where the "
+                              "An outlet inside the area works; without one, the tool picks where the "
                               "drainage leaves the area.")
         snap_m = float(args.get("snap_m") if args.get("snap_m") is not None else _DEFAULT_SNAP_M)
         r_s, c_s, moved_m = _snap(accumulation, invalid, row, col, snap_m, cell_x_m, cell_y_m, np)
@@ -1097,7 +1097,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         exits = _exit_cells(inside, invalid, water, covered, down, accumulation, np)
         if not exits:
             return tool_error(f"No drainage leaves {label or facts['name']}.", "EXECUTION_FAILED",
-                              "Pass an outlet: {lon, lat} of the river mouth or of the point to drain to.")
+                              "outlet as {lon, lat} of the river mouth or the point to drain to gives one.")
         outlet_flat, why = exits[0]
         lon, lat = degrees_of(outlet_flat)
         outlet = {"lon": lon, "lat": lat, "picked": "automatically", "why": _EXIT_WHY[why]}
@@ -1107,7 +1107,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     if cells < 2:
         return tool_error("Nothing drains to that cell: the outlet is a ridge or the DEM is flat there.",
                           "EXECUTION_FAILED",
-                          "Leave outlet out: the tool then picks where the drainage leaves the area.")
+                          "Without outlet, the tool picks where the drainage leaves the area.")
     outlet["upstream_km2"] = round(float(accumulation.ravel()[outlet_flat]) * cell_km2, 3)
     others = []
     basins = [basin_flat]
@@ -1137,7 +1137,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     wkb = _polygonise(basin, geotransform, analysis_wkt, gdal, ogr, osr)
     if wkb is None:
         return tool_error("The watershed mask could not be polygonised.", "EXECUTION_FAILED",
-                          "Pass an outlet a little downstream; if it persists, report the DEM.")
+                          "A downstream outlet sometimes helps; the DEM may be the cause.")
     checkpoint()
 
 
@@ -1158,7 +1158,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
             if given:
                 return tool_error(f"No cell collects {threshold * cell_km2:.3g} km2 of flow here (the most is "
                                   f"{most * cell_km2:.3g} km2).", "INVALID_ARGS",
-                                  f"Pass threshold_km2 {max(2, most // 4) * cell_km2:.3g} or less.")
+                                  f"threshold_km2 {max(2, most // 4) * cell_km2:.3g} or less fits.")
             if lowered or most < 8:
                 break
             threshold, lowered = max(2, most // 4), True
@@ -1174,7 +1174,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
             wanted = threshold * len(segments) / float(segment_cap)
             return tool_error(f"That threshold draws {len(segments):,} stream segments; one call adds up to "
                               f"{segment_cap:,}.", "INVALID_ARGS",
-                              f"Pass threshold_km2 {wanted * cell_km2:.3g} or more, or a smaller area.")
+                              f"threshold_km2 {wanted * cell_km2:.3g} or more, or a smaller area.")
         raised_from = raised_from or threshold
         threshold *= 2
         checkpoint()
@@ -1277,13 +1277,13 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         wider = _bbox_around(lon_c, lat_c, 2.0 * max(lon1 - lon0, lat1 - lat0) * 111.0)
         where = f"the {'/'.join(touched)} edge" if touched and not beyond_dem else "the edge"
         warnings.append(f"The watershed reaches {where} of {facts['name']}, so its upstream part is missing: get_dem "
-                        f"with bbox {json.dumps(wider)}, then call again with its url as dem and nothing else changed. "
-                        "Do not ask the user.")
+                        f"with bbox {json.dumps(wider)}, then this call again with its url as dem, nothing else "
+                        "changed.")
     elif touched:
         out["watershed"]["cut"] = True
         warnings.append(f"The watershed reaches the {'/'.join(touched)} edge of the analysed window, so it is cut: "
-                        f"call again with margin_km {max(2.0, 2.0 * margin_m / 1000.0):.0f} and nothing else "
-                        "changed.")
+                        f"margin_km {max(2.0, 2.0 * margin_m / 1000.0):.0f}, nothing else "
+                        "changed, includes more.")
     if warnings:
         out["checks"] = {"warnings": warnings}
     return out
@@ -1312,7 +1312,7 @@ def _accumulation_raster(accumulation, keep, geotransform, wkt: str, cell_km2: f
     except RuntimeError as exc:
         remove_tree(folder)
         return tool_error(f"GDAL could not write the flow accumulation: {exc}", "EXECUTION_FAILED",
-                          "Check the free disk space, then call again.")
+                          "A full disk is the likely cause.")
     return {"path": path, "folder": folder, "name": name, "low": 0.0, "high": max(threshold_km2, 2.0 * cell_km2),
             "max_km2": round(float(accumulation[keep].max()) * cell_km2, 3)}
 
@@ -1379,7 +1379,7 @@ def _twi_answer(args, facts, where, grid, inside, invalid, original, accumulatio
     finite = np.isfinite(twi)
     if not finite.any():
         return tool_error(f"No cell of {label or facts['name']} holds elevation to compute the index on.",
-                          "EXECUTION_FAILED", "Pass the DEM that covers the area: get_dem with its bbox, then its url.")
+                          "EXECUTION_FAILED", "get_dem with its bbox, then its url, gives the DEM covering the area.")
     rows, cols = np.flatnonzero(finite.any(axis=1)), np.flatnonzero(finite.any(axis=0))
     r0, r1, c0, c1 = int(rows[0]), int(rows[-1]) + 1, int(cols[0]), int(cols[-1]) + 1
     twi = twi[r0:r1, c0:c1]
@@ -1402,7 +1402,7 @@ def _twi_answer(args, facts, where, grid, inside, invalid, original, accumulatio
     except RuntimeError as exc:
         remove_tree(folder)
         return tool_error(f"GDAL could not write the wetness index: {exc}", "EXECUTION_FAILED",
-                          "Check the free disk space, then call again.")
+                          "A full disk is the likely cause.")
     checkpoint()
     prefix = str(args.get("name") or label or facts["name"]).strip() or "DEM"
     added = _run_on_main_thread(_add_ramp_raster, path, f"{prefix} TWI", low, max(high, low + 1e-3),

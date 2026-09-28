@@ -132,11 +132,11 @@ COUNT_KEYS = ("max_features", "limit", "max_items", "max_results")
 
 
 HELD_TOOLS = {
-    "add_points_from_json": ("Filter the records before loading, or save them as a CSV or GeoJSON file and "
-                             "load that with add_data, which QGIS reads from disk whatever its size."),
-    "add_arcgis_rest_layer": ("Read the part the user asked for: a bbox over their area or a where clause on the "
-                              "layer's fields. Or the service's own export (GeoJSON or a file download) through "
-                              "add_data, which QGIS reads from disk whatever its size."),
+    "add_points_from_json": ("Filtering the records before loading, or a CSV/GeoJSON file loaded with "
+                             "add_data, reads from disk whatever its size."),
+    "add_arcgis_rest_layer": ("A bbox over the user's area, or a where clause on the layer's fields, reads "
+                              "that part; the service's own export (GeoJSON or a file) through add_data "
+                              "reads from disk whatever its size."),
 }
 
 
@@ -155,8 +155,8 @@ HOSTED_INSTEAD = (
 
 
 
-WHOLE_BEFORE_PART = (" Offer the whole zone first; a smaller box is only part of it, so if the user takes one, "
-                     "say which part is missing.")
+WHOLE_BEFORE_PART = (" A smaller box is only part of the zone; the part outside it stays "
+                     "unloaded.")
 
 
 
@@ -670,12 +670,6 @@ def own_overpass_down() -> bool:
     return since is not None and (time.monotonic() - since) < OWN_OVERPASS_DOWN_S
 
 
-def forget_own_overpass_down() -> None:
-
-    global _own_overpass_down_since
-    _own_overpass_down_since = None
-
-
 def own_overpass() -> bool:
 
 
@@ -766,8 +760,7 @@ def clamp_to_cap(name: str, args: dict) -> dict:
             "bbox": {"south": south, "west": west, "north": north, "east": east},
             "note": (f"The box asked for measured {area:,.1f} km² and one call covers {hard:,.0f} km², so it "
                      f"was read at the size that fits, {used:,.1f} km² about the same centre. The bbox in "
-                     "this result is what is on the map: say so, and call again for the rest if the user "
-                     "wants it.")}
+                     "this result is what is on the map; the rest of the zone needs another call.")}
 
 
 def largest_fitting_bbox(box, hard: float):
@@ -799,7 +792,7 @@ def partial_sentence(fit: dict, area: float) -> str:
         return ""
     box = fit["max_bbox"]
     share = max(1, round(100 * fit["max_bbox_km2"] / area)) if area > 0 else 0
-    return (f" Only part of the zone ({share}%, say so): south={box['south']}, west={box['west']}, "
+    return (f" Only part of the zone ({share}%): south={box['south']}, west={box['west']}, "
             f"north={box['north']}, east={box['east']}.")
 
 
@@ -828,8 +821,8 @@ def fitting_sentence(fit: dict) -> str:
 
 
 
-    return (f" Retry with south={box['south']}, west={box['west']}, north={box['north']}, "
-            f"east={box['east']} ({fit['max_bbox_km2']:,.1f} km2), or smaller.")
+    return (f" south={box['south']}, west={box['west']}, north={box['north']}, "
+            f"east={box['east']} ({fit['max_bbox_km2']:,.1f} km2), or smaller, fits.")
 
 
 def hosted_fallback(name: str, args: dict) -> list:
@@ -852,22 +845,10 @@ def hosted_fallback(name: str, args: dict) -> list:
 
 
 ZONE_ARGUMENTS = (
-    "Say the area in km², get the user's yes, then call again with confirm_area_km2 (one decimal) "
-    "from {quiet:.0f} km² up. One zone is one call: for a place the user named, the same call with "
-    "full_extent loads it whole."
+    "The area in km² needs the user's yes; confirm_area_km2 (one decimal) from {quiet:.0f} km² up "
+    "then continues the call. One zone is one call: full_extent loads the whole named place in the "
+    "same call."
 )
-
-
-
-
-
-
-
-CONFIRM_ARGUMENTS = (
-    "Say {area:,.1f} km² to the user, get a yes, then call again with confirm_area_km2={area:.1f} "
-    "and the same bbox. Under {quiet:.0f} km² here no yes is needed. One zone is one call, never tiled."
-)
-
 
 def _num(value) -> float | None:
     try:
@@ -986,7 +967,7 @@ def _confirmed(args: dict, area: float) -> bool:
 FULL_EXTENT = "full_extent"
 
 
-LIFT_HINT = " If the user's own words ask for all of it, call again with full_extent: their words and the place."
+LIFT_HINT = " full_extent loads it whole when the user's own words ask for all of it: their words and the place."
 
 
 def lifted(args) -> bool:
@@ -1097,19 +1078,6 @@ def check(name: str, args: dict) -> dict:
                 }
             if area > quiet:
                 if not (_confirmed(args, area) or _confirmed(args, asked)):
-                    if _num(args.get("confirm_area_km2")) is None and not args.get("confirm_large"):
-                        return {
-                            "error": (f"{name} over {area:,.1f} km² loads more than a district's worth of "
-                                      f"{'dense ' if dense else ''}features, and the user has not been told the size."),
-
-
-
-
-                            "suggestion": CONFIRM_ARGUMENTS.format(area=area, quiet=quiet),
-                            "code": limits.CEILING_CODE,
-                        }
-
-
 
 
 
@@ -1152,7 +1120,7 @@ def _cap_fitting_sentence(count: int, args: dict, cap: int) -> str:
     return (f" At the {count / area:,.0f} features per km2 this zone just returned, {cap:,} of them "
             f"is about {fits:,.1f} km2: south={box['south']}, west={box['west']}, "
             f"north={box['north']}, east={box['east']} ({fit['max_bbox_km2']:,.1f} km2), same centre. "
-            "Use it or a smaller one; do not guess your way down.")
+            "That box or a smaller one fits.")
 
 
 def coded(hint: str, variant: str = "") -> dict:

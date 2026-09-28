@@ -157,8 +157,8 @@ def _refused_file_suggestion(exc: BaseException) -> str:
 
 
     if IS_WINDOWS and isinstance(exc, PermissionError):
-        return ("The file is open in another program or read-only: ask the user to close it, or write to "
-                "another file name or folder.")
+        return ("The file is open in another program or read-only; closing it or writing to "
+                "another file name or folder works.")
     return ""
 
 
@@ -508,7 +508,7 @@ class ToolRegistry:
             return tool_error(
                 f"Tool not found: {name}",
                 "TOOL_NOT_FOUND",
-                "Check the name against the manifest; search_tools finds the right one.",
+                "search_tools finds the right name against the manifest.",
             )
         try:
             if isinstance(arguments, dict):
@@ -518,18 +518,18 @@ class ToolRegistry:
                 return tool_error(
                     validation_error,
                     "INVALID_ARGS",
-                    "Fix the arguments to match the tool's parameters schema and call again.",
+                    "The tool's parameters schema states what each argument must be.",
                 )
             result = tool.handler(arguments)
         except _ArgumentDepthExceeded:
             return tool_error(
                 f"Arguments for tool '{name}' are nested too deeply",
                 "INVALID_ARGS",
-                "Flatten the arguments to match the tool's parameters schema and call again.",
+                "A flatter argument shape matches the tool's parameters schema.",
             )
         except ServedValueMissing as e:
             log_warning(f"Tool '{name}': {e}")
-            return tool_error(str(e), "SERVICE_NOT_RECEIVED", "Reconnect, then call again.",
+            return tool_error(str(e), "SERVICE_NOT_RECEIVED", "It arrives after reconnect.",
                               hint="served_value_missing", key=e.key)
         except Exception as e:
             network = _network_failure(e)
@@ -547,7 +547,7 @@ class ToolRegistry:
                 message,
                 "EXECUTION_FAILED",
                 _refused_file_suggestion(e)
-                or "Read the traceback, change the approach, and do not retry the same call unchanged.",
+                or "The traceback names the error; the same call unchanged fails the same way.",
             )
             error["traceback"] = _short_traceback(e)
             return error

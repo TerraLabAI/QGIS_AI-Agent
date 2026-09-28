@@ -80,7 +80,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
             "The Python interpreter shipped with QGIS could not be found, so the saved project "
             "cannot be opened anywhere else.",
             "QGIS_PYTHON_NOT_FOUND",
-            "The file was still written. Open it yourself, or check it after restarting QGIS.")
+            "The file was still written and opens after restarting QGIS.")
     kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} \
         if IS_WINDOWS and hasattr(subprocess, "CREATE_NO_WINDOW") else {}
     started = time.monotonic()
@@ -104,7 +104,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
                     f"The separate QGIS did not finish reading the project in {_MAX_SECONDS} s.",
                     "TIMEOUT",
                     "The file was still written. A project this slow to open is usually waiting on a "
-                    "remote layer: check the sources with list_layers.")
+                    "remote layer; list_layers lists the sources.")
             time.sleep(0.2)
 
     report = _read_json(status_path)
@@ -115,8 +115,8 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
         return tool_error(
             f"A separate QGIS could not reopen {os.path.basename(path)}: {detail}",
             "PROJECT_DOES_NOT_REOPEN",
-            "Your own QGIS is untouched and the file is still on disk. Check the layer sources with "
-            "list_layers, write any scratch layer to a file with export_file, and save again.")
+            "Your own QGIS is untouched and the file is still on disk. list_layers shows the layer "
+            "sources; export_file writes a scratch layer to a file before saving again.")
     return _verdict(report, path)
 
 
@@ -131,7 +131,7 @@ def _check_saved_project(args: dict) -> dict:
         if not path:
             return tool_error(
                 "This QGIS has no saved project to reopen.", "INVALID_ARGS",
-                "Save it first with save_project, then check that file.")
+                "save_project saves the project this checks.")
     path_error = validate_path(path)
     if path_error:
         return {"_error": path_error, "_code": "INVALID_ARGS"}

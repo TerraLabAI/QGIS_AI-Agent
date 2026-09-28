@@ -67,7 +67,7 @@ def _attribute(attributes: dict, requested: str, label: str) -> tuple[str | None
         return actual, None
     available = ", ".join(sorted(attributes.values())[:20]) or "none"
     return None, tool_error(f"{label} attribute {requested!r} is not on this point cloud.", "INVALID_ARGS",
-                            f"Use one of: {available}.")
+                            f"Available: {available}.")
 
 
 def _renderer_available(mode: str) -> bool:
@@ -82,10 +82,10 @@ def _range(layer, attribute: str, minimum, maximum) -> tuple[float | None, float
         high = float(maximum) if maximum is not None else float(layer.statistics().statisticsOf(attribute).maximum())
     except Exception:  # noqa: BLE001
         return None, None, tool_error(f"QGIS has no numeric range for {attribute!r} on this point cloud.",
-                                      "EXECUTION_FAILED", "Pass minimum and maximum explicitly.")
+                                      "EXECUTION_FAILED", "minimum, maximum need values.")
     if not (math.isfinite(low) and math.isfinite(high) and low < high):
         return None, None, tool_error("minimum must be below maximum and both must be finite.", "INVALID_ARGS",
-                                      "Pass two finite values with minimum below maximum.")
+                                      "Two finite values, minimum below maximum, fit.")
     return low, high, None
 
 
@@ -105,11 +105,11 @@ def _configure_pointcloud_style(args: dict) -> dict:
         return tool_error(f"Layer {args.get('layer_name')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(layer, QgsPointCloudLayer):
         return tool_error(f"{layer.name()!r} is not a point-cloud layer.", "INVALID_ARGS",
-                          "Load a LAS, LAZ, COPC, EPT or VPC point cloud first.")
+                          "A LAS, LAZ, COPC, EPT or VPC point cloud is needed.")
     mode = str(args.get("mode") or "")
     if mode not in _MODES:
         return tool_error(f"mode {mode!r} is not supported.", "INVALID_ARGS",
-                          "Pass rgb, classification or elevation_ramp.")
+                          "rgb, classification, elevation_ramp.")
     if not _renderer_available(mode):
         return tool_error(f"This QGIS build does not provide the {mode} point-cloud renderer.", "EXECUTION_FAILED")
 
@@ -146,7 +146,7 @@ def _configure_pointcloud_style(args: dict) -> dict:
         color_ramp = _ramp(ramp_name)
         if ramp_name and color_ramp is None:
             return tool_error(f"Colour ramp {ramp_name!r} was not found.", "INVALID_ARGS",
-                              "Pass a ramp shown in QGIS's Style Manager, or omit color_ramp.")
+                              "QGIS's Style Manager lists ramps; color_ramp may be omitted.")
         shader = QgsColorRampShader(low, high)
         shader.setColorRampType(SHADER_INTERPOLATED)
         shader.setClassificationMode(SHADER_CLASS_CONTINUOUS)

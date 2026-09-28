@@ -1,13 +1,23 @@
+# AI Agent in QGIS [![QGIS](https://img.shields.io/badge/QGIS-3.28+-93b023?style=flat-square&logo=qgis&logoColor=white)](https://qgis.org) [![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white)]() [![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)]() [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)]() [![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg?style=flat-square)](LICENSE)
 
-# AI Agent in QGIS [![QGIS](https://img.shields.io/badge/QGIS-3.28+-93b023?style=flat-square&logo=qgis&logoColor=white)](https://qgis.org) [![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white)]() [![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)]() [![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)]()
+## Your AI agent for QGIS: hand it the work and it does it in your open project
 
-## Your AI agent for QGIS. Hand it the work and it does it in your open project
-### Follow this tutorial/documentation to use the plugin :
- https://terra-lab.ai/ai-agent
----
+Ask for anything in plain English and it finds the data, runs the analysis and
+builds the map. No code, and one click undoes anything it changed.
 
+<img src="https://terra-lab.ai/images/ai-agent/ai-agent-hero.webp" alt="AI Agent carrying out a written task in a QGIS project" width="700"/>
 
-<img src="https://terra-lab.ai/images/ai-agent/ai-agent-hero.webp" alt="Demo" width="700"/>
+## Install
+
+QGIS 3.28 or later, on Windows, macOS or Linux. In QGIS, open *Plugins >
+Manage and Install Plugins*, search "AI Agent", install. The free tier needs
+no card.
+
+- Tutorial, documentation and plans: https://terra-lab.ai/ai-agent
+- Plugin page on the QGIS repository: https://plugins.qgis.org/plugins/AI_Agent/
+- Bugs and requests: https://github.com/TerraLabAI/QGIS_AI-Agent/issues
+
+License: GPL-2.0-or-later. Made by [TerraLab](https://terra-lab.ai).
 
 ---
 

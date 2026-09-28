@@ -103,6 +103,13 @@ class _ExecutorCode:
                              "reasons": verdict.reasons}
         return ce.DANGER[cls]
 
+    @staticmethod
+    def _code_class_of(call: dict) -> str:
+
+        if call.get("name") != CODE_TOOL:
+            return ""
+        return str((call.get("code_plan") or {}).get("cls") or "")
+
     def _code_tool_class(self, name: str) -> str | None:
         if code_runtime is None:
             return None
@@ -294,7 +301,7 @@ class _ExecutorCode:
         if mode == Mode.ASK:
             self._fail(call, "READ_ONLY_MODE",
                        tr("Question mode is read only: the snippet {what}.").format(what=reason),
-                       "Explain what the code would change and ask the user whether to go ahead.")
+                       "Nothing changes in Question mode unless the user says yes.")
             return
         approval = self._approval_now()
         if not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]):

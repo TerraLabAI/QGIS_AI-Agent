@@ -11,7 +11,7 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import background, layout_show, licence, limits, machine, stalls
+from . import background, code_guard, layout_show, licence, limits, machine, stalls
 from .checkpoints import KIND_AFTER
 from .context import stamp_thread
 from .executor_idempotency import IdempotencyTable
@@ -35,6 +35,17 @@ CANCELLED_KEEP = 200
 def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
+
+
+def _open_dialog() -> str | None:
+
+    try:
+        from qgis.PyQt.QtWidgets import QApplication
+
+        dialog = QApplication.activeModalWidget()
+    except Exception:  # noqa: BLE001
+        return None
+    return None if dialog is None else str(dialog.windowTitle())
 
 class _ExecutorRuns:
     @staticmethod
@@ -125,13 +136,17 @@ class _ExecutorRuns:
             waiting, self._waiting_for_history = self._waiting_for_history, {}
             for call in waiting.values():
                 self.handle_tool_call(call)
-        if not (self._run_mode or self._inflight or self._background or self._waiting_for_history):
+        if self._held:
+            self._read_held()
+        if not (self._run_mode or self._inflight or self._background or self._waiting_for_history or self._held):
 
 
 
             self.watchdog.stop()
+            code_guard.WAITING_ON_USER.clear()
             return
         now = time.monotonic() if now is None else float(now)
+        self._note_dialog_waits(now)
         for tool_call_id, (run_id, name, started, in_background) in list(self._inflight.items()):
             spent = now - started
 
@@ -161,9 +176,35 @@ class _ExecutorRuns:
                        f"{name} ran for {spent:.0f} seconds without answering, over the "
                        f"{budget:.0f} second budget for one tool call on this computer, and was "
                        "cancelled.",
-                       "Ask for less in one call: a smaller area, fewer features, one layer instead of "
-                       "the whole catalogue. Do not send the same call again unchanged.",
+                       "A smaller area, fewer features or one layer instead of the whole catalogue fits "
+                       "the budget; the same call unchanged times out again.",
                        spent)
+
+    def _note_dialog_waits(self, now: float) -> None:
+
+
+
+
+
+
+
+
+
+
+        last, self._dialog_tick = self._dialog_tick, now
+        title = _open_dialog() if self._inflight else None
+
+        if title is None:
+            code_guard.WAITING_ON_USER.clear()
+            return
+        code_guard.WAITING_ON_USER.set()
+        if last is None:
+            return
+        step = min(now - last, 2.0)
+        for tool_call_id, (_run_id, _name, _started, in_background) in self._inflight.items():
+            if not in_background:
+                seconds, _title = self._dialog_waits.get(tool_call_id, (0.0, ""))
+                self._dialog_waits[tool_call_id] = (seconds + step, title)
 
     def _answer_once(self, tool_call_id: str) -> None:
 
@@ -245,6 +286,7 @@ class _ExecutorRuns:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Canvas follower not halted on Stop: {exc}")
             self._cancel_tasks(run_id)
+        self._drop_held(run_id)
         for tool_call_id, (task_run, task) in list(self._background.items()):
             if task_run == run_id:
                 self._background.pop(tool_call_id, None)
@@ -259,7 +301,7 @@ class _ExecutorRuns:
             if call.get("run_id") == run_id:
                 self._questions.pop(tool_call_id, None)
                 self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
-                           "Stop here and wait for the next user message.")
+                           "The user stopped the run.")
                 self.question_resolved.emit(tool_call_id, "")
 
     def _cancel_tasks(self, run_id: str) -> None:
@@ -306,6 +348,8 @@ class _ExecutorRuns:
         self._executing.clear()
         self._background.clear()
         self._inflight.clear()
+        self._held.clear()
+        self._listen_tasks(False)
         self.watchdog.stop()
         background.cancel_all()
 
@@ -349,7 +393,8 @@ class _ExecutorRuns:
 
         if (any(c.get("run_id") == run_id for c in [*self._pending.values(), *self._questions.values()])
                 or any(c.get("run_id") == run_id for c in self._waiting_for_history.values())
-                or any(task_run == run_id for task_run, _task in self._background.values())):
+                or any(task_run == run_id for task_run, _task in self._background.values())
+                or any(entry[0].get("run_id") == run_id for entry in self._held.values())):
             self.cancel_run(run_id, halt=False)
         self._run_mode.pop(run_id, None)
         self._touched.pop(run_id, None)

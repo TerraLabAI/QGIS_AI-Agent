@@ -27,7 +27,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
-from ..core import ground, invalid_geometry, layer_order
+from ..core import background, ground, invalid_geometry, layer_order
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
@@ -35,6 +35,7 @@ from ..core.policy import AGENT_TMP_DIR, create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.serialization import cut_string
+from . import processing_child
 from .layer_io_tools import _release_layers_at_path, _same_file
 from .layer_lookup import _find_layer
 from .postconditions import report_checks
@@ -42,6 +43,7 @@ from .processing_decisions import (
     _FIELD_EXISTS_RE,
     _goes_to_task,
     _processing_error,
+    _threadable,
     _unsafe_processing_algorithm,
     align_raster_grids,
     geometry_defaults,
@@ -116,10 +118,10 @@ _TRANSIENT_CODES = frozenset({"RUN_BUDGET", "PERMISSION_DENIED", "TIMEOUT", "CAN
 
 _TRANSIENT_MARKS = ("still held by another process", "is not answering", "was stopped", EMPTY_SELECTION_MARK)
 _EXTERNAL_PREFIXES = ("saga:", "sagang:", "grass:", "grass7:", "otb:", "r:")
-_REPEAT_SUGGESTION = ("Do not send it again. Change the algorithm (find_processing_algorithm for the same "
-                      "operation), the input, or the output path, or tell the user what is in the way.")
-_REPEAT_EXTERNAL_SUGGESTION = ("This provider runs outside QGIS and fails the same way every time. Use the "
-                               "native: or gdal: algorithm for the same operation instead.")
+_REPEAT_SUGGESTION = ("The same call fails again the same way. Another algorithm "
+                      "(find_processing_algorithm for the same operation), input, or output path may not.")
+_REPEAT_EXTERNAL_SUGGESTION = ("This provider runs outside QGIS and fails the same way every time; "
+                               "native: or gdal: for the same operation runs inside QGIS.")
 
 
 def _call_signature(algorithm_id, parameters) -> str:
@@ -289,17 +291,26 @@ def _record_history(alg, parameters: dict, context) -> dict:
 
 
 
+    from ..core import provenance as origin
+
     provenance = {"algorithm": alg.id(), "command": ""}
     try:
-        provenance["command"] = str(alg.asPythonCommand(parameters, context))
-    except Exception:  # nosec B110
-        pass
+
+
+        provenance.update(origin.inputs_of(parameters, alg))
+        provenance["command"] = origin.command_text(alg.id(), parameters)
+    except Exception:  # noqa: BLE001
+        provenance = {"algorithm": alg.id(), "command": ""}
+    try:
+        python_command = str(alg.asPythonCommand(parameters, context))
+    except Exception:  # noqa: BLE001
+        python_command = ""
     try:
         from qgis.gui import QgsGui, QgsHistoryEntry
         from qgis.PyQt.QtCore import QDateTime
 
         entry = QgsHistoryEntry("processing", QDateTime.currentDateTime(), {
-            "python_command": provenance["command"],
+            "python_command": python_command,
             "algorithm_id": alg.id(),
             "parameters": alg.asMap(parameters, context),
         })
@@ -509,7 +520,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
                         return {"_error": (
                             f"{name}: a GeoPackage path cannot contain a single quote and a table name "
                             f"cannot contain a double quote, because the output URI uses them as "
-                            f"delimiters. Write to a different folder or table name."),
+                            f"delimiters. A different folder or table name has none."),
                             "code": "INVALID_ARGS"}
                     plans.append(("table", name, (gpkg_path, table_name, sink_uri)))
                     continue
@@ -571,7 +582,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
             return {"_error": (f"{name} is {overwritten}, which {algorithm_id} also reads: writing there replaces "
                                f"the input before it is read, and its data would be lost. Nothing was run."),
                     "code": "INVALID_ARGS",
-                    "suggestion": "Write the output to a new file or a new table name, then use that layer."}
+                    "suggestion": "A new file or a new table name avoids overwriting the input."}
 
 
 
@@ -591,7 +602,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
             return {"_error": (f"{algorithm_id} needs {', '.join(missing)}, which the call does not give; "
                                f"nothing was run and no file was replaced."),
                     "code": "INVALID_ARGS",
-                    "suggestion": f"Pass the layer under its exact input name: {', '.join(missing)}."}
+                    "suggestion": f"Input name(s): {', '.join(missing)}."}
 
 
 
@@ -692,7 +703,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
         return {
             "_error": (
                 f"Cannot replace the Processing destination while {names} has unsaved edits. "
-                "Save or roll back those edits, then run the algorithm again; nothing was run."
+                "Nothing was run; saving or rolling back those edits frees it."
             )
         }
 
@@ -738,7 +749,19 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
 
 
 
-    if _goes_to_task(alg, args, parameters):
+
+    from ..core.provenance import existing_files
+
+    try:
+        existed = existing_files(sanitized_parameters)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Files before the run not read: {exc}")
+        existed = None
+
+
+    child_job = None if _goes_to_task(alg, args, parameters) else processing_child.plan(
+        alg, algorithm_id, run_parameters, context)
+    if child_job is not None or _goes_to_task(alg, args, parameters):
         started = _start_async_processing(
             alg,
             algorithm_id,
@@ -748,8 +771,10 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
             destination_paths=file_destination_paths,
             add_to_project=in_project,
             temporary_dir=managed_output_dir,
+            existed=existed,
             run_parameters=run_parameters,
             path_aliases=path_aliases,
+            child_job=child_job,
         )
         if dropped:
             repairs += dropped
@@ -765,6 +790,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
         return started
 
     target = algorithm if algorithm is not None else algorithm_id
+    held_since = time.monotonic()
     try:
         result = processing.run(target, run_parameters, feedback=feedback, context=context)
     except Exception as e:
@@ -790,8 +816,8 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
                 f"The output already carries a field named '{clash}', so it cannot be created again. "
                 f"A GeoPackage compares field names without case, which makes 'Population' and "
                 f"'population' the same field.", alg)
-            failure["suggestion"] = (f"Give the new field another name, or overwrite '{clash}' in place "
-                                     f"with native:fieldcalculator on that same field name.")
+            failure["suggestion"] = (f"Another field name avoids it; native:fieldcalculator on '{clash}' "
+                                     f"overwrites it in place.")
             return failure
         elif "already exists" not in str(e):
             failure = _processing_error(algorithm_id, f"Processing failed: {str(e)}", alg)
@@ -823,7 +849,7 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
                     algorithm_id,
                     f"The output file is still held by another process (on Windows, a "
                     f"GeoPackage open in QGIS or another program). Last error: {last_error}. "
-                    f"Run again, or pass a new output file name.",
+                    f"A new output file name is free of that lock.",
                     alg,
                 )
 
@@ -847,12 +873,13 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
             failed["files_written"] = written
         external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
         if external and not failed.get("suggestion"):
-            failed["suggestion"] = ("This external provider wrote nothing; its log is in the message. Look for "
-                                    "the same operation among the native: or gdal: algorithms (list_algorithms), "
-                                    "which run inside QGIS, before retrying this one.")
+            failed["suggestion"] = ("This external provider wrote nothing; its log is in the message. The "
+                                    "native: or gdal: algorithm for the same operation (list_algorithms finds "
+                                    "it) runs inside QGIS.")
         return failed
 
     provenance = _record_history(alg, sanitized_parameters, context)
+    provenance["existed"] = existed
     out = {"algorithm": algorithm_id,
            "outputs": _process_outputs(result, output_name=args.get("output_name"), provenance=provenance,
                                        destination_parameters=sanitized_parameters, algorithm_id=algorithm_id,
@@ -895,6 +922,9 @@ def _run_processing_once(args: dict, algorithm=None) -> dict:
     _report_empty_outputs(out)
     _report_log(out, feedback)
     report_checks(out, algorithm_id, sanitized_parameters)
+    if not _threadable(alg):
+
+        out["main_thread_s"] = round(time.monotonic() - held_since, 1)
     return out
 
 
@@ -1008,11 +1038,13 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
     output = {}
     added = []
     pending = []
+    kept_out = []
 
     def place(key, layer, path=None):
         source = path or _file_of(layer)
         if not add_to_project and source:
             output[key] = _layer_summary(layer, source, in_project=False)
+            kept_out.append(layer)
             return
         pending.append(layer)
         added.append((key, layer))
@@ -1040,7 +1072,7 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
             if path_error:
                 output[key] = {"path": value, "readable": False, "warning": path_error}
                 continue
-            layer = _native_output_layer(value, context)
+            layer = _native_output_layer(value, context, "Vector")
             if layer is not None and layer.isValid():
 
 
@@ -1055,13 +1087,13 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
             if path_error:
                 output[key] = {"path": value, "readable": False, "warning": path_error}
                 continue
-            layer = _native_output_layer(value, context)
+            layer = _native_output_layer(value, context, _output_hint(algorithm_id, key))
             problem = raster_file_problem(value) if isinstance(layer, QgsRasterLayer) else ""
             if problem:
                 output[key] = {"path": value, "readable": False, "unreadable": problem[:300],
                                "warning": "GDAL cannot read this file to its last row: it was written "
-                                          "incompletely and was not loaded. Do not use it; write it again "
-                                          "to another folder."}
+                                          "incompletely and was not loaded; another folder "
+                                          "may take a whole copy."}
             elif layer is not None and layer.isValid():
                 _declare_raster_crs(layer)
                 place(key, layer, value)
@@ -1090,6 +1122,12 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
                 output[key] = _plain_output(value)
     if pending:
         QgsProject.instance().addMapLayers(pending, True)
+    if provenance:
+
+
+
+        for layer in [layer for _key, layer in added] + kept_out:
+            _stamp_provenance(layer, provenance)
     added = _drop_leftovers(added, output)
     name = str(output_name or "").strip()
     if name and added:
@@ -1105,9 +1143,15 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
             output[key]["layer_name"] = new_name
             if renamed:
                 output[key]["renamed_intermediates"] = renamed
-    if provenance and added:
-        for _key, layer in added:
-            _stamp_provenance(layer, provenance)
+    if provenance:
+        from ..core.provenance import remember_output
+
+        for key, value in (result_map or {}).items():
+
+
+            shown = output.get(key, {}).get("path") if isinstance(output.get(key), dict) else None
+            remember_output(shown if isinstance(shown, str) and shown else value if isinstance(value, str) else None,
+                            provenance)
     if algorithm_id in _FIELD_SETUP_CARRY_ALGORITHMS and added:
         source_layer = _field_rebuild_input_layer(destination_parameters)
         if source_layer is not None:
@@ -1212,13 +1256,31 @@ def _carried_field_setup(source_layer, target_layer) -> list:
     return carried
 
 
-def _native_output_layer(value: str, context=None):
+def _output_hint(algorithm_id, key) -> str:
+
+    try:
+        algorithm = QgsApplication.processingRegistry().algorithmById(str(algorithm_id or ""))
+        definition = algorithm.outputDefinition(key) if algorithm is not None else None
+        kind = definition.type() if definition is not None else ""
+    except Exception:  # noqa: BLE001
+        return ""
+    return {"outputRaster": "Raster", "outputVector": "Vector"}.get(kind, "")
+
+
+def _native_output_layer(value: str, context=None, hint: str = ""):
+
+
+
+
+
 
     lookup = context or QgsProcessingContext()
     if context is None:
         lookup.setProject(QgsProject.instance())
     try:
-        layer = QgsProcessingUtils.mapLayerFromString(value, lookup, True)
+        type_hint = getattr(getattr(QgsProcessingUtils, "LayerHint", None), hint, None) if hint else None
+        layer = (QgsProcessingUtils.mapLayerFromString(value, lookup, True, type_hint) if type_hint is not None
+                 else QgsProcessingUtils.mapLayerFromString(value, lookup, True))
     except Exception:  # noqa: BLE001
         return None
     if layer is None or not layer.isValid():
@@ -1294,7 +1356,7 @@ def _layer_summary(layer, path: str | None = None, in_project: bool = True) -> d
     if in_project:
         out = {"layer_id": layer.id(), **out}
     else:
-        out["note"] = "Not added to the project: pass this path as the next step's input."
+        out["note"] = "Not added to the project: this path is the next step's input."
     if isinstance(layer, QgsVectorLayer):
         out["feature_count"] = layer.featureCount()
         out["geometry_type"] = QgsWkbTypes.displayString(layer.wkbType())
@@ -1429,6 +1491,8 @@ def _start_async_processing(
     run_parameters=None,
     path_aliases=None,
     add_to_project=True,
+    existed=None,
+    child_job=None,
 ) -> dict:
     _sweep_consumed_tasks()
     task_id = "proc-" + uuid.uuid4().hex[:12]
@@ -1449,8 +1513,13 @@ def _start_async_processing(
     feedback = _CapturingFeedback()
 
 
-    task = QgsProcessingAlgRunnerTask(alg, run_parameters if run_parameters is not None else parameters,
-                                      context, feedback)
+    if child_job is not None:
+        task = processing_child.ChildRun(
+            f"Running {algorithm_id}", child_job,
+            lambda ok, report, tid=task_id, ctx=context, fb=feedback: _on_child_done(tid, ok, report, ctx, fb))
+    else:
+        task = QgsProcessingAlgRunnerTask(alg, run_parameters if run_parameters is not None else parameters,
+                                          context, feedback)
     _PROCESSING_TASKS[task_id] = {
         "status": "running",
         "progress": 0,
@@ -1464,6 +1533,8 @@ def _start_async_processing(
         "alg": alg,
         "parameters": parameters,
         "run_token": layer_order.current_run(),
+        "tool_call_id": background.current_call(),
+        "existed": existed,
         "destination_paths": list(destination_paths or []),
 
         "temporary_dir": temporary_dir,
@@ -1471,6 +1542,8 @@ def _start_async_processing(
     if path_aliases is not None:
         path_aliases.owner = task_id
         _PROCESSING_TASKS[task_id]["path_aliases"] = path_aliases
+    if child_job is not None:
+        _PROCESSING_TASKS[task_id]["separate_qgis"] = True
     task.progressChanged.connect(lambda p, tid=task_id: _on_proc_progress(tid, p))
 
 
@@ -1478,8 +1551,9 @@ def _start_async_processing(
 
 
 
-    task.executed.connect(
-        lambda ok, results, tid=task_id, ctx=context, fb=feedback: _on_proc_done(tid, ok, results, ctx))
+    if child_job is None:
+        task.executed.connect(
+            lambda ok, results, tid=task_id, ctx=context, fb=feedback: _on_proc_done(tid, ok, results, ctx))
 
 
 
@@ -1492,10 +1566,47 @@ def _start_async_processing(
         "task_id": task_id,
         "status": "running",
         "algorithm": algorithm_id,
-        "note": "Running in the background, QGIS stays responsive. Poll get_task_status(task_id).",
+        "note": ("Running in a separate QGIS process (the algorithm declares NoThreading), "
+                 "this QGIS stays responsive." if child_job is not None
+                 else "Running in the background, QGIS stays responsive."),
         "poll": {"tool": "get_task_status", "args": {"task_id": task_id},
                  "interval_s": _POLL_INTERVAL_S, "label": f"Running {algorithm_id}"},
     }
+
+
+def _on_child_done(task_id: str, ok: bool, report: dict, context, feedback) -> None:
+
+
+    for line in report.get("errors") or []:
+        feedback.reportError(str(line))
+    if not ok and report.get("error") and not report.get("unavailable"):
+        feedback.reportError(str(report["error"]))
+    for line in report.get("warnings") or []:
+        feedback.pushWarning(str(line))
+    for line in report.get("console") or []:
+        feedback.pushConsoleInfo(str(line))
+    entry = _PROCESSING_TASKS.get(task_id)
+    if entry is not None:
+
+        entry["separate_qgis"] = {key: report[key] for key in ("init_s", "run_s", "wall_s") if key in report}
+    results = report.get("results") or {}
+    if report.get("unavailable") and entry is not None and entry.get("status") == "running":
+
+
+
+        held_since = time.monotonic()
+        try:
+            results = processing.run(entry["alg"], report.get("parameters") or entry.get("parameters") or {},
+                                     feedback=feedback, context=context)
+            ok = True
+        except Exception as exc:  # noqa: BLE001
+            feedback.reportError(str(exc))
+            ok = False
+        entry["main_thread_s"] = round(time.monotonic() - held_since, 1)
+        entry.pop("separate_qgis", None)
+    _on_proc_done(task_id, ok, results, context)
+    if report.get("work_dir"):
+        remove_tree(report["work_dir"])
 
 
 def register_task(task, label: str, connect=None) -> tuple:
@@ -1699,7 +1810,10 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
             provenance = None
             if entry.get("alg") is not None:
                 provenance = _record_history(entry["alg"], entry.get("parameters") or {}, context)
-            with layer_order.adopted(entry.get("run_token")):
+                provenance["existed"] = entry.get("existed")
+
+
+            with layer_order.adopted(entry.get("run_token")), background.calling(entry.get("tool_call_id", "")):
                 entry["outputs"] = _process_outputs(
                     results,
                     context,
@@ -1813,7 +1927,10 @@ def _get_task_status(args: dict) -> dict:
             "log",
             "feature_count",
             "source_unchanged",
-            "isolated_process",
+
+
+            "separate_qgis",
+            "main_thread_s",
             "output_crs",
             "empty_count",
             "invalid_count",
@@ -1880,7 +1997,7 @@ def _list_tasks(args: dict) -> dict:
     return {
         "tasks": tasks,
         "count": len(tasks),
-        "_hint": "Poll get_task_status(task_id) for progress/outputs; cancel_task(task_id) stops a running one.",
+        "_hint": "get_task_status(task_id) gives progress/outputs; cancel_task(task_id) stops a running one.",
     }
 
 

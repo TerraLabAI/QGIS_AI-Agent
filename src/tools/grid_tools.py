@@ -64,13 +64,13 @@ OPTIONAL_DEPENDENCIES.setdefault("h3", {
     "package": "h3",
     "import_name": "h3",
     "unlocks": "H3 hexagonal grids in create_grid_layer, encode_cells and decode_cell",
-    "post_install": "Reload the plugin (QGIS plugin manager), then pass system:'h3' to the grid tools.",
+    "post_install": "After a plugin reload (QGIS plugin manager), system:'h3' works in the grid tools.",
 })
 OPTIONAL_DEPENDENCIES.setdefault("s2", {
     "package": "s2sphere",
     "import_name": "s2sphere",
     "unlocks": "S2 quadrilateral grids in create_grid_layer, encode_cells and decode_cell",
-    "post_install": "Reload the plugin (QGIS plugin manager), then pass system:'s2' to the grid tools.",
+    "post_install": "After a plugin reload (QGIS plugin manager), system:'s2' works in the grid tools.",
 })
 
 
@@ -84,7 +84,6 @@ OPTIONAL_DEPENDENCIES.setdefault("s2", {
 
 
 GEOHASH_ALPHABET = "0123456789bcdefghjkmnpqrstuvwxyz"  # pragma: allowlist secret
-_GEOHASH_INDEX = {char: value for value, char in enumerate(GEOHASH_ALPHABET)}
 _GEOHASH_CHAR_BITS = 5
 
 
@@ -114,29 +113,6 @@ def geohash_encode(latitude: float, longitude: float, precision: int = 9) -> str
         GEOHASH_ALPHABET[(packed >> shift) & mask]
         for shift in range(total - _GEOHASH_CHAR_BITS, -1, -_GEOHASH_CHAR_BITS)
     )
-
-
-def geohash_decode_bbox(code: str) -> tuple:
-
-    if not code:
-        raise ValueError("empty geohash")
-    longitudes = [-180.0, 180.0]
-    latitudes = [-90.0, 90.0]
-    position = 0
-    for char in code.lower():
-        value = _GEOHASH_INDEX.get(char)
-        if value is None:
-            raise ValueError(f"'{char}' is not a geohash character")
-        for shift in range(_GEOHASH_CHAR_BITS - 1, -1, -1):
-            _narrow(latitudes if position % 2 else longitudes, bool((value >> shift) & 1))
-            position += 1
-    return latitudes[0], longitudes[0], latitudes[1], longitudes[1]
-
-
-def geohash_decode(code: str) -> tuple:
-
-    south, west, north, east = geohash_decode_bbox(code)
-    return (south + north) / 2, (west + east) / 2
 
 
 def geohash_divisions(precision: int) -> tuple:
@@ -238,94 +214,6 @@ def olc_encode(latitude: float, longitude: float, code_length: int = 10) -> str:
     return body[:OLC_SEPARATOR_POSITION] + OLC_SEPARATOR + body[OLC_SEPARATOR_POSITION:]
 
 
-def _olc_clean(code: str) -> str:
-
-
-
-
-
-
-
-
-
-
-    raw = (code or "").upper().strip()
-    if not raw:
-        raise ValueError("empty Open Location Code")
-    if raw.count(OLC_SEPARATOR) != 1:
-        raise ValueError("an Open Location Code has exactly one '+' separator")
-    separator_at = raw.index(OLC_SEPARATOR)
-    if separator_at != OLC_SEPARATOR_POSITION or separator_at % 2 == 1:
-        raise ValueError(
-            f"the '+' of a full Open Location Code sits after {OLC_SEPARATOR_POSITION} characters; "
-            f"a short code like '{raw}' needs a reference location, which this tool does not take")
-    body = raw.replace(OLC_SEPARATOR, "")
-    if len(raw) > separator_at + 1 and len(raw) - separator_at - 1 < 2:
-        raise ValueError("an Open Location Code has at least two characters after the '+'")
-    padding = 0
-    while body.endswith(OLC_PADDING):
-        body = body[:-1]
-        padding += 1
-    if OLC_PADDING in body:
-        raise ValueError("the '0' padding of an Open Location Code only ever comes at the end")
-    if padding:
-        if padding % 2 == 1 or len(body) < 2 or len(body) > OLC_SEPARATOR_POSITION - 2:
-            raise ValueError("the padding of an Open Location Code is an even amount, before the separator")
-        if len(raw) > separator_at + 1:
-            raise ValueError("a padded Open Location Code carries nothing after its '+'")
-    for char in body:
-        if char not in OLC_ALPHABET:
-            raise ValueError(f"'{char}' is not an Open Location Code character")
-    if len(body) < 2:
-        raise ValueError("an Open Location Code carries at least two characters")
-    if len(body) % 2 == 1 and len(body) < _OLC_PAIR_LENGTH:
-        raise ValueError("the paired part of an Open Location Code has an even number of characters")
-
-
-    if OLC_ALPHABET.index(body[0]) > 8:
-        raise ValueError("the first character of an Open Location Code puts it past the north pole")
-    if OLC_ALPHABET.index(body[1]) > 17:
-        raise ValueError("the second character of an Open Location Code puts it past longitude 180")
-    return body[:_OLC_MAX_DIGITS]
-
-
-def olc_decode_bbox(code: str) -> tuple:
-
-    body = _olc_clean(code)
-    pair_part = body[:_OLC_PAIR_LENGTH]
-    grid_part = body[_OLC_PAIR_LENGTH:_OLC_MAX_DIGITS]
-
-
-    lat_pairs = -90 * _OLC_PAIR_STEPS
-    lon_pairs = -180 * _OLC_PAIR_STEPS
-    used = len(pair_part) // 2
-    for weight, (lat_char, lon_char) in zip(_OLC_PAIR_WEIGHTS, zip(pair_part[0::2], pair_part[1::2])):
-        lat_pairs += OLC_ALPHABET.index(lat_char) * weight
-        lon_pairs += OLC_ALPHABET.index(lon_char) * weight
-    height = _OLC_PAIR_WEIGHTS[used - 1] / _OLC_PAIR_STEPS
-    width = _OLC_PAIR_WEIGHTS[used - 1] / _OLC_PAIR_STEPS
-
-
-    lat_rows = 0
-    lon_columns = 0
-    for (row_weight, column_weight), char in zip(_OLC_GRID_WEIGHTS, grid_part):
-        row, column = divmod(OLC_ALPHABET.index(char), _OLC_GRID_COLUMNS)
-        lat_rows += row * row_weight
-        lon_columns += column * column_weight
-    if grid_part:
-        row_weight, column_weight = _OLC_GRID_WEIGHTS[len(grid_part) - 1]
-        height = row_weight / _OLC_LAT_STEPS
-        width = column_weight / _OLC_LON_STEPS
-
-    south = lat_pairs / _OLC_PAIR_STEPS + lat_rows / _OLC_LAT_STEPS
-    west = lon_pairs / _OLC_PAIR_STEPS + lon_columns / _OLC_LON_STEPS
-    return south, west, south + height, west + width
-
-
-def olc_code_length(code: str) -> int:
-    return len(_olc_clean(code))
-
-
 def olc_cell_size(code_length: int) -> tuple:
 
     lat_cells, lon_cells = olc_divisions(code_length)
@@ -379,7 +267,7 @@ def _h3_call(module, names: tuple, *args, **kwargs):
         function = getattr(module, name, None)
         if function is not None:
             return function(*args, **kwargs)
-    raise RuntimeError(f"This h3 version exposes none of {names}. Upgrade the h3 package.")
+    raise RuntimeError(f"This h3 version exposes none of {names}; upgrading h3 gives it.")
 
 
 
@@ -583,7 +471,7 @@ def _h3_cells(module, bbox: tuple, resolution: int, limit: int) -> tuple:
     if ids is None:
         polyfill = getattr(module, "polyfill", None)
         if polyfill is None:
-            raise RuntimeError("This h3 version exposes neither LatLngPoly nor polyfill. Upgrade the h3 package.")
+            raise RuntimeError("This h3 version exposes neither LatLngPoly nor polyfill; upgrading h3 gives it.")
         geojson = {"type": "Polygon", "coordinates": [[[lon, lat] for lat, lon in ring] + [[west, south]]]}
         ids = list(itertools.islice(polyfill(geojson, resolution, geo_json_conformant=True), limit + 1))
         if len(ids) > limit:
@@ -756,7 +644,7 @@ def _resolve_extent(args: dict) -> tuple:
             return None, None, tool_error(
                 f"Layer '{layer_name}' not found.",
                 code="LAYER_NOT_FOUND",
-                suggestion="Call list_layers to see the exact layer names and ids.",
+                suggestion="list_layers gives the exact layer names and ids.",
             )
         bbox, error = _read_bbox(raw)
         return (None, None, error) if error else (bbox, f"layer:{layer_name}", None)
@@ -772,47 +660,6 @@ def _resolve_extent(args: dict) -> tuple:
 
 
 
-
-
-def detect_system(cell_id: str) -> str | None:
-
-
-
-
-
-
-    code = (cell_id or "").strip()
-    if not code:
-        return None
-    if OLC_SEPARATOR in code:
-        return "olc"
-    lowered = code.lower()
-
-
-
-
-    candidates = []
-    if len(lowered) <= GEOHASH_MAX_PRECISION and all(char in _GEOHASH_INDEX for char in lowered):
-        candidates.append("geohash")
-    h3_module = _optional_module("h3")
-    if h3_module is not None:
-        try:
-            if _h3_call(h3_module, ("is_valid_cell", "h3_is_valid"), lowered):
-                candidates.append("h3")
-        except Exception:  # noqa: BLE001  # nosec B110
-            pass
-    s2_module = _optional_module("s2")
-    if s2_module is not None:
-        try:
-            if s2_module.CellId.from_token(lowered).is_valid():
-                candidates.append("s2")
-        except Exception:  # noqa: BLE001  # nosec B110
-            pass
-    if len(candidates) == 1:
-        return candidates[0]
-
-
-    return None
 
 
 
@@ -1001,7 +848,6 @@ def _build_grid_layer(name: str, system: str, resolution: int, cells: list) -> d
     QgsProject.instance().addMapLayer(layer)
     return {"name": layer.name(), "layer_id": layer.id(),
             "inserted": len(features), "rejected": rejected}
-
 
 
 

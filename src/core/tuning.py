@@ -249,6 +249,8 @@ _TIGHTEN_ONLY: dict[str, dict[str, tuple[float, float]]] = {
         "geometry_check_max_total_vertices": (500_000, limits.GEOMETRY_CHECK_MAX_TOTAL_VERTICES),
 
         "geometry_check_seconds": (2.0, limits.GEOMETRY_CHECK_SECONDS),
+
+        "overture_lifted_read_seconds": (5.0, limits.OVERTURE_LIFTED_READ_SECONDS),
         "terrain_max_cells": (16_000_000, limits.TERRAIN_MAX_CELLS),
         "hydrology_max_cells": (1_000_000, limits.HYDROLOGY_MAX_CELLS),
         "georeference_max_pixels": (40_000_000, limits.GEOREFERENCE_MAX_PIXELS),
@@ -304,7 +306,9 @@ _BOOL_KEYS: dict[str, set[str]] = {
 
 
 
-    "results": {"match_image"},
+
+
+    "results": {"match_image", "layer_facts"},
 
 
 
@@ -1445,24 +1449,6 @@ def service_caps(key: str, default: dict) -> dict:
 
     value = (_DOC.get("services") or {}).get(key)
     return dict(value) if isinstance(value, dict) and value else default
-
-
-def service_rows(key: str, default: dict) -> dict:
-
-
-
-
-
-
-
-    served = (_DOC.get("services") or {}).get(key)
-    if not isinstance(served, dict) or not served:
-        return default
-    out = {name: dict(row) for name, row in default.items()}
-    for name, row in served.items():
-        if name in out and isinstance(row, dict):
-            out[name].update(row)
-    return out
 
 
 def service_doc(key: str) -> dict | None:

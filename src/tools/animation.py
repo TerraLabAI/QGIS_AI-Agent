@@ -157,15 +157,15 @@ def _check_args(args: dict) -> dict | None:
     if not asked:
         return tool_error("frames_folder is required: make_animation does not keep a session's last export.",
                           "INVALID_ARGS",
-                          "Pass the out_dir export_animation_frames answered with, or the folder QGIS's own "
-                          "Export Animation wrote to.")
+                          "export_animation_frames answers out_dir; QGIS's own "
+                          "Export Animation also writes a folder.")
     folder = security.expand_path(asked)
     if not os.path.isdir(folder):
         return tool_error(f"{folder} is not a folder.", "INVALID_ARGS",
-                          "Pass the frames folder export_animation_frames (out_dir) or Export Animation wrote.")
+                          "export_animation_frames (out_dir) or Export Animation gives the frames folder.")
     error = security.validate_path(folder, write=False)
     if error:
-        return tool_error(error, "PERMISSION_DENIED", "Pass a frames folder under your home folder or the "
+        return tool_error(error, "PERMISSION_DENIED", "Frames folders sit under your home folder or the "
                                                        "project folder.")
     return None
 
@@ -203,7 +203,7 @@ def _frame_sizes(gdal, frames: list[str], cancelled) -> list[tuple[int, int]] | 
         dataset = _gdal_open(gdal, path)
         if dataset is None:
             return tool_error(f"{os.path.basename(path)} could not be opened as an image.", "EXECUTION_FAILED",
-                              "Check the frame is a readable PNG; a partial export leaves one behind.")
+                              "A partial export leaves an unreadable PNG behind.")
         sizes.append((dataset.RasterXSize, dataset.RasterYSize))
         dataset = None
         background.breathe(index)
@@ -243,7 +243,7 @@ def _build_palette(gdal, frames: list[str], sizes: list[tuple[int, int]], cancel
         tile_ds = _as_rgb_mem(gdal, frames[frame_index], min(width, _MOSAIC_TILE_W), min(height, _MOSAIC_TILE_H))
         if tile_ds is None:
             return tool_error(f"{os.path.basename(frames[frame_index])} could not be read for the palette.",
-                              "EXECUTION_FAILED", "Check the frame is a readable PNG.")
+                              "EXECUTION_FAILED", "The frame is not a readable PNG.")
         tile_w, tile_h = tile_ds.RasterXSize, tile_ds.RasterYSize
         for band in range(3):
 
@@ -255,8 +255,7 @@ def _build_palette(gdal, frames: list[str], sizes: list[tuple[int, int]], cancel
             if data is None:
                 return tool_error(f"{os.path.basename(frames[frame_index])} could not be read for the palette: "
                                   "its pixel data looks truncated.", "EXECUTION_FAILED",
-                                  "Check the frame is a complete, unmodified PNG; a partial export leaves one "
-                                  "behind.")
+                                  "A partial export leaves an incomplete PNG behind.")
             mosaic.GetRasterBand(band + 1).WriteRaster(tile * _MOSAIC_TILE_W, 0, tile_w, tile_h, data)
         tile_ds = None
     colours = gdal.ColorTable()
@@ -465,7 +464,7 @@ def _encode_mp4(ffmpeg: str, frames: list[str], fps: float, width: int | None, h
     except subprocess.TimeoutExpired:
         remove_quietly(part_path)
         return tool_error(f"ffmpeg did not finish the MP4 within {timeout_s:.0f} s.", "EXECUTION_FAILED",
-                          "Pass fewer frames or a smaller width, or leave the MP4 to the GIF this call still made.")
+                          "Fewer frames or a smaller width fit the timeout; the GIF this call made already stands.")
     except OSError as exc:
         remove_quietly(part_path)
         return tool_error(f"ffmpeg could not be started: {exc}", "EXECUTION_FAILED",
@@ -505,19 +504,19 @@ def _targets(args: dict, frames_folder: str):
             expanded += ".gif"
         elif extension != ".gif":
             return None, None, tool_error(f"{os.path.basename(expanded)} is not a GIF name.", "INVALID_ARGS",
-                                          "End output_path in .gif: the GIF is what this tool always writes.")
+                                          "output_path must end in .gif: this tool always writes a GIF.")
         error = security.validate_path(expanded, write=True)
         if error:
             return None, None, tool_error(error, "PERMISSION_DENIED",
-                                          "Pick a path under the project folder, your home folder or the temp "
+                                          "Paths sit under the project folder, your home folder or the temp "
                                           "folder.")
         mp4_candidate = os.path.splitext(expanded)[0] + ".mp4"
         if args.get("overwrite") is not True:
             taken = expanded if os.path.exists(expanded) else mp4_candidate if os.path.exists(mp4_candidate) else None
             if taken:
                 return None, None, tool_error(f"{taken} already exists.", "INVALID_ARGS",
-                                              "Tell the user the file exists and ask whether to replace it "
-                                              "(overwrite true) or name a new file.")
+                                              "The file exists; overwrite true replaces it, or a new "
+                                              "file name keeps it, the user's call.")
         gif_path = expanded
         mp4_path = mp4_candidate
     else:
@@ -534,12 +533,12 @@ def _targets(args: dict, frames_folder: str):
                 error = security.validate_path(gif_candidate, write=True)
                 if error:
                     return None, None, tool_error(error, "PERMISSION_DENIED",
-                                                  "Pass output_path under your home folder.")
+                                                  "output_path sits under your home folder.")
                 gif_path, mp4_path = gif_candidate, mp4_candidate
                 break
         if gif_path is None:
             return None, None, tool_error(f"{folder} already holds 999 animations named {stem}.", "INVALID_ARGS",
-                                          "Pass output_path with a new file name.")
+                                          "output_path needs a new name.")
     return gif_path, mp4_path, None
 
 
@@ -572,8 +571,8 @@ def _make_animation(args: dict) -> dict:
         return tool_error(f"No numbered PNG frames were found in {folder}"
                           + (f" starting with {args['prefix']!r}" if args.get("prefix") else "") + ".",
                           "INVALID_ARGS",
-                          "Pass the folder export_animation_frames (out_dir) or Export Animation wrote to, "
-                          "and prefix if several exports share the folder.")
+                          "export_animation_frames (out_dir) or Export Animation names the folder; prefix "
+                          "narrows it when several exports share one.")
 
     fps = args.get("fps")
     if fps is None:
@@ -629,15 +628,14 @@ def _make_animation(args: dict) -> dict:
                                                   f"{index}", vsimem_paths)
                 if data is None:
                     return tool_error(f"{os.path.basename(path)} could not be dithered or written.",
-                                      "EXECUTION_FAILED", "Check the frame is a readable PNG with room on disk "
+                                      "EXECUTION_FAILED", "The frame may be unreadable, or disk lacks room "
                                                           "for the temporary work.")
                 try:
                     parsed_w, parsed_h, table, block = _read_frame_gif(data)
                 except (ValueError, IndexError):
                     return tool_error(f"{os.path.basename(path)} produced a GIF this tool could not parse back.",
                                       "EXECUTION_FAILED",
-                                      "Check the frame is a complete, unmodified PNG; a partial export leaves a "
-                                      "truncated one behind.")
+                                      "A partial export leaves a truncated PNG behind.")
                 if index == 0:
                     global_table = table
                 frame_blocks.append((parsed_w, parsed_h, block))

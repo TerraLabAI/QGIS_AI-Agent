@@ -225,8 +225,8 @@ def _search_open_data(args: dict) -> dict:
         "results": all_results[:cap],
         "count": len(all_results),
         "portals_searched": len(portals_to_search) - len(errors),
-        "hint": "Follow each result's import_method and import_arguments. Use inspect_data_source when a service "
-        "needs discovery first.",
+        "hint": "Each result's import_method and import_arguments loads it; inspect_data_source discovers a "
+        "service first when needed.",
     }
     narrowed = sorted({r["matched_query"] for r in all_results if r.get("matched_query")})
     if narrowed:
@@ -845,15 +845,15 @@ def _inspect_json_payload(final_url: str, payload: dict) -> dict:
                 "title": payload.get("title"), "items_url": items,
                 "next_call": {"tool": "fetch_json",
                               "args": {"url": items + ("&" if "?" in items else "?") + "limit=5"}},
-                "message": ("A STAC collection: it holds items, not one image. Read a few items with next_call "
-                            "(add bbox and datetime to the items URL), then add_stac_layer with an item's URL.")}
+                "message": ("A STAC collection: it holds items, not one image. next_call reads a few items "
+                            "(bbox and datetime narrow the items URL); add_stac_layer takes an item's URL.")}
     if "stac_version" in payload:
         return {
             "source_family": "stac_api",
             "final_url": final_url,
             "stac_version": payload.get("stac_version"),
             "collections": _extract_collection_ids(payload),
-            "message": "STAC API detected. Use a STAC-aware client or browse collections/items next.",
+            "message": "STAC API detected; a STAC-aware client, or collections/items, reads it.",
         }
 
 
@@ -869,7 +869,7 @@ def _inspect_json_payload(final_url: str, payload: dict) -> dict:
             "source_family": source_family,
             "final_url": final_url,
             "collections": _extract_collection_ids(payload),
-            "message": "Collection API detected. Browse a collection items endpoint or use a dedicated connector.",
+            "message": "Collection API detected; a collection items endpoint, or a dedicated connector, reads it.",
         }
 
     if isinstance(payload.get("result"), dict) and isinstance(payload["result"].get("results"), list):
@@ -1042,8 +1042,8 @@ def _wfs_hits_result(final_url: str, attrib: dict) -> dict:
     }
     if matched not in (None, "", "unknown"):
         out["feature_count"] = matched
-        out["message"] = (f"The service reports {matched} features for this request. Load them with "
-                          "add_wfs_layer, and pass a bounding box to keep the download to the view.")
+        out["message"] = (f"The service reports {matched} features for this request; add_wfs_layer loads "
+                          "them, and a bounding box keeps the download to the view.")
     else:
         out["message"] = ("A WFS feature collection, with no count in it. Repeat the request with "
                           "RESULTTYPE=hits to get one, or load it with add_wfs_layer.")
@@ -1142,8 +1142,8 @@ def _inspect_object_listing(final_url: str, root, root_name: str) -> dict | None
                            "list.")
     if token:
         out["next_page"] = token
-        out["message"] += (" More entries exist: repeat the call with continuation-token=<next_page> on S3, "
-                           "marker=<next_page> on Azure.")
+        out["message"] += (" More entries exist: continuation-token=<next_page> on S3, or marker=<next_page> "
+                           "on Azure, reaches them.")
     return out
 
 

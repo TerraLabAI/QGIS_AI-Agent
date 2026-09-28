@@ -111,8 +111,14 @@ def sniff(path: str) -> dict:
 
         rows = [line.split(delimiter) for line in sample.splitlines()[:50]]
     rows = [r for r in rows if r]
-    header = rows[0] if rows else []
-    body = rows[1:]
+    headerless = bool(rows) and _is_data_row(rows[0], rows[1:])
+    if headerless:
+
+
+        width = max(len(r) for r in rows)
+        header, body = [f"field_{i + 1}" for i in range(width)], rows
+    else:
+        header, body = (rows[0] if rows else []), rows[1:]
     keys = {_norm(h): h for h in header}
     lat = next((keys[k] for k in map(_norm, _LAT) if k in keys), None)
     lon = next((keys[k] for k in map(_norm, _LON) if k in keys), None)
@@ -130,9 +136,58 @@ def sniff(path: str) -> dict:
         projected = bool(xs and ys) and not lonlat_fits(min(xs), max(xs), min(ys), max(ys))
         if xs and ys:
             box = (min(xs), min(ys), max(xs), max(ys))
-    return {"delimiter": delimiter, "header": header, "rows": len(body),
+    return {"delimiter": delimiter, "header": header, "headerless": headerless, "rows": len(body),
             "lat": lat, "lon": lon, "wkt": wkt, "decimal": decimal, "projected": projected,
             "encoding": encoding, "box": box}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+_DATE_OR_TIME = re.compile(r"^(\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}([ T]\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?)?"
+                           r"|\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?)$")
+_FRACTION = re.compile(r"^[-+]?\d*[.,]\d+([eE][-+]?\d+)?$")
+_INTEGER = re.compile(r"^[-+]?\d+$")
+
+
+def _cell_kind(cell: str) -> str:
+
+    cell = cell.strip()
+    if not cell:
+        return ""
+    if _DATE_OR_TIME.match(cell) or _FRACTION.match(cell):
+        return "marked"
+    return "integer" if _INTEGER.match(cell) else "text"
+
+
+def _is_data_row(first: list, body: list) -> bool:
+
+
+    if not body:
+        return False
+    marked = False
+    for i, cell in enumerate(first):
+        kind = _cell_kind(cell)
+        if not kind:
+            continue
+        below = {_cell_kind(r[i]) for r in body if i < len(r)} - {""}
+        numeric = {"marked", "integer"}
+        if kind == "text":
+            if not below or below & numeric:
+                return False
+        elif not below or not below <= numeric:
+            return False
+        marked = marked or kind == "marked"
+    return marked
 
 
 def _numbers(cells) -> list[float]:
@@ -166,6 +221,8 @@ def build_uri(path: str, info: dict, crs: str | None = None) -> tuple[str, str]:
 
 
               "encoding=" + info.get("encoding", "UTF-8")]
+    if info.get("headerless"):
+        params.append("useHeader=no")
     if info["decimal"] == ",":
         params.append("decimalPoint=,")
     geometry = "none"
@@ -391,8 +448,8 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
             "_error": (f"PROJECTED_COORDINATES: {base} was asked for in {crs}, a longitude/latitude CRS, but its "
                        f"{columns} hold projected coordinates ({numbers}). Nothing was loaded."),
             "code": "INVALID_ARGS",
-            "suggestion": ("Call again with crs set to the projected CRS the data is in (a UTM zone, a national "
-                           "grid) as the source or the user names it; ask the user when nothing names it."),
+            "suggestion": ("crs set to the projected CRS the data is in (a UTM zone, a national "
+                           "grid) resolves it, as the source, its metadata or the user names it."),
         }
     sidecar = _sidecar_crs(path)
     if sidecar is not None:
@@ -406,7 +463,7 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
         label = found.authid() or found.description()
         return found, (f"No CRS was given and the coordinates are projected ({numbers}), not longitude/latitude: "
                        f"loaded in {label}, {origin}, the only one in the project whose area of use holds them. "
-                       f"Tell the user, and load again with crs=<EPSG code> if the source names another.")
+                       f"crs=<EPSG code> loads them in another CRS the source names.")
     named = ", ".join(f"{(c.authid() or c.description())} ({origin})" for c, origin in candidates)
     from . import crs_landing
 
@@ -421,12 +478,12 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
                    + (f" Read against the project's layers: {crs_landing.sentence(landing)}." if landing else "")),
         "code": "INVALID_ARGS",
         "candidate_crs": candidate_crs,
-        "suggestion": (f"Call the same loader again with crs={landing[0]['crs']} when the user expects the file on "
+        "suggestion": (f"crs={landing[0]['crs']} fits when the user expects the file on "
                        f"{', '.join(repr(n) for n in landing[0]['lands_on'])}, unless the source or its metadata "
-                       "names another CRS; if not, ask the user." if landing else
-                       "Call the same loader again with crs=<EPSG code> for the CRS the source, its metadata or the "
-                       "user names (a UTM zone, a national grid). When nothing names it, ask the user: the "
-                       "numbers alone cannot tell one UTM zone from another."),
+                       "names another CRS, or the user does." if landing else
+                       "crs=<EPSG code> takes the CRS the source, its metadata or the "
+                       "user names (a UTM zone, a national grid); the numbers alone "
+                       "cannot tell one UTM zone from another."),
     }
 
 
@@ -478,10 +535,10 @@ def load_csv(path: str, name: str, crs: str | None = None) -> dict:
 
         out["wkt_field"] = info.get("wkt")
         out["_note"] = (f"Geometry read from the WKT column {info.get('wkt')!r}. "
-                        "Pass crs=<EPSG code> if the coordinates are not longitude/latitude.")
+                        "crs=<EPSG code> sets it if coordinates are not longitude/latitude.")
     else:
         out["_note"] = ("No latitude/longitude or WKT column found: loaded as an attribute table "
-                        "without geometry. Join it to a layer or geocode its address field.")
+                        "without geometry. A layer join or address geocode adds geometry.")
     if crs_note:
         out["_note"] = f"{crs_note} {out['_note']}" if out.get("_note") else crs_note
     geometry_note = _geometry_check(layer, geometry, info)

@@ -234,7 +234,7 @@ class SessionRefStore:
         entry = self._items.get(normalized)
         if entry is None:
             return None, None, {
-                "_error": f"Unknown row ref {normalized}. Call accessibility_snapshot to list the "
+                "_error": f"Unknown row ref {normalized}; accessibility_snapshot lists the "
                           "view's rows again.",
                 "_code": "UNKNOWN_REF",
             }
@@ -251,7 +251,7 @@ class SessionRefStore:
             return None, None, {
                 "_error": f"Stale row ref {normalized}: the row no longer exists (the model changed).",
                 "_code": "STALE_REF",
-                "_suggestion": "Re-run accessibility_snapshot on the view to get current row refs.",
+                "_suggestion": "accessibility_snapshot on the view gives current row refs.",
             }
         return view, index, None
 
@@ -293,11 +293,11 @@ class SessionRefStore:
 
         if not known:
             return None, {
-                "_error": f"Unknown ref {normalized}. Call accessibility_snapshot to (re)assign refs.",
+                "_error": f"Unknown ref {normalized}; accessibility_snapshot (re)assigns refs.",
             }
         return None, {
             "_error": f"Stale ref {normalized}: the widget no longer exists and no unique replacement "
-                      "was found. Call accessibility_snapshot again.",
+                      "was found; accessibility_snapshot reassigns.",
         }
 
     def _rebind_from_sig(self, ref: str, sig):

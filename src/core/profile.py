@@ -521,8 +521,10 @@ def profile_context(settings, project_path: str = "") -> dict:
         notes = notes_for_project(settings, project_path)
         if notes:
             context["memory"] = [note["text"] for note in notes]
-            context["memory_notes"] = [
-                {"id": n["id"], "text": n["text"], "kind": n["kind"], "scope": n["scope"]}
-                for n in notes
-            ]
+
+
+        context["memory_notes"] = [
+            {"id": n["id"], "text": n["text"], "kind": n["kind"], "scope": n["scope"]}
+            for n in notes
+        ]
     return context

@@ -72,7 +72,7 @@ class _ExecutorCalls:
             if tool_call_id not in self._waiting_for_history:
                 if len(self._waiting_for_history) >= 128:
                     self._session.send_tool_error(tool_call_id, run_id, Err.EXECUTION_FAILED,
-                                                  "The saved tool history is still loading; retry later.", "")
+                                                  "The saved tool history is still loading, briefly.", "")
                     return
                 self._waiting_for_history[tool_call_id] = dict(call)
             return
@@ -96,7 +96,7 @@ class _ExecutorCalls:
         call = dict(call, args=args)
         if run_id in self._cancelled:
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
-                       "Stop here and wait for the next user message.")
+                       "The user stopped the run.")
             return
         if run_id not in self._run_mode:
 
@@ -106,11 +106,11 @@ class _ExecutorCalls:
 
             self._fail(call, Err.CANCELLED,
                        tr("This run has ended; the call was not executed."),
-                       "Stop here and wait for the next user message.")
+                       "The run is over.")
             return
         if self._registry.get_tool(name) is None:
             self._fail(call, Err.TOOL_NOT_FOUND, f"Unknown tool: {name}",
-                       "Call search_tools with a description of what you need, then call_tool with the exact name.")
+                       "search_tools finds a tool by description; call_tool then takes the exact name.")
             return
         declared = spec(name)
         if getattr(declared, "waits_on_user", False):
@@ -156,12 +156,12 @@ class _ExecutorCalls:
         if mode == Mode.ASK and danger != Danger.READ:
             self._fail(call, Err.READ_ONLY_MODE,
                        tr("Question mode is read only: {tool} would modify the project.").format(tool=name),
-                       "Explain what you would do and ask the user whether to go ahead.")
+                       "Nothing changes in Question mode unless the user says yes.")
             return
         budget = self._budgets.get(run_id)
         over = budget.charge(poll=bool(call.get("poll"))) if budget is not None else None
         if over:
-            self._fail(call, Err.RUN_BUDGET, over, "Answer the user now with what was done; do not call more tools.")
+            self._fail(call, Err.RUN_BUDGET, over, "This run allows no further tool call.")
             return
         held = self._blocked_reason(run_id, danger)
         if held:
@@ -171,8 +171,8 @@ class _ExecutorCalls:
 
 
             self._fail(call, Err.RUN_BUDGET, held + " This call did not run and nothing changed.",
-                       "Send this same call again now: the hold is spent. Keep the next steps small "
-                       "(one layer, a smaller area) and tell the user QGIS was busy.")
+                       "The hold is spent; the same call runs now. A smaller step (one layer, a smaller "
+                       "area) avoids it again. QGIS was busy.")
             return
         if name == CODE_TOOL:
 
@@ -213,8 +213,8 @@ class _ExecutorCalls:
         if costly and self._call_key(name, args) in self._refused_costly.get(run_id, ()):
             self._fail(call, Err.PERMISSION_DENIED,
                        f"The user already refused this exact {costly['label']} run in this answer.",
-                       "Do not ask again with the same arguments. Say what it would have cost, "
-                       "and ask the user in words for a smaller zone or another object class.")
+                       "The same arguments get the same refusal; a smaller zone or another object "
+                       "class costs less.")
             return
         if costly and approval == Approval.AUTO and costly.get("slow_only") and not unvouched:
 
@@ -246,8 +246,7 @@ class _ExecutorCalls:
 
             self._fail(call, Err.PERMISSION_DENIED,
                        f"The user declined {name} for this answer.",
-                       "Do not call it again in this answer. Do the rest of the work without it, "
-                       "and say in your answer what you left undone and why.")
+                       "Further calls of it in this answer are refused the same way.")
             return
         if asks and per_answer and name in self._run_allowed.get(run_id, ()):
 
@@ -349,7 +348,7 @@ class _ExecutorCalls:
                 return
             if run_id in self._cancelled or run_id not in self._run_mode:
                 self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
-                           "Stop here and wait for the next user message.")
+                           "The user stopped the run.")
                 return
             if error_text:
                 log_warning(f"preflight for {name} failed: {error_text.splitlines()[0]}")
@@ -385,7 +384,7 @@ class _ExecutorCalls:
         question = str(args.get("question") or "").strip()
         if not question:
             self._fail(call, Err.INVALID_ARGS, "ask_user needs a question.",
-                       "Pass the question as one sentence, with 2 to 4 options when there are natural choices.")
+                       "One sentence works, with 2 to 4 options when there are natural choices.")
             return
         raw = args.get("options") if isinstance(args.get("options"), list) else []
         options = [str(o).strip() for o in raw if str(o).strip()][:4]
@@ -406,7 +405,7 @@ class _ExecutorCalls:
         answer = (answer or "").strip()
         if not answer:
             self._fail(call, Err.CANCELLED, tr("The user dismissed the question."),
-                       "Stop here and wait for the next user message.")
+                       "The user gave no answer.")
             self.question_resolved.emit(tool_call_id, "")
             return
         result = {"answer": answer}
@@ -609,7 +608,7 @@ class _ExecutorCalls:
         verdict = self._guard_check(name, args, self._own_files_of(str(call.get("run_id") or "")))
         if verdict.get("error"):
             return (str(verdict.get("code") or Err.INVALID_ARGS), str(verdict["error"]),
-                    str(verdict.get("suggestion") or "Ask the user for a value the guards accept."))
+                    str(verdict.get("suggestion") or "The guards refuse this value."))
 
 
 
@@ -633,7 +632,7 @@ class _ExecutorCalls:
             costly = self._confirmed_by_card(name, args) or costly
         if costly.get("error"):
             return (str(costly.get("code") or Err.EXECUTION_FAILED), str(costly["error"]),
-                    str(costly.get("suggestion") or "Ask the user for a value the guards accept."))
+                    str(costly.get("suggestion") or "The guards refuse this value."))
         if costly and (not call.get("costly") or costly.get("sentence") != call.get("sentence")):
 
 
@@ -717,6 +716,6 @@ class _ExecutorCalls:
         wire = f"{message}{DETAILS_MARKER}{scrub_secrets(details)}" if details else message
         self._table.put(tool_call_id, "error", {"code": code, "message": wire, "suggestion": suggestion})
         self._executing.discard(tool_call_id)
-        self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion)
+        self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
         log_warning(f"{code} {call.get('name')}: {message[:200]}")
         self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion, None)

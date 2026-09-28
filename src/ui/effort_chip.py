@@ -64,6 +64,7 @@ from ..core.plan import effort_name, efforts_allowed, efforts_stated
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
+from .quota_card import pro_price_per_month
 from .shared import (
     event_pos,
     get_effort_text,
@@ -134,6 +135,8 @@ _POPOVER_QSS = scale_qss_font_px(
     f"QLabel#effortTitle {{ font-size: {FONT_PROSE}px; font-weight: 600;"
     f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#effortNote {{ font-size: {FONT_BODY}px; color: {INK_2};"
+    " background: transparent; border: none; }"
+    f"QLabel#effortPrice {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
     " background: transparent; border: none; }"
 
 
@@ -802,7 +805,7 @@ class EffortPopover(QFrame):
 
 
 
-        self._cta = QPushButton(QCoreApplication.translate("EffortChip", "Unlock with Pro"), self)
+        self._cta = QPushButton(QCoreApplication.translate("EffortChip", "Get Pro"), self)
         self._cta.setObjectName("effortCta")
         self._cta.setFixedHeight(_CTA_PX)
         self._cta.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -819,6 +822,14 @@ class EffortPopover(QFrame):
 
         self._note.setFixedWidth(_TEXT_WIDTH)
         words.addWidget(self._note)
+
+
+
+        self._price = QLabel(self)
+        self._price.setObjectName("effortPrice")
+        self._price.setFixedWidth(_TEXT_WIDTH)
+        self._price.hide()
+        words.addWidget(self._price)
         col.addWidget(self._words)
         col.addSpacing(6)
         self.slider = EffortSlider(self)
@@ -838,6 +849,7 @@ class EffortPopover(QFrame):
 
         self._paid = bool(paid)
         self.slider.set_locked_from(len(pickable_efforts(self._paid)))
+        self._price.setVisible(self.slider.is_locked(HIGH))
         self._show(EFFORTS[self.slider._preview])
 
     def fit_text(self) -> None:
@@ -860,6 +872,8 @@ class EffortPopover(QFrame):
             tallest = max(tallest, metrics.boundingRect(0, 0, _TEXT_WIDTH, 0, flags, note).height())
         if tallest:
             self._note.setFixedHeight(tallest)
+        self._price.ensurePolished()
+        self._price.setFixedHeight(self._price.fontMetrics().height())
 
     def _show(self, effort: str) -> None:
         name, note = self._texts.get(normalize_effort(effort), ("", ""))
@@ -875,6 +889,13 @@ class EffortPopover(QFrame):
         self._title.setText(name)
         self._note.setText(note)
         self._cta.setVisible(locked)
+        self._price.setText(self._price_text() if locked else "")
+
+    @staticmethod
+    def _price_text() -> str:
+        price = pro_price_per_month()
+        return (QCoreApplication.translate("EffortChip", "Pro · {price}").format(price=price) if price
+                else QCoreApplication.translate("EffortChip", "Included in Pro"))
 
     def _on_dip(self, value) -> None:
         try:
@@ -887,6 +908,7 @@ class EffortPopover(QFrame):
             self._title.setText(name)
             self._note.setText(note)
             self._cta.setVisible(locked)
+            self._price.setText(self._price_text() if locked else "")
 
         self._fade.setOpacity(0.25 + 0.75 * abs(2 * t - 1))
 

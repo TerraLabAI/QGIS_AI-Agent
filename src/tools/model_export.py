@@ -129,18 +129,18 @@ def _read_grid(args: dict) -> dict:
         return {"error": tool_error(
             f"{layer.name()!r} is not a raster layer, so it carries no elevation to build a mesh from.",
             "INVALID_ARGS",
-            "Pass the name of the DEM raster. list_layers shows which layers are rasters.")}
+            "list_layers shows which layers are rasters.")}
     provider = layer.dataProvider()
     if provider is None or not layer.isValid():
         return {"error": tool_error(
             f"{layer.name()!r} has no readable data source.", "EXECUTION_FAILED",
-            "Reload the DEM with add_raster_layer and try again.")}
+            "add_raster_layer can load it fresh.")}
 
     band = int(args.get("band") or 1)
     if band < 1 or band > max(1, layer.bandCount()):
         return {"error": tool_error(
             f"band must be between 1 and {layer.bandCount()} for {layer.name()!r}.", "INVALID_ARGS",
-            "Pass the elevation band number, usually 1.")}
+            "The elevation band is usually 1.")}
 
     full = layer.extent()
     asked = args.get("extent")
@@ -150,7 +150,7 @@ def _read_grid(args: dict) -> dict:
             return {"error": tool_error(
                 "extent must be four numbers: [xmin, ymin, xmax, ymax], in the layer's own CRS.",
                 "INVALID_ARGS",
-                f"Leave extent out for the whole DEM, or pass it in {layer.crs().authid() or 'the layer CRS'}.")}
+                f"Extent left out means the whole DEM; give it in {layer.crs().authid() or 'the layer CRS'}.")}
         try:
             xmin, ymin, xmax, ymax = (float(v) for v in values)
         except (TypeError, ValueError):
@@ -159,7 +159,7 @@ def _read_grid(args: dict) -> dict:
         if xmax <= xmin or ymax <= ymin:
             return {"error": tool_error(
                 "extent must read [xmin, ymin, xmax, ymax] with the maxima larger.", "INVALID_ARGS",
-                "Swap the values so the second pair is the north-east corner.")}
+                "The second pair is the larger, north-east corner.")}
         rect = QgsRectangle(xmin, ymin, xmax, ymax).intersect(full)
         if rect.isEmpty():
             return {"error": tool_error(
@@ -167,7 +167,7 @@ def _read_grid(args: dict) -> dict:
                 f"[{full.xMinimum():.6g}, {full.yMinimum():.6g}, {full.xMaximum():.6g}, "
                 f"{full.yMaximum():.6g}] in {layer.crs().authid() or 'its own CRS'}.",
                 "INVALID_ARGS",
-                "Pass the extent in the layer's CRS, or leave it out for the whole DEM.")}
+                "Extent reads in the layer's CRS; left out, it covers the whole DEM.")}
     else:
         rect = QgsRectangle(full)
 
@@ -200,7 +200,7 @@ def _read_grid(args: dict) -> dict:
     if block is None or not block.isValid():
         return {"error": tool_error(
             f"QGIS could not read band {band} of {layer.name()!r} over that extent.", "EXECUTION_FAILED",
-            "Check the DEM still opens (get_raster_band_stats) and that the extent covers data.")}
+            "get_raster_band_stats shows if the DEM still opens and the extent covers data.")}
 
     data_type = provider.dataType(band)
     is_float = data_type in (enum_member(Qgis, "DataType", "Float32", None),
@@ -448,10 +448,10 @@ def _number(args: dict, key: str, default: float, low: float, high: float):
         number = float(value)
     except (TypeError, ValueError):
         return default, tool_error(f"{key} must be a number.", "INVALID_ARGS",
-                                   f"Pass a number between {low} and {high}, or leave {key} out.")
+                                   f"{key} takes a number between {low} and {high}, or nothing.")
     if math.isnan(number) or number < low or number > high:
         return default, tool_error(f"{key} must be between {low} and {high}.", "INVALID_ARGS",
-                                   f"Leave {key} out for {default}.")
+                                   f"Omitting {key} uses {default}.")
     return number, None
 
 
@@ -466,12 +466,12 @@ def _format_for(path: str, asked) -> tuple[str, dict | None]:
     wanted = str(asked or "").strip().lower().lstrip(".")
     if wanted and wanted not in FORMATS:
         return "", tool_error(f"format must be one of {', '.join(FORMATS)}, not {wanted!r}.", "INVALID_ARGS",
-                              "Use obj for Blender or SketchUp, stl for a 3D print.")
+                              "obj suits Blender or SketchUp; stl suits a 3D print.")
     if from_path is None:
         return "", tool_error(
             f"path must end in .obj or .stl; {extension or 'no extension'} names no mesh format.",
             "INVALID_ARGS",
-            "Write <name>.obj for Blender or SketchUp, <name>.stl for a slicer.")
+            "<name>.obj suits Blender or SketchUp; <name>.stl suits a slicer.")
     if wanted and wanted != from_path:
         return "", tool_error(
             f"format is {wanted!r} but path ends in {extension}.", "INVALID_ARGS",
@@ -486,7 +486,7 @@ def _export_3d_model(args: dict) -> dict:
     path = str(args.get("path") or "").strip()
     if not path:
         return tool_error("path is required.", "INVALID_ARGS",
-                          "Name the file to write, for example ~/Desktop/terrain.stl.")
+                          "For example, ~/Desktop/terrain.stl.")
     fmt, error = _format_for(path, args.get("format"))
     if error:
         return error
@@ -494,7 +494,7 @@ def _export_3d_model(args: dict) -> dict:
     problem = security.validate_path(path, write=True)
     if problem:
         return tool_error(problem, "PERMISSION_DENIED",
-                          "Pick a path under the project folder, the home folder or the temp folder.")
+                          "The project folder, the home folder and the temp folder are writable.")
 
     z_factor, error = _number(args, "z_factor", 1.0, 1e-9, 1e9)
     if error:
@@ -507,14 +507,14 @@ def _export_3d_model(args: dict) -> dict:
     if nx < MIN_GRID or ny < MIN_GRID:
         return tool_error(
             f"That extent samples to {nx} by {ny} cells, too few to build a surface.", "INVALID_ARGS",
-            "Ask for a larger extent, or raise max_cells.")
+            "A larger extent or a higher max_cells helps.")
 
     missing, filled = _fill_holes(values, nx, ny, grid["nodata"])
     if missing and filled < missing:
         return tool_error(
             f"Band {grid['band']} of {grid['layer_name']!r} has no elevation at all over that extent "
             f"({missing} of {nx * ny} cells are NoData).", "INVALID_ARGS",
-            "Pick an extent the DEM actually covers, or a band that carries elevation.")
+            "An extent the DEM covers, or a band with elevation, is needed.")
 
     z_min = min(values) * z_factor
     z_max = max(values) * z_factor
@@ -533,7 +533,7 @@ def _export_3d_model(args: dict) -> dict:
     if not security.fits_path(staging, margin=8):
         return tool_error(
             f"The path is too long for this system to write beside: {path}", "INVALID_ARGS",
-            "Write into a shorter folder, or shorten the file name.")
+            "A shorter folder or file name fits.")
 
     title = f"TerraLab AI Agent for QGIS: {grid['layer_name']} terrain"
     try:
@@ -557,11 +557,11 @@ def _export_3d_model(args: dict) -> dict:
     except InterruptedError:
         _discard_staged_write(staging)
         return tool_error("The export was stopped before the file was finished.", "CANCELLED",
-                          "Run it again, with a smaller max_cells if it was taking too long.")
+                          "A smaller max_cells runs faster.")
     except (OSError, MemoryError) as exc:
         _discard_staged_write(staging)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
-                          "Check the folder is writable and has room, or lower max_cells.")
+                          "A writable folder with room, or a lower max_cells, fixes this.")
 
     size = os.path.getsize(staging) if os.path.isfile(staging) else 0
     publish_error = _publish_staged_write(staging, path)
@@ -570,7 +570,7 @@ def _export_3d_model(args: dict) -> dict:
         return tool_error(
             f"The model was written but could not be put in place at {path}: {publish_error}",
             "EXECUTION_FAILED",
-            "Close the file in Blender, SketchUp or the slicer, or write another name.")
+            "The file is open in Blender, SketchUp or the slicer, or the name exists.")
 
     unit = grid["units"] or ("degrees" if grid["geographic"] else "map units")
     origin_x, origin_y = grid["extent"][0], grid["extent"][1]
@@ -602,9 +602,8 @@ def _export_3d_model(args: dict) -> dict:
                              f"{thickness:.4g} below the lowest point. Every edge is shared by exactly "
                              "two triangles, which is what a slicer needs.")
     else:
-        out["surface_note"] = ("An open height surface, no sides and no base. Import it into Blender or "
-                               "SketchUp as a mesh; for a 3D print ask for the same DEM as .stl, which "
-                               "closes it into a solid.")
+        out["surface_note"] = ("An open height surface, no sides and no base, for Blender or SketchUp "
+                               "as a mesh; the same DEM as .stl closes it into a solid for a 3D print.")
 
     native = grid["native_nx"] * grid["native_ny"]
     if nx * ny < native:
@@ -613,8 +612,8 @@ def _export_3d_model(args: dict) -> dict:
         out["reduction_note"] = (
             f"The DEM is {grid['native_nx']} x {grid['native_ny']} cells over that extent "
             f"({native:,} in all), over the {grid['max_cells']:,} cell cap, so it was read at "
-            f"{nx} x {ny} cells, about {dx:.6g} x {dy:.6g} {unit} per cell. Raise max_cells "
-            f"(up to {MAX_CELLS_CEILING:,}) for more detail, or pass a smaller extent.")
+            f"{nx} x {ny} cells, about {dx:.6g} x {dy:.6g} {unit} per cell. More detail needs a "
+            f"higher max_cells (up to {MAX_CELLS_CEILING:,}) or a smaller extent.")
     else:
         out["reduced"] = False
 
@@ -633,8 +632,8 @@ def _export_3d_model(args: dict) -> dict:
         out["warning"] = (
             f"The DEM is in {grid['crs']}, so X and Y in the file are degrees while Z is metres: "
             "Blender and a slicer read them as the same unit and the model comes out as a flat sheet. "
-            "Reproject the DEM to a metric CRS (run_processing gdal:warpreproject to a UTM zone or the "
-            "national grid) and export again.")
+            "A metric CRS (run_processing gdal:warpreproject to a UTM zone or the national grid) "
+            "fixes that on export.")
     log_warning(f"export_3d_model: {os.path.basename(path)}, {nx}x{ny} cells, "
                 f"{triangles} triangles, {size} bytes")
     return out

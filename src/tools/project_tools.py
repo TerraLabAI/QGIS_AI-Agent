@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import os
+
 from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer
 from qgis.utils import iface
 
@@ -96,8 +98,8 @@ def _layer_kind(layer) -> str:
 
 _CONTEXT_ALREADY_SENT = (
     "The project CRS, the canvas extent and scale, and the layer list are already in the context "
-    "block of this turn: read them there. Call this again with verbose true, or a limit, only when "
-    "you need layer ids, layer extents, or more layers than the block lists."
+    "block of this turn. verbose true, or a limit, adds layer ids, layer extents, or more layers "
+    "than the block lists."
 )
 
 
@@ -388,6 +390,82 @@ def _project_ellipsoid() -> str:
     return "" if name.upper() in ("", "NONE") else name
 
 
+
+
+
+_UNFILTERED_COUNT_MAX_BYTES = 20_000_000
+_COUNT_KEPT_SUFFIXES = (".gpkg", ".shp", ".fgb", ".sqlite")
+_UNFILTERED_COUNT_PROVIDERS = frozenset({"ogr", "delimitedtext", "spatialite"})
+
+
+def filter_facts(layer) -> dict:
+
+
+
+
+
+
+
+
+
+    from ..core.context import layer_filter
+
+    subset = layer_filter(layer)
+    if not subset:
+        return {}
+    out: dict = {"filter": subset}
+    total = _unfiltered_count(layer)
+    if total is not None:
+        out["source_feature_count"] = total
+        out["filter_note"] = f"layer.source() keeps this filter as |subset=; the source holds {total} rows."
+    return out
+
+
+def _unfiltered_count(layer) -> int | None:
+
+    try:
+        from qgis.core import QgsDataProvider, QgsProviderRegistry
+
+        provider = layer.providerType()
+        if provider not in _UNFILTERED_COUNT_PROVIDERS:
+            return None
+        registry = QgsProviderRegistry.instance()
+        parts = dict(registry.decodeUri(provider, layer.source()) or {})
+        path = str(parts.get("path") or "")
+        if not parts.pop("subset", None) or not os.path.isfile(path):
+            return None
+        if not path.lower().endswith(_COUNT_KEPT_SUFFIXES) and os.path.getsize(path) > _UNFILTERED_COUNT_MAX_BYTES:
+            return None
+        source = registry.createProvider(provider, registry.encodeUri(provider, parts),
+                                         QgsDataProvider.ProviderOptions())
+        if source is None or not source.isValid():
+            return None
+        count = int(source.featureCount())
+    except Exception:  # noqa: BLE001
+        return None
+    return count if count >= 0 else None
+
+
+
+
+_VERTEX_SAMPLE = 5
+
+
+def _sampled_vertices(layer) -> dict | None:
+
+    counts = []
+    try:
+        for feature in layer.getFeatures(feature_request(attributes=[], limit=_VERTEX_SAMPLE)):
+            geometry = feature.geometry()
+            if geometry is not None and not geometry.isNull():
+                counts.append(geometry.constGet().nCoordinates())
+    except Exception:  # noqa: BLE001
+        return None
+    if not counts:
+        return None
+    return {"features": len(counts), "mean": round(sum(counts) / len(counts)), "max": max(counts)}
+
+
 def _get_layer_info(args: dict) -> dict:
     layer = _find_layer(args["layer_name"])
     if not layer:
@@ -400,7 +478,7 @@ def _get_layer_info(args: dict) -> dict:
     detail = str(args.get("detail") or "summary").strip().casefold()
     if detail not in ("summary", "full"):
         return {"_error": "detail must be 'summary' or 'full'.", "code": "INVALID_ARGS",
-                "suggestion": "Use the default summary for metadata, or detail='full' when samples are needed."}
+                "suggestion": "The default summary covers metadata; detail='full' adds samples."}
     full_detail = detail == "full"
     remote = _is_remote_vector(layer)
 
@@ -425,11 +503,25 @@ def _get_layer_info(args: dict) -> dict:
 
             from .crs_landing import layer_check
             info.update(layer_check(layer))
+            from ..core.context import degree_values
+            degrees = degree_values(layer.crs(), layer.extent())
+            if degrees:
+                info["degree_values"] = degrees
 
 
     source_path = layer_file_path(layer)
     if source_path:
         info["source"] = source_path
+
+
+        try:
+            info["source_bytes"] = os.path.getsize(source_path.split("|", 1)[0])
+        except (OSError, ValueError):
+            pass
+    if isinstance(layer, QgsVectorLayer) and not remote:
+        vertices = _sampled_vertices(layer)
+        if vertices is not None:
+            info["vertices_per_feature_sampled"] = vertices
 
 
 
@@ -468,7 +560,7 @@ def _get_layer_info(args: dict) -> dict:
                 f"This project measures planar (Project Properties > General, ellipsoid NONE), so a bare "
                 f"$area here answers {ratio:.3g} times the true ground area. add_field measures $area, "
                 f"$perimeter and $length on the WGS84 ellipsoid for you and writes ground metres onto "
-                f"this layer, so do not reproject in order to measure: a reprojected copy leaves "
+                f"this layer, so a reprojected copy leaves "
                 f"'{layer.name()}' without the field the user asked for. run_processing measures on the "
                 f"same ellipsoid, but writes a new layer."
             )
@@ -476,6 +568,7 @@ def _get_layer_info(args: dict) -> dict:
     if isinstance(layer, QgsVectorLayer):
         fc = _safe_feature_count(layer)
         info["feature_count"] = fc if fc is not None else "unknown"
+        info.update(filter_facts(layer))
 
 
 
@@ -496,7 +589,7 @@ def _get_layer_info(args: dict) -> dict:
                 + ("The remote provider's feature count was not queried. " if fc is None else "")
                 + ("It is a web service layer, so detail='full' reads no rows either: get_features reads "
                    "them from the service." if remote else
-                   "Call get_layer_info with detail='full' or use get_features/get_field_statistics when needed.")
+                   "get_layer_info with detail='full', or get_features/get_field_statistics, reads them.")
             )
             return info
 
@@ -524,6 +617,13 @@ def _get_layer_info(args: dict) -> dict:
         except Exception:  # noqa: BLE001  # nosec B110
             pass
         info.update(ground.pixel_facts(layer))
+        from .query_tools import _remote_raster
+
+        if _remote_raster(layer):
+
+            info["provider"] = layer.providerType()
+            info["remote"] = ("Its pixels live on the service: every pixel or block read is a request over "
+                              "the network, and QGIS waits for the answer.")
 
     return info
 
@@ -559,7 +659,7 @@ def _zoom_to_layer(args: dict) -> dict:
         return {"_error": (f"Layer {layer.name()!r} has no extent to zoom to: it holds no feature with a "
                            f"geometry. The view was not moved."),
                 "code": "INVALID_ARGS",
-                "suggestion": "Check feature_count with get_layer_info, or zoom to a layer that has features."}
+                "suggestion": "get_layer_info shows feature_count."}
     layer_crs = layer.crs()
     canvas_crs = canvas.mapSettings().destinationCrs()
     framed = True
@@ -579,7 +679,7 @@ def _zoom_to_layer(args: dict) -> dict:
         return {"_error": (f"Layer {layer.name()!r} cannot be drawn in the canvas CRS "
                            f"{canvas_crs.authid()}. The view was not moved."),
                 "code": "INVALID_ARGS",
-                "suggestion": "Set the project CRS to the layer's CRS with set_project_crs, then zoom again."}
+                "suggestion": "The zoom works once the project CRS is the layer's (set_project_crs)."}
     canvas_crs = canvas.mapSettings().destinationCrs()
     ext = canvas.extent()
     return {

@@ -1926,6 +1926,42 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>• {layer}: {reason}</source>
             <translation>• {layer}: {reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>Alterar um rótulo do layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>Alterar um mapa do layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>Alterar uma seta norte do layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>Alterar uma barra de escala do layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>Editar a última mensagem na fila</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>Em uma caixa vazia</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>Colocar uma mensagem na fila</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>Remover um item do layout {layout_name}</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>Envia quando o agente terminar</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Your AI agent inside QGIS</source>
             <translation>Seu agente de IA dentro do QGIS</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>O agente terminou.</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>O agente está aguardando sua resposta.</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>O agente parou antes de terminar.</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>Conectado como {} (de {}).</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>Sem conexão com terra-lab.ai. Ainda tentando...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>{n} results</source>
             <translation>{n} resultados</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} s</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Undo</source>
             <translation>Desfazer</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Copiar</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Waiting for your approval</source>
             <translation>Aguardando sua aprovação</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>Adicionado à memória: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>Editando sua última mensagem.</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>Não respondido</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>Não conectado ao serviço do agente. A mensagem permanece na fila.</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>Pausado · nada é enviado até você escolher</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Na fila</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Enviar esta mensagem agora</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>O agente agora lê as trocas anteriores como um registro mais curto que mantém seus pedidos e o que ele fez.</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>Desfazer o que esta mensagem fez</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · enviado quando o agente terminar</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · o agente o lê na próxima etapa</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} na fila</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>grande demais, no máximo {mb} MB: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>Enfileirar</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>Enfileirar: o agente o lê na próxima etapa (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>A fila comporta 5 mensagens. Envie ou remova uma primeiro.</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Effort can be changed after this run ends</source>
             <translation>O nível de esforço pode ser alterado após o fim desta execução</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obter Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Incluído no Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Update the plugin</source>
             <translation>Atualize o plugin</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>Desfazer e tentar novamente</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Clique para abrir sua página.</translation>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>Trabalha sozinho. Pergunta apenas sobre créditos, instalações e outros plugins.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obter Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Incluído no Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Clique para abrir sua página.</translation>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>O Pro oferece {n} execuções por mês.</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>Piloto automático</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>Cancele quando quiser</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>O plano gratuito é para uso pessoal e de estudo. O Pro cobre trabalho para clientes e empregadores.</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>As execuções gratuitas voltam na sua renovação mensal.</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>As execuções gratuitas voltam em {date}.</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>Esforço médio e alto para tarefas mais difíceis</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>Memória e suas instruções</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: mais e melhor</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>Você executou {n} tarefas neste mês.</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/mês</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/mês excl. impostos</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>{n} execuções por mês</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · cancele quando quiser</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Clique para abrir sua página.</translation>
         <message>
             <source>Thought for {time}</source>
             <translation>Pensou por {time}</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>O QGIS foi fechado antes que isso terminasse</translation>
         </message>
     </context>
     <context>
@@ -6600,6 +6804,10 @@ Clique para abrir sua página.</translation>
             <source>{name}. Click to open.</source>
             <translation>{name}. Clique para abrir.</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>Editar mensagem</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7068,6 +7276,34 @@ Clique para abrir sua página.</translation>
             <source>Your own source</source>
             <translation>Sua própria fonte</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>Página do dataset e termos de licença</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>extensão: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>entradas: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>parâmetros: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>fonte: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>ferramenta: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC, adicionado por AI Agent by TerraLab</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7216,6 +7452,14 @@ Este arquivo não está mais onde a execução o gravou.</translation>
             <source>{n} runs a month with Pro</source>
             <translation>{n} execuções por mês com o Pro</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>Obtenha o Pro para esforço alto</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: {n} execuções por mês, esforço médio e alto para tarefas mais difíceis, piloto automático</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7240,6 +7484,59 @@ Este arquivo não está mais onde a execução o gravou.</translation>
         <message>
             <source>Now</source>
             <translation>Agora</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>Fechar</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>Não fez o que pedi</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Enviar</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>Obrigado</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Muito lento</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>O que deu errado? (opcional)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Resultado errado</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Mostrar mais {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>Editar esta mensagem</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>Remover da fila</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Enviar esta mensagem agora</translation>
         </message>
     </context>
 </TS>

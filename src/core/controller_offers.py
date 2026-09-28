@@ -50,7 +50,7 @@ class _ControllerOffers:
         slot = _CARD_SLOTS.get(name, _DIFF_TABLE)
         if not hasattr(self._panel, slot):
             refused = {"code": ClientErrorCode.CANCELLED, "message": tr("This plugin build cannot show that card."),
-                       "suggestion": "Ask the user with ask_user instead."}
+                       "suggestion": "ask_user reaches the user here."}
             self._session.send_tool_error(tool_call_id, run_id, refused["code"], refused["message"],
                                           refused["suggestion"])
             self._remember_proposal_answer(tool_call_id, None, refused)
@@ -61,7 +61,7 @@ class _ControllerOffers:
 
             refused = {"code": ClientErrorCode.INVALID_ARGS,
                        "message": "propose_edits has no row to apply: every row is unchanged or has no kind.",
-                       "suggestion": "Send the rows again with kind added for each new value (removed for a "
+                       "suggestion": "A row applies with kind added for a new value (removed for a "
                                      "deletion), and cells as text, one per column."}
             self._session.send_tool_error(tool_call_id, run_id, refused["code"], refused["message"],
                                           refused["suggestion"])
@@ -105,7 +105,7 @@ class _ControllerOffers:
         dismissed = None
         if result is None:
             dismissed = {"code": ClientErrorCode.CANCELLED, "message": tr("The user dismissed the proposal."),
-                         "suggestion": "Stop here and wait for the next user message."}
+                         "suggestion": "The user dismissed it."}
             self._session.send_tool_error(tool_call_id, run_id, dismissed["code"], dismissed["message"],
                                           dismissed["suggestion"])
         else:
@@ -214,7 +214,18 @@ class _ControllerOffers:
         self._session.send_feedback(run_id, bool(up))
         log(f"Feedback {run_id[:8]}: {'up' if up else 'down'}")
 
-    def _on_memory_note(self, text: str, kind: str, scope: str, run_id: str = "") -> None:
+    def _on_feedback_reason(self, run_id: str, code: str, text: str) -> None:
+
+        run_id = str(run_id or "")
+        if not run_id or not (code or text):
+            return
+        self._session.send_feedback(run_id, False, str(code or ""), str(text or ""))
+        log(f"Feedback reason {run_id[:8]}: {code or 'text only'}")
+
+    def _on_memory_note(self, text: str, kind: str, scope: str, run_id: str = "", replaces: str = "") -> None:
+
+
+
 
 
 
@@ -235,7 +246,7 @@ class _ControllerOffers:
             log_warning(f"Memory note dropped: run {str(run_id)[:8] or '?'} is not one of ours")
             return
         try:
-            note = add_memory_note(self._settings, text, "ai", kind, scope, project)
+            note = add_memory_note(self._settings, text, "ai", kind, scope, project, replaces)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Memory note not stored: {exc}")
             return

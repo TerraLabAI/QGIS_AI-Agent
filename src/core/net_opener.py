@@ -434,37 +434,37 @@ def proxy_in_use() -> str | None:
 WITHDRAWN_HOSTS = {
     "gisco-services.ec.europa.eu":
         "Eurostat GISCO grants its boundary files on condition that the data is not used for "
-        "commercial purposes, so this product does not serve them. Use osm_planet_boundaries, "
-        "overture_divisions or the country's own national row instead.",
+        "commercial purposes, so this product does not serve them. osm_planet_boundaries, "
+        "overture_divisions and the national row serve boundaries.",
     ".open-meteo.com":
         "Open-Meteo's free tier is for non-commercial use only and commercial use needs a paid "
-        "key. Use metno_forecast for the forecast and nasa_power_daily for the daily record.",
+        "key. metno_forecast serves the forecast and nasa_power_daily the daily record.",
     "basemaps.cartocdn.com":
-        "CARTO has no keyless basemap left: the free tiles carry an API key watermark. Use "
-        "openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left: the free tiles carry a watermark; openfreemap, "
+        "osm_standard, a national basemap do not.",
     ".basemaps.cartocdn.com":
-        "CARTO has no keyless basemap left: the free tiles carry an API key watermark. Use "
-        "openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left: the free tiles carry a watermark; openfreemap, "
+        "osm_standard, a national basemap do not.",
     "cartodb-basemaps-a.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left. Use openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
     "cartodb-basemaps-b.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left. Use openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
     "cartodb-basemaps-c.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left. Use openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
     "cartodb-basemaps-d.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left. Use openfreemap, osm_standard or a national basemap.",
+        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
     "api.inaturalist.org":
-        "iNaturalist observations are CC BY-NC per record. Use the gbif row, which asks for the "
+        "iNaturalist observations are CC BY-NC per record. The gbif row asks for the "
         "CC0 and CC BY records only.",
     ".opensky-network.org":
         "OpenSky's terms are non-commercial. There is no keyless commercial replacement for live "
         "flight positions in this catalog.",
     ".nrsc.gov.in":
-        "Bhuvan is free to view and not to reuse. For India use the global rows, OpenStreetMap "
-        "and the Overture themes.",
+        "Bhuvan is free to view and not to reuse. The global rows, OpenStreetMap "
+        "and the Overture themes serve India.",
     "cartoweb.wms.ngi.be":
         "The Belgian NGI's CartoWeb is CC BY-NC and commercial use needs a paid subscription. "
-        "Use the regional orthophotos and OpenStreetMap for Belgium.",
+        "Regional orthophotos and OpenStreetMap serve Belgium.",
 }
 
 

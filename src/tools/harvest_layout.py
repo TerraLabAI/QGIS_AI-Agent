@@ -194,7 +194,7 @@ def _layout_or_error(name: str):
     layout, error = _resolve_layout(name)
     if error:
         error.setdefault("code", "INVALID_ARGS")
-        error.setdefault("suggestion", "Call list_layouts for the exact name, or create_print_layout to make one.")
+        error.setdefault("suggestion", "list_layouts gives the exact name; create_print_layout makes one.")
     return layout, error
 
 
@@ -205,7 +205,7 @@ def _resolve_vector_layer(name_or_id: str):
         return None, _layer_not_found_error(name_or_id)
     if not isinstance(layer, QgsVectorLayer):
         return None, tool_error(f"Layer {name_or_id!r} is not a vector layer", "INVALID_ARGS",
-                                "Pass a vector layer; list_layers shows the type of each layer.")
+                                "must be a vector layer; list_layers shows each layer's type.")
     return layer, None
 
 
@@ -236,7 +236,7 @@ def _add_layout_picture(args: dict) -> dict:
     path = expand_path(args["path"])
     if not os.path.isfile(path):
         return tool_error(f"Picture file not found: {path}", "INVALID_ARGS",
-                          "Pass the path of an existing PNG, JPG or SVG; QGIS ships SVGs under "
+                          "path must be an existing PNG, JPG or SVG; QGIS ships SVGs under "
                           "QgsApplication.svgPaths().")
 
     member = _PICTURE_MODE_MEMBERS[args.get("resize_mode") or "zoom"]
@@ -297,7 +297,7 @@ def _add_layout_table(args: dict) -> dict:
         follow_map = _first_map_item(layout)
         if follow_map is None:
             return tool_error("visible_only needs a map frame in the layout", "INVALID_ARGS",
-                              "Call add_layout_map first, or drop visible_only.")
+                              "add_layout_map adds one")
 
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(layer)
@@ -379,7 +379,7 @@ def _configure_atlas(args: dict) -> dict:
         "page_names": _leading_page_names(atlas, 5),
     }
     if driven == 0:
-        summary["note"] = "no map frame follows the atlas yet: add_layout_map, then call configure_atlas again"
+        summary["note"] = "no map frame follows the atlas yet; add_layout_map adds one for the atlas to drive"
     if wanted_scale is not None:
         summary["scale"] = int(wanted_scale)
         summary["scale_mode"] = "fixed"
@@ -415,7 +415,7 @@ def _apply_atlas_filter(atlas, args: dict):
         return None
     atlas.setFilterFeatures(False)
     return tool_error(f"Invalid filter_expression: {message}", "INVALID_ARGS",
-                      "Check the expression with evaluate_expression on the coverage layer.")
+                      "evaluate_expression checks an expression against the coverage layer.")
 
 
 def _apply_atlas_sort(atlas, args: dict) -> None:
@@ -474,8 +474,7 @@ def _apply_atlas_scale(layout, wanted_scale, layout_name: str):
             f"Layout '{layout_name}' has no map driven by the atlas, so there is no map to hold "
             "that scale.",
             "INVALID_ARGS",
-            "Call configure_atlas with drive_maps true (the default), or add_layout_map then "
-            "configure_atlas, before exporting with scale.",
+            "configure_atlas with drive_maps true (the default) drives a map; so does add_layout_map.",
         )
     fixed_mode = enum_value((QgsLayoutItemMap, "Fixed"), (QgsLayoutItemMap, "AtlasScalingMode.Fixed"))
     changed = []
@@ -516,12 +515,12 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
 
     if fmt not in _IMAGE_FORMATS:
         return tool_error(f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
-                          "INVALID_ARGS", "Export the atlas to png, jpg or tif for a ground resolution.")
+                          "INVALID_ARGS", "png, jpg and tif take a ground resolution.")
     reference = layout.referenceMap()
     if reference is None:
         return tool_error(f"Layout '{layout.name()}' has no map item, so a pixel size on the ground has no dpi.",
-                          "INVALID_ARGS", "Add a map with add_layout_map, then configure_atlas, before "
-                                          "exporting with meters_per_pixel.")
+                          "INVALID_ARGS", "add_layout_map adds a map; configure_atlas then drives it for "
+                                          "meters_per_pixel.")
     exporter = QgsLayoutExporter(layout)
     widths = []
 
@@ -547,7 +546,7 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
     if coarsest > finest * 1.01:
         facts["meters_per_pixel_range"] = [round(finest, 4), round(coarsest, 4)]
         facts["meters_per_pixel_note"] = ("Each page fits its own feature: the widest page has meters_per_pixel, "
-                                          "narrower pages finer pixels. Pass scale for one resolution on every page.")
+                                          "narrower pages finer pixels. scale gives one resolution on every page.")
     return dpi, facts
 
 
@@ -557,7 +556,7 @@ def _export_atlas(args: dict) -> dict:
         return error
     atlas = layout.atlas()
     if not atlas.enabled() or atlas.coverageLayer() is None:
-        return tool_error("Atlas not enabled on this layout", "INVALID_ARGS", "Call configure_atlas first.")
+        return tool_error("Atlas not enabled on this layout", "INVALID_ARGS", "configure_atlas enables it")
 
     output_path = expand_path(args["output_path"])
     fmt = (args.get("format") or "pdf").lower()
@@ -576,18 +575,18 @@ def _export_atlas(args: dict) -> dict:
                   if requested > max_dpi and args.get("meters_per_pixel") is None else {})
     path_error = validate_path(output_path, write=True)
     if path_error:
-        return tool_error(path_error, "INVALID_ARGS", "Pick a writable output_path.")
+        return tool_error(path_error, "INVALID_ARGS", "output_path must be writable")
 
     if args.get("filename_expression"):
         outcome = atlas.setFilenameExpression(args["filename_expression"])
         ok, detail = (outcome[0], outcome[1]) if isinstance(outcome, (list, tuple)) else (bool(outcome), "")
         if not ok:
             return tool_error(f"Invalid filename_expression: {detail}", "INVALID_ARGS",
-                              "Use an expression that yields a distinct string per feature, e.g. 'page_'||\"name\".")
+                              "filename_expression needs a distinct string per feature, e.g. 'page_'||\"name\".")
     atlas.updateFeatures()
     if atlas.count() == 0:
         return tool_error("The atlas has no page: the coverage layer is empty or the filter matches nothing",
-                          "INVALID_ARGS", "Check the coverage layer and filter_expression in configure_atlas.")
+                          "INVALID_ARGS", "configure_atlas sets the coverage layer and filter_expression.")
 
     wanted_scale = args.get("scale")
     scale_changed = []
@@ -664,12 +663,12 @@ def _atlas_to_folder(job: dict) -> dict:
     if os.path.exists(folder) and not os.path.isdir(folder):
         what = "PDF" if fmt == "pdf" else "image"
         return tool_error(f"Atlas {what} output_path is not a folder: {folder}", "INVALID_ARGS",
-                          "Pick a folder for one file per page.")
+                          "a folder for one file per page")
     try:
         os.makedirs(folder, exist_ok=True)
     except OSError as exc:
         return tool_error(f"Could not create atlas output folder {folder}: {exc}", "EXECUTION_FAILED",
-                          "Pick another writable folder.")
+                          "the folder must be writable.")
 
 
 
@@ -760,7 +759,7 @@ def _atlas_page_names(atlas) -> tuple:
             f"The page names of this atlas could not be worked out before exporting ({exc}), so the export "
             f"was not started.",
             "EXECUTION_FAILED",
-            "Remove filename_expression to name the pages after the layout, or simplify it.",
+            "Without filename_expression, pages are named after the layout.",
         )
 
     problems = _bad_page_names(names)
@@ -769,9 +768,8 @@ def _atlas_page_names(atlas) -> tuple:
             "The filename expression produces page names that are not plain file names: "
             + "; ".join(problems[:5]) + ("" if len(problems) <= 5 else f" (and {len(problems) - 5} more)"),
             "INVALID_ARGS",
-            "Every page must be one ordinary file name, unique within the folder. Wrap the expression so it "
-            "yields a plain name, for example replace('\"name\"', '/', '-'), or add the feature id to make "
-            "duplicates distinct.",
+            "Every page must be one ordinary file name, unique within the folder. replace('\"name\"', '/', '-') "
+            "gives a plain name; the feature id makes duplicates distinct.",
         )
     return names, None
 
@@ -828,7 +826,7 @@ def _get_3d_screenshot(args: dict) -> dict:
         keep_at = expand_path(keep_at)
         refused = validate_path(keep_at, write=True)
         if refused:
-            return tool_error(refused, "INVALID_ARGS", "Pick a writable save_path.")
+            return tool_error(refused, "INVALID_ARGS", "save_path must be writable")
         png_path = keep_at
     else:
         png_path = os.path.join(tempfile.gettempdir(), f"agent_3d_{uuid.uuid4().hex[:8]}.png")
@@ -838,7 +836,7 @@ def _get_3d_screenshot(args: dict) -> dict:
     code = _render_3d_page(view, dpi, png_path)
     if _export_failed(code) or not os.path.exists(png_path):
         return tool_error(f"3D layout export failed (export code {code})", "EXECUTION_FAILED",
-                          "Check the 3D view renders on screen, then retry with a lower dpi.")
+                          "the 3D view must render on screen; a lower dpi needs less memory.")
 
     picture = QImage(png_path)
     facts = {"width": picture.width(), "height": picture.height(), "format": "png",

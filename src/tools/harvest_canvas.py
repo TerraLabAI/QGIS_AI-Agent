@@ -8,11 +8,25 @@
 
 from __future__ import annotations
 
-from qgis.core import Qgis, QgsGeometry, QgsLabeling, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    Qgis,
+    QgsCoordinateTransform,
+    QgsExpression,
+    QgsExpressionContext,
+    QgsExpressionContextUtils,
+    QgsFeatureRequest,
+    QgsGeometry,
+    QgsLabeling,
+    QgsProject,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core.follow import hold_view
+from ..core.layer_order import is_remote_vector
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .core_tools import _find_layer, _layer_not_found_error
 from .feature_tools import _find_vector_layer
@@ -182,7 +196,10 @@ def _get_layer_labeling(args: dict) -> dict:
         result.update(_label_settings_summary(labeling.settings()))
     placed = _labels_placed(layer.id())
     if placed is not None:
-        result["labels_placed_last_render"] = placed
+        result["labels_placed_last_render"] = placed[0]
+
+        settings = labeling.settings() if labeling.type() != "rule-based" else None
+        result.update(_labels_in_view(layer, settings, placed[1]))
     return result
 
 
@@ -192,15 +209,57 @@ def _labels_placed(layer_id: str):
 
 
 
+
     try:
         results = iface.mapCanvas().labelingResults()
         if results is None:
             return None
-        positions = results.allLabels()
-        return sum(1 for position in positions
-                   if position.layerID == layer_id and not getattr(position, "isUnplaced", False))
+        positions = [position for position in results.allLabels()
+                     if position.layerID == layer_id and not getattr(position, "isUnplaced", False)]
+        return len(positions), {position.featureId for position in positions}
     except Exception:  # nosec B110
         return None
+
+
+
+
+
+_LABEL_VIEW_FEATURES = 2000
+
+
+def _labels_in_view(layer, settings, drawn: set) -> dict:
+
+
+
+
+    if is_remote_vector(layer) or layer.featureCount() > _LABEL_VIEW_FEATURES:
+        return {}
+    try:
+        canvas = iface.mapCanvas()
+        extent = QgsCoordinateTransform(canvas.mapSettings().destinationCrs(), layer.crs(),
+                                        QgsProject.instance()).transformBoundingBox(canvas.extent())
+        request = QgsFeatureRequest().setFilterRect(extent)
+        request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        text = None
+        if settings is not None and settings.fieldName:
+            text = QgsExpression(settings.fieldName if settings.isExpression
+                                 else QgsExpression.quotedColumnRef(settings.fieldName))
+        context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+        in_view, missing = 0, []
+        for feature in layer.getFeatures(request):
+            in_view += 1
+            if feature.id() in drawn or text is None or len(missing) >= 5:
+                continue
+            context.setFeature(feature)
+            value = text.evaluate(context)
+            if value is not None and not (hasattr(value, "isNull") and value.isNull()) and str(value).strip():
+                missing.append(str(value)[:60])
+    except Exception:  # nosec B110
+        return {}
+    out = {"features_in_view": in_view}
+    if missing:
+        out["not_drawn"] = missing
+    return out
 
 
 def _view_state(canvas) -> dict:
@@ -219,10 +278,10 @@ def _set_canvas_scale(args: dict) -> dict:
     wanted_scale = args.get("scale")
     wanted_rotation = args.get("rotation")
     if wanted_scale is None and wanted_rotation is None:
-        return tool_error("Pass scale and/or rotation", "INVALID_ARGS", "scale is the denominator, e.g. 25000.")
+        return tool_error("No scale or rotation given", "INVALID_ARGS", "scale is the denominator, e.g. 25000.")
     if wanted_scale is not None and float(wanted_scale) <= 0:
         return tool_error(f"scale must be a positive denominator, got {wanted_scale}", "INVALID_ARGS",
-                          "Use 25000 for 1:25000.")
+                          "25000 means 1:25000.")
     canvas = iface.mapCanvas()
     if wanted_scale is not None:
         canvas.zoomScale(float(wanted_scale))
@@ -254,7 +313,7 @@ def _checked_geometry(layer, position: int, update: dict):
         return tool_error(
             f"Update {position}: geometry is {QgsWkbTypes.displayString(shape.wkbType())}, the layer holds "
             f"{QgsWkbTypes.displayString(layer.wkbType())}", "INVALID_ARGS",
-            "Pass a geometry of the layer's type.")
+            "geometry_wkt takes the layer's type.")
     if QgsWkbTypes.isMultiType(layer.wkbType()) and not QgsWkbTypes.isMultiType(shape.wkbType()):
         shape.convertToMultiType()
     return shape
@@ -268,12 +327,12 @@ def _write_geometries(layer, shapes: dict, own_session: bool):
         if own_session:
             layer.rollBack()
         return tool_error(f"Failed to update the geometry of fid {fid}", "EXECUTION_FAILED",
-                          "Check the provider allows geometry changes (get_provider_capabilities).")
+                          "get_provider_capabilities shows if geometry changes are allowed.")
     if own_session and not layer.commitChanges():
         reasons = layer.commitErrors()
         layer.rollBack()
         return tool_error("; ".join(reasons) or "Commit failed", "EXECUTION_FAILED",
-                          "Read the provider error; the change was rolled back.")
+                          "The change was rolled back.")
     return None
 
 
@@ -292,7 +351,7 @@ def _update_feature_geometry(args: dict) -> dict:
     session_open = layer.isEditable()
     if not session_open and not layer.startEditing():
         return tool_error("Cannot start editing on this layer", "EXECUTION_FAILED",
-                          "The provider is read-only; export_layer to a GeoPackage first.")
+                          "The provider is read-only. export_layer makes a writable copy.")
     refusal = _write_geometries(layer, shapes, own_session=not session_open)
     if refusal:
         return refusal
@@ -300,5 +359,5 @@ def _update_feature_geometry(args: dict) -> dict:
     layer.triggerRepaint()
     result = {"updated": len(shapes), "fids": list(shapes), "committed": not session_open}
     if session_open:
-        result["note"] = "changed in the open edit session (not committed, commit or discard it yourself)"
+        result["note"] = "changed in the open edit session; not committed yet"
     return result

@@ -502,7 +502,7 @@ class FolderMergeTask(QgsTask):
             return
         if self.outcome.get("_error"):
             entry.update({"status": "error", "error": self.outcome["_error"], "code": "EXECUTION_FAILED",
-                          "suggestion": "Pass one file of the folder to add_data to see why it does not read."})
+                          "suggestion": "add_data on one file of the folder shows why it does not read."})
             return
         try:
             with layer_order.adopted(self.run_token):
@@ -639,7 +639,7 @@ def folder_plan(folder: str, wanted: str) -> tuple[str, object]:
             return "load", named[0]
         return "answer", {"_error": f"Nothing in {os.path.basename(folder)} matches layer={wanted!r}.",
                           "code": "INVALID_ARGS", "formats": counts,
-                          "suggestion": "Pass layer=<extension> to merge every file of that format, or a file name."}
+                          "suggestion": "layer=<extension> merges that format; a file name loads one."}
     if total == 0:
         return "answer", {"_error": (f"{os.path.basename(folder) or folder} holds no vector file add_data reads "
                                      f"({seen} files looked at, {_max_depth()} folder levels deep)."),
@@ -653,7 +653,7 @@ def folder_plan(folder: str, wanted: str) -> tuple[str, object]:
     listed = [os.path.relpath(path, folder) for paths in found.values() for path in paths][:50]
     return "answer", {
         "path": folder, "formats": counts, "files": listed,
-        "_note": (f"{os.path.basename(folder) or folder} holds {total} vector files, none added yet. Call add_data "
-                  "with layer=<file> for one of them, or layer=<extension> (for example layer='kml') to merge every "
-                  "file of that format into one layer, each row keeping the file it came from."),
+        "_note": (f"{os.path.basename(folder) or folder} holds {total} vector files, none added yet. add_data "
+                  "with layer=<file> loads one; layer=<extension> (for example layer='kml') merges every file "
+                  "of that format into one layer, each row keeping the file it came from."),
     }

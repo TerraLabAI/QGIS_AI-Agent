@@ -58,6 +58,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
     approval_waiting = pyqtSignal(bool)
 
+
+    run_finished = pyqtSignal(str)
+
     def __init__(self, iface, panel, registry, settings: Settings | None = None,
                  account: Account | None = None, parent=None, *, session=None, executor=None, store=None):
         super().__init__(parent)
@@ -88,6 +91,14 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._example_pick = ""
         self._last_verification: dict | None = None
         self._agent_text: dict[str, str] = {}
+
+
+        self._steers: dict[str, dict] = {}
+
+
+        self._replaces: tuple[str, str] = ("", "")
+
+        self._retry_after_restore: tuple[str, str] = ("", "")
 
 
 
@@ -161,7 +172,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         telemetry.start_flush_timer()
         if telemetry.first_open_recorded():
             telemetry.track(ev.PLUGIN_FIRST_OPEN)
-        telemetry.track(ev.PLUGIN_OPENED, {"signed_in": self._account.has_activation_key})
+
+
+
+        QTimer.singleShot(0, self._track_opened)
         if self._account.state in (Account.ACTIVATED, Account.LOCKED):
             self._panel_call("set_connection_state", "connecting", "")
             self._session.connect_to_server()
@@ -170,6 +184,15 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             self._panel_call("set_connection_state", "signed_out", "")
 
         self._account.try_sibling_sign_in()
+
+    def _track_opened(self) -> None:
+        try:
+            main_window = self._iface.mainWindow()
+            panel_visible = bool(self._panel.isVisibleTo(main_window)) if main_window is not None else None
+        except (AttributeError, RuntimeError, TypeError):
+            panel_visible = None
+        telemetry.track(ev.PLUGIN_OPENED, {"signed_in": self._account.has_activation_key,
+                                           "panel_visible": panel_visible})
 
     def _on_thread_index_ready(self) -> None:
 
@@ -221,6 +244,11 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
             self._store_ending(run["run_id"], RunStatus.CANCELLED, tr("Stopped: QGIS closed during this run."), {})
+
+        try:
+            self._account.stop_upgrade_watch()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Upgrade watch not stopped on unload: {exc}")
 
         self._session.disconnect_from_server(wait=True)
 
@@ -305,6 +333,11 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def _wire_panel(self) -> None:
         self._connect("send_requested", self._on_send)
         self._connect("stop_requested", self._on_stop)
+        self._connect_optional("steer_requested", self._on_steer)
+        self._connect_optional("unsteer_requested", self._on_unsteer)
+        self._connect_optional("queue_send_requested", self._on_queue_send)
+        self._connect_optional("edit_requested", self._on_edit_last)
+        self._connect_optional("undo_retry_requested", self._on_undo_retry)
         self._connect("permission_decided", self._on_permission_decided)
         self._connect("question_answered", self._on_question_answered)
         self._connect("question_auto_answered", self._on_question_auto_answered)
@@ -321,7 +354,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("new_thread_requested", self._on_new_thread)
         self._connect("thread_selected", self._on_thread_selected)
         self._connect("thread_delete_requested", self._on_thread_delete)
-        self._connect("suggestion_clicked", self._on_suggestion)
         self._connect("chip_removed", lambda kind, value: log(f"chip removed: {kind}"))
         self._connect("files_dropped", self._on_files_dropped)
         self._connect("sign_out_requested", self._on_sign_out)
@@ -338,7 +370,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("example_chosen", self._on_example_chosen)
         self._connect("attachment_added", self._on_attachment_added)
         self._connect("dashboard_requested", lambda: log("Dashboard opened from the panel"))
-        self._connect("upgrade_requested", self._on_upgrade_requested)
         self._connect_optional("pro_pill_requested", self._on_pro_pill_requested)
         self._connect_optional("checkout_requested", self._on_checkout_requested)
         self._connect_optional("plans_requested", self._on_plans_requested)
@@ -356,6 +387,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect_optional("recommendation_decided", self._on_recommendation_decided)
         self._connect_optional("diff_applied", self._on_diff_applied)
         self._connect_optional("feedback", self._on_feedback)
+        self._connect_optional("feedback_reason", self._on_feedback_reason)
 
     def _wire_session(self) -> None:
         s = self._session
@@ -373,6 +405,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         s.status_line.connect(self._on_status_line)
         s.sources.connect(self._on_sources)
         s.counts.connect(self._on_counts)
+        if hasattr(s, "steer_ack"):
+            s.steer_ack.connect(self._on_steer_ack)
         if hasattr(s, "server_tool"):
             s.server_tool.connect(self._on_server_tool)
         if hasattr(s, "connection_failed"):
@@ -403,6 +437,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         a.pairing_address.connect(lambda message: self._panel_call("set_pairing_note", message, "warning"))
         a.pairing_stalled.connect(
             lambda _reason, message: self._panel_call("set_pairing_note", message, "info"))
+
+        a.pairing_link_back.connect(lambda: self._panel_call("set_pairing_note", "", "info"))
         a.pairing_failed.connect(self._on_pairing_failed)
         a.pairing_timeout.connect(lambda: self._on_pairing_failed(tr("Sign-in timed out. Try again."), "TIMEOUT"))
         a.notice.connect(self.notice)

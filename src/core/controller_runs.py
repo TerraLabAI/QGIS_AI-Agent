@@ -10,10 +10,11 @@ from __future__ import annotations
 import time
 import uuid
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from . import telemetry
 from . import telemetry_events as ev
+from .checkpoints import KIND_BEFORE
 from .context import build_context
 from .controller_actions import _project_path
 from .controller_shared import (
@@ -36,7 +37,11 @@ def tr(text: str) -> str:
 
 
 class _ControllerRuns:
-    def _on_send(self, text: str, mode: str, approval: str, chips, attachments, reuse_layers: bool = False) -> None:
+    def _on_send(self, text: str, mode: str, approval: str, chips, attachments, reuse_layers: bool = False,
+                 replaces: str | None = None) -> None:
+
+
+
         text = (text or "").strip()
         if not text:
             return
@@ -74,6 +79,12 @@ class _ControllerRuns:
 
         effort = self._effort()
         example = self._example_sent(text)
+        (edited_thread, edited), self._replaces = getattr(self, "_replaces", ("", "")), ("", "")
+        self._retry_after_restore = ("", "")
+        if replaces is None:
+            replaces = edited if edited and edited_thread == self._thread_id else ""
+
+        reuse_layers = reuse_layers or bool(replaces)
         chips = [c for c in (chips or []) if isinstance(c, dict)]
         attachments = [a for a in (attachments or []) if isinstance(a, dict)]
         sent_attachments = [dict(a) for a in attachments]
@@ -113,7 +124,7 @@ class _ControllerRuns:
                                          thread_id=self._thread_id))
         self._runs.begin({"run_id": run_id, "thread_id": self._thread_id, "mode": mode, "approval": approval,
                           "effort": effort, "text": text, "started": time.monotonic(), "cancelled": False,
-                          "example": example,
+                          "example": example, "replaces": replaces,
 
 
                           "sent": (attachments, context), "resends": 0})
@@ -132,12 +143,16 @@ class _ControllerRuns:
             self._executor.begin_run(run_id, mode, approval, self._thread_id or "", text)
             self._panel_call("set_display_options", self._settings.explain_runs, self._settings.show_tool_details)
             self._panel_call("begin_run", run_id)
+
+            self._panel_call("set_steer_available",
+                             self._session.steer_available and self._session.unsteer_available)
+            self._panel_call("set_edit_available", self._session.edit_last_available)
             began = True
             self._panel_call("append_user_message", run_id, text, chips, attachments)
             self._store.append_message(self._thread_id, record)
             self._store.update_agent_message(self._thread_id, run_id, {"status": "running"})
             sent = self._session.send_user_message(
-                run_id, self._thread_id, text, attachments, context, mode, approval, effort, example)
+                run_id, self._thread_id, text, attachments, context, mode, approval, effort, example, replaces)
         except Exception as exc:  # noqa: BLE001
             self._fail_unsent_run(run_id, exc, began, dict(record, chips=asked_chips, attachments=sent_attachments))
             return
@@ -154,6 +169,11 @@ class _ControllerRuns:
         else:
             self._runs.sent(run_id)
             self._touch_watchdog()
+            if replaces and self._session.edit_last_available:
+
+
+                self._panel_call("drop_turn", replaces)
+                self._store.drop_run(self._thread_id, replaces)
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
         self._panel_call("set_current_thread", self._thread_id)
 
@@ -169,9 +189,6 @@ class _ControllerRuns:
         from ..ui.use_cases import use_cases
         prompt = next((case.prompt for case in use_cases() if case.slug == slug), "")
         return slug if prompt and prompt in text else ""
-
-    def _on_suggestion(self, text: str) -> None:
-        self._on_send(text, self._settings.mode, self._settings.approval, [], [])
 
     def _fail_unsent_run(self, run_id: str, exc: Exception, began: bool, record: dict) -> None:
 
@@ -208,7 +225,7 @@ class _ControllerRuns:
                 return message
         return None
 
-    def _on_retry(self, run_id: str) -> None:
+    def _on_retry(self, run_id: str, replaces: str = "") -> None:
 
 
 
@@ -228,7 +245,55 @@ class _ControllerRuns:
         attachments = asked.get("attachments") or []
         self._on_send(str(asked.get("text") or ""), mode, approval,
                       [dict(c) for c in asked.get("chips") or [] if isinstance(c, dict)],
-                      [dict(a) for a in attachments if isinstance(a, dict)], reuse_layers=True)
+                      [dict(a) for a in attachments if isinstance(a, dict)], reuse_layers=True,
+                      replaces=str(replaces or ""))
+
+    def _on_edit_last(self, run_id: str) -> None:
+
+
+
+        run_id = str(run_id or "")
+        if not run_id:
+            self._replaces = ("", "")
+            return
+        asked = self._retry_input(run_id) if self._run is None else None
+        if asked is None:
+            return
+        self._replaces = (self._thread_id or "", run_id)
+        self._panel_call("begin_edit", run_id, str(asked.get("text") or ""),
+                         [dict(c) for c in asked.get("chips") or [] if isinstance(c, dict)],
+                         [dict(a) for a in asked.get("attachments") or [] if isinstance(a, dict)])
+
+    def _on_undo_retry(self, run_id: str) -> None:
+
+
+
+        run_id = str(run_id or "")
+        if self._run is not None or self._retry_input(run_id) is None:
+            return
+        history = self._executor.history
+        thread_id = self._thread_id or ""
+        before = next((e for e in reversed(history.entries(thread_id))
+                       if e.run_id == run_id and e.kind == KIND_BEFORE), None)
+        if before is None or not before.available:
+            self._retry_replacing(run_id)
+            return
+        self._retry_after_restore = (before.id, run_id)
+        self._on_restore(before.id, False)
+        current = history.current(thread_id)
+        if self._retry_after_restore[0] and current is not None and current.id == before.id:
+            self._restored_for_retry(before.id)
+
+    def _restored_for_retry(self, checkpoint_id: str) -> None:
+
+        pending, run_id = self._retry_after_restore
+        if not pending or pending != checkpoint_id:
+            return
+        self._retry_after_restore = ("", "")
+        QTimer.singleShot(0, lambda: self._retry_replacing(run_id))
+
+    def _retry_replacing(self, run_id: str) -> None:
+        self._on_retry(run_id, replaces=run_id)
 
     def _on_continue(self, run_id: str) -> None:
 
@@ -245,7 +310,53 @@ class _ControllerRuns:
         approval = self._settings.approval
         if asked.get("approval") in Approval.ALL and approval in Approval.ALL:
             approval = min(asked["approval"], approval, key=Approval.ALL.index)
-        self._on_send(CONTINUE_TEXT, mode, approval, [], [])
+        self._on_send(CONTINUE_TEXT, mode, approval, [], [], replaces="")
+
+    def _on_steer(self, run_id: str, steer_id: str, text: str) -> None:
+
+
+        text = (text or "").strip()
+        run = self._run
+        if not text or run is None or run.get("run_id") != run_id or not self._session.steer_available:
+            self._panel_call("steer_refused", steer_id)
+            return
+        remember_user_text(text)
+        thread_id = str(run.get("thread_id") or self._thread_id or "")
+        self._steers.setdefault(run_id, {})[steer_id] = (text, thread_id)
+        if not self._session.send_steer(run_id, steer_id, text):
+            log_warning(f"Steer for run {run_id} did not leave; it waits in the queue for the run's end")
+
+    def _on_unsteer(self, run_id: str, steer_id: str) -> None:
+
+
+        if (self._steers.get(run_id) or {}).pop(steer_id, None) is not None:
+            self._session.send_unsteer(run_id, steer_id)
+
+    def _on_queue_send(self, text: str, chips, attachments) -> None:
+
+
+        if not self._session.is_online:
+            return
+        self._on_send(text, "", "", chips, attachments, replaces="")
+
+    def _on_steer_ack(self, run_id: str, steer_id: str, taken: bool) -> None:
+        steer = (self._steers.get(run_id) or {}).pop(steer_id, None)
+        if not taken:
+            self._panel_call("steer_refused", steer_id)
+            return
+        text, thread_id = steer if steer is not None else ("", "")
+        if not text:
+            return
+        self._panel_call("append_steer", run_id, steer_id, text)
+
+        thread_id = thread_id or str(self._thread_id or "")
+        if thread_id:
+            self._store.append_steer(thread_id, run_id, text)
+
+    def _flush_steers(self, run_id: str) -> None:
+
+        for steer_id in getattr(self, "_steers", {}).pop(run_id, None) or {}:
+            self._panel_call("steer_refused", steer_id)
 
     def _on_stop(self, run_id: str) -> None:
         run = self._runs.stop(run_id)
@@ -305,7 +416,7 @@ class _ControllerRuns:
         try:
             sent = self._session.send_user_message(run["run_id"], run["thread_id"], run["text"], attachments,
                                                    context, run["mode"], run["approval"], run["effort"],
-                                                   run.get("example", ""))
+                                                   run.get("example", ""), run.get("replaces", ""))
         except Exception as exc:  # noqa: BLE001
             self._fail_unsent_run(run["run_id"], exc, True, self._runs.record(run["run_id"]) or dict(  # noqa: C408
                 text=run["text"], mode=run["mode"], approval=run["approval"], chips=[], attachments=[]))

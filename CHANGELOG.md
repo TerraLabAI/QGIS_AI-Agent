@@ -9,6 +9,38 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-28
+
+### Added
+
+- Messages typed while the agent works wait in a queue above the message box. A text message
+  reaches the running task at its next step; each queued row can be sent now or removed.
+- Edit your last message: its attachments come back, and the turn it replaces leaves the chat.
+  A failed run offers Undo and retry.
+- Every layer the agent adds records where it came from in its metadata: the source, its licence
+  and credit, the tool and inputs that made it. Secrets and expiring links are left out.
+- QGIS calls you back when a run finishes, stops, or waits for your answer, and each answer has a
+  Copy button.
+- A thumbs down asks what went wrong, optionally: three choices and a free line.
+
+### Changed
+
+- A stopped or failed run keeps its Undo, and the layers a call added are never taken back out of
+  the project on their own.
+- Fewer approval cards: code that only reads asks less, and a Processing output written to a new
+  file no longer asks.
+- The panel says what the run is doing between steps, and the agent's error messages state facts.
+- Hosted basemaps are named after their data (OpenStreetMap Light and Dark, Sentinel-2 2021).
+- Signing in brings QGIS back to the front on macOS 14 and later.
+
+### Fixed
+
+- A crash in QGIS 3.44 during a long land-cover run.
+- QGIS no longer freezes while account details load, while listing a web layer's field values or
+  while identifying features on a WMS layer.
+- A project with its own layer drawing order shows the run's layers where they belong.
+- A CSV or VRT inside a zip loads, and a headerless CSV keeps its first record.
+
 ## [1.4.1] - 2026-09-24
 
 ### Changed

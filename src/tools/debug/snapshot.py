@@ -358,7 +358,7 @@ def _resolve_target(args: dict):
     if args.get("query"):
         from .widgets import resolve_widget
         return resolve_widget(args)
-    return None, {"_error": "Provide either 'ref' (from accessibility_snapshot) or 'query'."}
+    return None, {"_error": "Needs 'ref' (from accessibility_snapshot) or 'query'."}
 
 
 def _expand_widget(result, widget, args: dict):
@@ -417,7 +417,7 @@ def _ref_action(args: dict) -> dict:
 
         QTimer.singleShot(0, lambda w=widget: _do_click(w))
         out = {"clicked": True, "deferred": True, "widget": widget_ident(widget),
-               "note": "Wait ~1s, then inspect with accessibility_snapshot/screenshot; dismiss with close_dialog."}
+               "note": "Fires in about 1s; accessibility_snapshot/screenshot shows it, close_dialog dismisses."}
         if rebound:
             out["rebound"] = True
         return _expand_widget(out, widget, args)
@@ -481,8 +481,8 @@ def _dispatch_action(action: str, widget, args: dict):
         return {
             "_error": f"'{action}' applies to a row of a tree, not to a widget.",
             "_code": "UNSUPPORTED_ACTION",
-            "_suggestion": "Pass the row's @iN ref (from the view's `rows` in accessibility_snapshot), "
-                           "or a view ref plus item_path.",
+            "_suggestion": "The row's @iN ref (`rows` in accessibility_snapshot), or a view "
+                           "ref plus item_path, is needed.",
             "widget": widget_ident(widget),
         }
     if action == "screenshot":
@@ -587,8 +587,8 @@ def _check_no_progress(action: str, widget, args: dict, extra: str = ""):
                 "_error": f"Aborting: '{action}' on this target repeated {count + 1}× with no UI change.",
                 "_code": "NO_PROGRESS",
                 "_suggestion": (
-                    "This action has no effect. Re-run accessibility_snapshot, target a different "
-                    "widget, check for a blocking dialog (close_dialog) or an error (get_python_errors)."
+                    "This action had no effect; accessibility_snapshot, a different widget, a "
+                    "blocking dialog (close_dialog) or an error (get_python_errors) may explain it."
                 ),
                 "widget": widget_ident(widget),
             },
@@ -727,10 +727,10 @@ def _wait_actionable(widget, action: str, timeout_ms: int):
                 "_error": f"Target not actionable for '{action}': {last_fail}",
                 "_code": "NOT_ACTIONABLE",
                 "_suggestion": (
-                    "Re-run accessibility_snapshot to see current state. The target may be disabled, "
+                    "accessibility_snapshot gives current state. The target may be disabled, "
                     "hidden, still loading, covered by a dialog, or on a tab that is not showing "
-                    "(switch with ref_action select_tab). Scrolling it into view was already tried. "
-                    "Use assert_ui to wait for it first."
+                    "(ref_action select_tab switches tabs). Scrolling it into view was already "
+                    "tried; assert_ui waits for it."
                 ),
                 "widget": widget_ident(widget),
                 "scrolled_into_view": notes.get("scrolled_into_view", ""),
@@ -1077,12 +1077,12 @@ def _select_menu_item(args: dict) -> dict:
     text = (args.get("text") or "").strip()
     if not text:
         return {"_error": "text is required",
-                "_suggestion": "Pass the menu entry text to trigger."}
+                "_suggestion": "text is the menu entry to trigger."}
     menus = _open_menus()
     if not menus:
         return {"_error": "No open QMenu found.",
                 "_code": "NO_MENU_OPEN",
-                "_suggestion": "open the menu first (ref_action click on the menu button)"}
+                "_suggestion": "ref_action click on the menu button opens one."}
     needle = text.lower()
     available = []
     for menu in menus:
@@ -1096,7 +1096,7 @@ def _select_menu_item(args: dict) -> dict:
     return {"_error": f"No menu entry matched '{text}'.",
             "_code": "NO_MATCH",
             "available": available,
-            "_suggestion": "Pick one of the available entries (case-insensitive substring)."}
+            "_suggestion": "available lists them, matched case-insensitive as a substring."}
 
 
 def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
@@ -1121,7 +1121,7 @@ def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
                 "_code": "TAB_CLICK_MISSED",
                 "tabs": tabs,
                 "current": current,
-                "_suggestion": "Use action=select_tab with value=<tab name>, or option_index.",
+                "_suggestion": "action=select_tab with value=<tab name>, or option_index.",
                 "widget": widget_ident(widget),
             }
     if kind == "double":
@@ -1259,7 +1259,7 @@ def _do_select_tab(widget, args: dict) -> dict:
 
     if not isinstance(widget, (QTabBar, QTabWidget, QToolBox)):
         return {"_error": "Target has no tabs", "_code": "NO_TABS",
-                "_suggestion": "Snapshot the window and pick a node whose role is 'tabs'.",
+                "_suggestion": "accessibility_snapshot names nodes whose role is 'tabs'.",
                 "widget": widget_ident(widget)}
     labels, before = tab_state(widget)
     if not labels:
@@ -1298,7 +1298,7 @@ def _do_check_widget(widget, want: bool) -> dict:
     is_checked = getattr(widget, "isChecked", None)
     if not (callable(set_checked) and callable(is_checked)) or (callable(checkable) and not checkable()):
         return {"_error": "This widget cannot be checked", "_code": "NOT_CHECKABLE",
-                "_suggestion": "Use action=click, or pass a row @iN ref for a checkable row.",
+                "_suggestion": "action=click, or a row @iN ref for a checkable row, works.",
                 "widget": widget_ident(widget)}
     before = bool(is_checked())
     if before == want:
@@ -1348,7 +1348,7 @@ def _item_click_point(view, index):
         return None, {
             "_error": "This row has no visible rectangle, even after scrolling to it.",
             "_code": "NOT_ACTIONABLE",
-            "_suggestion": "The view may be collapsed, filtered or hidden. Re-run accessibility_snapshot.",
+            "_suggestion": "The view may be collapsed, filtered or hidden; accessibility_snapshot shows it.",
             "item": _item_ident(view, index),
         }
     return visible.center(), None

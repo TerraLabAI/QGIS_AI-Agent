@@ -236,6 +236,8 @@ class PanelActionsMixin:
 
 
             history.mark_current(entry)
+
+            self._restored_for_retry(entry.id)
         self._send_history()
         back = steps >= 0
         action, target = "", ""
@@ -464,14 +466,6 @@ class PanelActionsMixin:
             telemetry.track(ev.TUTORIAL_OPENED)
         log(f"Help opened: {kind}")
 
-    def _on_upgrade_requested(self) -> None:
-
-        self._account.open_plans(
-            "plugin_quota_card",
-            on_outcome=lambda link: telemetry.track(
-                ev.SUBSCRIBE_LINK_CLICKED, {"source": "quota_card", "checkout_link": link}))
-        log("Upgrade opened from the panel")
-
     def _on_pro_pill_requested(self) -> None:
 
 
@@ -481,7 +475,7 @@ class PanelActionsMixin:
         self._account.open_plans(
             "plugin_header_pill",
             on_outcome=lambda link: telemetry.track(
-                ev.SUBSCRIBE_LINK_CLICKED, {"source": "header_pill", "checkout_link": link}))
+                ev.SUBSCRIBE_LINK_CLICKED, {"source": "header_pill", "where": "header_pill", "checkout_link": link}))
         log("Upgrade opened from the header pill")
 
     def _on_checkout_requested(self, where: str) -> None:
@@ -494,6 +488,7 @@ class PanelActionsMixin:
         log(f"Checkout opened from the panel ({where})")
 
     def _on_plans_requested(self, where: str) -> None:
+
 
 
         self._account.open_plans(

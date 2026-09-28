@@ -64,11 +64,17 @@ class FrameType:
 
     SERVER_TOOL = "server_tool"
 
+
+    STEER = "steer"
+    STEER_ACK = "steer_ack"
+
+    UNSTEER = "unsteer"
+
     CLIENT = frozenset({HELLO, USER_MESSAGE, TOOL_RESULT, TOOL_ERROR, PERMISSION_RESPONSE, CANCEL, PING, FEEDBACK,
-                        BUSY, UPLOAD})
+                        BUSY, UPLOAD, STEER, UNSTEER})
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
-         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL}
+         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK}
     )
 
 
@@ -93,7 +99,8 @@ class ClientErrorCode:
 
 
 
-PROTOCOL_VERSION = 1
+
+PROTOCOL_VERSION = 2
 
 
 class ServerErrorCode:
@@ -291,7 +298,8 @@ def normalize_attachment(item: Any) -> dict | None:
 
 
 def user_message(run_id: str, thread_id: str, text: str, attachments: list | None,
-                 context: dict, mode: str, approval: str, effort: str = Effort.LOW, example: str = "") -> dict:
+                 context: dict, mode: str, approval: str, effort: str = Effort.LOW, example: str = "",
+                 replaces_run_id: str = "") -> dict:
     clean = [a for a in (normalize_attachment(x) for x in (attachments or [])) if a]
     effort = effort if effort in Effort.ALL else Effort.LOW
     return {
@@ -316,12 +324,24 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
 
 
         "example": str(example or ""),
+
+
+        "replaces_run_id": str(replaces_run_id or ""),
     }
 
 
-def tool_result(tool_call_id: str, run_id: str, result: Any) -> dict:
-    return {"type": FrameType.TOOL_RESULT, "tool_call_id": tool_call_id,
-            "run_id": run_id, "result": result}
+def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "") -> dict:
+    frame = {"type": FrameType.TOOL_RESULT, "tool_call_id": tool_call_id,
+             "run_id": run_id, "result": result}
+    return _with_code_class(frame, code_class)
+
+
+def _with_code_class(frame: dict, code_class: str) -> dict:
+
+
+    if code_class:
+        frame["code_class"] = code_class
+    return frame
 
 
 
@@ -354,11 +374,12 @@ def error_disposition(code: str) -> str:
     return "stop"
 
 
-def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "") -> dict:
-    return {"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
-            "code": code, "message": message, "suggestion": suggestion or "",
-            "retryable": error_disposition(code) == "retry",
-            "disposition": error_disposition(code)}
+def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
+               code_class: str = "") -> dict:
+    return _with_code_class({"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
+                             "code": code, "message": message, "suggestion": suggestion or "",
+                             "retryable": error_disposition(code) == "retry",
+                             "disposition": error_disposition(code)}, code_class)
 
 
 def permission_response(tool_call_id: str, run_id: str, decision: str) -> dict:
@@ -372,9 +393,24 @@ def cancel(run_id: str) -> dict:
     return {"type": FrameType.CANCEL, "run_id": run_id}
 
 
-def feedback(run_id: str, up: bool) -> dict:
+def unsteer(run_id: str, steer_id: str) -> dict:
 
-    return {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
+    return {"type": FrameType.UNSTEER, "run_id": run_id, "steer_id": steer_id}
+
+
+def steer(run_id: str, steer_id: str, text: str) -> dict:
+
+    return {"type": FrameType.STEER, "run_id": run_id, "steer_id": steer_id, "text": text}
+
+
+def feedback(run_id: str, up: bool, reason_code: str = "", reason: str = "") -> dict:
+
+    frame = {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
+    if reason_code:
+        frame["reason_code"] = reason_code
+    if reason:
+        frame["reason"] = reason[:500]
+    return frame
 
 
 def ping() -> dict:

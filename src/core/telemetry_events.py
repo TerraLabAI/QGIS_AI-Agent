@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-REGISTRY_VERSION = 43
+REGISTRY_VERSION = 44
 
 PLUGIN_FIRST_OPEN = "plugin_first_open"
 PLUGIN_OPENED = "plugin_opened"

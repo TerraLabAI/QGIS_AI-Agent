@@ -1926,6 +1926,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>• {layer}: {reason}</source>
             <translation>• {layer}: {reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>レイアウト {layout_name} のラベルを変更</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>レイアウト {layout_name} の地図を変更</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>レイアウト {layout_name} の方位矢印を変更</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>レイアウト {layout_name} のスケールバーを変更</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>最後にキューに入れたメッセージを編集</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>空のボックスでは</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>メッセージをキューに入れる</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>レイアウト {layout_name} からアイテムを1つ削除</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>エージェントが完了したときに送信</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS 内の AI エージェント</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>エージェントが完了しました。</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>エージェントがあなたの回答を待っています。</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>エージェントは完了前に停止しました。</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>{} としてログインしています（{} から）。</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>terra-lab.ai に接続できません。引き続き試行中...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} results</source>
             <translation>{n} 件の結果</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} 秒</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo</source>
             <translation>元に戻す</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>コピー</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Waiting for your approval</source>
             <translation>承認待ちです</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>メモリに追加: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>最後のメッセージを編集中です。</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>未回答</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>エージェントサービスに接続されていません。メッセージはキューに残ります。</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>一時停止中 · 選択するまで何も送信されません</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>キュー済み</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>このメッセージを今すぐ送信</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>エージェントは、以後、これまでのやり取りを、あなたの依頼と生成結果を保持した短い記録として読み取ります。</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>このメッセージによる操作を元に戻す</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · エージェントが完了したときに送信</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · エージェントは次のステップで読み取ります</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} 件キュー済み</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>大きすぎます。最大 {mb} MB です: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>キュー</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>キューに入れる: エージェントは次のステップで読み取ります (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>キューには5件のメッセージが入ります。先に送信するか削除してください。</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Effort can be changed after this run ends</source>
             <translation>この実行が終了した後に推論レベルを変更できます</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro を取得</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Pro に含まれます</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Update the plugin</source>
             <translation>pluginを更新</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>元に戻して再試行</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Click to open its page.</source>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>自ら作業を進めます。クレジット、インストール、その他のプラグインについてのみ確認します。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro を取得</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Pro に含まれます</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Click to open its page.</source>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>Pro では月 {n} 回の実行を利用できます。</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>オートパイロット</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>いつでも解約できます</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>無料版は個人利用と学習用です。Pro はクライアントや雇用主向けの業務を対象としています。</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>無料の実行回数は毎月のリセット時に回復します。</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>無料の実行回数は {date} に回復します。</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>難易度の高いタスクには中・高エフォート</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>メモリとあなたの指示</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: より多く、より良く</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>今月は {n} 件のタスクを実行しました。</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/月</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/月 (税別)</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>月 {n} 回の実行</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · いつでも解約できます</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Click to open its page.</source>
         <message>
             <source>Thought for {time}</source>
             <translation>{time} 間考えました</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>この処理が完了する前に QGIS が閉じられました</translation>
         </message>
     </context>
     <context>
@@ -6594,6 +6798,10 @@ Click to open its page.</source>
             <source>{name}. Click to open.</source>
             <translation>{name}。クリックして開く。</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>メッセージを編集</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7060,6 +7268,34 @@ Click to open its page.</source>
             <source>Your own source</source>
             <translation>自分のソース</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>データセットのページとライセンス条項</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>範囲: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>入力: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>パラメータ: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>ソース: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>ツール: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC、AI Agent by TerraLab が追加</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7208,6 +7444,14 @@ This file is no longer where the run wrote it.</source>
             <source>{n} runs a month with Pro</source>
             <translation>Pro で月 {n} 回の実行</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>高エフォートを使うには Pro を取得</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: 月 {n} 回の実行、難易度の高いタスク向けの中・高エフォート、オートパイロット</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7232,6 +7476,59 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Now</source>
             <translation>今</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>閉じる</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>依頼どおりに実行されなかった</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送信</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>ありがとう</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>遅すぎる</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>何が問題でしたか? (任意)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>結果が間違っている</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>あと {n} 件表示</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>このメッセージを編集</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>キューから削除</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>このメッセージを今すぐ送信</translation>
         </message>
     </context>
 </TS>

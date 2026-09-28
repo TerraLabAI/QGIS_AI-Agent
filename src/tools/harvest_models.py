@@ -208,11 +208,11 @@ def _resolve_algorithm_id(hint: str) -> str:
     if not everything:
         raise _SpecError(
             f"No Processing algorithm matches '{wanted}'. "
-            "Pass a keyword found in the algorithm name or its full id (e.g. 'native:buffer')."
+            "a keyword in the algorithm name or its full id (e.g. 'native:buffer') matches."
         )
     shortlist = sorted(everything, key=lambda a: (a.provider().id() != "native", len(a.id())))[:8]
     listed = ", ".join(f"{a.id()} ({a.displayName()})" for a in shortlist)
-    raise _SpecError(f"Algorithm hint '{wanted}' is ambiguous. Candidates: {listed}. Use the full id.")
+    raise _SpecError(f"Algorithm hint '{wanted}' is ambiguous. Candidates: {listed}.")
 
 
 def _one_source(value, input_names: set, earlier_steps: set):
@@ -673,7 +673,7 @@ def _land_use_change_audit() -> dict:
         "algorithms": models,
         "validation_algorithms": kappa,
         "diagnosis": (
-            "A registered land-use-change model is available; inspect its parameters before running."
+            "A registered land-use-change model is available; its parameters are listed with it."
             if models
             else "No registered Processing algorithm exposes cellular automata, ANN/neural transition "
                  "modeling, MOLUSCE, or a land-use-change predictor."
@@ -683,10 +683,10 @@ def _land_use_change_audit() -> dict:
             "status": "validation_only" if kappa and not models else ("available" if models else "unavailable"),
             "algorithms": kappa,
             "steps": [
-                "Align the two classified rasters and verify matching class codes before comparison.",
-                "Use a change model only when this audit returns one; this installation has none.",
-                "Use r.kappa only to validate an observed classification or prediction, "
-                "not to train or predict transitions.",
+                "the two classified rasters need alignment and matching class codes.",
+                "This installation has no change model.",
+                "r.kappa validates an observed classification or prediction; it does not train or "
+                "predict transitions.",
             ],
         },
     }
@@ -752,7 +752,7 @@ def _processing_capability_audit(focus: str) -> dict:
             "status": "available" if rows else "unavailable",
             "algorithms": rows,
             "diagnosis": (
-                "A registered provider exposes a supervised classifier; inspect its parameters before running."
+                "A registered provider exposes a supervised classifier; its parameters are listed with it."
                 if rows
                 else "No registered Processing algorithm exposes supervised classification, ROI training, "
                      "or a spectral classifier."
@@ -761,10 +761,10 @@ def _processing_capability_audit(focus: str) -> dict:
                 "status": "partial" if recipe_ids else "unavailable",
                 "algorithms": recipe_ids,
                 "steps": [
-                    "Prepare a multiband raster and ROI polygons carrying an explicit class field.",
-                    "Use an installed classifier only when this audit returns one.",
-                    "Otherwise use the listed rasterize/reclassify/zonal algorithms for validation or "
-                    "post-processing; this is not supervised classification.",
+                    "a multiband raster and ROI polygons with an explicit class field are needed.",
+                    "a classifier exists only when this audit returns one.",
+                    "Otherwise the listed rasterize/reclassify/zonal algorithms serve validation or "
+                    "post-processing, not supervised classification.",
                 ],
                 "required_inputs": ["raster(s)", "ROI vector layer", "class field", "output raster"],
             },
@@ -775,8 +775,8 @@ def _processing_capability_audit(focus: str) -> dict:
         "status": "available" if rows else "unavailable",
         "algorithms": rows,
         "diagnosis": (
-            "A registered provider exposes kriging; use its returned parameter schema, "
-            "including variogram and diagnostics when present."
+            "A registered provider exposes kriging; its returned parameter schema includes "
+            "variogram and diagnostics when present."
             if rows
             else "No registered Processing provider exposes kriging. IDW remains available through "
                  "qgis:idwinterpolation; no scikit-learn or plugin was installed."
@@ -787,9 +787,9 @@ def _processing_capability_audit(focus: str) -> dict:
             if not rows and any(str(a.id()) == "qgis:idwinterpolation" for a in algorithms)
             else [],
             "steps": [
-                "Validate point value field and projected CRS.",
-                "Use kriging only through the audited provider and report diagnostics.",
-                "If absent, use IDW and label it as IDW, not kriging.",
+                "Needs a point value field and projected CRS.",
+                "Kriging here is the audited provider's, with its diagnostics.",
+                "Without it, the surface is IDW, not kriging.",
             ],
         },
     }
@@ -857,7 +857,7 @@ def _execute_processing_batch(args: dict) -> dict:
         )
     if any(r["status"] == "skipped" for r in results):
         response["timed_out"] = True
-        advice.append("Raise timeout or split parameters_list; the completed runs are kept.")
+        advice.append("A longer timeout or a split parameters_list fits; the completed runs are kept.")
     if advice:
         response["suggestion"] = " ".join(advice)
     return response
@@ -1017,7 +1017,7 @@ class _BatchRun:
                "succeeded": sum(1 for r in results if r["status"] == "success")}
         if self.timed_out:
             out["timed_out"] = True
-            out["suggestion"] = "Raise timeout or split parameters_list; the completed runs are kept."
+            out["suggestion"] = "A longer timeout or a split parameters_list fits; the completed runs are kept."
         return out
 
     def advance(self) -> None:
@@ -1306,7 +1306,7 @@ def _open_in_designer(model_id: str, path: str) -> str | None:
 def _create_processing_model(args: dict) -> dict:
     name = str(args["name"]).strip()
     if not name:
-        return tool_error("Model 'name' is required", "INVALID_ARGS", "Pass a short name such as 'buffer_and_clip'.")
+        return tool_error("Model 'name' is required", "INVALID_ARGS", "name is short, e.g. 'buffer_and_clip'.")
     folder, provider = _models_folder()
     os.makedirs(folder, exist_ok=True)
     try:
@@ -1316,11 +1316,11 @@ def _create_processing_model(args: dict) -> dict:
             args.get("description") or "", args.get("group") or "Models",
         )
     except _SpecError as e:
-        return tool_error(str(e), "INVALID_ARGS", "Fix the spec as described and call again; nothing was written.")
+        return tool_error(str(e), "INVALID_ARGS", "Nothing was written; the error above names the spec problem.")
 
     if not model.toFile(target_path):
         return tool_error(f"Failed to write model to {target_path}", "EXECUTION_FAILED",
-                          "Check the models folder is writable.")
+                          "the models folder must be writable.")
     registered = _refresh_models(provider)
     log(f"Processing model '{final_name}' saved to {target_path}")
     model_id = f"model:{final_name}"
@@ -1375,11 +1375,11 @@ def _model_from_file(given: str):
     path = expand_path(given)
     if not os.path.isfile(path):
         return None, path, tool_error(f"Model file not found: {path}", "INVALID_ARGS",
-                                      "Pass an existing .model3 path, or a registered id from list_processing_models.")
+                                      "a .model3 path, or a registered id from list_processing_models, works.")
     loaded = QgsProcessingModelAlgorithm()
     if not loaded.fromFile(path):
         return None, path, tool_error(f"Failed to load model file: {path}", "EXECUTION_FAILED",
-                                      "The file is not a valid .model3; open it in the Model Designer to check.")
+                                      "The file is not a valid .model3; the Model Designer reads .model3 files.")
     loaded.initAlgorithm()
     return loaded, path, None
 
@@ -1410,7 +1410,7 @@ def _run_model(args: dict) -> dict:
         alg, model = _registered_model(model)
         if alg is None:
             return tool_error(f"Model not found: {model!r}", "INVALID_ARGS",
-                              "Call list_processing_models for the registered ids, or pass a .model3 file path.")
+                              "list_processing_models gives the registered ids; a .model3 file path also works.")
 
 
 
@@ -1457,8 +1457,8 @@ def _run_model(args: dict) -> dict:
         problem = validate_path(value.split("|", 1)[0], write=True)
         if problem:
             return tool_error(problem, "PERMISSION_DENIED",
-                              "Write the model's output under the project folder, the user's home folder "
-                              "or the temp folder, or pass TEMPORARY_OUTPUT.")
+                              "The model's output goes under the project folder, the user's home folder, "
+                              "the temp folder, or as TEMPORARY_OUTPUT.")
 
 
 
@@ -1480,13 +1480,13 @@ def _run_model(args: dict) -> dict:
             "A step of this model cannot run in the background, and the inputs are too large to run it on "
             "the main thread; nothing was run.",
             "INVALID_ARGS",
-            "Clip the inputs first.")
+            "smaller inputs fit.")
 
     feedback = QgsProcessingFeedback()
     try:
         result = processing.run(file_alg, parameters, feedback=feedback)
     except Exception as e:
         return tool_error(f"Model run failed: {e}", "EXECUTION_FAILED",
-                          "Check the parameter names against the model's inputs "
-                          "(get_algorithm_help on a registered model).")
+                          "get_algorithm_help on a registered model gives the parameter names its "
+                          "inputs expect.")
     return _named({"model": model, "outputs": _process_outputs(result)})

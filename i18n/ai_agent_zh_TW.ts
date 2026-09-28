@@ -1926,6 +1926,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>• {layer}: {reason}</source>
             <translation>• {layer}：{reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>變更版面 {layout_name} 中的標籤</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>變更版面 {layout_name} 中的地圖</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>變更版面 {layout_name} 中的指北針</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>變更版面 {layout_name} 中的比例尺</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>編輯上一則排隊中的訊息</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>在空白輸入框中</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>將訊息加入佇列</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>從版面 {layout_name} 移除一個項目</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>於代理程式完成時傳送</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>您在 QGIS 中的 AI 代理</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>代理程式已完成。</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>代理程式正在等待您的回覆。</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>代理程式在完成前已停止。</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>已以 {} 登入（來自 {}）。</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>無法連線至 terra-lab.ai。仍在嘗試中...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} results</source>
             <translation>{n} 個結果</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} 秒</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo</source>
             <translation>復原</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>複製</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Waiting for your approval</source>
             <translation>正在等待您的核准</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>已新增至記憶：{0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>正在編輯您的上一則訊息。</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>未回覆</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>未連線至代理程式服務。訊息將保持排隊狀態。</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>已暫停 · 在您選擇前不會傳送任何內容</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>已排隊</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>立即傳送此訊息</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>代理程式現在會將先前的對話視為較短的紀錄來閱讀，其中保留您的請求及它所產生的內容。</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>復原此訊息所做的變更</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · 於代理程式完成時傳送</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · 代理程式將於下一步閱讀</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>已排隊 {n} 則</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>太大，最多 {mb} MB：{names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>加入佇列</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>加入佇列：代理程式將於下一步閱讀（Enter）</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>佇列最多容納 5 則訊息。請先傳送或移除其中一則。</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Effort can be changed after this run ends</source>
             <translation>此執行結束後即可變更運算強度</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>取得 Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>已包含於 Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Update the plugin</source>
             <translation>更新 plugin</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>復原並重試</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Click to open its page.</source>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>自行運作。僅就點數、安裝與其他外掛進行詢問。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>取得 Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>已包含於 Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Click to open its page.</source>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>Pro 每月提供 {n} 次執行。</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>自動駕駛</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>隨時取消</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>免費版僅供個人及學習使用。Pro 涵蓋為客戶及雇主進行的工作。</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>免費額度將於每月重置時恢復。</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>免費額度將於 {date} 恢復。</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>針對較困難的任務提供中和高強度</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>記憶與您的指令</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro：更多且更好</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>您本月已執行 {n} 項任務。</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/月</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/月（不含增值稅）</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>每月 {n} 次執行</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · 隨時取消</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Click to open its page.</source>
         <message>
             <source>Thought for {time}</source>
             <translation>思考了 {time}</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>QGIS 在完成前已關閉</translation>
         </message>
     </context>
     <context>
@@ -6594,6 +6798,10 @@ Click to open its page.</source>
             <source>{name}. Click to open.</source>
             <translation>{name}。點擊開啟。</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>編輯訊息</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7060,6 +7268,34 @@ Click to open its page.</source>
             <source>Your own source</source>
             <translation>您自己的來源</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>資料集頁面與授權條款</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>範圍：{box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>輸入：{names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>參數：{params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>來源：{source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>工具：{tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>於 {day} UTC 由 AI Agent by TerraLab 新增</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7208,6 +7444,14 @@ This file is no longer where the run wrote it.</source>
             <source>{n} runs a month with Pro</source>
             <translation>Pro 每月 {n} 次執行</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>取得 Pro 以使用高強度</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro：每月 {n} 次執行、針對較困難任務提供中和高強度、自動駕駛</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7232,6 +7476,59 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Now</source>
             <translation>現在</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>關閉</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>未依照我的要求執行</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>傳送</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>謝謝</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>太慢了</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>出了什麼問題？（選填）</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>結果錯誤</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>顯示另外 {n} 則</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>編輯此訊息</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>從佇列中移除</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>立即傳送此訊息</translation>
         </message>
     </context>
 </TS>

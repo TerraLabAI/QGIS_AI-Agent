@@ -617,13 +617,13 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
         alpha_in = _alpha_band(input_layer)
         if alpha_in is not None and _alpha_band(output_layer) is None and bands_out == bands_in - 1:
             cause = "alpha"
-            lost += "The source alpha band is absent; inspect transparency before accepting this result."
+            lost += "The source alpha band is absent; transparency may not match the source."
         elif bands_out == 1 and bands_in >= 3:
             cause = "colour"
             lost += "A colour image reduced to one band loses its RGB colours."
         else:
             cause = "other"
-            lost += "Check that the remaining bands match the requested data and colour channels."
+            lost += "The remaining bands may not match the requested data and colour channels."
         warnings.append(_Coded(lost, "raster_bands_lost", bands_in=bands_in, bands_out=bands_out, variant=cause))
 
     nodata = _nodata_value(output_layer)
@@ -640,7 +640,7 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
             and algorithm_id in _algs("raster_masked", _RASTER_MASKED)):
         warnings.append(_Coded(
             "the masked output declares neither nodata nor an alpha band. Pixels outside the cutline "
-            "may count as data; inspect the mask before using output statistics.", "raster_no_mask"))
+            "may count as data in output statistics.", "raster_no_mask"))
 
     size_out = _pixel_size(output_layer)
     if size_out:
@@ -679,7 +679,7 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
         if not has_data:
             warnings.append(_Coded(
                 f"every one of the {_RASTER_SAMPLE_PIXELS} sampled pixels is nodata: the output is "
-                "empty. Check that the two inputs cover the same ground in the same CRS.",
+                "empty, often when the two inputs do not share ground or CRS.",
                 "raster_all_nodata", sampled=_RASTER_SAMPLE_PIXELS))
     return checks, warnings
 
@@ -712,9 +712,8 @@ def _field_in_place_note(algorithm_id: str, parameters: dict, input_layer, outpu
     home = origin.name() if origin is not None else input_layer.name()
     return _Coded(
         f"'{named}' is on the new layer '{output_layer.name()}'. '{home}' still has "
-        f"{', '.join(before) or 'no fields'} and did not gain it. If the user asked for the field on "
-        f"'{home}', write the values back onto it: add_field with the field the user named, then "
-        f"update_features. Do not answer that '{home}' has the field.",
+        f"{', '.join(before) or 'no fields'} and did not gain it. add_field then update_features "
+        f"put a field's values onto an existing layer such as '{home}'.",
         "field_on_copy", field=named, output_layer=output_layer.name(), home_layer=home, home_fields=before)
 
 
@@ -789,7 +788,7 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                 if not overlaps:
                     warnings.append(_Coded(
                         "the two inputs do not overlap on the ground, so the result is empty by "
-                        "construction. Check the CRS of both layers.", "no_overlap"))
+                        "construction, often from a CRS mismatch.", "no_overlap"))
 
         raster_report, raster_warnings = _raster_checks(algorithm_id, parameters,
                                                         input_layer, output_layer)
@@ -802,8 +801,7 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                 if covered < _MASK_COVERED_WARN_PCT:
                     warnings.append(
                         f"the input raster covers only {covered:g}% of the mask's box, so the output holds "
-                        "data over that part of the mask only. Do not call it clipped to the mask's area; if "
-                        "the whole area was meant, clip a source raster that covers it.")
+                        "data over that part of the mask only, not the mask's whole area.")
 
         geometry = _invalid_geometries(output_layer)
         if geometry is not None:
@@ -816,8 +814,7 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                 checks["no_geometry"] = geometry["no_geometry"]
                 warnings.append(
                     f"{geometry['no_geometry']} of the output rows read have no geometry (null or empty): they "
-                    "are rows, not features on the map. Report only the rows with a geometry as made, and say "
-                    "why the others got none.")
+                    "are rows, not features on the map.")
 
         in_place = _field_in_place_note(algorithm_id, parameters, input_layer, output_layer)
         if in_place:

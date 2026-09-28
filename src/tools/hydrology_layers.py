@@ -112,8 +112,8 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
     if kind.casefold() != "unknown" and not kind.startswith(("Point", "MultiPoint")):
         return tool_error(
             f"{layer.name()} is a {kind} layer, not outlet points.", "INVALID_ARGS",
-            "Use a point layer identifying downstream outlets. A stream line's first vertex need not "
-            "be downstream; determine outlet endpoints from drainage direction before delineating.")
+            "outlet needs a point layer of downstream outlets. A stream line's first vertex need not "
+            "be downstream; outlet endpoints follow drainage direction.")
     how = ""
     if feature_id is not None:
         try:
@@ -126,7 +126,7 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
         feature = layer.getFeature(fid)
         if not feature.isValid():
             return tool_error(f"{layer.name()} has no feature {fid}.", "INVALID_ARGS",
-                              f"Call get_features on {layer.name()} to read its ids, then pass one as feature_id.")
+                              f"get_features on {layer.name()} lists its ids for feature_id.")
         how = f"feature {fid}"
     else:
         selected = list(layer.selectedFeatureIds())
@@ -136,7 +136,7 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
         elif len(selected) > 1:
             return tool_error(f"{len(selected)} features of {layer.name()} are selected, and an outlet is one point.",
                               "INVALID_ARGS",
-                              f'Pass outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}, '
+                              f'outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}, '
                               "or select one point.")
         else:
             found = list(layer.getFeatures(QgsFeatureRequest().setLimit(2)))
@@ -144,8 +144,8 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
                 return _outlet_error(f"{layer.name()} holds no feature to use as the outlet.")
             if len(found) > 1:
                 return tool_error(f"{layer.name()} holds several points; the outlet is one of them.", "INVALID_ARGS",
-                                  f'Pass outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}: '
-                                  "get_features lists the ids. Or select one point.")
+                                  f'outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}: '
+                                  "get_features lists the ids, or select one point.")
             feature = found[0]
             how = f"its only feature {feature.id()}"
     point = _single_point(feature.geometry())
@@ -227,8 +227,8 @@ def _mask_geometry(name: str, dem_crs_wkt: str) -> dict:
     for count, feature in enumerate(layer.getFeatures(request)):
         if count >= cap:
             return tool_error(f"{layer.name()} holds more than {cap:,} polygons.", "INVALID_ARGS",
-                              f"Select the polygon of the area in {layer.name()} first, or dissolve the layer, "
-                              "then pass it as mask_layer.")
+                              f"mask_layer reads one polygon: the selection in {layer.name()}, "
+                              "or the layer dissolved to one.")
         geometry = QgsGeometry(feature.geometry())
         kind = QgsWkbTypes.displayString(geometry.wkbType()) or ""
         if geometry.isNull() or geometry.isEmpty() or not ("Polygon" in kind or "Surface" in kind):
@@ -237,7 +237,7 @@ def _mask_geometry(name: str, dem_crs_wkt: str) -> dict:
             geometry.transform(transform)
         except Exception as exc:  # noqa: BLE001
             return tool_error(f"{layer.name()} cannot be placed in the DEM's CRS: {exc}", "INVALID_ARGS",
-                              "Check the CRS of the mask layer with get_layer_info.")
+                              "get_layer_info gives the mask layer's CRS.")
         box = geometry.boundingBox()
         xmin, ymin = min(xmin, box.xMinimum()), min(ymin, box.yMinimum())
         xmax, ymax = max(xmax, box.xMaximum()), max(ymax, box.yMaximum())
@@ -422,7 +422,7 @@ def _add_ramp_raster(path: str, name: str, low: float, high: float, what: str) -
     layer = QgsRasterLayer(path, name, "gdal")
     if not layer.isValid():
         return tool_error(f"QGIS could not open the {what} it wrote ({path}).", "EXECUTION_FAILED",
-                          "Call again; if it persists, report the DEM.")
+                          "Such failures are usually brief.")
     styled = apply_ramp_style(layer, 1, "Blues", 0, "", low, high)
     QgsProject.instance().addMapLayer(layer)
     layer.triggerRepaint()

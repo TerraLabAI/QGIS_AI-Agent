@@ -22,6 +22,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from . import catalog, data_date
 from .logger import log_warning
+from .provenance import plain_source
 
 UNKNOWN = "unknown"
 _ABSTRACT_MARK = "Licence:"
@@ -65,7 +66,7 @@ def set_layer_attribution(layer, text: str) -> None:
     _attribution_holder(layer).setAttribution(text)
 
 
-def credit_layer(layer, licence: str = "", attribution: str = "") -> dict:
+def credit_layer(layer, licence="", attribution="") -> dict:
 
 
 
@@ -74,26 +75,39 @@ def credit_layer(layer, licence: str = "", attribution: str = "") -> dict:
 
 
 
-    licence = (licence or "").strip()[:300]
-    attribution = (attribution or "").strip()[:500]
+
+
+    def _texts(value, limit: int) -> list:
+        items = value if isinstance(value, (list, tuple)) else [value]
+        out = []
+        for item in items:
+            text = str(item or "").strip()[:limit]
+            if text and text not in out:
+                out.append(text)
+        return out
+
+    wanted = _texts(licence, 300)
+    credits = _texts(attribution, 500)
     metadata = layer.metadata()
-    if not licence:
-        licence = next((str(text).strip() for text in metadata.licenses() if str(text).strip()), "")
+    licences = [str(text).strip() for text in metadata.licenses() if str(text).strip()]
+    if not wanted:
+        wanted = licences[:1]
     current = layer_attribution(layer)
-    if not attribution:
+    if not credits:
 
 
 
-        attribution = current or next(
-            (str(text).strip()[:500] for text in metadata.rights() if str(text).strip()), "")
+        credits = [current] if current else _texts(list(metadata.rights())[:1], 500)
     changed = False
-    licences = list(metadata.licenses() or [])
-    if licence and licence not in licences:
-        metadata.setLicenses(licences + [licence])
+    missing = [text for text in wanted if text not in licences]
+    if missing:
+        metadata.setLicenses(list(metadata.licenses() or []) + missing)
         changed = True
-    if attribution and not metadata.rights():
-        metadata.setRights([attribution])
+    if credits and not metadata.rights():
+        metadata.setRights(credits)
         changed = True
+    licence = "; ".join(wanted)
+    attribution = "; ".join(credits)[:500]
     bits = []
     if licence:
         bits.append(f"{_ABSTRACT_MARK} {licence}.")
@@ -220,7 +234,7 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
         links = list(metadata.links() or [])
         if not any(str(link.url or "") == page_url for link in links):
             link = QgsAbstractMetadataBase.Link()
-            link.name = tr("Dataset page")
+            link.name = tr("Dataset page and licence terms")
             link.type = "WWW:LINK"
             link.url = page_url
             metadata.setLinks(links + [link])
@@ -332,7 +346,31 @@ def _address_of(holders, url: str) -> str:
     return url
 
 
-def credit_added(layers, result, tool: str = "") -> None:
+def _file_metadata(layer) -> None:
+
+
+
+
+
+
+
+    try:
+        import os
+
+        from qgis.core import QgsProviderRegistry
+
+        metadata = layer.metadata()
+        if list(metadata.history()) or list(metadata.licenses()):
+            return
+        path = str((QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.source()) or {})
+                   .get("path") or "")
+        if path and os.path.isfile(path) and os.path.isfile(layer.metadataUri()):
+            layer.loadDefaultMetadata()
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Metadata beside the layer's file not read: {exc}")
+
+
+def credit_added(layers, result, tool: str = "", args=None) -> None:
 
 
 
@@ -349,6 +387,7 @@ def credit_added(layers, result, tool: str = "") -> None:
         if layer is None:
             continue
         try:
+            _file_metadata(layer)
             layer_id = layer.id()
             name = layer.name()
             entry = _entry_for(result, layer_id, name)
@@ -394,6 +433,7 @@ def credit_added(layers, result, tool: str = "") -> None:
 
             own = holders if entry is not None else []
             _sheet_and_name(layer, name, row, own, credit, tool, _address_of(holders, url))
+            write_origin(layer, tool, args)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Licence and attribution not written on a layer: {exc}")
 
@@ -420,3 +460,104 @@ def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: st
             write_own_source(layer, address)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Source sheet not written on a layer: {exc}")
+
+
+
+
+_ORIGIN_SKIP = frozenset({"code", "prompt", "quote"})
+_ORIGIN_MAX = 1500
+
+
+ORIGIN_PROPERTY = "terralab/origin_written"
+
+
+def _origin_value(value, names: dict):
+
+    if isinstance(value, str):
+        return names.get(value) or plain_source(value)[:200]
+    if isinstance(value, dict):
+        return {str(k): _origin_value(v, names) for k, v in list(value.items())[:40] if str(k) not in _ORIGIN_SKIP}
+    if isinstance(value, (list, tuple)):
+        return [_origin_value(v, names) for v in list(value)[:40]]
+    return value
+
+
+def _layer_parameter(key: str, tool: str) -> bool:
+
+
+
+
+
+
+
+    from ..tools._layers import LAYER_LIST_KEYS, OUTPUT_LAYER_KEYS, PINNED_LAYER_KEYS
+
+    key = str(key)
+    if key in OUTPUT_LAYER_KEYS.get(tool, ()):
+        return False
+    return (key in PINNED_LAYER_KEYS or key in LAYER_LIST_KEYS
+            or key.endswith(("_layer", "_layers")))
+
+
+def _inputs_of(args, tool: str, names: dict) -> list:
+
+    known = set(names.values())
+    found: list = []
+    for key, value in (args or {}).items() if isinstance(args, dict) else ():
+        if not _layer_parameter(key, tool):
+            continue
+        for item in value if isinstance(value, list) else [value]:
+            if not isinstance(item, str):
+                continue
+            label = names.get(item) or (item if item in known else "")
+            if label and label not in found:
+                found.append(label)
+    return found
+
+
+def write_origin(layer, tool: str = "", args=None) -> None:
+
+
+
+
+
+
+
+
+
+    try:
+        import json
+        from datetime import datetime, timezone
+
+        from qgis.core import QgsProject
+
+        if layer.customProperty(ORIGIN_PROPERTY, False):
+
+
+            return
+        metadata = layer.metadata()
+        own_id = layer.id()
+        names = {lid: str(other.name()) for lid, other in QgsProject.instance().mapLayers().items() if lid != own_id}
+        clean = _origin_value(dict(args or {}), names)
+        parts = [tr("{day} UTC, added by AI Agent by TerraLab").format(
+            day=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"))]
+        if tool:
+            parts.append(tr("tool: {tool}").format(tool=tool))
+        if clean:
+            parts.append(tr("parameters: {params}").format(
+                params=json.dumps(clean, ensure_ascii=False, default=str)[:_ORIGIN_MAX]))
+        inputs = _inputs_of(args, tool, names)
+        if inputs:
+            parts.append(tr("inputs: {names}").format(names=", ".join(inputs)))
+
+        source = "" if layer.providerType() == "memory" else plain_source(layer.source())
+        if source:
+            parts.append(tr("source: {source}").format(source=source[:500]))
+        extent = layer.extent()
+        if not extent.isNull():
+            parts.append(tr("extent: {box} ({crs})").format(box=extent.toString(4), crs=layer.crs().authid()))
+        metadata.addHistoryItem(_SEP.join(parts))
+        layer.setMetadata(metadata)
+        layer.setCustomProperty(ORIGIN_PROPERTY, True)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Origin not written on a layer: {exc}")

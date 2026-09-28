@@ -58,8 +58,8 @@ def crs_problem(crs: str) -> str | None:
     if not text:
         return "A CRS is required, for example EPSG:4326."
     if not _CRS_RE.match(text):
-        return (f"{crs!r} is not a CRS name. Pass an authority and a code, "
-                f"for example EPSG:4326 or IGNF:LAMB93.")
+        return (f"{crs!r} is not a CRS name. An authority and code work, "
+                f"e.g. EPSG:4326 or IGNF:LAMB93.")
     return None
 
 

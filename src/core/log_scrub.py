@@ -46,7 +46,7 @@ _KNOWN_TOKEN_RE = re.compile(
 _PRIVATE_KEY_RE = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?"
                              r"-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
 _COLON_SECRET_RE = re.compile(
-    r"(?i)(\b(?:password|passwd|api[-_]?key|activation_?key|client_?secret)\s*:\s*)"
+    r"(?i)(\b(?:password|passwd|api[-_]?key|activation_?key|client_?secret)['\"]?\s*:\s*)"
     r"(?:\"[^\"]*\"|'[^']*'|[^\s,;}\"']+)")
 
 _SECRET_KEY_RE = re.compile(

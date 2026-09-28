@@ -434,7 +434,7 @@ class AiEditAdapter(PluginAdapter):
                 "debug": bool(_attr(inst, "_dev_mode")),
                 "skip_trial": bool(_attr(inst, "_skip_trial_check")),
             },
-            "note": "Reload AI Edit (reload_plugin) so _create_client re-reads the flags.",
+            "note": "reload_plugin reloads AI Edit; _create_client re-reads the flags.",
         }
 
     def do_simulate_signup(self) -> dict:
@@ -476,12 +476,12 @@ class AiEditAdapter(PluginAdapter):
         dock = self._dock(inst)
         ref = getattr(dock, "_reference_widget", None) if dock is not None else None
         if ref is None:
-            return {"_error": "Reference widget unavailable. Draw a zone first (launch AI Edit)."}
+            return {"_error": "Reference widget unavailable until a zone is drawn in AI Edit."}
 
         path = (path or "").strip()
         layer_name = (layer_name or "").strip()
         if not path and not layer_name:
-            return {"_error": "Provide 'path' (a file) or 'layer_name' (a project layer)."}
+            return {"_error": "Needs 'path' (a file) or 'layer_name' (a project layer)."}
 
         before = ref.count() if hasattr(ref, "count") else None
 
@@ -522,8 +522,8 @@ class AiEditAdapter(PluginAdapter):
 
                 if extent is not None and crs is not None and not _covers_zone(inst, matches[0], extent, crs):
                     return {"_error": (f"'{layer_name}' has nothing over the generation zone. Attached, it "
-                                       "renders whole and unaligned, which is the blank reference. Pick a "
-                                       "layer that covers the zone, or an image file.")}
+                                       "renders whole and unaligned, which is the blank reference. A layer "
+                                       "over the zone, or an image file, avoids it.")}
                 ref.add_layers([matches[0]])
                 source = layer_name
         except Exception as err:

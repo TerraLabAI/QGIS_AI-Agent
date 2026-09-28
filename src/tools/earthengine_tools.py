@@ -42,9 +42,9 @@ _INDEX_BANDS = {
 }
 
 _EE_NOT_AUTHENTICATED_SUGGESTION = (
-    "Run `earthengine authenticate` in a terminal and ensure your Google account is "
-    "registered for Earth Engine and (if using a Cloud project) that the Earth Engine "
-    "API is enabled. Then call initialize_earth_engine with the project id."
+    "`earthengine authenticate` in a terminal, a Google account registered for Earth "
+    "Engine, and (for a Cloud project) the Earth Engine API enabled are needed; "
+    "initialize_earth_engine with the project id follows."
 )
 
 
@@ -250,8 +250,8 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
             "_error": f"Earth Engine could not build map tiles for '{ee_id}': {exc}",
             "_code": "EE_MAPID_FAILED",
             "_suggestion": (
-                "Check the vis_params (min/max/bands) match the image's bands, and that "
-                "the asset id is correct."
+                "vis_params (min/max/bands) may not match the image's bands, or the asset "
+                "id is wrong."
             ),
         }
 
@@ -334,7 +334,7 @@ def _add_gee_dataset(args: dict) -> dict:
             return {
                 "_error": f"Failed to reduce ImageCollection '{ee_id}': {exc}",
                 "_code": "EE_COLLECTION_FAILED",
-                "_suggestion": "Check the date range and bbox, or pass a single-Image asset id.",
+                "_suggestion": "The date range, bbox or a single-Image asset id may be why.",
             }
     else:
         try:
@@ -343,7 +343,7 @@ def _add_gee_dataset(args: dict) -> dict:
             return {
                 "_error": f"'{ee_id}' is neither a usable ImageCollection nor Image: {exc}",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Verify the asset id with search_gee_catalog.",
+                "_suggestion": "search_gee_catalog lists valid asset ids.",
             }
 
     added = _add_ee_image_layer(image, vis_params, name, ee_id)
@@ -414,7 +414,7 @@ def _resolve_source_image(args: dict, ee):
             return None, {
                 "_error": f"Layer '{layer_name}' is not an Earth Engine layer added in this session",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Pass ee_id to load the asset directly, or add it first with add_gee_dataset.",
+                "_suggestion": "ee_id loads the asset directly; add_gee_dataset adds it as a layer first.",
             }
         return cached["image"], None
 
@@ -424,13 +424,13 @@ def _resolve_source_image(args: dict, ee):
         except Exception as exc:
             return None, {"_error": f"Could not load Image '{ee_id}': {exc}", "_code": "INVALID_ARGS"}
 
-    return None, {"_error": "Provide either layer_name or ee_id", "_code": "INVALID_ARGS"}
+    return None, {"_error": "layer_name or ee_id is required", "_code": "INVALID_ARGS"}
 
 
 def _gee_compute_index(args: dict) -> dict:
     index = (args.get("index") or "").strip().upper()
     if index not in _INDEX_BANDS:
-        return {"_error": f"Unknown index '{index}'. Use one of NDVI, NDWI, NDBI, NBR.", "_code": "INVALID_ARGS"}
+        return {"_error": f"Unknown index '{index}'. Valid: NDVI, NDWI, NDBI, NBR.", "_code": "INVALID_ARGS"}
 
     ee, err = _ensure_initialized()
     if err:
@@ -463,7 +463,7 @@ def _gee_compute_index(args: dict) -> dict:
             return {
                 "_error": f"Bands {missing} not found for {index}. Available bands: {available}",
                 "_code": "INVALID_ARGS",
-                "_suggestion": "Pass the matching band names via nir_band/red_band/green_band/swir_band/swir2_band.",
+                "_suggestion": "nir_band/red_band/green_band/swir_band/swir2_band set the matching bands.",
             }
 
     try:
@@ -547,14 +547,14 @@ def _gee_zonal_stats(args: dict) -> dict:
         return {
             "_error": str(bad),
             "_code": "INVALID_ARGS",
-            "_suggestion": "Pass bbox as {xmin, ymin, xmax, ymax} in EPSG:4326 degrees, "
-                           "or omit it entirely to use the current canvas extent.",
+            "_suggestion": "bbox is {xmin, ymin, xmax, ymax} in EPSG:4326 degrees; omitted, "
+                           "the canvas extent is used.",
         }
     if wsen is None:
         return {
             "_error": "No region given and the current canvas extent could not be read",
             "_code": "INVALID_ARGS",
-            "_suggestion": "Pass a bbox {xmin,ymin,xmax,ymax} in EPSG:4326.",
+            "_suggestion": "bbox is {xmin,ymin,xmax,ymax} in EPSG:4326.",
         }
     w, s, e, n = wsen
 
@@ -586,7 +586,7 @@ def _gee_zonal_stats(args: dict) -> dict:
         return {
             "_error": f"Earth Engine reduceRegion failed: {exc}",
             "_code": "EE_STATS_FAILED",
-            "_suggestion": "Shrink the bbox or raise the scale (meters per pixel); large regions can time out.",
+            "_suggestion": "A smaller bbox or larger scale (meters per pixel) avoids timeout on large regions.",
         }
 
     return {

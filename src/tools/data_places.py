@@ -114,7 +114,7 @@ def _outline_of_layer(name: str):
         if count > _CLIP_MAX_PARTS:
             return {"_error": f"{layer.name()!r} holds {count:,} polygons, which is a map and not one outline.",
                     "code": "INVALID_ARGS",
-                    "suggestion": "Select the feature to clip to, or pass the place name instead."}
+                    "suggestion": "A selected feature, or the place name instead, clips to it."}
         xform = None
         if layer.crs().isValid() and layer.crs() != target:
             xform = QgsCoordinateTransform(layer.crs(), target, QgsProject.instance())
@@ -133,8 +133,8 @@ def _outline_of_layer(name: str):
                                   + (f"one polygon of {too_big:,} vertices" if too_big
                                      else f"more than {budget.total:,} vertices in total") + ".",
                         "code": "INVALID_ARGS",
-                        "suggestion": "Simplify it first (native:simplifygeometries through run_processing), "
-                                      "select one feature, or pass a bbox instead of clip_to."}
+                        "suggestion": "native:simplifygeometries through run_processing, one selected "
+                                      "feature, or a bbox instead of clip_to, all fit."}
             if xform is not None:
                 moved = QgsGeometry(geometry)
                 if moved.transform(xform) != 0:
@@ -144,7 +144,7 @@ def _outline_of_layer(name: str):
         if not polys:
             return {"_error": f"{layer.name()!r} holds no polygon to clip to.",
                     "code": "INVALID_ARGS",
-                    "suggestion": "Pass a boundary layer with features in it, or the place name."}
+                    "suggestion": "A boundary layer with features, or the place name, is needed."}
         return {"polys": polys, "label": layer.name(), "outline_source": f"layer {layer.name()}",
                 "selected_only": bool(selected)}
 
@@ -321,7 +321,7 @@ def _outline_of_place(name: str):
     if not hits:
         return {"_error": f"No place was found under the name {name!r}.",
                 "code": "INVALID_ARGS",
-                "suggestion": "Check the spelling, add the country, or pass a bbox instead of clip_to."}
+                "suggestion": "The spelling, the country added, or a bbox instead of clip_to, may fit."}
     hit = _place_hit(name, hits)
     lon, lat = float(hit["lon"]), float(hit["lat"])
 
@@ -429,9 +429,8 @@ def _outline_of_place(name: str):
         fallback["note"] = (
             f"No division within about 1 km of the geocoded point carries the name {asked!r}, at any "
             f"level from neighbourhood up, so the clip used "
-            f"the smallest division covering it, {fallback['label']}. For the place itself, pass a "
-            f"bbox about 2 km around the geocoded point instead of clip_to and say so. Do not ask "
-            f"the user.")
+            f"the smallest division covering it, {fallback['label']}. For the place itself, a "
+            f"bbox about 2 km around the geocoded point, instead of clip_to, fits.")
         return fallback
 
     return dict(_error=f"{name!r} was found, but no administrative outline covers it.",  # noqa: C408
@@ -530,7 +529,7 @@ def _outline_around(hit: dict, name: str) -> dict:
             "outline_source": f"box around the geocoded {kind} (no administrative outline)",
             "note": (f"{label!r} is a {kind}, which has no administrative outline: the clip is {how}, "
                      f"{(east - west) * 111 * squash:.1f} by {(north - south) * 111:.1f} km, never the town "
-                     "around it. For another size, pass a bbox instead of clip_to and say so.")}
+                     "around it. For another size, a bbox instead of clip_to fits.")}
 
 
 def _one_side_of_antimeridian(made: dict) -> None:
@@ -575,6 +574,6 @@ def _resolve_outline(clip_to: str, layers: bool = True):
         bounds = _polys_bbox(made.get("polys") or [])
     if not bounds:
         return None, {"_error": f"{clip_to!r} resolved to an empty outline.", "code": "INVALID_ARGS",
-                      "suggestion": "Pass a bbox instead of clip_to."}
+                      "suggestion": "bbox works instead of clip_to."}
     made["bbox"] = bounds
     return made, None

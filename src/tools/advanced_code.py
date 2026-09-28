@@ -222,7 +222,7 @@ def _run_code_in_qgis(args: dict) -> dict:
     except SyntaxError as exc:
         return {"executed": False, "_code": "INVALID_ARGS",
                 "_error": f"execute_code raised SyntaxError: {exc.msg} (line {exc.lineno})",
-                "suggestion": "Fix the syntax at that line and call execute_code again."}
+                "suggestion": "A corrected snippet at that line runs on the next call."}
 
     context = code_runtime.current()
     project = QgsProject.instance()
@@ -303,7 +303,7 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_error": f"The snippet {trip.reason}, which needs the user's permission. Nothing after that call ran.",
             "needs_permission": {"class": trip.cls, "reason": trip.reason},
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "Wait for the user's answer; the plugin asks and runs the snippet again on a yes.",
+            "suggestion": "The plugin asks the user and runs the snippet again on a yes.",
         }
     if isinstance(trip, code_tripwire.Refused):
         out = {
@@ -311,7 +311,7 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_code": "PERMISSION_DENIED",
             "_error": f"execute_code stopped: the snippet {trip.reason}. Nothing after that call ran.",
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "Load remote data with add_data or the fetch tools, then continue in execute_code.",
+            "suggestion": "add_data or the fetch tools load remote data; execute_code continues from there.",
         }
 
 
@@ -323,7 +323,8 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_error": f"execute_code stopped after {int(context.timeout_s)} s.",
             "_code": "EXEC_TIMEOUT",
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "Narrow the work (fewer features, one layer) or use run_processing with async=true.",
+            "suggestion": ("Less work (fewer features, one layer) fits; "
+                           "run_processing with async=true has no such limit."),
         }
         _partial_state(out, code_namespace.changed(before, project))
         return out
@@ -699,7 +700,7 @@ def _api_help(exc: Exception) -> str:
             scoped = _scoped_enum(cls, match.group(2))
             if scoped:
                 return (f"{match.group(1)} has no {match.group(2)} of its own: it is scoped as {scoped} "
-                        "in this QGIS. Write the scoped form.")
+                        "in this QGIS.")
             public = [a for a in dir(cls) if not a.startswith("_")]
             near = difflib.get_close_matches(match.group(2), public, n=5, cutoff=0.6)
             if not near:

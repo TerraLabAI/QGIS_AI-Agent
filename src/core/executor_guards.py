@@ -39,14 +39,6 @@ except ImportError:
 
 
 
-
-
-
-
-
-_LAYERS_PER_ROUND = 4
-
-
 CODE_TOOL = "execute_code"
 
 
@@ -129,7 +121,7 @@ class _ExecutorGuards:
         self._blocked.pop(run_id, None)
         return sentence
 
-    def _withdraw_past_cap(self, run_id: str, name: str, args: dict | None) -> dict | None:
+    def _layer_count(self, run_id: str) -> dict | None:
 
 
 
@@ -141,88 +133,18 @@ class _ExecutorGuards:
 
 
 
-
-        if run_id not in self._run_mode:
+        if run_id not in self._run_mode or not self.stacker.fresh():
             return None
-        fresh = self.stacker.fresh()
-        if not fresh:
+        present = self.stacker.added_count()
+        if present <= max(1, int(limits.current("MAX_LAYERS_PER_RUN"))):
             return None
-        if volume_guard is not None and volume_guard.lifted(args or {}):
-            return None
-        added = self.stacker.added_count()
-        before = max(0, added - len(fresh))
-        cap = max(1, int(limits.current("MAX_LAYERS_PER_RUN")))
-        rounds = self._layer_rounds(run_id, before)
-        ceiling = cap * tuning.ceiling("executor_guards_layers_per_round", _LAYERS_PER_ROUND, 1)
-        if len(rounds) < cap and before < ceiling:
-            return None
-        gone = self.stacker.withdraw(fresh)
-        if not gone:
-            return None
+        added = self.stacker.added_total()
 
-
-        liftable = volume_guard is not None and self._takes_full_extent(name)
-        over = (f"This run has added layers in {len(rounds)} calls, the cap for one answer ({cap}); "
-                f"{before} of them are still in the project."
-                if len(rounds) >= cap else
-                f"This run has added {before} layers to the project, the cap for one answer ({ceiling}).")
-        names = ", ".join(repr(entry["name"]) for entry in gone[:6])
-
-        return dict(hint="layer_cap", variant="lift" if liftable else "", layers=gone, **{
-            "error": (over + f" So the layers this call added ({names}) were taken back out of the project; "
-                      "whatever it wrote to disk is kept at the source listed. Every layer costs a redraw "
-                      "of the tree and the canvas, and a project nobody asked to grow this much is its own "
-                      "kind of damage."
-                      + (volume_guard.LIFT_HINT if liftable else "")),
-
-
-
-            "suggestion": (("If the user named every layer to add, call again with full_extent: their words and the "
-                            "files. " if liftable else "")
-                           + "Remove the working layers this run created and no longer needs with remove_layer: "
-                           "the cap counts the layers this run added that are still in the project, so that "
-                           "frees room immediately and you can carry on. One merged or clipped layer instead "
-                           "of one per source works too. Only if every layer is needed, stop, tell the user "
-                           "what was added and what is left, and ask whether to continue in a new message."),
-        })
-
-    def _takes_full_extent(self, name: str) -> bool:
-
-        schema = getattr(self._registry.get_tool(name), "input_schema", None) or {}
-        return volume_guard is not None and volume_guard.FULL_EXTENT in (schema.get("properties") or {})
-
-    def _layer_rounds(self, run_id: str, added: int) -> list:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        held = getattr(self, "_layer_rounds_held", None)
-        if held is None or held[0] != run_id:
-            held = self._layer_rounds_held = (run_id, [])
-        rounds = held[1]
-        counted = sum(rounds)
-        if added > counted:
-            rounds.append(added - counted)
-        while added < counted and rounds:
-            gone = min(counted - added, rounds[-1])
-            rounds[-1] -= gone
-            counted -= gone
-            if not rounds[-1]:
-                rounds.pop()
-        return rounds
+        return dict(hint="layer_count", added=added, in_project=present,  # noqa: C408
+                    note=(f"This run has added {added} layers; {present} of them are still in the project. "
+                          "Each layer costs a redraw of the layer tree and the canvas. remove_layer takes a "
+                          "working layer out, and run_processing with add_to_project false writes a step's "
+                          "output to a file without adding it."))
 
     def _drop_unused_bbox(self, name: str, args: dict) -> None:
 

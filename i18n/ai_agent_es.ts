@@ -1926,6 +1926,42 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>• {layer}: {reason}</source>
             <translation>• {layer}: {reason}</translation>
         </message>
+        <message>
+            <source>Change a label of the layout {layout_name}</source>
+            <translation>Cambiar una etiqueta de la composición {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a map of the layout {layout_name}</source>
+            <translation>Cambiar un mapa de la composición {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a north arrow of the layout {layout_name}</source>
+            <translation>Cambiar una flecha de norte de la composición {layout_name}</translation>
+        </message>
+        <message>
+            <source>Change a scale bar of the layout {layout_name}</source>
+            <translation>Cambiar una barra de escala de la composición {layout_name}</translation>
+        </message>
+        <message>
+            <source>Edit the last queued message</source>
+            <translation>Editar el último mensaje en cola</translation>
+        </message>
+        <message>
+            <source>In an empty box</source>
+            <translation>En un cuadro vacío</translation>
+        </message>
+        <message>
+            <source>Queue a message</source>
+            <translation>Poner un mensaje en cola</translation>
+        </message>
+        <message>
+            <source>Remove one item from the layout {layout_name}</source>
+            <translation>Quitar un elemento de la composición {layout_name}</translation>
+        </message>
+        <message>
+            <source>Sends when the agent finishes</source>
+            <translation>Se envía cuando el agente termina</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2173,6 +2209,18 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Your AI agent inside QGIS</source>
             <translation>Tu agente de IA dentro de QGIS</translation>
         </message>
+        <message>
+            <source>The agent finished.</source>
+            <translation>El agente ha terminado.</translation>
+        </message>
+        <message>
+            <source>The agent is waiting for your answer.</source>
+            <translation>El agente está esperando tu respuesta.</translation>
+        </message>
+        <message>
+            <source>The agent stopped before finishing.</source>
+            <translation>El agente se detuvo antes de terminar.</translation>
+        </message>
     </context>
     <context>
         <name>Account</name>
@@ -2354,6 +2402,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>Sesión iniciada como {} (desde {}).</translation>
+        </message>
+        <message>
+            <source>No connection to terra-lab.ai. Still trying...</source>
+            <translation>Sin conexión con terra-lab.ai. Sigue intentándolo...</translation>
         </message>
     </context>
     <context>
@@ -2663,6 +2715,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>{n} results</source>
             <translation>{n} resultados</translation>
         </message>
+        <message>
+            <source>{count} s</source>
+            <translation>{count} s</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2682,6 +2738,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>Undo</source>
             <translation>Deshacer</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Copiar</translation>
         </message>
     </context>
     <context>
@@ -3405,6 +3465,54 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Waiting for your approval</source>
             <translation>Esperando tu aprobación</translation>
         </message>
+        <message>
+            <source>Added to memory: {0}</source>
+            <translation>Añadido a la memoria: {0}</translation>
+        </message>
+        <message>
+            <source>Editing your last message.</source>
+            <translation>Editando tu último mensaje.</translation>
+        </message>
+        <message>
+            <source>Not answered</source>
+            <translation>Sin respuesta</translation>
+        </message>
+        <message>
+            <source>Not connected to the agent service. The message stays queued.</source>
+            <translation>Sin conexión con el servicio del agente. El mensaje permanece en cola.</translation>
+        </message>
+        <message>
+            <source>Paused · nothing is sent until you choose</source>
+            <translation>En pausa · no se envía nada hasta que elijas</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>En cola</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Enviar este mensaje ahora</translation>
+        </message>
+        <message>
+            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <translation>El agente ahora lee los intercambios anteriores como un registro más breve que conserva tus solicitudes y lo que hizo.</translation>
+        </message>
+        <message>
+            <source>Undo what this message did</source>
+            <translation>Deshacer lo que hizo este mensaje</translation>
+        </message>
+        <message>
+            <source>{lead} · sent when the agent finishes</source>
+            <translation>{lead} · se envía cuando el agente termina</translation>
+        </message>
+        <message>
+            <source>{lead} · the agent reads it at its next step</source>
+            <translation>{lead} · el agente lo lee en su siguiente paso</translation>
+        </message>
+        <message>
+            <source>{n} queued</source>
+            <translation>{n} en cola</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3769,6 +3877,18 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>too large, {mb} MB at most: {names}</source>
             <translation>demasiado grande, {mb} MB como máximo: {names}</translation>
+        </message>
+        <message>
+            <source>Queue</source>
+            <translation>Poner en cola</translation>
+        </message>
+        <message>
+            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <translation>Ponlo en cola: el agente lo lee en su siguiente paso (Enter)</translation>
+        </message>
+        <message>
+            <source>The queue holds 5 messages. Send or remove one first.</source>
+            <translation>La cola admite 5 mensajes. Envía o elimina uno primero.</translation>
         </message>
     </context>
     <context>
@@ -4323,6 +4443,18 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Effort can be changed after this run ends</source>
             <translation>El esfuerzo se puede cambiar cuando termine esta ejecución</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obtener Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Incluido en Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4398,6 +4530,10 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
         <message>
             <source>Update the plugin</source>
             <translation>Actualizar el plugin</translation>
+        </message>
+        <message>
+            <source>Undo and retry</source>
+            <translation>Deshacer y reintentar</translation>
         </message>
     </context>
     <context>
@@ -4980,6 +5116,18 @@ Haz clic para abrir su página.</translation>
             <source>Works on its own. Asks only about credits, installs and other plugins.</source>
             <translation>Trabaja por su cuenta. Solo pregunta por créditos, instalaciones y otros plugins.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Obtener Pro</translation>
+        </message>
+        <message>
+            <source>Included in Pro</source>
+            <translation>Incluido en Pro</translation>
+        </message>
+        <message>
+            <source>Pro · {price}</source>
+            <translation>Pro · {price}</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -5168,6 +5316,58 @@ Haz clic para abrir su página.</translation>
         <message>
             <source>Pro gives you {n} runs a month.</source>
             <translation>Pro te da {n} ejecuciones al mes.</translation>
+        </message>
+        <message>
+            <source>Autopilot</source>
+            <translation>Piloto automático</translation>
+        </message>
+        <message>
+            <source>Cancel anytime</source>
+            <translation>Cancela cuando quieras</translation>
+        </message>
+        <message>
+            <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
+            <translation>El plan gratuito es para uso personal y de estudio. Pro cubre el trabajo para clientes y empleadores.</translation>
+        </message>
+        <message>
+            <source>Free runs come back at your monthly reset.</source>
+            <translation>Las ejecuciones gratuitas vuelven en tu reinicio mensual.</translation>
+        </message>
+        <message>
+            <source>Free runs come back on {date}.</source>
+            <translation>Las ejecuciones gratuitas vuelven el {date}.</translation>
+        </message>
+        <message>
+            <source>Medium and High effort for harder tasks</source>
+            <translation>Esfuerzo medio y alto para tareas más difíciles</translation>
+        </message>
+        <message>
+            <source>Memory and your instructions</source>
+            <translation>Memoria y tus instrucciones</translation>
+        </message>
+        <message>
+            <source>Pro: more and better</source>
+            <translation>Pro: más y mejor</translation>
+        </message>
+        <message>
+            <source>You ran {n} tasks this month.</source>
+            <translation>Has ejecutado {n} tareas este mes.</translation>
+        </message>
+        <message>
+            <source>{amount}/month</source>
+            <translation>{amount}/mes</translation>
+        </message>
+        <message>
+            <source>{amount}/month excl. VAT</source>
+            <translation>{amount}/mes IVA no incluido</translation>
+        </message>
+        <message>
+            <source>{n} runs a month</source>
+            <translation>{n} ejecuciones al mes</translation>
+        </message>
+        <message>
+            <source>{price} · cancel anytime</source>
+            <translation>{price} · cancela cuando quieras</translation>
         </message>
     </context>
     <context>
@@ -5364,6 +5564,10 @@ Haz clic para abrir su página.</translation>
         <message>
             <source>Thought for {time}</source>
             <translation>Pensó durante {time}</translation>
+        </message>
+        <message>
+            <source>QGIS closed before this finished</source>
+            <translation>QGIS se cerró antes de que esto terminara</translation>
         </message>
     </context>
     <context>
@@ -6600,6 +6804,10 @@ Haz clic para abrir su página.</translation>
             <source>{name}. Click to open.</source>
             <translation>{name}. Clic para abrir.</translation>
         </message>
+        <message>
+            <source>Edit message</source>
+            <translation>Editar mensaje</translation>
+        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -7068,6 +7276,34 @@ Haz clic para abrir su página.</translation>
             <source>Your own source</source>
             <translation>Tu propia fuente</translation>
         </message>
+        <message>
+            <source>Dataset page and licence terms</source>
+            <translation>Página del conjunto de datos y términos de licencia</translation>
+        </message>
+        <message>
+            <source>extent: {box} ({crs})</source>
+            <translation>extensión: {box} ({crs})</translation>
+        </message>
+        <message>
+            <source>inputs: {names}</source>
+            <translation>entradas: {names}</translation>
+        </message>
+        <message>
+            <source>parameters: {params}</source>
+            <translation>parámetros: {params}</translation>
+        </message>
+        <message>
+            <source>source: {source}</source>
+            <translation>fuente: {source}</translation>
+        </message>
+        <message>
+            <source>tool: {tool}</source>
+            <translation>herramienta: {tool}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, added by AI Agent by TerraLab</source>
+            <translation>{day} UTC, añadido por AI Agent by TerraLab</translation>
+        </message>
     </context>
     <context>
         <name>_MoreChip</name>
@@ -7216,6 +7452,14 @@ Este archivo ya no está donde lo dejó la ejecución.</translation>
             <source>{n} runs a month with Pro</source>
             <translation>{n} ejecuciones al mes con Pro</translation>
         </message>
+        <message>
+            <source>Get Pro for High effort</source>
+            <translation>Obtén Pro para esfuerzo alto</translation>
+        </message>
+        <message>
+            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <translation>Pro: {n} ejecuciones al mes, esfuerzo medio y alto para tareas más difíciles, piloto automático</translation>
+        </message>
     </context>
     <context>
         <name>SourceCard</name>
@@ -7240,6 +7484,59 @@ Este archivo ya no está donde lo dejó la ejecución.</translation>
         <message>
             <source>Now</source>
             <translation>Ahora</translation>
+        </message>
+    </context>
+    <context>
+        <name>FeedbackReason</name>
+        <message>
+            <source>Close</source>
+            <translation>Cerrar</translation>
+        </message>
+        <message>
+            <source>Did not do what I asked</source>
+            <translation>No hizo lo que pedí</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Enviar</translation>
+        </message>
+        <message>
+            <source>Thanks</source>
+            <translation>Gracias</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Demasiado lento</translation>
+        </message>
+        <message>
+            <source>What went wrong? (optional)</source>
+            <translation>¿Qué salió mal? (opcional)</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Resultado incorrecto</translation>
+        </message>
+    </context>
+    <context>
+        <name>QueueStrip</name>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Mostrar {n} más</translation>
+        </message>
+    </context>
+    <context>
+        <name>_QueueRow</name>
+        <message>
+            <source>Edit this message</source>
+            <translation>Editar este mensaje</translation>
+        </message>
+        <message>
+            <source>Remove from the queue</source>
+            <translation>Eliminar de la cola</translation>
+        </message>
+        <message>
+            <source>Send this message now</source>
+            <translation>Enviar este mensaje ahora</translation>
         </message>
     </context>
 </TS>

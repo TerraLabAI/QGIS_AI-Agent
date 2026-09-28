@@ -32,7 +32,14 @@
 
 
 
+
+
+
+
+
+
 import glob
+import math
 import os
 
 from qgis.core import (
@@ -103,6 +110,13 @@ def _legend_label(args: dict) -> str:
     return ""
 
 
+def _edit_label(template: str):
+
+    def label_for(args: dict) -> str:
+        return template if str(args.get("item_id") or "").strip() else ""
+    return label_for
+
+
 def register_layout_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_print_layout",
@@ -140,6 +154,7 @@ def register_layout_tools(registry: ToolRegistry):
         name="add_layout_map",
         danger="write",
         builds_layout_at="layout_name",
+        label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Change a map of the layout {layout_name}")),
         label=QT_TRANSLATE_NOOP("AIAgent", "Add a map to the layout"),
         input_schema={
             "type": "object",
@@ -167,8 +182,9 @@ def register_layout_tools(registry: ToolRegistry):
                 "scale": {"type": "number", "minimum": 1, "maximum": 1000000000},
                 "map_theme": {"type": "string"},
                 "crs": {"type": "string"},
+                "item_id": {"type": "string"},
             },
-            "required": ["layout_name", "x", "y", "width", "height"],
+            "required": ["layout_name"],
         },
         handler=_add_layout_map,
     ))
@@ -198,6 +214,7 @@ def register_layout_tools(registry: ToolRegistry):
         name="add_layout_label",
         danger="write",
         builds_layout_at="layout_name",
+        label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Change a label of the layout {layout_name}")),
         label=QT_TRANSLATE_NOOP("AIAgent", "Add a label to the layout"),
         input_schema={
             "type": "object",
@@ -214,8 +231,9 @@ def register_layout_tools(registry: ToolRegistry):
                     "type": "string",
                     "enum": ["left", "center", "right"],
                 },
+                "item_id": {"type": "string"},
             },
-            "required": ["layout_name", "text", "x", "y", "width", "height"],
+            "required": ["layout_name"],
         },
         handler=_add_layout_label,
     ))
@@ -304,6 +322,7 @@ def register_layout_tools(registry: ToolRegistry):
         name="add_layout_scalebar",
         danger="write",
         builds_layout_at="layout_name",
+        label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Change a scale bar of the layout {layout_name}")),
         label=QT_TRANSLATE_NOOP("AIAgent", "Add a scale bar to the layout"),
         input_schema={
             "type": "object",
@@ -319,8 +338,9 @@ def register_layout_tools(registry: ToolRegistry):
                 "map_id": {"type": "string"},
                 "min_segment_width": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
                 "max_segment_width": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+                "item_id": {"type": "string"},
             },
-            "required": ["layout_name", "x", "y"],
+            "required": ["layout_name"],
         },
         handler=_add_layout_scalebar,
     ))
@@ -329,6 +349,7 @@ def register_layout_tools(registry: ToolRegistry):
         name="add_layout_north_arrow",
         danger="write",
         builds_layout_at="layout_name",
+        label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Change a north arrow of the layout {layout_name}")),
         label=QT_TRANSLATE_NOOP("AIAgent", "Add a north arrow to the layout"),
         input_schema={
             "type": "object",
@@ -340,8 +361,9 @@ def register_layout_tools(registry: ToolRegistry):
                 "height": {"type": "number", "minimum": 0.001, "maximum": 10000},
                 "map_id": {"type": "string"},
                 "north": {"type": "string", "enum": ["true", "grid"]},
+                "item_id": {"type": "string"},
             },
-            "required": ["layout_name", "x", "y"],
+            "required": ["layout_name"],
         },
         handler=_add_layout_north_arrow,
     ))
@@ -397,9 +419,10 @@ def register_layout_tools(registry: ToolRegistry):
         name="remove_print_layout",
         danger="destructive",
         removes_layout_at="layout_name",
+        label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Remove one item from the layout {layout_name}")),
         input_schema={
             "type": "object",
-            "properties": {"layout_name": {"type": "string"}},
+            "properties": {"layout_name": {"type": "string"}, "item_id": {"type": "string"}},
             "required": ["layout_name"],
         },
         handler=_remove_print_layout,
@@ -423,8 +446,8 @@ def _resolve_layout(name: str, allow_report: bool = False):
         return None, {"_error": f"'{name}' is a report, not a print layout: its pages are copies of print "
                                 "layouts made when it was built.",
                       "code": "INVALID_ARGS",
-                      "suggestion": "Change the print layout its sections were built from, then create_report "
-                                    "again with replace:true; get_layout_info reads the report."}
+                      "suggestion": "create_report with replace:true rebuilds it from the print layout its "
+                                    "sections came from; get_layout_info reads it."}
     if layout:
         return layout, None
     existing = [lyt.name() for lyt in manager.layouts()]
@@ -523,8 +546,8 @@ def _map_for(layout, map_id):
         if item.uuid().strip("{}").casefold() == bare or (item.id() and item.id().casefold() == bare):
             return item, None
     return None, {"_error": f"No map {wanted!r} on layout {layout.name()!r}.", "code": "INVALID_ARGS",
-                  "suggestion": (f"Map items there: {[item.uuid() for item in maps]}. Leave map_id out to "
-                                 "link to the main map." if maps else "Call add_layout_map first.")}
+                  "suggestion": (f"Map items there: {[item.uuid() for item in maps]}. Without map_id it "
+                                 "links to the main map." if maps else "add_layout_map adds one.")}
 
 
 def _is_tile_basemap(layer) -> bool:
@@ -1085,7 +1108,7 @@ def _find_legend(layout, ref: str):
     listing = [{"uuid": legend.uuid(), "title": legend.title()} for legend in legends]
     return None, {"_error": f"No legend {wanted!r} on layout {layout.name()!r}. Legends there: {listing}",
                   "code": "INVALID_ARGS",
-                  "suggestion": "Pass one of those uuids as legend_id, or leave legend_id out to add a new legend."}
+                  "suggestion": "legend_id takes one of those uuids; left out, a new legend is added."}
 
 
 def _legend_pick_layers(legend, keep, drop) -> list:
@@ -1196,6 +1219,78 @@ def _with_new_item(layout, item) -> dict:
     return summary
 
 
+def _editing(args: dict) -> bool:
+
+    return bool(str(args.get("item_id") or "").strip())
+
+
+def _missing(args: dict, keys, noun: str):
+
+    missing = [key for key in keys if args.get(key) is None]
+    if not missing:
+        return None
+    return {"_error": f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} needed to add a {noun}.",
+            "code": "INVALID_ARGS",
+            "suggestion": f"item_id changes a {noun} already on the layout; without it, a new one is added."}
+
+
+def _find_item(layout, ref, kind, noun: str):
+
+
+
+
+    wanted = str(ref or "").strip()
+    bare = wanted.strip("{}").casefold()
+    items = [item for item in layout.items()
+             if isinstance(item, QgsLayoutItem) and not isinstance(item, QgsLayoutItemPage)]
+    found = next((item for item in items if item.uuid().strip("{}").casefold() == bare
+                  or (item.id() and item.id().casefold() == bare)), None)
+    if found is not None and (kind is None or isinstance(found, kind)):
+        return found, None
+    same = [{"uuid": item.uuid(), "name": _item_name(item)} for item in items
+            if kind is None or isinstance(item, kind)]
+    if found is not None:
+        message = f"{wanted} on layout {layout.name()!r} is {_item_name(found)}, not a {noun}."
+    else:
+        message = f"No {noun} {wanted!r} on layout {layout.name()!r}."
+    return None, {"_error": f"{message} {noun.capitalize()} items there: {same}",
+                  "code": "INVALID_ARGS",
+                  "suggestion": "item_id takes one of those uuids; get_layout_info lists every item."}
+
+
+def _edit_geometry(layout, item, args: dict, resizable: bool = True, inset: bool = False) -> dict:
+
+
+
+
+
+    keys = ("x", "y", "width", "height") if resizable else ("x", "y")
+    given = {key: float(args[key]) for key in keys if args.get(key) is not None}
+    if not given:
+        return {}
+    position, size = item.positionWithUnits(), item.sizeWithUnits()
+    if "width" in given or "height" in given:
+        item.attemptResize(_mm_size(given.get("width", size.width()), given.get("height", size.height())))
+    if "x" in given or "y" in given:
+        item.attemptMove(_mm_point(given.get("x", position.x()), given.get("y", position.y())))
+    return place_item(layout, item, given, resizable=resizable, inset=inset)
+
+
+def _edited(layout, item, placement: dict, args: dict, read) -> dict:
+
+    result = _layout_summary(layout)
+    result["edited_item_uuid"] = item.uuid()
+    result["actual_geometry"] = _item_geometry(item)
+    result.update(placement)
+    unused = [key for key, value in args.items()
+              if key not in read and value is not None and value is not False and value != "" and value != []]
+    if unused:
+        result["not_applied"] = unused
+        result["not_applied_note"] = ("An item changed in place takes these only when it is added: "
+                                      "they changed nothing here.")
+    return result
+
+
 def _map_layers_for_lock(args):
 
     names = args.get("layers")
@@ -1224,7 +1319,7 @@ def _lock_layout_item(args) -> dict:
                  if isinstance(candidate, QgsLayoutItem) and candidate.uuid() == args["item_uuid"]), None)
     if item is None:
         return {"_error": f"Layout item not found: {args['item_uuid']}", "code": "INVALID_ARGS",
-                "suggestion": "Call get_layout_info and pass an item's uuid."}
+                "suggestion": "get_layout_info lists each item's uuid."}
 
     lock_item = bool(args.get("lock_item", True))
     lock_layers = bool(args.get("lock_layers", False))
@@ -1233,7 +1328,7 @@ def _lock_layout_item(args) -> dict:
     if (lock_layers or lock_style or args.get("layers") or map_theme) and not isinstance(item, QgsLayoutItemMap):
         return {"_error": "lock_layers, lock_style and map_theme apply only to a map item.", "code": "INVALID_ARGS"}
     if map_theme and (lock_layers or args.get("layers")):
-        return {"_error": "map_theme and layers/lock_layers both set what this map draws; pass one.",
+        return {"_error": "map_theme and layers/lock_layers both set what this map draws: not both.",
                 "code": "INVALID_ARGS",
                 "suggestion": "map_theme follows a saved theme's layers and styles; layers/lock_layers freeze "
                               "an explicit list instead."}
@@ -1242,8 +1337,8 @@ def _lock_layout_item(args) -> dict:
         if not themes.hasMapTheme(map_theme):
             return {"_error": f"Map theme not found: {map_theme!r}. Existing themes: {themes.mapThemes()}",
                     "code": "INVALID_ARGS",
-                    "suggestion": "Call get_map_themes for the exact names, or add_map_theme to create one "
-                                  "from the current layer visibility."}
+                    "suggestion": "get_map_themes gives the exact names; add_map_theme creates one from "
+                                  "the current layer visibility."}
     if hasattr(item, "setLocked"):
         item.setLocked(lock_item)
     if isinstance(item, QgsLayoutItemMap):
@@ -1253,12 +1348,19 @@ def _lock_layout_item(args) -> dict:
                 return layer_error
             item.setLayers(layers or [])
             item.setKeepLayerSet(True)
+        elif args.get("lock_layers") is False:
+            item.setKeepLayerSet(False)
         if lock_style:
             item.setKeepLayerStyles(True)
             try:
                 item.storeCurrentLayerStyles()
             except (AttributeError, RuntimeError):
                 pass
+        elif args.get("lock_style") is False:
+
+
+
+            item.setKeepLayerStyles(False)
         if map_theme:
 
 
@@ -1543,7 +1645,7 @@ def place_item(layout, item, requested=None, resizable: bool = False, inset: boo
                         break
             if spot is None:
                 warnings.append(f"{_item_name(item)} covers {names}: no free place on the page holds it. "
-                                "Make it or them smaller, or move one with execute_code.")
+                                "Smaller items fit; execute_code moves one.")
             else:
                 item.attemptMove(_mm_point(spot[0], spot[1]))
                 reasons.append(f"moved clear of {names}" if scale == 1.0
@@ -1700,13 +1802,13 @@ def _create_print_layout(args: dict) -> dict:
     existing = manager.layoutByName(name)
     if existing and getattr(existing, "pageCollection", None) is None:
         return {"_error": f"A report is already called '{name}', and a print layout needs a name of its own.",
-                "code": "INVALID_ARGS", "suggestion": "Pick another name for the print layout."}
+                "code": "INVALID_ARGS", "suggestion": "Another name is needed."}
     if existing and not args.get("set_page"):
-        return {"_error": f"A layout named '{name}' already exists. Pass set_page=true to update its page."}
+        return {"_error": f"A layout named '{name}' already exists. set_page=true updates its page."}
     if str(args.get("template_path") or "").strip():
         if args.get("set_page"):
             return {"_error": "template_path creates a new layout; set_page changes an existing one.",
-                    "code": "INVALID_ARGS", "suggestion": "Pass one or the other."}
+                    "code": "INVALID_ARGS", "suggestion": "Only one at a time."}
         return _layout_from_template(name, args)
 
 
@@ -1731,7 +1833,7 @@ def _create_print_layout(args: dict) -> dict:
         layout.setName(name)
         page_size = page_size or "A4"
         if not _set_page(layout, page_size, orientation):
-            return {"_error": f"Failed to set page size '{page_size}'. Use one of: {_PAGE_SIZES}"}
+            return {"_error": f"Failed to set page size '{page_size}'. One of: {_PAGE_SIZES}"}
         manager.addLayout(layout)
 
     result = _layout_summary(layout)
@@ -1778,7 +1880,7 @@ def _layout_from_template(name: str, args: dict) -> dict:
         return {"_error": path_error}
     if not os.path.isfile(path):
         return {"_error": f"Template not found: {path}", "code": "INVALID_ARGS",
-                "suggestion": "Pass the full path of a .qpt file saved with export_layout(format='qpt') or from QGIS."}
+                "suggestion": "template_path needs a .qpt file's full path, from export_layout(format='qpt') or QGIS."}
     rect = None
     if args.get("layer") or args.get("extent"):
         rect, _source, error = _subject(args)
@@ -1801,7 +1903,7 @@ def _layout_from_template(name: str, args: dict) -> dict:
     items, ok = loaded if isinstance(loaded, tuple) else (loaded, True)
     if not ok or layout.pageCollection().pageCount() == 0:
         return {"_error": f"{os.path.basename(path)} holds no print layout QGIS can read.", "code": "INVALID_ARGS",
-                "suggestion": "Check the file is a QGIS print layout template (.qpt)."}
+                "suggestion": "The file may not be a print layout template (.qpt)."}
     layout.setName(name)
     if args.get("page_size") or args.get("orientation"):
         orientation = args.get("orientation") or _page_summary(layout)["orientation"] or "landscape"
@@ -1839,6 +1941,11 @@ def _add_layout_map(args: dict) -> dict:
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
+    if _editing(args):
+        return _edit_layout_map(layout, args)
+    error = _missing(args, ("x", "y", "width", "height"), "map")
+    if error:
+        return error
 
     rect, source, error = _subject(args)
     if error:
@@ -1860,8 +1967,8 @@ def _add_layout_map(args: dict) -> dict:
                 "_error": f"Map item not found for overview_of: {overview_of}",
                 "code": "INVALID_ARGS",
                 "suggestion": (f"Map items on this layout: {known}. Nothing was added."
-                               if known else "This layout has no map yet; call add_layout_map without "
-                                             "overview_of first. Nothing was added."),
+                               if known else "This layout has no map yet; add_layout_map without "
+                                             "overview_of makes one. Nothing was added."),
             }
 
 
@@ -1872,7 +1979,7 @@ def _add_layout_map(args: dict) -> dict:
         map_crs = QgsCoordinateReferenceSystem(crs_text)
         if not map_crs.isValid():
             return {"_error": f"Invalid map CRS: {crs_text}. Nothing was added.", "code": "INVALID_ARGS",
-                    "suggestion": "Use an authority id such as EPSG:2154 or EPSG:32631."}
+                    "suggestion": "An authority id, e.g. EPSG:2154 or EPSG:32631."}
         project = QgsProject.instance()
         if project.crs().isValid() and map_crs != project.crs():
             try:
@@ -1951,9 +2058,7 @@ def _add_layout_map(args: dict) -> dict:
         result["fitted_to"] = source
     if args.get("layer") and args.get("extent"):
         result["layer_note"] = "extent and layer were both given: the map shows the extent, layer was not used."
-    if map_crs is not None:
-
-        result["map_crs"] = map_crs.authid()
+    result.update(_frame_crs_facts(map_item))
     if wanted_scale is not None:
         result["scale"] = int(round(map_item.scale()))
         if scale_note:
@@ -1978,6 +2083,90 @@ def _add_layout_map(args: dict) -> dict:
                               for low, high, percent in covered[:3])
                     + ": it will hardly show on this map. set_layer_order layer_name that layer, position top, "
                     "before exporting.")
+    return result
+
+
+def _frame_crs_facts(map_item) -> dict:
+
+
+
+
+
+
+    frame_crs = map_item.crs() if map_item.crs().isValid() else QgsProject.instance().crs()
+    facts = {"map_crs": frame_crs.authid()}
+    if frame_crs.isGeographic():
+        centre = map_item.extent().center().y()
+        stretch = 1 / max(0.05, abs(math.cos(math.radians(centre))))
+        facts["map_crs_note"] = (
+            f"{frame_crs.authid()} draws in degrees: at {abs(centre):.0f} degrees of latitude shapes print "
+            f"{stretch:.2f} times wider east-west than north-south, and a scale bar holds near the frame's "
+            "centre only; the crs argument draws the frame in a projected CRS without changing the project's")
+    return facts
+
+
+_MAP_EDIT_READS = frozenset({"layout_name", "item_id", "x", "y", "width", "height", "extent", "layer", "frame",
+                             "scale", "lock_item", "lock_layers", "lock_style", "layers", "map_theme"})
+
+
+def _edit_layout_map(layout, args: dict) -> dict:
+
+
+
+
+
+    map_item, error = _find_item(layout, args["item_id"], QgsLayoutItemMap, "map")
+    if error:
+        return error
+    subject = None
+    if args.get("layer") or args.get("extent"):
+        rect, _source, error = _subject(args)
+        if error:
+            return error
+        project = QgsProject.instance()
+        crs = map_item.crs()
+        if crs.isValid() and project.crs().isValid() and crs != project.crs():
+            try:
+                rect = QgsCoordinateTransform(project.crs(), crs, project.transformContext()).transformBoundingBox(rect)
+            except Exception as exc:
+                return {"_error": f"Could not bring the map's area into {crs.authid()}: {exc}. Nothing was changed.",
+                        "code": "INVALID_EXTENT"}
+        subject = rect
+    shown = QgsRectangle(map_item.extent())
+    if args.get("frame") is not None:
+        map_item.setFrameEnabled(bool(args["frame"]))
+    placement = _edit_geometry(layout, map_item, args, resizable=True, inset=_is_inset(map_item))
+    if subject is not None:
+        map_item.zoomToExtent(subject)
+    elif placement or any(args.get(key) is not None for key in ("width", "height")):
+        map_item.zoomToExtent(shown)
+    scale_note = ""
+    if args.get("scale") is not None:
+        from .advanced_tools import _apply_scale
+
+        applied = _apply_scale(map_item, args["scale"], layout.name())
+        if isinstance(applied, dict):
+            return applied
+        scale_note = applied
+    lock_args = {key: args[key] for key in ("lock_item", "lock_layers", "lock_style", "layers", "map_theme")
+                if key in args}
+    locked = None
+    if lock_args:
+        lock_args.setdefault("lock_item", bool(map_item.isLocked()))
+        lock_args.update({"layout_name": layout.name(), "item_uuid": map_item.uuid()})
+        locked = _lock_layout_item(lock_args)
+        if locked.get("_error"):
+            return locked
+    result = _edited(layout, map_item, placement, args, _MAP_EDIT_READS)
+    shown = map_item.extent()
+    result["extent_shown"] = [round(shown.xMinimum(), 6), round(shown.yMinimum(), 6),
+                              round(shown.xMaximum(), 6), round(shown.yMaximum(), 6)]
+    result.update(_frame_crs_facts(map_item))
+    result["scale"] = int(round(map_item.scale()))
+    if scale_note:
+        result["scale_note"] = scale_note
+    if locked is not None:
+        result["locked"] = locked
     return result
 
 
@@ -2106,6 +2295,11 @@ def _add_layout_label(args: dict) -> dict:
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
+    if _editing(args):
+        return _edit_layout_label(layout, args)
+    error = _missing(args, ("text", "x", "y", "width", "height"), "label")
+    if error:
+        return error
 
     text = args["text"]
     existing = next((item for item in layout.items() if _same_label(item, text, args["x"], args["y"])), None)
@@ -2127,15 +2321,7 @@ def _add_layout_label(args: dict) -> dict:
         font.setBold(True)
     label.setFont(font)
 
-    halign = args.get("halign")
-    if halign:
-        from qgis.PyQt.QtCore import Qt
-        flags = Qt.AlignmentFlag
-        align_map = {"left": flags.AlignLeft, "center": flags.AlignHCenter, "right": flags.AlignRight}
-        try:
-            label.setHAlign(align_map.get(halign, flags.AlignLeft))
-        except Exception:  # nosec B110
-            pass
+    _label_halign(label, args.get("halign"))
 
     label.attemptMove(_mm_point(args["x"], args["y"]))
     label.attemptResize(_mm_size(args["width"], args["height"]))
@@ -2147,6 +2333,47 @@ def _add_layout_label(args: dict) -> dict:
     result = _with_new_item(layout, label)
     result.update(placement)
     return result
+
+
+def _label_halign(label, halign) -> None:
+    if not halign:
+        return
+    from qgis.PyQt.QtCore import Qt
+    flags = Qt.AlignmentFlag
+    align_map = {"left": flags.AlignLeft, "center": flags.AlignHCenter, "right": flags.AlignRight}
+    try:
+        label.setHAlign(align_map.get(halign, flags.AlignLeft))
+    except Exception:  # nosec B110
+        pass
+
+
+_LABEL_EDIT_READS = frozenset({"layout_name", "item_id", "text", "x", "y", "width", "height", "font_size", "bold",
+                               "halign"})
+
+
+def _edit_layout_label(layout, args: dict) -> dict:
+
+    label, error = _find_item(layout, args["item_id"], QgsLayoutItemLabel, "label")
+    if error:
+        return error
+    if args.get("text") is not None:
+        label.setText(str(args["text"]))
+    if args.get("font_size") is not None or args.get("bold") is not None:
+        try:
+            font = QFont(label.font())
+        except (AttributeError, RuntimeError):
+            font = QFont()
+        if args.get("font_size") is not None:
+            font.setPointSizeF(float(args["font_size"]))
+        if args.get("bold") is not None:
+            font.setBold(bool(args["bold"]))
+        label.setFont(font)
+    _label_halign(label, args.get("halign"))
+    placement = _edit_geometry(layout, label, args, resizable=True)
+    if placement or args.get("x") is not None or args.get("y") is not None:
+        here = label.positionWithUnits()
+        label.setCustomProperty(_ASKED_AT, f"{here.x()},{here.y()}")
+    return _edited(layout, label, placement, args, _LABEL_EDIT_READS)
 
 
 def _legend_patch_shape(value: str):
@@ -2293,7 +2520,7 @@ def _add_layout_legend(args: dict) -> dict:
     else:
         if not has_position:
             return {"_error": "x and y are needed to add a legend.", "code": "INVALID_ARGS",
-                    "suggestion": "Pass x and y in mm, or legend_id to change a legend already on the layout."}
+                    "suggestion": "x and y in mm add one; legend_id changes one already on the layout."}
         linked = args.get("linked_to_map", True)
         map_item = None
         if linked:
@@ -2398,8 +2625,12 @@ def _add_layout_legend(args: dict) -> dict:
         result["patch_shapes"] = {"applied": patch_result[0], "warnings": patch_result[1]}
     if not entries:
         result["empty_note"] = ("The legend has no entries: the map it follows draws nothing, or every "
-                                "layer is switched off. Check the map with get_layout_info first.")
+                                "layer is switched off. get_layout_info shows it.")
     return result
+
+
+_SCALEBAR_READS = frozenset({"layout_name", "item_id", "x", "y", "style", "units_label", "segments", "map_id",
+                             "min_segment_width", "max_segment_width"})
 
 
 def _add_layout_scalebar(args: dict) -> dict:
@@ -2407,15 +2638,34 @@ def _add_layout_scalebar(args: dict) -> dict:
     if error:
         return error
 
-    map_item, error = _map_for(layout, args.get("map_id"))
-    if error:
-        return error
-    if not map_item:
-        return {"_error": "Add a map item first (add_layout_map), a scale bar must be linked to a map."}
+    editing = _editing(args)
+    if editing:
+        scalebar, error = _find_item(layout, args["item_id"], QgsLayoutItemScaleBar, "scale bar")
+        if error:
+            return error
+        map_item = scalebar.linkedMap()
+        if args.get("map_id"):
+            map_item, error = _map_for(layout, args["map_id"])
+            if error:
+                return error
+            scalebar.setLinkedMap(map_item)
+        if args.get("style"):
+            scalebar.setStyle(args["style"])
+    else:
+        error = _missing(args, ("x", "y"), "scale bar")
+        if error:
+            return error
+        map_item, error = _map_for(layout, args.get("map_id"))
+        if error:
+            return error
+        if not map_item:
+            return {"_error": "A scale bar must be linked to a map; add_layout_map adds one."}
+        scalebar = QgsLayoutItemScaleBar(layout)
+        scalebar.setStyle(args.get("style", "Single Box"))
+        scalebar.setLinkedMap(map_item)
 
-    scalebar = QgsLayoutItemScaleBar(layout)
-    scalebar.setStyle(args.get("style", "Single Box"))
-    scalebar.setLinkedMap(map_item)
+    resize = not editing or bool(args.get("units_label") or args.get("map_id"))
+    segments_before = scalebar.numberOfSegments() if editing else 2
 
 
 
@@ -2430,8 +2680,8 @@ def _add_layout_scalebar(args: dict) -> dict:
         unit, label = None, None
         units_note = ("A scale bar in degrees measures nothing on the ground (a degree of longitude "
                       "shrinks toward the poles), so it is in metres or kilometres instead.")
-    sized = False
-    if unit is not None:
+    sized = not resize
+    if resize and unit is not None:
         try:
             scalebar.setUnits(unit)
             scalebar.applyDefaultSize(unit)
@@ -2458,7 +2708,7 @@ def _add_layout_scalebar(args: dict) -> dict:
 
 
 
-    segments = args.get("segments", 2)
+    segments = args.get("segments", segments_before)
     try:
         scalebar.setNumberOfSegments(int(segments))
     except Exception:  # nosec B110
@@ -2497,12 +2747,18 @@ def _add_layout_scalebar(args: dict) -> dict:
         except Exception:  # nosec B110
             segment_width = {}
 
-    scalebar.attemptMove(_mm_point(args["x"], args["y"]))
-    layout.addLayoutItem(scalebar)
-    placement = place_item(layout, scalebar, {"x": args["x"], "y": args["y"]})
-    result = _with_new_item(layout, scalebar)
-    result["actual_geometry"] = _item_geometry(scalebar)
-    result.update(placement)
+    if editing:
+        result = _edited(layout, scalebar, _edit_geometry(layout, scalebar, args, resizable=False), args,
+                         _SCALEBAR_READS)
+    else:
+        scalebar.attemptMove(_mm_point(args["x"], args["y"]))
+        layout.addLayoutItem(scalebar)
+        placement = place_item(layout, scalebar, {"x": args["x"], "y": args["y"]})
+        result = _with_new_item(layout, scalebar)
+        result["actual_geometry"] = _item_geometry(scalebar)
+        result.update(placement)
+    if map_item is None:
+        return result
     result["linked_map"] = map_item.uuid()
     result["units"] = scalebar.unitLabel() or label or ""
     if segment_width:
@@ -2523,13 +2779,47 @@ def _add_layout_scalebar(args: dict) -> dict:
         if unit is None:
             result["units_note"] = (
                 f"{label!r} is not a distance unit I know, so it is printed as a free label "
-                "and the bar keeps map units. Use m, km, ft, yd, mi or nm to size the bar."
+                "and the bar keeps map units. m, km, ft, yd, mi or nm size the bar."
             )
+    return result
+
+
+_ARROW_READS = frozenset({"layout_name", "item_id", "x", "y", "width", "height", "map_id", "north"})
+
+
+def _set_north(picture, map_item, north: str) -> None:
+    try:
+        picture.setLinkedMap(map_item)
+        picture.setNorthMode(enum_member(QgsLayoutItemPicture, "NorthMode", north))
+    except Exception:  # nosec B110
+        pass
+
+
+def _edit_layout_north_arrow(layout, args: dict) -> dict:
+
+    picture, error = _find_item(layout, args["item_id"], QgsLayoutItemPicture, "north arrow")
+    if error:
+        return error
+    map_item = picture.linkedMap()
+    if args.get("map_id"):
+        map_item, error = _map_for(layout, args["map_id"])
+        if error:
+            return error
+    if map_item is not None and (args.get("map_id") or args.get("north")):
+        _set_north(picture, map_item, "TrueNorth" if args.get("north") == "true" else "GridNorth")
+    result = _edited(layout, picture, _edit_geometry(layout, picture, args, resizable=True), args, _ARROW_READS)
+    if map_item is not None:
+        result["linked_map"] = map_item.uuid()
     return result
 
 
 def _add_layout_north_arrow(args: dict) -> dict:
     layout, error = _resolve_layout(args["layout_name"])
+    if error:
+        return error
+    if _editing(args):
+        return _edit_layout_north_arrow(layout, args)
+    error = _missing(args, ("x", "y"), "north arrow")
     if error:
         return error
 
@@ -2550,11 +2840,7 @@ def _add_layout_north_arrow(args: dict) -> dict:
 
     north = "TrueNorth" if args.get("north") == "true" else "GridNorth"
     if map_item:
-        try:
-            picture.setLinkedMap(map_item)
-            picture.setNorthMode(enum_member(QgsLayoutItemPicture, "NorthMode", north))
-        except Exception:  # nosec B110
-            pass
+        _set_north(picture, map_item, north)
 
     layout.addLayoutItem(picture)
     placement = place_item(layout, picture, {"x": args["x"], "y": args["y"], "width": args.get("width", 15),
@@ -2583,7 +2869,7 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
     elif maps:
         map_item = max(maps, key=lambda item: item.rect().width() * item.rect().height())
     else:
-        return {"_error": "This layout has no map item. Call add_layout_map first.", "code": "INVALID_ARGS"}
+        return {"_error": "This layout has no map item; add_layout_map adds one.", "code": "INVALID_ARGS"}
 
     stack = map_item.grids()
     grid = QgsLayoutItemMapGrid("Coordinate grid", map_item)
@@ -2597,7 +2883,7 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
         crs = QgsCoordinateReferenceSystem(crs_text)
         if not crs.isValid():
             return {"_error": f"Invalid grid CRS: {crs_text}", "code": "INVALID_ARGS",
-                    "suggestion": "Use an authority id such as EPSG:4326 or EPSG:2154."}
+                    "suggestion": "An authority id, e.g. EPSG:4326 or EPSG:2154."}
         grid.setCrs(crs)
     else:
         grid.setCrs(map_item.crs())
@@ -2782,9 +3068,9 @@ def furniture_check(layout):
             out["unknown_note"] = (
                 "This page carries " + ", ".join(out["hand_drawn_items"][:4])
                 + ", any of which may be a " + " or a ".join(unknown)
-                + " drawn by hand. QGIS has no such item here, so this check cannot tell: look at the page "
-                  "with render_map (target layout, or target file on the export) and judge it against what "
-                  "the user asked for, rather than adding a second one on top.")
+                + " drawn by hand. QGIS has no such item here, so this check cannot tell: render_map (target "
+                  "layout, or target file on the export) shows the page as printed; a hand-drawn one already "
+                  "there means adding another duplicates it.")
 
         links = []
         for kind, group in (("scale bar", bars), ("north arrow", arrows), ("legend", legends)):
@@ -2851,10 +3137,33 @@ def _get_layout_info(args: dict) -> dict:
     return result
 
 
+def _follows(item, map_uuid: str) -> bool:
+
+    try:
+        linked = item.linkedMap() if hasattr(item, "linkedMap") else None
+        return linked is not None and linked.uuid() == map_uuid
+    except (AttributeError, RuntimeError, TypeError):
+        return False
+
+
 def _remove_print_layout(args: dict) -> dict:
-    layout, error = _resolve_layout(args["layout_name"], allow_report=True)
+    layout, error = _resolve_layout(args["layout_name"], allow_report=not _editing(args))
     if error:
         return error
+    if _editing(args):
+        item, error = _find_item(layout, args["item_id"], None, "item")
+        if error:
+            return error
+        gone = {"uuid": item.uuid(), "type": type(item).__name__, "name": _item_name(item)}
+        followers = [_item_name(other) for other in layout.items()
+                     if other is not item and _follows(other, gone["uuid"])]
+        layout.removeLayoutItem(item)
+        result = _layout_summary(layout)
+        result["removed_item"] = gone
+        if followers:
+            result["unlinked"] = followers
+            result["unlinked_note"] = "These followed the map removed and now follow none."
+        return result
     name = layout.name()
     QgsProject.instance().layoutManager().removeLayout(layout)
     return {"removed": name}

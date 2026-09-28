@@ -31,7 +31,7 @@ from qgis.PyQt.QtCore import (
     QUrl,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtGui import QDesktopServices, QGuiApplication
 
 from ..core import sibling_sign_in
 from ..core.logger import log, log_warning
@@ -43,6 +43,10 @@ _UTM = f"utm_source=qgis&utm_medium=plugin&utm_campaign={PRODUCT_ID}"
 DASHBOARD_URL = f"https://terra-lab.ai/dashboard/{PRODUCT_ID}?{_UTM}&utm_content=dashboard"
 PLANS_URL_FALLBACK = "https://terra-lab.ai/pricing"
 _REVALIDATE_EVERY_S = 900.0
+
+
+_UPGRADE_WATCH_S = 1800.0
+_UPGRADE_CHECK_GAP_S = 10.0
 _PLATFORM_MAX_LEN = 48
 _cached_platform: str | None = None
 
@@ -187,6 +191,7 @@ class Account(QObject):
     pairing_address = pyqtSignal(str)
     pairing_browser_seen = pyqtSignal()
     pairing_stalled = pyqtSignal(str, str)
+    pairing_link_back = pyqtSignal()
     pairing_failed = pyqtSignal(str, str)
     pairing_timeout = pyqtSignal()
     usage_refreshed = pyqtSignal(object)
@@ -213,6 +218,9 @@ class Account(QObject):
         self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
+        self._upgrade_watch_since = 0.0
+        self._upgrade_checked_at = float("-inf")
+        self._upgrade_watching = False
 
         self.signed_in_from: tuple[str, str] | None = None
         self._state = self._stored_state()
@@ -270,10 +278,13 @@ class Account(QObject):
 
 
     def connect_url(self, code: str) -> str:
+
+
+
         from urllib.parse import quote
         safe_code = quote(str(code or ""), safe="")
         return (f"{self._client.base_url}/connect?code={safe_code}&product={PRODUCT_ID}"
-                f"&{_UTM}&utm_content=connect")
+                f"&ttl={int(PairingPollTask.CODE_TTL_S)}&{_UTM}&utm_content=connect")
 
     def start_pairing(self) -> None:
 
@@ -300,7 +311,7 @@ class Account(QObject):
             if worker.pairing_code == code:
                 return
             for signal_name in ("pairing_succeeded", "pairing_failed", "pairing_timeout",
-                                "pairing_stalled", "pairing_browser_seen"):
+                                "pairing_stalled", "pairing_browser_seen", "pairing_link_back"):
                 try:
                     getattr(worker, signal_name).disconnect()
                 except (TypeError, RuntimeError):
@@ -315,6 +326,7 @@ class Account(QObject):
         worker.pairing_timeout.connect(self._on_pairing_timeout)
         worker.pairing_stalled.connect(self._on_pairing_stalled)
         worker.pairing_browser_seen.connect(self.pairing_browser_seen)
+        worker.pairing_link_back.connect(self.pairing_link_back)
         self._pairing_worker = worker
         self._pairing_t0 = time.monotonic()
         QgsApplication.taskManager().addTask(worker)
@@ -391,6 +403,9 @@ class Account(QObject):
         log("Pairing timed out")
 
     def _on_pairing_stalled(self, reason: str = "") -> None:
+        if reason == PairingPollTask.STALL_OFFLINE:
+            self.pairing_stalled.emit(reason, tr("No connection to terra-lab.ai. Still trying..."))
+            return
         if reason == PairingPollTask.STALL_CODE_EXPIRED:
             message = tr("This sign-in code has expired. Click Cancel, then Sign in to get a new one.")
         else:
@@ -619,6 +634,8 @@ class Account(QObject):
 
     def _on_key_revalidate_ok(self, usage: object) -> None:
         self._revalidate_task = None
+        if isinstance(usage, dict) and usage.get("is_subscriber") is True:
+            self.stop_upgrade_watch()
         self._last_key_validation_unix = time.time()
         self._last_key_validation_at = time.monotonic()
         if self._state != self.ACTIVATED:
@@ -691,12 +708,61 @@ class Account(QObject):
         self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
+        self.stop_upgrade_watch()
         self._set_state(self.SIGNED_OUT, "")
         self.signed_out.emit()
 
     def sign_out(self) -> None:
         self._clear_local_session()
         log("Signed out")
+
+
+
+    def watch_for_upgrade(self) -> None:
+
+
+
+
+
+
+        if not self.has_activation_key:
+            return
+        self._upgrade_watch_since = time.monotonic()
+        if self._upgrade_watching:
+            return
+        app = QGuiApplication.instance()
+        if app is None:
+            return
+        try:
+            app.applicationStateChanged.connect(self._on_application_state)
+        except (TypeError, RuntimeError, AttributeError):
+            return
+        self._upgrade_watching = True
+
+    def stop_upgrade_watch(self) -> None:
+        self._upgrade_watch_since = 0.0
+        if not self._upgrade_watching:
+            return
+        self._upgrade_watching = False
+        app = QGuiApplication.instance()
+        if app is not None:
+            try:
+                app.applicationStateChanged.disconnect(self._on_application_state)
+            except (TypeError, RuntimeError):
+                pass  # nosec B110
+
+    def _on_application_state(self, state) -> None:
+        if state != Qt.ApplicationState.ApplicationActive:
+            return
+        now = time.monotonic()
+        if not self._upgrade_watch_since or now - self._upgrade_watch_since > _UPGRADE_WATCH_S:
+            self.stop_upgrade_watch()
+            return
+        if now - self._upgrade_checked_at < _UPGRADE_CHECK_GAP_S:
+            return
+        self._upgrade_checked_at = now
+        log("QGIS is back after a Pro offer: checking the plan")
+        self.refresh_activation_async(force=True)
 
     def open_website(self, target: str, cta_source: str, fallback_url: str,
                      on_outcome=None) -> None:
@@ -755,6 +821,7 @@ class Account(QObject):
 
 
 
+        self.watch_for_upgrade()
         self.open_website("/pricing", cta_source, get_plans_page_url(cta_source), on_outcome)
 
     def open_checkout(self, cta_source: str, on_outcome=None) -> None:
@@ -770,6 +837,7 @@ class Account(QObject):
         if not auth:
             self.open_plans(cta_source, on_outcome)
             return
+        self.watch_for_upgrade()
         if self._checkout_task is not None and self._checkout_task.is_active():
             return
         client = self._client

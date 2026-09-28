@@ -51,7 +51,15 @@ _LAYER_KEYS = ("layer_name", "layer", "layer_id", "input", "INPUT", "target_laye
 
 _INPUT_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
 
-_NAMES_A_NEW_LAYER = {"execute_sql": ("layer_name",)}
+
+
+_NAMES_A_NEW_LAYER = {
+    "execute_sql": ("layer_name",),
+    "fetch_osm_data": ("layer_name",),
+    "fetch_overture": ("layer_name",),
+    "fetch_building_footprints": ("layer_name",),
+    "add_data": ("layer",),
+}
 
 
 def _resolved_layer_note(name: str, args: dict, result) -> str:
@@ -147,6 +155,9 @@ class _ExecutorDeliver:
         in_background = self._inflight.pop(tool_call_id, (None, None, None, False))[3]
 
 
+        on_dialog, dialog_title = self._dialog_waits.pop(tool_call_id, (0.0, ""))
+
+
 
 
         started_task_ids = _task_ids_started(name, result)
@@ -169,8 +180,10 @@ class _ExecutorDeliver:
 
             log_warning(f"{name} answered after its deadline ({duration:.0f}s); the late result is dropped.")
             return
-        if not in_background and duration > limits.main_budget(name):
-            self._note_slow_main_thread(run_id, name, duration)
+        if not in_background and duration - on_dialog > limits.main_budget(name):
+            self._note_slow_main_thread(run_id, name, duration - on_dialog)
+        if on_dialog >= 1.0 and isinstance(result, dict):
+            result["waited_on_dialog"] = {"title": dialog_title, "seconds": round(on_dialog)}
         if name == CODE_TOOL and isinstance(result, dict):
             if result.get("needs_permission") and run_id not in self._cancelled:
                 self._code_tripped(call, result)
@@ -186,7 +199,7 @@ class _ExecutorDeliver:
 
 
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
-                       "Stop here and wait for the next user message.", duration)
+                       "The user stopped the run.", duration)
             return
 
 
@@ -202,19 +215,27 @@ class _ExecutorDeliver:
         outside = reads_the_outside_world(name) if declared is None else bool(declared)
 
 
+        with stalls.probe("layer_count"):
+            counted = self._layer_count(run_id)
+        if counted and isinstance(result, dict) and "_error" not in result:
+            result["layer_count"] = counted
 
 
 
 
 
-
-        with stalls.probe("layer_cap"):
-            past_cap = self._withdraw_past_cap(run_id, name, args)
-        if past_cap and isinstance(result, dict):
-            result["layers_not_added"] = past_cap
         with stalls.probe("licence.credit"):
-            added = self.stacker.take_added()
-            licence.credit_added(added, result, tool=name)
+            added = [lay for lay in self.stacker.take_added(tool_call_id, self._inflight) if lay is not None]
+
+
+
+
+
+
+            late = getattr(self.stacker, "from_task", set())
+            mine = [lay for lay in added if lay.id() not in late and self.stacker.added_by(lay) == tool_call_id]
+            licence.credit_added(mine, result, tool=name, args=args)
+            licence.credit_added([lay for lay in added if lay not in mine], None)
 
             stamp_thread(added, self._threads.get(run_id, ""))
         with stalls.probe("result.scrub"):
@@ -244,7 +265,7 @@ class _ExecutorDeliver:
             result["edited_by_user"] = {
                 "values": call["user_edits"],
                 "note": ("The user changed these values on the permission card before the call ran; it ran "
-                         "with the 'after' values. Report what was really done with them, not what was asked."),
+                         "with the 'after' values, not what was first asked."),
             }
 
 
@@ -274,6 +295,12 @@ class _ExecutorDeliver:
                 result["verified"] = verified
 
 
+        if danger != Danger.READ or (isinstance(args, dict)
+                                     and str(args.get("task_id") or "") in self._task_ids.get(run_id, ())):
+            with stalls.probe("postcondition.describe"):
+                postcondition.describe(result)
+
+
 
 
         if danger != Danger.READ or (isinstance(args, dict)
@@ -294,7 +321,7 @@ class _ExecutorDeliver:
 
 
             security.vouch_for_urls(shown)
-        self._session.send_tool_result(tool_call_id, run_id, result)
+        self._session.send_tool_result(tool_call_id, run_id, result, self._code_class_of(call))
         self.tool_finished.emit(tool_call_id, True, self._summary(name, result), duration, detail, shown)
 
 
@@ -397,10 +424,10 @@ class _ExecutorDeliver:
         suggestion = str(result.get("suggestion") or "")
         if not suggestion:
             suggestion = {
-                Err.LAYER_NOT_FOUND: "Call list_layers and use the exact layer name or id.",
-                Err.INVALID_ARGS: "Check the tool's parameter schema and fix the arguments.",
-                Err.CANCELLED: "Stop and wait for the next user message.",
-            }.get(code, "Read the message, adjust the approach, and try a different call if needed.")
+                Err.LAYER_NOT_FOUND: "list_layers gives every layer's exact name and id.",
+                Err.INVALID_ARGS: "The schema states what each argument must be.",
+                Err.CANCELLED: "The call was cancelled.",
+            }.get(code, "The message states what happened; another call may fit better.")
         return code, message, suggestion
 
     @staticmethod

@@ -147,19 +147,19 @@ def _target(args: dict, project) -> tuple[str, dict | None]:
             path = os.path.join(path, f"{output_paths.safe_file_name(stem, 'layers')}_data.gpkg")
         elif os.path.splitext(path)[1].lower() != ".gpkg":
             return "", tool_error(f"{os.path.basename(path)} is not a GeoPackage name.", "INVALID_ARGS",
-                                  "End gpkg_path in .gpkg, or leave it out for <project>_data.gpkg beside the project.")
+                                  "gpkg_path ends in .gpkg, or is left out for <project>_data.gpkg beside the project.")
     else:
         path = _default_gpkg_path("layers" if not project.fileName() else "")
     if _source_key(path).startswith(_source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"):
         return "", tool_error("gpkg_path is inside the agent's scratch folder, which is pruned.", "INVALID_ARGS",
-                              "Leave gpkg_path out, or name a file beside the project or in the user's folders.")
+                              "gpkg_path can be left out, or named beside the project or user folders.")
     error = security.validate_path(path, write=True)
     if error:
         return "", tool_error(error, "PERMISSION_DENIED",
-                              "Pick a GeoPackage under the project folder or the user's home folder.")
+                              "The project folder or the user's home folder takes a GeoPackage.")
     if not security.fits_path(path, len("-journal")):
         return "", tool_error(f"{path} is longer than Windows opens.", "INVALID_ARGS",
-                              "Pass a shorter gpkg_path.")
+                              "A shorter gpkg_path fits.")
     return path, None
 
 
@@ -174,6 +174,8 @@ def _write_vector(layer, gpkg: str, table: str) -> str:
         options.fileEncoding = "UTF-8"
         options.attributes = _stored_fields(layer)
         options.layerOptions = layer_options
+        options.saveMetadata = True
+        options.layerMetadata = layer.metadata()
         if os.path.exists(gpkg):
             options.actionOnExistingFile = enum_member(
                 QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
@@ -208,7 +210,10 @@ def _save_style_inside(layer) -> bool:
 def _repoint(layer, uri: str, provider: str) -> None:
     options = QgsDataProvider.ProviderOptions()
     options.transformContext = QgsProject.instance().transformContext()
+
+    metadata = layer.metadata()
     layer.setDataSource(uri, layer.name(), provider, options)
+    layer.setMetadata(metadata)
     layer.triggerRepaint()
 
 
@@ -256,7 +261,7 @@ def _vector(layer, was: str, gpkg: str, taken: set[str]) -> dict:
             layer.setSubsetString("")
             entry["filter_not_restored"] = subset
             entry["note"] = ("Every feature was kept, but the filter does not read on the GeoPackage, so the layer "
-                             "now shows all of them: set it again with set_layer_filter in SQL.")
+                             "now shows all of them; set_layer_filter in SQL sets it again.")
     entry["style_in_gpkg"] = _save_style_inside(layer)
     return entry
 
@@ -348,7 +353,7 @@ def _make_layers_permanent(args: dict) -> dict:
         fresh = _fresh_gpkg(gpkg)
         if not fresh:
             return tool_error(f"The tables of {gpkg} cannot be read, so nothing was written into it.",
-                              "INVALID_ARGS", "Close the program holding it, or pass gpkg_path with a new file name.")
+                              "INVALID_ARGS", "Closing the program holding it, or a new gpkg_path, frees a name.")
         moved_from, gpkg, taken = gpkg, fresh, set()
     files_taken: set[str] = set()
     moved: list[dict] = []
@@ -376,8 +381,8 @@ def _make_layers_permanent(args: dict) -> dict:
             if project.write():
                 out["project_saved"] = project.fileName()
             else:
-                out["project_note"] = ("The layers read the new files, but the project could not be written: "
-                                       "call save_project.")
+                out["project_note"] = ("The layers read the new files; the project needs a write. "
+                                       "save_project writes it.")
         else:
             out["project_note"] = ("The project has never been saved; the layers read the new files, and "
                                    "save_project writes the project.")

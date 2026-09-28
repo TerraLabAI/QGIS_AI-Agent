@@ -37,10 +37,10 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorTileLayer,
 )
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
 from ..core import dataset_docs, limits, net, tuning, vsi
-from ..core.background import still_awaited
+from ..core.background import on_main_thread, still_awaited
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_tree
 from ..core.logger import log_warning
@@ -301,7 +301,7 @@ def _sign_pc_href(url: str) -> tuple[str, str | None]:
 
 
 _PC_SIGN_FAILED = ("Planetary Computer did not sign this asset, so it was requested unsigned "
-                   "and refused (HTTP 409). Send the same call again.")
+                   "and refused (HTTP 409). Signing often works on the next call.")
 
 
 
@@ -423,7 +423,7 @@ def _signed_href(url: str) -> tuple[str, str | None]:
     return _sign_pc_href(_public_s3_https(url))
 
 
-def _prefetch_vsicurl(url: str) -> None:
+def _raster_built_here(source: str, name: str):
 
 
 
@@ -433,29 +433,25 @@ def _prefetch_vsicurl(url: str) -> None:
 
 
 
-    try:
-        from osgeo import gdal
-    except Exception:  # noqa: BLE001
-        return
+
+
+
 
 
 
     vsi.apply_persistent()
-
-
-
-
-
-    try:
-        net.check_url(url)
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"COG prefetch refused: {exc}")
-        return
-    try:
-        dataset = gdal.Open(f"/vsicurl/{url}")
-        del dataset
-    except Exception:  # nosec B110
-        pass
+    if on_main_thread():
+        return None
+    options = QgsRasterLayer.LayerOptions()
+    options.skipCrsValidation = True
+    layer = QgsRasterLayer(source, name, "gdal", options)
+    if layer.isValid() and not layer.crs().isValid():
+        return None
+    app = QCoreApplication.instance()
+    if app is None:
+        return None
+    layer.moveToThread(app.thread())
+    return layer
 
 
 
@@ -540,14 +536,14 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
     except Exception as exc:  # noqa: BLE001
         if isinstance(exc, net.FetchCancelled):
             return {"_error": "The raster download was stopped.", "_code": "CANCELLED",
-                    "_suggestion": "Do not restart the download unless the user asks.", "url": url}
+                    "_suggestion": "The user stopped it; only they restart it.", "url": url}
 
 
         if one_shot and isinstance(exc, urllib.error.HTTPError) and exc.code in (403, 404, 410):
             return {"_error": f"That result is no longer on the server: {exc}",
                     "_code": "EXECUTION_FAILED",
-                    "_suggestion": "Run the tool that produced this url again; its answer is held for a "
-                                   "short while only, and the new url loads the same area.",
+                    "_suggestion": "This url is held for a short while only; the tool that produced it "
+                                   "gives a new one for the same area.",
                     "url": url}
         if isinstance(exc, net.FetchTooLarge):
 
@@ -559,16 +555,22 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                                    "(find_datasets), or a smaller area's file.", "url": url}
         if net.describe_failure(exc):
             return {"_error": f"The raster download did not finish: {exc}", "_code": "NETWORK_ERROR",
-                    "_suggestion": "Retry this download URL once. An interrupted transfer does not mean "
-                                   "the source result expired; do not regenerate it for that reason.", "url": url}
+                    "_suggestion": "An interrupted transfer does not mean the source result expired; one "
+                                   "retry of this url usually finishes it.", "url": url}
         return {"_error": f"Could not download that raster: {exc}", "_code": "EXECUTION_FAILED",
-                "_suggestion": "Check the address serves the file itself, not a page about it.", "url": url}
+                "_suggestion": "A working address serves the file itself, not a page about it.", "url": url}
     body = response.body
+
+
+    headers = response.headers or {}
+    credit = {key: urllib.parse.unquote(str(headers.get(header) or "")).strip()[:500]
+              for key, header in (("licence", "x-data-licence"), ("attribution", "x-data-attribution"))}
+    credit = {key: value for key, value in credit.items() if value}
     if not body:
         return {"_error": "That address returned an empty file.",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Run the tool that produced this url again." if one_shot
-                               else "Check the address serves the file itself.", "url": url}
+                "_suggestion": "The producing tool gives a fresh url." if one_shot
+                               else "A working address serves the file itself.", "url": url}
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
 
     path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}.tif")
@@ -578,18 +580,19 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
     except OSError as exc:
         return {"_error": f"Could not write the downloaded result to disk: {exc}",
                 "_code": "EXECUTION_FAILED",
-                "_suggestion": "Free some space in the temp folder and run the tool again.", "url": url}
+                "_suggestion": "The temp folder may be full.", "url": url}
     _declare_nan_nodata(path)
     from .elevation_style import apply_elevation_style, elevation_stretch
     stretch = elevation_stretch(path, name)
+    built = _raster_built_here(path, name or "Result")
 
     def _create():
-        layer = QgsRasterLayer(path, name or "Result", "gdal")
+        layer = built if built is not None else QgsRasterLayer(path, name or "Result", "gdal")
         if not layer.isValid():
             return {"_error": "The downloaded file is not a raster QGIS can read.",
                     "_code": "EXECUTION_FAILED",
-                    "_suggestion": "Run the tool that produced this url again." if one_shot
-                                   else "Check the address serves a GeoTIFF and not a web page.", "url": url}
+                    "_suggestion": "The producing tool gives a fresh url." if one_shot
+                                   else "A working address serves a GeoTIFF, not a web page.", "url": url}
         normalised = normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -605,6 +608,7 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
             "height": layer.height(),
             "bands": layer.bandCount(),
             "crs": _crs_label(layer.crs()),
+            **credit,
             "_note": ("Downloaded to this machine, so the layer keeps working after the server drops the file."
                       if one_shot else "Downloaded to this machine: this address is not streamable."),
         }
@@ -660,8 +664,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         return {"_error": note or ("This s3:// address was not opened: it needs a signature this server "
                                    "did not provide, or its bucket is not public."),
                 "_code": "PERMISSION_DENIED",
-                "_suggestion": "Take the same scene from an open catalog instead: search_stac_items on "
-                               "the Planetary Computer serves Sentinel-2 without a signature.",
+                "_suggestion": "search_stac_items on the Planetary Computer serves the same Sentinel-2 "
+                               "scene without a signature.",
                 "url": final_url}
 
 
@@ -670,18 +674,18 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         net.check_url(final_url)
     except Exception as exc:  # noqa: BLE001
         return {"_error": f"This asset address is not fetched: {exc}", "_code": "PERMISSION_DENIED",
-                "_suggestion": "Use a public https address for the asset.", "url": final_url}
+                "_suggestion": "A public https address serves the asset.", "url": final_url}
     local = _localise_one_shot(final_url, name)
     if local is not None:
         if note and not local.get("_error"):
             local["_note"] = f"{note} {local.get('_note', '')}".strip()
         return local
-    _prefetch_vsicurl(final_url)
     from .elevation_style import apply_elevation_style, elevation_stretch
     stretch = elevation_stretch(f"/vsicurl/{final_url}", name)
+    built = _raster_built_here(f"/vsicurl/{final_url}", name or "COG")
 
     def _create():
-        layer = QgsRasterLayer(f"/vsicurl/{final_url}", name or "COG", "gdal")
+        layer = built if built is not None else QgsRasterLayer(f"/vsicurl/{final_url}", name or "COG", "gdal")
         if not layer.isValid():
             return {
                 "_error": "Could not open the raster.",
@@ -695,8 +699,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
 
                 "_suggestion": (
-                    'Call add_data again with kind "raster": a plain TIFF, or a server that ignores '
-                    "range requests, has to be downloaded rather than streamed."
+                    'add_data with kind "raster" downloads a plain TIFF, or a server that ignores '
+                    "range requests, rather than streaming it."
                 ),
                 "url": final_url,
             }
@@ -726,17 +730,17 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
                 result["http_status"] = status
             if status in (401, 403):
                 result["_code"] = "PERMISSION_DENIED"
-                result["_suggestion"] = ("The host refuses this file without credentials. Take the same data "
-                                         "from an open source, or sign the address if the catalog offers it.")
+                result["_suggestion"] = ("The host refuses this file without credentials. An open source, "
+                                         "or a signed address from the catalog, would serve it.")
             elif status and status != 200 and status != 206:
                 result["_code"] = "NETWORK_ERROR" if status >= 500 or status == 429 else "INVALID_ARGS"
-                result["_suggestion"] = ("The file is not at this address. Search the catalog again for a current "
-                                         "asset URL." if status in (404, 410) else
-                                         "The host did not serve the file. Try again later or use another source.")
+                result["_suggestion"] = ("The file is not at this address; the catalog holds a current "
+                                         "asset URL for it." if status in (404, 410) else
+                                         "The host did not serve it; that often clears, or another source has it.")
             if note == _PC_SIGN_FAILED:
                 result["_error"] = note
                 result["_code"] = "NETWORK_ERROR"
-                result["_suggestion"] = "Send the same call again: the signing service may answer this time."
+                result["_suggestion"] = "The signing service sometimes answers on a second call."
         return result
     if note:
         result["_note"] = note
@@ -750,8 +754,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
         result["warning"] = ("This raster carries no CRS, so QGIS cannot place it on the map. It is a picture "
                              "of the scene (a browse image), not georeferenced data.")
-        result["suggestion"] = ("Add a cloud-optimized GeoTIFF asset of the same item instead: pass its key as "
-                                "asset to add_stac_layer, or its href to add_cog_layer.")
+        result["suggestion"] = ("A cloud-optimized GeoTIFF asset of the same item is georeferenced: its key "
+                                "as asset to add_stac_layer, or its href to add_cog_layer.")
     return result
 
 
@@ -945,14 +949,14 @@ def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, s
 
 
             note = (f"Added the '{key}' asset. No asset of this item is tagged cloud-optimized, so it may be "
-                    f"read whole rather than by area: expect tens of seconds, and say so before waiting.")
+                    f"read whole rather than by area: expect tens of seconds.")
         elif others:
 
 
 
 
             note = (f"Added the '{key}' asset. This item has other GeoTIFF assets "
-                    f"({', '.join(others[:8])}); pass one as asset= to add it instead.")
+                    f"({', '.join(others[:8])}); asset= picks one of them.")
         return assets[key]["href"], key, note, None
 
     if isinstance(visual, dict) and visual.get("href"):
@@ -975,7 +979,7 @@ def _add_stac_layer(args: dict) -> dict:
         collection = args.get("collection")
         item_id = args.get("item_id")
         if not (collection and item_id):
-            return {"_error": "Provide item_url, or stac_url + collection + item_id."}
+            return {"_error": "item_url, or stac_url + collection + item_id, is needed."}
 
 
         item_url = (f"{stac_url}/collections/{urllib.parse.quote(collection, safe='')}"
@@ -1052,13 +1056,13 @@ def _probe_pmtiles(url: str) -> dict:
             "_error": (f"The server ignored the byte range and began sending the whole archive at {url}. "
                        "A PMTiles archive is read in place over range requests, so this host cannot serve it."),
             "code": "INVALID_ARGS",
-            "suggestion": "Ask for the same data from a host that answers range requests, or for an extract.",
+            "suggestion": "A host that answers range requests, or an extract, would serve this.",
         }
     except (urllib.error.URLError, OSError, ValueError) as e:
         return {
             "_error": f"The PMTiles archive at {url} could not be read: {e}",
             "code": "EXECUTION_FAILED",
-            "suggestion": "Check the URL, or use another source for the same data.",
+            "suggestion": "A working URL, or another source, serves the same data.",
         }
 
     if not head.startswith(_PMTILES_MAGIC):
@@ -1067,7 +1071,7 @@ def _probe_pmtiles(url: str) -> dict:
             "_error": (f"{url} is not a PMTiles archive: it begins with '{opening}' instead of the PMTiles "
                        "magic bytes. A URL that answers with an error page reads exactly like this."),
             "code": "INVALID_ARGS",
-            "suggestion": "Check the URL points at the .pmtiles file itself, or use another source.",
+            "suggestion": "A working URL points at the .pmtiles file itself; another source has it.",
         }
     version = head[len(_PMTILES_MAGIC)] if len(head) > len(_PMTILES_MAGIC) else 0
     if version != _PMTILES_VERSION:
@@ -1075,7 +1079,7 @@ def _probe_pmtiles(url: str) -> dict:
             "_error": (f"This archive is PMTiles version {version}; only version {_PMTILES_VERSION} can be read "
                        "in place."),
             "code": "INVALID_ARGS",
-            "suggestion": "Ask for a version 3 archive, or for the data in another cloud-native format.",
+            "suggestion": "A version 3 archive, or another cloud-native format, would read.",
         }
 
 
@@ -1086,7 +1090,6 @@ def _probe_pmtiles(url: str) -> dict:
 
 
 def _prefetch_pmtiles(url: str) -> None:
-
 
 
 
@@ -1203,7 +1206,7 @@ def _pmtiles_stopped(url: str) -> dict:
     return {
         "_error": "Stopped before the extract finished.",
         "code": "CANCELLED",
-        "suggestion": "Ask again for the same area when you want it.",
+        "suggestion": "The user stopped it; nothing was added.",
         "url": url,
     }
 
@@ -1280,12 +1283,12 @@ def _pmtiles_read_blocks(gdal, dataset, url: str, bbox: list, chosen: str, zoom:
                 break
             if not index:
                 return {"_error": f"The extract from {url} failed: {exc}", "code": "EXECUTION_FAILED",
-                        "suggestion": "Try a smaller area, or another source for this data.", "url": url}
+                        "suggestion": "A smaller area, or another source, fits this data.", "url": url}
             break
         if written is None:
             if not index:
                 return {"_error": f"The extract from {url} produced nothing.", "code": "EXECUTION_FAILED",
-                        "suggestion": "Try a smaller area, or another source for this data.", "url": url}
+                        "suggestion": "A smaller area, or another source, fits this data.", "url": url}
             break
         del written
         rescue = _rescue_oversized_tiles(gdal, url, block, chosen, zoom, path)
@@ -1320,7 +1323,7 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
         return {
             "_error": "GDAL's Python bindings are not available, so this archive cannot be extracted.",
             "code": "EXECUTION_FAILED",
-            "suggestion": "Read it as vector tiles with mode='tiles', which can block QGIS on a large archive.",
+            "suggestion": "mode='tiles' reads it as vector tiles, which can block QGIS on a large archive.",
             "url": url,
         }
 
@@ -1339,12 +1342,12 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
         except RuntimeError as exc:
             return {"_error": f"GDAL could not open the PMTiles archive at {url}: {exc}",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Check the URL, or ask for the same data from another source.",
+                    "suggestion": "A working URL, or another source, serves the same data.",
                     "url": url}
         if dataset is None:
             return {"_error": f"GDAL could not open the PMTiles archive at {url}.",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Check the URL, or ask for the same data from another source.",
+                    "suggestion": "A working URL, or another source, serves the same data.",
                     "url": url}
 
         available = []
@@ -1355,13 +1358,13 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
         if not available:
             return {"_error": f"The archive at {url} carries no vector layer at zoom {zoom}.",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Ask for another source for this data.",
+                    "suggestion": "Another source may hold this data.",
                     "url": url}
         chosen = str(sublayer) if sublayer else available[0]
         if chosen not in available:
             return {"_error": f"'{chosen}' is not a layer of this archive.",
                     "code": "INVALID_ARGS",
-                    "suggestion": f"Pass layer as one of: {', '.join(available)}.",
+                    "suggestion": f"layer is one of: {', '.join(available)}.",
                     "layers_available": available,
                     "url": url}
         if _pmtiles_cancelled():
@@ -1394,12 +1397,12 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
         except RuntimeError as exc:
             return {"_error": f"The extract from {url} failed: {exc}",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Try a smaller area, or another source for this data.",
+                    "suggestion": "A smaller area, or another source, fits this data.",
                     "url": url}
         if written is None:
             return {"_error": f"The extract from {url} produced nothing.",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Try a smaller area, or another source for this data.",
+                    "suggestion": "A smaller area, or another source, fits this data.",
                     "url": url}
         out_layer = written.GetLayer(0)
         count = int(out_layer.GetFeatureCount()) if out_layer is not None else 0
@@ -1634,8 +1637,8 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
         return {
             "_error": f"A PMTiles archive is loaded by extracting an area, and {origin}.",
             "code": "INVALID_ARGS",
-            "suggestion": ("Zoom the map to the area first, or pass bbox as "
-                           "[west, south, east, north] in EPSG:4326."),
+            "suggestion": ("The map view zoomed to the area, or bbox as "
+                           "[west, south, east, north] in EPSG:4326, gives the area."),
             "url": url,
         }
     area = _bbox_area_km2(bbox)
@@ -1647,7 +1650,7 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
             "_error": (f"The area asked for is {area:,.0f} km2, over the {_PMTILES_MAX_AREA_KM2:,.0f} km2 "
                        "one extract may cover." + volume_guard.LIFT_HINT),
             "code": "INVALID_ARGS",
-            "suggestion": ("Zoom to a smaller area or pass a smaller bbox. mode='tiles' reads the whole "
+            "suggestion": ("A smaller area or bbox would fit. mode='tiles' reads the whole "
                            "archive in place, but it can block QGIS for minutes."),
             "bbox": bbox,
             "box_km2": round(area, 1),
@@ -1673,7 +1676,7 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
         if not layer.isValid():
             return {"_error": f"QGIS could not read the extract written to {path}.",
                     "code": "EXECUTION_FAILED",
-                    "suggestion": "Try a smaller area, or another source for this data."}
+                    "suggestion": "A smaller area, or another source, fits this data."}
         if not still_awaited():
             return dict(_NOT_AWAITED)
         QgsProject.instance().addMapLayer(layer)
@@ -1715,17 +1718,17 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
         result["warning"] = (f"The clock ran out after {extract.get('blocks_read')} of {extract.get('blocks_total')} "
                              f"blocks of this box: {count:,} features were written, and the {len(left)} blocks "
                              "listed in blocks_unread (west, south, east, north) are missing.")
-        result["suggestion"] = ("Say the layer is partial. The same call with bbox set to the missing blocks, "
-                                "and the same full_extent, reads the rest into another layer.")
+        result["suggestion"] = ("The same call with bbox set to the missing blocks, and the same "
+                                "full_extent, reads the rest into another layer.")
     elif unread:
         result["tiles_unread"] = unread
         result["coverage"] = "partial"
         result["warning"] = (f"{len(unread)} tile(s) of this box could not be read, so the layer lacks their "
                              "features.")
-        result["suggestion"] = "Say the result is partial, or ask for a smaller box around what is missing."
+        result["suggestion"] = "The result is partial; a smaller box around what is missing would cover it."
     elif count == 0:
         result["warning"] = "The archive has no feature of this layer inside that box."
-        result["suggestion"] = "Check the area, or try another layer of the archive."
+        result["suggestion"] = "The area, or another archive layer, may hold it."
     return result
 
 
@@ -1773,7 +1776,7 @@ def _add_pmtiles_as_tiles(url: str, name: str | None, args: dict) -> dict:
             "_error": (f"QGIS was still opening {url} after {_PMTILES_BUILD_TIMEOUT} seconds and the window is "
                        "blocked until it finishes."),
             "code": "EXECUTION_FAILED",
-            "suggestion": "Wait for QGIS to answer again, then load this archive without mode='tiles'.",
+            "suggestion": "Once QGIS answers again, the archive loads without mode='tiles'.",
         }
     if result.get("_error"):
 
@@ -1814,8 +1817,8 @@ def _pmtiles_unreadable_here() -> dict | None:
     return {
         "_error": "This QGIS build has no PMTiles driver, so a PMTiles archive cannot be read here.",
         "code": "EXECUTION_FAILED",
-        "suggestion": ("Ask the source for GeoParquet, FlatGeobuf or a tile service instead, and tell "
-                       "the user their QGIS ships a GDAL older than 3.8, or one without the driver."),
+        "suggestion": ("GeoParquet, FlatGeobuf or a tile service work here; this QGIS ships a GDAL "
+                       "older than 3.8, or one without the driver."),
     }
 
 
@@ -1835,7 +1838,7 @@ def _add_pmtiles_layer(args: dict) -> dict:
     if mode not in ("extract", "auto", "tiles"):
         return {"_error": f"'{mode}' is not a way to load a PMTiles archive.",
                 "code": "INVALID_ARGS",
-                "suggestion": "Use mode='extract' (the default) or mode='tiles'."}
+                "suggestion": "mode is 'extract' (the default) or 'tiles'."}
 
     refusal = _pmtiles_unreadable_here()
     if refusal:

@@ -50,7 +50,7 @@ def _check(path, write: bool = False, overwrite: bool | None = None, scoped: boo
 
 
 
-    remedy = "Choose a new file name; this call has no overwrite option." if overwrite is False else None
+    remedy = "This call has no overwrite option; a new file name avoids it." if overwrite is False else None
     error = validate_path(str(text), write=write, overwrite=overwrite, overwrite_remedy=remedy,
                           scoped=scoped and not write)
     if error:

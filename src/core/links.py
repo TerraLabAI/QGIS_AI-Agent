@@ -191,8 +191,8 @@ def resolve(url: str) -> Resolved:
     if host == "drive.google.com":
         if len(segments) >= 2 and segments[0] == "drive" and "folders" in segments:
             return Resolved(text, "unreachable",
-                            "A Google Drive folder: Drive lists a folder to its owner only. Ask the user for the "
-                            "link of the file itself (Share, Anyone with the link).")
+                            "A Google Drive folder: Drive lists a folder to its owner only. The file's own "
+                            "link (Share, Anyone with the link) is reachable instead.")
         file_id = _drive_id(parts, segments)
         if file_id:
 

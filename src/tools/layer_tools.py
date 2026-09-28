@@ -19,7 +19,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import layer_order, output_paths
+from ..core import ground, layer_order, output_paths
 from ..core.context import view_area_km2
 from ..core.follow import hold_view
 from ..core.host_platform import remove_quietly
@@ -402,12 +402,11 @@ def _set_layers_visibility(args: dict) -> dict:
             listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in close)
             return tool_error(
                 f"No layer matched: {listed}. Did you mean: {listing}?", "LAYER_NOT_FOUND",
-                f"Call the tool again with those ids, starting with {close[0]['id']!r}, "
-                f"which is {close[0]['name']!r}.")
+                "The listed ids are the closest matches.")
         return tool_error(
             f"No layer matched{': ' + listed if listed else ''}.",
             "LAYER_NOT_FOUND" if missing else "INVALID_ARGS",
-            "Call list_layers and pass the names or ids it gives, or a pattern or group that exists.")
+            "list_layers gives valid names and ids. A pattern or group must exist.")
     changed: list[str] = []
     for layer_id, layer in targets.items():
         node = root.findLayer(layer_id)
@@ -430,7 +429,7 @@ def _set_layers_visibility(args: dict) -> dict:
         if close:
             out["_candidates"] = close
             note += " Closest: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in close) + "."
-        notes.append(note + " The rest were set, so do not send the whole call again.")
+        notes.append(note + " The rest were set already.")
     if notes:
         out["note"] = " ".join(notes)
     return out
@@ -555,7 +554,7 @@ def _create_memory_layer(args: dict) -> dict:
     problem = crs_problem(crs)
     if problem:
         return {"_error": problem, "_code": "INVALID_ARGS",
-                "_suggestion": "Pass the CRS on its own, for example EPSG:4326."}
+                "_suggestion": "crs takes it on its own, for example EPSG:4326."}
     uri = f"{geom_type}?crs={crs}"
     field_specs = []
     seen_fields = set()
@@ -626,8 +625,8 @@ def _save_layer_to_gpkg(args: dict) -> dict:
             f"'{name}' streams a remote file in place; saving it copies the whole tile, not the area on the map, "
             "and holds QGIS for minutes.",
             "INVALID_ARGS",
-            'Fetch a local copy of the area first, with the same theme and bbox and mode "clip" (fetch_overture) '
-            "or a bbox on add_data, then save that layer.")
+            'A local copy of the area (fetch_overture with the same theme and bbox and mode "clip", '
+            "or a bbox on add_data) saves as it is.")
     gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
     if not gpkg_path:
         return {"_error": "Project is unsaved, pass gpkg_path explicitly, or save the project first."}
@@ -803,10 +802,10 @@ def _group_not_found(root, name: str) -> dict:
     if names:
         close = closest_names(str(name or ""), names) or names[:6]
         message += " Groups in this project: " + ", ".join(repr(item) for item in close) + "."
-        advice = "Pass one of those group names, or create_layer_group first."
+        advice = "One of those group names works, or create_layer_group."
     else:
         message += " The project has no group."
-        advice = "Call create_layer_group first, then move the layer into it."
+        advice = "create_layer_group makes one to move the layer into."
     return tool_error(message, "INVALID_ARGS", advice)
 
 
@@ -920,11 +919,11 @@ def _transform_coordinates(args: dict) -> dict:
             return tool_error(
                 detail, "INVALID_ARGS",
                 f"x {args['x']} carries the zone number in front, as German and Gauss-Kruger data write it: "
-                f"in {source_used} ({source.description()}) that easting is {stripped:,.0f}. Call again with "
-                f"x={stripped:.0f}, and take the leading {zone} off every other easting from the same source.")
+                f"in {source_used} ({source.description()}) that easting is {stripped:,.0f} without the "
+                f"leading {zone}; the same digits lead every other easting from this source.")
         return tool_error(detail, "INVALID_ARGS",
-                          f"Check that ({args['x']}, {args['y']}) really is in {source_used}: an easting and a "
-                          "northing the wrong way round, or degrees given to a projected CRS, land outside it.")
+                          f"({args['x']}, {args['y']}) landed outside {source_used}: an easting and northing "
+                          "swapped, or degrees given to a projected CRS, land outside it.")
 
     coords = args.get("coordinates")
     if coords is not None:
@@ -945,7 +944,7 @@ def _transform_coordinates(args: dict) -> dict:
                 "count": len(converted), "crs": target_used}
 
     if args.get("x") is None or args.get("y") is None:
-        return {"_error": "Pass either x and y, or a non-empty coordinates array.", "code": "INVALID_ARGS"}
+        return {"_error": "x and y, or a non-empty coordinates array, are needed.", "code": "INVALID_ARGS"}
 
     try:
         transform = QgsCoordinateTransform(source, target, QgsProject.instance())
@@ -963,7 +962,7 @@ def _transform_coordinates(args: dict) -> dict:
     out = {"x": x, "y": y, "crs": target_used}
     if source_used != str(args["source_crs"]).strip() or target_used != str(args["target_crs"]).strip():
         out["note"] = (f"Read {args['source_crs']} as {source_used} and {args['target_crs']} as {target_used}: "
-                       "that code belongs to another authority. Use those spellings from here on.")
+                       "that code belongs to another authority.")
     return out
 
 
@@ -1010,8 +1009,7 @@ def _set_canvas_extent(args: dict) -> dict:
                                   f"{canvas_crs.authid()}: {exc}"}
             if box.isEmpty():
                 return {"_error": f"The extent is empty once transformed from {source_crs.authid()} "
-                                  f"to {canvas_crs.authid()}. Check the coordinate order (x is "
-                                  f"longitude or easting)."}
+                                  f"to {canvas_crs.authid()}: x may be longitude or easting, swapped."}
             xmin, ymin, xmax, ymax = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
 
 
@@ -1030,8 +1028,8 @@ def _set_canvas_extent(args: dict) -> dict:
             if max(abs(xmin), abs(xmax), abs(ymin), abs(ymax)) > _WEB_MERCATOR_MAX:
                 return {
                     "_error": f"Coordinates look like meters but canvas CRS is {canvas_crs.authid()} (degrees), "
-                    f"and they fall outside the Web Mercator world too. Pass crs= with the CRS they "
-                    f"are measured in, or transform them first."
+                    f"and they fall outside the Web Mercator world too. crs= names the CRS they "
+                    f"are measured in."
                 }
             assumed_source = QgsCoordinateReferenceSystem("EPSG:3857")
             try:
@@ -1042,23 +1040,31 @@ def _set_canvas_extent(args: dict) -> dict:
                                   f"(degrees), and reading them as EPSG:3857 failed: {exc}"}
             if box.isEmpty():
                 return {"_error": f"Coordinates look like meters but canvas CRS is {canvas_crs.authid()} "
-                                  f"(degrees), and read as EPSG:3857 they give an empty extent. Check "
-                                  f"the coordinate order (x is easting)."}
+                                  f"(degrees), and read as EPSG:3857 they give an empty extent: "
+                                  f"x may be easting, swapped."}
             xmin, ymin, xmax, ymax = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
             assumed = "EPSG:3857"
             assumed_note = (f"No crs was given and the numbers cannot be degrees, so they were read as "
-                            f"EPSG:3857 metres and transformed to {canvas_crs.authid()}. Pass crs= to say "
-                            f"so outright.")
+                            f"EPSG:3857 metres and transformed to {canvas_crs.authid()}. crs= states "
+                            f"it outright.")
     elif not source and not canvas_crs.isGeographic():
         if abs(xmax) < 180 and abs(ymax) < 90 and abs(xmin) < 180 and abs(ymin) < 90:
             return {
                 "_error": f"Coordinates look like degrees (lat/lon) but canvas CRS is {canvas_crs.authid()} (meters). "
-                f"Pass crs='EPSG:4326' and these numbers again, and they will be transformed for you."
+                f"crs='EPSG:4326' with the same numbers transforms them."
             }
 
     extent = QgsRectangle(xmin, ymin, xmax, ymax)
+
+
+
+
+
+    before = canvas.extent()
     canvas.setExtent(extent)
-    canvas.refresh()
+    unchanged = _same_box(before, canvas.extent())
+    if not unchanged:
+        canvas.refresh()
     reprojected = hold_view(canvas, prefer=QgsCoordinateReferenceSystem(str(source)) if source else None)
     if reprojected:
         canvas_crs = canvas.mapSettings().destinationCrs()
@@ -1069,6 +1075,9 @@ def _set_canvas_extent(args: dict) -> dict:
     if assumed:
         out["assumed_crs"] = assumed
         out["note"] = assumed_note
+    if unchanged and not reprojected:
+        out["unchanged"] = True
+        out["view_note"] = "The canvas already showed this extent before the call: the view did not move."
 
 
 
@@ -1091,6 +1100,19 @@ def _set_canvas_extent(args: dict) -> dict:
     return out
 
 
+def _same_box(before, after) -> bool:
+
+    try:
+        tolerance = max(abs(after.width()), abs(after.height())) * 1e-6
+        return (not before.isEmpty()
+                and abs(before.xMinimum() - after.xMinimum()) <= tolerance
+                and abs(before.yMinimum() - after.yMinimum()) <= tolerance
+                and abs(before.xMaximum() - after.xMaximum()) <= tolerance
+                and abs(before.yMaximum() - after.yMaximum()) <= tolerance)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _extent_span(box, crs) -> dict:
 
     try:
@@ -1104,6 +1126,13 @@ def _extent_span(box, crs) -> dict:
         middle = math.radians((box.yMinimum() + box.yMaximum()) / 2.0)
         width = width * 111320.0 * max(0.0, math.cos(middle))
         height = height * 111320.0
+    elif crs is not None:
+
+
+        centre = box.center()
+        scale = ground.metres_per_unit(crs, centre.x(), centre.y())
+        if ground.distorted(scale):
+            width, height = width * scale, height * scale
     return {"width_m": round(width), "height_m": round(height),
             "area_km2": round(width * height / 1e6, 2)}
 
@@ -1113,13 +1142,13 @@ def _set_project_crs(args: dict) -> dict:
     if not crs.isValid():
         return tool_error(
             f"Invalid CRS: {args['crs']}", "INVALID_ARGS",
-            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "An authority and code QGIS knows works: EPSG:4326, an ESRI code as ESRI:102590, "
             "IGNF:LAMB93. A code copied out of ArcGIS is usually an ESRI one.")
     QgsProject.instance().setCrs(crs)
     out = {"project_crs": used}
     if used != str(args["crs"]).strip():
         out["note"] = (f"{args['crs']} is not an EPSG code; {used} is the same system under the authority "
-                       f"that publishes it ({crs.description()}). Use {used} from here on.")
+                       f"that publishes it ({crs.description()}).")
     return out
 
 
@@ -1261,7 +1290,7 @@ def _save_project(args: dict) -> dict:
     if chosen:
         result["path_chosen"] = chosen
         result["note"] = (f"This project had never been saved and the call named no path, so it was written to "
-                          f"{chosen}. Tell the user where it is; save_project with a path moves it elsewhere.")
+                          f"{chosen}; save_project with a path moves it elsewhere.")
     memory_layers, temporary_layers = _scratch_layers_summary(project)
     if memory_layers:
         result["memory_layers"] = memory_layers
@@ -1303,8 +1332,8 @@ def _load_project(args: dict) -> dict:
         return tool_error(
             f"{path} is {foreign}; QGIS opens .qgz and .qgs projects only. Nothing was read.",
             "INVALID_ARGS",
-            "Ask the user for the .qgz or .qgs file. The data inside such a package is not reachable "
-            "from here; a shapefile or GeoPackage extracted from it can be added with add_data.")
+            "Only .qgz and .qgs projects open here; a shapefile or GeoPackage extracted from it "
+            "can be added with add_data.")
 
     project = QgsProject.instance()
 
@@ -1340,7 +1369,7 @@ def _create_new_project(args: dict) -> dict:
     if not crs_obj.isValid():
         return tool_error(
             f"Invalid CRS: {args.get('crs')}", "INVALID_ARGS",
-            "Pass an authority and a code QGIS knows: EPSG:4326, an ESRI code as ESRI:102590, "
+            "An authority and code QGIS knows works: EPSG:4326, an ESRI code as ESRI:102590, "
             "IGNF:LAMB93. Nothing was cleared; the project is as it was.")
 
     path = args.get("path")

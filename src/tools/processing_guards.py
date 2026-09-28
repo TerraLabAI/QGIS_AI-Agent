@@ -17,7 +17,6 @@ from __future__ import annotations
 import math
 import os
 import re
-import time
 
 from qgis.core import (
     Qgis,
@@ -35,7 +34,7 @@ from qgis.core import (
 )
 
 from ..core import ground, limits, tuning, vsi
-from ..core.logger import log_debug
+from ..core.logger import log_debug, log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import tool_error
 from .layer_lookup import _find_layer
@@ -760,7 +759,7 @@ def _gdal_format_options(algorithm_id: str, parameters: dict) -> list[str]:
         repairs.append(
             f"{key}: dropped {', '.join(repr(r) for r in removed)}. Processing writes the format "
             f"itself from the OUTPUT extension, and a second one fails the run with "
-            '"Duplicate argument". Give the OUTPUT the extension you want instead.'
+            '"Duplicate argument". The OUTPUT extension sets the format.'
         )
     return repairs
 
@@ -912,7 +911,7 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
                            + (f"It does not read {', '.join(unknown)}. " if unknown else "")
                            + "Nothing was run."),
                 "code": "INVALID_ARGS",
-                "suggestion": f"Send {key} as the layer name, or with source, selected_only and expression only.",
+                "suggestion": f"{key} takes the layer name, or source, selected_only and expression only.",
             }
         plain[key] = source.strip()
         expression = (expression or "").strip()
@@ -926,8 +925,8 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
                            f"source reads a selection or an expression (QGIS's 'Selected features only' box). "
                            f"Nothing was run."),
                 "code": "INVALID_ARGS",
-                "suggestion": ("Write those features to a file (export_layer with selected_only true, or "
-                               f"native:extractbyexpression), then pass that file as {key}."),
+                "suggestion": ("export_layer with selected_only true, or "
+                               f"native:extractbyexpression, writes those features to a file usable as {key}."),
             }
         layer = None if any(mark in source for mark in _NOT_A_LAYER_NAME) else _find_layer(source.strip())
         if layer is None or not hasattr(layer, "selectedFeatureCount"):
@@ -937,7 +936,7 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
                 "_error": (f"{key} names {source.strip()!r}, which is not a vector layer of this project, and "
                            f"only a project layer holds a selection or takes an expression here. Nothing was run."),
                 "code": "INVALID_ARGS",
-                "suggestion": "Add the file with add_data, then send the call with that layer.",
+                "suggestion": "add_data loads it as a project layer this call can then name.",
             }
         try:
             total = -1 if _is_remote_vector(layer) else int(layer.featureCount())
@@ -962,9 +961,9 @@ def _subset_count(layer, key: str, only_selected: bool, expression: str) -> tupl
             "_error": (f"Layer '{layer.name()}' {EMPTY_SELECTION_MARK}, so {key} with selected_only would "
                        f"read nothing. Nothing was run."),
             "code": "INVALID_ARGS",
-            "suggestion": ("Select the features first (select_by_attribute, select_features or "
-                           "select_by_geometry), then send the same call; or drop selected_only to use "
-                           "the whole layer."),
+            "suggestion": ("select_by_attribute, select_features or "
+                           "select_by_geometry make a selection; selected_only off uses "
+                           "the whole layer instead."),
         }
     if not expression:
         return selection, None
@@ -974,7 +973,7 @@ def _subset_count(layer, key: str, only_selected: bool, expression: str) -> tupl
             "_error": (f"The expression of {key} does not parse: "
                        f"{' '.join(parsed.parserErrorString().split())}. Nothing was run."),
             "code": "INVALID_ARGS",
-            "suggestion": "Quote field names in double quotes and text in single quotes: \"name\" = 'value'.",
+            "suggestion": "Field names take double quotes, text takes single quotes: \"name\" = 'value'.",
         }
     fields = [field.name() for field in layer.fields()]
     missing = sorted(set(parsed.referencedColumns()) - set(fields) - {QgsFeatureRequest.ALL_ATTRIBUTES})
@@ -1002,8 +1001,7 @@ def _subset_count(layer, key: str, only_selected: bool, expression: str) -> tupl
             "_error": (f"No feature of '{layer.name()}'" + (" selected" if only_selected else "")
                        + f" matches {expression}, so {key} would read nothing. Nothing was run."),
             "code": "INVALID_ARGS",
-            "suggestion": (f"Read the values with get_features or get_field_statistics on '{layer.name()}', "
-                           "then send the expression again."),
+            "suggestion": (f"get_features or get_field_statistics give the values on '{layer.name()}'."),
         }
     return -1, None
 
@@ -1076,8 +1074,8 @@ def _no_such_layers(alg, key: str, missing: list) -> dict:
                    f"{alg.id() if alg is not None else 'this algorithm'} has nothing to read."),
         "code": "INVALID_ARGS",
         "layers": names,
-        "suggestion": "Pass one of the names above, or the layer_id the tool that made the layer "
-                      "returned. list_layers gives both.",
+        "suggestion": "A name above, or the layer_id the tool that made the layer returned, "
+                      "names it. list_layers gives both.",
     }
 
 
@@ -1174,7 +1172,7 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
                            f"Nothing was run."),
                 "code": "INVALID_ARGS",
                 "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
-                "suggestion": f"Send '{near[0]}' instead of '{key}'. The full parameter list is above.",
+                "suggestion": f"'{near[0]}' is the parameter; '{key}' is not. Full list above.",
             }
 
 
@@ -1201,7 +1199,7 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
                        f"no value for {'them' if len(absent) > 1 else 'it'}. Nothing was run."),
             "code": "INVALID_ARGS",
             "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
-            "suggestion": "Add " + ", ".join(absent) + " to parameters, with the type named in brackets.",
+            "suggestion": ", ".join(absent) + " needs a value; brackets above name the type.",
         }
 
 
@@ -1219,7 +1217,7 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
                 return {
                     "_error": f"{PARAMETER_MARK} {algorithm} parameter '{name}' {problem}. Nothing was run.",
                     "code": "INVALID_ARGS",
-                    "suggestion": f"Send the integer for '{name}' from the choices above.",
+                    "suggestion": f"'{name}' takes the integer from the choices above.",
                 }
             continue
         if kind in _NUMERIC_TYPES and isinstance(value, str) and value.strip():
@@ -1230,7 +1228,7 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
                     "_error": (f"{PARAMETER_MARK} {algorithm} parameter '{name}' is a {kind} and the call "
                                f"sends the text '{value}'. Nothing was run."),
                     "code": "INVALID_ARGS",
-                    "suggestion": f"Send '{name}' as a number, in the units of the input layer's CRS.",
+                    "suggestion": f"'{name}' is a number, in the units of the input layer's CRS.",
                 }
     return None
 
@@ -1287,8 +1285,7 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
             ),
             "code": "INVALID_ARGS",
             "suggestion": (
-                "Check the layer is the one you meant and that any filter or selection on it is not hiding "
-                "everything, or work on the layer that does hold the features."
+                "A filter or selection on it may be hiding the features, or it is the wrong layer."
             ),
         }
     return None
@@ -1451,10 +1448,9 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
                 "suggestion": (
                     f"Changing {name} cannot clear this: the refusal is about the CRS, so every value in "
                     f"{crs.authid()} is refused the same way while one of its units is {scale:.4g} m here. "
-                    f"Two ways out. Reproject the layer (native:reprojectlayer with TARGET_CRS {suggested}) "
-                    f"and run the algorithm on the result, telling the user which CRS you used. Or, when the "
-                    f"layer spans too much of the world for any projection to fit it, keep {crs.authid()} and "
-                    f"pass confirm_large true, telling the user the distance is off by "
+                    f"Two ways out: native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in "
+                    f"metres, or, when the layer spans too much of the world for any projection to fit it, "
+                    f"confirm_large true keeps {crs.authid()} with the distance off by "
                     f"{abs(scale - 1.0) * 100:.0f} % where the layer sits."
                 ),
             }
@@ -1471,9 +1467,8 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
             "layer_crs": crs.authid(),
             "suggested_crs": suggested,
             "suggestion": (
-                f"Reproject the layer first (native:reprojectlayer with TARGET_CRS {suggested}) and run "
-                "the algorithm on the result; tell the user which CRS you used. Pass confirm_large true only "
-                "when a value in degrees is really intended."
+                f"native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in metres. "
+                "confirm_large true keeps degrees when a value in degrees is really intended."
             ),
         }
     return None
@@ -1537,8 +1532,8 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
         ),
         "code": "INVALID_ARGS",
         "suggestion": (
-            f"Call zonal_statistics with nodata={sentinel:g}, which leaves those cells out without touching the "
-            f"source. Pass confirm_large true only if {sentinel:g} is a real measurement here."
+            f"zonal_statistics with nodata={sentinel:g} leaves those cells out without touching the "
+            f"source. confirm_large true keeps {sentinel:g} as a real measurement here."
         ),
     }
 
@@ -1581,8 +1576,8 @@ def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | Non
         "layer_crs": crs.authid(),
         "suggested_crs": suggested,
         "suggestion": (
-            f"Reproject the DEM first (gdal:warpreproject with TARGET_CRS {suggested}), then run {algorithm_id} "
-            "on the result with SCALE 1."
+            f"gdal:warpreproject with TARGET_CRS {suggested} lets {algorithm_id} "
+            "run on the result with SCALE 1."
         ),
     }
 
@@ -1605,6 +1600,10 @@ def _dem_named(value: str, shade) -> str:
         return ""
     project = QgsProject.instance()
     layer = project.mapLayer(value)
+    if layer is None:
+
+        layer = next((other for other in project.mapLayersByName(value)
+                      if isinstance(other, QgsRasterLayer) and other.id() != shade.id()), None)
     if layer is None:
         wanted = os.path.normcase(os.path.normpath(value.split("|", 1)[0]))
         layer = next((other for other in project.mapLayers().values()
@@ -1657,10 +1656,10 @@ def hillshade_of_hillshade(layer, what: str) -> dict | None:
         "_error": (f"HILLSHADE_OF_HILLSHADE: '{layer.name()}' is already a hillshade ({found['how']}): its values "
                    f"are light, not heights, so {what} on it would shade the shading. Nothing was changed."),
         "code": "INVALID_ARGS",
-        "suggestion": (f"Shade the DEM, {dem}, not this layer: set_raster_style on the DEM with its colour ramp "
+        "suggestion": (f"{dem} is the DEM: set_raster_style on it with its colour ramp "
                        "and hillshade_overlay true adds the relief blended with multiply, or style_type hillshade "
-                       "on the DEM itself. To show this computed hillshade over the coloured DEM, draw it "
-                       "singleband_gray and blend it with set_layer_symbology blend_mode multiply."),
+                       "does the same. This computed hillshade over the coloured DEM needs "
+                       "singleband_gray and set_layer_symbology blend_mode multiply."),
     }
 
 
@@ -1731,10 +1730,9 @@ def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed
         "code": "CRS_GUARD",
         "layer_crs": crs.authid(),
         "suggested_crs": suggested,
-        "suggestion": (f"Reproject '{layer.name()}' first ({reproject} with TARGET_CRS {suggested}), run "
-                       f"{algorithm_id} on the result with metres, and tell the user which CRS you used."
-                       + ("" if always else " Pass confirm_large true only when values in degrees are "
-                                            "really intended.")),
+        "suggestion": (f"{reproject} with TARGET_CRS {suggested} runs "
+                       f"{algorithm_id} on the result in metres."
+                       + ("" if always else " confirm_large true keeps values really meant in degrees.")),
     }
 
 
@@ -1815,8 +1813,8 @@ def _flow_in_degrees_check(alg, algorithm_id: str, parameters: dict) -> dict | N
             "code": "CRS_GUARD",
             "layer_crs": crs.authid(),
             "suggested_crs": suggested,
-            "suggestion": (f"Call map_drainage, which reprojects and fills the DEM itself, or reproject it "
-                           f"(gdal:warpreproject TARGET_CRS {suggested}), fill its sinks, then run {algorithm_id}."),
+            "suggestion": (f"map_drainage reprojects and fills the DEM itself. Or gdal:warpreproject TARGET_CRS "
+                           f"{suggested} then a sink fill prepares it for {algorithm_id}."),
         }
     return None
 
@@ -1913,9 +1911,8 @@ def crs_plausibility(layer, new_crs) -> dict | None:
             ),
             "code": "CRS_GUARD",
             "suggestion": (
-                "If the layer already has the right CRS and you want it in degrees, reproject it with "
-                "native:reprojectlayer TARGET_CRS EPSG:4326. Setting the CRS relabels the coordinates, it "
-                "does not move them."
+                "native:reprojectlayer TARGET_CRS EPSG:4326 moves an already correctly declared layer into "
+                "degrees. Setting the CRS relabels the coordinates, it does not move them."
             ),
         }
     if not new_crs.isGeographic() and degrees:
@@ -1926,8 +1923,8 @@ def crs_plausibility(layer, new_crs) -> dict | None:
             ),
             "code": "CRS_GUARD",
             "suggestion": (
-                f"Declare the geographic CRS the coordinates are actually in (usually EPSG:4326), then "
-                f"reproject with native:reprojectlayer TARGET_CRS {new_crs.authid()} if you want metres."
+                f"The coordinates are usually EPSG:4326; from there, native:reprojectlayer TARGET_CRS "
+                f"{new_crs.authid()} gives metres."
             ),
         }
     return _outside_area_of_use(layer, new_crs, extent)
@@ -1984,8 +1981,8 @@ def _outside_area_of_use(layer, new_crs, extent) -> dict | None:
         ),
         "code": "CRS_GUARD",
         "suggestion": (
-            f"Reproject with native:reprojectlayer (gdal:warpreproject for a raster) TARGET_CRS "
-            f"{new_crs.authid()}. Setting the CRS relabels the coordinates, it does not move them."
+            f"native:reprojectlayer (gdal:warpreproject for a raster) TARGET_CRS "
+            f"{new_crs.authid()} moves it there. Setting the CRS relabels the coordinates, it does not move them."
         ),
     }
 
@@ -1999,18 +1996,91 @@ def _stamp_provenance(layer, provenance: dict) -> None:
 
 
 
+
+
+
     try:
-        when = time.strftime("%Y-%m-%d %H:%M")
+        from datetime import datetime, timezone
+
+        from ..core.licence import ORIGIN_PROPERTY, credit_layer
+
+        when = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         algorithm = provenance.get("algorithm") or "a Processing algorithm"
         command = str(provenance.get("command") or "")
         if len(command) > _PROVENANCE_COMMAND_MAX:
             command = command[:_PROVENANCE_COMMAND_MAX] + " ..."
         md = layer.metadata()
+
+
+        own = any(str(text).strip() for text in md.licenses())
+        inputs = ", ".join(str(name) for name in provenance.get("inputs") or [])
         md.addHistoryItem(f"{when}: produced by the TerraLab AI Agent with {algorithm}"
+                          + (f". Inputs: {inputs}" if inputs else "")
                           + (f". Command: {command}" if command else ""))
         if not md.abstract():
             md.setAbstract(f"Output of {algorithm}, produced by the TerraLab AI Agent on {when}. "
                            "The exact command is in the metadata history.")
         layer.setMetadata(md)
-    except Exception:  # nosec B110
-        pass
+        layer.setCustomProperty(ORIGIN_PROPERTY, True)
+        if own:
+            credit_layer(layer)
+        else:
+            credit_layer(layer, list(provenance.get("licences") or []), list(provenance.get("rights") or []))
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Provenance not written on {layer.name()}: {exc}")
+        return
+    write_metadata_to_file(layer, provenance.get("existed"))
+
+
+def _gpkg_table(path: str) -> str:
+
+    from osgeo import ogr
+
+    dataset = ogr.Open(path)
+    try:
+        return dataset.GetLayer(0).GetName() if dataset is not None and dataset.GetLayerCount() else ""
+    finally:
+        dataset = None
+
+
+def write_metadata_to_file(layer, existed=None) -> None:
+
+
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsProviderRegistry
+
+    from ..core.provenance import was_there
+
+    try:
+        registry = QgsProviderRegistry.instance()
+        parts = registry.decodeUri(layer.providerType(), layer.source()) or {}
+        path = str(parts.get("path") or "")
+        if not path or not os.path.isfile(path):
+            return
+        if layer.providerType() == "ogr" and path.lower().endswith(".gpkg"):
+            table = str(parts.get("layerName") or "") or _gpkg_table(path)
+            if not table:
+                log_warning(f"Provenance not saved in {os.path.basename(path)}: no table found in it")
+                return
+            if was_there(path, table, existed):
+                return
+            parts["layerName"] = table
+            parts.pop("layerId", None)
+            saved = registry.saveLayerMetadata("ogr", registry.encodeUri("ogr", parts), layer.metadata())
+            ok, error = saved if isinstance(saved, tuple) else (bool(saved), "")
+        else:
+            if was_there(path, "", existed) or os.path.exists(layer.metadataUri()):
+                return
+            error, ok = layer.saveDefaultMetadata()
+        if not ok:
+            log_warning(f"Provenance not saved with {os.path.basename(path)}: {error}")
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Provenance not saved with the layer's file: {exc}")

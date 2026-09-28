@@ -69,8 +69,9 @@ _SIMPLE_ROLES = ("user", "tool", "plan", "permission", "error", "summary")
 
 def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> None:
     if role == "user":
-        panel._add_user(UserBubble(str(m.get("text") or ""), m.get("chips") or [],
-                                   m.get("attachments") or []))
+        bubble = UserBubble(str(m.get("text") or ""), m.get("chips") or [], m.get("attachments") or [])
+        bubble.run_id = run_id
+        panel._add_user(bubble)
     elif role == "tool":
         _replay_tool(panel, run_id, m)
     elif role == "plan":
@@ -89,6 +90,9 @@ def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> N
         card = ErrorCard(run_id, str(m.get("code") or ""), str(m.get("message") or ""),
                          retryable, str(m.get("details") or ""))
         card.retry_requested.connect(panel.retry_requested.emit)
+        if retryable and run_id:
+            card.undo_retry_requested.connect(panel.undo_retry_requested.emit)
+            panel._error_cards[run_id] = card
         panel._add(card, animate=False)
     elif role == "summary":
         _replay_summary(panel, str(m.get("status") or "done"), str(m.get("summary") or ""),
@@ -97,12 +101,14 @@ def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> N
 
 def finish_replay(panel) -> None:
 
+
+
     for blocks in panel.message_list.trace_blocks.values():
         for trace in blocks:
             if trace.status == "running" and not trace.is_empty():
                 for card in trace.tools:
                     card.mark_unfinished()
-                trace.finish("cancelled", None)
+                trace.finish("interrupted", None, stored=True)
     for run in list(panel._runs.values()):
         if run.plan is not None and run.plan.status == "running":
             run.plan.finish("cancelled")
@@ -114,11 +120,28 @@ def _agent_steps(panel, m: dict, run_id: str) -> list:
     plan = m.get("plan") or []
     if plan:
         steps.append(lambda: panel._plan_card_for(run_id).set_steps(plan))
-    for call in m.get("tool_calls") or []:
+
+
+    steers = [s for s in m.get("steers") or [] if isinstance(s, dict) and str(s.get("text") or "").strip()]
+    for index, call in enumerate(m.get("tool_calls") or []):
+        steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) == index)
         if isinstance(call, dict):
             steps.append(lambda call=call: _replay_tool(panel, run_id, call))
+    count = len(m.get("tool_calls") or [])
+    steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) >= count)
     steps.append(lambda: _agent_answer(panel, m, run_id))
     return steps
+
+
+def _steer_after(steer: dict) -> int:
+    try:
+        return max(0, int(steer.get("after") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _replay_steer(panel, steer: dict) -> None:
+    panel._add(UserBubble(str(steer.get("text") or ""), [], []), animate=False)
 
 
 def _agent_answer(panel, m: dict, run_id: str) -> None:
@@ -133,7 +156,7 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
 
     for block in panel.message_list.traces_of(run_id) if run_id else ():
         if not block.is_empty():
-            block.finish(status or "done", seconds)
+            block.finish(status or "done", seconds, stored=True)
     plan = panel._run(run_id).plan if run_id else None
     if plan is not None and status and status != "running":
         plan.finish(status)
@@ -159,6 +182,14 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
     if status and status != "running":
         _replay_summary(panel, status, "" if text else summary, usage, m.get("verification"),
                         has_text=bool(text), with_changes=not changes)
+        if not text and run_id and status != "done":
+
+
+            bubble = panel.answer_row(run_id, animate=False)
+            panel._run(run_id).bubble = bubble
+            bubble.finish_streaming()
+            blocks = panel.message_list.traces_of(run_id)
+            bubble.set_footnote(panel._run_footnote(blocks, usage))
         if changes and run_id:
             panel.add_run_changes(run_id, changes, animate=False)
 

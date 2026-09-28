@@ -323,7 +323,7 @@ def index_from_item_path(view: QWidget, path: str, column: int = 0):
                 "_error": f"No row at item_path '{path}': row {row} does not exist",
                 "_code": "ITEM_NOT_FOUND",
                 "row_count": model.rowCount(parent),
-                "_suggestion": "Re-run accessibility_snapshot and read the view's rows.",
+                "_suggestion": "accessibility_snapshot gives the view's rows.",
             }
         parent = index
     if index is None:
@@ -660,7 +660,7 @@ def resolve_widget(args: dict, require_type: str | None = None) -> tuple[QWidget
         return None, {
             "_error": f"No widget matched query: {query}",
             "query": query,
-            "hint": "Call accessibility_snapshot first and use a visible text, object name, class, or path substring.",
+            "hint": "accessibility_snapshot lists a visible text, object name, class, or path substring to match.",
         }
     if occurrence >= len(ordered):
         return None, {

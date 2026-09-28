@@ -28,6 +28,9 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
 
+_BACKUP_FACT = "Nothing was changed. The next call that changes data tries the copy again."
+
+
 class _ExecutorExecute:
 
 
@@ -60,7 +63,7 @@ class _ExecutorExecute:
             log_warning(f"{call.get('name')}: {type(exc).__name__} after its answer was sent: {exc}")
             return
         self._fail(call, Err.EXECUTION_FAILED, f"{type(exc).__name__}: {exc}",
-                   "Inspect the project before retrying the operation.")
+                   "The project may be partly changed.")
 
     def _prepare_and_execute(self, call: dict) -> None:
         run_id = str(call.get("run_id") or "")
@@ -72,10 +75,13 @@ class _ExecutorExecute:
 
         fresh = not getattr(self._snapshots.get(run_id), "captured", False)
         if danger != Danger.READ:
-            snapshot = self._prepare_snapshot(run_id, name, args, danger, call.get("overwrites") or [])
-            if snapshot is not None and getattr(snapshot, "copy_errors", None):
-                self._fail(call, Err.EXECUTION_FAILED, "A backup failed; this run cannot make further changes.",
-                           "Check free disk space and folder access, then start a new run.")
+            try:
+                snapshot = self._prepare_snapshot(run_id, name, args, danger, call.get("overwrites") or [])
+            except OSError as exc:
+
+
+                self._fail(call, Err.EXECUTION_FAILED, f"The backup failed; the operation was not started. {exc}",
+                           _BACKUP_FACT)
                 return
             if name == CODE_TOOL and not self._code_restore_point(call, fresh):
                 self._code_no_point(call)
@@ -97,10 +103,11 @@ class _ExecutorExecute:
             if self._closed or tool_call_id in self._answered:
                 return
             if error_text:
-                log_warning(f"Backup before {name} failed: {error_text.split(chr(10), 1)[0]}")
+                cause = error_text.split(chr(10), 1)[0]
+                log_warning(f"Backup before {name} failed: {cause}")
                 if not self._closed:
-                    self._fail(call, Err.EXECUTION_FAILED, "The backup failed; the operation was not started.",
-                               "Check free disk space and folder access before trying again.")
+                    self._fail(call, Err.EXECUTION_FAILED,
+                               f"The backup failed; the operation was not started. {cause}", _BACKUP_FACT)
                 return
             try:
                 self._run_prepared(call)
@@ -175,7 +182,7 @@ class _ExecutorExecute:
         name, args, danger = str(call.get("name")), call.get("args") or {}, call.get("danger", Danger.READ)
         if run_id in self._cancelled:
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
-                       "Stop here and wait for the next user message.")
+                       "The user stopped the run.")
             return
 
 
@@ -215,12 +222,14 @@ class _ExecutorExecute:
 
         crash_note.write(run_id, tool_call_id, getattr(self._session, "session_id", "") or "", name, args)
         try:
-            with stalls.probe(f"tool.{name}"), self._code_context(call):
+            with stalls.probe(f"tool.{name}"), self._code_context(call), background.calling(tool_call_id):
                 result = self._registry.execute(name, args)
         except Exception as exc:  # noqa: BLE001
             result = {"_error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()[-2000:]}
         finally:
             crash_note.clear()
+        if self._hold(call, result, started):
+            return
         self._deliver(call, result, started)
 
     def _start_background(self, call: dict, name: str, args: dict, started: float) -> bool:
@@ -244,7 +253,7 @@ class _ExecutorExecute:
         context = self._code_context(call)
 
         def work():
-            with context:
+            with context, background.calling(tool_call_id):
                 return self._registry.execute(name, args)
 
         def done(result, error_text: str):

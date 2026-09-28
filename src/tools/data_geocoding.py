@@ -737,12 +737,12 @@ def _resolve_geocode_provider(args: dict) -> tuple:
     provider = _GEOCODE_PROVIDERS.get(provider_id)
     if provider is None:
         raise ValueError(f"Unknown geocoding provider '{provider_id}'. "
-                         f"Choose one of: {', '.join(_GEOCODE_PROVIDER_IDS)}.")
+                         f"Providers: {', '.join(_GEOCODE_PROVIDER_IDS)}.")
 
     base = _text(args.get("endpoint")) or (_service(provider["service"]) if provider.get("service") else "")
     if not base:
-        raise ValueError(f"{provider['name']} has no public endpoint. Pass endpoint with your own instance, "
-                         "or use 'ban' in France, 'cartociudad' in Spain, 'photon' or 'nominatim' anywhere.")
+        raise ValueError(f"{provider['name']} has no public endpoint; endpoint takes your own instance, "
+                         "or 'ban' (France), 'cartociudad' (Spain), 'photon' or 'nominatim' (anywhere).")
     return provider_id, provider, base
 
 
@@ -890,7 +890,7 @@ def _geocode(args: dict) -> dict:
     query = _without_generic_place_words(str(args.get("query") or "").strip())
     if not query:
         return {"_error": "The place to look up is empty.", "code": "INVALID_ARGS",
-                "suggestion": "Pass the place name, address or postcode to geocode."}
+                "suggestion": "query is the place, address or postcode."}
 
 
 
@@ -898,7 +898,7 @@ def _geocode(args: dict) -> dict:
         limit = max(1, min(int(args.get("limit") or 5), 10))
     except (TypeError, ValueError):
         return {"_error": f"limit must be a whole number from 1 to 10, got {args.get('limit')!r}.",
-                "code": "INVALID_ARGS", "suggestion": "Pass limit as an integer, or leave it out for 5."}
+                "code": "INVALID_ARGS", "suggestion": "limit is an integer; left out, it defaults to 5."}
     country_codes = (args.get("country_codes") or "").strip()
 
     try:
@@ -946,7 +946,7 @@ def _geocode(args: dict) -> dict:
                    else {"_error": f"Geocoding request failed: {e}"})
         payload, fell_back = None, True
     except ValueError:
-        failure = {"_error": "Geocoding service returned an unreadable answer. Try again in a moment."}
+        failure = {"_error": "An unreadable geocoding answer; such failures are usually brief."}
         payload, fell_back = None, True
     else:
         failure = None
@@ -1038,8 +1038,7 @@ def _geocode(args: dict) -> dict:
 
         out["approximate"] = True
         out["note"] = (f"No result carries the name {query.split(',')[0].strip()!r} as written: it may be the "
-                       "place under another name, or only a similar spelling. Check the first one is the place "
-                       "meant before using it, and say so.")
+                       "place under another name, or only a similar spelling; the first hit may not be it.")
 
 
 
@@ -1047,7 +1046,7 @@ def _geocode(args: dict) -> dict:
     if wanted and coded and not any(code in wanted for code in coded):
 
         out["warning"] = (f"No result lies in {', '.join(sorted(wanted)).upper()}: the geocoder does not hold this "
-                          "name there. Try the name in English or French, or the local name.")
+                          "name there; the English, French or local name may fit it.")
     if project_crs:
 
         out["project_crs"] = project_crs
@@ -1103,7 +1102,7 @@ def _reverse_geocode(args: dict) -> dict:
         payload, failure = None, {"_error": f"Reverse geocoding failed: {e}"}
     except ValueError:
         payload = None
-        failure = {"_error": "Reverse geocoding returned an unreadable answer. Try again in a moment."}
+        failure = {"_error": "Reverse geocoding gave an unreadable answer; usually brief."}
     else:
         failure = None
 
@@ -1159,8 +1158,8 @@ def _get_route(args: dict) -> dict:
 
     _osrm_hint = (
         "The public OSRM server (routing.openstreetmap.de) is rate-limited and "
-        "frequently slow or down. Retry, reduce waypoints, or for measuring straight-line "
-        "distance use measure_distance instead."
+        "often slow or down, usually briefly. Fewer waypoints, or measure_distance "
+        "for straight-line distance, may help."
     )
     failure = None
     result = {}

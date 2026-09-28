@@ -208,8 +208,6 @@ _SCALED: dict[str, tuple[str, float, bool]] = {
 
 
 
-
-
     "MAX_LAYERS_PER_RUN": ("down", 8, False),
 
 
@@ -655,13 +653,6 @@ def profile() -> Profile:
         return _PROFILE
 
 
-def forget_profile() -> None:
-
-    global _PROFILE
-    with _LOCK:
-        _PROFILE = None
-
-
 
 
 
@@ -761,11 +752,6 @@ def recent_freeze_seconds(now: float | None = None) -> float:
             continue
         total += seconds * (1.0 - age / FREEZE_MEMORY_S)
     return total
-
-
-def forget_freezes() -> None:
-
-    _FREEZES.clear()
 
 
 def _pressure_override() -> float | None:
@@ -964,9 +950,10 @@ def note() -> str:
         what = "This computer is busy right now (QGIS was slow to answer on a recent call)"
     else:
         what = "This computer is busy right now (little free memory)"
-    return (f"{what} and is at {share:.0%} of the standard limits. Ask for smaller areas, fewer "
-            "features and smaller images than the tool descriptions allow, and split long jobs "
-            "into steps.")
+
+
+
+    return f"{what} and is at {share:.0%} of the standard limits."
 
 
 def report() -> dict:

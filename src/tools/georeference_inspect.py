@@ -79,8 +79,14 @@ from .data_tools import _run_on_main_thread
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 PREVIEW_LONG_SIDE = 1200
-MATCH_LONG_SIDE = 1600
+
+
+MATCH_LONG_SIDE = 4800
 MATCH_JPEG_QUALITY = 85
+
+
+MATCH_MAX_CHARS = 10 * 1024 * 1024
+MATCH_FALLBACK_SIDE = 2400
 PREVIEW_JPEG_QUALITY = 80
 PDF_DPI = 200
 GRID_STEPS = 10
@@ -151,7 +157,7 @@ def _resolve(ref) -> dict:
     text = str(ref or "").strip()
     if not text:
         return tool_error("raster is empty.", "INVALID_ARGS",
-                          "Pass the image, PDF or KMZ by path, or a loaded layer by name.")
+                          "the image, PDF or KMZ by path, or a loaded layer by name.")
     url = _remote_url(text)
     if url:
         return {"url": url, "layer": "", "page": 0}
@@ -159,13 +165,13 @@ def _resolve(ref) -> dict:
     if os.path.isfile(expanded):
         error = security.validate_path(expanded)
         if error:
-            return tool_error(error, "PERMISSION_DENIED", "Pick a file under the project folder or your home folder.")
+            return tool_error(error, "PERMISSION_DENIED", "Allowed: the project folder or your home folder.")
         return {"path": expanded, "layer": "", "page": 0}
     layer = _find_layer(text)
     if layer is None:
         if "/" in text or "\\" in text or os.path.splitext(text)[1]:
             return tool_error(f"No file at {expanded}.", "INVALID_ARGS",
-                              "Check the path, or pass the loaded layer by name.")
+                              "The path or the loaded layer name may be wrong.")
         return _layer_not_found_error(text)
     source = str(layer.source() or "").split("|", 1)[0]
     page = 0
@@ -177,10 +183,10 @@ def _resolve(ref) -> dict:
     extension = os.path.splitext(urlsplit(url).path if url else source)[1].lower()
     if not url and not os.path.isfile(source):
         return tool_error(f"{layer.name()} is not read from a file on this computer.", "INVALID_ARGS",
-                          "Pass the scan, photo, PDF or KMZ file itself.")
+                          "the scan, photo, PDF or KMZ file itself.")
     if not isinstance(layer, QgsRasterLayer) and extension not in (".kml", ".kmz"):
         return tool_error(f"{layer.name()} is a vector layer.", "INVALID_ARGS",
-                          "Pass the image to georeference: a raster layer by name, or its file path.")
+                          "the image to georeference: a raster layer by name, or its file path.")
     if url:
         return {"url": url, "layer": layer.name(), "page": page}
     return {"path": source, "layer": layer.name(), "page": page}
@@ -313,37 +319,37 @@ def _download(url: str, cancelled) -> dict:
         return tool_error(f"HTTP {exc.code} from {host}: "
                           + ("there is no file at this address." if missing else f"{exc.reason}."),
                           "INVALID_ARGS" if 400 <= exc.code < 500 else "EXECUTION_FAILED",
-                          "Check the address with the user, or ask for the file itself.")
+                          "The address may be wrong; the file itself is another route.")
     except (net.LocalUrlRefused, net.FetchWithdrawn) as exc:
         return tool_error(f"This address is not fetched: {exc.reason}", "PERMISSION_DENIED",
-                          "Ask the user for the file itself and pass its path.")
+                          "The file itself, with a local path, is needed.")
     except net.FetchTooLarge:
         return tool_error(f"The file at {host} is over the {_MAX_DOWNLOAD_SIZE // (1024 * 1024)} MB this tool "
                           "downloads.", "INVALID_ARGS",
-                          "Ask the user to download it and pass the local file's path.")
+                          "A downloaded file, with its local path, is needed.")
     except net.FetchCancelled:
         return _stopped()
     except net.FetchDeadline as exc:
         return tool_error(f"The download from {host} did not finish in time: {exc.reason}", "TIMEOUT",
-                          "Ask the user to download it and pass the local file's path.")
+                          "A downloaded file, with its local path, is needed.")
     except (urllib.error.URLError, OSError) as exc:
         described = net.describe_failure(exc)
         if described:
             return tool_error(described, net.NETWORK_ERROR, net.NETWORK_SUGGESTION)
         return tool_error(f"The download from {host} failed: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "Check the address with the user, or ask for the file itself.")
+                          "The address may be wrong; the file itself is another route.")
     body = answer.body
     extension = _signature_extension(body)
     if not extension:
         return tool_error(f"{host} did not answer with an image, a PDF, a KML or a KMZ.", "INVALID_ARGS",
-                          "Pass the address of the file itself, not of a page that shows it.")
+                          "the address of the file itself, not of a page that shows it.")
     stem = os.path.splitext(_safe_filename(posixpath.basename(unquote(urlsplit(url).path)), "image"))[0]
     target = os.path.join(folder, f"{stem[:60]}-{key}{extension}")
     if not security.fits_path(target, 48):
         target = os.path.join(folder, f"{key}{extension}")
     refused = security.validate_path(target, write=True)
     if refused:
-        return tool_error(refused, "PERMISSION_DENIED", "Ask the user for the file itself and pass its path.")
+        return tool_error(refused, "PERMISSION_DENIED", "The file itself, with a local path, is needed.")
     part = f"{target}.{uuid.uuid4().hex[:8]}.part"
     try:
         os.makedirs(folder, exist_ok=True)
@@ -353,7 +359,7 @@ def _download(url: str, cancelled) -> dict:
     except OSError as exc:
         remove_quietly(part)
         return tool_error(f"The download could not be written to {folder}: {exc}", "EXECUTION_FAILED",
-                          "Free some disk space, or ask the user for the file itself.")
+                          "Disk space, or the file itself directly, may help.")
     return {"path": target, "downloaded": True}
 
 
@@ -480,22 +486,22 @@ def _kml_document(path: str):
             archive = zipfile.ZipFile(path)
         except (OSError, zipfile.BadZipFile) as exc:
             return tool_error(f"{os.path.basename(path)} is not a readable KMZ: {exc}", "INVALID_ARGS",
-                              "Pass a KMZ saved by Google Earth or QGIS, or the image inside it.")
+                              "a KMZ saved by Google Earth or QGIS, or the image inside it.")
         entries = [i for i in archive.infolist() if i.filename.lower().endswith(".kml")]
         if not entries:
             archive.close()
             return tool_error(f"{os.path.basename(path)} holds no KML document.", "INVALID_ARGS",
-                              "Pass the image inside it instead.")
+                              "the image inside it instead.")
         entry = next((i for i in entries if i.filename.lower() == "doc.kml"),
                      min(entries, key=lambda i: i.filename.count("/")))
         if entry.file_size > KML_MAX_BYTES:
             archive.close()
             return tool_error(f"The KML in {os.path.basename(path)} is {entry.file_size:,} bytes.", "INVALID_ARGS",
-                              "That is vector data, not an image overlay: add it with add_data.")
+                              "That is vector data, not an image overlay; add_data adds it.")
         return archive.read(entry), archive
     if os.path.getsize(path) > KML_MAX_BYTES:
         return tool_error(f"{os.path.basename(path)} is {os.path.getsize(path):,} bytes.", "INVALID_ARGS",
-                          "That is vector data, not an image overlay: add it with add_data.")
+                          "That is vector data, not an image overlay; add_data adds it.")
     with open(path, "rb") as handle:
         return handle.read(), None
 
@@ -548,26 +554,26 @@ def _overlay_image(path: str, archive, href: str, cancelled) -> str | dict:
 
     if len(urlsplit(href).scheme) > 1 and "://" in href:
         return tool_error(f"The overlay's image is on the web ({href[:120]}), not in the file.", "INVALID_ARGS",
-                          "Save that image next to the KML and call again, or pass the image itself.")
+                          "The image needs to sit next to the KML, or be given directly.")
     member = unquote(href).replace("\\", "/").lstrip("./")
     if archive is None:
         image = os.path.normpath(os.path.join(os.path.dirname(path), unquote(href)))
         if not os.path.isfile(image):
             return tool_error(f"The overlay's image {href} is not next to the KML.", "INVALID_ARGS",
-                              "Put the image where the KML says, or pass the image itself.")
+                              "The image belongs where the KML says, or is given directly.")
         return image
     names = {n.lower(): n for n in archive.namelist()}
     stored = names.get(member.lower())
     if stored is None:
         return tool_error(f"The KMZ names the image {href}, which it does not contain.", "INVALID_ARGS",
-                          "Pass the image itself, with points read on it.")
+                          "the image itself, with points read on it.")
     stem = os.path.splitext(os.path.basename(path))[0]
     base, extension = os.path.splitext(os.path.basename(stored))
     file_name = output_paths.safe_file_name(f"{stem}_{base}", "overlay") + extension.lower()
     target = _writable_target(path, file_name)
     if not target:
         return tool_error("No folder next to the KMZ or in the exports folder can take its image.",
-                          "PERMISSION_DENIED", "Unzip the KMZ and pass the image with its points.")
+                          "PERMISSION_DENIED", "An unzipped image, with its points, works.")
     size = archive.getinfo(stored).file_size
     if os.path.isfile(target) and os.path.getsize(target) == size:
         return target
@@ -588,7 +594,7 @@ def _overlay_image(path: str, archive, href: str, cancelled) -> str | dict:
         return _stopped()
     except OSError as exc:
         return tool_error(f"The KMZ's image could not be written to {target}: {exc}", "EXECUTION_FAILED",
-                          "Unzip the KMZ and pass the image with its points.")
+                          "An unzipped image, with its points, works.")
     finally:
         if part:
             remove_quietly(part)
@@ -606,8 +612,8 @@ def _from_kml(gdal, found: dict, cancelled) -> dict:
         if not overlays:
             return tool_error(f"{os.path.basename(path)} has no GroundOverlay with a LatLonBox or gx:LatLonQuad.",
                               "INVALID_ARGS",
-                              "It holds vector features: add it with add_data. To georeference an image, pass the "
-                              "image itself.")
+                              "It holds vector features; add_data adds it. Georeferencing needs the image "
+                              "itself.")
         overlay = overlays[0]
         image = _overlay_image(path, archive, overlay["href"], cancelled)
     finally:
@@ -621,7 +627,7 @@ def _from_kml(gdal, found: dict, cancelled) -> dict:
         dataset = None
     except RuntimeError as exc:
         return tool_error(f"The overlay's image {os.path.basename(image)} does not open: {str(exc)[:160]}",
-                          "EXECUTION_FAILED", "Pass another copy of the image with points read on it.")
+                          "EXECUTION_FAILED", "another copy of the image with points read on it.")
     if "quad" in overlay:
 
         order = ((0, height), (width, height), (width, 0), (0, 0))
@@ -933,7 +939,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
         pages, gdal_reads = 0, False
     if gdal_reads and page > pages:
         return tool_error(f"{os.path.basename(path)} has {pages} page(s); page {page} does not exist.",
-                          "INVALID_ARGS", f"Pass page 1 to {pages}.")
+                          "INVALID_ARGS", f"page is 1 to {pages}.")
     dpi = float(PDF_DPI)
     stem = output_paths.safe_file_name(os.path.splitext(os.path.basename(path))[0], "plan")
     facts = {"page": page, "pages": pages or None, "dpi": PDF_DPI}
@@ -942,7 +948,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
             dataset = _open_pdf_page(gdal, path, page, pages, dpi)
         except RuntimeError as exc:
             return tool_error(f"GDAL could not read page {page} of {os.path.basename(path)}: {str(exc)[:160]}",
-                              "EXECUTION_FAILED", "Export the page as a PNG or JPEG and pass that image.")
+                              "EXECUTION_FAILED", "An exported PNG or JPEG of the page works.")
         placed = _georeferencing(gdal, osr, dataset, path)
         if placed is not None:
             dataset = None
@@ -958,7 +964,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
     target = _writable_target(path, file_name)
     if not target:
         return tool_error("No folder next to the PDF or in the exports folder can take the page image.",
-                          "PERMISSION_DENIED", "Export the page as an image yourself and pass it.")
+                          "PERMISSION_DENIED", "An exported image of the page works.")
     facts["rasterized_to"] = target
     if os.path.isfile(target) and os.path.getmtime(target) >= os.path.getmtime(path):
         facts["reused"] = True
@@ -973,7 +979,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
             counted, why = _pdf_with_qt(path, page, dpi, part)
             if why:
                 return tool_error(f"{os.path.basename(path)} cannot be drawn here: {why}.", "EXECUTION_FAILED",
-                                  "Export the page as a PNG or JPEG and pass that image.")
+                                  "An exported PNG or JPEG of the page works.")
             facts["pages"] = counted
         if cancelled is not None and cancelled():
             return _stopped()
@@ -983,10 +989,10 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
         if cancelled is not None and cancelled():
             return _stopped()
         return tool_error(f"Page {page} of {os.path.basename(path)} could not be drawn: {str(exc)[:160]}",
-                          "EXECUTION_FAILED", "Export the page as a PNG or JPEG and pass that image.")
+                          "EXECUTION_FAILED", "An exported PNG or JPEG of the page works.")
     except OSError as exc:
         return tool_error(f"The page image could not be written to {target}: {exc}", "EXECUTION_FAILED",
-                          "Export the page as a PNG or JPEG and pass that image.")
+                          "An exported PNG or JPEG of the page works.")
     finally:
         dataset = None
         if part:
@@ -1086,26 +1092,25 @@ def _needs_points_suggestion(matching: bool, photo: dict | None) -> tuple[str, d
 
     variant = "match" if matching else "no_match"
     if photo and photo.get("width_m") and "rotation_deg" in photo:
-        text = (("The photo's GPS and camera give a rough footprint: call match_georeference with center, width_m "
-                "and rotation_deg (kind photo) to place it precisely; points are that footprint's corners, "
-                "tens of metres off, usable with georeference_raster if matching is not possible.") if matching else
-                ("The photo's GPS and camera give a rough footprint (tens of metres off): call georeference_raster "
-                "with these points and crs EPSG:4326, and say it is approximate."))
+        text = (("The photo's GPS and camera give a rough footprint; match_georeference with center, width_m "
+                "and rotation_deg (kind photo) places it precisely. Points are that footprint's corners, "
+                "tens of metres off, usable with georeference_raster if matching fails.") if matching else
+                ("The photo's GPS and camera give a rough footprint (tens of metres off); georeference_raster "
+                "with these points and crs EPSG:4326 gives an approximate result."))
         return text, coded_fact(hint="georef_photo_footprint", variant=variant)
     if photo:
-        text = ("The photo gives its position only: look at the preview, estimate its ground width"
-                + (", and call match_georeference with center and width_m (kind photo)." if matching
-                   else ", then read 3 or more places on it for georeference_raster."))
+        text = ("The photo gives its position only; the preview and an estimated ground width feed "
+                "match_georeference with center and width_m (kind photo)." if matching
+                else "The photo gives its position only; the preview and 3 or more places read on it "
+                "feed georeference_raster.")
         return text, coded_fact(hint="georef_photo_position", variant=variant)
     if matching:
-        text = ("No coordinates in the file. On the preview, read 2 to 4 recognisable places far apart (names, "
-                "crossroads, bridges, coastline, grid ticks), note their pixel and line on the grid, and call "
-                "match_georeference with them as rough points, each with its place name and town (it looks them up; "
-                "kind map or photo).")
+        text = ("No coordinates in the file. match_georeference takes 2 to 4 recognisable places far apart (names, "
+                "crossroads, bridges, coastline, grid ticks) as rough points, each with its pixel, line, place "
+                "name and town (it looks them up; kind map or photo).")
     else:
-        text = ("No coordinates in the file. On the preview, read 3 or more recognisable places far apart (names, "
-                "crossroads, bridges, grid ticks), note their pixel and line on the grid, geocode them, and call "
-                "georeference_raster with them.")
+        text = ("No coordinates in the file. georeference_raster takes 3 or more recognisable places far apart "
+                "(names, crossroads, bridges, grid ticks), each geocoded with its pixel and line on the grid.")
     return text, coded_fact(hint="georef_no_coords", variant=variant)
 
 
@@ -1114,11 +1119,11 @@ def _inspect_georeference(args: dict) -> dict:
         from osgeo import gdal, osr
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "Use QGIS's Georeferencer (Layer > Georeferencer) instead.")
+                          "QGIS's Georeferencer (Layer > Georeferencer) still works.")
     gdal.UseExceptions()
     page = args.get("page")
     if page is not None and (not isinstance(page, int) or isinstance(page, bool) or page < 1):
-        return tool_error("page must be a page number, 1 or more.", "INVALID_ARGS", "Pass page 1 for the first page.")
+        return tool_error("page must be a page number, 1 or more.", "INVALID_ARGS", "page 1 is the first page.")
     cancelled = net.current_cancel_check()
     found = _run_on_main_thread(_resolve, args.get("raster"))
     if "_error" in found:
@@ -1162,13 +1167,13 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
             return result
         image = pdf["image"]
         lead = (f"Page {result['pdf']['page']} was rasterized to {image} at {result['pdf']['dpi']:g} DPI: "
-                "use that file as raster from now on. ")
+                "that file is now the raster. ")
     result["raster"] = image
     try:
         dataset = gdal.Open(image, gdal.GA_ReadOnly)
     except RuntimeError as exc:
         return tool_error(f"GDAL could not open {os.path.basename(image)}: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "Pass an image file (JPEG, PNG, TIFF), a PDF or a KMZ.")
+                          "an image file (JPEG, PNG, TIFF), a PDF or a KMZ.")
     try:
         width, height = dataset.RasterXSize, dataset.RasterYSize
         result["width"], result["height"] = width, height
@@ -1176,11 +1181,11 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         if placed is not None:
             result.update(placed)
             if placed.get("crs"):
-                result["suggest"] = (f"Already georeferenced ({placed['georeferenced_by']}, {placed['crs']}): add it "
-                                     "with add_raster_layer; no control points are needed.")
+                result["suggest"] = (f"Already georeferenced ({placed['georeferenced_by']}, {placed['crs']}); "
+                                     "add_raster_layer adds it, no control points needed.")
             else:
-                result["suggest"] = (f"It has coordinates ({placed['georeferenced_by']}) but no CRS: add it with "
-                                     "add_raster_layer, then set the CRS its extent is in (ask the user if unsure).")
+                result["suggest"] = (f"It has coordinates ({placed['georeferenced_by']}) but no CRS; "
+                                     "add_raster_layer adds it, and the CRS its extent is in still needs setting.")
             return result
         result["georeferenced"] = False
         photo = _photo_facts(image, width, height)
@@ -1193,21 +1198,27 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         if cancelled is not None and cancelled():
             return _stopped()
         return tool_error(f"{os.path.basename(image)} could not be read: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "Pass another copy of the image (JPEG, PNG or TIFF).")
+                          "another copy of the image (JPEG, PNG or TIFF).")
     finally:
         dataset = None
     if base is None:
         return tool_error(f"{os.path.basename(image)} could not be decoded for a preview.", "EXECUTION_FAILED",
-                          "Pass another copy of the image (JPEG, PNG or TIFF).")
+                          "another copy of the image (JPEG, PNG or TIFF).")
     preview = _grid_preview(base, width, height)
     result["image_base64"] = image_to_base64(preview, "jpeg", PREVIEW_JPEG_QUALITY)
     result["preview"] = {"width": preview.width(), "height": preview.height(),
                          "grid": "every 10 %; labels are pixel (top) and line (left) of the original image"}
     matching = tuning.flag("results", "match_image", False)
     if matching:
-        result["_match_image_base64"] = image_to_base64(base, "jpeg", MATCH_JPEG_QUALITY)
-        result["_match_image"] = {"scale": round(base.width() / width, 6), "width": base.width(),
-                                  "height": base.height(), "raster": str(args.get("raster") or ""), "path": image,
+        copy = base
+        encoded = image_to_base64(copy, "jpeg", MATCH_JPEG_QUALITY)
+        if len(encoded) > MATCH_MAX_CHARS:
+            copy = base.scaled(MATCH_FALLBACK_SIDE, MATCH_FALLBACK_SIDE, Qt.AspectRatioMode.KeepAspectRatio,
+                               Qt.TransformationMode.SmoothTransformation)
+            encoded = image_to_base64(copy, "jpeg", MATCH_JPEG_QUALITY)
+        result["_match_image_base64"] = encoded
+        result["_match_image"] = {"scale": round(copy.width() / width, 6), "width": copy.width(),
+                                  "height": copy.height(), "raster": str(args.get("raster") or ""), "path": image,
                                   "layer": found.get("layer") or ""}
     text, fact = _needs_points_suggestion(matching, photo)
     result["suggest"] = lead + text

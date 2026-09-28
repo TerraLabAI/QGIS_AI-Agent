@@ -109,10 +109,6 @@ def plan_features() -> dict:
     return dict(_features)
 
 
-def is_pro() -> bool:
-    return bool(_features.get("pro", True))
-
-
 def autopilot_allowed() -> bool:
     return bool(_features.get("yolo", True))
 

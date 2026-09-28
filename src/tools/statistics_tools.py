@@ -94,8 +94,8 @@ def _numeric_domain_error(layer, field: str) -> dict | None:
             return {"_error": f"{field!r} is not a numeric field, so it cannot be graduated.",
                     "code": "INVALID_ARGS",
                     "fields": numeric,
-                    "suggestion": (f"Pass value_field={numeric[0]!r}, or one of the other numeric fields listed "
-                                   "in 'fields'." if numeric else
+                    "suggestion": (f"{numeric[0]!r} and the other numeric fields in 'fields' fit as "
+                                   "value_field." if numeric else
                                    "This table carries no numeric column, so no choropleth can be built from it.")}
     except Exception:  # nosec B110
         pass
@@ -104,7 +104,7 @@ def _numeric_domain_error(layer, field: str) -> dict | None:
     if not real:
         return {"_error": f"Every value of {field!r} is empty, so no class could be built.",
                 "code": "EXECUTION_FAILED",
-                "suggestion": "Check the value_field name against the fields the layer actually carries."}
+                "suggestion": "The fields the layer carries are listed in 'fields'."}
     return None
 
 
@@ -121,8 +121,8 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
                            + (f" Did you mean {close[0]!r}?" if close else "")),
                 "code": "INVALID_ARGS",
                 "fields": names,
-                "suggestion": (f"Call it again with value_field={close[0]!r}." if close else
-                               "Use one of the names in 'fields' as value_field.")}
+                "suggestion": (f"{close[0]!r} is the nearest field name." if close else
+                               "The names in 'fields' work as value_field.")}
     if layer.featureCount() == 0:
         return {"_error": "The statistics layer is empty, so nothing was added.",
                 "code": "EXECUTION_FAILED"}
@@ -136,7 +136,7 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
     if not ranges:
         return {"_error": f"No class could be built from {field!r}, so no map was drawn.",
                 "code": "EXECUTION_FAILED",
-                "suggestion": "Check the field holds comparable numbers, or ask for fewer classes."}
+                "suggestion": "Too few distinct numbers for this many classes."}
     metadata = QgsLayerMetadata()
     metadata.setTitle(name)
     metadata.setAbstract(abstract)
@@ -207,7 +207,7 @@ def _map_statistic(args: dict) -> dict:
         count = len(parsed.get("features") or []) if isinstance(parsed, dict) else 0
     except (UnicodeDecodeError, ValueError):
         return {"_error": "That address did not return GeoJSON.", "code": "EXECUTION_FAILED",
-                "hint": "Pass the url find_statistic returned, unchanged."}
+                "hint": "find_statistic's url, unchanged, serves GeoJSON."}
     if not count:
         return {"_error": "That layer carries no features, so no map was drawn.",
                 "code": "EXECUTION_FAILED"}
@@ -231,8 +231,8 @@ def _map_statistic(args: dict) -> dict:
         return built
     built["credit"] = credit
     built["join_verified"] = joined_here
-    built["note"] = ("Say the source, the year and the licence in the answer: they are on the layer "
-                     "but nobody reads layer properties.")
+    built["note"] = ("The source, the year and the licence are on the layer, and nobody reads layer "
+                     "properties: the answer is where readers see them.")
     return built
 
 

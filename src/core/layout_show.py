@@ -33,6 +33,11 @@ def built_layout(name: str, args) -> str:
 
 def removed_layout(name: str, args) -> str:
 
+
+
+
+    if isinstance(args, dict) and str(args.get("item_id") or "").strip():
+        return ""
     return _layout_named(args, getattr(spec(name), "removes_layout_at", ""))
 
 

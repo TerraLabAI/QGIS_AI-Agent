@@ -94,7 +94,7 @@ def _configure_3d_map_view(args: dict) -> dict:
         return tool_error(
             "This QGIS version does not expose the public 3D map-view API (QGIS 3.44 or newer is required).",
             "UNSUPPORTED_QGIS_VERSION",
-            "Open a 3D Map View manually on an older QGIS version, or upgrade to QGIS 3.44 or newer.",
+            "An older QGIS version has no automatic 3D Map View; 3.44 and newer open one here.",
         )
     create, terrain_type, flat_type = api
     dem = None
@@ -102,26 +102,25 @@ def _configure_3d_map_view(args: dict) -> dict:
         dem = _find_layer(str(args["dem_layer"]))
         if dem is None:
             return tool_error(f"DEM layer {args.get('dem_layer')!r} was not found.", "LAYER_NOT_FOUND",
-                              "Pass a loaded raster DEM, or leave dem_layer out for flat ground.")
+                              "dem_layer names a loaded raster DEM; unset, the terrain is flat.")
         if not isinstance(dem, QgsRasterLayer):
             return tool_error(f"{dem.name()!r} is not a raster DEM layer.", "INVALID_ARGS",
-                              "Pass a loaded raster elevation layer such as a DEM, DTM or LiDAR raster, "
-                              "or leave dem_layer out for flat ground.")
+                              "dem_layer names a raster elevation layer (DEM, DTM, LiDAR); unset, the terrain is flat.")
 
     views = open_3d_views()
     if views is None:
         return tool_error("QGIS could not enumerate its 3D map views.", "EXECUTION_FAILED",
-                          "Check that this QGIS build has 3D support enabled.")
+                          "This QGIS build may not have 3D support enabled.")
     created = "view_index" not in args
     if created:
         try:
             canvas = create(str(args.get("title") or "AI Agent 3D Map"))
         except Exception as exc:  # noqa: BLE001
             return tool_error(f"QGIS could not open a 3D map view: {exc}", "EXECUTION_FAILED",
-                              "Check OpenGL support and retry.")
+                              "OpenGL support may be missing.")
         if canvas is None:
             return tool_error("QGIS did not create a 3D map view.", "EXECUTION_FAILED",
-                              "Check OpenGL support and retry.")
+                              "OpenGL support may be missing.")
     else:
         index = int(args["view_index"])
         if index >= len(views):

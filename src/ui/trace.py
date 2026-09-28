@@ -394,6 +394,10 @@ class RunTrace(QWidget):
             return self.tr("Failed after {time}").format(time=took) if took else self.tr("Failed")
         if self.status == "cancelled":
             return self.tr("Stopped after {time}").format(time=took) if took else self.tr("Stopped")
+        if self.status == "interrupted":
+
+
+            return self.tr("QGIS closed before this finished")
         rows = self.rows()
         if len(rows) == 1:
             return rows[0].line()
@@ -419,7 +423,9 @@ class RunTrace(QWidget):
         self._trim()
         self._auto_fold()
 
-    def finish(self, status: str, duration_s=None) -> None:
+    def finish(self, status: str, duration_s=None, stored: bool = False) -> None:
+
+
 
 
 
@@ -431,7 +437,7 @@ class RunTrace(QWidget):
         was_live = self.status == "running"
         self.status = status or "done"
         if was_live:
-            if self._live:
+            if self._live and not stored:
                 self.duration_s = self._clock.elapsed()
             elif duration_s is not None:
                 self.duration_s = duration_s

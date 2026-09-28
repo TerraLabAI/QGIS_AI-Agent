@@ -64,14 +64,14 @@ def _vector_findings(layer: QgsVectorLayer, project_crs, visible: bool) -> list[
     count = -1 if remote else int(layer.featureCount())
     if remote:
         out.append(_finding(layer, "medium", f"remote {provider} layer: every pan asks the server again",
-                            "Export it to a GeoPackage for the working session and use the export",
+                            "save_layer_to_gpkg makes a session copy, no repeat server calls.",
                             "save_layer_to_gpkg"))
     if provider == "virtual":
         out.append(_finding(layer, "medium", "virtual layer: its SQL runs again on every redraw",
-                            "Materialise it (save_layer_to_gpkg) once the query is stable", "save_layer_to_gpkg"))
+                            "save_layer_to_gpkg materialises it once the query is stable.", "save_layer_to_gpkg"))
     if provider == "delimitedtext":
         out.append(_finding(layer, "medium", "CSV read live: parsed again at each open, no spatial index possible",
-                            "Save it as a GeoPackage layer", "save_layer_to_gpkg"))
+                            "GeoPackage skips the reparse.", "save_layer_to_gpkg"))
     try:
         no_index = layer.hasSpatialIndex() == Qgis.SpatialIndexPresence.NotPresent
     except Exception:  # nosec B110
@@ -79,24 +79,24 @@ def _vector_findings(layer: QgsVectorLayer, project_crs, visible: bool) -> list[
     if no_index and count > 5_000:
         out.append(_finding(layer, "high" if count > _LARGE_VECTOR else "medium",
                             f"no spatial index on {count} features: every zoom scans the whole file",
-                            "Create a spatial index (native:createspatialindex on the layer)", "run_processing"))
+                            "native:createspatialindex builds a spatial index on the layer.", "run_processing"))
     if count > _LARGE_VECTOR:
         lower = source.lower()
         if ".shp" in lower:
             out.append(_finding(layer, "high", f"shapefile with {count} features",
-                                "Package it to GeoPackage: faster, one file, full field names", "save_layer_to_gpkg"))
+                                "GeoPackage is faster, one file, full field names.", "save_layer_to_gpkg"))
         elif provider == "ogr" and ".gpkg" not in lower and not lower.startswith("memory"):
             out.append(_finding(layer, "medium", f"{count} features in {provider}",
                                 "GeoPackage draws faster than most file formats", "save_layer_to_gpkg"))
         if visible and not layer.hasScaleBasedVisibility():
             out.append(_finding(layer, "medium", f"{count} features drawn at every scale",
-                                "Set a minimum scale so it draws only when zoomed in (set_layer_property min_scale)",
+                                "set_layer_property min_scale limits drawing to when zoomed in.",
                                 "set_layer_property"))
     if count > _HEAVY_REPROJECT and project_crs.isValid() and layer.crs().isValid() \
             and layer.crs().authid() != project_crs.authid():
         out.append(_finding(layer, "low", f"{count} features reprojected on the fly from {layer.crs().authid()} "
                             f"to {project_crs.authid()}",
-                            "Reproject the layer once (native:reprojectlayer) or set the project CRS to the data's",
+                            "native:reprojectlayer reprojects it once; the project CRS can match the data's.",
                             "run_processing"))
     return out
 
@@ -116,10 +116,10 @@ def _raster_findings(layer: QgsRasterLayer, visible: bool) -> list[dict]:
         if not has_pyramids:
             out.append(_finding(layer, "high", f"{pixels // 1_000_000} Mpx raster without overviews: every zoom-out "
                                 "reads the full resolution",
-                                "Build overviews (gdal:overviews with levels 2 4 8 16)", "run_processing"))
+                                "gdal:overviews with levels 2 4 8 16 builds overviews.", "run_processing"))
         if visible and not layer.hasScaleBasedVisibility():
             out.append(_finding(layer, "low", "large raster drawn at every scale",
-                                "Set a scale range or turn it off while editing", "set_layer_property"))
+                                "A scale range, or off while editing, fits.", "set_layer_property"))
     return out
 
 
@@ -139,13 +139,13 @@ def _background_findings(tasks: list) -> list[dict]:
             out.append({"severity": "high",
                         "issue": f"background task '{task['description']}' has been running {int(running)} s and has "
                                  f"said nothing for {int(quiet)} s: it looks stuck, not slow",
-                        "fix": "Tell the user it is not progressing; cancel_task stops a processing task, and a "
-                               "reload of the plugin clears the rest. Do not start the same work again first."})
+                        "fix": "It is not progressing; cancel_task stops a processing task, and a reload of the "
+                               "plugin clears the rest. Starting it again would duplicate it, not resume it."})
         elif running >= _LONG_TASK_S:
             out.append({"severity": "low",
                         "issue": f"background task '{task['description']}' has been running {int(running)} s and is "
                                  f"still working (last active {quiet:.0f} s ago)",
-                        "fix": "It is progressing: wait for it rather than starting it again or reporting a failure."})
+                        "fix": "It is progressing, not stuck or failed."})
     return out
 
 
@@ -182,7 +182,7 @@ def _diagnose_project(args: dict) -> dict:
                 findings.extend(_raster_findings(layer, visible))
         except Exception as exc:  # noqa: BLE001
             findings.append({"layer": layer.name(), "layer_id": layer.id(), "severity": "low",
-                             "issue": f"could not be inspected: {exc}", "fix": "Check the layer's source"})
+                             "issue": f"could not be inspected: {exc}", "fix": "Its source may be gone."})
     project_findings: list[dict] = []
     try:
         tasks = running_tasks()
@@ -191,11 +191,11 @@ def _diagnose_project(args: dict) -> dict:
     project_findings.extend(_background_findings(tasks))
     if not wanted and visible_count > _MANY_VISIBLE:
         project_findings.append({"severity": "medium", "issue": f"{visible_count} layers visible at once",
-                                 "fix": "Group them and hide the groups not in use (set_layers_visibility)",
+                                 "fix": "set_layers_visibility groups them and hides unused groups.",
                                  "tool": "set_layers_visibility"})
     if not wanted and remote_count > 6:
         project_findings.append({"severity": "medium", "issue": f"{remote_count} remote layers (WMS, WFS, tiles)",
-                                 "fix": "Turn off the ones not needed for the current task; they wait on the network"})
+                                 "fix": "Layers not needed for the task still wait on the network."})
     findings.sort(key=lambda f: _SEVERITY.get(f["severity"], 3))
     findings = findings[:_MAX_FINDINGS]
     return {
@@ -209,7 +209,7 @@ def _diagnose_project(args: dict) -> dict:
         "findings": findings,
         "project_findings": project_findings,
         "counts": {level: sum(1 for f in findings if f["severity"] == level) for level in _SEVERITY},
-        "note": "Nothing was changed. Each fix names the tool; apply the high ones first and measure again."
-        if findings or project_findings else "No usual cause found: if it is still slow, ask which action is slow "
-        "(drawing, opening, saving, a tool) and look at the QGIS log.",
+        "note": "Nothing was changed. Each fix names the tool; high ones cost the most; measure again."
+        if findings or project_findings else "No usual cause found. Which action is slow (drawing, opening, saving, "
+        "a tool) and the QGIS log narrow it further.",
     }

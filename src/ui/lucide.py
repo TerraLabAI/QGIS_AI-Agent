@@ -32,6 +32,7 @@ PREFIX = "lu."
 _SPARKLE = '<path fill="{colour}" stroke="none" d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/>'
 
 SHAPES = {
+    "arrow-up": '<path d="m5 12 7-7 7 7"/> <path d="M12 19V5"/>',
     "book-open": '<path d="M12 7v14"/> <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
     "braces": '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/> <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>',
     "calculator": '<rect width="16" height="20" x="4" y="2" rx="2"/> <line x1="8" x2="16" y1="6" y2="6"/> <line x1="16" x2="16" y1="14" y2="18"/> <path d="M16 10h.01"/> <path d="M12 10h.01"/> <path d="M8 10h.01"/> <path d="M12 14h.01"/> <path d="M8 14h.01"/> <path d="M12 18h.01"/> <path d="M8 18h.01"/>',
@@ -40,6 +41,7 @@ SHAPES = {
     "check": '<path d="M20 6 9 17l-5-5"/>',
     "cog": '<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/> <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/> <path d="M12 2v2"/> <path d="M12 22v-2"/> <path d="m17 20.66-1-1.73"/> <path d="M11 10.27 7 3.34"/> <path d="m20.66 17-1.73-1"/> <path d="m3.34 7 1.73 1"/> <path d="M14 12h8"/> <path d="M2 12h2"/> <path d="m20.66 7-1.73 1"/> <path d="m3.34 17 1.73-1"/> <path d="m17 3.34-1 1.73"/> <path d="m11 13.73-4 6.93"/>',
     "combine": '<path d="M10 18H5a3 3 0 0 1-3-3v-1"/> <path d="M14 2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2"/> <path d="M20 2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2"/> <path d="m7 21 3-3-3-3"/> <rect x="14" y="14" width="8" height="8" rx="2"/> <rect x="2" y="2" width="8" height="8" rx="2"/>',
+    "corner-down-left": '<polyline points="9 10 4 15 9 20"/> <path d="M20 4v7a4 4 0 0 1-4 4H4"/>',
     "crosshair": '<circle cx="12" cy="12" r="10"/> <line x1="22" x2="18" y1="12" y2="12"/> <line x1="6" x2="2" y1="12" y2="12"/> <line x1="12" x2="12" y1="6" y2="2"/> <line x1="12" x2="12" y1="22" y2="18"/>',
     "database": '<ellipse cx="12" cy="5" rx="9" ry="3"/> <path d="M3 5V19A9 3 0 0 0 21 19V5"/> <path d="M3 12A9 3 0 0 0 21 12"/>',
     "eye": '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/> <circle cx="12" cy="12" r="3"/>',
@@ -89,7 +91,7 @@ FALLBACK = {
     "minus": "dash", "triangle-alert": "warning", "calculator": "table",
     "square-dashed-mouse-pointer": "polygon", "link": "link", "book-open": "book",
     "filter": "funnel", "combine": "merge", "folder-open": "folder", "eye": "eye",
-    "image": "image", "sparkle": "spark",
+    "image": "image", "sparkle": "spark", "arrow-up": "arrow_up", "corner-down-left": "undo",
 }
 
 _RENDERER = None

@@ -221,7 +221,7 @@ def extract(url: str, typename: str, name: str, uri: str, hits: int | None = Non
     except ImportError:
         return {"_error": "GDAL's Python bindings are not available, so the WFS cannot be written to a file.",
                 "code": "EXECUTION_FAILED",
-                "suggestion": "Load it with a bbox or max_features instead, which keeps it a live WFS layer."}
+                "suggestion": "bbox or max_features keeps it a live WFS layer."}
     started = time.monotonic()
     deadline = started + limits.current("CALL_MAX_SECONDS_BACKGROUND") * _CLOCK_SHARE
     state: dict = {"written": 0, "ended_by": ""}
@@ -255,7 +255,7 @@ def extract(url: str, typename: str, name: str, uri: str, hits: int | None = Non
             halted.set()
             state["feedback"].cancel()
             return {"_error": "Stopped while the WFS was being written to disk; nothing was added.",
-                    "code": "CANCELLED", "suggestion": "Stop here and wait for the next user message."}
+                    "code": "CANCELLED", "suggestion": "The user stopped the run."}
         if time.monotonic() > deadline and not halted.is_set():
             state["ended_by"] = "clock"
             halted.set()
@@ -265,13 +265,13 @@ def extract(url: str, typename: str, name: str, uri: str, hits: int | None = Non
                 return {"_error": (f"The WFS was still sending {typename} when the clock ran out, and the file "
                                    "could not be closed in time; nothing was added."),
                         "code": "TIMEOUT",
-                        "suggestion": "Ask for a smaller area with bbox, or a filter on the type."}
+                        "suggestion": "A smaller area with bbox, or a filter on the type, fits."}
     if failure:
         remove_tree(directory)
         exc = failure[0]
         return {"_error": f"Writing {typename} to a GeoPackage failed: {type(exc).__name__}: {exc}",
                 "code": "EXECUTION_FAILED",
-                "suggestion": "Load it with a bbox or max_features instead, which keeps it a live WFS layer."}
+                "suggestion": "bbox or max_features keeps it a live WFS layer."}
     written = int(state.get("written") or 0)
 
     def _add():
@@ -297,13 +297,12 @@ def extract(url: str, typename: str, name: str, uri: str, hits: int | None = Non
                else "the disk cap or the free space was reached")
         out["warning"] = (f"Only {out.get('feature_count', written):,} features were written before {why}, "
                           "the first ones in the service's own order, which can all lie in one part of the area.")
-        out["suggestion"] = ("Say the layer is partial. A smaller bbox per call, with the same full_extent, reads "
-                             "the rest.")
+        out["suggestion"] = "A smaller bbox per call, with the same full_extent, reads the rest."
     elif isinstance(hits, int) and hits > 0 and isinstance(out.get("feature_count"), int) \
             and out["feature_count"] < hits:
         out["features_available"] = hits
         out["coverage"] = "partial"
         out["warning"] = (f"{out['feature_count']:,} of the {hits:,} features the service counts came back: "
                           "it stops a request there and does not page past it.")
-        out["suggestion"] = "Say the layer is partial, or read the type in smaller boxes with bbox."
+        out["suggestion"] = "Smaller boxes with bbox read the rest of the type."
     return out

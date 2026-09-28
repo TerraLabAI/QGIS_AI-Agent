@@ -280,6 +280,7 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
     done = threading.Event()
     holder = {}
+    began = time.monotonic()
 
     def start():
 
@@ -302,7 +303,12 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
                 done.set()
                 QTimer.singleShot(0, lambda: _JOBS_ALIVE.pop(key, None))
 
+        def layers_drawn():
+
+            holder.setdefault("layers_s", time.monotonic() - began)
+
         job.finished.connect(finished)
+        job.renderingLayersFinished.connect(layers_drawn)
         job.start()
 
     run_on_main_thread(start, timeout=30)
@@ -319,7 +325,12 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
         run_on_main_thread(cancel, timeout=10)
         if stopped:
             return None, [{"layer_id": "", "message": _STOPPED}]
-        return None, [{"layer_id": "", "message": f"render not finished after {budget:.0f} s"}]
+
+
+        layers_s = holder.get("layers_s")
+        where = (f"the layers were drawn after {layers_s:.0f} s and the labels were still being placed"
+                 if layers_s is not None else "the layers were still drawing")
+        return None, [{"layer_id": "", "message": f"render not finished after {budget:.0f} s: {where}"}]
     if "image" not in holder:
         return None, [{"layer_id": "", "message": "the render job ended without an image"}]
     return holder["image"], holder.get("errors", [])
@@ -828,31 +839,30 @@ def _blank_note(image, planned: dict) -> dict:
     if drawn > 0:
         return {"sparse": True, "drawn_pct": round(100.0 * drawn, 2),
                 "note": (f"Little of the picture is drawn ({100.0 * drawn:.2g}% of it): the layers inside the "
-                         f"extent ({', '.join(inside[:8])}) are thin or small at this scale, not missing. Look "
-                         "at the image before calling it blank.")}
+                         f"extent ({', '.join(inside[:8])}) are thin or small at this scale, not missing.")}
     note = {"blank": True}
     if hidden:
         note["out_of_scale"] = hidden[:8]
         note["note"] = (f"Nothing was drawn of {', '.join(hidden[:8])}: each is set to draw only at other "
                         "scales than this render's (its scale range, often a service's own), so it is not "
-                        "broken. Render a smaller extent, or read the range with get_layer_info.")
+                        "broken. get_layer_info shows the range; a smaller extent may fit.")
         return note
     if outside and not inside and data:
         note["note"] = (
             "Nothing was drawn: none of these layers has data inside the extent that was rendered. "
-            f"Outside it: {', '.join(outside[:8])}. Render again with extent set to data_extent, "
-            "or call zoom_to_layer first. This is a framing mistake, not a broken layer.")
+            f"Outside it: {', '.join(outside[:8])}. data_extent as the render extent, or "
+            "zoom_to_layer, would draw it; this is a framing mistake, not a broken layer.")
         note["data_extent"] = data
         note["off_extent"] = outside
         return note
     note["note"] = ("Every pixel is the same colour. Over a tile layer this is usually tiles that have "
-                    "not arrived yet: render again before concluding a layer is wrong. If the second "
-                    "render is blank too, the layers and the numbers you computed still stand: report "
-                    "them and say the preview did not draw. Do not stop the work for a blank preview.")
+                    "not arrived yet, so a second render often differs. When a second render is blank "
+                    "too, the layers and the numbers already computed still stand; the preview alone "
+                    "did not draw, and the work continues.")
     if data:
         note["data_extent"] = data
-        note["note"] += (" The layers' own data sits inside data_extent: render with that extent if the "
-                         "view is not over them.")
+        note["note"] += (" The layers' own data sits inside data_extent; that extent covers them when "
+                         "the view does not.")
     return note
 
 
@@ -972,13 +982,14 @@ def _render_map(args: dict) -> dict:
         if "_error" not in result:
             result["unchanged"] = True
             result["note"] = ("Nothing on the map changed since the last render_map of this run, so this is "
-                              "that same picture, returned without rendering again. Calling render_map once "
-                              "more will give the same image: change the map, the extent or the size first, "
-                              "or move on with what you have.")
+                              "that same picture, returned without rendering again. render_map gives the "
+                              "same image again until the map, the extent or the size changes.")
         return result
 
+    began = time.monotonic()
     image, passes, stable, render_errors = _render_stable_async(settings, warm=warm,
                                                                 confirm=planned.get("tiles", True))
+    full_errors = list(render_errors)
     if image is None and any(e.get("message") == _STOPPED for e in render_errors):
         return {"_error": "The render was stopped.", "code": "CANCELLED"}
     reduced = None
@@ -995,11 +1006,15 @@ def _render_map(args: dict) -> dict:
         return {"_error": "The render was stopped.", "code": "CANCELLED"}
     if image is None:
         slow = planned.get("slow_layers") or []
-        error = {"_error": "The map did not finish rendering in time, at full size or at 640 pixels.",
-                 "suggestion": ("Hide the heaviest layer with set_layers_visibility, then render again. "
+        elapsed = time.monotonic() - began
+        small = f"{reduced[0]} by {reduced[1]}" if reduced else "640 pixels"
+        error = {"_error": (f"The map did not finish rendering in {elapsed:.0f} s, at {width} by {height} "
+                            f"or at {small}."),
+                 "elapsed_s": round(elapsed),
+                 "suggestion": ("set_layers_visibility hides a heavy layer; a smaller extent draws less. "
                                 + (f"These draw over the network or from pixels: {', '.join(slow[:6])}."
-                                   if slow else "Or render a smaller extent.")),
-                 "render_errors": render_errors}
+                                   if slow else "")).strip(),
+                 "render_errors": full_errors + [e for e in render_errors if e not in full_errors]}
         if slow:
             error["slow_layers"] = slow
         return error
@@ -1076,7 +1091,7 @@ def _clamp_render_size(asked_width, asked_height) -> tuple:
     height = max(64, min(height, int(round(asked_height * shape))))
     note = (f"Asked for {asked_width} by {asked_height}, rendered at {width} by {height}: "
             f"this machine renders at most {max_w} by {max_h} pixels. Nothing downstream reads "
-            "more, so ask for this size or less from now on.")
+            "more than this size.")
     return width, height, note
 
 
@@ -1179,8 +1194,8 @@ def _plan_render(args: dict) -> dict:
         padded.grow(max(data_rect.width(), data_rect.height()) * 0.05 or 1.0)
         settings.setExtent(padded)
         frame_note = ("The view held none of these layers, so the render was framed on their own extent "
-                      f"({', '.join(outside[:8])}) instead of the canvas. Call zoom_to_layer if the user "
-                      "should be looking there too.")
+                      f"({', '.join(outside[:8])}) instead of the canvas. zoom_to_layer moves the canvas "
+                      "there too.")
         data_rect, outside, inside = _framing(layers, destination, settings.extent())
 
     _apply_background(settings, args.get("background"))

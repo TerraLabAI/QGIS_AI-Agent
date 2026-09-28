@@ -362,7 +362,7 @@ def _vector(name: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a vector layer.",
             "INVALID_ARGS",
-            "list_layers shows each layer's type; pass a vector layer.",
+            "list_layers shows each layer's type; vector layers only.",
         )
     return layer, None
 
@@ -375,7 +375,7 @@ def _raster(name: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a raster layer.",
             "INVALID_ARGS",
-            "list_layers shows each layer's type; pass a raster layer. Vector layers use set_layer_style.",
+            "list_layers shows each layer's type; raster layers only. Vector layers use set_layer_style.",
         )
     return layer, None
 
@@ -409,7 +409,7 @@ def _raster_option(args: dict, name: str):
     constant = choices.get(word)
     if constant is not None:
         return constant, None
-    return None, tool_error(f"Unknown {name}: {word!r}.", "INVALID_ARGS", f"Use one of {sorted(choices)}.")
+    return None, tool_error(f"Unknown {name}: {word!r}.", "INVALID_ARGS", f"One of {sorted(choices)}.")
 
 
 
@@ -436,11 +436,11 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
             colour = QColor(str(value))
             if not colour.isValid():
                 return None, "", tool_error(f"color_stops: {value!r} is not a colour.", "INVALID_ARGS",
-                                            "Pass hex colours such as ['#ffffff', '#add8e6'], lowest value first.")
+                                            "Hex colours such as ['#ffffff', '#add8e6'], lowest value first.")
             colours.append(colour)
         if len(colours) < 2:
             return None, "", tool_error("color_stops needs at least two colours, lowest value first.",
-                                        "INVALID_ARGS", "Pass ['#ffffff', '#add8e6'] for white to light blue.")
+                                        "INVALID_ARGS", "['#ffffff', '#add8e6'] is white to light blue.")
         if invert:
             colours.reverse()
         last = len(colours) - 1
@@ -473,7 +473,7 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
         if ramp is None:
             return None, "", tool_error(
                 f"Color ramp not found: {name!r}.", "INVALID_ARGS",
-                "Pass color_stops (hex colours, lowest value first) or a QGIS ramp such as "
+                "color_stops (hex colours, lowest value first) or a QGIS ramp such as "
                 + ", ".join(style.colorRampNames()[:40]) + "; a name ending in _r is reversed.")
     if ramp is not None and invert:
         ramp = ramp.clone()
@@ -524,10 +524,10 @@ def _limits_plan(args: dict) -> tuple:
 
             return {"limits": "typed", "cut": None}, None
         return None, tool_error(
-            "min_value/max_value type the range by hand and min_max cumulative_cut has QGIS compute one: pass one "
-            "or the other.", "INVALID_ARGS",
-            "Keep min_value and max_value when they are the range the user asked for; for a cumulative count cut, "
-            "drop them and keep min_max cumulative_cut.")
+            "min_value/max_value type the range by hand; min_max cumulative_cut has QGIS compute one; "
+            "not both.", "INVALID_ARGS",
+            "min_value/max_value give the range the user asked for; min_max cumulative_cut alone gives a "
+            "computed cumulative count cut.")
     if cut_given and limits != "cumulative_cut":
         return None, tool_error(f"cumulative_cut goes with min_max cumulative_cut, not {limits}.", "INVALID_ARGS")
     cut = None
@@ -619,12 +619,12 @@ def _set_raster_style(args: dict) -> dict:
         return error
     if plan is not None and style_type not in ("singleband_pseudocolor", "singleband_gray", "multiband_color"):
         return tool_error(f"min_max sets the range of a gray, pseudocolor or multiband style, not {style_type}.",
-                          "INVALID_ARGS", "Pass style_type singleband_pseudocolor (or singleband_gray) with it.")
+                          "INVALID_ARGS", "style_type singleband_pseudocolor (or singleband_gray) takes it.")
     if (args.get("color_stops") or args.get("invert_ramp") is True) and style_type not in (
             "singleband_pseudocolor", "paletted"):
         return tool_error(f"color_stops and invert_ramp colour a singleband_pseudocolor or paletted style, "
                           f"not {style_type}.", "INVALID_ARGS",
-                          "Pass style_type singleband_pseudocolor; a gray style takes gradient white_to_black.")
+                          "singleband_pseudocolor colours it; a gray style takes gradient white_to_black.")
     min_value, max_value = args.get("min_value"), args.get("max_value")
     notes: dict = {}
     codes: list = []
@@ -648,10 +648,10 @@ def _set_raster_style(args: dict) -> dict:
             notes["style_type_changed"] = (
                 f"band {wanted} holds {len(codes)} whole-number class codes ({shown}), so each code got its own "
                 "colour (paletted) instead of a continuous ramp, which would draw a gradient between categories. "
-                "Pass classification or min_value to keep a ramp.")
+                "classification or min_value keeps a ramp.")
     build = _RASTER_BUILDERS.get(style_type) if isinstance(style_type, str) else None
     if build is None:
-        return tool_error(f"Unknown style_type: {style_type!r}.", "INVALID_ARGS", f"Use one of {list(RASTER_STYLES)}.")
+        return tool_error(f"Unknown style_type: {style_type!r}.", "INVALID_ARGS", f"One of {list(RASTER_STYLES)}.")
     job = {"layer": layer, "provider": provider, "bands": band_count, "args": args, "plan": plan,
            "notes": notes, "codes": codes, "low": min_value, "high": max_value}
     renderer, fields, error = build(job)
@@ -671,7 +671,7 @@ def _set_raster_style(args: dict) -> dict:
             opacity = float(args["opacity"])
         except (TypeError, ValueError):
             return tool_error("opacity must be a number between 0 and 1.", "INVALID_ARGS",
-                              "Pass 0.65 for a surface you want the basemap to read through.")
+                              "0.65 lets the basemap read through the surface.")
         if not 0.0 <= opacity <= 1.0:
             return tool_error(f"opacity={opacity} is outside 0 to 1.", "INVALID_ARGS",
                               "1 is opaque, 0 invisible; 0.6 to 0.8 lets a basemap through.")
@@ -703,7 +703,7 @@ def _band_arg(job: dict, name: str, fallback: int):
     return None, tool_error(
         f"{name}={number} is out of range: {job['layer'].name()!r} has {count} band(s).",
         "INVALID_ARGS",
-        f"Pass a band between 1 and {count}.",
+        f"band is between 1 and {count}.",
     )
 
 
@@ -827,8 +827,8 @@ def _build_paletted(job: dict) -> tuple:
         return None, None, tool_error(
             f"Band {band} of {layer.name()!r} holds no whole-number classes to list (it is continuous, or has "
             "more than 256 values).", "INVALID_ARGS",
-            "Use singleband_pseudocolor with classes for a continuous band, or set_raster_class_style with "
-            "the values and colours of each class.")
+            "singleband_pseudocolor with classes draws a continuous band; set_raster_class_style "
+            "sets the values and colours of each class.")
     ramp = None
     if args.get("color_ramp") or args.get("color_stops"):
         ramp, _described, error = _raster_ramp(args)
@@ -871,11 +871,11 @@ def _apply_style_qml(args: dict) -> dict:
     extension = os.path.splitext(path)[1].lower()
     if extension not in (".qml", ".sld"):
         return tool_error("Style path must end in .qml or .sld.", "INVALID_ARGS",
-                          "Use a local QGIS QML or SLD file.")
+                          "path is local, not a URL.")
     if not os.path.isfile(path):
         return tool_error(
             f"Style file not found: {path}", "INVALID_ARGS",
-            "Pass the path of an existing .qml file, or save one with save_style_qml.",
+            "save_style_qml writes a .qml file; path must exist already.",
         )
 
 
@@ -893,10 +893,10 @@ def _apply_style_qml(args: dict) -> dict:
     classification_field = str(args.get("classification_field") or "").strip()
     if classification_field and hasattr(layer, "fields") and layer.fields().indexOf(classification_field) < 0:
         return tool_error(f"Classification field not found: {classification_field}", "INVALID_ARGS",
-                          "Pass a field present on the target layer.")
+                          "It must be a field of the target layer.")
     if extension == ".sld" and not hasattr(layer, "loadSldStyle"):
         return tool_error("This QGIS version cannot load SLD styles.", "STYLE_FAILED",
-                          "Use a QML style or a newer QGIS version.")
+                          "QML works here; SLD needs a newer QGIS.")
     message, success = (layer.loadSldStyle(path) if extension == ".sld" else layer.loadNamedStyle(path))
     if not success:
         if kept:
@@ -936,7 +936,7 @@ def _save_style_qml(args: dict) -> dict:
         os.makedirs(directory, exist_ok=True)
     message, success = layer.saveNamedStyle(path)
     if not success:
-        return tool_error(f"Failed to save style: {message}", "STYLE_FAILED", "Pass a writable path ending in .qml.")
+        return tool_error(f"Failed to save style: {message}", "STYLE_FAILED", "path is writable and ends in .qml.")
     return {
         "layer_id": layer.id(),
         "name": layer.name(),
@@ -967,7 +967,7 @@ def _set_layer_property(args: dict) -> dict:
             if not 0.0 <= opacity <= 1.0:
                 return tool_error(
                     f"opacity {opacity} is outside 0.0-1.0.", "INVALID_ARGS",
-                    "Pass a value between 0 (transparent) and 1 (opaque).",
+                    "0 is transparent, 1 is opaque.",
                 )
             layer.setOpacity(opacity)
             applied = opacity
@@ -986,7 +986,7 @@ def _set_layer_property(args: dict) -> dict:
             applied = float(value)
             layer.setMaximumScale(applied)
         else:
-            return tool_error(f"Unknown property: {prop!r}.", "INVALID_ARGS", f"Use one of {list(LAYER_PROPERTIES)}.")
+            return tool_error(f"Unknown property: {prop!r}.", "INVALID_ARGS", f"One of {list(LAYER_PROPERTIES)}.")
     except (TypeError, ValueError) as e:
         return tool_error(
             f"Bad value for {prop}: {e}", "INVALID_ARGS",
@@ -1027,21 +1027,21 @@ def _set_layer_order(args: dict) -> dict:
                 "get_layer_tree shows the tree; non-spatial tables have no node.",
             )
         if node in nodes:
-            return tool_error(f"Layer {layer.name()!r} is listed twice.", "INVALID_ARGS", "List each layer once.")
+            return tool_error(f"Layer {layer.name()!r} is listed twice.", "INVALID_ARGS", "Each layer once.")
         nodes.append(node)
         resolved.append(layer)
     if not nodes:
         return tool_error("Nothing to reorder.", "INVALID_ARGS",
-                          "For one layer, pass layer_name and position (top, bottom, above, below). "
-                          "For a whole group, pass layers from top to bottom.")
+                          "One layer takes layer_name and position (top, bottom, above, below); "
+                          "a whole group takes layers, top to bottom.")
     parent = nodes[0].parent()
     for node in nodes[1:]:
         if node.parent() is not parent:
             return tool_error(
                 "The list form reorders one group; these layers are in different groups.",
                 "INVALID_ARGS",
-                "Move one layer at a time instead: set_layer_order with layer_name and "
-                "position top, bottom, above or below, which works across groups.",
+                "set_layer_order with layer_name and position top, bottom, above or below "
+                "moves one layer at a time, across groups.",
             )
     _arrange_children(parent, nodes)
     root.setHasCustomLayerOrder(False)
@@ -1101,7 +1101,7 @@ def _move_one_layer(args: dict) -> dict:
     name = str(args.get("layer_name") or "").strip()
     if not name:
         return tool_error("layer_name is empty.", "INVALID_ARGS",
-                          "Name the layer or group to move, or pass layers for a whole order.")
+                          "layer_name is the layer or group to move; layers is a whole order.")
     position = str(args.get("position") or "").strip().lower()
     if position not in ("top", "bottom", "above", "below"):
         return tool_error("position is top, bottom, above or below.", "INVALID_ARGS",
@@ -1118,19 +1118,19 @@ def _move_one_layer(args: dict) -> dict:
     if position in ("above", "below"):
         if not reference:
             return tool_error(f"{position} needs reference_layer.", "INVALID_ARGS",
-                              "Name the layer or group to sit next to, or use top or bottom.")
+                              "top or bottom need no reference_layer.")
         other_node, _other, error = _tree_node(reference, root)
         if error:
             return error
         if other_node is node:
             return tool_error("A node cannot be moved relative to itself.", "INVALID_ARGS",
-                              "Name another layer or group, or use top or bottom.")
+                              "It must be a different layer or group.")
         parent = other_node.parent() or root
         ancestor = parent
         while ancestor is not None:
             if ancestor is node:
                 return tool_error(f"{reference!r} is inside the group {name!r} being moved.", "INVALID_ARGS",
-                                  "Name a layer or group outside it, or use top or bottom.")
+                                  "reference_layer must be outside the group being moved.")
             ancestor = ancestor.parent()
         siblings = [child for child in parent.children() if child is not node]
         index = siblings.index(other_node)
@@ -1212,7 +1212,7 @@ def _set_layer_crs(args: dict) -> dict:
     if not new_crs.isValid():
         return tool_error(
             f"Invalid CRS: {args['crs']}", "CRS_INVALID",
-            "Pass an authority id such as EPSG:4326 or EPSG:32632, or a proj4 string "
+            "An authority id such as EPSG:4326 or EPSG:32632, or a proj4 string "
             "starting with +proj= for a projection that has no code.",
         )
 
@@ -1228,7 +1228,7 @@ def _set_layer_crs(args: dict) -> dict:
     out["previous_authid"] = before
     out["note"] = (
         "Declaration changed only; the coordinates were not reprojected. "
-        "To reproject, run_processing native:reprojectlayer."
+        "run_processing native:reprojectlayer does that."
     )
     return out
 
@@ -1247,14 +1247,14 @@ def _delete_field(args: dict) -> dict:
     if layer.isEditable():
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
-            "Commit or roll back with qgis_edit_commit / qgis_edit_rollback first.",
+            "qgis_edit_commit or qgis_edit_rollback ends the open session.",
         )
     if not layer.dataProvider().deleteAttributes([idx]):
         return tool_error(
             f"The provider refused to delete field {field_name!r}.",
             "INVALID_ARGS",
             "The data source may be read-only or not support schema changes; "
-            "export_layer to GeoPackage and retry on the copy.",
+            "export_layer makes a GeoPackage copy that does.",
         )
     layer.updateFields()
     return {
@@ -1294,12 +1294,12 @@ def _rename_field(args: dict) -> dict:
     if layer.fields().indexOf(new_name) >= 0:
         return tool_error(
             f"Field {new_name!r} already exists on {layer.name()!r}.", "INVALID_ARGS",
-            "Pick a name that is not taken.",
+            "new_name must be unused.",
         )
     if layer.isEditable():
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
-            "Commit or roll back with qgis_edit_commit / qgis_edit_rollback first.",
+            "qgis_edit_commit or qgis_edit_rollback ends the open session.",
         )
 
 
@@ -1315,7 +1315,7 @@ def _rename_field(args: dict) -> dict:
         return tool_error(
             f"{layer.name()!r} is a FlatGeobuf file, and renaming a field there empties every value of it.",
             "INVALID_ARGS",
-            f"Nothing was changed. Run run_processing native:renametablefield with INPUT {layer.id()!r}, "
+            f"Nothing was changed. run_processing native:renametablefield with INPUT {layer.id()!r}, "
             f"FIELD {old_name!r}, NEW_NAME {new_name!r} and output_name {layer.name()!r}.",
         )
     before = _non_null_count(layer, old_name)
@@ -1324,7 +1324,7 @@ def _rename_field(args: dict) -> dict:
             f"The provider refused to rename field {old_name!r}.",
             "INVALID_ARGS",
             "Shapefiles cap names at 10 characters and some providers cannot rename; "
-            "export_layer to GeoPackage and retry.",
+            "export_layer makes a copy that can.",
         )
     layer.updateFields()
     after = _non_null_count(layer, new_name)
@@ -1332,7 +1332,7 @@ def _rename_field(args: dict) -> dict:
         return tool_error(
             f"The provider renamed {old_name!r} to {new_name!r} and lost its values: {before} non-null before, "
             f"none after.", "EXECUTION_FAILED",
-            "Recreate the layer from its source, then rename with run_processing native:renametablefield.",
+            "A layer recreated from its source, then run_processing native:renametablefield, avoids this.",
         )
     return {
         "layer_id": layer.id(),
@@ -1524,8 +1524,8 @@ def _add_table_join(args: dict) -> dict:
             f"{join.name()!r}, so it was not added.",
             "JOIN_NO_MATCHES",
             f"Sample {target_field!r} values: {match['unmatched_keys']!r}. Sample {join_field!r} values: "
-            f"{join_samples!r}. If the types differ, cast one side with add_field/field_calculator "
-            f"(to_string or to_int) and rejoin.",
+            f"{join_samples!r}. add_field/field_calculator (to_string or to_int) casts one side "
+            f"when the types differ.",
         )
 
     before = {f.name() for f in target.fields()}
@@ -1595,7 +1595,7 @@ def _set_layer_metadata(args: dict) -> dict:
         metadata.setRights([rights.strip()[:500]])
         applied["rights"] = metadata.rights()
     if not applied:
-        return tool_error("Nothing to set.", "INVALID_ARGS", "Pass title, abstract, keywords or rights.")
+        return tool_error("Nothing to set.", "INVALID_ARGS", "title, abstract, keywords or rights.")
     if not metadata.identifier():
         metadata.setIdentifier(layer.id())
     if not metadata.type():
@@ -1610,7 +1610,7 @@ def _set_field_aliases(args: dict) -> dict:
     if error:
         return error
     if not isinstance(layer, QgsVectorLayer):
-        return tool_error("Only vector layers have fields.", "INVALID_ARGS", "Pick a vector layer.")
+        return tool_error("Only vector layers have fields.", "INVALID_ARGS", "Vector layers only.")
     aliases = args.get("aliases")
     if not isinstance(aliases, dict) or not aliases:
         return tool_error("aliases must map field names to aliases.", "INVALID_ARGS",
@@ -1656,18 +1656,18 @@ def _duplicate_layer(args: dict) -> dict:
             return limits.refusal(
                 f"The layer {layer.name()!r}", f"{count:,} features",
                 f"{ceiling:,} for an independent copy made in memory",
-                "Use export_layer or save_layer_to_gpkg to write a separate file, then add that file.")
+                "export_layer or save_layer_to_gpkg writes a separate file that can be added.")
 
 
         clone = layer.materialize(QgsFeatureRequest().setLimit(ceiling + 1))
         if clone is None or not clone.isValid():
             return tool_error("QGIS could not create an independent copy.", "EXECUTION_FAILED",
-                              "Export the layer to a separate file and add that file.")
+                              "export_layer writes a separate file that can be added.")
         if clone.featureCount() > ceiling:
             return limits.refusal(
                 f"The layer {layer.name()!r}", f"more than {ceiling:,} features",
                 f"{ceiling:,} for an independent copy made in memory",
-                "Export to a separate file instead; no partial copy was added.")
+                "export_layer avoids this; no partial copy was added.")
         style = QgsMapLayerStyle()
         style.readFromLayer(layer)
         style.writeToLayer(clone)

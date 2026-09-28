@@ -284,7 +284,7 @@ def _repair_layer_paths(args: dict) -> dict:
     old_path = _source_path(layer)
     filename = os.path.basename(old_path)
     if not filename:
-        return tool_error("The layer has no local file name.", "INVALID_ARGS", "Use a local file-backed layer.")
+        return tool_error("The layer has no local file name.", "INVALID_ARGS", "a local file-backed layer.")
     project_path = QgsProject.instance().fileName()
     roots = [os.path.dirname(project_path)] if project_path else []
     if args.get("search_root"):
@@ -320,14 +320,14 @@ def _repair_layer_paths(args: dict) -> dict:
     if not matches:
         cut = (f" The search stopped after {_REPAIR_MAX_FOLDERS:,} folders." if exhausted else "")
         return {"_error": f"Could not find {filename} under the project folder or search root.{cut}",
-                "_suggestion": ("Pass a search_root closer to the file." if exhausted else
-                                "Check the file still exists, or pass search_root.")}
+                "_suggestion": ("a search_root closer to the file." if exhausted else
+                                "The file may not exist, or search_root may help.")}
     if len(matches) > 1:
         return {
             "layer": layer.name(),
             "old_path": old_path,
             "candidates": matches,
-            "_error": "More than one matching file exists. Narrow search_root before changing the source.",
+            "_error": "More than one matching file exists; a narrower search_root would pick one.",
         }
     provider = layer.providerType()
     layer.setDataSource(matches[0] + source[len(old_path):], layer.name(), provider)
@@ -370,9 +370,9 @@ def _package_project_snapshot(args: dict) -> dict:
     project_path = project.fileName()
     if not project_path or not os.path.isfile(project_path):
         return tool_error(
-            "Save the project before packaging it.",
+            "Not saved; packaging needs a save.",
             "INVALID_ARGS",
-            "Call save_project, then package_project.",
+            "save_project comes before package_project.",
         )
     output = os.path.abspath(os.path.expanduser(args["output_path"]))
     if not output.lower().endswith(".zip") and (os.path.isdir(output) or not os.path.splitext(output)[1]):
@@ -416,7 +416,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             "Project packaging was cancelled.",
             "CANCELLED",
-            "Run package_project again if you still need the archive.",
+            "package_project still makes the archive on a new call.",
         )
     if "_error" in snapshot:
         return snapshot
@@ -436,7 +436,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             f"The path is too long for this system to write beside: {output}",
             "INVALID_ARGS",
-            "Write the package into a shorter folder, or give it a shorter file name.",
+            "A shorter folder or file name would fit.",
         )
     os.makedirs(folder, exist_ok=True)
     cancelled = net.current_cancel_check()
@@ -474,7 +474,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             "Project packaging was cancelled.",
             "CANCELLED",
-            "Run package_project again if you still need the archive.",
+            "package_project still makes the archive on a new call.",
         )
     finally:
         if not completed:
@@ -562,9 +562,8 @@ def _get_isochrone(args: dict) -> dict:
             return _layer_not_found_error(road_layer_name)
         return tool_error(
             "No road line layer is loaded for a service area.", "EXECUTION_FAILED",
-            "Load the roads first: fetch_overture theme roads (or fetch_osm_data way[highway]) over a box a "
-            "little larger than the reach, then call get_isochrone again, naming it in road_layer if several "
-            "line layers are loaded.")
+            "fetch_overture theme roads (or fetch_osm_data way[highway]) over a box a little larger than the "
+            "reach loads them; get_isochrone then runs, naming road_layer if several line layers are loaded.")
     if not _is_line_layer(roads):
         return tool_error(f"{roads.name()} is not a line layer.", "INVALID_ARGS",
                           "road_layer is the road network: a line layer such as fetch_overture theme roads.")
@@ -577,8 +576,8 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{roads.name()} is a remote or database-backed road layer; the road graph needs a local layer.",
             "INVALID_ARGS",
-            "Fetch the roads again with fetch_overture theme roads, mode clip, over a bbox a little larger "
-            "than the reach (confirm_large true if it says so), then call get_isochrone with that layer.")
+            "fetch_overture theme roads, mode clip, over a bbox a little larger than the reach (confirm_large "
+            "true if it says so) fetches a local layer; get_isochrone runs with it.")
 
 
     asked = args["minutes"]
@@ -592,7 +591,7 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{len(points)} start points; get_isochrone takes {_ISOCHRONE_MAX_STARTS} per call, because every "
             "start is a full search of the road graph on the main thread.", "INVALID_ARGS",
-            f"Keep the {_ISOCHRONE_MAX_STARTS} that matter, or split the list across calls.")
+            f"{_ISOCHRONE_MAX_STARTS} points that matter fit, or split across calls.")
     starts = QgsVectorLayer("Point?crs=EPSG:4326&field=start:integer", "isochrone_starts", "memory")
     features = []
     for index, point in enumerate(points):
@@ -627,8 +626,9 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{roads.name()} does not reach {minutes:.0f} minutes from every start, so the polygon would be "
             "the shape of the download box.", "INVALID_ARGS",
-            f"Fetch roads over bbox {needed.xMinimum():.4f},{needed.yMinimum():.4f},"
-            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} (EPSG:4326), then call get_isochrone again.")
+            f"bbox {needed.xMinimum():.4f},{needed.yMinimum():.4f},"
+            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} (EPSG:4326) reaches further; get_isochrone "
+            "runs again.")
     network = roads
     if window is not None and not window.contains(roads.extent()):
         try:
@@ -642,8 +642,9 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{roads.name()} has {road_count:,} road features, over the {max_roads:,} graph limit.",
             "INVALID_ARGS",
-            f"Clip or fetch roads to the reach window ({needed.xMinimum():.4f},{needed.yMinimum():.4f},"
-            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} EPSG:4326), then call get_isochrone again.")
+            f"The reach window ({needed.xMinimum():.4f},{needed.yMinimum():.4f},"
+            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} EPSG:4326) clips or fetches it; "
+            "get_isochrone runs again.")
 
 
 
@@ -667,7 +668,7 @@ def _get_isochrone(args: dict) -> dict:
                           "of; fetch_overture theme roads over a box a little larger than the reach.")
     if graph.vertexCount() == 0:
         return tool_error("The road layer built an empty graph.", "EXECUTION_FAILED",
-                          "Check that the layer holds lines near the start points (get_layer_info extent).")
+                          "The layer may hold no lines near the start points (get_layer_info extent).")
     areas = QgsVectorLayer(
         f"Polygon?crs={metric.authid()}&field=start:integer&field=minutes:double&field=mode:string"
         "&field=reached_vertices:integer", args.get("output_name") or f"{minutes:g} min {mode} area", "memory")
@@ -698,8 +699,8 @@ def _get_isochrone(args: dict) -> dict:
         starts_reached += int(reached_any)
     if not polygons:
         return tool_error("No road is reachable from the start points within the travel time.", "EXECUTION_FAILED",
-                          "The starts are probably off the network: compare them with the road layer's extent, "
-                          "or fetch roads over a larger box.")
+                          "The starts are probably off the network, past the road layer's extent; a larger "
+                          "box may reach them.")
     areas.dataProvider().addFeatures(polygons)
     areas.updateExtents()
     QgsProject.instance().addMapLayer(areas)
@@ -746,7 +747,7 @@ def _profile_geometry(args: dict, dem):
         geometry = QgsGeometry.fromWkt(args["line_wkt"])
         if geometry.isNull():
             return None, tool_error("line_wkt is not a valid LINESTRING.", "INVALID_ARGS",
-                                    "Pass WKT such as LINESTRING(x1 y1, x2 y2).")
+                                    "WKT such as LINESTRING(x1 y1, x2 y2).")
 
         source = QgsCoordinateReferenceSystem(str(args.get("wkt_crs") or "EPSG:4326"))
         if source.isValid() and source != dem.crs():
@@ -762,7 +763,7 @@ def _profile_geometry(args: dict, dem):
             transform = QgsCoordinateTransform(layer.crs(), dem.crs(), QgsProject.instance())
             geometry.transform(transform)
         return geometry, None
-    return None, tool_error("Pass line_layer or line_wkt.", "INVALID_ARGS", "Use a line layer or LINESTRING WKT.")
+    return None, tool_error("line_layer or line_wkt.", "INVALID_ARGS", "a line layer or LINESTRING WKT.")
 
 
 def _metric_sampling_crs(geometry, dem_crs):
@@ -895,7 +896,7 @@ def _topology_checks(requested, kind: str, name: str):
         requested = [requested]
     if not isinstance(requested, (list, tuple)):
         return None, tool_error("checks must be a list of rule names. Nothing was checked.", "INVALID_ARGS",
-                                f"Pass some of {', '.join(TOPOLOGY_CHECKS)}, or leave checks out.")
+                                f"Valid: {', '.join(TOPOLOGY_CHECKS)}; empty runs all.")
     unknown = [str(c) for c in requested if c not in TOPOLOGY_CHECKS]
     if unknown:
         return None, tool_error(
@@ -907,7 +908,7 @@ def _topology_checks(requested, kind: str, name: str):
             f"{' and '.join(wrong)} mean nothing on {name!r}, which holds {kind}s: "
             + "; ".join(_TOPOLOGY_MEANING[c] for c in wrong) + ". Nothing was checked.",
             "INVALID_ARGS",
-            f"For {kind}s the checks are {', '.join(applies)}. Leave checks out to run all of them.")
+            f"For {kind}s the checks are {', '.join(applies)}; without checks all of them run.")
     return [c for c in TOPOLOGY_CHECKS if c in requested], None
 
 
@@ -919,7 +920,7 @@ def _check_topology(args: dict) -> dict:
     if kind is None:
         return tool_error(f"{layer.name()!r} has no point, line or polygon geometry, so there is no topology "
                           "to check.", "INVALID_ARGS",
-                          "Pass a vector layer with geometries; list_layers shows each layer's type.")
+                          "a vector layer with geometries; list_layers shows each layer's type.")
     checks, error = _topology_checks(args.get("checks"), kind, layer.name())
     if error:
         return error
@@ -929,7 +930,7 @@ def _check_topology(args: dict) -> dict:
         tolerance = -1.0
     if not math.isfinite(tolerance) or tolerance < 0:
         return tool_error(f"tolerance {args.get('tolerance')!r} is not a distance. Nothing was checked.",
-                          "INVALID_ARGS", "Pass 0 or a positive distance in the layer's units.")
+                          "INVALID_ARGS", "0 or a positive distance in the layer's units.")
 
 
     count = layer.featureCount()
@@ -938,9 +939,9 @@ def _check_topology(args: dict) -> dict:
             f"{layer.name()!r} holds {count:,} {kind}s, past the {MAX_TOPOLOGY_FEATURES:,} this check "
             "compares in one call. Nothing was checked.",
             "INVALID_ARGS",
-            "Extract the part that matters first (a filter, a clip to the area of interest, "
-            "native:extractbyexpression) and run check_topology on the extract. Every feature is "
-            "compared with its neighbours here, so a layer this size freezes QGIS for minutes.")
+            "A filter, a clip to the area of interest, or native:extractbyexpression narrows it; "
+            "check_topology then runs on the extract. Every feature is compared with its neighbours "
+            "here, so a layer this size freezes QGIS for minutes.")
     limit = max(1, min(int(args.get("limit", 20) or 20), 100))
 
 
@@ -957,8 +958,8 @@ def _check_topology(args: dict) -> dict:
                    else f"more than {budget.total:,} vertices in total")
                 + ". Nothing was checked.",
                 "INVALID_ARGS",
-                "Simplify it first (native:simplifygeometries through run_processing with async true), or "
-                "run native:checkvalidity and native:dissolve in the background and read their outputs.")
+                "native:simplifygeometries through run_processing with async true simplifies it first, or "
+                "native:checkvalidity and native:dissolve in the background read their outputs.")
         features.append(feature)
     out = {"layer": layer.name(), "checked_features": len(features)}
     try:
@@ -1006,8 +1007,8 @@ def _check_topology(args: dict) -> dict:
             f"check_topology stopped during {stop.rule} to keep QGIS responsive "
             f"({budget.stop_reason(stop.why)} reached). Nothing is reported.",
             "INVALID_ARGS",
-            "Run it on a smaller extract or with fewer checks, or use native:checkvalidity and native:union "
-            "through run_processing with async true.")
+            "A smaller extract or fewer checks helps; native:checkvalidity and native:union via "
+            "run_processing async true is another route.")
     out["checks_run"] = checks
     return out
 
@@ -1071,7 +1072,7 @@ def _split_slivers(out: dict, key: str, items: list, count: int, floor: float) -
     out[f"{key}_slivers"] = slivers
     out[f"{key}_sliver_note"] = (
         f"{slivers} of the {count} {key} measured have an area of {floor:.6g} square layer units or less: "
-        "slivers where two edges were digitised apart or touch, not real " + key + ". Say them apart; "
+        "slivers where two edges were digitised apart or touch, not real " + key + "; "
         "native:snapgeometries with a small tolerance removes them.")
 
 
@@ -1513,7 +1514,7 @@ class _GeocodeLayerTask(QgsTask):
             state["skipped"] = self.skipped
             state["note"] = (f"{matched_addresses} of {len(self.results)} addresses were geocoded: the geocoding "
                              f"service was unreachable and the fallback carried {self.skipped} fewer rows. "
-                             "Call geocode_layer again on the rows with no coordinates in a few minutes.")
+                             "A retry of geocode_layer on the empty rows, in a few minutes, fills them.")
 
 
 def _geocode_layer(args: dict) -> dict:
@@ -1523,7 +1524,7 @@ def _geocode_layer(args: dict) -> dict:
     field = args["address_field"]
     index = layer.fields().indexOf(field)
     if index < 0:
-        return tool_error(f"Field not found: {field}", "INVALID_ARGS", "Call get_layer_info to inspect fields.")
+        return tool_error(f"Field not found: {field}", "INVALID_ARGS", "get_layer_info lists the fields.")
 
     seen, rows_by_address, over_cap = _read_geocode_rows(layer, index)
     encoding_fixed = None
@@ -1557,9 +1558,9 @@ def _geocode_layer(args: dict) -> dict:
                     f"{garbled['count']} of the values in {field} look garbled ({kind}), for example {samples}. "
                     f"{layer.name()} looks like it was read in the wrong encoding.",
                     "INVALID_ARGS",
-                    "Reload the file in its real encoding (the source's ANSI code page for a shapefile with "
-                    "no .cpg or a CSV with no encoding marker, or UTF-8 for a file whose accents already show "
-                    "as mojibake) and call geocode_layer again.")
+                    "The file's real encoding (the source's ANSI code page for a shapefile with no .cpg, or "
+                    "a CSV with no marker, or UTF-8 when accents already show as mojibake) reloaded fixes "
+                    "it; geocode_layer reruns.")
             encoding_warning = {"kind": garbled["kind"], "count": garbled["count"], "samples": garbled["samples"]}
 
     addresses = list(seen)
@@ -1571,7 +1572,7 @@ def _geocode_layer(args: dict) -> dict:
             f"{len(addresses)} distinct addresses is past the {MAX_GEOCODE_ADDRESSES} this tool geocodes "
             "in one call.",
             "INVALID_ARGS",
-            "Geocode a filtered selection, or split the layer and call geocode_layer once per part.")
+            "A filtered selection, or the layer split and geocode_layer run once per part, fits.")
     task_id = "geocode-" + uuid.uuid4().hex[:12]
     _GEOCODE_LAYER_TASKS[task_id] = {
         "status": "running",
@@ -1589,7 +1590,7 @@ def _geocode_layer(args: dict) -> dict:
         _GEOCODE_LAYER_ALIVE.pop(task_id, None)
         _GEOCODE_LAYER_TASKS.pop(task_id, None)
         return tool_error("The task manager refused the geocoding task.", "QGIS_ERROR",
-                          "Try again once the other background tasks have finished.")
+                          "The other tasks finishing first lets it through.")
     running = {
         "status": "running",
         "task_id": task_id,

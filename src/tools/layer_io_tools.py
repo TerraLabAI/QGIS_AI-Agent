@@ -37,7 +37,7 @@ from .csv_loader import CSV_EXTENSIONS
 from .layer_lookup import _find_layer, _layer_not_found_error
 from .missing_file import missing_file
 
-_CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".gpx", ".dxf")
+_CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".gpx", ".dxf", ".vrt")
 
 
 def _virtual_source_path(path: str) -> str | None:
@@ -46,6 +46,22 @@ def _virtual_source_path(path: str) -> str | None:
         return None
     match = re.match(r"^/vsizip/(.+?\.zip)(?:/.*)?$", path, flags=re.IGNORECASE)
     return match.group(1) if match else None
+
+
+def _source_exists(path: str) -> bool:
+
+
+
+
+
+    if not path.lower().startswith("/vsi"):
+        return os.path.exists(path)
+    try:
+        from osgeo import gdal
+
+        return gdal.VSIStatL(path) is not None
+    except Exception:  # noqa: BLE001
+        return True
 
 
 def _sublayer_names(path: str) -> list:
@@ -62,7 +78,7 @@ def _sublayer_names(path: str) -> list:
 
 
 _ZIP_VECTOR_EXTENSIONS = (".shp", ".gpkg", ".geojson", ".kml", ".kmz", ".gml", ".gpx", ".fgb", ".tab",
-                          ".mif", ".dxf", ".sqlite")
+                          ".mif", ".dxf", ".sqlite", ".vrt")
 
 
 def _zip_listing(path: str) -> tuple[list, list, str]:
@@ -119,10 +135,13 @@ def members_matching(names: list, wanted: str) -> list:
         base = os.path.basename(member.rstrip("/\\"))
         return member, base, os.path.splitext(base)[0]
 
-    exact = [member for member in names if wanted in keys(member)]
+    folded = wanted.casefold()
+
+
+    exact = ([member for member in names if wanted in keys(member)]
+             or [member for member in names if folded in [key.casefold() for key in keys(member)]])
     if exact:
         return exact[:1]
-    folded = wanted.casefold()
     word = _FORMAT_WORD.fullmatch(folded)
     if word:
         by_format = [member for member in names if member.casefold().endswith("." + word.group(1))]
@@ -386,8 +405,8 @@ def _add_vector_layer(args: dict) -> dict:
         members, names, problem = _zip_listing(path)
         if problem:
             return {"_error": f"Could not read the archive {os.path.basename(path)}: {problem}",
-                    "suggestion": ("A OneDrive or Dropbox file kept online only must be made available offline "
-                                   "first; otherwise ask the user for the extracted files.")}
+                    "suggestion": ("A OneDrive or Dropbox file kept online only is unreadable until it syncs "
+                                   "offline; the extracted files also work.")}
         gdbs = gdb_folders(names)
         if gdbs and not members and len(gdbs) == 1:
 
@@ -397,16 +416,40 @@ def _add_vector_layer(args: dict) -> dict:
                 listed["path"] = path
             return listed
         members = members + gdbs
+
+
+
+        tables = [n for n in names if n.lower().endswith((".csv", ".tsv")) and not n.startswith("__MACOSX/")]
+        if wanted:
+            table = [n for n in tables if wanted.casefold() in (n.casefold(), os.path.basename(n).casefold())][:1]
+        else:
+            table = tables if not members and len(tables) == 1 else []
+        if table:
+            import shutil
+            import zipfile
+
+            from .csv_loader import load_csv
+
+            local = os.path.join(create_managed_temp_dir("unzipped"), os.path.basename(table[0]))
+            with zipfile.ZipFile(path) as archive, archive.open(table[0]) as source, open(local, "wb") as sink:
+                shutil.copyfileobj(source, sink)
+            return load_csv(local, args.get("name") or os.path.splitext(os.path.basename(table[0]))[0],
+                            args.get("crs"))
+        sublayer = ""
         if wanted:
             picked = members_matching(members, wanted)
+
+            if not picked and len(members) == 1 and members[0].lower().endswith(_CONTAINER_EXTENSIONS):
+                picked, sublayer = members, wanted
             if not picked:
-                return {"_error": f"No vector file named {wanted!r} in {os.path.basename(path)}.",
-                        "layers": members[:50],
-                        "suggestion": "Call again with layer set to one of the listed files. " + MERGE_OFFER}
+                return {"_error": f"No file named {wanted!r} in {os.path.basename(path)}.",
+                        "files": (members + tables or names)[:50],
+                        "suggestion": "layer names one of the listed files. " + MERGE_OFFER}
             members = picked
         if not members:
             return {"_error": f"{os.path.basename(path)} holds no vector file QGIS reads.", "files": names[:50],
-                    "suggestion": "Say what the archive holds instead; a raster inside it loads with kind='raster'."}
+                    "suggestion": ("files lists what the archive holds; layer=<file> loads a .csv of it, and a "
+                                   "raster inside it loads with kind='raster'.")}
         if len(members) > 1 and wanted:
 
             from .vector_merge import start_folder_merge
@@ -418,35 +461,37 @@ def _add_vector_layer(args: dict) -> dict:
             return {
                 "path": path,
                 "layers": members[:50],
-                "_note": (f"{os.path.basename(path)} holds {len(members)} vector files, none added yet. Call add_data "
-                          "again with layer=<file> for each one wanted, or answer from this list. " + MERGE_OFFER),
+                "_note": (f"{os.path.basename(path)} holds {len(members)} vector files, none added yet. "
+                          "add_data with layer=<file> loads each one wanted, or the list answers. " + MERGE_OFFER),
             }
         if members[0] in gdbs:
             return _add_vector_layer({**args, "layer": None, "path": _zip_member_uri(path, members[0])})
         uri = _zip_member_uri(path, members[0])
         if not args.get("name"):
             name = os.path.splitext(os.path.basename(members[0]))[0]
+        wanted = sublayer
     elif path.startswith("/vsizip/"):
         archive_members = _zip_listing(real_path)[0]
-    if path.lower().endswith(_CONTAINER_EXTENSIONS):
-        names = _sublayer_names(path)
+    source = uri
+    if source.lower().endswith(_CONTAINER_EXTENSIONS):
+        names = _sublayer_names(source)
         if wanted:
             if names and wanted not in names:
-                return {"_error": f"No layer named {wanted!r} in {os.path.basename(path)}.",
-                        "sublayers": names, "suggestion": "Call again with one of the listed layer names."}
-            uri = f"{path}|layername={wanted}"
+                return {"_error": f"No layer named {wanted!r} in {os.path.basename(source)}.",
+                        "sublayers": names, "suggestion": "layer names one of the listed layers."}
+            uri = f"{source}|layername={wanted}"
             if not args.get("name"):
                 name = wanted
         elif len(names) > 1:
 
             return {
                 "path": path,
-                "layers": describe_sublayers(path, names),
-                "_note": (f"{os.path.basename(path)} holds {len(names)} layers, none added yet. Call add_data "
-                          "again with layer=<name> for each one wanted, or answer from this list."),
+                "layers": describe_sublayers(source, names),
+                "_note": (f"{os.path.basename(source)} holds {len(names)} layers, none added yet. "
+                          "add_data with layer=<name> loads each one wanted, or the list answers."),
             }
         elif len(names) == 1:
-            uri = f"{path}|layername={names[0]}"
+            uri = f"{source}|layername={names[0]}"
             if not args.get("name"):
                 name = names[0]
 
@@ -454,7 +499,7 @@ def _add_vector_layer(args: dict) -> dict:
     if not layer.isValid():
         if archive_members:
             return {"_error": f"Failed to load vector layer from: {uri}", "layers": archive_members[:50],
-                    "suggestion": "Pass the zip itself with layer set to one of the listed files."}
+                    "suggestion": "The zip itself, with layer set to one of the listed files."}
         return {"_error": f"Failed to load vector layer from: {uri}"}
 
     split = None
@@ -490,8 +535,8 @@ def _add_vector_layer(args: dict) -> dict:
 
 
 
-NO_CRS_WARNING = ("The file declares no CRS, so QGIS cannot place it. Ask the user which CRS it was "
-                  "drawn in, then call set_layer_crs on this layer.")
+NO_CRS_WARNING = ("The file declares no CRS, so QGIS cannot place it. Only the user or the source "
+                  "names it; set_layer_crs then applies it.")
 
 
 def _apply_requested_crs(layer, wanted) -> dict:
@@ -521,8 +566,8 @@ def _apply_requested_crs(layer, wanted) -> dict:
         return {}
     named = declared.authid() or declared.description() or "a custom CRS"
     return {"warning": (f"The file declares {named}, so crs {wanted} was not applied: that would move the data "
-                        "without reprojecting it. Reproject with native:reprojectlayer, or call set_layer_crs if "
-                        "the file's own CRS is wrong.")}
+                        "without reprojecting it. native:reprojectlayer reprojects it; set_layer_crs fixes "
+                        "a wrong declared CRS.")}
 
 
 def _add_raster_layer(args: dict) -> dict:
@@ -537,7 +582,7 @@ def _add_raster_layer(args: dict) -> dict:
     if path_error:
         return {"_error": path_error}
 
-    if not os.path.exists(path):
+    if not _source_exists(path):
         return missing_file(path, f"File not found: {path}")
 
     source = path
@@ -622,8 +667,8 @@ def _add_point_cloud_layer(args: dict) -> dict:
         if provider not in _REMOTE_POINT_CLOUD_PROVIDERS:
             return {"_error": f"A remote {os.path.splitext(source)[1]} has no index, so it can only be read "
                               "once downloaded in full.",
-                    "suggestion": "Ask the provider for the COPC or EPT distribution of the same tiles, which "
-                                  "reads in place, or download the file first and pass the local path."}
+                    "suggestion": "A COPC or EPT distribution of the same tiles reads in place; a "
+                                  "downloaded file loads by its local path."}
     else:
         path_error = validate_path(source, write=False)
         if path_error:
@@ -633,7 +678,7 @@ def _add_point_cloud_layer(args: dict) -> dict:
 
     if not _provider_available(provider):
         return {"_error": f"This QGIS build has no {provider} provider, so it cannot open point clouds.",
-                "suggestion": "Install QGIS from the official packages, which carry PDAL, then reload."}
+                "suggestion": "The official QGIS packages carry PDAL."}
 
     try:
         from qgis.core import QgsPointCloudLayer
@@ -645,8 +690,7 @@ def _add_point_cloud_layer(args: dict) -> dict:
     layer = QgsPointCloudLayer(source, name, provider)
     if not layer.isValid():
         return {"_error": f"Failed to load point cloud from: {source}",
-                "suggestion": "Check the file opens in QGIS by hand. A LAZ written before LAS 1.4 sometimes "
-                              "needs converting first."}
+                "suggestion": "A LAZ written before LAS 1.4 sometimes needs converting first."}
 
     QgsProject.instance().addMapLayer(layer)
     out = {
@@ -826,10 +870,10 @@ def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], str]:
             continue
         if not isinstance(layer, QgsVectorLayer):
             return [], (f"A non-vector layer named '{layer.name()}' is using {os.path.basename(path)}. "
-                        "Close it or export to a different file.")
+                        "A different file name avoids it.")
         if layer.isEditable() or layer.isModified():
             return [], (f"Layer '{layer.name()}' has unsaved edits in {os.path.basename(path)}. "
-                        "Save or roll them back, or export to a different file.")
+                        "Those edits hold it; a different file name avoids it.")
         style = QgsMapLayerStyle()
         style.readFromLayer(layer)
         matches.append({
@@ -982,8 +1026,8 @@ def _export_failure_message(path: str, error_msg: str) -> str:
 
     if IS_WINDOWS and os.path.exists(path) and "already exists" in (error_msg or "").lower():
         return (f"Export failed: {error_msg} On Windows a file that a loaded layer still holds "
-                f"cannot be replaced. Remove the layer reading {os.path.basename(path)} from the "
-                f"project first, or export to a different file name.")
+                f"cannot be replaced: the layer reading {os.path.basename(path)} holds it, and a "
+                f"different file name avoids it.")
     collapsed, repeats = _collapse_repeats(error_msg)
     if _NON_FINITE_PHRASE in (error_msg or ""):
         many = f"{repeats} features hold" if repeats > 1 else "A feature holds"
@@ -1293,7 +1337,7 @@ def _misspelt_folder(path: str) -> dict | None:
                 f"The folder {folder} does not exist, and the project already reads {os.path.basename(source)} "
                 f"from {source} (layer {layer.name()!r}). Nothing was written.",
                 "INVALID_ARGS",
-                f"To write into that file, call again with path {source!r}, copied exactly.",
+                f"path {source!r}, copied exactly, writes into that file.",
             )
     return None
 
@@ -1307,15 +1351,15 @@ def _export_raster(layer, path: str, args: dict) -> dict:
     driver = _RASTER_DRIVERS.get(ext)
     if not driver:
         return tool_error(f"Unsupported raster format '{ext}'.", "INVALID_ARGS",
-                          "Use a .tif path for a raster layer.")
+                          ".tif works for a raster layer.")
     if args.get("crs") and args["crs"] != layer.crs().authid():
         return tool_error(
             f"export_layer copies a raster on its own grid and does not reproject it ({layer.crs().authid()} "
             f"to {args['crs']}).", "INVALID_ARGS",
-            "Reproject with run_processing gdal:warpreproject and pass this path as OUTPUT.")
+            "run_processing gdal:warpreproject with this path as OUTPUT reprojects it.")
     if os.path.exists(path) and not args.get("overwrite"):
         return tool_error(f"{path} already exists.", "INVALID_ARGS",
-                          "Pass overwrite true only if the user agreed to replace it, or choose another path.")
+                          "overwrite true replaces it with the user's agreement, or another path avoids it.")
     source = layer.source().split("|", 1)[0]
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     staging = _staging_path(path)
@@ -1353,7 +1397,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
         for produced in _raster_staged_files(staging):
             remove_quietly(produced)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
-                          "Check the folder is writable, or write to another folder.")
+                          "The folder needs write access, or another folder works.")
     written = QgsRasterLayer(path, "check")
     out = {"exported": path, "format": driver, "kind": "raster",
            "width": written.width(), "height": written.height(), "band_count": written.bandCount(),
@@ -1389,8 +1433,8 @@ def _csv_geometry(layer) -> tuple[str, list[str]] | dict:
         f"Layer '{layer.name()}' already has a field named {by_name['wkt']}, the name the CSV geometry column "
         f"would take, so the file could not be read back. Nothing was written.",
         "INVALID_ARGS",
-        "Rename that field with rename_field first, export to .gpkg or .geojson, or pass geometryless true "
-        "to write the attributes only.",
+        "rename_field frees the name; .gpkg or .geojson have no such column; geometryless true "
+        "writes the attributes only.",
     )
 
 
@@ -1425,7 +1469,7 @@ def _export_layer(args: dict) -> dict:
         return export_dxf(layer, path, args)
     if ext == ".dwg":
         return tool_error("QGIS cannot write DWG: GDAL reads it but has no DWG writer.", "INVALID_ARGS",
-                          "Export to .dxf instead; AutoCAD opens it and saves it as DWG.")
+                          ".dxf is written; AutoCAD opens it and saves it as DWG.")
     driver_map = {
         ".gpkg": "GPKG",
         ".geojson": "GeoJSON",
@@ -1437,7 +1481,7 @@ def _export_layer(args: dict) -> dict:
     }
     driver = driver_map.get(ext)
     if not driver:
-        return {"_error": f"Unsupported format '{ext}'. Use: .gpkg, .geojson, .shp, .csv, .kml, .xlsx, .dxf"}
+        return {"_error": f"Unsupported format '{ext}'. Formats: .gpkg, .geojson, .shp, .csv, .kml, .xlsx, .dxf"}
 
     crs = QgsCoordinateReferenceSystem(args["crs"]) if args.get("crs") else layer.crs()
 
@@ -1470,6 +1514,10 @@ def _export_layer(args: dict) -> dict:
 
 
     options.layerName = str(args.get("layer_name_in_file") or layer.name())
+
+
+    options.saveMetadata = True
+    options.layerMetadata = layer.metadata()
     shapefile_mapping = None
     if driver == "ESRI Shapefile":
         safe_names, shapefile_mapping = _shapefile_field_names(layer)
@@ -1517,7 +1565,7 @@ def _export_layer(args: dict) -> dict:
                 _discard_staged_write(staging)
                 return {"_error": f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
                         "_code": "EXECUTION_FAILED",
-                        "suggestion": "Check there is room on the volume and that the folder is writable."}
+                        "suggestion": "The volume needs room, and the folder needs write access."}
             options.actionOnExistingFile = enum_member(
                 QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
             replaced_layer_in_place = True
@@ -1629,7 +1677,7 @@ def _add_field(args: dict) -> dict:
         return {
             "_error": f"field_type {args.get('field_type')!r} is not a field kind this tool builds.",
             "code": "INVALID_ARGS",
-            "suggestion": f"Use one of: {', '.join(sorted(FIELD_TYPES))}.",
+            "suggestion": f"One of: {', '.join(sorted(FIELD_TYPES))}.",
         }
 
 
@@ -1686,8 +1734,8 @@ def _add_field(args: dict) -> dict:
                 "populating a new field with an expression would freeze QGIS.",
                 code="INVALID_ARGS",
                 suggestion=(
-                    "Run the 'qgis:fieldcalculator' processing algorithm through run_processing "
-                    "instead, or call add_field without an expression and populate it separately."
+                    "run_processing on 'qgis:fieldcalculator' avoids that; add_field without an "
+                    "expression also works, populated separately."
                 ),
             )
 
@@ -1733,7 +1781,7 @@ def _add_field(args: dict) -> dict:
                            f"{existing_kind}, not {kind}."),
                 "_code": "INVALID_ARGS",
                 "existing_type": existing_kind,
-                "suggestion": (f"Use another field_name, or pass field_type='{existing_kind}' to write into "
+                "suggestion": (f"Another field_name avoids this, or field_type='{existing_kind}' writes to "
                                f"the field as it stands."),
             }
     else:

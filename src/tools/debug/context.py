@@ -69,7 +69,7 @@ def _get_plugin_debug_context(args: dict) -> dict:
     }
 
     if not adapter.is_loaded():
-        bundle["hint"] = "Plugin is not loaded. Use list_plugins to see available plugins."
+        bundle["hint"] = "Plugin is not loaded; list_plugins lists available plugins."
         return bundle
 
     if args.get("include_snapshot", True):

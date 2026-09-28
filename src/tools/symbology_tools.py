@@ -282,13 +282,13 @@ def _encode_value(key: str, value, default) -> tuple:
     if isinstance(default, str) and _ENCODED_COLOUR.match(default) and not isinstance(value, (dict, list)):
         colour = _qcolor(value)
         if colour is None:
-            return None, (f"{key}: {value!r} is not a colour. Pass '#rrggbb', '#rrggbbaa' (alpha last), a name "
+            return None, (f"{key}: {value!r} is not a colour: '#rrggbb', '#rrggbbaa' (alpha last), a name "
                           "such as 'steelblue', or 'r,g,b,a' with alpha 0 to 255.")
         return QgsSymbolLayerUtils.encodeColor(colour), None
     if key.endswith("_unit") and isinstance(default, str) and QgsUnitTypes.decodeRenderUnit(default)[1]:
         unit, ok = _render_unit(value)
         if not ok:
-            return None, (f"{key}: {value!r} is not a unit. Use MM, Point, Pixel, MapUnit, Inch or "
+            return None, (f"{key}: {value!r} is not a unit: MM, Point, Pixel, MapUnit, Inch or "
                           "RenderMetersInMapUnits.")
         return QgsUnitTypes.encodeUnit(unit), None
     return _as_property(value, default), None
@@ -1011,8 +1011,8 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     if name in _CLASSED and name != current_type:
         return None, tool_error(
             f"{name} classes come from a field, a ramp and a class count, which set_layer_style builds.",
-            "INVALID_ARGS", "Call set_layer_style (categorized or graduated) first, then this tool without renderer "
-            "to give every class these symbol layers.")
+            "INVALID_ARGS", "set_layer_style (categorized or graduated), then this tool without renderer, "
+            "gives every class these symbol layers.")
     if not name or name in _CLASSED:
 
         if layers is None:
@@ -1020,14 +1020,14 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
         renderer = current.clone() if current is not None else None
         if renderer is None:
             return None, tool_error(f"Layer {layer.name()!r} has no renderer to restyle.", "INVALID_ARGS",
-                                    "Pass renderer singleSymbol with the symbol_layers.")
+                                    "renderer singleSymbol accepts the symbol_layers.")
         count, error = _restyle_symbols(renderer, symbol_type, layers, keep_size=not _any_size_given(specs))
         if error:
             return None, error
         if not count:
             return None, tool_error(f"The {current_type} renderer of {layer.name()!r} draws no symbol these layers "
                                     "could go on.", "INVALID_ARGS",
-                                    "Pass renderer singleSymbol with the symbol_layers.")
+                                    "renderer singleSymbol accepts the symbol_layers.")
         result["symbols_restyled"] = count
         return renderer, None
 
@@ -1066,7 +1066,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     renderer = cls.convertFromRenderer(base)
     if renderer is None:
         return None, tool_error(f"QGIS cannot turn the {base.type()} renderer into {name}.", "INVALID_ARGS",
-                                "Pass symbol_layers so it wraps a single symbol.")
+                                "symbol_layers wraps a single symbol.")
     if name == "RuleRenderer" and layers is not None:
         count, error = _restyle_symbols(renderer, symbol_type, layers, keep_size=not _any_size_given(specs))
         if error:
@@ -1112,7 +1112,7 @@ _VECTOR_ONLY = ("renderer", "symbol_layers", "rules", "renderer_options", "effec
 def _set_layer_symbology(args: dict) -> dict:
     target = args.get("layer_name")
     if not target:
-        return tool_error("layer_name is required.", "INVALID_ARGS", "Name the layer to style, or pass its id.")
+        return tool_error("layer_name is required.", "INVALID_ARGS", "It takes the layer name or id.")
     layer = _find_layer(target)
     if not layer:
         return _layer_not_found_error(target)

@@ -70,14 +70,14 @@ def _output_target(args: dict, layer_name: str):
             target = os.path.join(folder, f"{stem}_{index}.docx")
     elif not target.lower().endswith(".docx"):
         return None, tool_error("output_path must end in .docx.", "INVALID_ARGS",
-                                "Pass a Word document path ending in .docx.")
+                                "A Word document path ending in .docx.")
     error = security.validate_path(target, write=True)
     if error:
         return None, tool_error(error, "PERMISSION_DENIED",
-                                "Pick a path under the project folder, your home folder or the temp folder.")
+                                "Allowed: the project folder, your home folder or the temp folder.")
     if os.path.exists(target) and args.get("overwrite") is not True:
         return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                "Pass overwrite:true to replace it or choose another output_path.")
+                                "overwrite:true replaces it; else a new output_path.")
     return target, None
 
 
@@ -97,12 +97,12 @@ def _prepare(args: dict) -> dict:
         return _layer_not_found_error(ref)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
-                          "Pass a vector layer with an attribute table.")
+                          "a vector layer with an attribute table.")
     requested = args.get("fields")
     names = [f.name() for f in layer.fields()] if requested is None else [str(f).strip() for f in requested]
     if not names or len(names) > MAX_FIELDS:
         return tool_error(f"A report needs 1 to {MAX_FIELDS} fields.", "INVALID_ARGS",
-                          "Pass a shorter fields list.")
+                          "a shorter fields list.")
     selected = []
     for name in names:
         index = layer.fields().indexOf(name)
@@ -195,7 +195,7 @@ def _export_document_report(args: dict) -> dict:
     try:
         plan = _run_on_main_thread(_prepare, args, timeout=60)
     except InterruptedError:
-        return tool_error("The document report was stopped.", "STOPPED", "Ask again when ready.")
+        return tool_error("The document report was stopped.", "STOPPED", "It can be retried.")
     if not isinstance(plan, dict) or "_error" in plan:
         return plan
     target = plan.pop("target")
@@ -216,14 +216,14 @@ def _export_document_report(args: dict) -> dict:
         except OSError:
             pass
         return tool_error(f"The document could not replace {target}: another program holds it open ({exc}).",
-                          "EXECUTION_FAILED", "Close the document and try again, or choose another path.")
+                          "EXECUTION_FAILED", "Closing it there, or a new path, frees the write.")
     except OSError as exc:
         try:
             os.remove(part)
         except OSError:
             pass
         return tool_error(f"The document could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "Check the folder exists and has room, or choose another output_path.")
+                          "The folder may lack room, or need another output_path.")
     return {"output_path": target, "layer": plan["layer"], "row_count": plan["row_count"],
             "shown_rows": plan["shown_rows"], "fields": plan["fields"],
             "format": "docx", "cut": plan["cut"]}

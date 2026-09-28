@@ -405,9 +405,11 @@ class AIAgentPlugin:
             from .api.terralab_client import TerraLabClient
 
             locale = self._settings.locale if self._settings is not None else ""
+            account = self.controller.account if self.controller is not None else None
+            auth = account.get_auth_header() if account is not None else {}
             task = GenericRequestTask(
                 tr("Refreshing AI Agent settings"),
-                lambda: TerraLabClient().get_config(lang=locale),
+                lambda: TerraLabClient().get_config(lang=locale, auth=auth),
                 hidden=True,
             )
             task.succeeded.connect(self._on_server_config_loaded)
@@ -707,6 +709,8 @@ class AIAgentPlugin:
         stop_log_capture()
         with contextlib.suppress(Exception):
             self._on_approval_waiting(False)
+        with contextlib.suppress(Exception):
+            self._drop_bar_item("_finished_bar_item")
         for stop in (self._stop_profiler, self._stop_snapshot_jobs, self._stop_style_watch,
                      self._stop_3d_view_guard, self._stop_dependency_installs, self._stop_processing_tasks,
                      self._stop_report_bridge, self._stop_code_runtime):
@@ -929,6 +933,8 @@ class AIAgentPlugin:
             self.controller.notice.connect(self._on_notice)
             if hasattr(self.controller, "approval_waiting"):
                 self.controller.approval_waiting.connect(self._on_approval_waiting)
+            if hasattr(self.controller, "run_finished"):
+                self.controller.run_finished.connect(self._on_run_finished)
             self.iface.addDockWidget(_DOCK_AREA, dock)
             self.dock = dock
             self._watch_screen(dock)
@@ -983,6 +989,50 @@ class AIAgentPlugin:
                 pass
         self._push(message, kind)
 
+    def _where_is_the_user(self):
+
+        dock = self.dock
+        try:
+            main_window = self.iface.mainWindow()
+            dock_seen = bool(dock is not None and dock.isVisible() and not dock.visibleRegion().isEmpty())
+            window_active = bool(main_window is not None and main_window.isActiveWindow()
+                                 and not main_window.isMinimized())
+        except RuntimeError:
+            return None
+        return main_window, window_active, dock_seen
+
+    def _call_user(self, attr: str, message: str, level) -> None:
+
+
+
+        seen = self._where_is_the_user()
+        if seen is None:
+            return
+        main_window, window_active, dock_seen = seen
+        if not window_active and main_window is not None:
+            with contextlib.suppress(RuntimeError, AttributeError):
+                QApplication.alert(main_window, 0)
+        if dock_seen or getattr(self, attr, None) is not None:
+            return
+        try:
+            from qgis.PyQt.QtWidgets import QPushButton
+
+            bar = self.iface.messageBar()
+            item = bar.createMessage(PLUGIN_NAME, message)
+            button = QPushButton(tr("Show"), item)
+            button.clicked.connect(lambda _=False, attr=attr: (self._drop_bar_item(attr), self._show_dock()))
+            item.layout().addWidget(button)
+            setattr(self, attr, bar.pushWidget(item, level, 0) or item)
+        except (RuntimeError, AttributeError, TypeError) as exc:
+            log_warning(f"Reminder not shown: {exc}")
+
+    def _drop_bar_item(self, attr: str) -> None:
+        bar_item = getattr(self, attr, None)
+        setattr(self, attr, None)
+        if bar_item is not None:
+            with contextlib.suppress(RuntimeError, AttributeError, TypeError):
+                self.iface.messageBar().popWidget(bar_item)
+
     def _on_approval_waiting(self, waiting: bool) -> None:
 
 
@@ -993,37 +1043,28 @@ class AIAgentPlugin:
 
 
 
-        bar_item = getattr(self, "_approval_bar_item", None)
         if not waiting:
-            self._approval_bar_item = None
-            if bar_item is not None:
-                with contextlib.suppress(RuntimeError, AttributeError, TypeError):
-                    self.iface.messageBar().popWidget(bar_item)
+            self._drop_bar_item("_approval_bar_item")
             return
-        dock = self.dock
-        try:
-            main_window = self.iface.mainWindow()
-            dock_seen = bool(dock is not None and dock.isVisible() and not dock.visibleRegion().isEmpty())
-            window_active = bool(main_window is not None and main_window.isActiveWindow()
-                                 and not main_window.isMinimized())
-        except RuntimeError:
-            return
-        if not window_active and main_window is not None:
-            with contextlib.suppress(RuntimeError, AttributeError):
-                QApplication.alert(main_window, 0)
-        if dock_seen or bar_item is not None:
-            return
-        try:
-            from qgis.PyQt.QtWidgets import QPushButton
+        self._drop_bar_item("_finished_bar_item")
+        self._call_user("_approval_bar_item", tr("The agent is waiting for your answer."),
+                        Qgis.MessageLevel.Warning)
 
-            bar = self.iface.messageBar()
-            item = bar.createMessage(PLUGIN_NAME, tr("The agent is waiting for your approval."))
-            button = QPushButton(tr("Show"), item)
-            button.clicked.connect(self._show_dock)
-            item.layout().addWidget(button)
-            self._approval_bar_item = bar.pushWidget(item, Qgis.MessageLevel.Warning, 0) or item
-        except (RuntimeError, AttributeError, TypeError) as exc:
-            log_warning(f"Approval reminder not shown: {exc}")
+    def _on_run_finished(self, status: str) -> None:
+
+
+
+
+
+
+        self._drop_bar_item("_finished_bar_item")
+        if status == "cancelled":
+            return
+        if status == "done":
+            message, level = tr("The agent finished."), Qgis.MessageLevel.Success
+        else:
+            message, level = tr("The agent stopped before finishing."), Qgis.MessageLevel.Warning
+        self._call_user("_finished_bar_item", message, level)
 
     def _push(self, message: str, kind: str = "info"):
         level = Qgis.MessageLevel.Warning if kind == "warning" else Qgis.MessageLevel.Info

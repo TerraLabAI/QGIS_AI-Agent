@@ -254,8 +254,8 @@ def narrowing_note(available=None) -> str:
     names = [a for a in NARROWING_ARGS if a in available][:_NARROWING_NAMED]
     if not names:
         return ("Result cut by the client. This tool takes no argument that makes its answer "
-                "smaller: ask for a narrower thing, or run it over a subset of the data.")
-    return "Result cut by the client. Call it again with " + ", ".join(names) + " to get an answer that fits."
+                "smaller; a narrower thing or a subset of the data would fit.")
+    return "Result cut by the client. " + ", ".join(names) + " narrows the answer to fit."
 
 
 
@@ -287,7 +287,7 @@ def _over_transport(kept: dict) -> dict:
     dropped: dict = {}
     for key, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
         dropped[key] = (f"[{size:,} bytes not sent: this result is over the {limit_mb} MB the connection "
-                        f"carries. Ask for a smaller render or a lower resolution, or write it to a file.]")
+                        f"carries. A smaller render, a lower resolution or a file fits.]")
         total -= size
         if total <= MAX_UNCAPPED_BYTES:
             break

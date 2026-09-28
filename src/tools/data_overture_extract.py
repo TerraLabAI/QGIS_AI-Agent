@@ -25,12 +25,15 @@ from .data_overture import (
     _OVERTURE_MAX_TILES,
     _OVERTURE_TILE_ZOOM,
     _clip_split_refusal,
+    _division_names,
     _divisions_subtypes_asked,
     _filter_miss_suggestion,
+    _named_sentence,
     _osm_themes,
     _outline_contains,
     _overture_attribution,
     _overture_boxes,
+    _overture_divisions_named,
     _overture_divisions_presence,
     _overture_feature_key,
     _overture_filter_miss,
@@ -50,6 +53,37 @@ from .data_overture import (
     _tiles_base,
 )
 from .data_places import _resolve_outline
+
+
+def _town_elsewhere(levels) -> str:
+
+
+
+    return (f"Overture has no outline for this town here. The {', '.join(sorted(levels))} in this box are "
+            "larger units: a county or region often carries the town's name but is not the town. "
+            "OpenStreetMap's place or boundary polygon (fetch_osm_data) is the town's own outline where one exists.")
+
+
+def _say_named(empty: dict, asked: list, names: list, box) -> bool:
+
+
+
+
+
+    named = _overture_divisions_named(box, names) if names and asked else None
+    if named is None:
+        return False
+    empty["named_here"] = named[:6]
+    if not named:
+        empty["message"] = f"{empty.get('message') or ''} {_named_sentence(asked, names, [])}".strip()
+        return False
+    empty["message"] = _named_sentence(asked, names, named)
+    if "locality" in asked:
+        empty["suggestion"] = _town_elsewhere({entry["subtype"] for entry in named})
+    else:
+        empty["suggestion"] = (f'filter {{"subtype": "{named[0]["subtype"]}"}} reads the {named[0]["subtype"]} '
+                               f'named {named[0]["name"]!r}.')
+    return True
 
 
 def _overture_clip(theme: str, box, args: dict, deadline: float | None = None, later: list | None = None) -> dict:
@@ -76,9 +110,16 @@ _LIFTED_OUTLINE_VERTICES = 4000
 
 def _lifted_deadline() -> float:
 
+
+
+
+
+
     import time
 
-    return time.monotonic() + limits.current("CALL_MAX_SECONDS_BACKGROUND") * _LIFTED_CLOCK_SHARE
+    budget = min(float(limits.current("OVERTURE_LIFTED_READ_SECONDS")),
+                 limits.current("CALL_MAX_SECONDS_BACKGROUND") * _LIFTED_CLOCK_SHARE)
+    return time.monotonic() + budget
 
 
 def _extract_miss_reason(text: str) -> str:
@@ -225,6 +266,8 @@ def _cut(geometry, shape, family: str):
 
 _CLASS_COUNT_SHOWN = 12
 
+_NAMES_SHOWN = 30
+
 
 
 _OVERTURE_CLASS_FIELDS = ("subtype", "class", "category")
@@ -352,8 +395,7 @@ def _cover_entry(share, area_label: str, theme: str) -> dict:
     percent = round(share * 100)
     return {"share": share, "of": area_label,
             "note": (f"{percent}% of {area_label} lies under a returned {theme} polygon; the other "
-                     f"{100 - percent}% has none in the source, which says nothing of what is there. Never "
-                     "describe that part as covered or classified.")}
+                     f"{100 - percent}% has none in the source, which says nothing of what is there.")}
 
 
 def _tile_bounds(label: str):
@@ -1218,6 +1260,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             empty["message"] = (f"{served_in_box} {theme} came back for the box around {outline['label']}, "
                                 f"and none of them fall inside its outline.")
             empty["suggestion"] = "Drop clip_to to keep what the box holds, or try another theme."
+            if theme == "divisions":
+                _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
             return empty
         if isinstance(wanted, (dict, list)) and wanted:
             flat = wanted if isinstance(wanted, dict) else {k: v for one in wanted for k, v in one.items()}
@@ -1245,8 +1289,12 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                                 f"the rest of the filter; values_present holds what they carry.")
             empty["suggestion"] = (_filter_miss_suggestion(empty)
                                    or "Drop the name from the filter to see every division of that level here.")
+            _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
         else:
             asked = [s for s in subtypes if s] if theme == "divisions" else []
+            names = _division_names(wanted, args, outline) if asked else []
+            if _say_named(empty, asked, names, box):
+                return empty
             elsewhere = _overture_divisions_presence(box) if asked else {}
             for subtype in asked:
                 elsewhere.pop(subtype, None)
@@ -1256,16 +1304,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                 named = ", ".join(f"{name} has {count:,} here" for name, count in ranked[:2])
                 empty["message"] = f"No {' or '.join(asked)} divisions in this box, but {named}."
                 empty["other_subtypes_here"] = dict(ranked)
-
-
-
-
                 if "locality" in asked:
-                    empty["suggestion"] = (
-                        f"Overture has no outline for this town here. The {', '.join(sorted(elsewhere))} in this "
-                        "box are larger units: a county or region often carries the town's name but is not the "
-                        "town, and must not be loaded or named as it. The town's own outline is OpenStreetMap's "
-                        "place or boundary polygon (fetch_osm_data); if there is none, say so and ask.")
+                    empty["suggestion"] = _town_elsewhere(elsewhere)
                 else:
                     empty["suggestion"] = (
                         f"A {ranked[0][0]} is another admin level than the {' or '.join(asked)} asked, not the "
@@ -1276,6 +1316,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                                     + (" that match the filter" if wanted else "") + ".")
                 empty["suggestion"] = (_filter_miss_suggestion(empty)
                                        or "Widen the box, drop the filter, or try another theme.")
+            if names and empty.get("named_here") == []:
+                empty["message"] = f"{_named_sentence(asked, names, [])} {empty['message']}"
         return empty
 
     made = _overture_layer(features, name, args)
@@ -1318,6 +1360,12 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         nested = [feature for feature in features
                   if isinstance(feature, dict) and (feature.get("properties") or {}).get("nested_in")]
+
+
+
+        if len(features) <= _NAMES_SHOWN:
+            made["names"] = [str((feature.get("properties") or {}).get("name") or "") for feature in features
+                             if isinstance(feature, dict)]
         if nested:
             sample = nested[0]["properties"]
             made["nested"] = (f"{len(nested)} of {len(features)} lie inside another feature of the same subtype "
@@ -1345,7 +1393,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         made["coverage"] = "partial"
         made["_note"] = (f"The service stopped at its limit of {len(features):,} features: this layer covers part "
-                         "of the box, and the rest is missing from the map, not empty. Say so.")
+                         "of the box, and the rest is missing from the map, not empty.")
         made["suggestion"] = ("For the rest: a smaller box around the part that matters, or, if the user's own "
                               "words ask for the whole place, the same call with full_extent.")
         if payload.get("unread_boxes"):

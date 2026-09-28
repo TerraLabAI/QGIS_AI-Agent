@@ -264,6 +264,11 @@ _BTN_SEND = (
 
     f'QToolButton[running="true"] {{ background: {INK}; }}'
     f'QToolButton[running="true"]:hover {{ background: {INK_HOVER}; }}'
+
+
+    f'QToolButton[queue="true"] {{ background: {SURFACE}; border: 1px solid {LINE_STRONG}; }}'
+    f'QToolButton[queue="true"]:hover {{ background: {HOVER}; }}'
+    f'QToolButton[queue="true"]:disabled {{ background: {SURFACE}; border: 1px solid {LINE}; }}'
 )
 
 

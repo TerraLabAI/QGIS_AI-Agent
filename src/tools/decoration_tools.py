@@ -367,7 +367,7 @@ def _check_args(decoration: str, args: dict) -> dict | None:
     if style is not None:
         allowed = SCALE_BAR_STYLES if decoration == "scale_bar" else GRID_STYLES
         if style not in allowed:
-            return _invalid(f"style {style!r} is not a {decoration} style.", f"Pass one of {', '.join(allowed)}.")
+            return _invalid(f"style {style!r} is not a {decoration} style.", f"Valid: {', '.join(allowed)}.")
     for key in ("color", "background_color", "outline_color"):
         bad = _color_error(args.get(key), key)
         if bad:
@@ -376,9 +376,9 @@ def _check_args(decoration: str, args: dict) -> dict | None:
     if path is not None:
         why = validate_path(str(path))
         if why:
-            return _invalid(why, "Pass the full path of an image file on this computer.")
+            return _invalid(why, "The full path of an image file on this computer.")
         if not os.path.isfile(str(path)):
-            return _invalid(f"No file at {path}.", "Pass the full path of an existing SVG, PNG or JPEG file.")
+            return _invalid(f"No file at {path}.", "The full path of an existing SVG, PNG or JPEG file.")
     return None
 
 
@@ -408,7 +408,7 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
         text = args.get("text") if args.get("text") is not None else current["text"]
         if not str(text or "").strip():
             return _invalid(f"A {decoration} decoration needs its text.",
-                            "Pass text, for example the map title or 'Data: OpenStreetMap contributors'. "
+                            "For example the map title or 'Data: OpenStreetMap contributors'. "
                             "QGIS expressions in [% %] work, such as [% @project_title %].")
         _write_margins(scope, decoration, args, current)
         _write(scope, "/Label", str(text))
@@ -442,7 +442,7 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
     elif decoration == "image":
         path = args.get("path") or current["path"]
         if not path:
-            return _invalid("An image decoration needs the image file.", "Pass path, an SVG, PNG or JPEG file.")
+            return _invalid("An image decoration needs the image file.", "path takes an SVG, PNG or JPEG file.")
         _write_margins(scope, decoration, args, current)
         _write(scope, "/ImagePath", os.path.abspath(str(path)))
         _write(scope, "/Size", float(args["size"] if args.get("size") is not None else current["size"]))
@@ -488,7 +488,7 @@ def _write_grid(scope: str, args: dict, current: dict) -> dict | None:
     interval_y = args.get("interval_y") or args.get("interval") or (
         current["interval_y"] if same_units else _nice_interval(extent.height()))
     if not interval_x or not interval_y:
-        return _invalid("The grid spacing could not be read from the view.", "Pass interval in map units.")
+        return _invalid("The grid spacing could not be read from the view.", "interval is in map units.")
     _write(scope, "/MapUnits", units)
     _write(scope, "/Style", GRID_STYLES.index(args.get("style") or current["style"]))
     _write(scope, "/IntervalX", float(interval_x))
@@ -534,7 +534,7 @@ def _set_canvas_decoration(args: dict) -> dict:
     if item is None:
         return tool_error(
             "Canvas decorations need the QGIS desktop window, and its decoration items were not found.",
-            "EXECUTION_FAILED", "Use a print layout (create_print_layout) for a title, scale bar or north arrow.")
+            "EXECUTION_FAILED", "create_print_layout gives a title, scale bar or north arrow off the canvas.")
 
     scope = _ITEMS[decoration][0]
     enabled = args.get("enabled") is not False

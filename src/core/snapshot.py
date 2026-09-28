@@ -346,7 +346,10 @@ class RunSnapshot:
 
 
         self.pending_copies: list[tuple] = []
-        self.copy_errors: list[str] = []
+
+
+        self._sweep_jobs: dict[int, str] = {}
+        self._not_copyable: set[str] = set()
         self.memory_features: dict[str, list] = {}
 
 
@@ -641,6 +644,10 @@ class RunSnapshot:
         with _signals_blocked(project) if self.quiet else contextlib.nullcontext():
             try:
                 ok = bool(project.write(self.project_path))
+                if not ok:
+
+
+                    log_warning(f"Snapshot write failed: {project.error() or 'QGIS gave no reason'}")
             except Exception as exc:
                 log_warning(f"Snapshot write failed: {exc}")
             finally:
@@ -795,8 +802,9 @@ class RunSnapshot:
         copies = _backup_copies(folder, _sidecars(path))
         self.backups[lid] = copies
         self.path_backups[canonical] = copies
-        self.unbacked.pop(lid, None)
         self._plan_copies(folder, copies, name or os.path.basename(path))
+
+        self.unbacked.pop(lid, None)
         return True
 
     def backup_targets(self, args: dict) -> int:
@@ -856,15 +864,25 @@ class RunSnapshot:
             except OSError:
                 continue
         if total <= INLINE_BACKUP_BYTES:
-            if not _copy_files(folder, copies, label):
-                self._copy_failed(folder, label)
+            reason = _copy_files(folder, copies, label)
+            if reason:
+                raise OSError(self._copy_failed(copies, label, reason))
             return
         self.pending_copies.append((folder, copies, label))
 
-    def _copy_failed(self, folder: str, label: str) -> None:
-        self.copy_errors.append(label)
-        self.unbacked["copy:" + folder] = label
-        raise OSError(f"Could not back up {label}; the operation was not started.")
+    def _copy_failed(self, copies: list, label: str, reason: str) -> str:
+
+
+
+
+
+
+        for table in (self.backups, self.path_backups):
+            for key in [key for key, value in table.items() if value is copies]:
+                del table[key]
+        for key in [key for key, record in self.file_backups.items() if record.get("copies") is copies]:
+            del self.file_backups[key]
+        return f"Could not back up {label}: {reason}"
 
     def has_pending_copies(self) -> bool:
         return bool(self.pending_copies)
@@ -872,15 +890,26 @@ class RunSnapshot:
     def run_pending_copies(self) -> int:
 
         jobs, self.pending_copies = self.pending_copies, []
-        done = 0
+        done, refusals = 0, []
         for folder, copies, label in jobs:
-            if _copy_files(folder, copies, label):
-                done += 1
+            reason = _copy_files(folder, copies, label)
+            swept = self._sweep_jobs.pop(id(copies), None)
+            if reason and swept is not None:
+                self._copy_failed(copies, label, reason)
+                self._not_copied(swept, label, reason)
+            elif reason:
+                refusals.append(self._copy_failed(copies, label, reason))
             else:
-                self._copy_failed(folder, label)
+                done += 1
+        if refusals:
+            raise OSError("; ".join(refusals))
         return done
 
     def backup_project_files(self) -> int:
+
+
+
+
 
 
 
@@ -895,11 +924,29 @@ class RunSnapshot:
             try:
                 if not layer_file_path(layer):
                     continue
+                lid = layer.id()
             except Exception:  # noqa: BLE001  # nosec B112
                 continue
-            if self.backup_layer_files(layer):
+            if lid in self._not_copyable and lid not in self.backups:
+                continue
+            queued = len(self.pending_copies)
+            try:
+                backed = self.backup_layer_files(layer)
+            except OSError as exc:
+
+                self._not_copied(lid, str(layer.name() or lid), str(exc).split(": ", 1)[-1])
+                continue
+            for _folder, copies, _label in self.pending_copies[queued:]:
+                self._sweep_jobs[id(copies)] = lid
+            if backed:
                 count += 1
         return count
+
+    def _not_copied(self, lid: str, name: str, reason: str) -> None:
+        self.backups.pop(lid, None)
+        self._not_copyable.add(lid)
+        self.unbacked[lid] = name
+        self.unbacked_reasons[lid] = f"its file could not be copied ({reason})"
 
 
 
@@ -1056,7 +1103,7 @@ class RunSnapshot:
                 named = ", ".join(writing[:3]) + (f" and {len(writing) - 3} more" if len(writing) > 3 else "")
                 log_warning(f"Restore of run {self.run_id[:8]} refused: still copying {named}")
                 return {"ok": False, "refused": True, "project_read": False, "still_saving": writing,
-                        "message": f"Still saving {named}. Try again in a few seconds."}
+                        "message": f"Still saving {named}; it finishes within seconds."}
             result = self._restore_now(file_name, extra_copies)
         _refresh_canvas()
         return result

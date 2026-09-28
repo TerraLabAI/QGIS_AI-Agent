@@ -73,16 +73,16 @@ def _animation(controller) -> dict:
               if layer.temporalProperties() is not None and layer.temporalProperties().isActive()]
     if not layers:
         return tool_error("No layer of the project is animated over time, so there are no frames to export.",
-                          "INVALID_ARGS", "Call set_layer_temporal on the layer first (its date field, or begin "
-                                          "and end for a raster), then export its frames.")
+                          "INVALID_ARGS", "set_layer_temporal (date field, or begin/end for a raster) "
+                                          "gives frames to export.")
     extents = controller.temporalExtents()
     total = int(controller.totalFrameCount())
     if (controller.navigationMode() != _navigation_mode("Animated") or not extents.begin().isValid()
             or not extents.end().isValid() or total < 1):
         return tool_error(f"The temporal controller is not animating a range: {', '.join(layers[:5])} "
                           "have time settings, but no frames run.", "INVALID_ARGS",
-                          "Call set_layer_temporal on the layer to put the controller in animation over its "
-                          "dates, then export its frames.")
+                          "set_layer_temporal puts the controller in animation over its dates, "
+                          "with frames to export.")
     begin, end = _moment(extents.begin()), _moment(extents.end())
     return {"layers": layers, "total": total,
             "range": {"begin": _fmt(begin, bool(begin % _DAY_MS)), "end": _fmt(end, bool(end % _DAY_MS))}}
@@ -96,10 +96,10 @@ def _frames(args: dict, total: int):
         if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < total:
             return tool_error(f"{key} {value!r} is not a frame of this animation, which has {total} "
                               f"(0 to {total - 1}).", "INVALID_ARGS",
-                              f"Pass frame numbers from 0 to {total - 1}, or leave both out for every frame.")
+                              f"Frame numbers run 0 to {total - 1}; leaving both out gives every frame.")
     if last < first:
         return tool_error(f"last_frame {last} is before first_frame {first}.", "INVALID_ARGS",
-                          "Swap them, or leave both out for every frame.")
+                          "Both left out gives every frame.")
     ceiling = int(limits.current("ANIMATION_MAX_FRAMES"))
     count = last - first + 1
     if count > ceiling:
@@ -160,20 +160,20 @@ def _folder(args: dict, layer: str, prefix: str, first: int, last: int):
     error = security.validate_path(folder, write=True)
     if error:
         return tool_error(error, "PERMISSION_DENIED",
-                          "Pick a folder under the project folder, your home folder or the temp folder.")
+                          "Under the project folder, the home folder or the temp folder works.")
     existed = os.path.isdir(folder)
 
 
 
     problem = _prepare_frame_folder(folder, prefix + "0.part")
     if problem:
-        return tool_error(problem, "INVALID_ARGS", "Pass another out_dir.")
+        return tool_error(problem, "INVALID_ARGS", "out_dir must differ.")
     if existed:
         names = set(os.listdir(folder))
         clash = next((_name(prefix, n) for n in range(first, last + 1) if _name(prefix, n) in names), None)
         if clash:
             return tool_error(f"{os.path.join(folder, clash)} already exists.", "INVALID_ARGS",
-                              "Pass another prefix or out_dir: an export never replaces frames already there.")
+                              "prefix or out_dir must differ: an export never replaces frames already there.")
     return folder, not existed
 
 
@@ -208,12 +208,11 @@ def export_animation_frames(args: dict) -> dict:
     running = running_export()
     if running:
         return tool_error(f"An animation export is already running (task {running}).", "INVALID_ARGS",
-                          f"Wait for it with get_task_status task_id {running}, or stop it with cancel_task, "
-                          "then export again.")
+                          f"get_task_status task_id {running} follows it; cancel_task stops it.")
     canvas, controller = _canvas_and_controller()
     if canvas is None or controller is None:
         return tool_error("There is no map canvas with a temporal controller in this QGIS window.",
-                          "EXECUTION_FAILED", "Export the animation from QGIS with its main window open.")
+                          "EXECUTION_FAILED", "The export needs the QGIS main window open.")
     animation = _animation(controller)
     if "_error" in animation:
         return animation
@@ -228,8 +227,8 @@ def export_animation_frames(args: dict) -> dict:
         rectangle = QgsRectangle(extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
         if rectangle.width() <= 0 or rectangle.height() <= 0:
             return tool_error("extent is empty: xmax must be above xmin and ymax above ymin.", "INVALID_ARGS",
-                              f"Pass an extent in the map's CRS, {base.destinationCrs().authid()}, or leave it "
-                              "out for the current view.")
+                              f"An extent in the map's CRS, {base.destinationCrs().authid()}, or none "
+                              "for the current view.")
     else:
         rectangle = canvas.extent()
     size = _size(args, base.outputSize(), rectangle)
@@ -291,7 +290,7 @@ class FrameExport:
         if self.entry["status"] != "running":
             _PROCESSING_TASKS.pop(self.task_id, None)
             return tool_error(self.error or "The first frame could not start.", "EXECUTION_FAILED",
-                              "Check the folder has room, or export a smaller frame.")
+                              "Folder space or a smaller frame may fix it.")
 
         return {**self.report(), "task_id": self.task_id, "status": "running",
                 "outputs": {"first_frame": {"path": self.path(self.first)},

@@ -533,6 +533,6 @@ def _refusal_delay(error, attempt: int) -> float:
 
 
 def _budget_spent(url: str, host: str, error, tries: int, delay: float) -> FetchRateLimited:
-    reason = (f"{host} answered {error.code} on {tries} tries and asked for {delay:.0f}s. "
-              "The service is rate limiting us; try again in a moment.")
+    reason = (f"{host} answered {error.code} on {tries} tries and asked for {delay:.0f}s; "
+              "the service is rate limiting us.")
     return FetchRateLimited(url, error.code, reason, getattr(error, "headers", None), None)

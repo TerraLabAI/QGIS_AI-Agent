@@ -92,6 +92,8 @@ class _ControllerFrames:
 
     def _on_session_started(self, session: dict) -> None:
         self._session_error_shown = None
+
+        self._panel_call("set_edit_available", self._session.edit_last_available)
         resumed = bool(session.get("resumed"))
         action = self._runs.session_started(session.get("resumed"))
         run = self._run
@@ -435,10 +437,12 @@ class _ControllerFrames:
         extra = (multiple,) if multiple else ()
         self._panel_call("ask_question", tool_call_id, run_id, question, options, allow_free_text,
                          int(recommended), str(why or ""), self._settings.question_timeout_s, *extra)
+        self._approval_pending(tool_call_id, True)
 
     def _on_question_answered(self, tool_call_id: str, answer: str) -> None:
         telemetry.track(ev.AGENT_QUESTION_ANSWERED, {"skipped": not answer})
         self._runs.user_answered(tool_call_id)
+        self._approval_pending(tool_call_id, False)
         self._touch_watchdog()
         self._executor.on_question_answered(tool_call_id, answer)
 
@@ -481,6 +485,9 @@ class _ControllerFrames:
 
 
 
+
+
+
         pending = self.__dict__.setdefault("_approvals_waiting", set())
         before = bool(pending)
         if waiting:
@@ -512,12 +519,15 @@ class _ControllerFrames:
 
 
 
+
+
         self._runs.user_answered(tool_call_id)
         self._approval_pending(tool_call_id, False)
         if decision == Decision.DENY:
             self._close_call(tool_call_id)
             self._touch_watchdog()
-            self._panel_call("resolve_permission", tool_call_id, decision, "stopped")
+            reason = "stopped" if self._runs.cancelled() else "unanswered"
+            self._panel_call("resolve_permission", tool_call_id, decision, reason)
         else:
             self._panel_call("resolve_permission", tool_call_id, decision)
 
@@ -597,6 +607,12 @@ class _ControllerFrames:
         if closing:
 
             self._restore_after_run(run_id)
+            try:
+                self.run_finished.emit(str(status or ""))
+            except (AttributeError, RuntimeError):
+                pass
+
+            self._flush_steers(run_id)
 
     def _release_composer(self) -> None:
 

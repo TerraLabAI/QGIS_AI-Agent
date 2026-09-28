@@ -191,6 +191,27 @@ def _describe(fn) -> str:
     return f"{module.rsplit('.', 1)[-1]}.{name}" if module else str(name)
 
 
+
+
+_CALL = threading.local()
+
+
+def current_call() -> str:
+
+    return getattr(_CALL, "tool_call_id", "")
+
+
+@contextlib.contextmanager
+def calling(tool_call_id: str):
+
+    previous = current_call()
+    _CALL.tool_call_id = str(tool_call_id or "")
+    try:
+        yield
+    finally:
+        _CALL.tool_call_id = previous
+
+
 def run_on_main_thread(fn, *args, timeout=10):
 
 
@@ -210,6 +231,7 @@ def run_on_main_thread(fn, *args, timeout=10):
 
     result_queue: queue.Queue = queue.Queue()
     cancel_check = net.current_cancel_check()
+    caller = current_call()
     wait = _Wait(cancel_check)
 
     def _trampoline():
@@ -220,7 +242,8 @@ def run_on_main_thread(fn, *args, timeout=10):
         try:
             if wait.given_up or (cancel_check is not None and cancel_check()):
                 raise InterruptedError("Main-thread work cancelled before it started")
-            result_queue.put(("ok", fn(*args)))
+            with calling(caller):
+                result_queue.put(("ok", fn(*args)))
         except Exception as exc:  # noqa: BLE001
             result_queue.put(("err", exc))
         finally:
@@ -249,7 +272,7 @@ def run_on_main_thread(fn, *args, timeout=10):
             except queue.Empty:
                 raise MainThreadBusy(
                     f"Main-thread work did not finish within {timeout}s, and it had already started "
-                    f"changing the project. Inspect the project before retrying."
+                    f"changing the project, which may be partly changed."
                 ) from exc
         else:
             raise MainThreadBusy(

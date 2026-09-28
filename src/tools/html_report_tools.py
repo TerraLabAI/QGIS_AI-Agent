@@ -87,12 +87,12 @@ def _write_html_report(args: dict) -> dict:
     title = str(args.get("title") or "").strip()
     page = args.get("html")
     if not title:
-        return tool_error("title is empty.", "INVALID_ARGS", "Give the page a short name.")
+        return tool_error("title is empty.", "INVALID_ARGS", "title needs a short name.")
     if not isinstance(page, str) or not page.strip():
-        return tool_error("html is empty.", "INVALID_ARGS", "Pass the whole page, from <!doctype html> to </html>.")
+        return tool_error("html is empty.", "INVALID_ARGS", "html is the whole page: <!doctype html> to </html>.")
     if len(page.encode("utf-8")) > report_page.MAX_PAGE_BYTES:
         return tool_error(f"html is over {report_page.MAX_PAGE_BYTES} bytes.", "INVALID_ARGS",
-                          "Embed less: declare maps in figures rather than pasting images, and cut long tables.")
+                          "figures render maps without pasted images; long tables add bytes too.")
 
 
 
@@ -105,8 +105,8 @@ def _write_html_report(args: dict) -> dict:
     refusal = validate_path(target, write=True, overwrite=overwrite)
     if refusal:
         return tool_error(refusal, "INVALID_ARGS",
-                          "Pass overwrite true to replace it, or another path." if os.path.exists(target)
-                          else "Name a file under the project folder, Documents or the exports folder.")
+                          "overwrite true replaces it; another path works too." if os.path.exists(target)
+                          else "The project folder, Documents and the exports folder take it.")
 
     figures, figure_facts, figure_errors = _render_figures(args.get("figures") or [])
     declared = set(figures)
@@ -128,7 +128,7 @@ def _write_html_report(args: dict) -> dict:
         write_atomic(target, page)
     except OSError as exc:
         return tool_error(f"The page could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "Check the folder exists and has room, or choose another path.")
+                          "The folder may not exist or lack room; another path helps.")
 
     opened = False
     if args.get("open", True):
@@ -147,15 +147,19 @@ def _write_html_report(args: dict) -> dict:
     if embedded["figures_missing"]:
         result["figures_missing"] = embedded["figures_missing"]
         result["warning"] = ("The page places figures no entry of figures declares: "
-                             + ", ".join(embedded["figures_missing"]) + ". Declare them and write the page again.")
+                             + ", ".join(embedded["figures_missing"]) + "; those show blank.")
     if unplaced:
         result["figures_unplaced"] = unplaced
+
+        result["figures_unplaced_note"] = ('These maps are rendered and not on the page: an <img src="figure:<id>"> '
+                                           "tag places each (" + ", ".join(f'<img src="figure:{n}">' for n in unplaced)
+                                           + ").")
     if embedded["files_embedded"]:
         result["images_embedded"] = embedded["files_embedded"]
     if embedded["files_skipped"]:
         result["images_skipped"] = embedded["files_skipped"]
     if not opened and args.get("open", True):
-        result["note"] = "The browser did not open the page; tell the user the path so they open it themselves."
+        result["note"] = "The browser did not open the page; the path is above."
     return result
 
 
@@ -198,7 +202,9 @@ def _render_figures(declared) -> tuple[dict, dict, list]:
         figures[name] = (mime, raw)
         fact = {"width": drawn.get("width"), "height": drawn.get("height"),
                 "layers_rendered": drawn.get("layers_rendered")}
-        for key in ("blank", "blank_note", "extent", "left_out", "render_stable"):
+
+
+        for key in ("blank", "blank_note", "extent", "render_stable"):
             if drawn.get(key) is not None:
                 fact[key] = drawn[key]
         facts[name] = fact

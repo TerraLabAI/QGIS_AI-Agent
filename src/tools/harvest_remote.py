@@ -276,7 +276,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         return tool_error(
             "The URL is not an ArcGIS REST service URL.",
             "INVALID_ARGS",
-            "Pass a URL ending in /FeatureServer/<id>, /MapServer/<id>, /MapServer or /ImageServer.",
+            "url ends in /FeatureServer/<id>, /MapServer/<id>, /MapServer or /ImageServer.",
         )
     root, service, layer_id, url = parsed
     url_where, url_token = _arcgis_query_params(str(args.get("url") or ""))
@@ -286,7 +286,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     box = _stac._parse_bbox(raw_box) if raw_box not in (None, "", [], {}) else None
     if raw_box not in (None, "", [], {}) and box is None:
         return tool_error("That bbox is not a usable box.", "INVALID_ARGS",
-                          "Pass [west, south, east, north] in EPSG:4326, west below east and south below north.")
+                          "[west, south, east, north] in EPSG:4326, west below east, south below north.")
     kind = str(args.get("kind") or "auto").lower()
     if kind == "auto":
         kind = "feature" if (service == "featureserver" or layer_id is not None) else "map"
@@ -306,7 +306,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     if kind == "map" and where:
         return tool_error("A where clause selects features; a map layer draws the whole service as images.",
                           "INVALID_ARGS",
-                          "Call with kind feature and a layer URL ending in /<id>, or without where.")
+                          "kind feature with a /<id> layer URL takes where; kind map does not.")
     if kind == "feature" and layer_id is None:
         info = _arcgis_describe(root, token)
         layers = (info or {}).get("layers") or []
@@ -316,8 +316,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         return tool_error(
             "A feature layer needs the layer id at the end of the URL.",
             "INVALID_ARGS",
-            f"Append /<id> to the URL. Layers on this service: {listing}" if listing
-            else "Append /<id> to the URL; open <url>?f=json to see the layer ids.",
+            f"/<id> names the layer. Layers on this service: {listing}" if listing
+            else "/<id> names the layer; <url>?f=json lists the ids.",
         )
 
     info = _arcgis_describe(url, token)
@@ -326,7 +326,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         code = err.get("code")
         detail = "; ".join(str(d) for d in (err.get("details") or []) if d)
         message = f"The service answered {code}: {err.get('message')}" + (f" ({detail})" if detail else "")
-        suggestion = "Pass a valid token." if code in (498, 499) else "Check the URL in a browser with ?f=json."
+        suggestion = "a valid token" if code in (498, 499) else "?f=json on the URL shows the service."
         return tool_error(message, "ARCGIS_REFUSED", suggestion)
 
     name = _arcgis_name(args, info, root, layer_id)
@@ -380,9 +380,17 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             return tool_error(
                 f"QGIS could not open the {kind} layer at {url}." + (f" Provider: {reason}" if reason else ""),
                 "INVALID_ARGS",
-                "Check the URL with ?f=json, pass token for a secured service, or switch kind "
-                "(feature needs a layer URL with /<id>; map takes the MapServer service URL).",
+                "?f=json on the URL shows the service; a secured one needs token; feature needs "
+                "a layer URL with /<id>, map the MapServer service URL.",
             )
+        if kind == "map" and layer.extent().isEmpty():
+
+
+            return tool_error(
+                f"The map service at {url} did not describe itself (no extent), so the layer would draw "
+                "nothing; it was not added.", "EXECUTION_FAILED",
+                "?f=json on the URL shows whether the service answers." + ("" if info else
+                " This call's own ?f=json request got no answer either."))
         what = "The ArcGIS service answer"
         if kind == "feature" and (box is not None or where):
             what = ("The ArcGIS layer" + (" inside the box" if box is not None else "")
@@ -406,7 +414,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         if out.get("feature_count") == 0 and (box is not None or where):
             out["warning"] = "The layer loaded and holds nothing %s." % (
                 "inside the box" if box is not None else "under that where clause")
-            out["suggestion"] = "Check the box against the layer's extent (?f=json) and the where clause's field names."
+            out["suggestion"] = "the layer's extent (?f=json) or the where clause's field names may not match the box."
     elif box is not None:
         out["note"] = "A map layer draws the whole service as images; the bbox selects nothing there."
     if layer_id is not None:
@@ -475,10 +483,10 @@ def _get_stac_item_assets(args: dict) -> dict:
         item_id = str(args.get("item_id") or "").strip()
         if not (collection and item_id):
             return tool_error(
-                "Provide item_url, or collection + item_id (plus stac_url when the catalog is not "
-                "Planetary Computer).",
+                "item_url, or collection + item_id, is needed (plus stac_url off Planetary "
+                "Computer).",
                 "INVALID_ARGS",
-                "search_stac_items returns item ids and URLs; pass one of them.",
+                "search_stac_items returns item ids and URLs to use here.",
             )
         item_url = (
             f"{_stac._stac_root(args)}/collections/{urllib.parse.quote(collection)}"
@@ -489,12 +497,12 @@ def _get_stac_item_assets(args: dict) -> dict:
     except net.FetchCancelled:
 
 
-        return tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except (urllib.error.URLError, OSError, ValueError) as e:
         return tool_error(
             f"Failed to fetch the STAC item: {e}",
             "STAC_FETCH_FAILED",
-            "Check item_url (or stac_url, collection and item_id); search_stac_items gives working ids.",
+            "search_stac_items gives working ids for item_url (or stac_url, collection and item_id).",
         )
     if not isinstance(item, dict) or not isinstance(item.get("assets"), dict):
         return tool_error(

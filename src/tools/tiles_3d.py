@@ -78,23 +78,23 @@ def _configure_3d_tiles(args: dict) -> dict:
         return tool_error(
             "QGIS does not expose a stable portable PyQGIS API for measuring in a 3D scene.",
             "CAPABILITY_UNAVAILABLE",
-            "Use the native 2D measure_distance tool, or measure manually in the 3D view.")
+            "measure_distance (2D), or a manual measure in the 3D view, works.")
     if str(args.get("style") or "textured") == "wireframe":
         return tool_error(
             "QGIS's public tiled-scene renderer does not expose a wireframe mode.",
             "CAPABILITY_UNAVAILABLE",
-            "Use style='textured', which preserves the material supplied by the tileset.")
+            "style='textured' preserves the material supplied by the tileset.")
     if QgsTiledSceneLayer is None:
         return tool_error("3D Tiles need QGIS 3.34 or later; this QGIS is older.",
                           "CAPABILITY_UNAVAILABLE",
-                          "Update QGIS, or add the tileset as a plain layer instead.")
+                          "A newer QGIS, or the tileset as a plain layer, works.")
     layer = QgsTiledSceneLayer(
         _scene_uri(_with_token(url, str(args.get("token") or "").strip() or None)),
         str(args.get("name") or "3D Tiles"), "cesiumtiles")
     if not layer.isValid():
         detail = layer.error().summary() or "the provider rejected the tileset or could not reach it"
         return tool_error(f"QGIS could not load the 3D Tiles source: {detail}.", "EXECUTION_FAILED",
-                          "Check the explicitly supplied URL and token, then retry.")
+                          "The URL and token given are the likely cause.")
 
 
 

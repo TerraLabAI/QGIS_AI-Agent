@@ -179,7 +179,7 @@ def dropped_help(chat: str, name: str) -> str:
         return ""
     return (f"{name} was made by an earlier snippet of this chat but not kept: it held a {held or 'value'}, "
             "which is not kept between calls (QGIS owns it and can free it, or it could not come back from "
-            f"the separate process). Build {name} again in this snippet, from a layer name or id, a path "
+            f"the separate process). A snippet rebuilds {name} from a layer name or id, a path "
             "or plain values kept from before.")
 
 
@@ -262,8 +262,8 @@ class Tools:
         if name.startswith("_"):
             raise AttributeError(name)
         if tool_code_class(name) is None:
-            raise AttributeError(f"tools.{name} is not callable from code (it fetches, spends credits, runs "
-                                 "in the background or always asks the user); call the tool itself.")
+            raise AttributeError(f"tools.{name} is not callable from code: it fetches, spends credits, runs "
+                                 "in the background or always asks the user.")
         return functools.partial(self._call, name)
 
     def __dir__(self):

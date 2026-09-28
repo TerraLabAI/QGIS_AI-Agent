@@ -225,7 +225,7 @@ def _search_qgis_hub(args: dict) -> dict:
     kind = _type_key(asked_type)
     if asked_type and kind not in TYPES:
         return tool_error(f"resource_type '{asked_type}' is not a QGIS Hub type.", "INVALID_ARGS",
-                          "Use one of: " + ", ".join(sorted(TYPES)) + ", or leave it out.")
+                          "Valid: " + ", ".join(sorted(TYPES)) + "; optional.")
     style_type = " ".join(str(args.get("style_type") or "").split())
     if style_type:
         kind = "style"
@@ -260,7 +260,7 @@ def _search_qgis_hub(args: dict) -> dict:
                     scored[key] = (score + weight, item)
             total = len(scored)
     except net.FetchCancelled:
-        return tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except (urllib.error.URLError, OSError, ValueError) as exc:
         return tool_error(f"The QGIS Hub did not answer: {net.describe_failure(exc) or exc}",
                           "NETWORK_ERROR", net.NETWORK_SUGGESTION)
@@ -290,11 +290,11 @@ def _search_qgis_hub(args: dict) -> dict:
         how[DOWNLOAD] = ("import_qgis_hub_resource saves the file next to the project and returns its path; "
                          "add_data loads a GeoPackage from there.")
     if USER_INSTALLS in uses:
-        how[USER_INSTALLS] = ("Executable code (a Processing model or script): never installed by you. Give the "
-                              "user its page link, author and licence; they download it and add it from the "
+        how[USER_INSTALLS] = ("Executable code (a Processing model or script): the user installs it, not the "
+                              "agent. They download it from its page (author and licence there) and add it from the "
                               "Processing Toolbox (the Models or Scripts button, 'Add Model/Script to Toolbox').")
     if VIEW in uses:
-        how[VIEW] = "A picture of a map: nothing to import. Give the page link."
+        how[VIEW] = "A picture of a map: nothing to import."
     if how:
         out["how_to_use"] = how
     return out
@@ -307,11 +307,11 @@ def _import_qgis_hub_resource(args: dict) -> dict:
     uuid = str(args.get("uuid") or "").strip().lower()
     if not _UUID.match(uuid):
         return tool_error("uuid is not a QGIS Hub resource id.", "INVALID_ARGS",
-                          "Call search_qgis_hub and pass the uuid of one of its results.")
+                          "search_qgis_hub answers each result with a uuid.")
     try:
         meta = _lookup(uuid)
     except net.FetchCancelled:
-        return tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except (urllib.error.URLError, OSError, ValueError):
         meta = {}
     kind = _type_key(meta.get("resource_type"))
@@ -322,15 +322,15 @@ def _import_qgis_hub_resource(args: dict) -> dict:
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_FILE_MAX_BYTES, total_timeout=_FILE_TOTAL_S)
     except net.FetchCancelled:
-        return tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except net.FetchTooLarge:
         return tool_error("This Hub item is larger than one download may be.", "INVALID_ARGS",
-                          "Give the user its page link so they download it themselves.")
+                          "Its Hub page offers a direct download.")
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return tool_error("No approved QGIS Hub resource has this uuid.", "NOT_FOUND",
-                              "Call search_qgis_hub again and use a uuid from its results.")
-        return tool_error(f"HTTP {exc.code} from the QGIS Hub.", "HTTP_ERROR", "Try again later.")
+                              "search_qgis_hub answers current uuids.")
+        return tool_error(f"HTTP {exc.code} from the QGIS Hub.", "HTTP_ERROR", "Usually brief.")
     except (urllib.error.URLError, OSError) as exc:
         return tool_error(f"The QGIS Hub did not answer: {net.describe_failure(exc) or exc}",
                           "NETWORK_ERROR", net.NETWORK_SUGGESTION)
@@ -344,7 +344,7 @@ def _import_qgis_hub_resource(args: dict) -> dict:
                    and not os.path.basename(info.filename.replace("\\", "/")).startswith("._")]
     except (zipfile.BadZipFile, ValueError):
         return tool_error("The QGIS Hub sent something that is not its usual zip.", "EXECUTION_FAILED",
-                          "Give the user the item's page link instead.")
+                          "The item is on its Hub page.")
     extensions = {os.path.splitext(info.filename)[1].lower() for info in members}
     code = sorted(extensions & _CODE_EXTENSIONS)
     if code:
@@ -368,10 +368,10 @@ def _import_qgis_hub_resource(args: dict) -> dict:
             data = _read_member(archive, member, _TEXT_MAX_BYTES)
         except _TooLarge:
             out = tool_error(f"The {extension} file is over {_TEXT_MAX_BYTES // (1024 * 1024)} MB.",
-                             "INVALID_ARGS", "Give the user the item's page link instead.")
+                             "INVALID_ARGS", "The item is on its Hub page.")
         except _ZIP_ERRORS as exc:
             out = tool_error(f"The {extension} file in this Hub zip does not unpack ({exc}).", "EXECUTION_FAILED",
-                             "Give the user the item's page link instead.")
+                             "The item is on its Hub page.")
         else:
             out = handlers[extension](data, label, uuid, args)
         if not out.get("_error"):
@@ -384,7 +384,7 @@ def _import_qgis_hub_resource(args: dict) -> dict:
                 "tell_user": f"'{label}' is a picture of a map on the QGIS Hub; there is nothing to import.",
                 "page": page_url(kind or "map", label)}
     return tool_error(f"This Hub item holds files QGIS does not import this way ({', '.join(sorted(extensions))}).",
-                      "INVALID_ARGS", "Give the user the item's page link.")
+                      "INVALID_ARGS", "The item is on its Hub page.")
 
 
 def _label_from(disposition, uuid: str) -> str:
@@ -415,10 +415,10 @@ def _user_installs(meta: dict, kind: str, code: list) -> dict:
         "kind": "executable",
         "licence": CC0,
         "page": page_url(kind, label),
-        "tell_user": (f"'{label}' is code that runs inside QGIS, so the agent does not install it. Open its "
-                      "page and check the author, then download it and add it from the Processing Toolbox "
+        "tell_user": (f"'{label}' is code that runs inside QGIS, so the agent does not install it. The user "
+                      "checks the author on its page, downloads it and adds it from the Processing Toolbox "
                       f"(the {button} button, 'Add {button[:-1]} to Toolbox')."),
-        "next_step": "Stop here and give the user the page link. Nothing was written.",
+        "next_step": "Nothing was written.",
     }
     author = " ".join(str(meta.get("creator") or "").split())
     if author:
@@ -476,7 +476,7 @@ def _import_style(data: bytes, label: str, uuid: str, args: dict) -> dict:
     code = layer_definition_code(data)
     if code == [_UNREADABLE]:
         return tool_error(f"'{label}' is not a style QGIS can read: {_UNREADABLE}.", "EXECUTION_FAILED",
-                          "Pick another result.")
+                          "Other results vary.")
     if code:
         return _refused(label, "style", code)
     folder = create_managed_temp_dir("hub")
@@ -517,11 +517,11 @@ def _import_style(data: bytes, label: str, uuid: str, args: dict) -> dict:
         shutil.rmtree(folder, ignore_errors=True)
     if done.get("_error"):
         return tool_error(f"'{label}' is not a style QGIS can read: {done['_error']}", "EXECUTION_FAILED",
-                          "Pick another result.")
+                          "Other results vary.")
     added = done["added"]
     if not added:
         return tool_error(f"'{label}' holds no symbol, color ramp or label style.", "EXECUTION_FAILED",
-                          "Pick another result.")
+                          "Other results vary.")
     log(f"QGIS Hub: imported {label} ({uuid}) into the style library: {added}")
     count = sum(len(v) for v in added.values())
     what = "1 item" if count == 1 else f"{count} items"
@@ -584,10 +584,10 @@ def parse_gpl(text: str) -> list:
 def _import_palette(data: bytes, label: str, uuid: str, args: dict) -> dict:
     text = data.decode("utf-8", "replace")
     if not text.lstrip().startswith("GIMP Palette"):
-        return tool_error(f"'{label}' is not a GIMP palette.", "EXECUTION_FAILED", "Pick another result.")
+        return tool_error(f"'{label}' is not a GIMP palette.", "EXECUTION_FAILED", "Other results vary.")
     colors = parse_gpl(text)
     if not colors:
-        return tool_error(f"'{label}' holds no colors.", "EXECUTION_FAILED", "Pick another result.")
+        return tool_error(f"'{label}' holds no colors.", "EXECUTION_FAILED", "Other results vary.")
 
     def _on_main():
         from qgis.core import QgsPresetSchemeColorRamp, QgsStyle
@@ -604,7 +604,7 @@ def _import_palette(data: bytes, label: str, uuid: str, args: dict) -> dict:
 
     final = _run_on_main_thread(_on_main, timeout=30)
     if not final:
-        return tool_error(f"QGIS refused the palette '{label}'.", "EXECUTION_FAILED", "Pick another result.")
+        return tool_error(f"QGIS refused the palette '{label}'.", "EXECUTION_FAILED", "Other results vary.")
     return {
         "imported": True, "name": label, "kind": "palette", "added": {"color_ramps": [final]},
         "colors": len(colors), "tag": _HUB_TAG, "licence": CC0,
@@ -716,7 +716,7 @@ def _refused(label: str, type_key: str, found: list) -> dict:
         "page": page_url(type_key, label),
         "tell_user": (f"'{label}' carries something QGIS would run or open on its own ({'; '.join(found)}), so "
                       "the agent does not load it. The user can review it on its page and add it themselves."),
-        "next_step": "Stop here and give the user the page link. Nothing was loaded.",
+        "next_step": "Nothing was loaded.",
     }
 
 
@@ -832,7 +832,7 @@ def _import_layer_definition(data: bytes, label: str, uuid: str, args: dict, arc
     code = layer_definition_code(data)
     if code == [_UNREADABLE]:
         return tool_error(f"'{label}' is not a layer definition QGIS can read.", "EXECUTION_FAILED",
-                          "Pick another result.")
+                          "Other results vary.")
     if code:
         return _refused(label, "layerdefinition", code)
     sources = layer_sources(data)
@@ -877,7 +877,7 @@ def _import_layer_definition(data: bytes, label: str, uuid: str, args: dict, arc
         if folder:
             remove_tree(folder)
         return tool_error(f"QGIS could not load '{label}': {done.get('_error') or done.get('message')}",
-                          "EXECUTION_FAILED", "Pick another result.")
+                          "EXECUTION_FAILED", "Other results vary.")
     layers = done["layers"]
     out = {"imported": True, "name": label, "kind": "layer_definition", "layers": layers,
            "sources": {"hosts": hosts, "files": files},
@@ -1009,7 +1009,7 @@ def _write_members(archive: zipfile.ZipFile, keep: list, label: str, uuid: str) 
 
     if sum(info.file_size for info in keep) > _FILE_MAX_BYTES:
         return tool_error("This Hub item unpacks to more than one download may be.", "INVALID_ARGS",
-                          "Give the user its page link so they download it themselves.")
+                          "Its Hub page offers a direct download.")
     base = _run_on_main_thread(default_folder, timeout=10)
     stem = safe_file_name(label, fallback=uuid[:8])[:60].strip(" .") or uuid[:8]
     folder = os.path.join(base, _HUB_TAG, stem)
@@ -1050,17 +1050,17 @@ def _write_members(archive: zipfile.ZipFile, keep: list, label: str, uuid: str) 
     except _TooLarge:
         remove_tree(folder)
         return tool_error("This Hub item unpacks to more than one download may be.", "INVALID_ARGS",
-                          "Give the user its page link so they download it themselves.")
+                          "Its Hub page offers a direct download.")
     except net.FetchCancelled:
         remove_tree(folder)
-        return tool_error("The run was stopped.", "CANCELLED", "Wait for the next user message.")
+        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
     except _Unsafe as exc:
         remove_tree(folder)
-        return tool_error(f"'{label}' was not saved: {exc}.", "EXECUTION_FAILED", "Give the user the page link.")
+        return tool_error(f"'{label}' was not saved: {exc}.", "EXECUTION_FAILED", "The item is on its Hub page.")
     except (*_ZIP_ERRORS, OSError) as exc:
         remove_tree(folder)
         return tool_error(f"This Hub zip does not unpack ({exc}).", "EXECUTION_FAILED",
-                          "Give the user the item's page link instead.")
+                          "The item is on its Hub page.")
     return {"folder": folder, "files": saved, "styles_removed": removed, "projects": projects}
 
 
@@ -1073,7 +1073,7 @@ def _save_to_disk(archive: zipfile.ZipFile, members: list, label: str, uuid: str
     if not saved:
         if written.get("folder"):
             remove_tree(written["folder"])
-        return tool_error("This Hub item holds no file QGIS reads.", "INVALID_ARGS", "Give the user the page link.")
+        return tool_error("This Hub item holds no file QGIS reads.", "INVALID_ARGS", "The item is on its Hub page.")
     gpkg = [p for p in saved if p.lower().endswith(".gpkg")]
     model = [p for p in saved if p.lower().endswith((".obj", ".gltf", ".glb"))]
     out = {"imported": True, "name": label, "kind": "geopackage" if gpkg else "3d_model",

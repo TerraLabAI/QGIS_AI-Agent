@@ -107,9 +107,9 @@ def _zone_get() -> dict:
     if held is None:
         return {
             "zone_set": False,
-            "next_step": ("No zone of interest yet. Set one with zone action set from a layer the "
-                          "project already has, or let ai_segment / ai_edit open their panel so the "
-                          "person draws one."),
+            "next_step": ("No zone of interest yet. zone action set makes one from a layer the "
+                          "project already has; ai_segment / ai_edit's own panel lets the person "
+                          "draw one."),
         }
     return _zone_result(held, "read")
 
@@ -141,7 +141,7 @@ def _zone_set(args: dict) -> dict:
             return tool_error(
                 f"A {buffer_km:g} km ring is wider than the zone it surrounds.",
                 "INVALID_ARGS",
-                f"Pass buffer_km up to {max_km:g}, or set the wider area as the zone directly.")
+                f"buffer_km up to {max_km:g} works; so does the wider area as the zone.")
 
 
 
@@ -153,7 +153,7 @@ def _zone_set(args: dict) -> dict:
             widened = _buffered(geom, crs, float(buffer_km))
             if widened is None:
                 return tool_error("The zone could not be widened.", "EXECUTION_FAILED",
-                                  "Set the zone without buffer_km, then widen it with a processing buffer.")
+                                  "Without buffer_km, a processing buffer widens the zone after.")
             geom = widened
         ringed = True
 
@@ -161,8 +161,8 @@ def _zone_set(args: dict) -> dict:
         return tool_error(
             "That zone has no surface: it is a point, or several points on a line.",
             "INVALID_ARGS",
-            "Call again with buffer_km to draw a ring around it, for example buffer_km 0.5 "
-            "for 500 m, or name an area that has a width.")
+            "buffer_km draws a ring around it, for example 0.5 for 500 m; an area with "
+            "its own width also works.")
 
 
 
@@ -170,7 +170,7 @@ def _zone_set(args: dict) -> dict:
     layer = zoi.write_zone(geom, crs, label=label, approximate=approximate)
     if layer is None:
         return tool_error("The zone of interest layer could not be created.", "EXECUTION_FAILED",
-                          "Check that the project accepts new layers, then call zone action set again.")
+                          "zone action set tries again once the project accepts new layers.")
     keep_place(layer)
     log(f"Zone of interest set from {source} ({zoi.area_km2(geom, crs):.2f} km2)")
 
@@ -205,29 +205,29 @@ def _geometry_from_args(args: dict):
         geom = QgsGeometry.fromWkt(wkt)
         if geom is None or geom.isEmpty():
             return tool_error("That WKT does not describe a shape.", "INVALID_ARGS",
-                              "Pass a POLYGON or MULTIPOLYGON in well known text.")
+                              "wkt: a POLYGON or MULTIPOLYGON in well known text.")
         return geom, _crs_of(args), False, "wkt", None
     if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
         try:
             xmin, ymin, xmax, ymax = (float(v) for v in bbox)
         except (TypeError, ValueError):
             return tool_error("bbox must be four numbers.", "INVALID_ARGS",
-                              "Pass [xmin, ymin, xmax, ymax].")
+                              "bbox=[xmin, ymin, xmax, ymax].")
         if xmax <= xmin or ymax <= ymin:
             return tool_error("That bbox has no surface.", "INVALID_ARGS",
-                              "Pass [xmin, ymin, xmax, ymax] with the maximums above the minimums.")
+                              "bbox is [xmin, ymin, xmax, ymax], maximums above minimums.")
         return (QgsGeometry.fromRect(QgsRectangle(xmin, ymin, xmax, ymax)),
                 _crs_of(args), False, "bbox", None)
     if canvas:
         extent, crs = _canvas_extent()
         if extent is None:
             return tool_error("The map view could not be read.", "EXECUTION_FAILED",
-                              "Name a layer instead, or pass a bbox.")
+                              "A layer name or a bbox works instead.")
         return QgsGeometry.fromRect(extent), crs, False, "canvas", None
     return tool_error(
         "zone action set needs an area to work from.", "INVALID_ARGS",
-        "Pass layer_name (with expression or use_selection to narrow it), or wkt, or bbox, "
-        "or use_canvas_extent true.")
+        "layer_name (with expression or use_selection to narrow it), wkt, bbox, or "
+        "use_canvas_extent true gives one.")
 
 
 def _from_layer(named: str, expression: str, use_selection: bool):
@@ -237,7 +237,7 @@ def _from_layer(named: str, expression: str, use_selection: bool):
     if expression:
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(f"'{layer.name()}' has no features to filter.", "INVALID_ARGS",
-                              "Drop expression, or name a vector layer.")
+                              "expression needs a vector layer.")
         found = _filtered_outline(layer, expression)
         if isinstance(found, dict):
             return found
@@ -256,9 +256,9 @@ def _from_layer(named: str, expression: str, use_selection: bool):
             if use_selection:
                 return tool_error(
                     f"Nothing is selected on '{layer.name()}'.", "INVALID_ARGS",
-                    "Select the features first, or pass expression to pick them by a value.")
+                    "expression picks features by a value.")
             return tool_error(f"'{layer.name()}' holds no shape to use as a zone.", "INVALID_ARGS",
-                              "Name a layer that has features, or pass a bbox.")
+                              "A layer with features, or a bbox, works.")
         geom, crs, approximate = found
         if approximate and parts is None:
             parts = _parts_of(layer, use_selection)
@@ -284,7 +284,7 @@ def _filtered_outline(layer: QgsVectorLayer, expression: str):
         request.setFilterExpression(expression)
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"That expression could not be read: {exc}", "INVALID_ARGS",
-                          'Write it as QGIS does, for example "name" = \'Herault\'.')
+                          'QGIS expressions read like "name" = \'Herault\'.')
     polygons = []
     parts = []
     box = QgsRectangle()
@@ -299,7 +299,7 @@ def _filtered_outline(layer: QgsVectorLayer, expression: str):
                 return tool_error(
                     f"That expression keeps more than {zoi.MAX_UNION_FEATURES} features.",
                     "INVALID_ARGS",
-                    "Narrow it to the one area you mean, or set the zone from the layer itself.")
+                    "The one area meant, or the layer itself as the zone, both narrow it.")
             box.combineExtentWith(geom.boundingBox())
             parts.append(QgsGeometry(geom))
             if geom.type() == zoi.polygon_geometry_type():
@@ -307,18 +307,18 @@ def _filtered_outline(layer: QgsVectorLayer, expression: str):
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"That expression could not be run on '{layer.name()}': {exc}",
                           "INVALID_ARGS",
-                          "Check the field names with get_layer_info, then call zone again.")
+                          "get_layer_info shows the field names for zone to run again.")
     if not kept:
         return tool_error(
             f"No feature of '{layer.name()}' matches that expression.", "INVALID_ARGS",
-            "Read the values with get_features or get_field_statistics, then filter on one of them.")
+            "get_features or get_field_statistics reads the values to filter on.")
     if polygons:
         united = zoi.union(polygons)
         if united is not None and not united.isEmpty():
             return united, layer.crs(), False, polygons
     if box.isNull():
         return tool_error(f"The matching features of '{layer.name()}' have no shape.",
-                          "INVALID_ARGS", "Pick a layer whose features carry geometry.")
+                          "INVALID_ARGS", "The layer needs features with geometry.")
     return QgsGeometry.fromRect(box), layer.crs(), True, parts
 
 
@@ -455,12 +455,12 @@ def _zone_result(held: zoi.Zone, source: str) -> dict:
     if held.approximate:
         out["approximate"] = True
         out["note"] = ("This zone is a box around what was asked for, not its outline: the source "
-                       "had no polygons, or more than the outline budget. Say so in your answer.")
+                       "had no polygons, or more than the outline budget.")
     out["tell_user"] = (
         f"The zone of interest is set: {area:.1f} km2, drawn on the map as \"{out['layer_name']}\". "
         "AI Edit and AI Segmentation offer it instead of asking for a fresh draw.")
-    out["next_step"] = ("Pass use_zone true to ai_segment or ai_edit and they run on this shape. "
-                        "Say the area in your answer before anything spends credits.")
+    out["next_step"] = ("use_zone true makes ai_segment or ai_edit run on this shape. The area "
+                        "belongs in the answer before anything spends credits.")
     return out
 
 

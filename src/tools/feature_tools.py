@@ -221,8 +221,8 @@ def _vector_layer(name_or_id: str):
         return None, {
             "_error": (f"Layer {layer.name()!r} is a {kind} layer, and this tool works on vector features."),
             "code": "INVALID_ARGS",
-            "suggestion": ("Name a vector layer. For a raster, get_raster_band_stats and the raster tools read "
-                           "and write pixels instead."),
+            "suggestion": ("A vector layer is needed. get_raster_band_stats and the raster tools read "
+                           "and write pixels for a raster."),
         }
     return layer, None
 
@@ -259,7 +259,7 @@ def _add_features(args: dict) -> dict:
             "_error": f"{len(features_data)} features given, above the {_MAX_FEATURE_BATCH} this tool "
                       "builds in one call.",
             "_code": "INVALID_ARGS",
-            "suggestion": f"Split the features into batches of {_MAX_FEATURE_BATCH} or fewer.",
+            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
         }
 
 
@@ -286,7 +286,7 @@ def _add_features(args: dict) -> dict:
             geom = QgsGeometry.fromWkt(geom_wkt)
             if geom.isNull():
                 return {"_error": f"Invalid WKT geometry: {geom_wkt[:100]}", "code": "INVALID_ARGS",
-                        "suggestion": ("Send valid WKT in the layer's CRS, for example "
+                        "suggestion": ("valid WKT in the layer's CRS, for example "
                                        "'POINT(x y)' or 'POLYGON((x y, x y, x y, x y))'.")}
 
 
@@ -340,8 +340,8 @@ def _add_features(args: dict) -> dict:
             "fids": new_fids if one_per_feature else None,
             "committed": False,
             "note": (
-                "added to the open edit session (not committed, commit or discard it yourself); "
-                "fids are the edit buffer's temporary ids and change when the session is committed"
+                "added to the open edit session, not committed; qgis_edit_commit or a discard "
+                "decides it. fids are the edit buffer's temporary ids and change once committed"
             ),
         }
         if truncations:
@@ -384,8 +384,8 @@ def _add_features(args: dict) -> dict:
 
     result = {"added": len(new_features), "committed": True, "fids": None,
               "fids_unresolved": True,
-              "note": ("this provider did not report the ids it assigned; read them back with "
-                       "get_features if you need them")}
+              "note": ("this provider did not report the ids it assigned; get_features reads them "
+                       "back if needed")}
     if truncations:
         result["truncated_values"] = truncations[:20]
     return result
@@ -432,7 +432,7 @@ def _update_features(args: dict) -> dict:
         return {
             "_error": f"{len(updates)} updates given, above the {_MAX_FEATURE_BATCH} this tool writes in one call.",
             "_code": "INVALID_ARGS",
-            "suggestion": f"Split the updates into batches of {_MAX_FEATURE_BATCH} or fewer.",
+            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
         }
 
 
@@ -508,7 +508,7 @@ def _update_features(args: dict) -> dict:
     result: dict = {"updated": updated}
     if not started:
         result["committed"] = False
-        result["note"] = "written into the open edit session (not committed, commit or discard it yourself)"
+        result["note"] = "written into the open edit session, not committed; qgis_edit_commit decides it"
     if truncations:
         result["truncated_values"] = truncations[:20]
     if partial:
@@ -530,7 +530,7 @@ def _update_features(args: dict) -> dict:
             result["_error"] = (f"The layer {layer.name()!r} has none of the fields "
                                 f"{sorted(unknown_fields)}, so nothing was written.")
             result["code"] = "INVALID_ARGS"
-            result["suggestion"] = "Use the field names in 'fields', or add_field first."
+            result["suggestion"] = "'fields' lists the names; add_field adds one."
             return result
     if refused:
         result["refused"] = refused[:20]
@@ -539,7 +539,7 @@ def _update_features(args: dict) -> dict:
                                 f"({len(refused)} of them); the layer reported no error.")
             result["code"] = "INVALID_ARGS"
             result["suggestion"] = ("The source is probably read-only or the value does not fit the field. "
-                                    "Export the layer to GeoPackage with export_layer and edit the copy.")
+                                    "export_layer to GeoPackage gives an editable copy.")
     return result
 
 
@@ -556,7 +556,7 @@ def _delete_features(args: dict) -> dict:
         return {
             "_error": f"{len(fids)} feature ids given, above the {_MAX_FEATURE_BATCH} this tool deletes in one call.",
             "_code": "INVALID_ARGS",
-            "suggestion": f"Split the ids into batches of {_MAX_FEATURE_BATCH} or fewer.",
+            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
         }
 
 
@@ -582,8 +582,8 @@ def _delete_features(args: dict) -> dict:
             "not_found": not_found,
             "_error": "None of the requested feature IDs exist in this layer",
             "code": "INVALID_ARGS",
-            "suggestion": ("Feature ids come from the _fid field of get_features; read them again, since a commit "
-                           "renumbers the ids an open edit session handed out."),
+            "suggestion": ("Feature ids come from the _fid field of get_features; a commit renumbers "
+                           "the ids an open edit session handed out."),
         }
 
     started, error = vector_write.open_edit(layer, "delete features")
@@ -686,7 +686,7 @@ def _select_features(args: dict) -> dict:
 
         fids = None
     if fids is not None and expression:
-        return {"_error": "Pass either 'fids' or 'expression', not both: which one wins was never defined.",
+        return {"_error": "'fids' and 'expression' both given: which one wins was never defined.",
                 "_code": "INVALID_ARGS"}
     if fids is not None:
 
@@ -699,7 +699,7 @@ def _select_features(args: dict) -> dict:
             return {"_error": f"Invalid expression: {expr.parserErrorString()}"}
         _select_expression(layer, expression, behavior)
     else:
-        return {"_error": "Provide either 'expression' or 'fids'"}
+        return {"_error": "'expression' or 'fids' is required"}
 
     return _with_behavior({"selected_count": layer.selectedFeatureCount()}, behavior_name, previously)
 
@@ -824,7 +824,7 @@ def _select_by_attribute(args: dict) -> dict:
                 if not math.isfinite(numeric_val):
                     return {"_error": f"{value!r} is not a finite number, so no comparison can be built from it.",
                             "code": "INVALID_ARGS",
-                            "suggestion": "Use a real number, or 'is null' through evaluate_expression."}
+                            "suggestion": "a real number, or 'is null' through evaluate_expression."}
                 if numeric_val == int(numeric_val):
                     expr_str = f"{field_ref} {operator} {int(numeric_val)}"
                 else:
@@ -837,8 +837,8 @@ def _select_by_attribute(args: dict) -> dict:
         return {"_error": f"The expression built from these arguments does not parse "
                           f"({expr_str}): {expr.parserErrorString()}",
                 "code": "INVALID_ARGS",
-                "suggestion": "Check field_name, operator and value; evaluate_expression tests an "
-                              "expression without changing the selection."}
+                "suggestion": "field_name, operator or value may be the cause; evaluate_expression tests "
+                              "one without changing the selection."}
 
     previously = layer.selectedFeatureCount()
     _select_expression(layer, expr_str, behavior)
@@ -879,8 +879,8 @@ def _select_by_geometry(args: dict) -> dict:
 
             return {"_error": f"{mode!r} ranks features by area or length, and a point layer has neither.",
                     "code": "INVALID_ARGS",
-                    "suggestion": ("Rank by a field with select_by_attribute, or use an extent-based mode "
-                                   "with a reference layer.")}
+                    "suggestion": ("select_by_attribute ranks by a field; an extent-based mode with a "
+                                   "reference layer is another.")}
         best_fid = None
         best_size = None
         polygons = geom_type == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
@@ -931,7 +931,7 @@ def _select_by_geometry(args: dict) -> dict:
     ref_name = args.get("reference_layer")
     if not ref_name:
         return {"_error": f"reference_layer is required for mode '{mode}'", "code": "INVALID_ARGS",
-                "suggestion": "Name the layer whose features the selection is measured against."}
+                "suggestion": "reference_layer is the layer the selection is measured against."}
 
     ref_layer, ref_error = _vector_layer(ref_name)
     if ref_error:
@@ -956,8 +956,8 @@ def _select_by_geometry(args: dict) -> dict:
                 f"Reference layer {ref_name!r} is too detailed to select against on this machine: "
                 f"{_too_many_vertices(too_big, budget)}. Nothing was selected.",
                 "INVALID_ARGS",
-                "Simplify or dissolve the reference first (native:simplifygeometries, native:dissolve through "
-                "run_processing with async true), or run native:extractbylocation in the background instead.")
+                "native:simplifygeometries or native:dissolve through run_processing with async true "
+                "simplifies it first; native:extractbylocation runs in the background.")
         ref_geoms.append(geom)
     if not ref_geoms:
         return {"_error": "Reference layer has no valid geometries"}
@@ -1023,8 +1023,8 @@ def _select_by_geometry(args: dict) -> dict:
                 f"select_by_geometry stopped after {len(selected_ids)} matches to keep QGIS responsive "
                 f"({budget.stop_reason(stopped)} reached). Nothing was selected.",
                 "INVALID_ARGS",
-                "Run native:extractbylocation or native:selectbylocation through run_processing with async "
-                "true: it does the same test in the background.")
+                "native:extractbylocation or native:selectbylocation through run_processing with async "
+                "true does the same test in the background.")
         geom = feat.geometry()
         if geom.isNull():
             continue

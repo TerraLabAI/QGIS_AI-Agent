@@ -443,16 +443,6 @@ _BTN_LINK_STRONG = (
 
 
 
-_CHIP_QSS = (
-    "QPushButton { background: rgba(30, 136, 229, 0.10);"
-    " border: 1px solid rgba(30, 136, 229, 0.35); border-radius: 6px;"
-    " color: palette(text); font-size: 12px; text-align: left;"
-    " padding: 6px 10px; }"
-    "QPushButton:hover { background: rgba(30, 136, 229, 0.20); }"
-)
-
-
-
 _BTN_CHIP = (
     "QPushButton { background: rgba(128, 128, 128, 0.08);"
     " border: 1px solid rgba(128, 128, 128, 0.40); border-radius: 6px;"
@@ -596,7 +586,6 @@ for _qss_name in (
     "_BTN_LINK",
     "_BTN_LINK_MUTED",
     "_BTN_LINK_STRONG",
-    "_CHIP_QSS",
     "_BTN_CHIP",
     "_FOOTER_ICON_BTN_STYLE",
     "_HELP_ICON_BTN_STYLE",
@@ -647,7 +636,6 @@ __all__ = [
     "_CARD_CHILD_BTN_RESET_QSS",
     "_CARD_MARGINS",
     "_CARD_QSS",
-    "_CHIP_QSS",
     "_COMBO_THEME_QSS",
     "_FOOTER_CTA_BTN_STYLE",
     "_FOOTER_ICON_BTN_STYLE",

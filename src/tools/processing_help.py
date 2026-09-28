@@ -93,7 +93,9 @@ def _get_algorithm_help(args: dict) -> dict:
     algorithm_id = args["algorithm_id"]
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
     if not alg:
-        return {"_error": f"Algorithm not found: {algorithm_id}", **_provider_hint(algorithm_id)}
+
+        return {"_error": f"Algorithm not found: {algorithm_id}", "code": "INVALID_ARGS",
+                **_provider_hint(algorithm_id)}
 
     params = [_parameter_help(param) for param in alg.parameterDefinitions()]
 
@@ -125,5 +127,8 @@ def _get_algorithm_help(args: dict) -> dict:
     if skill:
         out["plugin"] = folder
         out["how_to_use"] = skill
+    from .processing_decisions import main_thread_facts
+
+    out.update(main_thread_facts(alg))
     return out
 

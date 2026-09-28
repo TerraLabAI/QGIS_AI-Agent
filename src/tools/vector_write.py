@@ -254,25 +254,25 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
                             "this layer for reading only.")
         detail["reason"] = "provider_read_only"
         detail["capabilities"] = sorted(have)
-        detail["suggestion"] = ("Copy the layer with export_layer to a GeoPackage (.gpkg) and run the same call "
-                                "on the copy, which is writable.")
+        detail["suggestion"] = ("A copy made with export_layer to a GeoPackage (.gpkg) is writable; the same "
+                                "call runs there.")
         return detail
 
     reason, blocker = _write_block(facts["path"])
     if reason == "missing":
         detail["_error"] = (f"The file {name!r} reads is not there any more: {blocker}.")
         detail["reason"] = "source_missing"
-        detail["suggestion"] = ("The drive holding it is probably disconnected or the file was moved. Ask the user "
-                                "to reconnect it, or load the data again with add_vector_layer from its new path.")
+        detail["suggestion"] = ("The drive holding it is probably disconnected or the file was moved. "
+                                "add_vector_layer loads it again from a new path once reconnected.")
         return detail
     if reason == "locked":
         detail["_error"] = (f"The file behind {name!r} is open in another program, so QGIS cannot write to it: "
                             f"{blocker}.")
         detail["reason"] = "file_locked"
-        detail["suggestion"] = ("Close the file where it is open (an Excel or LibreOffice window on the .dbf, "
-                                "another QGIS, ArcGIS, or a sync client such as OneDrive or Dropbox mid-upload) "
-                                "and call this again. To carry on now, copy the layer with export_layer to a new "
-                                "GeoPackage and edit that copy.")
+        detail["suggestion"] = ("The file is open elsewhere (an Excel or LibreOffice window on the .dbf, "
+                                "another QGIS, ArcGIS, or a sync client such as OneDrive or Dropbox mid-upload), "
+                                "which blocks this call until closed. export_layer to a new GeoPackage gives a "
+                                "copy to edit now.")
         if _looks_remote(facts["path"]):
             detail["suggestion"] += (" The path is on a network or second drive, where another user's session holds "
                                      "the same lock.")
@@ -280,13 +280,13 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
     if reason in ("read_only_file", "folder_read_only"):
         detail["_error"] = (f"There is no write permission on {blocker}, so {name!r} cannot be edited in place.")
         detail["reason"] = "no_write_permission"
-        detail["suggestion"] = ("Edit a copy instead: export_layer to a GeoPackage in a folder the user owns, "
-                                "such as their Documents folder, and work on that.")
+        detail["suggestion"] = ("export_layer to a GeoPackage in a folder the user owns, such as Documents, "
+                                "gives a copy to edit.")
         return detail
     if reason == "unreadable":
         detail["_error"] = f"The file behind {name!r} could not be opened for writing: {blocker}."
         detail["reason"] = "source_unreadable"
-        detail["suggestion"] = ("Copy the layer with export_layer to a local GeoPackage and edit the copy. "
+        detail["suggestion"] = ("export_layer to a local GeoPackage gives a copy to edit. "
                                 "A network drive that has gone to sleep gives this too.")
         return detail
 
@@ -300,9 +300,9 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
                         f"Provider: {facts['provider'] or 'unknown'}"
                         f"{'; storage: ' + facts['storage'] if facts['storage'] else ''}.")
     detail["reason"] = "start_editing_refused"
-    detail["suggestion"] = ("Read the layer's writability with get_provider_capabilities. If the user has the "
-                            "attribute table open in edit mode, ask them to save and close it. Otherwise copy the "
-                            "data with export_layer to a GeoPackage and run the same call on the copy.")
+    detail["suggestion"] = ("get_provider_capabilities reads the layer's writability. An attribute table open "
+                            "in edit mode blocks this until saved and closed. export_layer to a GeoPackage "
+                            "gives a copy the same call runs on.")
     return detail
 
 
@@ -392,14 +392,13 @@ def _shapefile_name_advice(layer, errors_text: str) -> tuple[str, str] | None:
         return (
             f"the format behind this layer keeps field names to {limit} characters, so {asked!r} was written as "
             f"{written!r} and the save was refused on the mismatch",
-            f"Ask for the field as {shortened!r} (it is what fits), or copy the layer with export_layer to a "
-            "GeoPackage first, which keeps the long name.",
+            f"{shortened!r} is the name that fits; export_layer to a GeoPackage first keeps the long name.",
         )
     return (
         f"the field the layer added and the field the file created are not the same, which is what a name over "
         f"{limit} characters, an accent or a space in a field name does to an ESRI Shapefile",
-        "Use a short ASCII field name (letters, digits and underscore) or copy the layer with export_layer to a "
-        "GeoPackage, which accepts any name.",
+        "A short ASCII field name (letters, digits, underscore) fits; export_layer to a GeoPackage accepts "
+        "any name.",
     )
 
 
@@ -451,8 +450,8 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
         result["reason"] = "file_locked"
         result["_error"] = (f"{what} could not be saved to {name!r}: the file is locked or cannot be opened for "
                             f"writing ({joined}).{closed}")
-        result["suggestion"] = ("Close whatever holds the file open (Excel on a .dbf, another QGIS, a sync client) "
-                                "and try again, or export_layer to a new GeoPackage and write to the copy.")
+        result["suggestion"] = ("Something holds the file open (Excel on a .dbf, another QGIS, a sync client); "
+                                "a new GeoPackage from export_layer takes the write instead.")
         return result
 
     if any(word in folded for word in ("too long", "truncat", "trop long", "value out of range", "overflow")):
@@ -465,8 +464,8 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
 
     result["reason"] = "commit_refused"
     result["_error"] = f"{what} could not be saved to {name!r}: {joined}.{closed}"
-    result["suggestion"] = ("Read the provider message above. If the format is the problem, export_layer to a "
-                            "GeoPackage and run the same call on the copy.")
+    result["suggestion"] = ("The provider message above says why. When the format is the problem, a "
+                            "GeoPackage copy from export_layer takes the same call.")
     return result
 
 
@@ -787,8 +786,8 @@ def _crs_problem(layer, geom) -> dict | None:
                        f"to 180 and 90, and the geometry reaches {x_max:.0f} and {y_max:.0f}. These look like "
                        "projected metres."),
             "code": "INVALID_ARGS",
-            "suggestion": ("Send the geometry in degrees for this layer, or reproject the layer first with "
-                           "run_processing 'native:reprojectlayer'."),
+            "suggestion": ("This layer takes geometry in degrees; run_processing 'native:reprojectlayer' "
+                           "gives it a projected CRS."),
         }
 
     if not geographic and x_max <= 180 and y_max <= 90:

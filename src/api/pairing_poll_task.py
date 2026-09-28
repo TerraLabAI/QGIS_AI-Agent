@@ -8,8 +8,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
+import random
 import time
 
 from qgis.core import QgsTask
@@ -32,13 +42,19 @@ class PairingPollTask(QgsTask):
 
     pairing_browser_seen = pyqtSignal()
 
+
     pairing_stalled = pyqtSignal(str)
+
+    pairing_link_back = pyqtSignal()
 
     STALL_BROWSER_NOT_SEEN = "browser_not_seen"
     STALL_CODE_EXPIRED = "code_expired"
+    STALL_OFFLINE = "offline"
     STALL_AFTER_S = 45.0
 
-    CODE_TTL_S = 600.0
+
+
+    CODE_TTL_S = 1800.0
     EXPIRY_HINT_LEAD_S = 30.0
 
 
@@ -48,7 +64,13 @@ class PairingPollTask(QgsTask):
 
     DEFAULT_TIMEOUT_S = CODE_TTL_S
 
-    OFFLINE_STREAK = 4
+
+
+    OFFLINE_STREAK = 2
+
+
+
+    OFFLINE_BACKOFF_S = (2.0, 4.0, 8.0, 15.0)
 
     def __init__(self, client, code: str, interval_s: float = 2.0, total_timeout_s: float | None = None):
         super().__init__(tr("Connecting AI Agent"), QgsTask.Flag.CanCancel)
@@ -85,12 +107,19 @@ class PairingPollTask(QgsTask):
             self._failure = self._unexpected_failure()
             return False
 
+    def _offline_pause_s(self, streak: int) -> float:
+
+        steps = self.OFFLINE_BACKOFF_S
+        base = steps[min(max(streak, 1), len(steps)) - 1]
+        return base * random.uniform(0.8, 1.2)  # nosec B311
+
     def _run_poll(self) -> bool:
         started = time.monotonic()
         deadline = started + self._total_timeout_s
         browser_seen = False
         stall_hinted = False
         expiry_hinted = False
+        offline_said = False
         last_logged_detail = ""
         offline_streak = 0
         while not self.isCanceled() and time.monotonic() < deadline:
@@ -107,14 +136,14 @@ class PairingPollTask(QgsTask):
                 error_code = str(result.get("code") or "").strip().upper()
             if error_code in HARD_CONNECTIVITY_CODES:
                 offline_streak += 1
-                if offline_streak >= self.OFFLINE_STREAK:
-                    self._failure = (
-                        tr("No connection to the sign-in service. Check your internet "
-                           "connection, then click Sign in to try again."),
-                        "NO_INTERNET")
-                    return False
+                if offline_streak >= self.OFFLINE_STREAK and not offline_said:
+                    offline_said = True
+                    self.pairing_stalled.emit(self.STALL_OFFLINE)
             else:
                 offline_streak = 0
+                if offline_said:
+                    offline_said = False
+                    self.pairing_link_back.emit()
 
             if status == "ready":
                 raw_key = result.get("activation_key")
@@ -140,14 +169,17 @@ class PairingPollTask(QgsTask):
             if status == "pending" and not browser_seen:
                 browser_seen = True
                 self.pairing_browser_seen.emit()
-            elif not browser_seen and not stall_hinted and waited_s >= self.STALL_AFTER_S:
+            elif (not browser_seen and not stall_hinted and not offline_streak
+                  and waited_s >= self.STALL_AFTER_S):
+
+
                 stall_hinted = True
                 self.pairing_stalled.emit(self.STALL_BROWSER_NOT_SEEN)
             elif browser_seen and not expiry_hinted and waited_s >= self.CODE_TTL_S - self.EXPIRY_HINT_LEAD_S:
                 expiry_hinted = True
                 self.pairing_stalled.emit(self.STALL_CODE_EXPIRED)
 
-            sleep_s = self._interval_s
+            sleep_s = self._offline_pause_s(offline_streak) if offline_streak else self._interval_s
             hint = result.get("retry_after") if isinstance(result, dict) else None
             if hint is not None:
                 try:
@@ -158,9 +190,17 @@ class PairingPollTask(QgsTask):
             if detail != last_logged_detail:
                 last_logged_detail = detail
                 log(f"Pairing poll: waiting ({detail})")
-            self._sleep_cancellable(sleep_s)
+
+            self._sleep_cancellable(max(0.0, min(sleep_s, deadline - time.monotonic())))
 
         if self.isCanceled():
+            return False
+        if offline_streak >= self.OFFLINE_STREAK:
+
+            self._failure = (
+                tr("No connection to the sign-in service. Check your internet "
+                   "connection, then click Sign in to try again."),
+                "NO_INTERNET")
             return False
         self._timed_out = True
         return False

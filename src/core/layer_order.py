@@ -21,6 +21,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import re
@@ -136,8 +140,47 @@ def _ancestors_visible(node) -> bool:
     return True
 
 
-def positions(root) -> dict:
+def drawn_nodes(root) -> list:
 
+
+
+
+
+
+
+    nodes = list(root.findLayers())
+    if not root.hasCustomLayerOrder():
+        return nodes
+    by_id = {node.layerId(): node for node in nodes}
+    drawn = [by_id.pop(layer.id()) for layer in root.customLayerOrder()
+             if layer is not None and layer.id() in by_id]
+    return drawn + list(by_id.values())
+
+
+def follow_tree(layer, root=None) -> None:
+
+
+
+
+
+
+    if root is None:
+        root = _root()
+    try:
+        if root is None or layer is None or not root.hasCustomLayerOrder():
+            return
+        tree = [node.layerId() for node in root.findLayers()]
+        if layer.id() not in tree:
+            return
+        below = set(tree[tree.index(layer.id()) + 1:])
+        order = [other for other in root.customLayerOrder() if other is not None and other.id() != layer.id()]
+        at = next((index for index, other in enumerate(order) if other.id() in below), len(order))
+        root.setCustomLayerOrder(order[:at] + [layer] + order[at:])
+    except Exception:  # nosec B110
+        pass
+
+
+def positions(root) -> dict:
 
 
 
@@ -146,7 +189,7 @@ def positions(root) -> dict:
     if root is None:
         return out
     try:
-        nodes = list(root.findLayers())
+        nodes = drawn_nodes(root)
     except Exception:  # noqa: BLE001
         return out
     for index, node in enumerate(nodes, start=1):
@@ -193,6 +236,9 @@ def move_to_index(node, parent, target: int) -> bool:
         old.removeChildNode(node)
     except Exception:  # noqa: BLE001
         return False
+    moved = [clone] if _node_layer(clone) is not None else list(clone.findLayers())
+    for each in moved:
+        follow_tree(_node_layer(each))
     return True
 
 
@@ -221,7 +267,9 @@ def place_basemap(layer, root=None) -> dict:
     parent = node.parent() or root
     others = [child for child in parent.children() if child is not node]
     target = basemap_slot([_node_is_backdrop(child) for child in others])
-    return {"moved": move_to_index(node, parent, target)}
+    moved = move_to_index(node, parent, target)
+    follow_tree(layer, root)
+    return {"moved": moved}
 
 
 def cover_report(layer, root=None) -> dict:
@@ -237,7 +285,7 @@ def cover_report(layer, root=None) -> dict:
     if root is None or layer is None:
         return {}
     try:
-        nodes = list(root.findLayers())
+        nodes = drawn_nodes(root)
         layer_id = layer.id()
     except Exception:  # noqa: BLE001
         return {}
@@ -664,6 +712,7 @@ def place_new(layer, root=None) -> dict:
         return {}
     rank = stack_rank(layer)
     if rank is None or keeps_place(layer):
+        follow_tree(layer, root)
         return {}
     try:
         node = root.findLayer(layer.id())
@@ -690,6 +739,7 @@ def place_new(layer, root=None) -> dict:
     target = stack_slot(rank, drawn_area(layer), ranked)
     target = series_slot(rank, series_key(layer.name()), keyed, target)
     moved = move_to_index(node, parent, target)
+    follow_tree(layer, root)
     if parent is not root and _lift_over_backdrops(parent, root):
         moved = True
     under = []
@@ -776,11 +826,7 @@ def _move_into_group(group, node, number: float) -> None:
         if key is not None and key[1] < number:
             break
         index += 1
-    clone = node.clone()
-    group.insertChildNode(index, clone)
-    parent = node.parent()
-    if parent is not None:
-        parent.removeChildNode(node)
+    move_to_index(node, group, index)
 
 
 
@@ -889,6 +935,10 @@ class Stacker:
         self._added: list = []
         self.in_call = None
         self._added_ids: list = []
+
+        self.from_task: set = set()
+
+        self._call_of: dict = {}
         self._token = None
 
     def begin(self) -> None:
@@ -929,6 +979,8 @@ class Stacker:
         self._series_groups = {}
         self._grouped = {}
         self._added_ids = []
+        self.from_task = set()
+        self._call_of = {}
 
     def _on_layers_added(self, layers) -> None:
 
@@ -945,12 +997,18 @@ class Stacker:
                     return
             except Exception:  # noqa: BLE001
                 return
+        from .background import current_call
+
+        caller = current_call()
         for layer in layers or ():
             if layer is None:
                 continue
 
             self._added.append(layer)
+            self._call_of[layer.id()] = caller
             self._added_ids.append(layer.id())
+            if deferred:
+                self.from_task.add(layer.id())
             note_added(layer.id())
             if not is_backdrop(layer):
 
@@ -982,6 +1040,10 @@ class Stacker:
             return 0
         return sum(1 for layer_id in dict.fromkeys(self._added_ids) if layer_id in present)
 
+    def added_total(self) -> int:
+
+        return len(dict.fromkeys(self._added_ids))
+
     def fresh(self) -> list:
 
 
@@ -1002,40 +1064,6 @@ class Stacker:
             except RuntimeError:  # nosec B112
                 continue
         return out
-
-    def withdraw(self, layers) -> list:
-
-
-
-
-
-
-
-        gone, ids = [], []
-        for layer in layers or ():
-            try:
-                layer_id, name = layer.id(), layer.name()
-                provider = str(layer.providerType() or "").lower()
-                source = "" if provider == "memory" else str(layer.source() or "")
-            except RuntimeError:  # nosec B112
-                continue
-            ids.append(layer_id)
-            gone.append({"name": name, "source": source})
-        if not ids:
-            return []
-        wanted = set(ids)
-        self._added = [layer for layer in self._added if _layer_id(layer) not in wanted]
-        self._pending = [layer for layer in self._pending if _layer_id(layer) not in wanted]
-        self._added_ids = [layer_id for layer_id in self._added_ids if layer_id not in wanted]
-        try:
-            from qgis.core import QgsProject
-            QgsProject.instance().removeMapLayers(ids)
-        except Exception as exc:  # noqa: BLE001
-            from .logger import log_warning
-
-            log_warning(f"Layer order: layers past the run's ceiling not removed: {exc}")
-            return []
-        return gone
 
     def place_pending(self) -> dict:
 
@@ -1065,10 +1093,32 @@ class Stacker:
         grouped, self._grouped = self._grouped, {}
         return grouped
 
-    def take_added(self) -> list:
+    def take_added(self, tool_call_id: str | None = None, in_flight=()) -> list:
 
-        added, self._added = self._added, []
-        return added
+
+
+
+
+        if tool_call_id is None:
+            added, self._added = self._added, []
+            return added
+        waiting = set(in_flight) - {tool_call_id}
+        mine, kept = [], []
+        for layer in self._added:
+            try:
+                owner = self._call_of.get(layer.id(), "")
+            except RuntimeError:  # nosec B112
+                continue
+            (kept if owner in waiting else mine).append(layer)
+        self._added = kept
+        return mine
+
+    def added_by(self, layer) -> str:
+
+        try:
+            return self._call_of.get(layer.id(), "")
+        except RuntimeError:
+            return ""
 
     def _file_series(self) -> None:
 

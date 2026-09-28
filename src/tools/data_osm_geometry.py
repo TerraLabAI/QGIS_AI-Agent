@@ -294,8 +294,8 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
 
     def refused(sentence: str) -> dict:
         return {"_error": sentence + " Nothing was added.", "code": limits.CEILING_CODE,
-                "suggestion": ("Ask for the ways with out geom; instead of (._;>;);out body; so each way carries its "
-                               "own points, or for a smaller area.")}
+                "suggestion": ("The ways with out geom, instead of (._;>;);out body, give each way its own "
+                               "points; a smaller area also helps.")}
 
     def way_coords(el) -> list:
         if isinstance(el.get("geometry"), list) or nodes is None:
@@ -335,7 +335,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
                 return {"_error": (f"The answer's relations are made of more than {ceiling:,} ways, over what this "
                                    "computer keeps in memory for one load. Nothing was added."),
                         "code": limits.CEILING_CODE,
-                        "suggestion": "Ask for a smaller area, or for the relations' own tags without their members."}
+                        "suggestion": "A smaller area, or the relations' own tags without their members, fits."}
     if not elements:
         return {"elements": 0}
 

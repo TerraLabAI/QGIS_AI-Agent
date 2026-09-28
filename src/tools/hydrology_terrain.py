@@ -58,7 +58,7 @@ _MAX_STREAM_SEGMENTS = 20_000
 _MAX_ORDER = 12
 
 
-_OUTLET_FORMS = ('Pass outlet as {"lon":77.6,"lat":8.2}, {"x":..,"y":..,"crs":"EPSG:32643"}, '
+_OUTLET_FORMS = ('outlet takes {"lon":77.6,"lat":8.2}, {"x":..,"y":..,"crs":"EPSG:32643"}, '
                  '{"layer_name":"Outlet"} (+"feature_id") or {"wkt":"POINT(77.6 8.2)"}.')
 
 
@@ -239,10 +239,10 @@ def _parse_bbox(value):
         xmin, ymin, xmax, ymax = (float(value[key]) for key in ("xmin", "ymin", "xmax", "ymax"))
     except (KeyError, TypeError, ValueError):
         return tool_error("bbox needs xmin, ymin, xmax and ymax in degrees.", "INVALID_ARGS",
-                          'Pass {"xmin": 77.5, "ymin": 8.1, "xmax": 77.8, "ymax": 8.4}, or area with a polygon layer.')
+                          '{"xmin": 77.5, "ymin": 8.1, "xmax": 77.8, "ymax": 8.4}, or area with a polygon layer.')
     if not (-180.0 <= xmin < xmax <= 180.0 and -90.0 <= ymin < ymax <= 90.0):
         return tool_error("bbox is empty or off the world: xmin under xmax and ymin under ymax, in degrees.",
-                          "INVALID_ARGS", "Check the order: xmin, ymin, xmax, ymax.")
+                          "INVALID_ARGS", "xmin, ymin, xmax, ymax is the order.")
     return xmin, ymin, xmax, ymax
 
 

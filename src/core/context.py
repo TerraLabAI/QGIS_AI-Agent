@@ -423,7 +423,47 @@ def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
 
         out["ground_width_m"] = round(width * scale, 1)
         out["ground_height_m"] = round(height * scale, 1)
+    degrees = degree_values(layer_crs, extent)
+    if degrees:
+        out["degree_values"] = degrees
     return out
+
+
+
+
+_WORLD_WIDTH_DEGREES = 90.0
+
+
+def degree_values(crs, extent) -> str:
+
+
+
+
+
+
+    try:
+        if not crs.isValid() or crs.isGeographic() or extent.isNull() or extent.isEmpty():
+            return ""
+    except Exception:  # noqa: BLE001
+        return ""
+    name = crs.authid() or "its CRS"
+    size = f"extent {extent.width():.4g} x {extent.height():.4g} {name} units"
+    if not (extent.xMinimum() >= -180 and extent.xMaximum() <= 180
+            and extent.yMinimum() >= -90 and extent.yMaximum() <= 90):
+        return ""
+    try:
+        from qgis.core import QgsCoordinateReferenceSystem
+
+        bounds = crs.bounds()
+        if bounds.isEmpty() or bounds.width() >= _WORLD_WIDTH_DEGREES:
+            return f"{size}, every coordinate within the range of longitude/latitude degrees"
+        box = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem("EPSG:4326"),
+                                     QgsProject.instance()).transformBoundingBox(extent)
+        if bounds.contains(box):
+            return ""
+    except Exception:  # noqa: BLE001
+        return f"{size}, outside {name}'s area of use; the values fit longitude/latitude degrees"
+    return f"{size}, outside {name}'s area of use; the values fit longitude/latitude degrees"
 
 
 def is_editing(layer) -> bool:

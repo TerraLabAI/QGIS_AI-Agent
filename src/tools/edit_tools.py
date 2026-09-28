@@ -78,7 +78,7 @@ def _resolve_vector(name_or_id: str):
             return None, {
                 "_error": (
                     f"Ambiguous layer name '{name_or_id}': {len(matches)} layers match. "
-                    f"Pass one of these ids instead: {ids}"
+                    f"ids: {ids}"
                 )
             }
         layer = matches[0]
@@ -92,13 +92,40 @@ def _resolve_vector(name_or_id: str):
     return layer, None
 
 
+def _validity(layer: QgsVectorLayer, fid) -> dict:
+
+
+
+
+
+
+
+    if fid is None:
+        return {}
+    try:
+        geometry = layer.getFeature(fid).geometry()
+        if geometry is None or geometry.isNull():
+            return {}
+        if geometry.isGeosValid():
+            return {"geometry_valid": True}
+    except Exception:  # noqa: BLE001
+        return {}
+    from .query_tools import _invalid_reasons
+
+    out = {"geometry_valid": False}
+    reasons = _invalid_reasons(geometry)
+    if reasons:
+        out["geometry_invalid_reason"] = "; ".join(reasons)
+    return out
+
+
 def _require_editable(layer: QgsVectorLayer):
 
     if not layer.isEditable():
         return {
             "_error": (
                 f"Layer '{layer.name()}' has no open edit session. "
-                "Call qgis_edit_begin first."
+                "qgis_edit_begin opens one."
             )
         }
     return None
@@ -248,7 +275,7 @@ def _set_snapping_config(args: dict) -> dict:
             return tool_error(
                 "This QGIS version cannot configure intersection snapping.",
                 "UNSUPPORTED_QGIS_VERSION",
-                "Disable intersection_snapping or upgrade QGIS.",
+                "intersection_snapping needs a newer QGIS.",
             )
         proj.setSnappingConfig(cfg)
     except (AttributeError, TypeError, ValueError) as exc:
@@ -344,7 +371,7 @@ def _line_points_from_wkt(wkt: str):
     if len(pts) < 2:
         return None, {
             "_error": (
-                "Line needs at least 2 vertices. Provide a LINESTRING WKT in the "
+                "Line needs at least 2 vertices, as LINESTRING WKT in the "
                 "layer's CRS, e.g. 'LINESTRING(x1 y1, x2 y2)'."
             )
         }
@@ -453,7 +480,7 @@ def _edit_begin(args: dict) -> dict:
         },
         "topological": topological,
         "avoid_overlap": avoid_overlap,
-        "note": "prior editing aids saved; pass state_token to qgis_edit_restore_aids to restore.",
+        "note": "prior editing aids saved; state_token restores them via qgis_edit_restore_aids.",
     }
 
 
@@ -498,8 +525,8 @@ def _edit_commit(args: dict) -> dict:
         "feature_count": feature_count_of(layer),
         "editing": layer.isEditable(),
         "note": (
-            "editing aids still applied; call qgis_edit_restore_aids with the "
-            "state_token to leave the project clean."
+            "editing aids still applied; qgis_edit_restore_aids with the "
+            "state_token clears them."
         ),
     }
 
@@ -522,8 +549,8 @@ def _edit_rollback(args: dict) -> dict:
             "_error": f"rollBack failed on layer '{layer.name()}', which is still in edit mode.",
             "code": "EXECUTION_FAILED",
             "aids_restored": aids_restored,
-            "suggestion": ("Ask the user to click Toggle Editing on that layer in QGIS and discard the changes; "
-                           "no further tool call on it can succeed until they do."),
+            "suggestion": ("The user closes it with Toggle Editing on that layer, discarding the changes; no "
+                           "tool call on it succeeds until then."),
         }
 
     return {
@@ -593,7 +620,7 @@ def _arm_tool(args: dict) -> dict:
     if name not in _ARM_ACTIONS:
         return {
             "_error": (
-                f"Unknown tool '{name}'. Choose one of: {sorted(_ARM_ACTIONS.keys())}"
+                f"Unknown tool '{name}'. Valid: {sorted(_ARM_ACTIONS.keys())}"
             )
         }
     if iface is None:
@@ -616,8 +643,8 @@ def _arm_tool(args: dict) -> dict:
     if not action.isEnabled():
         return {
             "_error": (
-                f"The '{name}' action is disabled right now. Open an edit session "
-                "(qgis_edit_begin) on an active editable vector layer first."
+                f"The '{name}' action is disabled right now; it needs an edit session "
+                "(qgis_edit_begin) on an editable vector layer."
             )
         }
     action.trigger()
@@ -655,8 +682,8 @@ def _move_vertex(args: dict) -> dict:
     if not ok:
         return {
             "_error": (
-                f"moveVertex failed for fid {fid}, vertex {vertex_index}. "
-                "Check the vertex index is in range for this geometry."
+                f"moveVertex failed for fid {fid}, vertex {vertex_index}: the index "
+                "may be out of range for this geometry."
             )
         }
 
@@ -692,7 +719,8 @@ def _move_vertex(args: dict) -> dict:
         "y": y,
         "coincident_vertices_moved": co_moved,
         "committed": False,
-        "note": "moved in the open edit session (call qgis_edit_commit to persist).",
+        "note": "moved in the open edit session; qgis_edit_commit persists it.",
+        **_validity(layer, fid),
     }
 
 
@@ -763,7 +791,8 @@ def _trim_extend_line(args: dict) -> dict:
         "old_endpoint": {"x": old.x(), "y": old.y()},
         "topological_editing": QgsProject.instance().topologicalEditing(),
         "committed": False,
-        "note": "Endpoint moved in the open edit session; call qgis_edit_commit to persist.",
+        "note": "Endpoint moved in the open edit session; qgis_edit_commit persists it.",
+        **_validity(layer, fid),
     }
 
 
@@ -825,7 +854,7 @@ def _split_feature(args: dict) -> dict:
         "result_code": code,
         "new_pieces": new_pieces,
         "committed": False,
-        "note": "split in the open edit session (call qgis_edit_commit to persist).",
+        "note": "split in the open edit session; qgis_edit_commit persists it.",
     }
     if not success:
         out["_error"] = (
@@ -834,6 +863,8 @@ def _split_feature(args: dict) -> dict:
         )
 
         out.update(coded_fact(hint="digitize_split", result_code=code, layer=layer.name(), fid=fid))
+    else:
+        out.update(_validity(layer, fid))
     return out
 
 
@@ -885,7 +916,8 @@ def _reshape_feature(args: dict) -> dict:
         "fid": fid,
         "result_code": code,
         "committed": False,
-        "note": "reshaped in the open edit session (call qgis_edit_commit to persist).",
+        "note": "reshaped in the open edit session; qgis_edit_commit persists it.",
+        **_validity(layer, fid),
     }
 
 
@@ -948,7 +980,7 @@ def _add_vertex(args: dict) -> dict:
         return {"_error": f"insertVertex failed for fid {fid} before vertex {before}."}
     layer.triggerRepaint()
     return {"inserted": True, "layer": layer.name(), "fid": fid,
-            "before_vertex": before, "committed": False}
+            "before_vertex": before, "committed": False, **_validity(layer, fid)}
 
 
 def _delete_vertex(args: dict) -> dict:
@@ -969,7 +1001,7 @@ def _delete_vertex(args: dict) -> dict:
                 **coded_fact(hint="digitize_deletevertex", result_code=code, layer=layer.name(), fid=fid)}
     layer.triggerRepaint()
     return {"deleted": True, "layer": layer.name(), "fid": fid,
-            "vertex_index": args["vertex_index"], "committed": False}
+            "vertex_index": args["vertex_index"], "committed": False, **_validity(layer, fid)}
 
 
 def _translate_feature(args: dict) -> dict:
@@ -1023,7 +1055,7 @@ def _rotate_feature(args: dict) -> dict:
     layer.triggerRepaint()
     return {"rotated": True, "layer": layer.name(), "fid": fid,
             "angle_degrees": float(args["angle_degrees"]),
-            "center": [center.x(), center.y()], "committed": False}
+            "center": [center.x(), center.y()], "committed": False, **_validity(layer, fid)}
 
 
 def _simplify_feature(args: dict) -> dict:
@@ -1050,7 +1082,8 @@ def _simplify_feature(args: dict) -> dict:
     layer.triggerRepaint()
     return {"simplified": True, "layer": layer.name(), "fid": fid,
             "tolerance": float(args["tolerance"]),
-            "vertices_before": vbefore, "vertices_after": vafter, "committed": False}
+            "vertices_before": vbefore, "vertices_after": vafter, "committed": False,
+            **_validity(layer, fid)}
 
 
 def _merge_features(args: dict) -> dict:
@@ -1062,7 +1095,7 @@ def _merge_features(args: dict) -> dict:
         return err
     fids = args["fids"]
     if len(fids) < 2:
-        return {"_error": "Provide at least 2 fids to merge."}
+        return {"_error": "fids needs at least 2 to merge."}
     geoms = []
     for fid in fids:
         f = layer.getFeature(fid)
@@ -1084,7 +1117,7 @@ def _merge_features(args: dict) -> dict:
     layer.triggerRepaint()
     return {"merged": True, "layer": layer.name(), "kept_fid": keep,
             "deleted_fids": drop, "committed": False,
-            "note": "kept the first fid's attributes; others removed."}
+            "note": "kept the first fid's attributes; others removed.", **_validity(layer, keep)}
 
 
 def _add_ring(args: dict) -> dict:
@@ -1111,7 +1144,7 @@ def _add_ring(args: dict) -> dict:
                 **coded_fact(hint="digitize_addring", result_code=code, layer=layer.name())}
     layer.triggerRepaint()
     return {"ring_added": True, "layer": layer.name(), "feature_fid": ring_fid,
-            "committed": False}
+            "committed": False, **_validity(layer, ring_fid)}
 
 
 def _add_part(args: dict) -> dict:
@@ -1140,7 +1173,8 @@ def _add_part(args: dict) -> dict:
                 "_error": f"addPart returned code {code} (0=Success).",
                 **coded_fact(hint="digitize_addpart", result_code=code, layer=layer.name(), fid=fid)}
     layer.triggerRepaint()
-    return {"part_added": True, "layer": layer.name(), "fid": fid, "committed": False}
+    return {"part_added": True, "layer": layer.name(), "fid": fid, "committed": False,
+            **_validity(layer, fid)}
 
 
 def _undo_saved(layer) -> dict:
@@ -1152,7 +1186,7 @@ def _undo_saved(layer) -> dict:
     if context.restore_previous is None or not context.chat:
         return {"undone": False, "layer": layer.name(),
                 "_error": f"Layer '{layer.name()}' has no edit waiting to be undone.",
-                "suggestion": "Tell the user the chat's Undo arrow takes the project back to before a request."}
+                "suggestion": "The chat's Undo arrow takes the project back to before a request."}
     return context.restore_previous(context.chat)
 
 

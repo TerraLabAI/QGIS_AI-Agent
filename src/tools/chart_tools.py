@@ -122,35 +122,35 @@ def _check_args(args: dict) -> dict | None:
     if kind not in KINDS:
         return tool_error(
             f"kind {kind!r} is not a chart this tool draws.", "INVALID_ARGS",
-            "Pass histogram (one numeric field), bar (a category field, and a numeric y_field to sum or average), "
-            "scatter (two numeric fields) or line (a numeric y_field over a date, time or number x_field).")
+            "kind is histogram (one numeric field), bar (a category field, numeric y_field to sum or average), "
+            "scatter (two numeric fields) or line (numeric y_field over a date, time or number x_field).")
     x_field = str(args.get("x_field") or "").strip()
     y_field = str(args.get("y_field") or "").strip()
     aggregate = str(args.get("aggregate") or "").strip()
     if not x_field:
-        return tool_error("x_field is missing.", "INVALID_ARGS", "Pass the field the chart is about as x_field.")
+        return tool_error("x_field is missing.", "INVALID_ARGS", "x_field names the field the chart is about.")
     if aggregate and aggregate not in AGGREGATES:
         return tool_error(f"aggregate {aggregate!r} is not one this tool knows.", "INVALID_ARGS",
-                          "Pass count, sum or mean.")
+                          "count, sum or mean fits.")
     if kind == "histogram" and y_field:
         return tool_error(
             "A histogram counts the values of one field, so it takes no y_field.", "INVALID_ARGS",
-            f"Leave y_field out, or pass kind scatter to plot {x_field!r} against {y_field!r}.")
+            f"A histogram ignores y_field; kind scatter plots {x_field!r} against {y_field!r}.")
 
 
     if kind in ("histogram", "scatter") and aggregate in ("sum", "mean"):
         return tool_error(f"A {kind} takes no aggregate {aggregate}.", "INVALID_ARGS",
-                          "Leave aggregate out, or pass kind bar to sum or average y_field per category.")
+                          "This chart ignores aggregate; kind bar sums or averages y_field per category.")
     if kind == "scatter" and not y_field:
         return tool_error("A scatter plots one numeric field against another, and y_field is missing.",
-                          "INVALID_ARGS", "Pass the numeric y_field, or kind histogram for one field.")
+                          "INVALID_ARGS", "y_field needed, or kind histogram for one field.")
     if kind == "line" and not y_field and aggregate != "count":
         return tool_error(
             "A line draws y_field over x_field, and y_field is missing.", "INVALID_ARGS",
-            "Pass the numeric y_field, or aggregate count to draw how many features share each x value.")
+            "A line needs numeric y_field, or aggregate count for how many features share each x.")
     if aggregate in ("sum", "mean") and not y_field:
         return tool_error(f"aggregate {aggregate} needs the numeric y_field it adds up.", "INVALID_ARGS",
-                          "Pass y_field, or aggregate count.")
+                          "Needs y_field, or count instead.")
     return None
 
 
@@ -192,7 +192,7 @@ def _plan(args: dict) -> dict:
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(
             f"{layer.name()} is not a vector layer, and a chart draws the values of a layer's fields.",
-            "INVALID_ARGS", "Pass a vector layer with an attribute table; a raster's values are read with "
+            "INVALID_ARGS", "Charts read a vector layer's attribute table; a raster's values come from "
             "get_raster_band_stats.")
     kind = str(args["kind"])
     fields = layer.fields()
@@ -221,7 +221,7 @@ def _plan(args: dict) -> dict:
     if kind == "line" and plan["x"]["kind"] == "text":
         return tool_error(
             f"{plan['x']['name']!r} is text, and a line needs x values in an order: a number, a date or a time.",
-            "INVALID_ARGS", "Pass kind bar to compare its values as categories, or chart a date field "
+            "INVALID_ARGS", "kind bar compares its values as categories; a date field suits a line "
             "(field_calculator with to_date() makes one from text).")
     if args.get("bins") is not None and kind != "histogram":
         plan["notes"].append("bins only shapes a histogram, so it was not used.")
@@ -231,7 +231,7 @@ def _plan(args: dict) -> dict:
         expression = QgsExpression(text)
         if expression.hasParserError():
             return tool_error(f"filter does not parse: {expression.parserErrorString()[:200]}", "INVALID_ARGS",
-                              "Write a QGIS expression, for example \"height\" > 5 AND \"species\" = 'oak'.")
+                              "A QGIS expression, for example \"height\" > 5 AND \"species\" = 'oak'.")
         everything = getattr(QgsFeatureRequest, "ALL_ATTRIBUTES", "#!allattributes!#")
         referenced = set(expression.referencedColumns())
         unknown = sorted(c for c in referenced if c != everything and fields.indexOf(c) < 0)
@@ -305,15 +305,15 @@ def _output_target(args: dict, plan: dict):
             target += ".png"
         elif extension != ".png":
             return None, tool_error(f"{os.path.basename(target)} is not a PNG name.", "INVALID_ARGS",
-                                    "End output_path in .png: the tool writes a PNG.")
+                                    "output_path ends in .png: a PNG is written.")
         error = security.validate_path(target, write=True)
         if error:
             return None, tool_error(error, "PERMISSION_DENIED",
-                                    "Pick a path under the project folder, your home folder or the temp folder.")
+                                    "Paths sit under the project folder, your home folder or the temp folder.")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                    "Tell the user the file exists and ask whether to replace it (overwrite true) "
-                                    "or name a new file.")
+                                    "The file exists; overwrite true replaces it, or a new file name "
+                                    "keeps it, the user's call.")
         return target, None
 
     words = [plan["layer"], plan["kind"], plan["x"]["name"]] + ([plan["y"]["name"]] if plan.get("y") else [])
@@ -324,10 +324,10 @@ def _output_target(args: dict, plan: dict):
         if not os.path.exists(candidate):
             error = security.validate_path(candidate, write=True)
             if error:
-                return None, tool_error(error, "PERMISSION_DENIED", "Pass output_path under your home folder.")
+                return None, tool_error(error, "PERMISSION_DENIED", "output_path sits under your home folder.")
             return candidate, None
     return None, tool_error(f"{folder} already holds 999 charts named {stem}.", "INVALID_ARGS",
-                            "Pass output_path with a new file name.")
+                            "output_path needs a new name.")
 
 
 
@@ -337,7 +337,7 @@ def _open(plan: dict, state: dict) -> dict | None:
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{plan['layer']} left the project before it was read.", "EXECUTION_FAILED",
-                          "Load the layer again and ask for the chart again.")
+                          "The layer left the project; load it again first.")
     request = QgsFeatureRequest()
     columns: list | None = [plan["x"]["index"]] + ([plan["y"]["index"]] if plan.get("y") else [])
     if plan.get("filter"):
@@ -560,8 +560,8 @@ def _no_values(plan: dict) -> dict:
     where = " that match the filter" if plan.get("filter") else ""
     fields = plan["x"]["name"] + (f" and {plan['y']['name']}" if plan.get("y") else "")
     return tool_error(f"No feature of {plan['layer']}{where} has a value in {fields}, so nothing was charted.",
-                      "INVALID_ARGS", "Check the filter and the field names; get_field_statistics counts a "
-                      "field's values and its empty ones.")
+                      "INVALID_ARGS", "The filter or field names may be wrong; get_field_statistics counts "
+                      "values and empty ones.")
 
 
 def _edge(value: float) -> float:
@@ -1032,7 +1032,7 @@ def _create_chart(args: dict) -> dict:
         if not image.save(part, "PNG"):
             _remove(part)
             return tool_error(f"The chart could not be written in {folder}.", "EXECUTION_FAILED",
-                              "Check the folder exists and has room, or pass another output_path.")
+                              "No such folder, or no room; another output_path may work.")
         if _is_cancelled(cancelled):
             _remove(part)
             return _stopped()
@@ -1043,11 +1043,11 @@ def _create_chart(args: dict) -> dict:
             _remove(part)
             return tool_error(f"The chart was drawn but could not replace {target}: another program holds that "
                               f"file open ({exc.strerror or exc}).", "EXECUTION_FAILED",
-                              "Close the image in the program showing it, or pass another output_path.")
+                              "Another program may hold the file open; another output_path avoids it.")
     except OSError as exc:
         _remove(part)
         return tool_error(f"The chart could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "Check the folder exists and has room, or pass another output_path.")
+                          "No such folder, or no room; another output_path may work.")
 
     result = {"output_path": target, "layer": plan["layer"], "kind": plan["kind"], "x_field": plan["x"]["name"]}
     if plan.get("y"):

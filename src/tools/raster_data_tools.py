@@ -85,14 +85,14 @@ def _set_raster_nodata(args: dict) -> dict:
     setter = getattr(provider, "setNoDataValue", None)
     if setter is None:
         return tool_error("This raster provider cannot persist a NoData value.", "UNSUPPORTED",
-                          "Export a writable raster with a NoData option, then retry on that layer.")
+                          "A writable raster with a NoData option keeps it.")
     try:
         changed = setter(band, value)
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"QGIS could not set NoData on band {band}: {exc}", "WRITE_FAILED")
     if changed is False:
         return tool_error("The raster provider refused the NoData value.", "WRITE_FAILED",
-                          "Use a writable GeoTIFF or another provider that supports raster metadata writes.")
+                          "A writable GeoTIFF or another provider with raster metadata writes keeps it.")
     layer.triggerRepaint()
     declared = provider.sourceNoDataValue(band) if provider.sourceHasNoDataValue(band) else None
     return {"layer_name": layer.name(), "layer_id": layer.id(), "band": band,
@@ -155,12 +155,16 @@ def _sample_rasters_at_points(args: dict) -> dict:
         for raster in rasters
     }
     features = []
+
+
+
+    nulls = [0] * len(rasters)
     for feature in points.getFeatures():
         if feature.geometry() is None or feature.geometry().isEmpty():
             continue
         point = feature.geometry().asPoint()
         values = [feature.id()] + [feature.attribute(index) for index in range(points.fields().count())]
-        for raster in rasters:
+        for position, raster in enumerate(rasters):
             sample_point = point
             transform = transforms.get(raster.id())
             if transform is not None:
@@ -173,6 +177,8 @@ def _sample_rasters_at_points(args: dict) -> dict:
                 value = float(value) if value is not None else None
             except (TypeError, ValueError):
                 value = None
+            if value is None or math.isnan(value):
+                nulls[position] += 1
             values.append(value)
         out_feature = QgsFeature(output.fields())
         out_feature.setGeometry(QgsGeometry.fromPointXY(point))
@@ -187,6 +193,7 @@ def _sample_rasters_at_points(args: dict) -> dict:
         "rasters": [r.name() for r in rasters],
         "fields": fields,
         "sampled_features": len(features),
+        "null_samples": dict(zip(fields, nulls)),
         "method": "provider_identify",
         "native_algorithm_note": "native:rastersampling handles one raster per call; this folded tool "
                                  "samples all requested rasters in one call.",

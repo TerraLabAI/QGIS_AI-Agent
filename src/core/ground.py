@@ -107,7 +107,7 @@ def pixel_facts(layer) -> dict:
         across, down, area = cell
         out["pixel_area_m2"] = round(area, 3)
         out["pixel_note"] = (f"One pixel is {across:.3g} m by {down:.3g} m of ground, {area:.4g} m²: "
-                             f"a pixel count times pixel_area_m2 is an area, never times an assumed 100 m².")
+                             f"a pixel count times pixel_area_m2 is the area.")
     return out
 
 

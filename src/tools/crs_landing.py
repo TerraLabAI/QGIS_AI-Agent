@@ -67,12 +67,14 @@ def _transforms_here(crs) -> bool:
 
 
 
+
+
     try:
         from qgis.core import QgsDatumTransform
         operations = QgsDatumTransform.operations(crs, QgsCoordinateReferenceSystem(_WGS84))
     except Exception:  # noqa: BLE001
-        return True
-    return not operations or bool(operations[0].isAvailable)
+        return False
+    return bool(operations) and bool(operations[0].isAvailable)
 
 
 def _to_wgs84(crs, rect: QgsRectangle) -> QgsRectangle | None:

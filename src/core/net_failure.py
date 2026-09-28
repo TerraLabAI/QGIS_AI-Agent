@@ -124,10 +124,9 @@ def _transient(exc: BaseException) -> bool:
 
 
 NETWORK_ERROR = "NETWORK_ERROR"
-NETWORK_SUGGESTION = ("Nothing from this call was used. Tell the user what broke in the message's own terms "
-                      "(their connection, not the data service, unless the message says a service "
-                      "answered). Try the same call once more; if it fails again, ask the user to check "
-                      "their connection and say when to retry.")
+NETWORK_SUGGESTION = ("Nothing from this call was used. The message's own terms say what broke: their "
+                      "connection, not the data service, unless the message says a service answered. "
+                      "One retry of the same call is usual; a second failure points to their connection.")
 
 
 def describe_failure(exc: BaseException) -> str | None:
@@ -241,7 +240,7 @@ def _inflate(body: bytes, encoding: str, max_bytes: int) -> bytes:
         if not worker.eof:
             raise FetchTruncated(
                 "The compressed answer ended before its own end marker, so the file is "
-                "incomplete. The connection dropped; try again.")
+                "incomplete. The connection dropped.")
         rest = worker.unused_data
         while rest:
             worker = zlib.decompressobj(wbits)
@@ -256,7 +255,7 @@ def _inflate(body: bytes, encoding: str, max_bytes: int) -> bytes:
             if not worker.eof:
                 raise FetchTruncated(
                     "The compressed answer ended before its own end marker, so the file is "
-                    "incomplete. The connection dropped; try again.")
+                    "incomplete. The connection dropped.")
             rest = worker.unused_data
         return out
     log_warning(f"Body announced as {kind} did not decompress; passing it through as it came.")

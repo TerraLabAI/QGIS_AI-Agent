@@ -819,6 +819,7 @@ class ErrorCard(_Card):
 
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
+    undo_retry_requested = pyqtSignal(str)
 
     def __init__(self, run_id: str | None, code: str, message: str,
                  retryable: bool, details: str = "", parent=None, continuable: bool = False):
@@ -845,6 +846,14 @@ class ErrorCard(_Card):
             row.addWidget(_pill(self._button(self.tr("Retry"), _BTN_GHOST_PILL, self._on_retry)))
 
 
+        self._undo_retry = None
+        if retryable and self.run_id and self.code != "PLUGIN_UPDATE_REQUIRED" and not continuable:
+            self._undo_retry = _pill(self._button(self.tr("Undo and retry"), _BTN_GHOST_PILL,
+                                                  lambda: self.undo_retry_requested.emit(self.run_id)))
+            self._undo_retry.hide()
+            row.addWidget(self._undo_retry)
+
+
 
         if self.run_id:
             row.addWidget(self._button(self.tr("Report"), _BTN_QUIET_LINK, self._on_report))
@@ -860,6 +869,10 @@ class ErrorCard(_Card):
 
     def _on_retry(self) -> None:
         self.retry_requested.emit(self.run_id)
+
+    def set_undo_retry(self, available: bool) -> None:
+        if self._undo_retry is not None:
+            self._undo_retry.setVisible(bool(available))
 
     def _on_update(self) -> None:
         try:

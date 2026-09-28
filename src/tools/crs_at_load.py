@@ -22,6 +22,7 @@ import math
 from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsRasterLayer, QgsRectangle
 
 from ..core.tool_registry import coded_fact
+from .crs_landing import _to_wgs84
 from .csv_loader import _project_candidates
 from .processing_guards import _centre_in_area_of_use, degree_slack, fits_degrees
 
@@ -132,29 +133,30 @@ def verdict(layer, crs, declared: bool = True) -> dict:
         return {"verdict": "swapped_axes", "crs": label, "candidates": [],
                 "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall inside that CRS's area "
                            f"only with x and y swapped.")}
+
+
+
+    box = _to_wgs84(crs, extent)
+    lands = (f"; read in it they land at lon {box.xMinimum():.3f} to {box.xMaximum():.3f}, lat "
+             f"{box.yMinimum():.3f} to {box.yMaximum():.3f} (EPSG:4326)" if box is not None else "")
     return {"verdict": "outside_area_of_use", "crs": label, "candidates": projected_candidates(crs.authid()),
-            "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall outside the area that CRS "
-                       f"is defined for: drawn there, the layer is in the wrong place (drawing units, another "
-                       f"zone or another grid).")}
+            "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall outside the area of use "
+                       f"that CRS publishes{lands}.")}
 
 
 def suggestion(found: dict, layer_name: str, cad: bool = False) -> str:
 
     kind = found.get("verdict")
     if kind == "not_georeferenced":
-        return (f"Tell the user '{layer_name}' has no position yet; georeference it (georeference_raster) "
-                "before any overlay or measure.")
+        return f"'{layer_name}' has no position yet; georeference_raster gives it one."
     if kind == "swapped_axes":
-        return (f"Swap the axes of '{layer_name}' (run_processing native:swapxy on a vector layer, then use the "
-                "result) and tell the user; nothing about the CRS itself needs asking.")
+        return f"The coordinates of '{layer_name}' fit its CRS with x and y swapped; native:swapxy swaps them back."
     options = [f"{authid} ({why})" if why else authid for authid, why in found.get("candidates") or []]
-    fix = ("add_data again on the drawing with crs=<the answer>" if cad
-           else f"set_layer_crs on '{layer_name}' with the answer (it relabels, it does not reproject)")
-    ask = ("ask the user once with ask_user"
-           + (f", options {', '.join(options)} and allow_free_text true" if options
-              else ", allow_free_text true (the numbers alone cannot tell one UTM zone or national grid from another)"))
-    return (f"Before any measure, overlay or reprojection of '{layer_name}', {ask}, unless the user, the source or "
-            f"its metadata already named the CRS; then {fix}.")
+    fits = (f"CRSs whose area holds these coordinates: {', '.join(options)}." if options
+            else "The numbers alone cannot tell one UTM zone or national grid from another.")
+    relabel = ("add_data takes crs= for the drawing." if cad
+               else "set_layer_crs relabels a layer, it does not reproject.")
+    return f"{fits} {relabel}"
 
 
 

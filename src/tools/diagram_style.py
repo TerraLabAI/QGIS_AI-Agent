@@ -113,7 +113,7 @@ def set_diagram_renderer(layer, args: dict, kept_style: str, previous_keys) -> d
     numeric_names = [f.name() for f in layer.fields() if f.isNumeric()]
     if not isinstance(fields, list) or not fields or len(fields) > 12:
         return {"_error": "fields must contain 1 to 12 numeric field names for a diagram.", "code": "INVALID_ARGS",
-                "suggestion": ("Pass fields: the numeric fields to draw, one slice or bar each. Numeric fields here: "
+                "suggestion": ("fields: the numeric fields to draw, one slice or bar each. Numeric fields here: "
                                + (", ".join(numeric_names[:20]) or "none") + ".")}
     fields = [str(f) for f in fields]
     names = {f.name(): f for f in layer.fields()}

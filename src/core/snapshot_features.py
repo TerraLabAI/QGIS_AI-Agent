@@ -29,6 +29,18 @@ from .qt_compat import enum_member, field_type
 from .snapshot_files import sqlite_read_only_uri
 
 
+def _bytes_field_type():
+
+
+    from qgis.core import Qgis
+
+    if Qgis.QGIS_VERSION_INT >= 33800:
+        from qgis.PyQt.QtCore import QMetaType
+
+        return getattr(QMetaType, "Type", QMetaType).QByteArray
+    return field_type("ByteArray")
+
+
 
 
 MAX_MEMORY_FEATURES = 20_000
@@ -445,7 +457,7 @@ class _FeaturePass:
                 field.setLength(0)
                 field.setPrecision(0)
                 copy_fields.append(field)
-            copy_fields.append(QgsField(MEMORY_COPY_WKB, field_type("ByteArray")))
+            copy_fields.append(QgsField(MEMORY_COPY_WKB, _bytes_field_type()))
             options = QgsVectorFileWriter.SaveVectorOptions()
             options.driverName = "GPKG"
             options.layerName = table
