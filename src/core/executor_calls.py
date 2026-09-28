@@ -196,7 +196,7 @@ class _ExecutorCalls:
 
 
         unvouched = (guards.unvouched_urls(name, args, call.get("listed_urls") or ())
-                     if guards is not None and approval != Approval.AUTO else [])
+                     if guards is not None else [])
         if unvouched:
             call["unvouched"] = unvouched
         costly = self._costly_check(name, args)
@@ -226,6 +226,13 @@ class _ExecutorCalls:
         if costly:
             if not self._preflight_before_card(call, costly):
                 self._costly_card(call, costly)
+            return
+        if name == CODE_TOOL and not unvouched and self._code_run_granted(call):
+
+
+            log(f"ALLOW {name} (the user allowed code for this run)")
+            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
+            self._execute(call)
             return
         always = guards is not None and guards.always_confirm(name, args)
         if name == CODE_TOOL:
@@ -481,7 +488,9 @@ class _ExecutorCalls:
             return
         run_id = str(call.get("run_id") or "")
         name = str(call.get("name") or "")
-        if decision not in (Decision.ALLOW, Decision.ALLOW_PROJECT, Decision.DENY):
+        if decision == Decision.ALLOW_RUN and name != CODE_TOOL:
+            decision = Decision.ALLOW
+        if decision not in (Decision.ALLOW, Decision.ALLOW_PROJECT, Decision.ALLOW_RUN, Decision.DENY):
 
 
 
@@ -539,9 +548,10 @@ class _ExecutorCalls:
             else:
                 self._settings.allow(self._project_path(), name)
         else:
-            decision = Decision.ALLOW
             if name == CODE_TOOL:
-                self._code_decided(call, decision)
+                self._code_decided(call, Decision.ALLOW_RUN if decision == Decision.ALLOW_RUN and not edits
+                                   else Decision.ALLOW)
+            decision = Decision.ALLOW
         self._session.send_permission_response(tool_call_id, run_id, decision)
         self._execute(call)
 

@@ -140,6 +140,9 @@ class Decision:
     ALL = frozenset({ALLOW, ALLOW_PROJECT, DENY, PENDING})
 
 
+    ALLOW_RUN = "allow_run"
+
+
 class Mode:
     ASK = "ask"
     AGENT = "agent"

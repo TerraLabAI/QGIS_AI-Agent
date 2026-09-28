@@ -226,6 +226,9 @@ class Composer(QFrame):
         self._conn_state = "online"
 
 
+        self._offline_cause = ""
+
+
         self._pending_send = False
 
 
@@ -615,8 +618,11 @@ class Composer(QFrame):
             if self._pending_send and not (self.text().strip() or self._items):
 
 
+
                 self._pending_send = False
                 self._clear_hint()
+                if self._offline and self._offline_cause:
+                    self.show_warning(self._offline_line(), sticky=True, focus=False)
             return
         self._clear_hint()
 
@@ -1058,7 +1064,9 @@ class Composer(QFrame):
     def is_blocked(self) -> bool:
         return self._blocked
 
-    def set_offline(self, offline: bool, state: str = "") -> None:
+    def set_offline(self, offline: bool, state: str = "", cause: str | None = None) -> None:
+
+
 
 
 
@@ -1066,7 +1074,12 @@ class Composer(QFrame):
 
 
         was_offline = self._offline
+        had_cause = self._offline_cause
         self._offline = bool(offline)
+        if not self._offline:
+            self._offline_cause = ""
+        elif cause is not None:
+            self._offline_cause = str(cause)
         if self._offline and not was_offline:
             self._offline_grace.start()
         elif not self._offline:
@@ -1085,8 +1098,11 @@ class Composer(QFrame):
         if self._offline:
 
 
-            if self._pending_send and not self._in_offline_grace():
+
+            if self._offline_cause or (self._pending_send and not self._in_offline_grace()):
                 self.show_warning(self._offline_line(), sticky=True, focus=False)
+            elif had_cause and self._sticky_hint:
+                self._clear_hint()
             return
         if was_offline and self._pending_send:
             self._flush_pending_send()
@@ -1106,6 +1122,11 @@ class Composer(QFrame):
 
     def _offline_line(self) -> str:
 
+        if self._offline_cause:
+            if not self._pending_send:
+                return self._offline_cause
+            return self._offline_cause + " " + self.tr(
+                "Your message stays here and goes out as soon as the connection is back.")
         if self._conn_state == "connecting":
             return self.tr("Reconnecting to the agent service. Your message stays here and "
                            "goes out as soon as the connection is back.")

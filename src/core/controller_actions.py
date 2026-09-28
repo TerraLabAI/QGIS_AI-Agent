@@ -446,11 +446,10 @@ class PanelActionsMixin:
         self._example_pick = str(slug or "")
         telemetry.track(ev.EXAMPLE_CHOSEN, {"slug": self._example_pick})
 
-    def _on_update_clicked(self, version: str) -> None:
-        telemetry.track(ev.PLUGIN_UPDATE_PROMPT_CLICKED, {
-            "offered_version": version, "action": "plugin_manager"})
-
     def _on_update_dismissed(self, version: str) -> None:
+        from .plugin_release import put_off_update
+
+        put_off_update(version)
         telemetry.track(ev.PLUGIN_UPDATE_PROMPT_CLICKED, {
             "offered_version": version, "action": "dismissed"})
 

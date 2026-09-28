@@ -28,6 +28,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -304,7 +313,10 @@ class _ExecutorCode:
                        "Nothing changes in Question mode unless the user says yes.")
             return
         approval = self._approval_now()
-        if not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]):
+        if ((not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]))
+                or self._code_run_granted(call)):
+            if self._code_run_granted(call):
+                log("ALLOW execute_code after a trip (the user allowed code for this run)")
             self._execute(call)
             return
         self._code_card(call)
@@ -324,14 +336,45 @@ class _ExecutorCode:
 
     def grant_for(self, tool_call_id: str) -> str:
 
+
+
+
+
+
         call = self._pending.get(str(tool_call_id or "")) or {}
+        if call.get("name") != CODE_TOOL or call.get("costly") or call.get("unvouched"):
+            return ""
         plan = call.get("code_plan") or {}
-        return "file_writes" if call.get("name") == CODE_TOOL and plan.get("cls") == ce.FW else ""
+        offers = ["file_writes"] if plan.get("cls") == ce.FW else []
+        if self._run_grant_offered(call):
+            offers.append("run")
+        return " ".join(offers)
+
+    def _run_grant_offered(self, call: dict) -> bool:
+
+        plan = call.get("code_plan") or {}
+        return (self._approval_now() == Approval.ASK and _classes_on()
+                and plan.get("cls", ce.ASK) != ce.D and plan.get("granted", ce.D) != ce.D)
+
+    def _code_run_granted(self, call: dict) -> bool:
+
+
+
+
+
+        run_id = str(call.get("run_id") or "")
+        return (bool(run_id) and run_id in self._code_run_grants and run_id not in self._cancelled
+                and self._run_grant_offered(call))
 
     def _code_decided(self, call: dict, decision: str) -> str:
 
         call["carded"] = True
         plan = call.get("code_plan") or {}
+        if decision == Decision.ALLOW_RUN:
+
+            if self._run_grant_offered(call):
+                self._code_run_grants.add(str(call.get("run_id") or ""))
+            return Decision.ALLOW
         if decision == Decision.ALLOW_PROJECT and plan.get("cls") == ce.FW:
             self._settings.allow(self._project_path(), FILE_WRITES_GRANT)
             return Decision.ALLOW_PROJECT

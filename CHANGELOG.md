@@ -9,6 +9,27 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-28
+
+### Added
+
+- "Update now" installs the new version in one click and reloads the plugin, with no QGIS restart.
+  The update offer shows when the panel opens, and "Later" holds until QGIS restarts.
+- Code cards in Balanced mode offer "Allow for this run": the run's later snippets that read or
+  write run without a card. Deleting data still asks, and the next run asks again.
+- When the server cannot be reached for about a minute, the panel says why: the network cause
+  (name resolution, proxy, certificate) or that the server is not answering.
+
+### Changed
+
+- HTML reports load nothing from unknown sites and embed only pictures inside the allowed folders.
+- Autopilot asks before a tool sends data to an address nobody but the agent wrote.
+- A zipped raster download opens the tile you name in one step.
+
+### Fixed
+
+- Updating the plugin no longer stops on an empty "Plugin dependencies" window.
+
 ## [1.5.0] - 2026-09-28
 
 ### Added

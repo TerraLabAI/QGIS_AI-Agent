@@ -389,7 +389,8 @@ def mode_texts(widget: QWidget | None = None) -> tuple:
              "PermissionChip", "Asks before deleting, overwriting, installing or reaching an unknown site.")),
         (AUTO, QCoreApplication.translate("PermissionChip", "Autopilot"),
          QCoreApplication.translate(
-             "PermissionChip", "Works on its own. Asks only about credits, installs and other plugins.")),
+             "PermissionChip",
+             "Works on its own. Asks only about credits, installs, other plugins and unknown sites.")),
     )
 
 
@@ -578,7 +579,7 @@ class PermissionChip(QToolButton):
             title=self.tr("Turn on Autopilot?"),
             points=(
                 ("trash", self.tr("Deletes layers, overwrites files and runs Python code without asking.")),
-                ("shield_check", self.tr("Spending credits still asks first.")),
+                ("shield_check", self.tr("Spending credits or reaching an unknown site still asks first.")),
                 ("undo", self.tr("Undo covers the project, not every file on disk.")),
             ),
             note=self.tr("The next chat starts in Balanced again."),

@@ -21,6 +21,7 @@
 
 
 
+
 from __future__ import annotations
 
 import base64
@@ -31,7 +32,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import output_paths, report_page
 from ..core.background import run_on_main_thread
 from ..core.context import tr
-from ..core.security import validate_path
+from ..core.security import validate_path, validate_read
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ..core.writeback import write_atomic
 
@@ -114,14 +115,17 @@ def _write_html_report(args: dict) -> dict:
     unplaced = [name for name in declared if name not in placed]
 
     page = report_page.as_document(page, title)
-    page, embedded = report_page.embed_images(page, figures, os.path.dirname(target))
+
+    page, embedded = report_page.embed_images(page, figures, os.path.dirname(target), refusal=validate_read)
 
     bridge = run_on_main_thread(_bridge_settings, timeout=10)
+    port = None
     if bridge is not None:
         port, token = bridge
         page = report_page.with_bridge(page, port, token, {
             "show": tr("Show in QGIS"), "done": tr("Shown in QGIS"), "away": tr("QGIS is not running"),
         })
+    page = report_page.with_policy(page, port)
 
     try:
         os.makedirs(os.path.dirname(target), exist_ok=True)

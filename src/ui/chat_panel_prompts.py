@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
 import time
 
 from qgis.PyQt.QtCore import QTimer
@@ -394,6 +396,30 @@ class _ChatPanelPrompts:
             self.update_gate.hide()
             self.update_banner.offer(version, note)
         self._show_thread_surface()
+
+    def _update_now(self, version: str) -> None:
+
+
+
+
+
+        from .plugin_self_update import one_click_result_tracker, start_plugin_self_update
+        from .shared import PLUGIN_DIR
+        from .terralab_menu import open_plugin_manager_updates
+
+        self.update_clicked.emit(version)
+        self.update_banner.set_busy(True)
+        self.update_gate.set_busy(True)
+
+        def fallback() -> None:
+            for card in (self.update_banner, self.update_gate):
+                with contextlib.suppress(RuntimeError):
+                    card.set_busy(False)
+            open_plugin_manager_updates()
+
+        start_plugin_self_update(os.path.basename(PLUGIN_DIR), version, fallback,
+                                 on_result=one_click_result_tracker(version),
+                                 is_busy=self.composer.is_running)
 
     def clear_update(self) -> None:
 

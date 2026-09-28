@@ -364,7 +364,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("pairing_reopen_requested", self._account.reopen_pairing_page)
         self._connect("pairing_cancel_requested", self._account.cancel_pairing)
         self._connect("thread_exported", lambda path: log(f"Thread exported to {path}"))
-        self._connect("update_clicked", self._on_update_clicked)
         self._connect("update_dismissed", self._on_update_dismissed)
         self._connect("low_balance_shown", self._on_low_balance_shown)
         self._connect("example_chosen", self._on_example_chosen)
@@ -431,7 +430,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
 
-        a.pairing_started.connect(lambda url: self._panel_call("set_pairing_state", True, "", url))
+        a.pairing_started.connect(lambda url: self._panel_call(
+            "set_pairing_state", True, a.pairing_match_code(), url))
         a.pairing_browser_seen.connect(lambda: self._panel_call(
             "set_pairing_status", tr("Sign-in page open, waiting for you...")))
         a.pairing_address.connect(lambda message: self._panel_call("set_pairing_note", message, "warning"))

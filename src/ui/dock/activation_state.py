@@ -171,6 +171,14 @@ class ActivationCard(QWidget):
         status_row.addWidget(self._wait_status, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addStretch(1)
         wait_col.addLayout(status_row)
+
+
+        self._code_label = QLabel("", self._wait_section)
+        self._code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._code_label.setWordWrap(True)
+        self._code_label.setStyleSheet("font-size: 12px; color: palette(text);")
+        self._code_label.hide()
+        wait_col.addWidget(self._code_label)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(SPACE_CARD)
         self._reopen_btn = QPushButton(self.tr("Open browser"), self._wait_section)
@@ -269,6 +277,10 @@ class ActivationCard(QWidget):
         self._connect_section.hide()
         self._account_section.hide()
         self._message.hide()
+        if self.pairing_code:
+            self._code_label.setText(
+                self.tr("The browser page should show the code {code}").format(code=self.pairing_code))
+        self._code_label.setVisible(bool(self.pairing_code))
         self._wait_section.show()
         self._spinner.start()
         self._set_subtitle(self.tr("Finish the sign-in in your browser, then come back here."))

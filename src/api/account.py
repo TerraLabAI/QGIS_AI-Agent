@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import time
 from typing import Any, Callable
@@ -93,6 +94,18 @@ def get_plans_page_url(cta_source: str = "plugin") -> str:
     from ..ui.shared import get_upgrade_url
     source = "".join(ch for ch in str(cta_source or "") if ch.isalnum() or ch == "_") or "plugin"
     return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
+
+
+_MATCH_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def pairing_match_code(code: str) -> str:
+
+
+
+    digest = hashlib.sha256(str(code or "").encode("utf-8")).digest()
+    bits = (digest[0] << 16) | (digest[1] << 8) | digest[2]
+    return "".join(_MATCH_ALPHABET[(bits >> (19 - i * 5)) & 31] for i in range(4))
 
 
 def get_device_platform() -> str:
@@ -291,6 +304,10 @@ class Account(QObject):
         self.cancel_pairing()
         self._pending_code = secrets.token_urlsafe(32)
         self._open_pairing_page(self._pending_code)
+
+    def pairing_match_code(self) -> str:
+
+        return pairing_match_code(self._pending_code) if self._pending_code else ""
 
     def reopen_pairing_page(self) -> None:
         if self._pending_code:

@@ -20,6 +20,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import base64
@@ -49,6 +58,13 @@ _HAS_VIEWPORT = re.compile(r"<meta\b[^>]*\bname\s*=\s*[\"']viewport[\"']", re.IG
 _HAS_TITLE = re.compile(r"<title\b", re.IGNORECASE)
 _HAS_DOCTYPE = re.compile(r"^\s*<!doctype\b", re.IGNORECASE)
 _HAS_HTML = re.compile(r"<html\b", re.IGNORECASE)
+_LEADING_DOCTYPE = re.compile(r"^\s*<!doctype\b[^>]*>", re.IGNORECASE)
+
+
+
+SCRIPT_HOSTS = ("https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net/npm/")
+STYLE_HOSTS = ("https://fonts.googleapis.com",) + SCRIPT_HOSTS
+FONT_HOSTS = ("https://fonts.gstatic.com",)
 
 
 def _file_url_path(url: str) -> str:
@@ -79,7 +95,9 @@ def figure_ids(page: str) -> list[str]:
     return seen
 
 
-def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str) -> tuple[str, dict]:
+def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str,
+                 refusal=None) -> tuple[str, dict]:
+
 
 
 
@@ -113,6 +131,10 @@ def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str
         path = candidate if os.path.isabs(candidate) else os.path.join(base_dir, candidate)
         mime = IMAGE_MIME.get(os.path.splitext(path)[1].lower())
         if not mime:
+            return match.group(0)
+        refused = refusal(path) if refusal is not None else None
+        if refused:
+            report["files_skipped"].append({"src": text, "why": refused})
             return match.group(0)
         if not os.path.isfile(path):
             report["files_skipped"].append({"src": text, "why": "no such file"})
@@ -158,6 +180,36 @@ def as_document(page: str, title: str) -> str:
             end = text.index(">", match.start()) + 1
             text = text[:end] + "<head>" + insert + "</head>" + text[end:]
     return text
+
+
+def policy(port: int | None) -> str:
+
+    connect = f"http://127.0.0.1:{int(port)}" if port else "'none'"
+    return "; ".join((
+        "default-src 'none'",
+        "img-src data: blob:",
+        "style-src 'unsafe-inline' " + " ".join(STYLE_HOSTS),
+        "font-src data: " + " ".join(FONT_HOSTS),
+
+
+        "script-src 'unsafe-inline' 'unsafe-eval' " + " ".join(SCRIPT_HOSTS),
+        f"connect-src {connect}",
+        "form-action 'none'",
+        "base-uri 'none'",
+    ))
+
+
+def with_policy(page: str, port: int | None) -> str:
+
+
+
+
+
+    meta = f'<meta http-equiv="Content-Security-Policy" content="{policy(port)}">'
+    match = _LEADING_DOCTYPE.match(page)
+    if match is None:
+        return meta + page
+    return page[:match.end()] + meta + page[match.end():]
 
 
 def with_bridge(page: str, port: int, token: str, labels: dict[str, str]) -> str:

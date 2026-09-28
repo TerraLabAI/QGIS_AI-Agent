@@ -69,6 +69,12 @@ _CONFIG_REFRESH_MS_RANGE = (60_000, 24 * 60 * 60 * 1000)
 _CONFIG_MIN_GAP_S_RANGE = (5.0, 3600.0)
 
 
+_REPOSITORY_WAIT_S = 90
+_REPOSITORY_WAIT_S_RANGE = (5, 600)
+
+_RELEASE_READ_DELAY_MS = 3000
+
+
 def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentPlugin", text)
 
@@ -95,6 +101,10 @@ class AIAgentPlugin:
         self._shown_update_version = ""
         self._suppressed_update_versions: set[str] = set()
         self._update_refresh_requested = False
+        self._update_refresh_timer = None
+        self._released_version = ""
+        self._release_reply = None
+        self._config_failure_reported = False
         self._loaded_at = time.monotonic()
         self._config_asked_at = None
         self._app_events = None
@@ -276,6 +286,7 @@ class AIAgentPlugin:
 
 
         QTimer.singleShot(0, self._open_at_startup)
+        QTimer.singleShot(_RELEASE_READ_DELAY_MS, self._read_released)
 
     def _note_version_change(self) -> None:
 
@@ -353,6 +364,8 @@ class AIAgentPlugin:
         asked = self._config_asked_at
         if asked is None or time.monotonic() - asked >= min_gap_s:
             self._refresh_server_config()
+
+        self._offer_upgradeable_update()
         if self._config_refresh_timer is None:
             self._config_refresh_timer = QTimer(self.dock)
             self._config_refresh_timer.timeout.connect(self._refresh_server_config)
@@ -413,11 +426,22 @@ class AIAgentPlugin:
                 hidden=True,
             )
             task.succeeded.connect(self._on_server_config_loaded)
-            task.failed.connect(lambda _message, _code: None)
+            task.failed.connect(self._on_server_config_failed)
             self._config_task = task
             QgsApplication.taskManager().addTask(task)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Could not refresh AI Agent settings: {exc}")
+
+    def _on_server_config_failed(self, message: str, code: str) -> None:
+
+        if self._unloading:
+            return
+        log_warning(f"AI Agent settings not refreshed ({code}): {message}")
+        if not self._config_failure_reported:
+            self._config_failure_reported = True
+            from .core.telemetry_errors import track_plugin_error
+
+            track_plugin_error("config_refresh", str(code or "UNKNOWN"))
 
     def _on_server_config_loaded(self, payload: object) -> None:
 
@@ -451,6 +475,7 @@ class AIAgentPlugin:
 
 
         from .api.terralab_client import plugin_version
+        from .core.plugin_release import put_off_version
         from .core.versions import is_newer
         from .ui.shared import (
             get_latest_version,
@@ -462,18 +487,23 @@ class AIAgentPlugin:
         panel = getattr(self.dock, "panel", None)
         installed = plugin_version()
         served_version = get_latest_version()
+        listed = self._upgradeable_version()
+        released = self._released_version if is_newer(self._released_version, installed) else ""
+        available = listed if listed and not is_newer(released, listed) else released
         too_old = is_newer(get_min_supported_version(), installed)
-        if not is_newer(served_version, installed) and not too_old:
-            if panel is not None and hasattr(panel, "clear_update"):
+        if not available:
+            if is_newer(served_version, installed) or too_old:
+                self._refresh_plugin_repository(served_version)
+            elif panel is not None and hasattr(panel, "clear_update"):
                 panel.clear_update()
             return
-        available = self._upgradeable_version()
-        if not available:
-            self._refresh_plugin_repository(served_version)
-            return
+        if not listed or is_newer(available, listed):
+
+
+            self._refresh_plugin_repository(available)
         if panel is None:
             return
-        required = too_old or get_update_policy() == "require"
+        required = (too_old or get_update_policy() == "require") and available == listed
         if required and too_old and is_newer(get_min_supported_version(), available):
 
 
@@ -486,12 +516,35 @@ class AIAgentPlugin:
             if hasattr(panel, "clear_update"):
                 panel.clear_update()
             return
-        panel.show_update(available, get_release_notes_line(), required, installed)
+        if not required and put_off_version() == available:
+            return
+        note = get_release_notes_line() if served_version == available else ""
+        panel.show_update(available, note, required, installed)
         if self._shown_update_version != available:
             self._shown_update_version = available
             telemetry.track(ev.PLUGIN_UPDATE_PROMPT_SHOWN, {
                 "offered_version": available, "required": required,
-                "trigger": "served_latest_version"})
+                "trigger": "plugin_registry"})
+
+    def _read_released(self) -> None:
+
+        if self._unloading or self._release_reply is not None:
+            return
+        try:
+            from .core.plugin_release import read_released
+
+            self._release_reply = read_released(self._on_released)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"plugins.qgis.org not asked for the latest AI Agent: {exc}")
+
+    def _on_released(self, version: str, error: str) -> None:
+        if self._unloading:
+            return
+        if error:
+            log_warning(f"plugins.qgis.org did not say which AI Agent is out: {error}")
+            return
+        self._released_version = version
+        self._offer_upgradeable_update()
 
     def _refresh_plugin_repository(self, served_version: str) -> None:
 
@@ -500,12 +553,16 @@ class AIAgentPlugin:
 
 
 
+
         if self._update_refresh_requested:
-            self._suppress_update(served_version, "not_listed")
+            if self._update_refresh_timer is None or not self._update_refresh_timer.isActive():
+                self._suppress_update(served_version, "not_listed")
             return
         self._update_refresh_requested = True
         try:
             from pyplugin_installer.installer_data import repositories
+
+            from .ui.plugin_self_update import request_repository_fetch
 
             enabled = list(repositories.allEnabled())
             if not enabled:
@@ -513,15 +570,36 @@ class AIAgentPlugin:
                 return
             repositories.checkingDone.connect(self._on_plugin_repository_checked)
             for key in enabled:
-                repositories.requestFetching(key, force_reload=True)
+                request_repository_fetch(repositories, key)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Plugin repository refresh skipped: {exc}")
             self._suppress_update(served_version, "refresh_failed")
+            return
+        timer = QTimer(self.dock) if self.dock is not None else QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: self._on_plugin_repository_late(served_version))
+        timer.start(1000 * int(tuning.threshold(
+            "update_fetch_timeout_s", _REPOSITORY_WAIT_S, *_REPOSITORY_WAIT_S_RANGE)))
+        self._update_refresh_timer = timer
+
+    def _on_plugin_repository_late(self, served_version: str) -> None:
+
+        if self._unloading:
+            return
+        with contextlib.suppress(Exception):
+            from pyplugin_installer.installer_data import repositories
+
+            repositories.checkingDone.disconnect(self._on_plugin_repository_checked)
+        log_warning("The QGIS plugin repository did not answer in time; the update offer uses "
+                    "plugins.qgis.org's own page instead.")
+        self._suppress_update(served_version, "refresh_failed")
 
     def _on_plugin_repository_checked(self) -> None:
 
         if self._unloading:
             return
+        if self._update_refresh_timer is not None:
+            self._update_refresh_timer.stop()
         try:
             from pyplugin_installer.installer_data import plugins, repositories
 
@@ -549,8 +627,8 @@ class AIAgentPlugin:
             data = plugins.all().get(plugin_key)
             if data and data.get("status") == "upgradeable":
                 return str(data.get("version_available") or "")
-        except Exception:  # nosec B110
-            pass
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"QGIS plugin list not read: {exc}")
         return ""
 
     @staticmethod
@@ -729,6 +807,16 @@ class AIAgentPlugin:
                 from pyplugin_installer.installer_data import repositories
 
                 repositories.checkingDone.disconnect(self._on_plugin_repository_checked)
+        if self._update_refresh_timer is not None:
+            with contextlib.suppress(RuntimeError):
+                self._update_refresh_timer.stop()
+            self._update_refresh_timer = None
+        if self._release_reply is not None:
+
+            with contextlib.suppress(RuntimeError, TypeError):
+                self._release_reply.finished.disconnect()
+                self._release_reply.abort()
+            self._release_reply = None
         if self._config_refresh_timer is not None:
             self._config_refresh_timer.stop()
             self._config_refresh_timer = None

@@ -276,9 +276,8 @@ def run_on_main_thread(fn, *args, timeout=10):
                 ) from exc
         else:
             raise MainThreadBusy(
-                f"Main-thread work did not finish within {timeout}s. QGIS may be busy "
-                f"(rendering tiles, loading a large project). Nothing it would have added to the "
-                f"project was added."
+                f"The main-thread work this call queued did not finish within {timeout}s. "
+                f"Nothing it would have added to the project was added."
             ) from exc
     if tag == "err":
         raise payload

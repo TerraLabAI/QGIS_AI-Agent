@@ -191,6 +191,9 @@ DENIED_ATTRS = frozenset({
 
 
     "entryList", "entryInfoList", "findFile",
+
+
+    "Formatter",
 })
 
 
@@ -202,6 +205,13 @@ DENIED_ATTRS = frozenset({
 
 
 _SQL_METHODS = frozenset({"executeSql", "execSql", "ExecuteSQL"})
+
+
+
+
+
+
+_FORMAT_METHODS = frozenset({"format", "format_map"})
 
 
 
@@ -408,6 +418,7 @@ class _Checker(ast.NodeVisitor):
         self.problems: list[str] = []
         self.names: list[str] = []
         self.checked_sql: set[int] = set()
+        self.plain_getters: set[int] = set()
 
 
         self.dict_keys: set[int] = set()
@@ -450,10 +461,16 @@ class _Checker(ast.NodeVisitor):
             self._refuse(node, f".{attr} is not available in execute_code", attr)
         elif attr in _SQL_METHODS and id(node) not in self.checked_sql:
             self._refuse(node, f".{attr} runs only a plain query written out in the code, as its first argument")
+        elif (attr in _FORMAT_METHODS and id(node) not in self.plain_getters
+              and not (isinstance(node.value, ast.Constant) and isinstance(node.value.value, str))):
+            self._refuse(node, f".{attr} runs only on a string written out in the code; an f-string or % "
+                               "formats any value")
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
         func = node.func
+        if isinstance(func, ast.Attribute) and func.attr in _FORMAT_METHODS and not node.args and not node.keywords:
+            self.plain_getters.add(id(func))
         if isinstance(func, ast.Attribute) and func.attr in _SQL_METHODS and node.args:
             first = node.args[0]
             if isinstance(first, ast.Constant) and isinstance(first.value, str):
@@ -1206,7 +1223,8 @@ def _attr_allowed(name: object) -> str | None:
 
     if not isinstance(name, str):
         return _ATTR_GUARD_REASON.format(name="a non-string attribute name")
-    if name in DENIED_ATTRS or name in DENIED_NAMES or name in DENIED_DUNDERS or name in _SQL_METHODS:
+    if (name in DENIED_ATTRS or name in DENIED_NAMES or name in DENIED_DUNDERS or name in _SQL_METHODS
+            or name in _FORMAT_METHODS):
         return _ATTR_GUARD_REASON.format(name=name)
 
 

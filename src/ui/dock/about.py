@@ -58,7 +58,6 @@ from ..styles import (
     _UPDATE_TITLE_STYLE,
     MUTED_TEXT,
 )
-from ..terralab_menu import open_plugin_manager_updates
 
 
 
@@ -193,7 +192,12 @@ class UpdateBanner(QWidget):
 
     def _on_update(self) -> None:
         self.update_clicked.emit(self.version)
-        open_plugin_manager_updates()
+
+    def set_busy(self, busy: bool) -> None:
+
+        self._update_btn.setText(self.tr("Updating\u2026") if busy else self.tr("Update now"))
+        self._update_btn.setEnabled(not busy)
+        self._later_btn.setEnabled(not busy)
 
     def _on_later(self) -> None:
         self.hide()

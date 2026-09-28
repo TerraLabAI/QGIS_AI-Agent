@@ -16,6 +16,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
@@ -39,7 +40,6 @@ from .style import (
     RADIUS_CARD,
     SURFACE,
 )
-from .terralab_menu import open_plugin_manager_updates
 
 _CARD_MAX_W = 380
 _ICON_PX = 44
@@ -132,8 +132,8 @@ class UpdateGate(QWidget):
         self._note.hide()
         col.addWidget(self._note)
 
-        body = QLabel(self.tr("Update to keep using {product}. It takes one click in the "
-                              "QGIS Plugin Manager; the plugin reloads on its own.")
+        body = QLabel(self.tr("Update to keep using {product}. It takes one click, and the "
+                              "plugin reloads on its own.")
                       .format(product=PRODUCT_NAME), self._card)
         body.setObjectName("updateGateBody")
         body.setWordWrap(True)
@@ -180,4 +180,8 @@ class UpdateGate(QWidget):
 
     def _on_update(self) -> None:
         self.update_clicked.emit(self.version)
-        open_plugin_manager_updates()
+
+    def set_busy(self, busy: bool) -> None:
+
+        self._button.setText(self.tr("Updating\u2026") if busy else self.tr("Update now"))
+        self._button.setEnabled(not busy)

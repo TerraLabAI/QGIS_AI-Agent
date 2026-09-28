@@ -495,7 +495,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
                 return _stac.add_raster_downloaded(address, name)
             return streamed
-        return _core._add_raster_layer({"path": source, "name": name})
+        return _core._add_raster_layer({"path": source, "name": name, "layer": layer})
     if kind == "cog":
         return _stac._add_cog_layer({"url": source.replace("/vsicurl/", "", 1), "name": name})
     if kind == "stac":

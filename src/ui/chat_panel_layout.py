@@ -63,8 +63,8 @@ class _ChatPanelLayout:
         h.settings_clicked.connect(self.open_settings_requested.emit)
         h.pro_pill_clicked.connect(self._on_pro_pill)
 
-        self.update_banner.update_clicked.connect(self.update_clicked.emit)
-        self.update_gate.update_clicked.connect(self.update_clicked.emit)
+        self.update_banner.update_clicked.connect(self._update_now)
+        self.update_gate.update_clicked.connect(self._update_now)
         self.update_banner.dismissed.connect(self.update_dismissed.emit)
         a = self.activation
         a.sign_in_requested.connect(self.sign_in_requested.emit)
@@ -542,7 +542,9 @@ class _ChatPanelLayout:
 
 
 
-        self.composer.set_offline(True, state)
+
+
+        self.composer.set_offline(True, state, detail if state == "offline" else None)
 
     def set_model_label(self, label: str) -> None:
 

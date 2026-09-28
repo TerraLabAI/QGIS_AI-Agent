@@ -589,6 +589,20 @@ def _add_raster_layer(args: dict) -> dict:
     subdataset = str(args.get("layer") or "").strip()
     if path.lower().endswith((".nc", ".hdf")) and subdataset:
         source = f'NETCDF:"{path}":{subdataset}'
+    elif path.lower().endswith(".zip") and subdataset:
+
+
+
+        _vectors, names, problem = _zip_listing(path)
+        picked = members_matching([n for n in names if not n.endswith("/")], subdataset)
+        if problem or len(picked) != 1:
+            return {"_error": (f"{path} could not be read: {problem}" if problem else
+                               f"layer '{subdataset}' names {len(picked)} files of {os.path.basename(path)}, "
+                               "and a raster loads from one."),
+                    "files": [n for n in names if not n.endswith("/")][:50]}
+        source = _zip_member_uri(path, picked[0])
+        if not args.get("name"):
+            name = os.path.splitext(os.path.basename(picked[0]))[0]
     layer = QgsRasterLayer(source, name)
     if not layer.isValid():
         return {"_error": f"Failed to load raster layer from: {source}"}

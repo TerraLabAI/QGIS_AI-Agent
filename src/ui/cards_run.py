@@ -282,6 +282,8 @@ class PermissionCard(_Card, FoldMixin):
         "allow": QT_TRANSLATE_NOOP("PermissionCard", "Allowed"),
 
         "allow_project": QT_TRANSLATE_NOOP("PermissionCard", "Allowed for this project"),
+
+        "allow_run": QT_TRANSLATE_NOOP("PermissionCard", "Allowed for this run"),
         "deny": QT_TRANSLATE_NOOP("PermissionCard", "Denied"),
     }
 
@@ -485,7 +487,8 @@ class PermissionCard(_Card, FoldMixin):
             body.addWidget(self._form)
 
         footer = AnswerFooter(self._body)
-        if self._grant == "file_writes" and not grouped:
+        offers = str(self._grant or "").split()
+        if "file_writes" in offers and not grouped:
 
 
 
@@ -499,14 +502,23 @@ class PermissionCard(_Card, FoldMixin):
                                   lambda: self._decide("deny")))
         self._allow_btn = _pill(self._button(self.tr("Allow"), _BTN_PRIMARY_PILL,
                                              lambda: self._decide("allow")))
-        for button, action in ((deny, "deny"), (self._allow_btn, "allow")):
-            button.setObjectName("agentPermission" + action.capitalize())
+        answers = [(deny, "deny")]
+        self._run_btn = None
+        if "run" in offers and not grouped:
+
+
+            self._run_btn = _pill(self._button(self.tr("Allow for this run"), _BTN_GHOST_PILL,
+                                               lambda: self._decide("allow_run")))
+            answers.append((self._run_btn, "allow_run"))
+        answers.append((self._allow_btn, "allow"))
+        for button, action in answers:
+            button.setObjectName("agentPermission" + "".join(p.capitalize() for p in action.split("_")))
             button.setProperty("agentAction", action)
             button.setProperty("agentRequestId", self.tool_call_id)
 
             button.setProperty("agentRequestIds", ",".join(self._open))
             button.setProperty("agentCardKind", "permission")
-        footer.set_widgets(self._edit_btn, [deny, self._allow_btn])
+        footer.set_widgets(self._edit_btn, [button for button, _action in answers])
         body.addWidget(footer)
         return self._body
 

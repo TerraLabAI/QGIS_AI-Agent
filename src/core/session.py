@@ -13,6 +13,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import base64
@@ -65,6 +67,18 @@ BACKOFF_S = (1, 2, 4, 8, 16, 30)
 
 
 RESTART_CODES = frozenset({1012, 1013})
+
+
+
+
+
+CAUSE_AFTER_FAILURES = 7
+
+
+
+
+USER_SIDE_FAILURES = frozenset({"dns", "proxy_auth", "proxy_refused", "proxy_unreachable", "tls",
+                                "redirect", "url"})
 RESTART_QUICK_TRIES = 3
 RESTART_JITTER_S = 0.3
 
@@ -732,9 +746,20 @@ class AgentSession(QObject):
             if self._failed_streak in (1, 5):
                 self._report_failure(code)
         self._attempt += 1
+        said = self._panel_cause(code, reason) if self._failed_streak >= CAUSE_AFTER_FAILURES else ""
         self._log_failure(code, reason)
-        self._set_state("offline", "")
+        self._set_state("offline", said)
         self._reconnect.start(int(delay * 1000))
+
+    def _panel_cause(self, code: int, reason: str) -> str:
+
+
+
+
+        kind, _message, status = self._last_failure or ("", "", 0)
+        user_side = kind in USER_SIDE_FAILURES or (kind == "http_status" and int(status or 0) not in (502, 503, 504))
+        cause = self._failure_text(code, reason) if user_side else ""
+        return cause or tr("TerraLab's server is not answering. Retrying.")
 
     def failure_facts(self, code: int = 0) -> dict:
 
