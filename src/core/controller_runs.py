@@ -349,6 +349,8 @@ class _ControllerRuns:
             return
         self._panel_call("append_steer", run_id, steer_id, text)
 
+        self._executor.drop_run_grant(run_id)
+
         thread_id = thread_id or str(self._thread_id or "")
         if thread_id:
             self._store.append_steer(thread_id, run_id, text)

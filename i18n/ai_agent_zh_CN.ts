@@ -1962,6 +1962,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Sends when the agent finishes</source>
             <translation>当智能体完成时发送</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} 已安装。</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} 已安装。重启 QGIS 即可使用。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>你在 QGIS 中的 AI 智能体</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>浏览器页面应显示代码 {code}</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>此版本的 AI Agent 已不再受支持。请更新 plugin 以继续。</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>TerraLab 服务器没有响应。正在重试。</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>队列最多保存 5 条消息。请先发送或移除一条。</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>您的消息会保留在此处，连接恢复后立即发送。</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Click to open its page.</source>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} 个操作等待你的批准。</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>允许本次运行</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>本次运行已允许</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Click to open its page.</source>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>消耗积分或访问未知网站时仍会先询问。</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>自主运行。仅在涉及积分、安装、其他 plugin 和未知网站时询问。</translation>
         </message>
     </context>
     <context>
@@ -6780,6 +6816,10 @@ Click to open its page.</source>
             <source>{product} {version} is out</source>
             <translation>{product} {version} 已发布</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>正在更新…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7097,6 +7137,14 @@ Click to open its page.</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} 已发布</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>更新以继续使用 {product}。只需一次点击，plugin 会自动重新加载。</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>正在更新…</translation>
         </message>
     </context>
     <context>

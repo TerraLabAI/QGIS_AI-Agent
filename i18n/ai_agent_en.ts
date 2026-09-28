@@ -64,6 +64,16 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/plugin_self_update.py"/>
+            <source>AI Agent {version} is installed.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/plugin_self_update.py"/>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/tools/facade.py"/>
             <source>AI Edit: {action}</source>
             <translation type="unfinished"/>
@@ -2456,6 +2466,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py"/>
+            <source>The browser page should show the code {code}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/dock/activation_state.py"/>
             <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
             <translation type="unfinished"/>
         </message>
@@ -2974,6 +2989,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/session.py"/>
             <source>Session expired. Sign in again to continue.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/session.py"/>
+            <source>TerraLab's server is not answering. Retrying.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3684,6 +3704,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py"/>
             <source>You can attach up to {n} items.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py"/>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4612,12 +4637,22 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
+            <source>Allow for this run</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
             <source>Allowed</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
             <source>Allowed for this project</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Allowed for this run</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4790,7 +4825,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py"/>
-            <source>Spending credits still asks first.</source>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4820,7 +4855,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py"/>
-            <source>Works on its own. Asks only about credits, installs and other plugins.</source>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -6396,6 +6431,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/dock/about.py"/>
+            <source>Updating…</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/dock/about.py"/>
             <source>{product} {version} is out</source>
             <translation type="unfinished"/>
         </message>
@@ -6414,7 +6454,12 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/update_gate.py"/>
-            <source>Update to keep using {product}. It takes one click in the QGIS Plugin Manager; the plugin reloads on its own.</source>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/update_gate.py"/>
+            <source>Updating…</source>
             <translation type="unfinished"/>
         </message>
         <message>

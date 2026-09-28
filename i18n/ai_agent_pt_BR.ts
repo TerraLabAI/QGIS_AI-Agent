@@ -1962,6 +1962,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Sends when the agent finishes</source>
             <translation>Envia quando o agente terminar</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>O AI Agent {version} está instalado.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>O AI Agent {version} está instalado. Reinicie o QGIS para usá-lo.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Your AI agent inside QGIS</source>
             <translation>Seu agente de IA dentro do QGIS</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>A página do navegador deve mostrar o código {code}</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>Esta versão do AI Agent não é mais suportada. Atualize o plugin para continuar.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>O servidor da TerraLab não está respondendo. Tentando novamente.</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>A fila comporta 5 mensagens. Envie ou remova uma primeiro.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Sua mensagem permanece aqui e será enviada assim que a conexão voltar.</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Clique para abrir sua página.</translation>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} ações aguardam sua aprovação.</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Permitir para esta execução</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Permitido para esta execução</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Clique para abrir sua página.</translation>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Gastar créditos ou acessar um site desconhecido ainda pede permissão antes.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Funciona por conta própria. Pergunta apenas sobre créditos, instalações, outros plugins e sites desconhecidos.</translation>
         </message>
     </context>
     <context>
@@ -6786,6 +6822,10 @@ Clique para abrir sua página.</translation>
             <source>{product} {version} is out</source>
             <translation>{product} {version} está disponível</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Atualizando…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7105,6 +7145,14 @@ Clique para abrir sua página.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} já está disponível</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Atualize para continuar usando o {product}. Leva um clique, e o plugin recarrega sozinho.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Atualizando…</translation>
         </message>
     </context>
     <context>

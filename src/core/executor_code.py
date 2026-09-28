@@ -37,6 +37,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -89,6 +92,32 @@ def _classes_on() -> bool:
     return enabled()
 
 
+def _editing_layer_ids() -> set:
+    from qgis.core import QgsProject, QgsVectorLayer
+
+    ids = set()
+    for layer in list(QgsProject.instance().mapLayers().values()):
+        try:
+            if isinstance(layer, QgsVectorLayer) and layer.isEditable():
+                ids.add(layer.id())
+        except RuntimeError:
+            continue
+    return ids
+
+
+def _discard_new_edit_sessions(before: set) -> None:
+
+    from qgis.core import QgsProject, QgsVectorLayer
+
+    for layer in list(QgsProject.instance().mapLayers().values()):
+        try:
+            if isinstance(layer, QgsVectorLayer) and layer.isEditable() and layer.id() not in before:
+                layer.rollBack()
+                log(f"execute_code: discarded the edit session it opened on {layer.name()}")
+        except RuntimeError:
+            continue
+
+
 def _ceiling() -> str:
 
     return ce.FP
@@ -108,8 +137,9 @@ class _ExecutorCode:
         remembered = self._code_escalated.get(_fingerprint(code))
         if remembered and ce.RANK[remembered] > ce.RANK[cls]:
             cls = remembered
+
         call["code_plan"] = {"cls": cls, "granted": cls if cls != ce.ASK else ce.FW,
-                             "reasons": verdict.reasons}
+                             "reasons": verdict.reasons, "proven": cls != ce.ASK}
         return ce.DANGER[cls]
 
     @staticmethod
@@ -201,6 +231,12 @@ class _ExecutorCode:
 
 
 
+    @staticmethod
+    def _code_note_edit_sessions(call: dict) -> None:
+
+
+        call["code_editing_before"] = _editing_layer_ids()
+
     def _code_restore_point(self, call: dict, fresh: bool) -> bool:
 
         plan = call.get("code_plan") or {}
@@ -250,6 +286,9 @@ class _ExecutorCode:
 
 
 
+        before = call.pop("code_editing_before", None)
+        if before is not None:
+            _discard_new_edit_sessions(before)
         held = self._unsaved_edits()
         if held:
             log_warning("execute_code not rolled back: unsaved edits on " + ", ".join(held[:4]))
@@ -353,8 +392,12 @@ class _ExecutorCode:
     def _run_grant_offered(self, call: dict) -> bool:
 
         plan = call.get("code_plan") or {}
-        return (self._approval_now() == Approval.ASK and _classes_on()
-                and plan.get("cls", ce.ASK) != ce.D and plan.get("granted", ce.D) != ce.D)
+        return (self._approval_now() == Approval.ASK and _classes_on() and bool(plan.get("proven"))
+                and plan.get("cls", ce.ASK) not in (ce.D, ce.ASK) and plan.get("granted", ce.D) != ce.D)
+
+    def drop_run_grant(self, run_id: str) -> None:
+
+        self._code_run_grants.discard(str(run_id or ""))
 
     def _code_run_granted(self, call: dict) -> bool:
 

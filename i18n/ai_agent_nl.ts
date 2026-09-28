@@ -1962,6 +1962,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Sends when the agent finishes</source>
             <translation>Wordt verzonden wanneer de agent klaar is</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} is geïnstalleerd.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} is geïnstalleerd. Herstart QGIS om het te gebruiken.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Your AI agent inside QGIS</source>
             <translation>Je AI-agent in QGIS</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>De browserpagina zou de code {code} moeten tonen.</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>Deze versie van AI Agent wordt niet meer ondersteund. Werk de plugin bij om verder te gaan.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>De server van TerraLab reageert niet. Opnieuw proberen.</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>De wachtrij kan 5 berichten bevatten. Verzend of verwijder er eerst een.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Je bericht blijft hier staan en wordt verzonden zodra de verbinding er weer is.</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Klik om de pagina te openen.</translation>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} acties wachten op je goedkeuring.</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Toestaan voor deze run</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Toegestaan voor deze run</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Het uitgeven van credits of het openen van een onbekende site vraagt nog steeds eerst toestemming.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Werkt op zichzelf. Vraagt alleen naar credits, installaties, andere plugins en onbekende sites.</translation>
         </message>
     </context>
     <context>
@@ -6780,6 +6816,10 @@ Klik om de pagina te openen.</translation>
             <source>{product} {version} is out</source>
             <translation>{product} {version} is beschikbaar</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Bijwerken…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7097,6 +7137,14 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} is beschikbaar</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Werk bij om {product} te blijven gebruiken. Het kost één klik en de plugin herlaadt vanzelf.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Bijwerken…</translation>
         </message>
     </context>
     <context>

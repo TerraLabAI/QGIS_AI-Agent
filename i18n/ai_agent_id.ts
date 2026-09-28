@@ -1962,6 +1962,14 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Sends when the agent finishes</source>
             <translation>Terkirim saat agen selesai</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} sudah terpasang.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} sudah terpasang. Mulai ulang QGIS untuk menggunakannya.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>Your AI agent inside QGIS</source>
             <translation>Agen AI Anda di dalam QGIS</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>Halaman browser seharusnya menampilkan kode {code}</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>Versi AI Agent ini tidak lagi didukung. Perbarui plugin untuk melanjutkan.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>Server TerraLab tidak merespons. Mencoba lagi.</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>Antrean menampung 5 pesan. Kirim atau hapus satu terlebih dahulu.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Pesan Anda tetap berada di sini dan akan terkirim segera setelah koneksi kembali.</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Klik untuk membuka halamannya.</translation>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} tindakan menunggu persetujuan Anda.</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Izinkan kali ini</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Diizinkan kali ini</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Menghabiskan kredit atau mengunjungi situs yang tidak dikenal tetap meminta izin terlebih dahulu.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Bekerja sendiri. Hanya bertanya tentang kredit, pemasangan, plugin lain, dan situs yang tidak dikenal.</translation>
         </message>
     </context>
     <context>
@@ -6780,6 +6816,10 @@ Klik untuk membuka halamannya.</translation>
             <source>{product} {version} is out</source>
             <translation>{product} {version} tersedia</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Memperbarui…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7097,6 +7137,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} telah tersedia</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Perbarui untuk terus menggunakan {product}. Cukup satu klik, dan plugin akan dimuat ulang dengan sendirinya.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Memperbarui…</translation>
         </message>
     </context>
     <context>

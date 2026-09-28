@@ -1962,6 +1962,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Sends when the agent finishes</source>
             <translation>エージェントが完了したときに送信</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} がインストールされています。</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} がインストールされています。使用するにはQGISを再起動してください。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS 内の AI エージェント</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>ブラウザのページにコード {code} が表示されるはずです。</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>このバージョンのAI Agentはサポートされなくなりました。続行するにはpluginを更新してください。</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>TerraLab のサーバーが応答していません。再試行しています。</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>キューには5件のメッセージが入ります。先に送信するか削除してください。</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>メッセージはここに保持され、接続が復旧するとすぐに送信されます。</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Click to open its page.</source>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} 件のアクションがあなたの承認を待っています。</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>この実行では許可</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>この実行では許可済み</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Click to open its page.</source>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>クレジットの消費や不明なサイトへのアクセスは、引き続き事前に確認されます。</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>単独で動作します。クレジット、インストール、他のプラグイン、不明なサイトについてのみ確認します。</translation>
         </message>
     </context>
     <context>
@@ -6780,6 +6816,10 @@ Click to open its page.</source>
             <source>{product} {version} is out</source>
             <translation>{product} {version}が公開されました</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>更新中…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7097,6 +7137,14 @@ Click to open its page.</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version}が公開されました</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>{product} を使い続けるには更新してください。ワンクリックで完了し、プラグインは自動的に再読み込みされます。</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>更新中…</translation>
         </message>
     </context>
     <context>

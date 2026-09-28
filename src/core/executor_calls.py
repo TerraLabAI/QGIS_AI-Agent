@@ -227,19 +227,19 @@ class _ExecutorCalls:
             if not self._preflight_before_card(call, costly):
                 self._costly_card(call, costly)
             return
-        if name == CODE_TOOL and not unvouched and self._code_run_granted(call):
-
-
-            log(f"ALLOW {name} (the user allowed code for this run)")
-            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
-            self._execute(call)
-            return
         always = guards is not None and guards.always_confirm(name, args)
         if name == CODE_TOOL:
             always = self._code_always(call, always, approval)
         if unvouched:
             always = True
         asks = always or self._asks(approval, danger)
+        if asks and name == CODE_TOOL and not unvouched and self._code_run_granted(call):
+
+
+            log(f"ALLOW {name} (the user allowed code for this run)")
+            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
+            self._execute(call)
+            return
 
 
 

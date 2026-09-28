@@ -1962,6 +1962,14 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Sends when the agent finishes</source>
             <translation>Inviato quando l'agente finisce</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} è installato.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} è installato. Riavvia QGIS per usarlo.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
             <source>Your AI agent inside QGIS</source>
             <translation>Il tuo agente AI dentro QGIS</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>La pagina del browser dovrebbe mostrare il codice {code}</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>Questa versione di AI Agent non è più supportata. Aggiorna il plugin per continuare.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>Il server di TerraLab non risponde. Nuovo tentativo.</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ La cancellazione diventa definitiva al termine del periodo di tolleranza. Fino a
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>La coda contiene 5 messaggi. Invia o rimuovi prima uno di essi.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Il tuo messaggio resta qui e verrà inviato appena la connessione torna.</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Clicca per aprire la sua pagina.</translation>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} azioni in attesa della tua approvazione.</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Consenti per questa esecuzione</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Consentito per questa esecuzione</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Clicca per aprire la sua pagina.</translation>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Spendere crediti o raggiungere un sito sconosciuto richiede comunque prima il permesso.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Lavora in autonomia. Chiede solo per crediti, installazioni, altri plugin e siti sconosciuti.</translation>
         </message>
     </context>
     <context>
@@ -6786,6 +6822,10 @@ Clicca per aprire la sua pagina.</translation>
             <source>{product} {version} is out</source>
             <translation>{product} {version} è uscita</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Aggiornamento…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7105,6 +7145,14 @@ Clicca per aprire la sua pagina.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>È disponibile {product} {version}</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Aggiorna per continuare a usare {product}. Basta un clic e il plugin si ricarica da solo.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Aggiornamento…</translation>
         </message>
     </context>
     <context>

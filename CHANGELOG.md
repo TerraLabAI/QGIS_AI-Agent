@@ -9,6 +9,16 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-09-28
+
+### Changed
+
+- "Allow for this run" covers only code the plugin can check before it runs; other code keeps its own
+  card every time. A message typed during the run asks again.
+- Refusing a card for code stopped mid-run discards the edits that code started, and keeps the edits
+  that were already open.
+- The new messages of 1.5.1 are translated in the 11 languages.
+
 ## [1.5.2] - 2026-09-28
 
 The content of 1.5.1, which the QGIS plugin repository never published.

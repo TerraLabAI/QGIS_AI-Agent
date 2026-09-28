@@ -1962,6 +1962,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Sends when the agent finishes</source>
             <translation>Envoyé quand l'agent a terminé</translation>
         </message>
+        <message>
+            <source>AI Agent {version} is installed.</source>
+            <translation>AI Agent {version} est installé.</translation>
+        </message>
+        <message>
+            <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
+            <translation>AI Agent {version} est installé. Redémarrez QGIS pour l'utiliser.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2671,6 +2679,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Your AI agent inside QGIS</source>
             <translation>Votre agent IA dans QGIS</translation>
         </message>
+        <message>
+            <source>The browser page should show the code {code}</source>
+            <translation>La page du navigateur devrait afficher le code {code}</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3257,6 +3269,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
             <translation>Cette version d'AI Agent n'est plus prise en charge. Mettez à jour le plugin pour continuer.</translation>
+        </message>
+        <message>
+            <source>TerraLab's server is not answering. Retrying.</source>
+            <translation>Le serveur de TerraLab ne répond pas. Nouvelle tentative.</translation>
         </message>
     </context>
     <context>
@@ -3889,6 +3905,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
             <translation>La file d'attente contient 5 messages. Envoyez ou retirez-en un d'abord.</translation>
+        </message>
+        <message>
+            <source>Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Votre message reste ici et part dès que la connexion revient.</translation>
         </message>
     </context>
     <context>
@@ -4994,6 +5014,14 @@ Cliquez pour ouvrir sa page.</translation>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} actions attendent votre approbation.</translation>
         </message>
+        <message>
+            <source>Allow for this run</source>
+            <translation>Autoriser pour cette exécution</translation>
+        </message>
+        <message>
+            <source>Allowed for this run</source>
+            <translation>Autorisé pour cette exécution</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5127,6 +5155,14 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site still asks first.</source>
+            <translation>Dépenser des crédits ou accéder à un site inconnu demande toujours une confirmation au préalable.</translation>
+        </message>
+        <message>
+            <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
+            <translation>Fonctionne tout seul. Ne demande que pour les crédits, les installations, les autres plugins et les sites inconnus.</translation>
         </message>
     </context>
     <context>
@@ -6786,6 +6822,10 @@ Cliquez pour ouvrir sa page.</translation>
             <source>{product} {version} is out</source>
             <translation>{product} {version} est disponible</translation>
         </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Mise à jour…</translation>
+        </message>
     </context>
     <context>
         <name>UserBubble</name>
@@ -7105,6 +7145,14 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} est disponible</translation>
+        </message>
+        <message>
+            <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
+            <translation>Mettez à jour pour continuer à utiliser {product}. Cela ne prend qu'un clic, et le plugin se recharge tout seul.</translation>
+        </message>
+        <message>
+            <source>Updating…</source>
+            <translation>Mise à jour…</translation>
         </message>
     </context>
     <context>

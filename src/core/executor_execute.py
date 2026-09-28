@@ -74,6 +74,8 @@ class _ExecutorExecute:
             return
 
         fresh = not getattr(self._snapshots.get(run_id), "captured", False)
+        if name == CODE_TOOL:
+            self._code_note_edit_sessions(call)
         if danger != Danger.READ:
             try:
                 snapshot = self._prepare_snapshot(run_id, name, args, danger, call.get("overwrites") or [])
