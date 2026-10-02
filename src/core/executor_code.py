@@ -119,9 +119,25 @@ def _discard_new_edit_sessions(before: set) -> None:
             continue
 
 
-def _ceiling() -> str:
+def _ceiling(call: dict | None = None) -> str:
 
-    return ce.FP
+
+
+
+
+    return ce.FW if call is not None and call.get("served_recipe") is True else ce.FP
+
+
+
+
+
+_DECLARED = {"read": ce.R, "project": ce.P, "write": ce.FW, "delete": ce.D}
+
+
+def _declared(call: dict) -> str | None:
+    if call.get("served_recipe") is not True:
+        return None
+    return _DECLARED.get(str(call.get("served_effect") or ""))
 
 
 class _ExecutorCode:
@@ -135,12 +151,17 @@ class _ExecutorCode:
         code = str(args.get("code") or "")
         verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=self._commit_class)
         cls = verdict.cls
+        declared = _declared(call)
+        if cls == ce.ASK and declared is not None:
+            cls = declared
         remembered = self._code_escalated.get(_fingerprint(code))
         if remembered and ce.RANK[remembered] > ce.RANK[cls]:
             cls = remembered
 
         call["code_plan"] = {"cls": cls, "granted": cls if cls != ce.ASK else ce.FW,
-                             "reasons": verdict.reasons, "proven": cls != ce.ASK}
+                             "reasons": verdict.reasons, "proven": cls != ce.ASK and verdict.cls != ce.ASK}
+        if cls == ce.FW and _ceiling(call) == ce.FW:
+            return ce.DANGER[ce.FP]
         return ce.DANGER[cls]
 
     @staticmethod
@@ -194,7 +215,7 @@ class _ExecutorCode:
             return False
         plan = call.get("code_plan") or {}
         cls = plan.get("cls", ce.ASK)
-        if ce.RANK[cls] <= ce.RANK[_ceiling()]:
+        if ce.RANK[cls] <= ce.RANK[_ceiling(call)]:
             return False
         if self._code_class_allowed(call):
             return False

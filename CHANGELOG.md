@@ -9,6 +9,49 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.6] - 2026-10-03
+
+### Added
+
+- Undo changes and Redo changes under each answer put the map back to how it was before or after
+  that request, with a Map history sheet listing every version kept. A confirmation appears only
+  when the undo would lose something (your own edits, a file the run wrote, a later request).
+- The memory note the agent proposes at the end of a run is a card you add or decline. A declined
+  note is not proposed again for the next 3 conversations.
+- Settings has a Memory section: a switch, the saved notes, and a field to add your own.
+- Example library tiles show their category, the category rail folds, and tile notes run to two
+  lines.
+
+### Changed
+
+- TerraLab's own open data reads as "TerraLab Open Data" with the TerraLab logo in the chat and
+  the sources sheet, one card per source.
+- GIS data links and the Open button on file cards load the layer in this QGIS, matched by its
+  file path.
+- Report a problem shows our address with a Copy email address button instead of opening a mail
+  app.
+- The attach menu says "Add files from your computer".
+- Dates follow each language's own day and month order.
+- A step the agent retried and got right reads as a success; the failed tries stay behind a small
+  link.
+- OpenStreetMap themes name OpenStreetMap as their source.
+- Making layers permanent, writing an HTML report, saving a 3D view and packaging a project run
+  without an approval card; a step that deletes data still asks.
+- Nominatim, OpenStreetMap routing and the public Overpass servers are always asked at their
+  published rate limit, so they keep answering.
+- An empty Examples page says so instead of staying blank.
+
+### Fixed
+
+- QGIS no longer freezes for about 27 s while a large Overture or OSM building layer finishes
+  loading; the longest pause is now about a third of a second.
+- No more pause at the start of a run while the undo history tidies up.
+- A restored memory layer is no longer mistaken for a manual edit when its feature ids moved.
+- A link ends at Chinese or Japanese punctuation instead of swallowing it.
+- A Processing input or result file served by a host that ignores range requests loads again.
+- A QGIS proxy that cannot be reached is named as the cause within a minute.
+- The Area of interest keeps its shapes when the project is saved and reopened.
+
 ## [1.5.5] - 2026-10-02
 
 ### Added

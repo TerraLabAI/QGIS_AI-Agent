@@ -30,7 +30,7 @@ from __future__ import annotations
 import contextlib
 import urllib.parse
 
-from . import data_date, net, security, tuning
+from . import data_date, security, tuning
 from .logger import log_warning
 
 
@@ -167,14 +167,13 @@ def _mirror_allowed(url: str) -> bool:
 
 
 
-
     try:
         parts = urllib.parse.urlsplit(str(url or "").strip())
     except ValueError:
         return False
     if parts.scheme.lower() != "https" or not parts.hostname or not _fetchable(url):
         return False
-    return net.host_is_stated(parts.hostname) or tuning.host_policy(parts.hostname) is not None
+    return tuning.host_policy(parts.hostname) is not None
 
 
 def _mirror_dedup_key(url: str) -> str:
@@ -208,8 +207,8 @@ def _log_dropped_mirror(url) -> None:
         return
     _dropped_said.add(host)
     log_warning(
-        f"Overpass mirror {host} served by the backend is not used: neither this build "
-        "(core/net.HOST_POLICIES) nor the policy document states a rate for that host. "
+        f"Overpass mirror {host} served by the backend is not used: the policy document "
+        "states no rate for that host. "
         "Add a `hosts` row for it beside the mirror list."
     )
 
@@ -331,32 +330,7 @@ def set_source_licences(rows) -> None:
 
 
 
-FALLBACK_PLUGIN_ROSTER: tuple[dict, ...] = (
-    {
-        "product_id": "ai-edit",
-        "name": "AI Edit by TerraLab",
-        "label": "AI Edit",
-        "url": "https://terra-lab.ai/ai-edit",
-        "tutorial_url": "https://terra-lab.ai/blog/ai-edit-complete-guide",
-        "thumbnail_url": "https://terra-lab.ai/blog/ai-edit-complete-guide/og.jpg",
-    },
-    {
-        "product_id": "ai-segmentation",
-        "name": "AI Segmentation by TerraLab",
-        "label": "AI Segmentation",
-        "url": "https://terra-lab.ai/ai-segmentation",
-        "tutorial_url": "https://terra-lab.ai/blog/ai-segmentation-complete-guide",
-        "thumbnail_url": "https://terra-lab.ai/blog/ai-segmentation-complete-guide/og.jpg",
-    },
-    {
-        "product_id": "quickmapservices",
-        "name": "NextGIS QuickMapServices",
-        "label": "",
-        "url": "https://plugins.qgis.org/plugins/quick_map_services/",
-        "tutorial_url": "",
-        "thumbnail_url": "",
-    },
-)
+
 _MAX_ROSTER_ROWS = 12
 _roster: list = []
 
@@ -396,8 +370,7 @@ def set_plugin_roster(rows) -> None:
 
 def plugin_roster() -> dict:
 
-    rows = _roster or [dict(r) for r in FALLBACK_PLUGIN_ROSTER]
-    return {row["product_id"]: dict(row) for row in rows}
+    return {row["product_id"]: dict(row) for row in _roster}
 
 
 def theme_licence(key: str) -> dict | None:

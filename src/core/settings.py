@@ -904,6 +904,33 @@ class Settings:
     def memory_notes(self, notes: list) -> None:
         self._set("memory_notes", json.dumps(list(notes or []), ensure_ascii=False))
 
+    @property
+    def memory_forgotten(self) -> list:
+
+        try:
+            data = json.loads(self._get("memory_forgotten", "") or "[]")
+        except ValueError:
+            return []
+        return [str(t) for t in data if isinstance(t, str)] if isinstance(data, list) else []
+
+    @memory_forgotten.setter
+    def memory_forgotten(self, texts: list) -> None:
+        self._set("memory_forgotten", json.dumps(list(texts or []), ensure_ascii=False))
+
+    @property
+    def memory_declined(self) -> list:
+
+
+        try:
+            data = json.loads(self._get("memory_declined", "") or "[]")
+        except ValueError:
+            return []
+        return [t for t in data if isinstance(t, (str, dict))] if isinstance(data, list) else []
+
+    @memory_declined.setter
+    def memory_declined(self, texts: list) -> None:
+        self._set("memory_declined", json.dumps(list(texts or []), ensure_ascii=False))
+
 
 
 
@@ -914,7 +941,7 @@ class Settings:
         "question_timeout_s", "question_policy", "follow_edits", "send_shortcut",
         "expertise", "units", "layer_naming",
         "profile_name", "profile_role", "profile_about", "profile_instructions", "memory_enabled",
-        "memory_notes", "allow_project",
+        "memory_notes", "memory_forgotten", "memory_declined", "allow_project",
 
 
 

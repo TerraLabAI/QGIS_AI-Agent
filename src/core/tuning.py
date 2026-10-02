@@ -773,6 +773,7 @@ _GEOMETRIES = frozenset({"point", "line", "polygon"})
 _GRID_FAMILIES = frozenset({"grid_parameters", "grid_parameters_in_place", "warp_inputs", "reproject_inputs",
                             "refuse_mixed_crs"})
 _RANK_SIGNALS = ("named", "selected", "active", "by_agent", "visible_in_view", "visible")
+_STACK_KINDS = ("backdrop", "raster", "polygon", "line", "point")
 
 
 def _rule_number(value: Any, low: float, high: float, spot: str, whole: bool = False):
@@ -850,6 +851,7 @@ def _clean_style_rules(value: Any, where: str) -> dict | None:
                     "tail_ratio": _in_range(1.5, 10.0)},
         "proportional": {"marker_scale": _one_of(_SCALES), "marker_exponent": _in_range(0.1, 3.0),
                          "line_scale": _one_of(_SCALES), "line_exponent": _in_range(0.1, 3.0)},
+        "categories": {"readable": _in_range(2, 500, whole=True)},
     }
     out: dict = {"version": _RULES_VERSION}
     for section, fields in sections.items():
@@ -917,6 +919,24 @@ def _clean_processing_rules(value: Any, where: str) -> dict | None:
     return out
 
 
+def _clean_stack_rules(value: Any, where: str) -> dict | None:
+
+
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    order = value.get("order")
+    if (isinstance(order, list) and len(order) == len(set(order)) == len(_STACK_KINDS)
+            and set(order) == set(_STACK_KINDS)):
+        out["order"] = list(order)
+    elif order is not None:
+        log_warning(f"Server policy {where}.order is not the {len(_STACK_KINDS)} kinds once each, ignored")
+    out.update(_rule_part(value, where, {"larger_ratio": _in_range(1.0, 100.0),
+                                         "raster_over_filled": _one_of((True, False))}))
+    return out
+
+
 def _clean_context_rules(value: Any, where: str) -> dict | None:
     if not _versioned(value, where):
         return None
@@ -964,6 +984,8 @@ def _read_services(raw: Any) -> dict:
             clean = _clean_processing_rules(value, where)
         elif key == "context_rules":
             clean = _clean_context_rules(value, where)
+        elif key == "stack_rules":
+            clean = _clean_stack_rules(value, where)
         else:
             continue
         if clean is not None:
@@ -1251,11 +1273,12 @@ def _read_hosts(raw: Any) -> dict[str, tuple[float, int, int]]:
 
 
 
-
     out: dict[str, tuple[float, int, int]] = {}
     if not isinstance(raw, dict):
         return out
-    for host, spec in list(raw.items())[:200]:
+
+
+    for host, spec in list(raw.items())[:1000]:
         if not isinstance(host, str) or not host or not isinstance(spec, dict):
             continue
         rate = _clamp_float(spec.get("rate"), *_HOST_RATE, where=f"hosts.{host}.rate")

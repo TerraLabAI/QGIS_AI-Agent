@@ -10,7 +10,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from .controller_shared import PROPOSAL_MAX_ROWS
 from .logger import log, log_warning
-from .profile import add_memory_note
+from .profile import add_memory_note, load_memory_notes, record_declined
 from .protocol import ClientErrorCode, Decision, RunStatus
 from .scratch import MIN_TO_OFFER
 from .scratch import group as group_scratch
@@ -217,10 +217,6 @@ class _ControllerOffers:
 
 
 
-
-
-
-
         if not str(text or "").strip():
             return
         if not bool(getattr(self._settings, "memory_enabled", True)):
@@ -232,10 +228,47 @@ class _ControllerOffers:
 
             log_warning(f"Memory note dropped: run {str(run_id)[:8] or '?'} is not one of ours")
             return
+        if hasattr(self._panel, "propose_memory"):
+
+            key = f"{str(run_id or '')}:{len(text)}"
+            old = ""
+            if replaces:
+                try:
+                    old = next((n["text"] for n in load_memory_notes(self._settings) if n["id"] == replaces), "")
+                except Exception:  # noqa: BLE001
+                    old = ""
+            self._memory_proposal = {"key": key, "text": text, "kind": kind, "scope": scope,
+                                     "project": project, "replaces": replaces}
+            self._panel_call("propose_memory", key, text, old)
+            return
+        self._store_memory_note(text, kind, scope, project, replaces)
+
+    def _store_memory_note(self, text: str, kind: str, scope: str, project: str, replaces: str = "") -> dict | None:
         try:
             note = add_memory_note(self._settings, text, "ai", kind, scope, project, replaces)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Memory note not stored: {exc}")
-            return
-        if note is not None:
+            return None
+        if note is not None and not hasattr(self._panel, "propose_memory"):
             self._panel_call("note_memory", note["text"])
+        return note
+
+    def _on_memory_decided(self, key: str, add: bool) -> None:
+
+
+        proposal = getattr(self, "_memory_proposal", None) or {}
+        if proposal.get("key") != key:
+            return
+        self._memory_proposal = None
+        if not add:
+            try:
+                record_declined(self._settings, proposal["text"])
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Declined note not recorded: {exc}")
+            return
+        note = self._store_memory_note(proposal["text"], proposal["kind"], proposal["scope"],
+                                       proposal["project"], proposal["replaces"])
+
+        self._panel_optional("confirm_memory", key)
+        if note is None:
+            log("Memory note accepted but already stored")

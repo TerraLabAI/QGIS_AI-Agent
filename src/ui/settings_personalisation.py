@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt.QtCore import QDateTime, QLocale, Qt, QUrl
+from qgis.PyQt.QtCore import QDateTime, QLocale, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QComboBox,
@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -45,6 +46,8 @@ from .font_scale import apply_font_scale_to_tree, scale_px_length
 from .settings_pages import (
     GHOST_BTN_QSS,
     INPUT_QSS,
+    MUTED,
+    PRIMARY_BTN_QSS,
     ROW_NOTE_QSS,
     TEXTAREA_QSS,
     Disclosure,
@@ -62,6 +65,19 @@ from .settings_pages import (
 
 
 _TEXTAREA_H = 118
+
+
+class _NoteField(QLineEdit):
+
+
+    escaped = pyqtSignal()
+
+    def keyPressEvent(self, event):  # noqa: N802
+        if event.key() == Qt.Key.Key_Escape:
+            self.escaped.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 class PersonalisationPageMixin:
@@ -467,8 +483,6 @@ class PersonalisationPageMixin:
 
 
 
-
-
         page.add_group_title(self.tr("Memory"))
         locked = self._memory_locked()
         card = SectionCard(page)
@@ -477,61 +491,108 @@ class PersonalisationPageMixin:
             card, self.tr("Pro reads your notes at the start of every conversation."),
             self.tr("Memory between conversations"))
         pro.setVisible(locked)
-        intro = QLabel(self.tr("Short reminders it keeps between conversations."), card)
-        intro.setStyleSheet(ROW_NOTE_QSS)
-        intro.setWordWrap(True)
-        intro.setContentsMargins(2, 0, 2, 0)
-        card.add(intro)
-        self._notes_group = SettingGroup(card, flat=True)
-        card.add(self._notes_group)
-
-        add_row = QWidget(card)
-        add_lay = QHBoxLayout(add_row)
-        add_lay.setContentsMargins(0, 0, 0, 0)
-        add_lay.setSpacing(8)
-        self._note_edit = QLineEdit(add_row)
-        self._note_edit.setStyleSheet(INPUT_QSS)
-        self._note_edit.setPlaceholderText(self.tr("I work in EPSG:2154"))
-        self._note_edit.setMaxLength(MEMORY_NOTE_MAX_CHARS)
-        self._note_edit.returnPressed.connect(self._on_add_note)
-        add_lay.addWidget(self._note_edit, 1)
-        add_btn = QPushButton(self.tr("Add"), add_row)
-        add_btn.setStyleSheet(GHOST_BTN_QSS)
-        add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        add_btn.setAutoDefault(False)
-        add_btn.clicked.connect(self._on_add_note)
-        add_lay.addWidget(add_btn, 0)
-        card.add(add_row)
 
         group = SettingGroup(card, flat=True)
         self._memory_switch = Switch(group, self._store.memory_enabled)
         self._memory_switch.toggled.connect(self._on_memory_toggled)
-        group.add_row(SettingRow(self.tr("Let the AI add its own notes"), "",
+        group.add_row(SettingRow(self.tr("The AI can suggest notes"), self.tr("It asks before adding one."),
                                  self._memory_switch, group))
+        card.add(group)
+
+        self._notes_label = QLabel(card)
+        self._notes_label.setObjectName("memoryNotesLabel")
+        self._notes_label.setStyleSheet(
+            f"font-size: 10px; font-weight: 600; letter-spacing: 0.6px; color: {MUTED}; background: transparent;")
+        self._notes_label.setContentsMargins(2, 6, 2, 0)
+        card.add(self._notes_label)
+        self._notes_group = SettingGroup(card, flat=True)
+        card.add(self._notes_group)
+
+        add_host = QWidget(card)
+        add_col = QVBoxLayout(add_host)
+        add_col.setContentsMargins(0, 0, 0, 0)
+        add_col.setSpacing(6)
+        self._add_note_btn = QPushButton(self.tr("+ Add a note"), add_host)
+        self._add_note_btn.setObjectName("memoryAddNote")
+        self._add_note_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: none; color: {MUTED};"
+            " font-size: 12px; font-weight: 500; padding: 4px 2px; text-align: left; }"
+            " QPushButton:hover { color: palette(text); }")
+        self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._add_note_btn.setAutoDefault(False)
+        self._add_note_btn.clicked.connect(self._open_add_note)
+        add_col.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        self._add_row = QWidget(add_host)
+        add_lay = QHBoxLayout(self._add_row)
+        add_lay.setContentsMargins(0, 0, 0, 0)
+        add_lay.setSpacing(8)
+        self._note_edit = _NoteField(self._add_row)
+        self._note_edit.setStyleSheet(INPUT_QSS)
+        self._note_edit.setPlaceholderText(self.tr("e.g. I work in EPSG:2154"))
+        self._note_edit.setMaxLength(MEMORY_NOTE_MAX_CHARS)
+        self._note_edit.returnPressed.connect(self._on_add_note)
+        self._note_edit.escaped.connect(self._close_add_note)
+        add_lay.addWidget(self._note_edit, 1)
+        cancel_btn = QPushButton(self.tr("Cancel"), self._add_row)
+        cancel_btn.setStyleSheet(GHOST_BTN_QSS)
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setAutoDefault(False)
+        cancel_btn.clicked.connect(self._close_add_note)
+        add_lay.addWidget(cancel_btn, 0)
+        add_btn = QPushButton(self.tr("Add"), self._add_row)
+        add_btn.setStyleSheet(PRIMARY_BTN_QSS)
+        add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        add_btn.setAutoDefault(False)
+        add_btn.clicked.connect(self._on_add_note)
+        add_lay.addWidget(add_btn, 0)
+        self._add_row.hide()
+        add_col.addWidget(self._add_row)
+        card.add(add_host)
 
 
 
-
-        folder_btn = QPushButton(self.tr("Open"), group)
-        folder_btn.setStyleSheet(GHOST_BTN_QSS)
+        folder = QWidget(card)
+        folder_lay = QHBoxLayout(folder)
+        folder_lay.setContentsMargins(2, 4, 2, 0)
+        folder_lay.setSpacing(4)
+        folder_text = QLabel(self.tr("Markdown files on this computer"), folder)
+        folder_text.setStyleSheet(ROW_NOTE_QSS)
+        folder_lay.addWidget(folder_text)
+        dot = QLabel("·", folder)
+        dot.setStyleSheet(ROW_NOTE_QSS)
+        folder_lay.addWidget(dot)
+        folder_btn = QPushButton(self.tr("Open"), folder)
+        folder_btn.setObjectName("memoryFolderOpen")
+        folder_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: none; color: {MUTED}; font-size: 11px;"
+            " text-decoration: underline; padding: 0; } QPushButton:hover { color: palette(text); }")
         folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         folder_btn.setAutoDefault(False)
         folder_btn.clicked.connect(self._on_open_memory_folder)
         folder_btn.setEnabled(bool(memory_dir()))
-        group.add_row(SettingRow(self.tr("Memory folder"),
-                                 self.tr("Your notes as Markdown files on this computer. "
-                                         "Reword or delete one there and the next conversation follows."),
-                                 folder_btn, group))
-        card.add(group)
+        folder_lay.addWidget(folder_btn)
+        folder_lay.addStretch(1)
+        card.add(folder)
         self._fill_notes()
 
 
-        self._plan_sections.append((pro, (self._notes_group, add_row, group, intro)))
-        set_section_locked(self._notes_group, add_row, group, intro, locked=locked)
+        self._plan_sections.append((pro, (group, self._notes_label, self._notes_group, add_host, folder)))
+        set_section_locked(group, self._notes_label, self._notes_group, add_host, folder, locked=locked)
+
+    def _open_add_note(self) -> None:
+        self._add_note_btn.hide()
+        self._add_row.show()
+        self._note_edit.setFocus()
+
+    def _close_add_note(self) -> None:
+        self._note_edit.clear()
+        self._add_row.hide()
+        self._add_note_btn.show()
 
     def _fill_notes(self) -> None:
         self._notes_group.clear()
         notes = load_memory_notes(self._store)
+        self._notes_label.setText(self.tr("SAVED NOTES · {n}").format(n=len(notes)))
         if not notes:
             empty = QLabel(self.tr("No notes yet."), self._notes_group)
             empty.setStyleSheet(ROW_NOTE_QSS)
@@ -566,7 +627,7 @@ class PersonalisationPageMixin:
 
 
 
-        who = self.tr("Noted by the AI") if note.get("source") == "ai" else self.tr("Added by you")
+        who = self.tr("Added by the AI") if note.get("source") == "ai" else self.tr("Added by you")
         parts = [who]
         if note.get("scope") == "project":
             key = str(note.get("project") or "")
@@ -587,7 +648,7 @@ class PersonalisationPageMixin:
 
             self._note_edit.selectAll()
             return
-        self._note_edit.clear()
+        self._close_add_note()
         self._fill_notes()
         self._show_saved()
         self._emit_profile()

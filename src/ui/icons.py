@@ -1528,6 +1528,12 @@ def icon_factory(name: str, size: int = 20, color: QColor | None = None):
     return lambda widget: icon_for(widget, name, size, color)
 
 
+def has_glyph(name: str) -> bool:
+
+    name = str(name or "")
+    return name in _GLYPHS or lucide.is_lucide(name)
+
+
 def pixmap_for(widget, name: str, size: int = 16, color: QColor | None = None) -> QPixmap:
 
     ink = color if color is not None else ink_of(widget)

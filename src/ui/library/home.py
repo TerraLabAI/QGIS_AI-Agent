@@ -37,7 +37,7 @@ from ..shared import tr
 from ..use_cases import match_cases
 from . import common as C
 from .cards import ExampleTile, tile_height
-from .parts import ArrowButton, PageHeader, search_pill, section_title, text_button
+from .parts import ArrowButton, PageHeader, category_badge, search_pill, section_title, text_button
 
 
 
@@ -58,7 +58,8 @@ class _SideScroll(QScrollArea):
 class Carousel(QWidget):
 
 
-    def __init__(self, title: str, cases: list, opener, see_all, parent=None):
+    def __init__(self, title: str, cases: list, opener, see_all, parent=None,
+                 look: tuple = ("", "")):
         super().__init__(parent)
         self.tiles: list = []
         self._width = 0
@@ -69,6 +70,9 @@ class Carousel(QWidget):
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
         head.setSpacing(C.px(8))
+        head.addWidget(category_badge(self, look[0], look[1], C.px(24)), 0,
+                       Qt.AlignmentFlag.AlignVCenter)
+        head.addSpacing(C.px(2))
         head.addWidget(section_title(self, title), 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
         more = text_button(self, tr("See all"))
@@ -160,9 +164,10 @@ class ExamplesHome(QWidget):
 
     group_requested = pyqtSignal(str)
 
-    def __init__(self, cases: list, groups: list, parent=None):
+    def __init__(self, cases: list, groups: list, parent=None, looks: dict | None = None):
         super().__init__(parent)
         self._cases = list(cases)
+        self._looks = dict(looks or {})
         self._groups = list(groups)
         self._group = ""
         self._carousels: list = []
@@ -188,7 +193,9 @@ class ExamplesHome(QWidget):
         self._content = QWidget(self._body)
         self._content_col = QVBoxLayout(self._content)
         self._content_col.setContentsMargins(0, 0, 0, 0)
-        self._content_col.setSpacing(C.px(C.SPACE_5))
+
+
+        self._content_col.setSpacing(C.px(C.SPACE_2))
         self._page.addWidget(self._content)
         self._page.addStretch(1)
         self._scroll.setWidget(self._body)
@@ -255,6 +262,7 @@ class ExamplesHome(QWidget):
         self.query_changed.emit(query)
         if query:
             hits = match_cases(self._cases, query)
+            self._header.set_badge(None)
             self._header.set_text(tr("Examples"), self._home_line())
             if hits:
                 title = tr("1 result") if len(hits) == 1 else tr("%n results", "", len(hits))
@@ -267,18 +275,27 @@ class ExamplesHome(QWidget):
         elif self._group:
             cases = [c for c in self._cases if c.group == self._group and c.listed]
             count = tr("1 example") if len(cases) == 1 else tr("%n examples", "", len(cases))
+            self._header.set_badge(self._looks.get(self._group, ("", "")))
             self._header.set_text(self._label_of(self._group), count)
             self._grid("", cases)
         else:
+            self._header.set_badge(None)
             self._header.set_text(tr("Examples"), self._home_line())
             for key, text in self._groups:
                 cases = [c for c in self._cases if c.group == key and c.listed]
                 if not cases:
                     continue
                 carousel = Carousel(text, cases, self.case_opened.emit,
-                                    lambda k=key: self.group_requested.emit(k), self._content)
+                                    lambda k=key: self.group_requested.emit(k), self._content,
+                                    self._looks.get(key, ("", "")))
                 self._content_col.addWidget(carousel)
                 self._carousels.append(carousel)
+            if not self._carousels:
+
+                empty = QLabel(tr("No examples match"), self._content)
+                empty.setObjectName("libEmpty")
+                empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                self._content_col.addWidget(empty)
         self._built_width = 0
         self._fit()
         self._scroll.verticalScrollBar().setValue(0)

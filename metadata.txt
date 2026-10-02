@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.5.5
+version=1.5.6
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.5.6
+    - Undo changes and Redo changes under each answer, with a Map history sheet of the versions kept
+    - The memory note at the end of a run is a card you add or decline; Settings lists saved notes
+    - Example library with category badges and a foldable rail; our open data reads as TerraLab Open Data
+    - QGIS no longer freezes at the start of a run or while a large Overture or OSM building layer loads
+
     1.5.5
     - Maps render about twice as fast; loading files, layers and layouts no longer freezes QGIS
     - Load only a box of a remote raster (COG, STAC); cut downloads resume where they stopped
@@ -56,11 +62,6 @@ changelog=
     - Raster styles keep a typed min and max; Paris open data and Planetary Computer imagery work again
     - Clipping Overture data to a country or city is faster
 
-    1.4.0
-    - Attach any file up to 200 MB (PDF, Word, Excel, text); a run can end with an HTML report you keep
-    - A library of 46 guided examples with pictures, and a Data sources page for every connector
-    - Fewer approval cards: Autopilot runs Python on its own, and calls waiting together share one card
-    - Going back keeps your own unsaved edits; faster start-up, and Windows text and paths no longer cut
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
 icon=icons/icon.png

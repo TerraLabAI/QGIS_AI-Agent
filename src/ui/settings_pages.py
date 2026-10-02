@@ -449,6 +449,9 @@ class NoteRow(QFrame):
         body.setStyleSheet("font-size: 12px; color: palette(text); background: transparent;")
         body.setWordWrap(True)
         body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        body.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        body.setToolTip(text)
         words.addWidget(body)
         self._body = body
         self._field = None
@@ -468,6 +471,11 @@ class NoteRow(QFrame):
         close.clicked.connect(lambda: self.removed.emit(self.note_id))
         row.addWidget(close, 0, Qt.AlignmentFlag.AlignTop)
         self.close_button = close
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+
+        self._body.setMaximumHeight(2 * self._body.fontMetrics().lineSpacing())
 
     def start_editing(self) -> None:
 

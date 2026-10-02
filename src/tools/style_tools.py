@@ -27,8 +27,6 @@ _MAX_CATEGORIES = 500
 
 
 
-
-_READABLE_CATEGORIES = 30
 _OTHER_LABEL = "Other"
 _OTHER_COLOR = "#9e9e9e"
 
@@ -498,7 +496,9 @@ def _decide_categories(plan: dict, facts: dict) -> dict:
 
 
 
-    max_classes = _requested_classes(args) or _READABLE_CATEGORIES
+    from .style_defaults import _rules
+
+    max_classes = _requested_classes(args) or _rules("categories").get("readable") or _MAX_CATEGORIES
     folded, scanned = [], 0
 
     other_catch_all = False

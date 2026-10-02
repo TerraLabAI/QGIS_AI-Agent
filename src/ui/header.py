@@ -48,7 +48,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
@@ -184,8 +183,8 @@ class Header(QWidget):
 
 
         self._restore_btn = IconButton(
-            self, "undo", 18,
-            self.tr("Go back to an earlier version ({key})").format(
+            self, "lu.history", 18,
+            self.tr("Map history ({key})").format(
                 key=QKeySequence("Ctrl+Alt+H").toString(QKeySequence.SequenceFormat.NativeText)))
         self._restore_btn.setFixedSize(26, 26)
         self._sheet = CheckpointSheet(self)

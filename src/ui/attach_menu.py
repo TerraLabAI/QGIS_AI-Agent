@@ -24,16 +24,17 @@ from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
 from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
-from .style import ACCENT, INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
+from .style import ACCENT, DARK, INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
 
 
 
-SHEET_WIDTH = 260
+SHEET_WIDTH = 280
 _MIN_WIDTH = 200
 
 
 
-FILES_ACCENT = ACCENT
+
+FILES_ACCENT = "#a78bfa" if DARK else "#7c3aed"
 LAYER_ACCENT = ACCENT
 
 _SHEET_QSS = _POPOVER_QSS + (
@@ -111,7 +112,7 @@ class AttachPopover(QFrame):
         self._col.setContentsMargins(6, 6, 6, 6)
         self._col.setSpacing(2)
         self._add_row(
-            _Row("photo_file", FILES_ACCENT, self.tr("Add photos & files"), "", "", self),
+            _Row("file", FILES_ACCENT, self.tr("Add files from your computer"), "", "", self),
             self.add_files_requested)
         self._layer_row = _Row(
             "layers", LAYER_ACCENT, self.tr("Attach a layer of this project"), "", "", self)

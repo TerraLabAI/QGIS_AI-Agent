@@ -11,15 +11,26 @@ import contextlib
 
 from qgis.PyQt.QtCore import QEvent, Qt
 from qgis.PyQt.QtGui import QKeyEvent, QKeySequence
-from qgis.PyQt.QtWidgets import QApplication, QLineEdit, QPlainTextEdit, QShortcut, QTextEdit
+from qgis.PyQt.QtWidgets import (
+    QApplication,
+    QGraphicsOpacityEffect,
+    QLineEdit,
+    QPlainTextEdit,
+    QShortcut,
+    QTextEdit,
+)
 
 from ..core.background import run_sliced
-from .checkpoint_sheet import history_rows, row_target, usable
+from .bubbles import UserBubble
+from .chat_panel_shared import RestoreDivider
+from .checkpoint_sheet import affected_layers, history_rows, long_reason, not_restored_line, row_target, usable
 from .thread_replay import replay_steps
 from .trace import RunFootnote
 
 
 REPLAY_SLICE_MS = 24
+
+UNDONE_OPACITY = 0.45
 
 
 class _ChatPanelThreads:
@@ -183,11 +194,14 @@ class _ChatPanelThreads:
         self.header.set_current_thread(thread_id or "")
         self.set_queue_thread(thread_id or "")
 
-    def set_history(self, entries: list) -> None:
+    def set_history(self, entries: list, undone_runs=None) -> None:
 
 
 
 
+
+
+        self._undone_runs = [r for r in list(undone_runs or []) if isinstance(r, str) and r]
         all_entries = [e for e in list(entries or []) if isinstance(e, dict)]
 
 
@@ -215,12 +229,18 @@ class _ChatPanelThreads:
                     or not (usable(row["before"]) and usable(row["after"]))):
                 later += 1 if live_request else 0
                 continue
+            layers = affected_layers([row], self.tr)
             if row["live"]:
-                tip = self.tr("Remove what this request changed on the map")
+                tip = (self.tr("Removes: {layers}").format(layers=layers) if layers
+                       else self.tr("Removes this request's changes from the map"))
+                lost = not_restored_line(row["target"], self.tr)
+                if lost:
+                    tip += "\n" + lost
                 points[row["run_id"]] = ("undo", row_target(row), tip, later)
                 later += 1
             else:
-                tip = self.tr("Bring back what this request changed")
+                tip = (self.tr("Brings back: {layers}").format(layers=layers) if layers
+                       else self.tr("Brings this request's changes back"))
                 points[row["run_id"]] = ("redo", row_target(row), tip, 0)
         return points
 
@@ -233,6 +253,9 @@ class _ChatPanelThreads:
                 running, self._run_requests.get(self._current_run or "", "") if running else "")
         except (AttributeError, RuntimeError):
             pass
+        self._sync_undone_turns()
+        with contextlib.suppress(AttributeError, RuntimeError):
+            self.toast.set_link_enabled(not running)
         points = self._answer_points() if not running else {}
         for run_id, card in list(self._error_cards.items()):
             try:
@@ -248,6 +271,102 @@ class _ChatPanelThreads:
                 bubble.set_restore(mode, tip, later)
             except RuntimeError:
                 continue
+
+    def _undone_turns(self) -> tuple:
+
+
+
+        redo = [row for row in history_rows(self._history)
+                if row["type"] == "request" and row["live"] is False]
+        greyed = {row["run_id"] for row in redo if row["run_id"]}
+        self._redo_runs = set(greyed)
+        greyed.update(getattr(self, "_undone_runs", None) or [])
+
+        target = next((cid for cid in (row_target(row) for row in redo) if cid), "")
+        return greyed, target
+
+    def _sync_undone_turns(self) -> None:
+
+        greyed, target = self._undone_turns()
+        divider = getattr(self, "_restore_divider", None)
+        hidden_rule = getattr(self, "_restore_hidden_rule", None)
+        widgets = [w for w in self.message_list.widgets() if w is not self._status and w is not divider]
+        first = None
+        first_turn = True
+        dim = False
+        for index, widget in enumerate(widgets):
+            if isinstance(widget, UserBubble) and widget.run_id:
+                dim = widget.run_id in greyed
+
+
+                if dim and first is None and widget.run_id in self._redo_runs:
+                    first = (index, first_turn)
+                first_turn = False
+            elif widget.objectName() == "turnDivider":
+                continue
+            try:
+                self._dim(widget, dim)
+            except RuntimeError:
+                continue
+        if hidden_rule is not None:
+            with contextlib.suppress(RuntimeError):
+                hidden_rule.show()
+            self._restore_hidden_rule = None
+
+
+
+        if first is None or not target:
+            if divider is not None:
+                self.message_list.remove_widget(divider)
+                self._restore_divider = None
+            return
+        index, at_start = first
+        text = (self.tr("Restored to start of chat") if at_start
+                else self.tr("Restored to here"))
+        link = self.tr("Redo")
+        if divider is None:
+            divider = RestoreDivider(text, link)
+            divider.redo_requested.connect(self._on_divider_redo)
+            self._restore_divider = divider
+        else:
+            divider.set_text(text, link)
+        divider.target = target
+        divider.set_link_enabled(self._current_run is None)
+        bubble = widgets[index]
+
+        above = widgets[index - 1] if index > 0 else None
+        if above is not None and above.objectName() == "turnDivider":
+            above.hide()
+            self._restore_hidden_rule = above
+        layout = self.message_list._layout
+        if layout.indexOf(divider) >= 0:
+            layout.removeWidget(divider)
+        layout.insertWidget(layout.indexOf(bubble), divider)
+        divider.show()
+
+    def _dim(self, widget, dim: bool) -> None:
+
+
+        effect = widget.graphicsEffect()
+        mine = effect is not None and getattr(widget, "_undone_dim", False)
+        if effect is not None and not mine:
+            if not dim:
+                return
+            self.message_list._stop_fade(widget)
+        if dim and not mine:
+            effect = QGraphicsOpacityEffect(widget)
+            effect.setOpacity(UNDONE_OPACITY)
+            widget.setGraphicsEffect(effect)
+            widget._undone_dim = True
+        elif not dim and mine:
+            widget.setGraphicsEffect(None)
+            widget._undone_dim = False
+
+    def _on_divider_redo(self) -> None:
+        divider = getattr(self, "_restore_divider", None)
+        cid = getattr(divider, "target", "") if divider is not None else ""
+        if cid and self._current_run is None:
+            self.restore_requested.emit(cid, False)
 
     def _on_answer_restore(self, run_id: str) -> None:
         if self._current_run is not None:
@@ -265,39 +384,36 @@ class _ChatPanelThreads:
         self.restore_after_stop_requested.emit(run_id)
         self._on_stop()
 
-    def show_restore_notice(self, text: str, ok: bool = True, action: str = "",
-                            checkpoint_id: str = "") -> None:
-
-
-
-
-        link = (action, "restore:" + checkpoint_id) if action and checkpoint_id else None
-        if ok:
-            self.composer.show_hint(text, sticky=link is not None, link=link)
-        else:
-            self.composer.show_warning(text, sticky=True, focus=False, link=link)
-
-    def _on_notice_link(self, href: str) -> None:
-        href = str(href or "")
-        if href.startswith("restore:") and self._current_run is None:
-            self.restore_requested.emit(href[len("restore:"):], False)
-
-    def note_project_state(self, text: str) -> None:
+    def show_restore_result(self, ok: bool, back: bool = True, revert_id: str = "",
+                            missing=None) -> None:
 
 
 
 
 
 
-        text = str(text or "").strip()
-        if not text:
+        items = [item for item in (missing or []) if isinstance(item, dict) and item.get("name")]
+        if not ok:
+            self.toast.show_message(self.tr("Couldn't restore. See the log."), warn=True)
             return
-        note = RunFootnote()
-        note.setWordWrap(True)
-        note.setText(text)
-        note.show()
-        self._add(note)
-        self.message_list.scroll_to_bottom()
+        if items:
+            text = (self.tr("1 layer couldn't be restored") if len(items) == 1
+                    else self.tr("{n} layers couldn't be restored").format(n=len(items)))
+            tip = "\n".join(
+                self.tr("{layer}: {reason}").format(layer=str(item["name"]),
+                                                    reason=long_reason(str(item.get("reason") or ""), self.tr))
+                for item in items)
+        else:
+            text = self.tr("Changes undone") if back else self.tr("Changes restored")
+            tip = ""
+        link = (self.tr("Redo") if back else self.tr("Undo")) if revert_id else ""
+        self.toast.show_message(text, link=link, on_link=lambda: self._on_toast_revert(revert_id),
+                                warn=bool(items), tooltip=tip)
+        self.toast.set_link_enabled(self._current_run is None)
+
+    def _on_toast_revert(self, checkpoint_id: str) -> None:
+        if checkpoint_id and self._current_run is None:
+            self.restore_requested.emit(checkpoint_id, False)
 
     def note_memory(self, text: str) -> None:
 
@@ -321,6 +437,46 @@ class _ChatPanelThreads:
         self._add(note)
         self.message_list.scroll_to_bottom()
 
+    def propose_memory(self, key: str, text: str, replaces_text: str = "") -> None:
+
+
+
+        text = str(text or "").strip()
+        if not text:
+            return
+        self.drop_memory_proposal()
+        from .cards_memory import MemoryCard
+        card = MemoryCard(str(key or ""), text.rstrip(" ;,"), str(replaces_text or ""), self.message_list)
+        card.decided.connect(self._on_memory_decided)
+        card.settings_requested.connect(self.open_settings_requested.emit)
+        self._memory_card = card
+        self._add(card)
+        self.message_list.scroll_to_bottom()
+
+    def _on_memory_decided(self, key: str, add: bool) -> None:
+        if not add:
+            self.drop_memory_proposal()
+        self.memory_decided.emit(key, add)
+
+    def confirm_memory(self, key: str) -> None:
+
+        card = getattr(self, "_memory_card", None)
+        if card is None or card.key != str(key or ""):
+            return
+        self._memory_card = None
+        with contextlib.suppress(RuntimeError):
+            card.confirm()
+
+    def drop_memory_proposal(self) -> None:
+
+        card = getattr(self, "_memory_card", None)
+        self._memory_card = None
+        if card is None:
+            return
+        with contextlib.suppress(RuntimeError):
+            if card.decision is not True:
+                self.message_list.remove_widget(card)
+
 
 
 
@@ -336,10 +492,14 @@ class _ChatPanelThreads:
     def clear_thread(self) -> None:
         self._replay_generation += 1
         self.message_list.clear()
+
+        self._restore_divider = None
+        self._restore_hidden_rule = None
         self._runs = {}
 
 
         self._cleanup_cards.clear()
+        self._memory_card = None
         self._reopened_tools = {}
         self._status = None
         self._current_run = None

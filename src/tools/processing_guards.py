@@ -82,6 +82,11 @@ def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
 _GRID_CELLS_MAX = 2_000_000
 
 
+def _grid_cells_max() -> int:
+
+    return tuning.ceiling("processing_grid_cells_max", _GRID_CELLS_MAX, 100_000)
+
+
 _EXTENT_RE = re.compile(r"^\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)")
 
 
@@ -173,12 +178,13 @@ def _grid_sanity(parameters: dict, confirmed: bool) -> dict | None:
 
     width, height = spans(a, b, c, d)
     asked = _cells(width, height, hspacing, vspacing)
-    if asked <= _GRID_CELLS_MAX:
+    most = _grid_cells_max()
+    if asked <= most:
         return None
 
     alt_width, alt_height = spans(a, c, b, d)
     meant = _cells(alt_width, alt_height, hspacing, vspacing)
-    swapped = 0 < meant <= _GRID_CELLS_MAX
+    swapped = 0 < meant <= most
     return tool_error(
         f"GRID_TOO_LARGE: this EXTENT and spacing build {asked:,.0f} cells, over a box spanning "
         f"{width:,.0f} by {height:,.0f}.", "INVALID_ARGS",
@@ -192,6 +198,11 @@ def _grid_sanity(parameters: dict, confirmed: bool) -> dict | None:
 
 
 _REMOTE_RASTER_PIXELS_MAX = 60_000_000
+
+
+def _remote_raster_pixels_max() -> int:
+
+    return tuning.ceiling("processing_remote_raster_pixels_max", _REMOTE_RASTER_PIXELS_MAX, 1_000_000)
 _RASTER_INPUT_KEYS = ("INPUT", "INPUT_RASTER", "INPUT_A", "INPUT_B", "RASTER", "GRID", "ELEVATION", "DEM")
 
 
@@ -398,15 +409,16 @@ def _raster_size_sanity(parameters: dict, confirmed: bool, algorithm_id: str = "
         if "/vsicurl" not in source and not source.startswith(("http://", "https://")):
             continue
         pixels = int(layer.width()) * int(layer.height())
-        if pixels <= _REMOTE_RASTER_PIXELS_MAX:
+        most = _remote_raster_pixels_max()
+        if pixels <= most:
             continue
         written = _resampled_pixels(layer, algorithm_id, parameters)
-        if written is not None and written <= _REMOTE_RASTER_PIXELS_MAX and _has_overviews(layer):
+        if written is not None and written <= most and _has_overviews(layer):
             continue
         coarser = ""
-        if written is not None and written > _REMOTE_RASTER_PIXELS_MAX:
+        if written is not None and written > most:
             coarser = f" This call would write {written / 1e6:,.0f} million."
-        fits, facts = _resample_facts(layer, parameters, _REMOTE_RASTER_PIXELS_MAX, algorithm_id)
+        fits, facts = _resample_facts(layer, parameters, most, algorithm_id)
         return tool_error(
             f"RASTER_TOO_LARGE: {key} is a remote raster of {pixels / 1e6:,.0f} million pixels "
             f"({layer.width():,} by {layer.height():,}); every derivative streams the whole file and "
@@ -452,7 +464,10 @@ def _local_copy(layer, algorithm_id: str, key: str) -> dict:
     if cached and os.path.exists(cached):
         return {"path": cached, "megabytes": os.path.getsize(cached) / 1e6}
     raw = int(layer.width()) * int(layer.height()) * max(1, int(layer.bandCount())) * _sample_bytes(layer)
-    cap = min(_STREAMED_COPY_MAX_BYTES, int(limits.current("MAX_DOWNLOAD_BYTES")))
+    cap = min(
+        tuning.ceiling("processing_streamed_copy_max_bytes", _STREAMED_COPY_MAX_BYTES, 1024 * 1024),
+        int(limits.current("MAX_DOWNLOAD_BYTES")),
+    )
     provider = algorithm_id.split(":", 1)[0]
 
 
@@ -579,7 +594,8 @@ def _window_degrees_repair(parameters: dict) -> list[str]:
                 rect = transform.transformBoundingBox(QgsRectangle(xmin, ymin, xmax, ymax))
             except Exception:  # nosec B112
                 continue
-            if rect.intersects(extent) and rect.area() <= _WINDOW_RATIO_MAX * extent.area():
+            ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
+            if rect.intersects(extent) and rect.area() <= ratio_max * extent.area():
                 parameters[key] = f"{_plain(xmin)},{_plain(xmax)},{_plain(ymin)},{_plain(ymax)} [EPSG:4326]"
                 notes.append(f"{key} was four degrees with no CRS: written as xmin,xmax,ymin,ymax [EPSG:4326] "
                              f"for a raster in {crs.authid()}")
@@ -611,7 +627,8 @@ def _window_readings(value, layer):
     extent = layer.extent()
 
     def fits(box):
-        return box.intersects(extent) and box.area() <= _WINDOW_RATIO_MAX * extent.area()
+        ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
+        return box.intersects(extent) and box.area() <= ratio_max * extent.area()
 
     return rect, alt, crs_text, fits(rect), fits(alt)
 
@@ -1484,7 +1501,8 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
         if not typed_distance and name.upper() not in _DISTANCE_NAMES:
             continue
         value = parameters.get(name)
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or abs(float(value)) < _DEGREES_ALLOWED:
+        degrees_allowed = tuning.threshold("processing_degrees_allowed", _DEGREES_ALLOWED, 0.001, 0.1)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or abs(float(value)) < degrees_allowed:
             continue
         parent = ""
         if hasattr(definition, "parentParameterName"):
@@ -1944,7 +1962,8 @@ def degree_slack(layer) -> tuple[float, float]:
         if isinstance(layer, QgsRasterLayer):
             half_x = abs(float(layer.rasterUnitsPerPixelX())) / 2.0
             half_y = abs(float(layer.rasterUnitsPerPixelY())) / 2.0
-            if half_x <= _HALF_CELL_MAX and half_y <= _HALF_CELL_MAX:
+            half_max = tuning.threshold("processing_half_cell_max", _HALF_CELL_MAX, 1.0, 5.0)
+            if half_x <= half_max and half_y <= half_max:
                 return half_x, half_y
     except Exception:  # noqa: BLE001  # nosec B110
         pass
@@ -2034,7 +2053,7 @@ def _centre_in_area_of_use(crs, point) -> bool | None:
         if crs.isGeographic() and x > 180.0:
 
             x -= 360.0
-        m = _AREA_OF_USE_MARGIN
+        m = tuning.threshold("processing_area_of_use_margin", _AREA_OF_USE_MARGIN, 0.5, 10.0)
         return (bounds.xMinimum() - m <= x <= bounds.xMaximum() + m
                 and bounds.yMinimum() - m <= y <= bounds.yMaximum() + m)
     except Exception:  # noqa: BLE001

@@ -32,6 +32,9 @@ PREFIX = "lu."
 _SPARKLE = '<path fill="{colour}" stroke="none" d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/>'
 
 SHAPES = {
+    "undo-2": '<path d="M9 14 4 9l5-5"/> <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+    "redo-2": '<path d="m15 14 5-5-5-5"/> <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>',
+    "history": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/> <path d="M3 3v5h5"/> <path d="M12 7v5l4 2"/>',
     "arrow-up": '<path d="m5 12 7-7 7 7"/> <path d="M12 19V5"/>',
     "book-open": '<path d="M12 7v14"/> <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
     "braces": '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/> <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>',
@@ -93,7 +96,7 @@ FALLBACK = {
     "square-dashed-mouse-pointer": "polygon", "link": "link", "book-open": "book",
     "filter": "funnel", "combine": "merge", "folder-open": "folder", "eye": "eye",
     "image": "image", "sparkle": "spark", "arrow-up": "arrow_up", "corner-down-left": "undo",
-    "refresh-cw": "undo",
+    "refresh-cw": "undo", "undo-2": "undo", "redo-2": "redo", "history": "undo",
 }
 
 _RENDERER = None

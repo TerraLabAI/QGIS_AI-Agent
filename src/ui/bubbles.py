@@ -23,6 +23,7 @@ from qgis.PyQt.QtCore import (
     QTimer,
     pyqtSignal,
 )
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGraphicsOpacityEffect,
@@ -37,6 +38,7 @@ from .attach_card import AttachCard
 from .attachments import attachment_caption, attachment_kind, card_art, is_picture, tile_pixmap
 from .file_links import linkify_paths
 from .file_preview import can_open, open_file_preview
+from .icons import icon_for
 from .image_preview import ClickableThumb, open_image_preview
 from .layer_card import LayerCard
 from .layer_links import LAYER_URL, follow_layer_links
@@ -45,6 +47,7 @@ from .markdown_view import MarkdownView
 from .source_marks import SourcesButton
 from .style import (
     _BTN_QUIET,
+    INK_2,
     MOTION_FADE_UP_MS,
     SPACE_TIGHT,
 )
@@ -160,6 +163,7 @@ class UserBubble(QWidget):
         col.setSpacing(SPACE_TIGHT)
         self._view = MarkdownView(self._frame)
         self._view.set_plain_text(self._text)
+        self._view.chip_open_data_links()
         self._link_mentions()
         self._view.link_activated.connect(self._on_link)
         self._view.height_changed.connect(self._on_text_height)
@@ -543,18 +547,14 @@ class AgentBubble(QWidget):
         mode = mode if mode in ("undo", "redo") else ""
         self._later = max(0, int(later or 0)) if mode == "undo" else 0
         if mode:
-            if mode == "redo":
-                label = self.tr("Redo")
-            elif self._later:
-                label = self.tr("Go back here")
-                tooltip = (self.tr("Also undoes the {n} later requests").format(n=self._later)
-                           if self._later > 1 else self.tr("Also undoes the later request")) \
-                    + ("\n" + tooltip if tooltip else "")
-            else:
-                label = self.tr("Undo")
+            label = self.tr("Redo changes") if mode == "redo" else self.tr("Undo changes")
+            glyph = "lu.redo-2" if mode == "redo" else "lu.undo-2"
             self._restore.setText(label)
+            self._restore.setIcon(icon_for(self._restore, glyph, 14, QColor(INK_2)))
+            self._restore.setIconSize(QSize(14, 14))
             self._restore.setToolTip(tooltip)
-            self._restore.setAccessibleName(tooltip)
+            self._restore.setAccessibleName(label)
+            self._restore.setAccessibleDescription(tooltip)
         self._restore.setVisible(bool(mode))
         self._undone = mode == "redo"
         self._sync_actions()

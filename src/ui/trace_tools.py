@@ -30,6 +30,13 @@
 
 
 
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import json
@@ -37,14 +44,14 @@ import re
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPainter
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from .card_base import format_duration
 from .cards_tool import ToolCard
 from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
 from .source_marks import source_host, source_mark_pixmap
-from .style import INK_2, INK_3, SPACE_TIGHT, qcolor
+from .style import _BTN_QUIET, INK_2, INK_3, SPACE_TIGHT, qcolor
 from .tool_describe import (
     _with_layer_names,
     call_subject,
@@ -334,6 +341,19 @@ class ActivityRow(QWidget):
         self._results_col.setSpacing(0)
         self._results_host.hide()
         self._body_col.addWidget(self._results_host)
+
+
+
+        self._tries_shown = False
+        self._tries_count = 0
+        self._tries_btn = QPushButton("", self._body)
+        self._tries_btn.setObjectName("activityTries")
+        self._tries_btn.setStyleSheet(_BTN_QUIET)
+        self._tries_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._tries_btn.setAutoDefault(False)
+        self._tries_btn.clicked.connect(self._toggle_tries)
+        self._tries_btn.hide()
+        self._body_col.addWidget(self._tries_btn, 0, Qt.AlignmentFlag.AlignLeft)
         self._body.hide()
         col.addWidget(self._body)
         self.add(card)
@@ -345,7 +365,7 @@ class ActivityRow(QWidget):
         card.set_bare(True)
         card.setParent(self._body)
         card.hide()
-        self._body_col.addWidget(card)
+        self._body_col.insertWidget(self._body_col.indexOf(self._tries_btn), card)
         self.cards.append(card)
         self._job_over = False
         self._job_percent = ""
@@ -354,8 +374,65 @@ class ActivityRow(QWidget):
         self.refresh()
 
     def _on_card_expanded(self, card: ToolCard, expanded: bool) -> None:
-        card.setVisible(bool(expanded) and card.opens())
+        self._sync_card(card, expanded)
         self._sync_open()
+
+    def _sync_card(self, card: ToolCard, expanded: bool) -> None:
+
+
+        recovered = bool(getattr(card, "recovered", False))
+        card.setVisible(bool(expanded) and card.opens() and (self._tries_shown or not recovered))
+        show_tries = getattr(card, "show_tries", None)
+        if callable(show_tries):
+            show_tries(bool(expanded) and self._tries_shown)
+
+    def _toggle_tries(self) -> None:
+        self._tries_shown = not self._tries_shown
+        self._sync_tries_button()
+        for card in self.cards:
+            self._sync_card(card, card.is_expanded())
+
+    def _sync_tries_button(self) -> None:
+        n = self._tries_count
+        if self._tries_shown:
+            text = self.tr("Hide the try that did not work") if n == 1 \
+                else self.tr("Hide the {n} tries that did not work").format(n=n)
+        else:
+            text = self.tr("Show the try that did not work") if n == 1 \
+                else self.tr("Show the {n} tries that did not work").format(n=n)
+        self._tries_btn.setText(text)
+        self._tries_btn.setVisible(n > 0)
+
+    @staticmethod
+    def _tries_of(card) -> list:
+
+        tries = getattr(card, "_tries", None)
+        if isinstance(tries, list):
+            return [bool(worked) for worked, _ in tries]
+        if card.ok is None or getattr(card, "ended", "") in ("denied", "stopped", "unfinished"):
+            return []
+        return [bool(card.ok)]
+
+    def _sync_retries(self) -> tuple[int, int]:
+
+
+
+
+        flags = [self._tries_of(card) for card in self.cards]
+        seq = [worked for tries in flags for worked in tries]
+        last_ok = max((i for i, worked in enumerate(seq) if worked), default=-1)
+        recovered_total = sum(1 for worked in seq[:max(last_ok, 0)] if not worked)
+        trailing = sum(1 for worked in seq[last_ok + 1:] if not worked)
+        failed_before = False
+        for index, card in enumerate(self.cards):
+            later_worked = any(any(tries) for tries in flags[index + 1:])
+            recovered = card.ok is False and later_worked
+            after_failure = card.ok is True and failed_before
+            setter = getattr(card, "set_retry_state", None)
+            if callable(setter):
+                setter(recovered, after_failure)
+            failed_before = failed_before or not all(flags[index])
+        return recovered_total, trailing
 
     @property
     def repeats(self) -> int:
@@ -481,8 +558,11 @@ class ActivityRow(QWidget):
 
 
         failures = 0 if running else self.failures()
+        recovered, trailing = self._sync_retries()
         failed = not running and last.ok is False and ended not in ("denied", "stopped") \
             and failures >= self.repeats
+        self._tries_count = 0 if calling else recovered
+        self._sync_tries_button()
         declined = failed or ended in ("denied", "stopped")
         self._label.setStyleSheet(_SECOND_QSS if declined else _MEDIUM_QSS)
         colour = first.glyph_colour() if callable(getattr(first, "glyph_colour", None)) \
@@ -498,13 +578,21 @@ class ActivityRow(QWidget):
         self._count.setVisible(n > 1)
         self._results = [] if calling else self._search_results(last)
         self._sync_results()
-        self._sync_outcome(running, failed, ended, failures if failures and not failed else 0)
+
+
+        self._sync_outcome(running, failed, ended, trailing if trailing and not failed else 0)
         self._fit_verb()
-        self._opens = not calling and (bool(self._results) or any(card.opens() for card in self.cards))
+        self._opens = not calling and (
+            bool(self._results) or self._tries_count > 0
+            or any(card.opens() and not getattr(card, "recovered", False) for card in self.cards))
         self._head.setCursor(Qt.CursorShape.PointingHandCursor if self._opens
                              else Qt.CursorShape.ArrowCursor)
         if not self._opens and self._open:
             self.set_open(False)
+        for card in self.cards:
+
+
+            self._sync_card(card, card.is_expanded())
 
 
         lines = []
@@ -632,6 +720,11 @@ class ActivityRow(QWidget):
 
     def is_open(self) -> bool:
         return self._open
+
+    def ended_well(self) -> bool:
+
+
+        return bool(self.cards) and self.cards[-1].ok is True
 
     def failed(self) -> bool:
 

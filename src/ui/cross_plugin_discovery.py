@@ -31,7 +31,6 @@ from .shared import PRODUCT_ID, SITE_URL, QAction
 
 
 
-
 _SIBLINGS_LOCAL: dict[str, dict] = {
     "ai-edit": {"keys": ("AI_Edit", "QGIS_AI-Edit"), "folder": "AI_Edit"},
     "ai-segmentation": {"keys": ("AI_Segmentation", "QGIS_AI-Segmentation"), "folder": "AI_Segmentation"},
@@ -203,14 +202,14 @@ def _activate_dock(plugin) -> bool:
 def open_sibling_page(product_id: str) -> None:
 
     sibling = SIBLINGS.get(product_id)
-    if sibling:
+    if sibling and sibling["url"]:
         open_external_url(sibling["url"])
 
 
 def open_sibling_tutorial(product_id: str) -> None:
 
     sibling = SIBLINGS.get(product_id)
-    if sibling:
+    if sibling and sibling["tutorial_url"]:
         open_external_url(sibling["tutorial_url"])
 
 

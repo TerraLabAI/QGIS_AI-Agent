@@ -2217,6 +2217,90 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{tool} on {layer}</source>
             <translation>{tool} pada {layer}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 layer ditambahkan</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 layer dihapus</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Tersedia setelah agen selesai</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Perubahan yang dibuat di QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>Alamat email disalin</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Sembunyikan kategori</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Laporan disalin</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Kirim laporan kepada kami, dan kami akan memeriksa serta memperbaikinya.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Tampilkan kategori</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Ceritakan apa yang salah</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Lalu tempel ke email yang ditujukan ke:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>file yang ditulis oleh proses</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>tanpa cadangan</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>proyek lain</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>layer sementara</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} tidak dapat dipulihkan ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} layer ditambahkan</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} layer tidak dapat dipulihkan</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} layer diubah</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} layer dihapus</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{count} s</source>
             <translation>{count} detik</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Sembunyikan percobaan yang gagal</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Sembunyikan {n} percobaan yang gagal</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Tampilkan percobaan yang gagal</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Tampilkan {n} percobaan yang gagal</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Redo</source>
             <translation>Ulangi</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Ulangi perubahan</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Urungkan perubahan</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>No layers in this project yet.</source>
             <translation>Belum ada layer di proyek ini.</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Tambahkan file dari komputer Anda</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Waiting for your answer</source>
             <translation>Menunggu jawaban Anda</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 layer tidak dapat dipulihkan</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Kembali ke versi tertua yang masih disimpan.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Kembali ke proyek seperti saat obrolan ini dimulai.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Memulihkan: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Memulihkan perubahan dari permintaan ini</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Perubahan dipulihkan</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Perubahan diurungkan</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Gagal memulihkan. Lihat log.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Kembali ke awal obrolan?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Ulangi</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Menghapus perubahan dari permintaan ini dari peta</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Menghapus: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Dipulihkan ke titik ini</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Dipulihkan ke awal obrolan</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Ini juga menghapus perubahan dari 1 permintaan berikutnya.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Ini juga menghapus perubahan dari {n} permintaan berikutnya.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Urungkan</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Urungkan perubahan?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>Urungkan {n} permintaan?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Suntingan manual Anda disimpan dulu di riwayat.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} layer tidak dapat dipulihkan</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Redo</source>
             <translation>Ulangi</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Milik proyek yang sudah ditutup</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Milik proyek {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Riwayat peta</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Awal obrolan</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Berhenti</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Hentikan dan urungkan permintaan ini</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Menghentikan proses, lalu mengembalikan peta</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>Peta seperti sebelum permintaan pertama</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>Versi tertua yang masih disimpan</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Suntingan Anda</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>Menyambung ke TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Tambahkan file dari komputer Anda</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Tambahkan file atau salah satu layer proyek ini. Layer juga dapat diseret dari panel Layers; Ctrl+V menempelkan gambar.</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Settings ({email})</source>
             <translation>Pengaturan ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Riwayat peta ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Klik untuk membuka halamannya.</translation>
             <source>Your profile and instructions, read before every run</source>
             <translation>Profil dan instruksi Anda, dibaca sebelum setiap proses</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Tambah catatan</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Ditambahkan oleh AI</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>AI bertanya dulu sebelum menambahkannya.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>File Markdown di komputer ini</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>CATATAN TERSIMPAN · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>AI dapat menyarankan catatan</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>mis. Saya bekerja di EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Disajikan oleh TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Alamat</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Show the whole message</source>
             <translation>Tampilkan seluruh pesan</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>Percobaan {n} gagal: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>tidak ada alasan yang diberikan</translation>
         </message>
     </context>
     <context>
@@ -8208,6 +8500,10 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>Now</source>
             <translation>Sekarang</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>Saat ini</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8293,6 +8589,82 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Disajikan oleh TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Tambah</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Ditambahkan ke memori</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Memori</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>Tidak, terima kasih</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Ingat ini untuk lain kali?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Menggantikan: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Pengaturan</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>Tampilkan seluruh catatan</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Tersedia setelah agen selesai</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} lainnya</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Layer yang terpengaruh</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Dihapus</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Dipulihkan</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Saat ini</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Pulihkan</translation>
         </message>
     </context>
 </TS>

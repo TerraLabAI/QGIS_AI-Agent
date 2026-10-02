@@ -148,17 +148,21 @@ def _features_until_failure(layer, failures: list):
         yield feature
 
 
-def _lifted_family(geometry_type: int) -> str:
-    from osgeo import ogr
 
-    flat = ogr.GT_Flatten(geometry_type)
-    if flat in (ogr.wkbPoint, ogr.wkbMultiPoint):
-        return "points"
-    if flat in (ogr.wkbLineString, ogr.wkbMultiLineString):
-        return "lines"
-    if flat in (ogr.wkbPolygon, ogr.wkbMultiPolygon):
-        return "polygons"
-    return ""
+
+
+_FAMILY_OF_FLAT: dict = {}
+
+
+def _lifted_family(geometry_type: int) -> str:
+    if not _FAMILY_OF_FLAT:
+        from osgeo import ogr
+
+        _FAMILY_OF_FLAT.update({ogr.wkbPoint: "points", ogr.wkbMultiPoint: "points",
+                                ogr.wkbLineString: "lines", ogr.wkbMultiLineString: "lines",
+                                ogr.wkbPolygon: "polygons", ogr.wkbMultiPolygon: "polygons",
+                                "flatten": ogr.GT_Flatten})
+    return _FAMILY_OF_FLAT.get(_FAMILY_OF_FLAT["flatten"](geometry_type), "")
 
 
 def _outline_shape(outline: dict):
@@ -410,8 +414,8 @@ def _class_of(get, theme: str, osm_fields: tuple) -> str:
             if value not in (None, ""):
                 return f"{field}={value}"
         return "untagged"
-    parts = [str(get(field)) for field in _OVERTURE_CLASS_FIELDS if get(field) not in (None, "")]
-    return "/".join(parts) or "unclassified"
+    values = [get(field) for field in _OVERTURE_CLASS_FIELDS]
+    return "/".join(str(value) for value in values if value not in (None, "")) or "unclassified"
 
 
 class _ClassCounter:
@@ -636,6 +640,12 @@ class _ExtractRead:
             definition = layer_in.GetLayerDefn()
             field_names = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
             field_set = set(field_names)
+
+            field_index = {name: index for index, name in enumerate(field_names)}
+            id_index = field_index.get("id")
+
+
+            fields_ready: set = set()
             target.StartTransaction()
             failed: list = []
 
@@ -659,6 +669,17 @@ class _ExtractRead:
 
                         self.skip[label] = number - 1
                         break
+
+
+
+
+
+
+
+
+
+                    target.CommitTransaction()
+                    target.StartTransaction()
                 if number <= skip:
                     continue
                 geometry = feature.GetGeometryRef()
@@ -668,11 +689,15 @@ class _ExtractRead:
                 if self.in_python is not None and not _overture_matches(
                         {"properties": {field: feature.GetField(field) for field in field_names}}, self.in_python):
                     continue
+
+                def get(field, row=feature, indexes=field_index):
+                    index = indexes.get(field)
+                    return None if index is None else row.GetField(index)
+
                 piece = None
                 if (not self.dedupe and "osm_id" in field_set
                         and (bounds is None or not _strictly_inside(geometry, bounds))):
-                    piece = _osm_piece_key(lambda field, row=feature, names=field_set:
-                                           row.GetField(field) if field in names else None)
+                    piece = _osm_piece_key(get)
                 if self.inside is not None:
                     kept = self.inside(geometry)
                     if kept is None:
@@ -683,7 +708,7 @@ class _ExtractRead:
                         continue
                     geometry = kept
                 if self.dedupe:
-                    identity = feature.GetField("id") if "id" in field_names else None
+                    identity = feature.GetField(id_index) if id_index is not None else None
                     if identity:
                         if identity in self.seen or identity in file_ids:
                             continue
@@ -696,11 +721,13 @@ class _ExtractRead:
                     out = target.CreateLayer(table, wgs84, kinds[family], options=["SPATIAL_INDEX=YES"])
                     outputs[family] = out
                     self.tables[family] = table
-                known = {out.GetLayerDefn().GetFieldDefn(i).GetName()
-                         for i in range(out.GetLayerDefn().GetFieldCount())}
-                for i in range(definition.GetFieldCount()):
-                    if definition.GetFieldDefn(i).GetName() not in known:
-                        out.CreateField(definition.GetFieldDefn(i))
+                if family not in fields_ready:
+                    known = {out.GetLayerDefn().GetFieldDefn(i).GetName()
+                             for i in range(out.GetLayerDefn().GetFieldCount())}
+                    for i, field_name in enumerate(field_names):
+                        if field_name not in known:
+                            out.CreateField(definition.GetFieldDefn(i))
+                    fields_ready.add(family)
                 written = ogr.Feature(out.GetLayerDefn())
                 written.SetFrom(feature, 1)
                 written.SetGeometry(ogr.ForceTo(geometry.Clone(), kinds[family]))
@@ -708,8 +735,7 @@ class _ExtractRead:
                 if piece is not None:
                     self.edge.setdefault((family, *piece), []).append(written.GetFID())
                 self.counts[family] += 1
-                self.classes.add(lambda field, row=feature, names=field_set:
-                                 row.GetField(field) if field in names else None)
+                self.classes.add(get)
             if not failed and not stopped and gdal.GetLastErrorType() >= gdal.CE_Failure:
 
 
@@ -855,6 +881,25 @@ class _ExtractRead:
         return added
 
 
+def _close_dataset(dataset) -> None:
+
+
+
+
+
+
+
+
+
+    close = getattr(dataset, "Close", None)
+    if close is None:
+        return
+    try:
+        close()
+    except RuntimeError as exc:
+        log_warning(f"lifted extract: GeoPackage close: {exc}")
+
+
 def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip: bool = False,
                       deadline: float | None = None, later: list | None = None) -> dict:
 
@@ -910,6 +955,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         stopped = reader.read(target, deadline, net.current_cancel_check())
         completed = True
     finally:
+        _close_dataset(target)
         target = None
         if not completed:
 
@@ -1079,6 +1125,7 @@ class ExtractContinuation(QgsTask):
                     self.stopped = reader.read(target, math.inf, progress_cancelled, self._room(reader.path))
                     done += before - len(reader.queue)
                 finally:
+                    _close_dataset(target)
                     target = None
                 if self.stopped:
                     return self.stopped != "cancelled"

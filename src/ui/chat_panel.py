@@ -37,6 +37,7 @@ from .message_list import MessageList
 from .notice_bar import NoticeBar
 from .quota_card import QuotaCard, RunsLeftLine
 from .style import MIN_PANEL_WIDTH, SPACE_CARD, SPACE_TIGHT, panel_qss
+from .toast import Toast
 from .update_gate import UpdateGate
 
 
@@ -109,6 +110,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     pro_pill_requested = pyqtSignal()
     reconnect_requested = pyqtSignal()
+
+    memory_decided = pyqtSignal(str, bool)
     help_requested = pyqtSignal(str)
     update_clicked = pyqtSignal(str)
     update_dismissed = pyqtSignal(str)
@@ -179,6 +182,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._col.addWidget(self.activation, 1)
         self.message_list = MessageList(self)
         self._col.addWidget(self.message_list, 1)
+
+        self.toast = Toast(self.message_list)
 
 
 

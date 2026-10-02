@@ -224,7 +224,15 @@ class ToolCard(QWidget):
         self.repeats = 1
 
 
-        self.failures = 0
+
+
+        self._tries: list[tuple[bool, str]] = []
+
+
+
+
+        self.recovered = False
+        self._after_failure = False
         self._expanded = False
         self._hovering = False
 
@@ -349,6 +357,13 @@ class ToolCard(QWidget):
         body.addWidget(self._failure_host)
 
 
+        self._tries_label = ChatLabel("", self._body, wrap=True, selectable=True)
+        self._tries_label.setObjectName("toolTries")
+        self._tries_label.setStyleSheet(_TOOL_SUB_QSS)
+        self._tries_label.hide()
+        body.addWidget(self._tries_label)
+
+
 
 
         self._source_block = None
@@ -436,7 +451,54 @@ class ToolCard(QWidget):
             return ""
         if self.ok is False:
             return self.failure_text()
-        return check_warning(self.summary)
+        warning = check_warning(self.summary)
+        if warning or not (self._after_failure or self.recovered_failures()):
+            return warning
+
+
+        return self.sentence_text()
+
+    @property
+    def failures(self) -> int:
+
+        return sum(1 for worked, _ in self._tries if not worked)
+
+    def worked(self) -> bool:
+
+        return any(worked for worked, _ in self._tries)
+
+    def recovered_failures(self) -> list:
+
+
+        last_ok = max((i for i, (worked, _) in enumerate(self._tries) if worked), default=-1)
+        return [summary for worked, summary in self._tries[:max(last_ok, 0)] if not worked]
+
+    def failures_since_worked(self) -> int:
+
+        count = 0
+        for worked, _ in reversed(self._tries):
+            if worked:
+                break
+            count += 1
+        return count
+
+    def set_retry_state(self, recovered: bool, after_failure: bool) -> None:
+
+        recovered, after_failure = bool(recovered), bool(after_failure)
+        if (recovered, after_failure) == (self.recovered, self._after_failure):
+            return
+        self.recovered, self._after_failure = recovered, after_failure
+        self._sync_sentence()
+
+    def show_tries(self, shown: bool) -> None:
+
+
+        reasons = self.recovered_failures() if shown else []
+        lines = [self.tr("Try {n} did not work: {reason}").format(
+            n=i + 1, reason=failure_short(summary) or self.tr("no reason given"))
+            for i, summary in enumerate(reasons)]
+        self._tries_label.setText("\n".join(lines))
+        self._tries_label.setVisible(bool(lines))
 
     def failure_text(self) -> str:
 
@@ -667,8 +729,8 @@ class ToolCard(QWidget):
 
         if not ok and _CANCELLED_RE.match(self.summary) and self.ended != "denied":
             self.ended = "stopped"
-        if not ok and self.ended not in ("denied", "stopped"):
-            self.failures += 1
+        if self.ended not in ("denied", "stopped"):
+            self._tries.append((bool(ok), self.summary))
         try:
             self.duration_s = float(duration_s or 0.0)
         except (TypeError, ValueError):

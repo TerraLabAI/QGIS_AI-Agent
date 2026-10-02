@@ -32,7 +32,6 @@
 
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -54,16 +53,20 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.i18n import day_pattern, words_locale
 from ..core.licence import date_text
+from ..core.links import open_data_chip, open_data_label
 from .external_links import open_external_url
 from .font_scale import scale_point_size, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for, render_pixmap
 from .shared import event_pos, paint_styled_ground, round_popup_corners
 from .style import (
+    DARK,
     FONT_BODY,
     FONT_HINT,
     INK,
     INK_2,
     INK_3,
+    INSET,
+    LINE,
     LINE_SOFT,
     LINE_STRONG,
     RADIUS_CARD,
@@ -82,14 +85,18 @@ _GLYPH_SHARE = 0.62
 STACK_OVERLAP = 6
 _MAX_STACKED = 3
 
-ROW_PX = 44
-SHEET_MARK_PX = 24
+
+ROW_PX = 48
+SHEET_MARK_PX = 28
 _POPOVER_WIDTH = 300
 _POPOVER_MAX_WIDTH = 480
 _POPOVER_PAD = 6
 _MAX_ROWS_SHOWN = 8
 _LINK_PX = 12
 _CHEVRON_PX = 16
+
+_ROW_PAD = 10
+_ROW_GAP = 12
 
 _MAX_DATES = 31
 
@@ -150,7 +157,11 @@ def readable_host(url: str) -> str:
 
 
 
+
     text = str(url or "").strip()
+    own = open_data_label(text)
+    if own:
+        return own
     host = source_host(text).lower()
     for suffix, store in _STORES:
         if host.endswith(suffix):
@@ -192,7 +203,7 @@ _MARK_CACHE_MAX = 128
 
 
 def source_mark_pixmap(host: str, size: int = MARK_PX, ratio: float = 1.0,
-                       round_: bool = True, glyph: str = "") -> QPixmap:
+                       round_: bool = True, glyph: str = "", tinted: bool = False) -> QPixmap:
 
 
 
@@ -200,18 +211,35 @@ def source_mark_pixmap(host: str, size: int = MARK_PX, ratio: float = 1.0,
 
 
 
-    key = (str(host), int(size), round(float(ratio), 3), bool(round_), str(glyph))
+
+
+    key = (str(host), int(size), round(float(ratio), 3), bool(round_), str(glyph), bool(tinted))
     cached = _MARK_CACHE.get(key)
     if cached is not None:
         return cached
-    pixmap = _draw_source_mark(host, size, ratio, round_, glyph)
+    pixmap = _draw_source_mark(host, size, ratio, round_, glyph, tinted)
     if len(_MARK_CACHE) >= _MARK_CACHE_MAX:
         _MARK_CACHE.clear()
     _MARK_CACHE[key] = pixmap
     return pixmap
 
 
-def _draw_source_mark(host: str, size: int, ratio: float, round_: bool, glyph: str) -> QPixmap:
+def _tint(host: str):
+
+
+    hue = mark_color(host).hslHue()
+    ink = QColor()
+    ink.setHsl(hue, 160, 178 if DARK else 96)
+    ground = qcolor(SURFACE)
+    share = 0.22 if DARK else 0.14
+    wash = QColor(int(ground.red() + (ink.red() - ground.red()) * share),
+                  int(ground.green() + (ink.green() - ground.green()) * share),
+                  int(ground.blue() + (ink.blue() - ground.blue()) * share))
+    return wash, ink
+
+
+def _draw_source_mark(host: str, size: int, ratio: float, round_: bool, glyph: str,
+                      tinted: bool = False) -> QPixmap:
     physical = max(1, int(round(size * ratio)))
     pixmap = QPixmap(physical, physical)
     pixmap.setDevicePixelRatio(ratio)
@@ -221,7 +249,8 @@ def _draw_source_mark(host: str, size: int, ratio: float, round_: bool, glyph: s
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(mark_color(host))
+        wash, ink = _tint(host) if tinted else (mark_color(host), QColor(Qt.GlobalColor.white))
+        painter.setBrush(wash)
         rect = QRectF(0, 0, size, size)
         if round_:
             painter.drawEllipse(rect)
@@ -230,7 +259,9 @@ def _draw_source_mark(host: str, size: int, ratio: float, round_: bool, glyph: s
         glyph = str(glyph or "")
         if glyph:
             inner = max(6, int(round(size * _GLYPH_SHARE)))
-            face = render_pixmap(glyph, QColor(Qt.GlobalColor.white), inner, ratio)
+            if tinted:
+                inner = max(6, int(round(size * 0.54)))
+            face = render_pixmap(glyph, ink, inner, ratio)
             offset = (size - inner) / 2.0
             painter.drawPixmap(QRectF(offset, offset, inner, inner), face, QRectF(face.rect()))
         else:
@@ -239,7 +270,7 @@ def _draw_source_mark(host: str, size: int, ratio: float, round_: bool, glyph: s
             font.setPixelSize(max(6, int(round(size * _INITIAL_SHARE))))
             font.setBold(True)
             painter.setFont(font)
-            painter.setPen(QPen(QColor(Qt.GlobalColor.white)))
+            painter.setPen(QPen(ink))
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, initial)
     finally:
         painter.end()
@@ -253,8 +284,15 @@ def _mark_glyph(glyph) -> str:
 
 def _logo_path(item: dict) -> str:
 
+
     url = str(item.get("logo_url") or "")
     if not url:
+
+
+        if open_data_label(item.get("url")):
+            from .shared import TERRALAB_LOGO_PATH
+
+            return TERRALAB_LOGO_PATH
         return ""
     from .library.pictures import store
 
@@ -270,7 +308,7 @@ def item_mark_pixmap(item: dict, size: int, ratio: float = 1.0, round_: bool = T
         chip = logo_pixmap(path, size, ratio)
         if chip is not None:
             return _clipped(chip, size, ratio, round_)
-    return source_mark_pixmap(item["key"], size, ratio, round_=round_, glyph=item["glyph"])
+    return source_mark_pixmap(item["key"], size, ratio, round_=round_, glyph=item["glyph"], tinted=not round_)
 
 
 def _clipped(chip: QPixmap, size: int, ratio: float, round_: bool) -> QPixmap:
@@ -296,6 +334,12 @@ def _clipped(chip: QPixmap, size: int, ratio: float, round_: bool) -> QPixmap:
         painter.setClipPath(path)
         painter.fillRect(rect, QColor(Qt.GlobalColor.white))
         painter.drawPixmap(rect, chip, QRectF(chip.rect()))
+        if not round_:
+
+            painter.setClipping(False)
+            painter.setPen(QPen(qcolor(LINE), 1))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), size * 0.28, size * 0.28)
     finally:
         painter.end()
     if len(_MARK_CACHE) >= _MARK_CACHE_MAX:
@@ -324,13 +368,13 @@ def _clean(items) -> list:
         if not isinstance(item, dict):
             continue
         url = str(item.get("url") or "").strip()
-        name = str(item.get("name") or "").strip() or readable_host(url)
+        name = str(item.get("name") or "").strip() or open_data_chip(url) or readable_host(url)
         if not (url or name):
             continue
 
 
         cid = str(item.get("id") or "").strip()
-        entry = {"name": name, "url": url, "host": readable_host(url) or name,
+        entry = {"name": name, "url": url, "host": open_data_chip(url) or readable_host(url) or name,
                  "glyph": _mark_glyph(item.get("glyph")),
                  "id": cid, "key": cid or name or source_host(url)}
         for key in _DATASET_KEYS:
@@ -622,21 +666,35 @@ def _detail_fields(widget, item: dict) -> list:
     files = item.get("files", 0)
     if files:
         fields.append((QCoreApplication.translate("SourcesPopover", "Files"), str(files)))
+    if open_data_label(item.get("url")):
+
+
+        fields.append((QCoreApplication.translate("SourcesPopover", "Address"), str(item["url"])))
     return fields
 
 
 class _SourceDetails(QWidget):
 
 
+
+
     open_url = pyqtSignal(str)
 
     def __init__(self, fields: list, url: str, page: bool, parent=None):
         super().__init__(parent)
-        grid = QGridLayout(self)
+        col = QVBoxLayout(self)
 
-        grid.setContentsMargins(8 + SHEET_MARK_PX + 10, 0, 8, 8)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(3)
+        col.setContentsMargins(_ROW_PAD + SHEET_MARK_PX + _ROW_GAP, 0, _ROW_PAD, 10)
+        col.setSpacing(8)
+        rule = QFrame(self)
+        rule.setFixedHeight(1)
+        rule.setStyleSheet(f"QFrame {{ background: {LINE}; border: none; }}")
+        col.addWidget(rule)
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
+        keys = []
         for index, (label, value) in enumerate(fields):
             key = QLabel(label, self)
             key.setStyleSheet(_HOST_QSS)
@@ -645,12 +703,19 @@ class _SourceDetails(QWidget):
             text.setStyleSheet(_VALUE_QSS)
             grid.addWidget(key, index, 0, Qt.AlignmentFlag.AlignTop)
             grid.addWidget(text, index, 1)
+            keys.append(key)
         grid.setColumnStretch(1, 1)
+        if keys:
+
+            for key in keys:
+                key.ensurePolished()
+            grid.setColumnMinimumWidth(0, max(k.fontMetrics().horizontalAdvance(k.text()) for k in keys) + 2)
+        col.addLayout(grid)
         if url:
-            link = _TextButton(self.tr("Open page") if page else self.tr("Open dataset page"), "link", self)
+            link = _TextButton(self.tr("Open page") if page else self.tr("Open dataset page"), "external", self)
             link.setToolTip(url)
             link.clicked.connect(lambda: self.open_url.emit(url))
-            grid.addWidget(link, len(fields), 0, 1, 2)
+            col.addWidget(link)
         self.hide()
 
 
@@ -668,25 +733,28 @@ class _SourceRow(QWidget):
         self._url = item.get("page_url") or item["url"]
         self._hover = False
         self._open = False
-        self.setFixedHeight(ROW_PX)
+
+
+        self.setMinimumHeight(ROW_PX)
         row = QHBoxLayout(self)
-        row.setContentsMargins(8, 0, 8, 0)
-        row.setSpacing(10)
+        row.setContentsMargins(_ROW_PAD, 8, _ROW_PAD, 8)
+        row.setSpacing(_ROW_GAP)
         self._item = item
         self._mark = QLabel(self)
         self._mark.setFixedSize(SHEET_MARK_PX, SHEET_MARK_PX)
         self._paint_mark()
         _logo_watch(self, [item])
-        row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignTop)
         words = QWidget(self)
         col = QVBoxLayout(words)
         col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(1)
+        col.setSpacing(2)
+
+
 
         product = item.get("product", "")
-        top = _DOT.join(part for part in (product, item["name"])
-                        if part) if product and not product.lower().startswith(item["name"].lower()) \
-            else (product or item["name"])
+        top = product or item["name"]
+        self._maker = item["name"] if product and not product.lower().startswith(item["name"].lower()) else ""
 
 
         name = ChatLabel(top, words, wrap=True)
@@ -694,12 +762,13 @@ class _SourceRow(QWidget):
         name.setMaximumHeight(2 * name.fontMetrics().lineSpacing() + 2)
         name.setToolTip(top)
         col.addWidget(name)
-        under = self._fact(item)
-        fact = ElidedLabel(under, words, mode=Qt.TextElideMode.ElideRight if self._described(item)
-                           else Qt.TextElideMode.ElideMiddle)
-        fact.setStyleSheet(_HOST_QSS)
-        fact.setVisible(bool(fact.full_text()))
-        col.addWidget(fact)
+        self._fact_text = self._fact(item)
+        under = self._under(False)
+        self._under_label = ElidedLabel(under, words, mode=Qt.TextElideMode.ElideRight if self._described(item)
+                                        else Qt.TextElideMode.ElideMiddle)
+        self._under_label.setStyleSheet(_HOST_QSS)
+        self._under_label.setVisible(bool(under))
+        col.addWidget(self._under_label)
         row.addWidget(words, 1, Qt.AlignmentFlag.AlignVCenter)
         self.fields = _detail_fields(self, item)
         self.expandable = bool(self.fields)
@@ -707,7 +776,7 @@ class _SourceRow(QWidget):
         self._chevron.setFixedSize(_CHEVRON_PX, _CHEVRON_PX)
         self._chevron.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._chevron.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignTop)
         if self.expandable:
             self._paint_chevron()
         else:
@@ -720,6 +789,14 @@ class _SourceRow(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(top)
         self.setAccessibleDescription(under)
+
+    def _under(self, open_: bool) -> str:
+
+
+        parts = [self._maker] if self._maker else []
+        if self._fact_text and not open_:
+            parts.append(self._fact_text)
+        return _DOT.join(parts)
 
     @staticmethod
     def _described(item: dict) -> bool:
@@ -737,7 +814,7 @@ class _SourceRow(QWidget):
             return self.tr("Served by TerraLab")
         if item.get("license"):
             return item["license"]
-        if self._described(item) or item.get("via") or item.get("files"):
+        if self._described(item) or (item.get("via") and item["host"] == item["name"]):
             return ""
         return item["host"] if item["host"] != item["name"] else _page_address(item["url"], item["host"])
 
@@ -749,6 +826,9 @@ class _SourceRow(QWidget):
             return
         self._open = bool(on)
         self._paint_chevron()
+        under = self._under(self._open)
+        self._under_label.setText(under)
+        self._under_label.setVisible(bool(under))
         self.toggled.emit(self._open)
 
     def _activate(self) -> None:
@@ -773,7 +853,9 @@ class _SourceRow(QWidget):
         self._hover = on
         if not self.expandable:
             self._chevron.setVisible(on and bool(self._url))
-        self.update()
+
+        if self.parentWidget() is not None:
+            self.parentWidget().update()
 
     def focusInEvent(self, event):  # noqa: N802
         super().focusInEvent(event)
@@ -805,17 +887,42 @@ class _SourceRow(QWidget):
             self._activate()
         super().mouseReleaseEvent(event)
 
+    def lit(self) -> bool:
+        return self._hover and bool(self.expandable or self._url)
+
+
+class _SourceItem(QWidget):
+
+
+
+
+
+    def __init__(self, item: dict, parent=None):
+        super().__init__(parent)
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(0)
+        self.row = _SourceRow(item, self)
+        col.addWidget(self.row)
+        self.details = None
+        if self.row.expandable:
+            page = item.get("kind", "") in ("page", "doc")
+            self.details = _SourceDetails(self.row.fields, self.row._url, page, self)
+            col.addWidget(self.details)
+
     def paintEvent(self, event):  # noqa: N802
-        if self._hover and (self.expandable or self._url):
-            painter = QPainter(self)
-            try:
-                painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(hover_pill())
-                painter.drawRoundedRect(QRectF(self.rect()), RADIUS_CONTROL, RADIUS_CONTROL)
-            finally:
-                painter.end()
-        super().paintEvent(event)
+        open_ = self.row.is_open()
+        lit = self.row.lit()
+        if not (open_ or lit):
+            return
+        painter = QPainter(self)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(hover_pill() if lit else qcolor(INSET))
+            painter.drawRoundedRect(QRectF(self.rect()), RADIUS_CONTROL, RADIUS_CONTROL)
+        finally:
+            painter.end()
 
 
 class SourcesPopover(QFrame):
@@ -847,20 +954,18 @@ class SourcesPopover(QFrame):
         self._list = QWidget(self)
         rows_col = QVBoxLayout(self._list)
         rows_col.setContentsMargins(0, 0, 0, 0)
-        rows_col.setSpacing(0)
+        rows_col.setSpacing(2)
         self._rows: list = []
         self._anchor = None
         for item in items:
-            row = _SourceRow(item, self._list)
+            card = _SourceItem(item, self._list)
+            row = card.row
             row.clicked.connect(self._open)
-            rows_col.addWidget(row)
+            rows_col.addWidget(card)
             self._rows.append(row)
-            if row.expandable:
-                page = item.get("kind", "") in ("page", "doc")
-                details = _SourceDetails(row.fields, row._url, page, self._list)
-                details.open_url.connect(self._open)
-                rows_col.addWidget(details)
-                row.toggled.connect(lambda on, d=details: self._fold(d, on))
+            if card.details is not None:
+                card.details.open_url.connect(self._open)
+                row.toggled.connect(lambda on, d=card.details, c=card: self._fold(d, on, c))
         rows_col.addStretch(1)
         self._scroll = QScrollArea(self)
         self._scroll.setWidgetResizable(True)
@@ -903,8 +1008,10 @@ class SourcesPopover(QFrame):
         height = layout.heightForWidth(width) if layout.hasHeightForWidth() else layout.sizeHint().height()
         self._scroll.setFixedHeight(min(height, ROW_PX * _MAX_ROWS_SHOWN))
 
-    def _fold(self, details: QWidget, on: bool) -> None:
+    def _fold(self, details: QWidget, on: bool, card: QWidget = None) -> None:
         details.setVisible(on)
+        if card is not None:
+            card.update()
         self._fit_list()
         if self.isVisible() and self._anchor is not None:
             self._place(self._anchor)

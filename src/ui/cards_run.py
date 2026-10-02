@@ -24,10 +24,8 @@ from urllib.parse import urlsplit
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
-    QGridLayout,
     QHBoxLayout,
     QLineEdit,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -84,7 +82,6 @@ __all__ = [
     "ErrorCard",
     "PermissionCard",
     "QuotaPauseCard",
-    "RestoreWarningCard",
     "RunSummaryCard",
     "_ASK_CARD_QSS",
     "_ASK_DONE_QSS",
@@ -997,69 +994,6 @@ class ErrorCard(_Card):
         if self.details:
             lines.append(fence(self.details[-2000:]))
         return "\n".join(lines)
-
-
-class RestoreWarningCard(_Card):
-
-
-
-
-
-
-
-
-
-
-
-    confirmed = pyqtSignal(str, bool)
-    cancelled = pyqtSignal()
-
-    def __init__(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                 whole: bool = True, parent=None, point: str = ""):
-        super().__init__(None, parent, frame_qss=_ASK_CARD_QSS)
-        self.set_margins(*_ASK_MARGINS)
-        self._col.setSpacing(SPACE_OUTER)
-        self.checkpoint_id = checkpoint_id
-        self.discard = bool(discard)
-        if discard and not whole:
-
-
-            text = self.tr("Undo everything the agent did in this chat, back to the oldest version "
-                           "still kept? You can put it back.")
-        elif discard:
-            text = self.tr("Undo everything the agent did in this chat? You can put it back.")
-        elif point:
-            text = self.tr("Go back to {point}? Your edits since then are kept as a version "
-                           "you can return to.").format(point=point)
-        else:
-            text = self.tr("Go back? Your edits since then are kept as a version you can return to.")
-        body = QWidget(self)
-        grid = QGridLayout(body)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(SPACE_OUTER)
-        sentence = ChatLabel(text, body, wrap=True)
-        sentence.setObjectName("askText")
-        sentence.setStyleSheet(_ASK_TEXT_QSS)
-        sentence.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        grid.addWidget(sentence, 0, 0)
-        buttons = QWidget(body)
-        row = QHBoxLayout(buttons)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(SPACE_CARD)
-        row.addWidget(_pill(self._button(self.tr("Cancel"), _BTN_GHOST_PILL, self._cancel)))
-        row.addWidget(_pill(self._button(self.tr("Go back"), _BTN_PRIMARY_PILL, self._confirm)))
-        grid.addWidget(buttons, 1, 0, Qt.AlignmentFlag.AlignRight)
-        self._col.addWidget(body)
-
-    def _cancel(self) -> None:
-        self.hide()
-        self.deleteLater()
-        self.cancelled.emit()
-
-    def _confirm(self) -> None:
-        self.hide()
-        self.deleteLater()
-        self.confirmed.emit(self.checkpoint_id, self.discard)
 
 
 class QuotaPauseCard(_Card):

@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import posixpath
+import re
 import urllib.parse
 from typing import NamedTuple
 
@@ -30,11 +31,24 @@ from typing import NamedTuple
 _TRAILING = "&,.;:!?'\"<>*"
 
 
+
+
+
+
+
+URL_STOP = "\\s<>\"'`\\x00\\u2010-\\u206f\\u3000-\\u303f\\u3040-\\u30ff\\u3400-\\u9fff\\uac00-\\ud7af\\uff00-\\uffef"
+_STOP_RE = re.compile("[" + URL_STOP + "]")
+
+
 def clean(url: str) -> str:
+
 
     text = str(url or "").strip().strip("<>").strip()
     while text[:1] in ("(", "[", '"', "'") and text[1:2]:
         text = text[1:]
+    stop = _STOP_RE.search(text)
+    if stop:
+        text = text[:stop.start()]
     while text:
         last = text[-1]
         if (last in _TRAILING or last == ")" and text.count(")") > text.count("(")
@@ -52,6 +66,56 @@ def host_of(url) -> str:
     except ValueError:
         return ""
     return (parts.hostname or "").lower()
+
+
+
+
+
+
+
+OPEN_DATA_HOSTS = ("stterralabopendata.blob.core.windows.net", "data.terra-lab.ai")
+OPEN_DATA_NAME = "TerraLab Open Data"
+
+
+def open_data_label(url: str) -> str:
+
+
+    text = str(url or "").strip()
+    if text.startswith("/vsicurl/"):
+        text = text[len("/vsicurl/"):]
+    if "://" in text and "@" in text.split("://", 1)[1].split("/", 1)[0]:
+        return ""
+    host = host_of(text) if "://" in text else text.split("/", 1)[0].split(":", 1)[0].lower()
+    if host.startswith("www."):
+        host = host[4:]
+    return OPEN_DATA_NAME if host in OPEN_DATA_HOSTS else ""
+
+
+def open_data_chip(url: str) -> str:
+
+
+
+
+    text = str(url or "").strip()
+    if text.startswith("/vsicurl/"):
+        text = text[len("/vsicurl/"):]
+    label = open_data_label(text) if "://" in text else ""
+    if not label:
+        return ""
+    try:
+        path = urllib.parse.urlsplit(text).path
+    except ValueError:
+        return label
+    segments = [_segment_name(part) for part in path.split("/")
+                if part and "{" not in part and "}" not in part]
+    return f"{label} \u00b7 {segments[-1]}" if segments else label
+
+
+def _segment_name(part: str) -> str:
+
+
+    name = urllib.parse.unquote(part)
+    return part if "/" in name else name
 
 
 def host_is(url_or_host, domain: str) -> bool:

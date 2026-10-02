@@ -106,9 +106,13 @@ def _host(value) -> str:
 
     from qgis.PyQt.QtCore import QUrl
 
+    from ..core.links import open_data_chip
     from .source_marks import source_host
 
     text = str(value or "")
+    own = open_data_chip(text)
+    if own:
+        return own
     host = _site(source_host(text))
     if not host:
         return ""

@@ -12,7 +12,8 @@ import contextlib
 import os
 import time
 
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ..core.protocol import StopCode
 from .cards import (
@@ -20,8 +21,8 @@ from .cards import (
     PermissionCard,
     QuestionCard,
     QuotaPauseCard,
-    RestoreWarningCard,
 )
+from .confirm_dialog import ConfirmDialog
 from .loader import ElapsedClock, ShimmerLabel
 from .widgets import Spinner
 
@@ -449,29 +450,58 @@ class _ChatPanelPrompts:
         self.header.open_checkpoints()
 
     def show_restore_warning(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                             whole: bool = True, point: str = "") -> None:
+                             whole: bool = True, requests: int = 0, layers=None) -> None:
 
 
 
-        old = getattr(self, "_restore_card", None)
+
+
+
+
+
+        old = getattr(self, "_restore_dialog", None)
         if old is not None:
             try:
-                old.hide()
-                old.deleteLater()
+                old.reject()
             except RuntimeError:
                 pass
-        card = RestoreWarningCard(checkpoint_id, discard, edits, whole, point=point)
-        card.confirmed.connect(self._on_restore_confirmed)
-        card_id = id(card)
-        card.destroyed.connect(lambda *_a: self._forget_restore_card(card_id))
-        self._restore_card = card
-        self._add(card)
-        self.message_list.scroll_to_bottom()
+        requests = max(0, int(requests or 0))
 
-    def _forget_restore_card(self, card_id: int) -> None:
-        card = getattr(self, "_restore_card", None)
-        if card is not None and id(card) == card_id:
-            self._restore_card = None
+        if discard:
+            title = self.tr("Go back to the start of the chat?")
+        elif requests > 1:
+            title = self.tr("Undo {n} requests?").format(n=requests)
+        else:
+            title = self.tr("Undo changes?")
+        points = []
+        if discard:
+            points.append(("lu.history", self.tr("Back to the project as this chat found it.") if whole
+                           else self.tr("Back to the oldest version still kept.")))
+        elif requests > 1:
+            later = requests - 1
+            points.append(("lu.undo-2", self.tr("This also removes the changes from 1 later request.")
+                           if later == 1 else
+                           self.tr("This also removes the changes from {n} later requests.").format(n=later)))
+        if edits:
+            points.append(("pencil", self.tr("Your manual edits are saved in the history first.")))
+        dialog = ConfirmDialog(self.window(), title=title, confirm_text=self.tr("Undo"), points=points,
+                               object_name="restoreConfirm")
+        items = [item for item in (layers or []) if isinstance(item, dict) and item.get("name")]
+        if items:
+
+            dialog.layout().insertWidget(2, _LayerList(items, dialog))
+        dialog.checkpoint_id, dialog.discard = checkpoint_id, bool(discard)
+        dialog.accepted.connect(lambda: self._on_restore_confirmed(checkpoint_id, discard))
+        dialog.finished.connect(lambda _code: dialog.deleteLater())
+        self._restore_dialog = dialog
+        dialog_id = id(dialog)
+        dialog.destroyed.connect(lambda *_a: self._forget_restore_dialog(dialog_id))
+        dialog.open()
+
+    def _forget_restore_dialog(self, dialog_id: int) -> None:
+        dialog = getattr(self, "_restore_dialog", None)
+        if dialog is not None and id(dialog) == dialog_id:
+            self._restore_dialog = None
 
     def _on_restore_confirmed(self, checkpoint_id: str, discard: bool) -> None:
         if discard:
@@ -534,3 +564,111 @@ class _ChatPanelPrompts:
         self.update_banner.hide()
         if was_gated:
             self._show_thread_surface()
+
+
+_LIST_SHOWN = 4
+
+
+def _layer_glyph(name: str) -> str:
+
+    try:
+        from qgis.core import QgsProject
+
+        from .layer_links import _glyph_from_project
+
+        found = QgsProject.instance().mapLayersByName(name)
+        if not found:
+            return "layers"
+        layer = found[0]
+        provider = str(layer.providerType() or "").lower()
+        if provider in ("wms", "xyz", "arcgismapserver") or "vectortile" in provider:
+            return "globe"
+        return _glyph_from_project(layer.id())
+    except Exception:  # noqa: BLE001
+        return "layers"
+
+
+class _LayerList(QWidget):
+
+
+
+
+    def __init__(self, items: list, parent=None):
+        super().__init__(parent)
+        from . import style as S
+        from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD
+        from .font_scale import scale_px_length, scale_qss_font_px
+
+        self._qss_label = scale_qss_font_px(
+            f"font-size: 11px; color: {S.INK_3}; background: transparent;")
+        self._qss_name = scale_qss_font_px(f"font-size: 13px; color: {S.INK}; background: transparent;")
+        self._ink = S.INK_2
+        col = QVBoxLayout(self)
+        indent = scale_px_length(BADGE_PX) + ROW_SPACING
+        col.setContentsMargins(SIDE_PAD + indent, 0, SIDE_PAD, 16)
+        col.setSpacing(3)
+        known = all(item.get("group") in ("removed", "restored") for item in items)
+        if known:
+            groups = [(self.tr("Removed"), [i for i in items if i["group"] == "removed"]),
+                      (self.tr("Restored"), [i for i in items if i["group"] == "restored"])]
+        else:
+            groups = [(self.tr("Layers affected"), list(items))]
+        self._hidden: list = []
+        shown = 0
+        for label, members in groups:
+            if not members:
+                continue
+            head = QLabel(label, self)
+            head.setStyleSheet(self._qss_label)
+            col.addSpacing(2 if col.count() == 0 else 6)
+            col.addWidget(head)
+            hidden_head = shown >= _LIST_SHOWN
+            if hidden_head:
+                head.hide()
+                self._hidden.append(head)
+            for item in members:
+                row = self._row(str(item["name"]))
+                col.addWidget(row)
+                if shown >= _LIST_SHOWN:
+                    row.hide()
+                    self._hidden.append(row)
+                shown += 1
+        rest = shown - _LIST_SHOWN
+        if rest > 0:
+            self._more = QPushButton(self.tr("+{n} more").format(n=rest), self)
+            self._more.setObjectName("restoreLayersMore")
+            self._more.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._more.setStyleSheet(scale_qss_font_px(
+                "QPushButton { background: transparent; border: none; padding: 2px 0; text-align: left;"
+                f" font-size: 12px; color: {S.INK_2}; }}"
+                f"QPushButton:hover {{ color: {S.INK}; }}"))
+            self._more.clicked.connect(self._expand)
+            col.addWidget(self._more, 0, Qt.AlignmentFlag.AlignLeft)
+
+    def _row(self, name: str) -> QWidget:
+        from qgis.PyQt.QtGui import QColor
+
+        from .icons import pixmap_for
+        from .widgets import ElidedLabel
+
+        row = QWidget(self)
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(8)
+        glyph = QLabel(row)
+        glyph.setFixedSize(14, 14)
+        glyph.setPixmap(pixmap_for(row, _layer_glyph(name), 14, QColor(self._ink)))
+        line.addWidget(glyph, 0, Qt.AlignmentFlag.AlignVCenter)
+        label = ElidedLabel(name, row, mode=Qt.TextElideMode.ElideMiddle)
+        label.setStyleSheet(self._qss_name)
+        line.addWidget(label, 1)
+        return row
+
+    def _expand(self) -> None:
+        for widget in self._hidden:
+            widget.show()
+        self._hidden = []
+        self._more.hide()
+        dialog = self.window()
+        if dialog is not None:
+            dialog.adjustSize()

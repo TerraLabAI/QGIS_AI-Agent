@@ -2217,6 +2217,90 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>{tool} on {layer}</source>
             <translation>{tool} su {layer}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 layer aggiunto</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 layer rimosso</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponibile quando l'agente ha finito</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Modifiche fatte in QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>Indirizzo email copiato</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Nascondi categorie</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Segnalazione copiata</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Inviaci una segnalazione: la esamineremo e correggeremo il problema.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Mostra categorie</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Raccontaci cosa è andato storto</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Poi incollala in un'email a:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>file scritto dall'esecuzione</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>nessun backup</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>altro progetto</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>layer temporaneo</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} non può essere ripristinato ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} e altri {n}</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} layer aggiunti</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} layer non possono essere ripristinati</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} layer modificati</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} layer rimossi</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>{count} s</source>
             <translation>{count} s</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Nascondi il tentativo non riuscito</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Nascondi i {n} tentativi non riusciti</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Mostra il tentativo non riuscito</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Mostra i {n} tentativi non riusciti</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Redo</source>
             <translation>Ripeti</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Ripeti le modifiche</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Annulla le modifiche</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>No layers in this project yet.</source>
             <translation>Nessun layer in questo progetto per ora.</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Aggiungi file dal tuo computer</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Waiting for your answer</source>
             <translation>In attesa della tua risposta</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 layer non è stato ripristinato</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Torna alla versione più vecchia ancora conservata.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Torna al progetto come l'ha trovato questa chat.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Ripristina: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Ripristina le modifiche di questa richiesta</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Modifiche ripristinate</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Modifiche annullate</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Ripristino non riuscito. Controlla il log.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Tornare all'inizio della chat?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Ripeti</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Rimuove dalla mappa le modifiche di questa richiesta</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Rimuove: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Ripristinato a questo punto</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Ripristinato all'inizio della chat</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Verranno rimosse anche le modifiche di 1 richiesta successiva.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Verranno rimosse anche le modifiche di {n} richieste successive.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Annullare le modifiche?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>Annullare {n} richieste?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Prima le tue modifiche manuali vengono salvate nella cronologia.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} layer non sono stati ripristinati</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Redo</source>
             <translation>Ripeti</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Appartiene a un progetto chiuso</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Appartiene al progetto {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Cronologia della mappa</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Inizio della chat</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Ferma</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Ferma e annulla questa richiesta</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Ferma l'esecuzione, poi ripristina la mappa</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>La mappa com'era prima della prima richiesta</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>La versione più vecchia ancora conservata</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Le tue modifiche</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>Connessione a TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Aggiungi file dal tuo computer</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Aggiungi file o uno dei layer di questo progetto. Un layer si può anche trascinare dal pannello Layer; Ctrl+V incolla un'immagine.</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Settings ({email})</source>
             <translation>Impostazioni ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Cronologia della mappa ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Fai clic per aprirne la pagina.</translation>
             <source>Your profile and instructions, read before every run</source>
             <translation>Il tuo profilo e le tue istruzioni, letti prima di ogni esecuzione</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Aggiungi una nota</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Aggiunta dall'IA</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>Chiede prima di aggiungerne una.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>File Markdown su questo computer</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>NOTE SALVATE · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>L'IA può suggerire note</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>es. Lavoro in EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fornito da TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Indirizzo</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Show the whole message</source>
             <translation>Mostra tutto il messaggio</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>Il tentativo {n} non è riuscito: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>nessun motivo indicato</translation>
         </message>
     </context>
     <context>
@@ -8216,6 +8508,10 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <source>Now</source>
             <translation>Adesso</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>Attuale</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8301,6 +8597,82 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fornito da TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Aggiungi</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Aggiunto alla memoria</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Memoria</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>No, grazie</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Ricordarlo per la prossima volta?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Sostituisce: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Impostazioni</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Mostra meno</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>Mostra tutta la nota</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponibile quando l'agente ha finito</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} altri</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Layer interessati</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Rimosso</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Ripristinato</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Attuale</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Ripristina</translation>
         </message>
     </context>
 </TS>

@@ -461,13 +461,13 @@ def _public_sector_host(host: str) -> bool:
 
 
 def _host_vouched(host: str, url: str, catalog_hosts: set[str]) -> bool:
-    from ..core import net, tuning
+    from ..core import tuning
 
     if (security.host_is_vouched(host) or host in catalog_hosts or security.is_paired_backend_url(url)
             or _public_sector_host(host)):
         return True
     try:
-        return net.host_is_stated(host) or tuning.host_policy(host) is not None
+        return tuning.host_policy(host) is not None
     except Exception:  # noqa: BLE001
         return False
 

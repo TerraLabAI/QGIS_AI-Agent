@@ -15,7 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from . import telemetry
 from . import telemetry_events as ev
-from .checkpoints import KIND_AFTER, KIND_BEFORE, KIND_EDITS
+from .checkpoints import KIND_BEFORE, KIND_EDITS
 from .context import mention_candidates
 from .logger import log, log_warning
 from .protocol import Approval, Effort, Mode
@@ -27,12 +27,31 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("AgentController", text)
 
 
-def _request_words(entry) -> str:
+def _restore_layers(rows) -> list:
 
-    words = " ".join(str(entry.prompt or "").split())
-    if len(words) > 48:
-        words = words[:48].rstrip() + "\u2026"
-    return words or tr("request {n}").format(n=entry.run_index)
+
+
+
+
+    order: list = []
+    groups: dict = {}
+    for row in rows or []:
+        source = (row.get("after") or row.get("before") or {}) if isinstance(row, dict) else {}
+        for item in source.get("log") or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("layer") or "")
+            if not name:
+                continue
+            what = str(item.get("what") or "")
+            group = "removed" if what == "added" else "restored" if what else ""
+            if name not in groups:
+                order.append(name)
+                groups[name] = group
+            elif group == "removed" or not groups[name]:
+
+                groups[name] = group or groups[name]
+    return [{"name": name, "group": groups[name]} for name in order]
 
 
 def _restore_error_code(result: dict) -> str:
@@ -137,7 +156,9 @@ class PanelActionsMixin:
         return bool(history.previous(thread_id) or history.next(thread_id))
 
     def _send_history(self) -> None:
-        self._panel_call("set_history", self._executor.history.describe(self._thread_id or ""))
+        thread_id = self._thread_id or ""
+        history = self._executor.history
+        self._panel_call("set_history", history.describe(thread_id), history.undone_runs(thread_id))
 
     def _on_undo(self) -> None:
 
@@ -157,6 +178,8 @@ class PanelActionsMixin:
         self._on_restore(entry.id, confirmed, discard=True)
 
     def _on_restore(self, checkpoint_id: str, confirmed: bool = False, discard: bool = False) -> None:
+
+
 
 
 
@@ -198,13 +221,19 @@ class PanelActionsMixin:
         if current is not None and current.id == entry.id and not discard:
             return
         edits = self._manual_changes_since(current)
-        if (edits or discard) and not confirmed:
+        if not discard and not edits and history.same_state(thread_id, entry):
+
+
+            self._send_history()
+            return
+        removed = self._requests_removed(entry)
+        if (edits or discard or len(removed) > 1) and not confirmed:
 
 
 
             whole = not discard or history.start_reachable(thread_id)
             self._panel_call("show_restore_warning", checkpoint_id, discard, edits, whole,
-                             self._point_name(entry))
+                             len(removed), _restore_layers(removed))
             return
         refusal = self._capture_edits(thread_id, current, entry) if edits else ""
         if refusal:
@@ -244,14 +273,9 @@ class PanelActionsMixin:
             self._restored_for_retry(entry.id)
         self._send_history()
         back = steps >= 0
-        action, target = "", ""
 
-
-
-        short = not ok or bool(self._not_back(entry, result))
-        if short and left is not None and left.id != entry.id and left.available:
-            action, target = (tr("Redo") if back else tr("Undo")), left.id
-        self._panel_call("show_restore_notice", self._restored_text(entry, result, back), ok, action, target)
+        revert = left.id if (ok and left is not None and left.id != entry.id and left.available) else ""
+        self._panel_call("show_restore_result", ok, back, revert, self._missing_layers(entry, result))
 
     def _on_restore_after_stop(self, run_id: str) -> None:
 
@@ -357,45 +381,19 @@ class PanelActionsMixin:
                     snapshot, fork=False)
         return ""
 
-    def _point_name(self, entry) -> str:
+    def _requests_removed(self, entry) -> list:
 
+        from ..ui.checkpoint_sheet import history_rows
 
+        entries = self._executor.history.describe(self._thread_id or "")
+        index = next((i for i, e in enumerate(entries) if e.get("id") == entry.id), None)
+        if index is None:
+            return []
+        return [row for row in history_rows(entries)
+                if row["type"] == "request" and row["live"] and row["anchor"] > index]
 
+    def _missing_layers(self, entry, result: dict) -> list:
 
-
-        if entry.kind == KIND_EDITS:
-            return tr("your own changes")
-        words = _request_words(entry)
-        if entry.kind == KIND_AFTER:
-            return tr("after “{request}”").format(request=words)
-        return tr("before “{request}”").format(request=words)
-
-    def _restored_text(self, entry, result: dict, back: bool = True) -> str:
-
-        if not result.get("ok"):
-            reason = str(result.get("message") or "").strip()
-            return tr("Could not fully go back to {point}. {reason}").format(
-                point=self._point_name(entry), reason=reason).strip()
-        words = _request_words(entry)
-        if entry.kind == KIND_EDITS:
-            text = tr("Back to your own changes.") if back else tr("Forward to your own changes.")
-        elif entry.kind == KIND_AFTER and not back:
-
-            text = tr("Brought back what “{request}” changed.").format(request=words)
-        elif entry.kind != KIND_AFTER and back:
-
-            text = tr("Removed what “{request}” changed.").format(request=words)
-        elif entry.kind == KIND_AFTER:
-            text = tr("Removed what came after “{request}”.").format(request=words)
-        else:
-            text = tr("Brought back everything up to “{request}”.").format(request=words)
-        missing = self._not_back(entry, result)
-        return f"{text} {missing}" if missing else text
-
-    def _not_back(self, entry, result: dict) -> str:
-
-
-        from ..ui.checkpoint_sheet import short_reason
 
         row = next((r for r in self._executor.history.describe(self._thread_id or "")
                     if r.get("id") == entry.id), {})
@@ -406,17 +404,7 @@ class PanelActionsMixin:
             if name and name not in known:
                 known.add(name)
                 items.append({"name": name, "reason": ""})
-        if not items:
-            return ""
-        names = [str(item["name"]) for item in items]
-        shown = ", ".join(names[:3])
-        if len(names) > 3:
-            shown = tr("{names} and {n} more").format(names=shown, n=len(names) - 3)
-        reasons = {str(item.get("reason") or "") for item in items}
-        reason = short_reason(reasons.pop(), tr) if len(reasons) == 1 else ""
-        if reason:
-            return tr("{names} didn't come back ({reason}).").format(names=shown, reason=reason)
-        return tr("{names} didn't come back.").format(names=shown)
+        return items
 
     def _on_layer_action(self, layer_id: str, action: str) -> None:
         telemetry.track(ev.REVIEW_OPENED, {"action": action})
@@ -429,16 +417,37 @@ class PanelActionsMixin:
 
 
 
-        path = str(path or "")
+
+
+
+
+        path, _, layername = str(path or "").partition("|layername=")
         if not path or not os.path.isfile(path):
             self.notice.emit("warning", tr("This file is no longer where the run wrote it."))
             return
-        kept = self._layer_of_file(path)
-        if kept is not None:
-            self.layer_action_requested.emit(str(kept.id()), "show")
-            return
-        result = self._registry.execute("add_data", {"source": path})
+        if not layername:
+            kept = self._layer_of_file(path)
+            if kept is not None:
+                self.layer_action_requested.emit(str(kept.id()), "show")
+                return
+        args = {"source": path, "layer": layername} if layername else {"source": path}
+        result = self._registry.execute("add_data", args)
         name = os.path.basename(path)
+        if isinstance(result, dict) and not result.get("_error") and not result.get("layer_id") \
+                and isinstance(result.get("layers"), list) and result["layers"]:
+            first = ""
+            for item in result["layers"]:
+                sub = str((item or {}).get("name") or "") if isinstance(item, dict) else str(item or "")
+                if not sub:
+                    continue
+                one = self._registry.execute("add_data", {"source": path, "layer": sub})
+                if isinstance(one, dict) and one.get("layer_id") and not one.get("_error"):
+                    first = first or str(one["layer_id"])
+                else:
+                    log_warning(f"Could not add {sub} of {name} to the map: {(one or {}).get('_error')}")
+            if first:
+                self.layer_action_requested.emit(first, "show")
+                return
         if not isinstance(result, dict) or result.get("_error") or not result.get("layer_id"):
             log_warning(f"Could not add {name} to the map: {(result or {}).get('_error')}")
             self.notice.emit("warning", tr("{name} could not be loaded. Check the file and try again.").format(

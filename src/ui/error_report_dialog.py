@@ -16,17 +16,19 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import sys
-from urllib.parse import quote
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBoxLayout
 
 from ..core.host_platform import os_info, os_label
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
-from .external_links import open_email
 from .font_scale import scale_px_length
 from .shared import exec_dialog, get_support_email, plugin_version, tr
 from .style import _BTN_GHOST, _BTN_PRIMARY, BTN_PILL_PX
@@ -102,6 +104,9 @@ class ErrorReportDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
+        title = QLabel(tr("Tell us what went wrong"), self)
+        title.setStyleSheet("font-weight: 600; font-size: 14px;")
+        layout.addWidget(title)
         label = QLabel(self._explanation(), self)
         label.setWordWrap(True)
         layout.addWidget(label)
@@ -120,12 +125,16 @@ class ErrorReportDialog(QDialog):
         self._copy.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._copy.clicked.connect(self._on_copy)
         layout.addWidget(self._copy)
-        email = get_support_email()
 
 
-
-        self._email = QPushButton(tr("Open an email"), self)
-        self._email.setToolTip(email)
+        to = QLabel(tr("Then paste it into an email to:"), self)
+        to.setWordWrap(True)
+        layout.addSpacing(4)
+        layout.addWidget(to)
+        address = QLabel(f"<b>{get_support_email()}</b>", self)
+        address.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(address)
+        self._email = QPushButton(tr("Copy email address"), self)
         self._email.setStyleSheet(_BTN_GHOST)
         self._email.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._email.clicked.connect(self._on_email)
@@ -141,7 +150,7 @@ class ErrorReportDialog(QDialog):
 
 
 
-        return tr("Copy a report of this problem, then paste it into an email to us.")
+        return tr("Send us a report and we will look into it and fix it.")
 
     def _included(self) -> str:
 
@@ -185,19 +194,20 @@ class ErrorReportDialog(QDialog):
         except (RuntimeError, AttributeError):
             self._copy.setText(tr("Could not copy"))
             return
-        counts = (self.report() or {}).get("counts") or {}
-        if counts:
-            self._copy.setText(tr("Copied: {runs} runs, {calls} tool calls").format(
-                runs=counts.get("runs", 0), calls=counts.get("tool_calls", 0)))
-        else:
-            self._copy.setText(tr("Copied"))
+
+
+        self._copy.setText(tr("Report copied"))
 
     def _on_email(self) -> None:
-        email = get_support_email()
-        mailto = f"mailto:{email}?subject={quote('AI Agent problem report')}"
-
-
-        open_email(mailto, email, parent=self)
+        try:
+            clipboard = QApplication.clipboard()
+            if clipboard is None:
+                raise RuntimeError("no clipboard")
+            clipboard.setText(get_support_email())
+        except (RuntimeError, AttributeError):
+            self._email.setText(tr("Could not copy"))
+            return
+        self._email.setText(tr("Email address copied"))
 
 
 def provider_near(widget):

@@ -13,10 +13,13 @@
 
 
 
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -28,12 +31,51 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..icons import icon_for, pixmap_for
+from ..font_scale import widget_pixel_ratio
+from ..icons import has_glyph, icon_for, pixmap_for, render_pixmap
 from . import common as C
 from .pressable import mouse_through
 
 _SEARCH_W = 240
 _LABEL_W = 168
+
+_BADGE_GLYPH = "layers"
+_BADGE_GREY = "#8e8e93"
+
+
+def badge_pixmap(glyph: str, accent: str, side: int, ratio: float = 1.0) -> QPixmap:
+
+    fill = QColor(accent) if accent and QColor(accent).isValid() else QColor(_BADGE_GREY)
+    name = glyph if has_glyph(glyph) else _BADGE_GLYPH
+    physical = max(1, int(round(side * ratio)))
+    pixmap = QPixmap(physical, physical)
+    pixmap.setDevicePixelRatio(ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(fill)
+        corner = side * 0.26
+        painter.drawRoundedRect(QRectF(0, 0, side, side), corner, corner)
+        inner = max(8, round(side * 0.74))
+        offset = (side - inner) / 2.0
+        painter.drawPixmap(QRectF(offset, offset, inner, inner),
+                           render_pixmap(name, QColor("#ffffff"), inner, ratio),
+                           QRectF(0, 0, inner * ratio, inner * ratio))
+    finally:
+        painter.end()
+    return pixmap
+
+
+def category_badge(parent: QWidget, glyph: str, accent: str, side: int) -> QLabel:
+
+    badge = QLabel(parent)
+    badge.setStyleSheet("background: transparent;")
+    badge.setFixedSize(side, side)
+    badge.setPixmap(badge_pixmap(glyph, accent, side, widget_pixel_ratio(badge)))
+    mouse_through(badge)
+    return badge
 
 
 def search_pill(parent: QWidget, name: str, placeholder: str) -> QLineEdit:
@@ -85,7 +127,13 @@ class PageHeader(QWidget):
         words.setContentsMargins(0, 0, 0, 0)
         words.setSpacing(C.px(4))
         self.title = label(self, title, C.TITLE_PX, C.T.text, C.MEDIUM, wrap=True)
-        words.addWidget(self.title)
+
+        self._badge_slot = QHBoxLayout()
+        self._badge_slot.setContentsMargins(0, 0, 0, 0)
+        self._badge_slot.setSpacing(C.px(10))
+        self._badge = None
+        self._badge_slot.addWidget(self.title, 1, Qt.AlignmentFlag.AlignVCenter)
+        words.addLayout(self._badge_slot)
         self.subtitle = label(self, subtitle, C.BODY_PX, C.T.text_2, wrap=True)
         self.subtitle.setVisible(bool(subtitle))
         words.addWidget(self.subtitle)
@@ -94,6 +142,17 @@ class PageHeader(QWidget):
         if right is not None:
             right.setParent(self)
             row.addWidget(right, 0, Qt.AlignmentFlag.AlignTop)
+
+    def set_badge(self, look: tuple | None) -> None:
+
+        if self._badge is not None:
+            self._badge.hide()
+            self._badge.setParent(None)
+            self._badge.deleteLater()
+            self._badge = None
+        if look is not None:
+            self._badge = category_badge(self, look[0], look[1], C.px(24))
+            self._badge_slot.insertWidget(0, self._badge, 0, Qt.AlignmentFlag.AlignVCenter)
 
     def set_text(self, title: str, subtitle: str = "") -> None:
         self.title.setText(str(title or ""))

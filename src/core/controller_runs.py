@@ -25,7 +25,7 @@ from .controller_shared import (
     _dump_context,
 )
 from .logger import log_warning
-from .profile import profile_context
+from .profile import driven_session, profile_context
 from .protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, Approval, Mode, RunStatus
 from .security import allow_attached_paths, remember_user_text, vouched_for_thread
 from .telemetry_errors import report_exception, track_plugin_error
@@ -112,8 +112,40 @@ class _ControllerRuns:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Profile context failed: {exc}")
             user = {}
+        if "memory_notes" in user:
+
+
+
+            try:
+                recent = self._store.recent_prompts(self._thread_id)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Recent prompts not read: {exc}")
+                recent = []
+            if recent:
+                user["recent_prompts"] = recent
+            if user.get("declined"):
+
+
+                try:
+                    since = self._store.conversations_since
+                    user["declined"] = [{"text": d["text"], "later_conversations": since(d["at"]) if d["at"] else 0}
+                                        for d in user["declined"]]
+                except Exception as exc:  # noqa: BLE001
+                    log_warning(f"Declined notes not counted: {exc}")
+                    user.pop("declined", None)
+            if driven_session():
+                user["driven"] = True
         if user:
             context["user"] = user
+        try:
+
+
+            undone = self._executor.history.undone_requests(self._thread_id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Undone requests not read: {exc}")
+            undone = []
+        if undone:
+            context["undone_requests"] = undone
         _dump_context(context, run_id)
         record = user_message_record(run_id, text, chips, attachments, mode=mode, approval=approval)
         self._runs.remember(run_id, dict(record, chips=asked_chips, attachments=sent_attachments,

@@ -35,6 +35,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import re
@@ -313,6 +314,7 @@ def load_memory_notes(settings) -> list:
     if edited is None:
         return stored
     kept = _dedup(edited)[-MEMORY_MAX_NOTES:]
+    _remember_removed(settings, stored, kept)
     try:
         settings.memory_notes = kept
     except Exception:  # noqa: BLE001  # nosec B110
@@ -328,6 +330,11 @@ def save_memory_notes(settings, notes: list) -> list:
 
 
 
+    try:
+        before = _dedup(settings.memory_notes)
+    except Exception:  # noqa: BLE001
+        before = []
+    _remember_removed(settings, before, notes)
     kept = _dedup(notes)[-MEMORY_MAX_NOTES:]
     settings.memory_notes = kept
     memory_store.write_notes(kept)
@@ -410,6 +417,8 @@ def add_memory_note(settings, text: str, source: str = "ai", kind: str = "",
         return None
     notes.append(note)
     save_memory_notes(settings, notes)
+    if source == "user":
+        _unforget(settings, clean)
     return note
 
 
@@ -438,6 +447,65 @@ def memory_note_conflict(settings, text: str, scope: str = "", project: str = ""
     return similar_note(notes, clean)
 
 
+
+FORGOTTEN_MAX = 20
+FORGOTTEN_MAX_CHARS = 200
+
+
+def _remember_removed(settings, before: list, after: list) -> None:
+
+
+
+
+    left = {str(n.get("id") or "") for n in after if isinstance(n, dict)}
+    gone = [clean_note_text(n.get("text", ""))[:FORGOTTEN_MAX_CHARS] for n in before
+            if isinstance(n, dict) and str(n.get("id") or "") not in left]
+    gone = [t for t in gone if t]
+    if not gone:
+        return
+    try:
+        known = list(getattr(settings, "memory_forgotten", []) or [])
+        keys = {_note_key(t) for t in gone}
+        settings.memory_forgotten = ([t for t in known if _note_key(t) not in keys] + gone)[-FORGOTTEN_MAX:]
+    except Exception:  # noqa: BLE001
+        return
+
+
+def record_declined(settings, text: str) -> None:
+
+
+    clean = clean_note_text(text)[:FORGOTTEN_MAX_CHARS]
+    if not clean:
+        return
+    from .threads import now_iso
+
+    known = [_declined_item(t) for t in (getattr(settings, "memory_declined", []) or [])]
+    key = _note_key(clean)
+    kept = [t for t in known if t and _note_key(t["text"]) != key]
+    settings.memory_declined = (kept + [{"text": clean, "at": now_iso()}])[-FORGOTTEN_MAX:]
+
+
+def _declined_item(raw) -> dict | None:
+
+    if isinstance(raw, str):
+        return {"text": raw, "at": ""} if raw.strip() else None
+    if isinstance(raw, dict) and str(raw.get("text") or "").strip():
+        return {"text": str(raw["text"]), "at": str(raw.get("at") or "")}
+    return None
+
+
+def _unforget(settings, text: str) -> None:
+
+    try:
+        known = list(getattr(settings, "memory_forgotten", []) or [])
+        key = _note_key(text)
+        kept = [t for t in known if _note_key(t) != key and similar_note([{"text": t}], text) is None]
+        if len(kept) != len(known):
+            settings.memory_forgotten = kept
+    except Exception:  # noqa: BLE001
+        return
+
+
 def remove_memory_note(settings, text: str) -> bool:
 
     wanted = str(text or "").strip()
@@ -451,6 +519,8 @@ def remove_memory_note(settings, text: str) -> bool:
 
 
 def clear_memory_notes(settings) -> None:
+    with contextlib.suppress(Exception):
+        _remember_removed(settings, _dedup(settings.memory_notes), [])
     settings.memory_notes = []
     memory_store.write_notes([])
 
@@ -469,6 +539,25 @@ def notes_for_project(settings, project_path: str = "") -> list:
     key = project_key(project_path)
     return [n for n in load_memory_notes(settings)
             if n["scope"] == "user" or (key and n["project"] == key)]
+
+
+def driven_session() -> bool:
+
+
+
+
+
+
+    wanted = str(os.environ.get("QGIS_AGENT_PROFILE") or "").strip()
+    if not wanted:
+        return False
+    try:
+        from qgis.core import QgsApplication
+
+        folder = str(QgsApplication.qgisSettingsDirPath() or "")
+    except Exception:  # noqa: BLE001
+        return False
+    return os.path.basename(os.path.normpath(folder)) == wanted
 
 
 def profile_context(settings, project_path: str = "") -> dict:
@@ -527,4 +616,13 @@ def profile_context(settings, project_path: str = "") -> dict:
             {"id": n["id"], "text": n["text"], "kind": n["kind"], "scope": n["scope"]}
             for n in notes
         ]
+        forgotten = [t for t in (getattr(settings, "memory_forgotten", None) or []) if isinstance(t, str)]
+        if forgotten:
+
+            context["forgotten"] = forgotten[-FORGOTTEN_MAX:]
+        declined = [d for d in map(_declined_item, getattr(settings, "memory_declined", None) or []) if d]
+        if declined:
+
+
+            context["declined"] = declined[-FORGOTTEN_MAX:]
     return context

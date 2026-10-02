@@ -2217,6 +2217,90 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{tool} on {layer}</source>
             <translation>{tool} op {layer}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 laag toegevoegd</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 laag verwijderd</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Beschikbaar zodra de agent klaar is</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Wijzigingen gemaakt in QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>E-mailadres gekopieerd</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Categorieën verbergen</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Rapport gekopieerd</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Stuur ons een rapport, dan zoeken we het uit en lossen we het op.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Categorieën tonen</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Vertel ons wat er misging</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Plak het daarna in een e-mail aan:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>bestand dat de run schreef</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>geen back-up</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>ander project</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>tijdelijke laag</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} kan niet worden hersteld ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} en {n} meer</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} lagen toegevoegd</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} lagen kunnen niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} lagen gewijzigd</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} lagen verwijderd</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{count} s</source>
             <translation>{count} s</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Verberg de poging die niet werkte</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Verberg de {n} pogingen die niet werkten</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Toon de poging die niet werkte</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Toon de {n} pogingen die niet werkten</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Redo</source>
             <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Wijzigingen opnieuw toepassen</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Wijzigingen ongedaan maken</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>No layers in this project yet.</source>
             <translation>Nog geen lagen in dit project.</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Bestanden van je computer toevoegen</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Waiting for your answer</source>
             <translation>Wachten op je antwoord</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 laag kon niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Terug naar de oudste bewaarde versie.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Terug naar het project zoals deze chat het aantrof.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Brengt terug: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Brengt de wijzigingen van dit verzoek terug</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Wijzigingen hersteld</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Wijzigingen ongedaan gemaakt</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Herstellen mislukt. Zie het logboek.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Terug naar het begin van de chat?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Verwijdert de wijzigingen van dit verzoek van de kaart</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Verwijdert: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Hersteld tot hier</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Hersteld naar het begin van de chat</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Hiermee verdwijnen ook de wijzigingen van 1 later verzoek.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Hiermee verdwijnen ook de wijzigingen van {n} latere verzoeken.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Wijzigingen ongedaan maken?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>{n} verzoeken ongedaan maken?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Je handmatige bewerkingen worden eerst in de geschiedenis bewaard.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} lagen konden niet worden hersteld</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Redo</source>
             <translation>Opnieuw</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Hoort bij een gesloten project</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Hoort bij het project {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Kaartgeschiedenis</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Begin van de chat</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Stoppen</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Stoppen en dit verzoek ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Stopt de run en zet de kaart daarna terug</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>De kaart zoals die was vóór het eerste verzoek</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>De oudste bewaarde versie</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Je bewerkingen</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>Verbinden met TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Bestanden van je computer toevoegen</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Voeg bestanden of een laag van dit project toe. Je kunt ook een laag uit het paneel Lagen slepen; met Ctrl+V plak je een afbeelding.</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Settings ({email})</source>
             <translation>Instellingen ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Kaartgeschiedenis ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Klik om de pagina te openen.</translation>
             <source>Your profile and instructions, read before every run</source>
             <translation>Je profiel en instructies, gelezen vóór elke run</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Notitie toevoegen</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Toegevoegd door de AI</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>Het vraagt eerst om toestemming.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>Markdown-bestanden op deze computer</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>OPGESLAGEN NOTITIES · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>De AI kan notities voorstellen</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>bijv. Ik werk in EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Geleverd door TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Adres</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Show the whole message</source>
             <translation>Toon het hele bericht</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>Poging {n} werkte niet: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>geen reden opgegeven</translation>
         </message>
     </context>
     <context>
@@ -8208,6 +8500,10 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <source>Now</source>
             <translation>Nu</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>Huidig</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8293,6 +8589,82 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Geleverd door TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Toevoegen</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Toegevoegd aan het geheugen</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Geheugen</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>Nee, bedankt</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Dit onthouden voor de volgende keer?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Vervangt: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Instellingen</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>De hele notitie tonen</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Beschikbaar zodra de agent klaar is</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Betrokken lagen</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Verwijderd</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Hersteld</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Huidig</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Herstellen</translation>
         </message>
     </context>
 </TS>

@@ -22,6 +22,7 @@
 
 
 
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -91,7 +92,7 @@ TILE_MIN_W = 200
 TILE_GAP = SPACE_2
 COLUMNS = 3
 
-TILE_TEXT_H = 72
+TILE_TEXT_H = 90
 
 
 def px(value: int) -> int:

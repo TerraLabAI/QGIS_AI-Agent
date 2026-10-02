@@ -91,7 +91,6 @@ class _ChatPanelLayout:
         c = self.composer
         c.send_clicked.connect(self._on_send)
         c.stop_clicked.connect(self._on_stop)
-        c.notice_link_activated.connect(self._on_notice_link)
         c.files_dropped.connect(lambda paths: self.files_dropped.emit(list(paths)))
         c.attachments_changed.connect(self._on_attachments_changed)
         c.context_add_requested.connect(self.context_add_requested.emit)

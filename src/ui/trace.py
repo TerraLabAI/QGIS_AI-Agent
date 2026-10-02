@@ -37,6 +37,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import (
@@ -293,9 +295,10 @@ class RunTrace(QWidget):
 
         return [widget for widget in self._lines() if isinstance(widget, ActivityRow)]
 
-    def failed_count(self) -> int:
-        return sum(1 for card in self.tools
-                   if card.ok is False and getattr(card, "ended", "") not in ("denied", "stopped"))
+    def ended_well(self) -> bool:
+
+
+        return any(row.ended_well() for row in self.rows())
 
     def is_empty(self) -> bool:
 
@@ -449,7 +452,7 @@ class RunTrace(QWidget):
 
 
 
-        done = [row for row in rows if row.cards and row.cards[-1].ok]
+        done = [row for row in rows if row.ended_well()]
         changed = [row for row in done
                    if any(str(getattr(card, "danger", "read")) != "read" for card in row.cards)]
         return (changed or done or rows)[-1]
@@ -510,7 +513,11 @@ class RunTrace(QWidget):
 
 
 
-        failed = [row for row in self.rows() if row.failed()]
+
+
+        rows = self.rows()
+        last_ok = max((i for i, row in enumerate(rows) if row.ended_well()), default=-1)
+        failed = [row for row in rows[last_ok + 1:] if row.failed()]
         if not failed:
             return False
         failed[-1].set_open(True)

@@ -389,7 +389,7 @@ class _ExecutorDeliver:
 
 
                 self.history.add(thread_id, KIND_BEFORE, run_id, index, snapshot,
-                                 prompt=self._prompts.get(run_id, ""), fork=False, trim_later=True)
+                                 prompt=self._prompts.get(run_id, ""), fork=False)
         with stalls.probe("snapshot.backups"):
             mutates = guards is not None and name in guards.DATA_MUTATORS
             if danger == Danger.DESTRUCTIVE or mutates:
@@ -547,7 +547,7 @@ class _ExecutorDeliver:
             if name == CODE_TOOL:
 
 
-                layer_ids += journal.file_layer_ids(QgsProject.instance())
+                layer_ids += journal.watched_layer_ids(QgsProject.instance())
             paths = written_paths(name, args, None)
             return journal.before_call(QgsProject.instance(), layer_ids, paths, self._snapshots.get(run_id))
         except Exception as exc:  # noqa: BLE001

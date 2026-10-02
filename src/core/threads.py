@@ -57,6 +57,11 @@ from .writeback import WriteBehind
 
 MAX_LISTED = 60
 MAX_KEPT_FILES = 200
+
+RECENT_THREADS = 10
+RECENT_PROMPTS = 20
+RECENT_PROMPT_CHARS = 300
+RECENT_PROMPTS_CHARS = 3000
 MAX_THREAD_BYTES = 32 * 1024 * 1024
 
 
@@ -346,6 +351,9 @@ class ThreadStore:
             "updated_at_iso": thread.get("updated_at") or thread.get("created_at") or "",
             "mtime": mtime,
             "_empty": not thread.get("messages"),
+            "driven": bool(thread.get("driven")),
+            "last_prompt": next((str(m.get("ts") or "") for m in reversed(thread.get("messages") or [])
+                                 if isinstance(m, dict) and m.get("role") == "user"), ""),
         }
 
     def _index_row(self, thread: dict) -> None:
@@ -374,6 +382,56 @@ class ThreadStore:
         return [{"id": row["id"], "title": row["title"], "project_path": row["project_path"],
                  "updated_at_iso": row["updated_at_iso"]} for row in rows[:limit]]
 
+    def recent_prompts(self, exclude_thread_id: str = "", threads: int = RECENT_THREADS,
+                       limit: int = RECENT_PROMPTS, each: int = RECENT_PROMPT_CHARS,
+                       total: int = RECENT_PROMPTS_CHARS) -> list[str]:
+
+
+
+
+
+
+        found: list[tuple[str, str]] = []
+        opened = 0
+
+
+        for row in self._person_rows():
+            if opened >= threads:
+                break
+            if row["id"] == exclude_thread_id:
+                continue
+            thread = self.load(row["id"]) or {}
+            if thread.get("driven"):
+                continue
+            opened += 1
+            for msg in thread.get("messages", []):
+                if isinstance(msg, dict) and msg.get("role") == "user" and str(msg.get("text") or "").strip():
+                    found.append((str(msg.get("ts") or ""), " ".join(str(msg["text"]).split())))
+        found.sort(key=lambda pair: pair[0], reverse=True)
+        kept: list[str] = []
+        used = 0
+        for _ts, text in found[:limit]:
+            text = text if len(text) <= each else text[:each] + "..."
+            if used + len(text) > total:
+                break
+            kept.append(text)
+            used += len(text)
+        return kept
+
+    def _person_rows(self) -> list[dict]:
+
+        with self._index_lock:
+            snapshot = list(self._index.values())
+        rows = [r for r in snapshot if not r.get("_empty") and not r.get("driven")]
+        return sorted(rows, key=lambda r: r["mtime"], reverse=True)[:MAX_KEPT_FILES]
+
+    def conversations_since(self, since_iso: str) -> int:
+
+        since = str(since_iso or "")
+        if not since:
+            return 0
+        return sum(1 for r in self._person_rows() if str(r.get("last_prompt") or "") > since)
+
     @staticmethod
     def _fallback_title(thread: dict) -> str:
         for msg in thread.get("messages", []):
@@ -388,6 +446,8 @@ class ThreadStore:
         account = _writer_account(self._account)
         if account:
             thread["account"] = account
+        if _driven():
+            thread["driven"] = True
         self._save(thread)
         self._writer.schedule_job(self._prune)
         return thread
@@ -411,6 +471,8 @@ class ThreadStore:
                 thread["account"] = owner
         message = dict(message)
         message.setdefault("ts", now_iso())
+        if message.get("role") == "user" and not thread.get("driven") and _driven():
+            thread["driven"] = True
         thread["messages"].append(message)
         thread["updated_at"] = now_iso()
         self._save(thread)
@@ -528,6 +590,16 @@ class ThreadStore:
 
 
             self._cache.pop(os.path.splitext(os.path.basename(path))[0], None)
+
+
+def _driven() -> bool:
+
+    try:
+        from .profile import driven_session
+
+        return driven_session()
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def user_message_record(run_id: str, text: str, chips: list, attachments: list,

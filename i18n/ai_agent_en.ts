@@ -40,7 +40,17 @@
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>1 layer won't come back: {names}</source>
+            <source>1 layer added</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>1 layer changed</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>1 layer removed</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -249,6 +259,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/chat_panel_shared.py"/>
+            <source>Available when the agent finishes</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/privacy_notice_dialog.py"/>
             <source>Before you start</source>
             <translation type="unfinished"/>
@@ -261,11 +276,6 @@
         <message>
             <location filename="src/ui/dock/about.py"/>
             <source>Bring back the last message you sent</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Bring back what this request changed.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -355,12 +365,7 @@
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Changed: {changes}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Changes made in QGIS, outside the agent.</source>
+            <source>Changes made in QGIS</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -484,22 +489,12 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/error_report_dialog.py"/>
+            <location filename="src/ui/dock/about.py"/>
             <source>Copied</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/error_report_dialog.py"/>
-            <source>Copied: {runs} runs, {calls} tool calls</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py"/>
-            <source>Copy a report of this problem, then paste it into an email to us.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py"/>
             <source>Copy email address</source>
             <translation type="unfinished"/>
         </message>
@@ -584,11 +579,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/library/cards.py"/>
-            <source>Data: {names}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/tools/feature_tools.py"/>
             <source>Delete features from {layer_name}</source>
             <translation type="unfinished"/>
@@ -636,6 +626,11 @@
         <message>
             <location filename="src/ui/dock/about.py"/>
             <source>Edit the last queued message</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py"/>
+            <source>Email address copied</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -784,11 +779,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/library/detail.py"/>
             <source>Good to know</source>
             <translation type="unfinished"/>
@@ -801,6 +791,11 @@
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>Heatmap of {INPUT}[ with a radius of {RADIUS}]</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/library/rail.py"/>
+            <source>Hide categories</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1084,11 +1079,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/error_report_dialog.py"/>
-            <source>Open an email</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py"/>
             <source>Open it yourself</source>
             <translation type="unfinished"/>
@@ -1319,11 +1309,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Remove what this request changed on the map.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>Remove {OVERLAY} from {INPUT}</source>
             <translation type="unfinished"/>
@@ -1359,6 +1344,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/error_report_dialog.py"/>
+            <source>Report copied</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/use_cases.py"/>
             <source>Reports the feature count of the three</source>
             <translation type="unfinished"/>
@@ -1381,11 +1371,6 @@
         <message>
             <location filename="src/tools/harvest_canvas.py"/>
             <source>Reshape a feature of {layer_name}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Restore puts the project back as this request left it.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1416,11 +1401,6 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py"/>
             <source>Runs in Europe, stored in France.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/library/cards.py"/>
-            <source>Sample data included</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1569,6 +1549,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/error_report_dialog.py"/>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/use_cases.py"/>
             <source>Sends three Overpass queries in turn: schools, parks, stops</source>
             <translation type="unfinished"/>
@@ -1611,6 +1596,11 @@
         <message>
             <location filename="src/tools/harvest_layers.py"/>
             <source>Set {property} on {layer_name}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/library/rail.py"/>
+            <source>Show categories</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1704,6 +1694,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/error_report_dialog.py"/>
+            <source>Tell us what went wrong</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/privacy_notice_dialog.py"/>
             <source>Terms</source>
             <translation type="unfinished"/>
@@ -1771,6 +1766,11 @@
         <message>
             <location filename="src/ui/external_links.py"/>
             <source>The support address is copied to your clipboard: paste it into your email app.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/error_report_dialog.py"/>
+            <source>Then paste it into an email to:</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1916,33 +1916,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>another project</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>backup failed</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>changed without a backup</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>did not work</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>earlier project file</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>emptied by a restart</source>
+            <source>file the run wrote</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1992,7 +1972,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>new file</source>
+            <source>no backup</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2011,8 +1991,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>other project</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>still running</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>temporary layer</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2052,7 +2042,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{layer} ({reason})</source>
+            <source>{layer} can't be restored ({reason})</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2067,32 +2057,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name} added</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name} changed</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name} removed</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name} written</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name}: {before} to {after} features</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{name}: {fields}</source>
+            <source>{names} and {n} more</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2117,7 +2082,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>{n} layers won't come back: {names}</source>
+            <source>{n} layers added</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>{n} layers can't be restored</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>{n} layers changed</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>{n} layers removed</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2138,11 +2118,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>{tool} on {layer}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>• {layer}: {reason}</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -2653,6 +2628,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/trace_tools.py"/>
+            <source>Hide the try that did not work</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>Hide the {n} tries that did not work</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>Show the try that did not work</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>Show the {n} tries that did not work</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
             <source>denied</source>
             <translation type="unfinished"/>
         </message>
@@ -2686,27 +2681,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/bubbles.py"/>
-            <source>Also undoes the later request</source>
+            <source>Redo changes</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/bubbles.py"/>
-            <source>Also undoes the {n} later requests</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/bubbles.py"/>
-            <source>Go back here</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/bubbles.py"/>
-            <source>Redo</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/bubbles.py"/>
-            <source>Undo</source>
+            <source>Undo changes</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -2734,26 +2714,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller_actions.py"/>
-            <source>Back to your own changes.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Brought back everything up to “{request}”.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Brought back what “{request}” changed.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Could not fully go back to {point}. {reason}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
             <source>Data files (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;All files (*)</source>
             <translation type="unfinished"/>
         </message>
@@ -2765,11 +2725,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller_offers.py"/>
             <source>Deleted {n} working layers</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Forward to your own changes.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2860,21 +2815,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller_frames.py"/>
             <source>Reconnected. Waiting for TerraLab to resume the run...</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Redo</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Removed what came after “{request}”.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Removed what “{request}” changed.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3053,11 +2993,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>Undo</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/core/controller_offers.py"/>
             <source>Working layers</source>
             <translation type="unfinished"/>
@@ -3075,41 +3010,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller_actions.py"/>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>after “{request}”</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>before “{request}”</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>request {n}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>your own changes</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>{names} and {n} more</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>{names} didn't come back ({reason}).</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py"/>
-            <source>{names} didn't come back.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3203,7 +3103,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>AttachPopover</name>
         <message>
             <location filename="src/ui/attach_menu.py"/>
-            <source>Add photos &amp; files</source>
+            <source>Add files from your computer</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3291,6 +3191,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ChatPanel</name>
         <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>1 layer couldn't be restored</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/chat_panel_layout.py"/>
             <source>Add a few words: what should the agent do with it?</source>
             <translation type="unfinished"/>
@@ -3301,8 +3206,33 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Back to the oldest version still kept.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Back to the project as this chat found it.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/chat_panel_threads.py"/>
-            <source>Bring back what this request changed</source>
+            <source>Brings back: {layers}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Brings this request's changes back</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Changes restored</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Changes undone</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3312,7 +3242,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Couldn't restore. See the log.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
             <source>Give the AI agent a task in QGIS...</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Go back to the start of the chat?</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3357,7 +3297,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel_threads.py"/>
-            <source>Remove what this request changed on the map</source>
+            <source>Redo</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Removes this request's changes from the map</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Removes: {layers}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Restored to here</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>Restored to start of chat</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3392,12 +3352,47 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Undo</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Undo changes?</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Undo {n} requests?</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
             <source>Waiting for your answer</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/chat_panel_prompts.py"/>
             <source>Waiting for your approval</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>{layer}: {reason}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3408,6 +3403,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel_queue.py"/>
             <source>{lead} · the agent reads it at its next step</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_threads.py"/>
+            <source>{n} layers couldn't be restored</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3468,42 +3468,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>CheckpointSheet</name>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Also undoes 1 later request</source>
+            <source>Belongs to a closed project</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Also undoes {n} later requests</source>
+            <source>Belongs to the project {project}</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Back to the oldest version still kept</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Back to the project as it was before the first request</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Go back here</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Going back never deletes anything.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>In a closed project</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>In {project}</source>
+            <source>Map history</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3513,52 +3488,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Redo</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
             <source>Request {n}</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Restore</source>
+            <source>Start of chat</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Stop and go back to before this request</source>
+            <source>Stop</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Stop and go back to before “{request}”</source>
+            <source>Stop and undo this request</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Stops the run, then puts the project back as it was before this request.</source>
+            <source>Stops the run, then puts the map back</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Undo</source>
+            <source>The map as it was before the first request</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Undo everything in this chat</source>
+            <source>The oldest version still kept</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Versions of this project</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Your own changes</source>
+            <source>Your edits</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -3682,12 +3647,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/composer.py"/>
-            <source>Add photos &amp; files</source>
+            <source>Add files from your computer</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/composer.py"/>
-            <source>Add photos, files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4381,7 +4346,7 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <location filename="src/ui/header.py"/>
-            <source>Go back to an earlier version ({key})</source>
+            <source>Map history ({key})</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4674,6 +4639,54 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/map_hooks.py"/>
             <source>selection ({n} features)</source>
+            <translation type="unfinished"/>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Add</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Added to memory</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Memory</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>No thanks</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Remember this for next time?</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Replaces: {0}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Settings</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Show less</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_memory.py"/>
+            <source>Show the whole note</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -5269,39 +5282,6 @@ Click to show it in the Layers panel.</source>
         </message>
     </context>
     <context>
-        <name>RestoreWarningCard</name>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Cancel</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Go back</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Go back? Your edits since then are kept as a version you can return to.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Undo everything the agent did in this chat? You can put it back.</source>
-            <translation type="unfinished"/>
-        </message>
-    </context>
-    <context>
         <name>RunSummaryCard</name>
         <message>
             <location filename="src/ui/cards_run.py"/>
@@ -5419,6 +5399,11 @@ Click to show it in the Layers panel.</source>
         <name>SettingsDialog</name>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
+            <source>+ Add a note</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
             <source>1 minute</source>
             <translation type="unfinished"/>
         </message>
@@ -5460,6 +5445,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>Add</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
+            <source>Added by the AI</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5510,6 +5500,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>Beginner</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
+            <source>Cancel</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5649,17 +5644,17 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
-            <source>I work in EPSG:2154</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/settings_personalisation.py"/>
             <source>Imperial</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>Instructions for the AI</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
+            <source>It asks before adding one.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5683,11 +5678,6 @@ Click to show it in the Layers panel.</source>
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/settings_personalisation.py"/>
-            <source>Let the AI add its own notes</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/settings_account.py"/>
             <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
             <translation type="unfinished"/>
@@ -5704,17 +5694,17 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
+            <source>Markdown files on this computer</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
             <source>Memory</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>Memory between conversations</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/settings_personalisation.py"/>
-            <source>Memory folder</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5755,11 +5745,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>No notes yet.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/settings_personalisation.py"/>
-            <source>Noted by the AI</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5884,6 +5869,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
+            <source>SAVED NOTES · {n}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
             <source>Same as QGIS</source>
             <translation type="unfinished"/>
         </message>
@@ -5900,11 +5890,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_personalisation.py"/>
             <source>Short answers, a balance, or the full reasoning.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/settings_personalisation.py"/>
-            <source>Short reminders it keeps between conversations.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5945,6 +5930,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_dialog.py"/>
             <source>TerraLab</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
+            <source>The AI can suggest notes</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6083,11 +6073,6 @@ Click to show it in the Layers panel.</source>
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/settings_personalisation.py"/>
-            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/settings_account.py"/>
             <source>Your plan, payment method and invoices, on the TerraLab website. Payment never happens inside QGIS.</source>
             <translation type="unfinished"/>
@@ -6110,6 +6095,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/settings_dialog.py"/>
             <source>by TerraLab</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/settings_personalisation.py"/>
+            <source>e.g. I work in EPSG:2154</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6235,6 +6225,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/source_marks.py"/>
             <source>Access</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/source_marks.py"/>
+            <source>Address</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6365,6 +6360,14 @@ Click to show it in the Layers panel.</source>
         </message>
     </context>
     <context>
+        <name>Toast</name>
+        <message>
+            <location filename="src/ui/toast.py"/>
+            <source>Available when the agent finishes</source>
+            <translation type="unfinished"/>
+        </message>
+    </context>
+    <context>
         <name>ToolCard</name>
         <message>
             <location filename="src/ui/cards_tool.py"/>
@@ -6418,6 +6421,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py"/>
+            <source>Try {n} did not work: {reason}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py"/>
             <source>denied</source>
             <translation type="unfinished"/>
         </message>
@@ -6439,6 +6447,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/cards_tool.py"/>
             <source>never finished</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_tool.py"/>
+            <source>no reason given</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6804,6 +6817,29 @@ Click to show it in the Layers panel.</source>
         </message>
     </context>
     <context>
+        <name>_LayerList</name>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>+{n} more</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Layers affected</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Removed</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Restored</source>
+            <translation type="unfinished"/>
+        </message>
+    </context>
+    <context>
         <name>_MoreChip</name>
         <message>
             <location filename="src/ui/layer_links.py"/>
@@ -6825,7 +6861,7 @@ Click to show it in the Layers panel.</source>
         <name>_NowLine</name>
         <message>
             <location filename="src/ui/checkpoint_sheet.py"/>
-            <source>Now</source>
+            <source>Current</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -6898,6 +6934,19 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/source_marks.py"/>
             <source>Served by TerraLab</source>
+            <translation type="unfinished"/>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>Current</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/checkpoint_sheet.py"/>
+            <source>Restore</source>
             <translation type="unfinished"/>
         </message>
     </context>

@@ -2217,6 +2217,90 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>{tool} on {layer}</source>
             <translation>{tool} sur {layer}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 couche ajoutée</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 couche supprimée</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponible quand l'agent a terminé</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Modifications faites dans QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>Adresse e-mail copiée</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Masquer les catégories</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Rapport copié</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Envoyez-nous un rapport, nous l'examinerons et le corrigerons.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Afficher les catégories</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Dites-nous ce qui n'a pas fonctionné</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Collez-le ensuite dans un e-mail à :</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>fichier écrit par l'exécution</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>pas de sauvegarde</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>autre projet</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>couche temporaire</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} ne peut pas être rétablie ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} et {n} de plus</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} couches ajoutées</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} couches ne peuvent pas être rétablies</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} couches modifiées</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} couches supprimées</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>{count} s</source>
             <translation>{count} s</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Masquer l'essai qui n'a pas fonctionné</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Masquer les {n} essais qui n'ont pas fonctionné</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Afficher l'essai qui n'a pas fonctionné</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Afficher les {n} essais qui n'ont pas fonctionné</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Redo</source>
             <translation>Rétablir</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Rétablir les modifications</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Annuler les modifications</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>No layers in this project yet.</source>
             <translation>Aucune couche dans ce projet pour l'instant.</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Ajouter des fichiers depuis votre ordinateur</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Waiting for your answer</source>
             <translation>En attente de votre réponse</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 couche n'a pas pu être rétablie</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Retour à la plus ancienne version encore conservée.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Retour au projet tel que ce chat l'a trouvé.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Rétablit : {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Rétablit les modifications de cette demande</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Modifications rétablies</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Modifications annulées</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Rétablissement impossible. Voir le journal.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Revenir au début du chat ?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Rétablir</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Retire les modifications de cette demande de la carte</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Retire : {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Rétabli jusqu'ici</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Rétabli au début du chat</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Cela retire aussi les modifications d'1 demande ultérieure.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Cela retire aussi les modifications de {n} demandes ultérieures.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Annuler</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Annuler les modifications ?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>Annuler {n} demandes ?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Vos modifications manuelles sont d'abord enregistrées dans l'historique.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer} : {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} couches n'ont pas pu être rétablies</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Redo</source>
             <translation>Rétablir</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Appartient à un projet fermé</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Appartient au projet {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Historique de la carte</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Début du chat</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Arrêter</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Arrêter et annuler cette demande</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Arrête l'exécution, puis remet la carte en état</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>La carte telle qu'elle était avant la première demande</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>La plus ancienne version encore conservée</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Vos modifications</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>Connexion à TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Ajouter des fichiers depuis votre ordinateur</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Ajoutez des fichiers ou une couche de ce projet. Une couche peut aussi être glissée depuis le panneau Couches ; Ctrl+V colle une image.</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Settings ({email})</source>
             <translation>Paramètres ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Historique de la carte ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Cliquez pour ouvrir sa page.</translation>
             <source>Your profile and instructions, read before every run</source>
             <translation>Votre profil et vos instructions, lus avant chaque exécution</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Ajouter une note</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Ajouté par l'IA</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>Elle demande avant d'en ajouter une.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>Fichiers Markdown sur cet ordinateur</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>NOTES ENREGISTRÉES · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>L'IA peut suggérer des notes</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>p. ex. Je travaille en EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fourni par TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Adresse</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>Show the whole message</source>
             <translation>Afficher le message en entier</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>L'essai {n} n'a pas fonctionné : {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>aucune raison indiquée</translation>
         </message>
     </context>
     <context>
@@ -8216,6 +8508,10 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <source>Now</source>
             <translation>Maintenant</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>Actuelle</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8301,6 +8597,82 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fourni par TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Ajouter</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Ajouté à la mémoire</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Mémoire</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>Non merci</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Retenir ceci pour la prochaine fois ?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Remplace : {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Paramètres</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Afficher moins</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>Afficher toute la note</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponible quand l'agent a terminé</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} de plus</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Couches concernées</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Supprimée</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Rétablie</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Actuelle</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Rétablir</translation>
         </message>
     </context>
 </TS>

@@ -462,6 +462,10 @@ class StallProfiler:
         except Exception:  # noqa: BLE001
             return []
         me = threading.get_ident()
+
+
+
+        frames.pop(me, None)
         samplers = {t.ident for t in threading.enumerate() if t.name == SAMPLER_THREAD_NAME}
         found = []
         for ident, frame in frames.items():

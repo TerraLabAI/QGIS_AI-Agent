@@ -374,6 +374,20 @@ _CONNECTOR_ARG_KEYS = ("url", "provider", "source", "collection", "portal",
 
 
 
+def _theme_source(args) -> str:
+
+
+
+
+
+
+    theme = args.get("theme") if isinstance(args, dict) else None
+    if not isinstance(theme, str) or not theme.strip():
+        return ""
+    from ..core import tuning
+    return "openstreetmap" if theme.strip() in tuning.service_list("osm_themes", ()) else ""
+
+
 def _tools_of(connector) -> list:
     return [str(t).lower() for t in (connector.get("tools") or []) if isinstance(t, str)]
 
@@ -403,11 +417,16 @@ def connector_for_call(name: str, args) -> dict | None:
     tool = str(name or "").lower()
     get_connectors()
     connectors = _connectors
-    key = (_connectors_version, tool, tuple(values))
+    source = _theme_source(args)
+    key = (_connectors_version, tool, tuple(values), source)
     hit = _CALL_MATCH_CACHE.get(key, _CALL_MATCH_CACHE)
     if hit is not _CALL_MATCH_CACHE:
         return dict(hit) if hit is not None else None
-    found = _match_connector(connectors, tool, values)
+    found = None
+    if source:
+        found = _match_connector(connectors, "", [source])
+    if found is None:
+        found = _match_connector(connectors, tool, values)
     if len(_CALL_MATCH_CACHE) >= _CALL_MATCH_MAX:
         _CALL_MATCH_CACHE.clear()
     _CALL_MATCH_CACHE[key] = found

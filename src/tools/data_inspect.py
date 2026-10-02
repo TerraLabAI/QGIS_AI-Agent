@@ -1223,7 +1223,7 @@ _HOSTED_DEPARTMENT_PATHS = (
 
 def hosted_department_url(url: str) -> str:
 
-    if "stterralabopendata.blob.core.windows.net" not in (url or ""):
+    if not links.open_data_label(url or ""):
         return url
     parts = urllib.parse.urlsplit(url)
     for pattern, width in _HOSTED_DEPARTMENT_PATHS:

@@ -41,7 +41,6 @@
 
 
 
-
 from __future__ import annotations
 
 import contextlib
@@ -150,6 +149,11 @@ def _group_rows() -> list:
 def use_case_groups() -> list:
 
     return [(row["key"], row["label"]) for row in _group_rows()]
+
+
+def use_case_group_looks() -> dict:
+
+    return {row["key"]: (row.get("glyph") or "", row.get("accent") or "") for row in _group_rows()}
 
 
 def haystack(case: UseCase) -> str:
@@ -316,7 +320,6 @@ def set_served_cases(rows) -> None:
 
 
 
-
     global _served
     cleaned = _clean_cases(rows)
     if not cleaned or cleaned == _served:
@@ -329,66 +332,6 @@ def set_served_cases(rows) -> None:
         Settings().known_use_cases = [r for r in rows if isinstance(r, dict)][:_MAX_CASES]
 
 
-def _seed() -> list:
-    return [
-        UseCase(
-            "osm-extract", "explore", "download",
-            tr("Pull OpenStreetMap data for an area"),
-            tr("Schools, parks and stops for one district, as three layers."),
-            tr("Download from OpenStreetMap every school, park and bus stop in one "
-               "district. Work over the area my canvas is on, or pick a district of a "
-               "well mapped city and say which. Put them in three layers, the parks as "
-               "polygons, style each one distinctly, and tell me how many features each "
-               "holds. Query the three one at a time."),
-            steps=(
-                tr("Takes the area from the canvas, or picks one"),
-                tr("Sends three Overpass queries in turn: schools, parks, stops"),
-                tr("Loads each answer as its own layer"),
-                tr("Keeps the parks as polygons, the rest as points"),
-                tr("Reports the feature count of the three"),
-            ),
-            uses=("OpenStreetMap", "Overpass API", "Nominatim"),
-            connectors=("openstreetmap",), scene="fetch",
-        ),
-        UseCase(
-            "print-layout", "map", "layout",
-            tr("Build a print map and export it"),
-            tr("An A4 sheet with title, legend, scale bar and north arrow."),
-            tr("Build an A4 landscape layout of the current view with a title, a legend, "
-               "a scale bar in metres, a north arrow and a credits line naming the data "
-               "sources, then export it to PDF at 300 dpi. If the canvas is empty, add a "
-               "basemap over a place you pick first, so the sheet has a map on it."),
-            steps=(
-                tr("Adds a basemap when the canvas has nothing on it"),
-                tr("Creates an A4 landscape layout with a map frame"),
-                tr("Adds title, legend, scale bar, north arrow, credits"),
-                tr("Exports the sheet to PDF at 300 dpi"),
-            ),
-            uses=("Print layout",),
-            connectors=("openstreetmap",), scene="layout",
-        ),
-        UseCase(
-            "buffer-count", "analyse", "buffer",
-            tr("Count what falls within a distance"),
-            tr("A buffer band, and what sits inside it, counted."),
-            tr("Buffer a line layer by 100 m in a metric CRS, count how many points fall "
-               "inside each buffer, and give me the ten with the most, as a table I can "
-               "read. Use my own layers when the project holds a line and a point layer; "
-               "otherwise download the roads and the shops of a district you pick, and "
-               "say which."),
-            steps=(
-                tr("Uses my lines and points, or downloads both"),
-                tr("Reprojects to a metric CRS before measuring"),
-                tr("Buffers the lines by 100 m"),
-                tr("Counts the points inside each buffer"),
-                tr("Returns the ten highest as a readable table"),
-            ),
-            uses=("Processing",),
-            connectors=("openstreetmap",), scene="buffer",
-        ),
-    ]
-
-
 def use_cases() -> list:
 
     global _served
@@ -399,4 +342,4 @@ def use_cases() -> list:
             _served = _clean_cases(Settings().known_use_cases)
         except Exception:  # noqa: BLE001
             _served = []
-    return list(_served) or _seed()
+    return list(_served)

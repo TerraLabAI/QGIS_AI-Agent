@@ -113,77 +113,6 @@ DEFAULT_POLICY = _Policy(rate=2.0, burst=4, concurrency=2)
 
 
 
-HOST_POLICIES = {
-
-
-
-    "nominatim.openstreetmap.org": _Policy(rate=1.0, burst=1, concurrency=1),
-
-
-
-    "routing.openstreetmap.de": _Policy(rate=1.0, burst=1, concurrency=1),
-
-
-
-
-
-
-
-    "overpass-api.de": _Policy(rate=0.5, burst=2, concurrency=2),
-
-
-
-
-
-
-
-    "overpass.private.coffee": _Policy(rate=0.5, burst=2, concurrency=2),
-    "maps.mail.ru": _Policy(rate=0.5, burst=2, concurrency=2),
-    "overpass.kumi.systems": _Policy(rate=0.5, burst=2, concurrency=2),
-
-
-
-
-
-
-    "overpass.terra-lab.ai": _Policy(rate=4.0, burst=8, concurrency=4),
-    "geocode.terra-lab.ai": _Policy(rate=10.0, burst=20, concurrency=4),
-
-
-
-
-    "agent.terra-lab.ai": _Policy(rate=10.0, burst=30, concurrency=4),
-
-
-
-
-
-    "terra-lab.ai": _Policy(rate=1.0, burst=3, concurrency=2),
-
-
-
-
-
-
-
-
-
-
-
-    "aca-terralab-opendata.proudsky-7d379d48.westeurope.azurecontainerapps.io":
-        _Policy(rate=1.5, burst=20, concurrency=6),
-
-
-
-
-
-    "stterralabopendata.blob.core.windows.net": _Policy(rate=8.0, burst=30, concurrency=6),
-}
-
-
-
-
-
 
 OWN_HOSTS = frozenset({
     "overpass.terra-lab.ai",
@@ -192,6 +121,7 @@ OWN_HOSTS = frozenset({
     "terra-lab.ai",
     "aca-terralab-opendata.proudsky-7d379d48.westeurope.azurecontainerapps.io",
     "stterralabopendata.blob.core.windows.net",
+    "data.terra-lab.ai",
 })
 
 RETRY_CODES = (429, 503)
@@ -229,65 +159,38 @@ class FetchRateLimited(urllib.error.HTTPError):
 
 
 
+
+
+
+VOLUNTEER_CEILINGS = {
+
+    "nominatim.openstreetmap.org": _Policy(rate=1.0, burst=1, concurrency=1),
+
+    "routing.openstreetmap.de": _Policy(rate=1.0, burst=1, concurrency=1),
+    "valhalla1.openstreetmap.de": _Policy(rate=1.0, burst=1, concurrency=1),
+
+    "router.project-osrm.org": _Policy(rate=1.0, burst=1, concurrency=1),
+
+
+
+    "overpass-api.de": _Policy(rate=0.5, burst=2, concurrency=2),
+    "overpass.private.coffee": _Policy(rate=0.5, burst=2, concurrency=2),
+    "overpass.kumi.systems": _Policy(rate=0.5, burst=2, concurrency=2),
+    "maps.mail.ru": _Policy(rate=0.5, burst=2, concurrency=2),
+}
+
+
 def _policy_for(host: str) -> _Policy:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-    shipped = _shipped_policy(host)
     tuned = tuning.host_policy(host)
-    if tuned is not None:
-        rate, burst, concurrency = tuned
-        if shipped is not None and host not in OWN_HOSTS:
-            rate = min(rate, shipped.rate)
-            burst = min(burst, shipped.burst)
-            concurrency = min(concurrency, shipped.concurrency)
-        return _Policy(rate, burst, concurrency)
-    return shipped if shipped is not None else DEFAULT_POLICY
-
-
-def host_is_stated(host: str) -> bool:
-
-
-
-
-
-
-
-
-
-
-
-    return _shipped_policy(str(host or "").strip().lower()) is not None
-
-
-def _shipped_policy(host: str) -> _Policy | None:
-
-    policy = HOST_POLICIES.get(host)
-    if policy is not None:
+    policy = _Policy(*tuned) if tuned is not None else DEFAULT_POLICY
+    cap = VOLUNTEER_CEILINGS.get(str(host or "").strip().lower().rstrip("."))
+    if cap is None:
         return policy
-    parts = host.split(".")
-
-
-
-
-
-
-    for cut in range(0, len(parts) - 1):
-        policy = HOST_POLICIES.get("." + ".".join(parts[cut:]))
-        if policy is not None:
-            return policy
-    return None
+    return _Policy(min(policy.rate, cap.rate), min(policy.burst, cap.burst),
+                   min(policy.concurrency, cap.concurrency))
 
 
 class _HostGate:

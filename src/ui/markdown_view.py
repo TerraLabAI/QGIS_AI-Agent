@@ -52,9 +52,10 @@ from qgis.PyQt.QtGui import (
 )
 from qgis.PyQt.QtWidgets import QFrame, QSizePolicy, QTextBrowser, QTextEdit
 
+from ..core.links import URL_STOP, open_data_label
 from .font_scale import widget_pixel_ratio
 from .shared import qt_enum_int, resolve_qt_enum
-from .source_marks import MARK_PX, source_host, source_mark_pixmap
+from .source_marks import MARK_PX, item_mark_pixmap, source_host, source_mark_pixmap
 from .style import FIELD, FONT_HINT, FONT_PROSE, INK_2, INK_3, MONO_FAMILY, accent_color, qcolor
 
 
@@ -150,6 +151,13 @@ SOURCE_SCHEME = "source:"
 GONE_SCHEME = "gone:"
 _CHIP_PAD = "\u00a0"
 
+_PLAIN_URL = re.compile(r"https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
+
+
+def _utf16_len(text: str) -> int:
+
+    return len(text.encode("utf-16-le")) // 2
+
 
 class MarkdownView(QTextBrowser):
 
@@ -233,6 +241,41 @@ class MarkdownView(QTextBrowser):
     def set_plain_text(self, text: str) -> None:
         self._stream = None
         self.document().setPlainText(text or "")
+        self._sync_height()
+
+    def chip_open_data_links(self) -> None:
+
+
+
+        from ..core.links import open_data_chip
+
+        doc = self.document()
+        text = doc.toPlainText()
+        found = []
+        for match in _PLAIN_URL.finditer(text):
+            url = match.group(0).rstrip(".,;:!?)'\"")
+            chip = open_data_chip(url).replace(" ", _CHIP_PAD)
+            if chip:
+
+                found.append((_utf16_len(text[:match.start()]), _utf16_len(url), url, chip))
+        if not found:
+            return
+        cursor = QTextCursor(doc)
+        cursor.beginEditBlock()
+        sources = []
+        shift = 0
+        for start, length, url, chip in found:
+            fmt = QTextCharFormat()
+            fmt.setAnchor(True)
+            fmt.setAnchorHref(SOURCE_SCHEME + url)
+            fmt.setToolTip(url)
+            cursor.setPosition(start + shift)
+            cursor.setPosition(start + shift + length, QTextCursor.MoveMode.KeepAnchor)
+            cursor.insertText(chip, fmt)
+            sources.append((start + shift, _utf16_len(chip), SOURCE_SCHEME + url))
+            shift += _utf16_len(chip) - length
+        cursor.endEditBlock()
+        self._insert_source_chips(sources)
         self._sync_height()
 
     def stream_markdown(self, text: str) -> None:
@@ -563,7 +606,10 @@ class MarkdownView(QTextBrowser):
             cursor.setPosition(position + length)
             cursor.insertText(_CHIP_PAD, chip)
             name = f"source-mark:{host}"
-            doc.addResource(image_kind, QUrl(name), source_mark_pixmap(host, MARK_PX, ratio))
+
+            pixmap = item_mark_pixmap({"url": url, "key": host, "glyph": ""}, MARK_PX, ratio) \
+                if open_data_label(url) else source_mark_pixmap(host, MARK_PX, ratio)
+            doc.addResource(image_kind, QUrl(name), pixmap)
             mark = QTextImageFormat()
             mark.setName(name)
             mark.setWidth(MARK_PX)

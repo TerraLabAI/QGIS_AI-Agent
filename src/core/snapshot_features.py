@@ -856,7 +856,25 @@ class _SignatureReader:
 
 def compare_signatures(before: dict, after: dict) -> dict:
 
-    added = sum(1 for fid in after if fid not in before)
-    removed = sum(1 for fid in before if fid not in after)
-    changed = sum(1 for fid, sig in after.items() if fid in before and before[fid] != sig)
-    return {"added": added, "removed": removed, "changed": changed}
+
+
+
+
+
+
+
+
+
+    from collections import Counter
+
+    left = {fid: sig for fid, sig in before.items() if after.get(fid) != sig}
+    right = {fid: sig for fid, sig in after.items() if before.get(fid) != sig}
+    spare = Counter(left.values()) & Counter(right.values())
+    for side in (left, right):
+        budget = Counter(spare)
+        for fid in list(side):
+            if budget[side[fid]] > 0:
+                budget[side[fid]] -= 1
+                del side[fid]
+    changed = sum(1 for fid in right if fid in left)
+    return {"added": len(right) - changed, "removed": len(left) - changed, "changed": changed}

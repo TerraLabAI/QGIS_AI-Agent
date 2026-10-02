@@ -60,6 +60,7 @@ _FILLED_COLUMNS = 6
 
 
 
+
 JOIN_WARN_RATIO = 0.8
 
 
@@ -406,7 +407,7 @@ def _join_checks(algorithm_id: str, parameters: dict, outputs: dict,
     report.update(_joined_columns_filled(input_layer, output_layer))
 
     warnings: list[str] = []
-    if total and ratio is not None and ratio < JOIN_WARN_RATIO:
+    if total and ratio is not None and ratio < tuning.threshold("join_warn_ratio", JOIN_WARN_RATIO, 0.5, 0.99):
         join_layer = _layer_of(parameters.get("INPUT_2") or parameters.get("JOIN"))
         left_field = parameters.get("FIELD") or parameters.get("FIELD_1")
         right_field = parameters.get("FIELD_2")

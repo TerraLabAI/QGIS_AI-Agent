@@ -418,6 +418,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("sign_in_requested", self._on_sign_in)
 
         self._connect_optional("recommendation_decided", self._on_recommendation_decided)
+        self._connect_optional("memory_decided", self._on_memory_decided)
         self._connect_optional("diff_applied", self._on_diff_applied)
 
     def _wire_session(self) -> None:

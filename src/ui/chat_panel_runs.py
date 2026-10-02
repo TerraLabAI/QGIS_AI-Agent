@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer, QUrl
 
 from ..core.snapshot_report import run_change_items
 from .bubbles import AgentBubble, StatusLine, UserBubble
@@ -17,8 +17,8 @@ from .cards import RunSummaryCard, ToolCard
 from .chat_panel_shared import _is_nothing_changed, _Run
 from .external_links import open_local_path
 from .file_card import FileCardStack
-from .file_links import is_safe_to_open, path_from_url, reveal_target
-from .layer_links import RunChangesRow, layer_id_from_url, linkify_layers
+from .file_links import gis_data_path, is_safe_to_open, path_from_url, reveal_target
+from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_layers
 from .plan_card import PlanCard
 from .trace import RunTrace
 
@@ -146,6 +146,8 @@ class _ChatPanelRuns:
         if not run_id:
             return
         self._run(run_id).started = time.monotonic()
+
+        self.drop_memory_proposal()
         self._current_run = run_id
         self._last_run = run_id
         self._changed_layers = []
@@ -411,8 +413,10 @@ class _ChatPanelRuns:
             run.plan.finish(status)
         if status == "failed":
 
+
+
             for block in reversed(blocks):
-                if block.reveal_failure():
+                if block.reveal_failure() or block.ended_well():
                     break
 
 
@@ -478,6 +482,13 @@ class _ChatPanelRuns:
             return
         path = path_from_url(href)
         if not path:
+            return
+        layername = ""
+        if "layername=" in href:
+            layername = QUrl.fromPercentEncoding(
+                href.split("layername=", 1)[1].split("&", 1)[0].encode("utf-8"))
+            path = path.split("|", 1)[0]
+        if self._open_in_qgis(path, layername):
             return
         if is_safe_to_open(path):
             open_local_path(path, self)
@@ -566,13 +577,35 @@ class _ChatPanelRuns:
 
 
 
+
+
         if not path:
             return
         if action == "add":
             self.file_add_requested.emit(path)
             return
+        if action == "open" and self._open_in_qgis(path):
+            return
         target = reveal_target(path) if action == "reveal" else path
         open_local_path(target, self)
+
+    def _open_in_qgis(self, path: str, layername: str = "") -> bool:
+
+
+
+
+
+        data = gis_data_path(path)
+        if not data:
+            return False
+        layer_id = layer_of_file(data, layername)
+        if layer_id:
+            self.layer_action_requested.emit(layer_id, "show")
+        else:
+
+
+            self.file_add_requested.emit(f"{data}|layername={layername}" if layername else data)
+        return True
 
     def set_run_changes(self, changed_layers: int, restore_available: bool,
                         layers: list | None = None, changes: dict | None = None) -> None:

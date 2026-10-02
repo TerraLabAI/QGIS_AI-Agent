@@ -29,6 +29,7 @@ import hashlib
 import os
 import sqlite3
 import time
+import uuid
 
 from qgis.core import QgsProject, QgsVectorLayer
 
@@ -313,6 +314,29 @@ def _layout_digests(rows) -> dict[str, str]:
 
     return {str(row[0]): str(row[1] or "") for row in rows or []
             if isinstance(row, (list, tuple)) and len(row) == 2}
+
+
+def _remove_soon(path: str, what: str) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+    if not os.path.exists(path):
+        return True
+    gone = os.path.join(os.path.dirname(path), f".gone-{uuid.uuid4().hex[:12]}")
+    try:
+        os.rename(path, gone)
+    except OSError:
+        return _remove_tree(path, what)
+    _jobs().schedule_job(lambda: _remove_tree(gone, what))
+    return True
 
 
 class RunSnapshot:
@@ -1632,8 +1656,8 @@ class RunSnapshot:
         if feature_pass is not None and not feature_pass.done:
             def remove_now() -> None:
                 forget_copies(self.dir)
-                _remove_tree(self.dir, "Snapshot")
+                _remove_soon(self.dir, "Snapshot")
 
             self._ready_callbacks.append(remove_now)
             return False
-        return _remove_tree(self.dir, "Snapshot")
+        return _remove_soon(self.dir, "Snapshot")

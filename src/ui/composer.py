@@ -187,8 +187,6 @@ class Composer(QFrame):
 
     reconnect_requested = pyqtSignal()
 
-    notice_link_activated = pyqtSignal(str)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("composer")
@@ -271,7 +269,7 @@ class Composer(QFrame):
 
         self._attach_btn = _AttachButton(
             self,
-            self.tr("Add photos, files or one of this project's layers. A layer can also be"
+            self.tr("Add files or one of this project's layers. A layer can also be"
                     " dragged from the Layers panel; Ctrl+V pastes a picture."))
 
 
@@ -551,16 +549,14 @@ class Composer(QFrame):
         self._placeholder = text or ""
         self._apply_placeholder()
 
-    def show_hint(self, text: str, *, sticky: bool = False, link: tuple[str, str] | None = None) -> None:
-
-
+    def show_hint(self, text: str, *, sticky: bool = False) -> None:
 
 
 
 
 
         self._hint.setStyleSheet(_HINT_QSS)
-        self._hint.setText(self._with_link(text, link))
+        self._hint.setText(text)
         self._sticky_hint = bool(sticky)
         self._hint.show()
         self._hint_timer.stop()
@@ -568,7 +564,7 @@ class Composer(QFrame):
             self._hint_timer.start(_HINT_MS)
 
     def show_warning(self, text: str, *, offer_send_anyway: bool = False, sticky: bool = False,
-                     focus: bool = True, link: tuple[str, str] | None = None) -> None:
+                     focus: bool = True) -> None:
 
 
 
@@ -582,8 +578,7 @@ class Composer(QFrame):
         if not text:
             return
         self._hint.setStyleSheet(_HINT_WARN_QSS)
-        if offer_send_anyway:
-            link = (self.tr("Send anyway"), "send-anyway")
+        link = (self.tr("Send anyway"), "send-anyway") if offer_send_anyway else None
         self._hint.setText(self._with_link(text, link))
         self._sticky_hint = bool(sticky)
         self._hint.show()
@@ -1010,7 +1005,7 @@ class Composer(QFrame):
         return chips
 
     def _on_add_files(self) -> None:
-        paths, _filter = QFileDialog.getOpenFileNames(self, self.tr("Add photos & files"), "", any_filter())
+        paths, _filter = QFileDialog.getOpenFileNames(self, self.tr("Add files from your computer"), "", any_filter())
         self._attach_picked(paths)
 
     def _attach_picked(self, paths) -> None:
@@ -1337,9 +1332,6 @@ class Composer(QFrame):
 
         if href == "send-anyway":
             self._on_send_anyway(href)
-            return
-        self._clear_hint()
-        self.notice_link_activated.emit(str(href or ""))
 
     def _on_send_anyway(self, href: str) -> None:
 

@@ -528,7 +528,7 @@ def hosted_plan(query) -> list:
             order.append(theme)
             filters[theme] = []
         filters[theme].append(wanted)
-    if len(order) > HOSTED_MAX_THEMES:
+    if len(order) > tuning.ceiling("volume_hosted_max_themes", HOSTED_MAX_THEMES, 1):
         return []
     plan = []
     for theme in order:
@@ -635,6 +635,11 @@ def hosted_ceiling(name: str, args: dict) -> tuple[list, float]:
 
 
 OWN_OVERPASS_DOWN_S = 300.0
+
+
+def _own_overpass_down_s() -> float:
+
+    return tuning.threshold("volume_own_overpass_down_s", OWN_OVERPASS_DOWN_S, 30.0, 1800.0)
 _own_overpass_down_since: float | None = None
 
 
@@ -643,13 +648,13 @@ def note_own_overpass_down() -> None:
     global _own_overpass_down_since
     _own_overpass_down_since = time.monotonic()
     log_warning("Own Overpass instance unreachable; the wider own-host ceilings "
-                f"are closed for {OWN_OVERPASS_DOWN_S:.0f}s.")
+                f"are closed for {_own_overpass_down_s():.0f}s.")
 
 
 def own_overpass_down() -> bool:
 
     since = _own_overpass_down_since
-    return since is not None and (time.monotonic() - since) < OWN_OVERPASS_DOWN_S
+    return since is not None and (time.monotonic() - since) < _own_overpass_down_s()
 
 
 def own_overpass() -> bool:

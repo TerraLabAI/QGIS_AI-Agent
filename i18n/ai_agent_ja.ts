@@ -2217,6 +2217,90 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{tool} on {layer}</source>
             <translation>{layer}に{tool}を実行</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 件のレイヤを追加しました</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 件のレイヤを削除しました</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>エージェントの処理が終わると利用できます</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>QGIS で行った変更</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>メールアドレスをコピーしました</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>カテゴリを隠す</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>レポートをコピーしました</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>レポートを送っていただければ、調査して修正します。</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>カテゴリを表示</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>問題の内容を教えてください</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>次に、メールに貼り付けて次の宛先に送ってください:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>実行で書き出されたファイル</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>バックアップなし</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>別のプロジェクト</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>一時レイヤ</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} を復元できません ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} ほか {n} 件</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} 件のレイヤを追加しました</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} 件のレイヤを復元できません</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} 件のレイヤを変更しました</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} 件のレイヤを削除しました</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{count} s</source>
             <translation>{count}秒</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>うまくいかなかった試行を隠す</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>うまくいかなかった{n}件の試行を隠す</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>うまくいかなかった試行を表示</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>うまくいかなかった{n}件の試行を表示</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>変更をやり直す</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>変更を元に戻す</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>No layers in this project yet.</source>
             <translation>このプロジェクトにはまだレイヤがありません。</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>コンピュータからファイルを追加</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Waiting for your answer</source>
             <translation>あなたの回答を待っています</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 件のレイヤを復元できませんでした</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>保存されている最も古いバージョンに戻します。</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>このチャットの開始時点のプロジェクトに戻します。</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>元に戻すもの: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>このリクエストの変更を元に戻します</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>変更を復元しました</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>変更を元に戻しました</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>復元できませんでした。ログを確認してください。</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>チャットの開始時点に戻しますか?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>このリクエストの変更を地図から取り除きます</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>取り除くもの: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>ここまで復元しました</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>チャットの開始時点まで復元しました</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>この後の 1 件のリクエストの変更も取り除かれます。</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>この後の {n} 件のリクエストの変更も取り除かれます。</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>元に戻す</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>変更を元に戻しますか?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>{n} 件のリクエストを元に戻しますか?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>手動での編集は、先に履歴に保存されます。</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} 件のレイヤを復元できませんでした</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>閉じたプロジェクトのものです</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>プロジェクト {project} のものです</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>地図の履歴</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>チャットの開始</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>停止してこのリクエストを元に戻す</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>実行を止めて、地図を元に戻します</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>最初のリクエスト前の地図</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>保存されている最も古いバージョン</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>あなたの編集</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>TerraLabに接続しています...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>コンピュータからファイルを追加</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>ファイル、またはこのプロジェクトのレイヤを追加します。レイヤはレイヤパネルからドラッグすることもできます。Ctrl+V で画像を貼り付けられます。</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Settings ({email})</source>
             <translation>設定（{email}）</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>地図の履歴 ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Click to open its page.</source>
             <source>Your profile and instructions, read before every run</source>
             <translation>プロフィールと指示。実行のたびに事前に読み込まれます</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ ノートを追加</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>AI が追加</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>追加する前に確認します。</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>このコンピュータ上の Markdown ファイル</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>保存済みノート · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>AI がノートを提案できます</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>例: EPSG:2154 で作業しています</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Click to open its page.</source>
         <message>
             <source>Served by TerraLab</source>
             <translation>TerraLabが提供</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>アドレス</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Click to open its page.</source>
         <message>
             <source>Show the whole message</source>
             <translation>メッセージ全体を表示</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>{n}回目の試行はうまくいきませんでした: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>理由は示されていません</translation>
         </message>
     </context>
     <context>
@@ -8208,6 +8500,10 @@ This file is no longer where the run wrote it.</source>
             <source>Now</source>
             <translation>今</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>現在</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8293,6 +8589,82 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Served by TerraLab</source>
             <translation>TerraLabが提供</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>追加</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>メモリに追加しました</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>メモリ</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>いいえ</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>次回のために覚えておきますか?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>置き換えるもの: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>設定</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>ノート全体を表示</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>エージェントの処理が終わると利用できます</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>ほか +{n} 件</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>影響を受けるレイヤ</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>削除済み</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>復元済み</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>現在</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>復元</translation>
         </message>
     </context>
 </TS>

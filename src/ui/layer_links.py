@@ -42,6 +42,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 
 from qgis.PyQt.QtCore import QPoint, QRectF, QSize, Qt, pyqtSignal
@@ -729,6 +730,45 @@ def layer_id_from_url(url: str) -> str:
 
     url = str(url or "")
     return url[len(LAYER_URL):] if url.startswith(LAYER_URL) else ""
+
+
+def _path_key(value: str) -> str:
+
+    try:
+        return os.path.normcase(os.path.realpath(value))
+    except (OSError, ValueError):
+        return os.path.normcase(os.path.normpath(os.path.abspath(value)))
+
+
+def layer_of_file(path: str, layername: str = "") -> str:
+
+
+
+
+
+
+
+    from qgis.core import QgsProject, QgsProviderRegistry
+
+    wanted = _path_key(str(path or ""))
+    if not path:
+        return ""
+    for layer in QgsProject.instance().mapLayers().values():
+        try:
+            source = layer.source() or ""
+            parts = QgsProviderRegistry.instance().decodeUri(layer.providerType() or "", source)
+        except Exception:  # noqa: BLE001  # nosec B112
+            continue
+        parts = parts if isinstance(parts, dict) else {}
+        file_part = parts.get("path") or source.split("|", 1)[0]
+        if not file_part or file_part.startswith(("/vsi", "http://", "https://")):
+            continue
+        if _path_key(file_part) != wanted:
+            continue
+        if layername and str(parts.get("layerName") or "") not in ("", layername):
+            continue
+        return str(layer.id())
+    return ""
 
 
 _CODE = re.compile(r"```.*?```|~~~.*?~~~|`[^`\n]*`", re.DOTALL)

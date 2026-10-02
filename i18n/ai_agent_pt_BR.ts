@@ -2217,6 +2217,90 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>{tool} on {layer}</source>
             <translation>{tool} em {layer}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>1 camada adicionada</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>1 camada removida</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponível quando o agente terminar</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>Alterações feitas no QGIS</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>Endereço de e-mail copiado</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>Ocultar categorias</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>Relatório copiado</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>Envie-nos um relatório e vamos analisar e corrigir o problema.</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>Mostrar categorias</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>Conte o que deu errado</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>Depois cole em um e-mail para:</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>arquivo gravado pela execução</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>sem backup</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>outro projeto</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>camada temporária</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>{layer} não pode ser restaurada ({reason})</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} e mais {n}</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>{n} camadas adicionadas</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>{n} camadas não podem ser restauradas</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>{n} camadas alteradas</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>{n} camadas removidas</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>{count} s</source>
             <translation>{count} s</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>Ocultar a tentativa que não funcionou</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>Ocultar as {n} tentativas que não funcionaram</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>Mostrar a tentativa que não funcionou</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>Mostrar as {n} tentativas que não funcionaram</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Redo</source>
             <translation>Refazer</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>Refazer alterações</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>Desfazer alterações</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>No layers in this project yet.</source>
             <translation>Ainda não há camadas neste projeto.</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Adicionar arquivos do seu computador</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Waiting for your answer</source>
             <translation>Aguardando sua resposta</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>1 camada não pôde ser restaurada</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>Volta à versão mais antiga ainda guardada.</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>Volta ao projeto como esta conversa o encontrou.</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>Traz de volta: {layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>Traz de volta as alterações deste pedido</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>Alterações restauradas</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>Alterações desfeitas</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>Não foi possível restaurar. Veja o log.</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>Voltar ao início da conversa?</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Refazer</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>Remove do mapa as alterações deste pedido</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>Remove: {layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>Restaurado até aqui</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>Restaurado ao início da conversa</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>Isso também remove as alterações de 1 pedido posterior.</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>Isso também remove as alterações de {n} pedidos posteriores.</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>Desfazer</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>Desfazer alterações?</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>Desfazer {n} pedidos?</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>Suas edições manuais são salvas antes no histórico.</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}: {reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>{n} camadas não puderam ser restauradas</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Redo</source>
             <translation>Refazer</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>Pertence a um projeto fechado</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>Pertence ao projeto {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Histórico do mapa</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>Início da conversa</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Parar</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>Parar e desfazer este pedido</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>Interrompe a execução e depois restaura o mapa</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>O mapa como estava antes do primeiro pedido</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>A versão mais antiga ainda guardada</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>Suas edições</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>Conectando ao TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>Adicionar arquivos do seu computador</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>Adicione arquivos ou uma das camadas deste projeto. Também é possível arrastar uma camada do painel Camadas; Ctrl+V cola uma imagem.</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Settings ({email})</source>
             <translation>Configurações ({email})</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>Histórico do mapa ({key})</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Clique para abrir sua página.</translation>
             <source>Your profile and instructions, read before every run</source>
             <translation>Seu perfil e instruções, lidos antes de cada execução</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ Adicionar uma nota</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>Adicionada pela IA</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>Ela pergunta antes de adicionar uma.</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>Arquivos Markdown neste computador</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>NOTAS SALVAS · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>A IA pode sugerir notas</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>ex.: Trabalho em EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Clique para abrir sua página.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fornecido pela TerraLab</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>Endereço</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Clique para abrir sua página.</translation>
         <message>
             <source>Show the whole message</source>
             <translation>Mostrar a mensagem inteira</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>A tentativa {n} não funcionou: {reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>nenhum motivo informado</translation>
         </message>
     </context>
     <context>
@@ -8216,6 +8508,10 @@ Este arquivo não está mais onde a execução o gravou.</translation>
             <source>Now</source>
             <translation>Agora</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>Atual</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8301,6 +8597,82 @@ Este arquivo não está mais onde a execução o gravou.</translation>
         <message>
             <source>Served by TerraLab</source>
             <translation>Fornecido pelo TerraLab</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>Adicionar</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>Adicionado à memória</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>Memória</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>Não, obrigado</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>Lembrar disso da próxima vez?</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>Substitui: {0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>Configurações</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Mostrar menos</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>Mostrar a nota inteira</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>Disponível quando o agente terminar</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} mais</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>Camadas afetadas</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>Removida</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>Restaurada</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>Atual</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>Restaurar</translation>
         </message>
     </context>
 </TS>

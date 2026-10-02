@@ -41,7 +41,7 @@ from ..connector_page import ConnectorPage
 from ..connectors_page import ConnectorsPage, cases_of, sources_by_id
 from ..font_scale import apply_font_scale_to_tree
 from ..shared import size_within_screen, tr
-from ..use_cases import use_case_groups, use_cases
+from ..use_cases import use_case_group_looks, use_case_groups, use_cases
 from . import common as C
 from .detail import ExampleDetail
 from .home import ExamplesHome
@@ -78,6 +78,7 @@ class ExamplesDialog(QDialog):
         self._cases = list(use_cases())
         self._group_rows = list(use_case_groups())
         self._groups = [key for key, _ in self._group_rows]
+        self._looks = use_case_group_looks()
         self._focus = -1
 
         self._history: list = []
@@ -90,7 +91,7 @@ class ExamplesDialog(QDialog):
 
         self._rail = LibraryRail([(HOME_KEY, "image", tr("Examples")),
                                   (SOURCES_KEY, "globe", tr("Data sources"))],
-                                 self._group_rows, self)
+                                 self._group_rows, self, self._looks)
         self._rail.selected.connect(self._on_rail)
         root.addWidget(self._rail)
 
@@ -100,7 +101,7 @@ class ExamplesDialog(QDialog):
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(0)
         self._pages = QStackedWidget(right)
-        self._home = ExamplesHome(self._cases, self._group_rows, right)
+        self._home = ExamplesHome(self._cases, self._group_rows, right, self._looks)
         self._home.case_opened.connect(self.open_case)
         self._home.query_changed.connect(self._on_query)
         self._home.group_requested.connect(self._on_rail)

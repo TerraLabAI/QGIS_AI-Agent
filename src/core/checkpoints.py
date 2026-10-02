@@ -24,7 +24,6 @@ import time
 import uuid
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QTimer
 
 from .host_platform import retry_file_op
 from .logger import log_warning
@@ -40,6 +39,7 @@ from .snapshot import (
     release_snapshot,
     snapshots_dir,
 )
+from .snapshot_features import _jobs
 from .writeback import write_atomic
 
 
@@ -73,6 +73,28 @@ def _open_project_file() -> str:
         return QgsProject.instance().fileName() or ""
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Open project not read: {exc}")
+        return ""
+
+
+
+
+
+
+
+_SESSION_PROPERTY = "terralabCheckpointProject"
+
+
+def _memory_project(renew: bool = False) -> str:
+
+    try:
+        project = QgsProject.instance()
+        value = project.property(_SESSION_PROPERTY)
+        if renew or not value:
+            value = uuid.uuid4().hex
+            project.setProperty(_SESSION_PROPERTY, value)
+        return str(value or "")
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Project id not read: {exc}")
         return ""
 
 
@@ -307,7 +329,7 @@ def _same_state(older, newer) -> bool:
 class Checkpoint:
     __slots__ = ("id", "kind", "run_id", "run_index", "thread_id", "snapshot",
                  "changed_layers", "layers", "created_at", "prompt",
-                 "project_file", "project_files", "project_generation", "log", "twin")
+                 "project_file", "project_files", "project_generation", "project_memory", "log", "twin")
 
     def __init__(self, kind: str, run_id: str, run_index: int, thread_id: str,
                  snapshot: RunSnapshot, changed_layers: int = 0, layers: list | None = None,
@@ -331,6 +353,8 @@ class Checkpoint:
 
         self.project_files = [self.project_file] if self.project_file else []
         self.project_generation = 0
+
+        self.project_memory = ""
 
         self.log: list = []
 
@@ -410,7 +434,8 @@ class Checkpoint:
                 "run_index": self.run_index, "changed_layers": self.changed_layers,
                 "layers": list(self.layers), "prompt": self.prompt,
                 "created_at": self.created_at, "project_file": self.project_file,
-                "project_files": list(self.project_files), "log": self.log, "twin": bool(self.twin),
+                "project_files": list(self.project_files), "project_memory": self.project_memory,
+                "log": self.log, "twin": bool(self.twin),
                 "snapshot": self.snapshot.to_record() if self.snapshot is not None else None}
 
     @classmethod
@@ -451,6 +476,8 @@ class Checkpoint:
 
 
         entry.project_generation = None
+        memory = record.get("project_memory")
+        entry.project_memory = memory if isinstance(memory, str) else ""
         entry.log = _clean_log(record.get("log"))
         entry.twin = record.get("twin") is True
         return entry
@@ -476,6 +503,9 @@ class CheckpointHistory:
 
 
         self._folders: dict[str, str] = {}
+
+
+        self._undone_runs: dict[str, list[str]] = {}
 
 
         self._generation = 0
@@ -551,10 +581,16 @@ class CheckpointHistory:
             return
         self._unread.discard(thread_id)
         read_entries = []
+
+
+
+        memory = _memory_project()
         for record in records:
             entry = Checkpoint.from_record(record, thread_id)
             if entry is None or not entry.available:
                 continue
+            if memory and entry.project_memory == memory:
+                entry.project_generation = self._generation
             read_entries.append(entry)
         existing = self._entries.get(thread_id, [])
         if existing:
@@ -570,6 +606,10 @@ class CheckpointHistory:
             elif stored != "":
 
                 self._current[thread_id] = entries[-1].id
+        undone = data.get("undone_runs")
+        if isinstance(undone, list):
+            known_runs = self._undone_runs.setdefault(thread_id, [])
+            known_runs.extend(r for r in undone if isinstance(r, str) and r and r not in known_runs)
         run_index = _count(data.get("run_index"))
         for entry in entries:
             run_index = max(run_index, _count(entry.run_index))
@@ -627,6 +667,7 @@ class CheckpointHistory:
         record = {"version": 1, "thread_id": thread_id,
                   "current": self._current.get(thread_id, ""),
                   "run_index": self._run_index.get(thread_id, 0),
+                  "undone_runs": self._undone_runs.get(thread_id, [])[-200:],
                   "entries": [entry.to_record() for entry in entries]}
         dropped: list[Checkpoint] = []
         kept = None
@@ -703,7 +744,9 @@ class CheckpointHistory:
             protected.update(e.id for e in entries if e.run_id == anchor.run_id)
         return protected
 
-    def _trim(self, thread_id: str, keep_id: str) -> None:
+    def _trim(self, thread_id: str, keep_id: str, sizes: dict) -> None:
+
+
 
 
 
@@ -729,11 +772,11 @@ class CheckpointHistory:
         bytes_kept = 0.0
         for entry in entries:
             if entry.id in kept_ids:
-                bytes_kept += folder_bytes(entry.snapshot.dir) if entry.snapshot is not None else 0
+                bytes_kept += sizes.get(entry.snapshot.dir, 0) if entry.snapshot is not None else 0
         for entry in reversed(entries):
             if entry.id in protected:
                 continue
-            size = folder_bytes(entry.snapshot.dir) if entry.snapshot is not None else 0
+            size = sizes.get(entry.snapshot.dir, 0) if entry.snapshot is not None else 0
             if len(kept_ids) >= cap or bytes_kept + size > budget:
                 continue
             kept_ids.add(entry.id)
@@ -751,14 +794,47 @@ class CheckpointHistory:
                 log_warning(f"Checkpoint snapshot discard failed: {e}")
         self._entries[thread_id] = kept
 
-    def _trim_later(self, thread_id: str, keep_id: str) -> None:
+    def _trim_soon(self, thread_id: str, keep_id: str) -> None:
+
+
+
+
+
+
+
+
+
+
+        entries = self._entries.get(thread_id) or []
+        folders = [e.snapshot.dir for e in entries if e.snapshot is not None and e.snapshot.dir]
+        invoker = None
+        try:
+            from qgis.PyQt.QtCore import QCoreApplication
+
+            if QCoreApplication.instance() is not None:
+                from .background import main_thread_invoker
+
+                invoker = main_thread_invoker()
+        except Exception:  # noqa: BLE001
+            invoker = None
+        if invoker is None:
+            self._trim_measured(thread_id, keep_id, {folder: folder_bytes(folder) for folder in folders})
+            return
+
+        def weigh() -> None:
+            sizes = {folder: folder_bytes(folder) for folder in folders}
+            invoker.invoke(lambda: self._trim_measured(thread_id, keep_id, sizes))
+
+        _jobs().schedule_job(weigh)
+
+    def _trim_measured(self, thread_id: str, keep_id: str, sizes: dict) -> None:
 
         entries = self._entries.get(thread_id)
         if not entries or not any(e.id == keep_id for e in entries):
             return
         count = len(entries)
         try:
-            self._trim(thread_id, keep_id)
+            self._trim(thread_id, keep_id, sizes)
             if len(self._entries.get(thread_id, [])) != count:
                 self._save(thread_id)
         except Exception as exc:  # noqa: BLE001
@@ -775,6 +851,7 @@ class CheckpointHistory:
 
         self._generation += 1
         self._lineage = []
+        _memory_project(renew=True)
 
     def _remember(self, path: str) -> None:
 
@@ -900,8 +977,7 @@ class CheckpointHistory:
 
     def add(self, thread_id: str, kind: str, run_id: str, run_index: int, snapshot: RunSnapshot,
             changed_layers: int = 0, layers: list | None = None, prompt: str = "",
-            fork: bool = True, trim_later: bool = False) -> Checkpoint:
-
+            fork: bool = True) -> Checkpoint:
 
 
 
@@ -926,7 +1002,10 @@ class CheckpointHistory:
         entries = self._entries.setdefault(thread_id, [])
         current = self.current_index(thread_id)
         if fork and current is not None and current < len(entries) - 1:
+            undone = self._undone_runs.setdefault(thread_id, [])
             for stale in entries[current + 1:]:
+                if stale.kind == KIND_AFTER and stale.run_id and stale.run_id not in undone:
+                    undone.append(stale.run_id)
                 if stale.snapshot is not None:
                     try:
                         release_snapshot(stale.snapshot.dir)
@@ -936,6 +1015,7 @@ class CheckpointHistory:
             del entries[current + 1:]
         entry = Checkpoint(kind, run_id, run_index, thread_id, snapshot, changed_layers, layers, prompt)
         entry.project_generation = self._generation
+        entry.project_memory = _memory_project()
 
         behind = entries[current] if current is not None and current < len(entries) else (
             entries[-1] if entries else None)
@@ -957,11 +1037,8 @@ class CheckpointHistory:
         else:
             entries.insert(current + 1, entry)
         self._current[thread_id] = entry.id
-        if trim_later:
-            QTimer.singleShot(0, lambda: self._trim_later(thread_id, entry.id))
-        else:
-            self._trim(thread_id, entry.id)
         self._save(thread_id)
+        self._trim_soon(thread_id, entry.id)
         if snapshot is not None:
             snapshot.on_features_ready(lambda: self._save(thread_id))
         return entry
@@ -1097,6 +1174,18 @@ class CheckpointHistory:
         entries = self._entries.get(thread_id, [])
         return {entries[i].id for i in range(1, len(entries)) if entries[i].twin and entries[i].kind == KIND_BEFORE}
 
+    def same_state(self, thread_id: str, entry: Checkpoint) -> bool:
+
+
+        index = self.current_index(thread_id)
+        entries = self._entries.get(thread_id, [])
+        target = next((i for i, e in enumerate(entries) if e.id == entry.id), None)
+        if index is None or target is None:
+            return False
+        low, high = min(index, target), max(index, target)
+        twins = self.twins(thread_id)
+        return all(entries[i].id in twins for i in range(low + 1, high + 1))
+
     def previous(self, thread_id: str) -> Checkpoint | None:
 
         self._ensure(thread_id)
@@ -1154,6 +1243,22 @@ class CheckpointHistory:
         self._ensure(thread_id)
         entries = self._entries.get(thread_id, [])
         return bool(entries and entries[0].available)
+
+    def undone_requests(self, thread_id: str, limit: int = 5) -> list[str]:
+
+
+        current = self.current_index(thread_id)
+        if current is None:
+            return []
+        entries = self._entries.get(thread_id, [])
+        asked = [entry.prompt or f"request {entry.run_index}" for entry in entries[current + 1:]
+                 if entry.kind == KIND_AFTER]
+        return asked[:limit]
+
+    def undone_runs(self, thread_id: str) -> list[str]:
+
+        self._ensure(thread_id)
+        return list(self._undone_runs.get(thread_id, []))
 
     def describe(self, thread_id: str) -> list[dict]:
 

@@ -147,14 +147,20 @@ def backup_check(snapshot):
     return backed_up
 
 
-def file_layer_ids(project) -> list:
+def watched_layer_ids(project) -> list:
+
+
+
+
+
+
 
     from .snapshot import layer_file_path
 
     ids = []
     for lid, layer in project.mapLayers().items():
         try:
-            if layer_file_path(layer):
+            if layer.providerType() == "memory" or layer_file_path(layer):
                 ids.append(lid)
         except Exception:  # noqa: BLE001  # nosec B112
             continue

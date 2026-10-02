@@ -146,7 +146,6 @@ class SourceCard(Pressable):
         col.addStretch(1)
         labels_through(self)
         self.setAccessibleName(self._name_text)
-        self.setToolTip("\n".join(t for t in (self._name_text, self._note_text) if t))
         self._laid = -1
 
     def _state_changed(self) -> None:

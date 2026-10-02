@@ -2217,6 +2217,90 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{tool} on {layer}</source>
             <translation>对 {layer} 使用 {tool}</translation>
         </message>
+        <message>
+            <source>1 layer added</source>
+            <translation>已添加 1 个图层</translation>
+        </message>
+        <message>
+            <source>1 layer removed</source>
+            <translation>已移除 1 个图层</translation>
+        </message>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>智能体完成后可用</translation>
+        </message>
+        <message>
+            <source>Changes made in QGIS</source>
+            <translation>在 QGIS 中所做的更改</translation>
+        </message>
+        <message>
+            <source>Email address copied</source>
+            <translation>邮箱地址已复制</translation>
+        </message>
+        <message>
+            <source>Hide categories</source>
+            <translation>隐藏分类</translation>
+        </message>
+        <message>
+            <source>Report copied</source>
+            <translation>报告已复制</translation>
+        </message>
+        <message>
+            <source>Send us a report and we will look into it and fix it.</source>
+            <translation>给我们发送报告，我们会查看并修复。</translation>
+        </message>
+        <message>
+            <source>Show categories</source>
+            <translation>显示分类</translation>
+        </message>
+        <message>
+            <source>Tell us what went wrong</source>
+            <translation>告诉我们哪里出了问题</translation>
+        </message>
+        <message>
+            <source>Then paste it into an email to:</source>
+            <translation>然后将其粘贴到发给以下地址的邮件中：</translation>
+        </message>
+        <message>
+            <source>file the run wrote</source>
+            <translation>本次运行写入的文件</translation>
+        </message>
+        <message>
+            <source>no backup</source>
+            <translation>无备份</translation>
+        </message>
+        <message>
+            <source>other project</source>
+            <translation>其他项目</translation>
+        </message>
+        <message>
+            <source>temporary layer</source>
+            <translation>临时图层</translation>
+        </message>
+        <message>
+            <source>{layer} can't be restored ({reason})</source>
+            <translation>无法恢复 {layer}（{reason}）</translation>
+        </message>
+        <message>
+            <source>{names} and {n} more</source>
+            <translation>{names} 等另外 {n} 项</translation>
+        </message>
+        <message>
+            <source>{n} layers added</source>
+            <translation>已添加 {n} 个图层</translation>
+        </message>
+        <message>
+            <source>{n} layers can't be restored</source>
+            <translation>有 {n} 个图层无法恢复</translation>
+        </message>
+        <message>
+            <source>{n} layers changed</source>
+            <translation>已更改 {n} 个图层</translation>
+        </message>
+        <message>
+            <source>{n} layers removed</source>
+            <translation>已移除 {n} 个图层</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2990,6 +3074,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{count} s</source>
             <translation>{count} 秒</translation>
         </message>
+        <message>
+            <source>Hide the try that did not work</source>
+            <translation>隐藏未成功的尝试</translation>
+        </message>
+        <message>
+            <source>Hide the {n} tries that did not work</source>
+            <translation>隐藏 {n} 次未成功的尝试</translation>
+        </message>
+        <message>
+            <source>Show the try that did not work</source>
+            <translation>显示未成功的尝试</translation>
+        </message>
+        <message>
+            <source>Show the {n} tries that did not work</source>
+            <translation>显示 {n} 次未成功的尝试</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3029,6 +3129,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>重做</translation>
+        </message>
+        <message>
+            <source>Redo changes</source>
+            <translation>重做更改</translation>
+        </message>
+        <message>
+            <source>Undo changes</source>
+            <translation>撤销更改</translation>
         </message>
     </context>
     <context>
@@ -3666,6 +3774,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>No layers in this project yet.</source>
             <translation>此项目中还没有图层。</translation>
         </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>从电脑添加文件</translation>
+        </message>
     </context>
     <context>
         <name>AttachmentTag</name>
@@ -3916,6 +4028,94 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Waiting for your answer</source>
             <translation>等待你的回答</translation>
         </message>
+        <message>
+            <source>1 layer couldn't be restored</source>
+            <translation>有 1 个图层无法恢复</translation>
+        </message>
+        <message>
+            <source>Back to the oldest version still kept.</source>
+            <translation>回到仍保留的最早版本。</translation>
+        </message>
+        <message>
+            <source>Back to the project as this chat found it.</source>
+            <translation>回到本次对话开始时的项目状态。</translation>
+        </message>
+        <message>
+            <source>Brings back: {layers}</source>
+            <translation>将恢复：{layers}</translation>
+        </message>
+        <message>
+            <source>Brings this request's changes back</source>
+            <translation>恢复此请求的更改</translation>
+        </message>
+        <message>
+            <source>Changes restored</source>
+            <translation>更改已恢复</translation>
+        </message>
+        <message>
+            <source>Changes undone</source>
+            <translation>更改已撤销</translation>
+        </message>
+        <message>
+            <source>Couldn't restore. See the log.</source>
+            <translation>无法恢复。请查看日志。</translation>
+        </message>
+        <message>
+            <source>Go back to the start of the chat?</source>
+            <translation>回到对话开始时的状态吗？</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>重做</translation>
+        </message>
+        <message>
+            <source>Removes this request's changes from the map</source>
+            <translation>从地图中移除此请求的更改</translation>
+        </message>
+        <message>
+            <source>Removes: {layers}</source>
+            <translation>将移除：{layers}</translation>
+        </message>
+        <message>
+            <source>Restored to here</source>
+            <translation>已恢复到此处</translation>
+        </message>
+        <message>
+            <source>Restored to start of chat</source>
+            <translation>已恢复到对话开始时</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from 1 later request.</source>
+            <translation>这也会移除之后 1 个请求的更改。</translation>
+        </message>
+        <message>
+            <source>This also removes the changes from {n} later requests.</source>
+            <translation>这也会移除之后 {n} 个请求的更改。</translation>
+        </message>
+        <message>
+            <source>Undo</source>
+            <translation>撤销</translation>
+        </message>
+        <message>
+            <source>Undo changes?</source>
+            <translation>撤销更改吗？</translation>
+        </message>
+        <message>
+            <source>Undo {n} requests?</source>
+            <translation>撤销 {n} 个请求吗？</translation>
+        </message>
+        <message>
+            <source>Your manual edits are saved in the history first.</source>
+            <translation>你的手动编辑会先保存到历史记录中。</translation>
+        </message>
+        <message>
+            <source>{layer}: {reason}</source>
+            <translation>{layer}：{reason}</translation>
+        </message>
+        <message>
+            <source>{n} layers couldn't be restored</source>
+            <translation>有 {n} 个图层无法恢复</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4081,6 +4281,46 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>重做</translation>
+        </message>
+        <message>
+            <source>Belongs to a closed project</source>
+            <translation>属于已关闭的项目</translation>
+        </message>
+        <message>
+            <source>Belongs to the project {project}</source>
+            <translation>属于项目 {project}</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>地图历史</translation>
+        </message>
+        <message>
+            <source>Start of chat</source>
+            <translation>对话开始</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+        <message>
+            <source>Stop and undo this request</source>
+            <translation>停止并撤销此请求</translation>
+        </message>
+        <message>
+            <source>Stops the run, then puts the map back</source>
+            <translation>停止运行，然后还原地图</translation>
+        </message>
+        <message>
+            <source>The map as it was before the first request</source>
+            <translation>第一个请求之前的地图</translation>
+        </message>
+        <message>
+            <source>The oldest version still kept</source>
+            <translation>仍保留的最早版本</translation>
+        </message>
+        <message>
+            <source>Your edits</source>
+            <translation>你的编辑</translation>
         </message>
     </context>
     <context>
@@ -4340,6 +4580,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Connecting to TerraLab...</source>
             <translation>正在连接 TerraLab...</translation>
+        </message>
+        <message>
+            <source>Add files from your computer</source>
+            <translation>从电脑添加文件</translation>
+        </message>
+        <message>
+            <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
+            <translation>添加文件或此项目的某个图层。也可以从图层面板拖入图层；Ctrl+V 可粘贴图片。</translation>
         </message>
     </context>
     <context>
@@ -5065,6 +5313,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Settings ({email})</source>
             <translation>设置（{email}）</translation>
+        </message>
+        <message>
+            <source>Map history ({key})</source>
+            <translation>地图历史（{key}）</translation>
         </message>
     </context>
     <context>
@@ -7027,6 +7279,34 @@ Click to open its page.</source>
             <source>Your profile and instructions, read before every run</source>
             <translation>你的个人资料和指令，每次运行前都会读取</translation>
         </message>
+        <message>
+            <source>+ Add a note</source>
+            <translation>+ 添加笔记</translation>
+        </message>
+        <message>
+            <source>Added by the AI</source>
+            <translation>由 AI 添加</translation>
+        </message>
+        <message>
+            <source>It asks before adding one.</source>
+            <translation>添加前会先询问。</translation>
+        </message>
+        <message>
+            <source>Markdown files on this computer</source>
+            <translation>此电脑上的 Markdown 文件</translation>
+        </message>
+        <message>
+            <source>SAVED NOTES · {n}</source>
+            <translation>已保存的笔记 · {n}</translation>
+        </message>
+        <message>
+            <source>The AI can suggest notes</source>
+            <translation>AI 可以建议笔记</translation>
+        </message>
+        <message>
+            <source>e.g. I work in EPSG:2154</source>
+            <translation>例如：我使用 EPSG:2154</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -7105,6 +7385,10 @@ Click to open its page.</source>
         <message>
             <source>Served by TerraLab</source>
             <translation>由 TerraLab 提供</translation>
+        </message>
+        <message>
+            <source>Address</source>
+            <translation>地址</translation>
         </message>
     </context>
     <context>
@@ -7286,6 +7570,14 @@ Click to open its page.</source>
         <message>
             <source>Show the whole message</source>
             <translation>显示完整消息</translation>
+        </message>
+        <message>
+            <source>Try {n} did not work: {reason}</source>
+            <translation>第 {n} 次尝试未成功：{reason}</translation>
+        </message>
+        <message>
+            <source>no reason given</source>
+            <translation>未说明原因</translation>
         </message>
     </context>
     <context>
@@ -8208,6 +8500,10 @@ This file is no longer where the run wrote it.</source>
             <source>Now</source>
             <translation>现在</translation>
         </message>
+        <message>
+            <source>Current</source>
+            <translation>当前</translation>
+        </message>
     </context>
     <context>
         <name>FeedbackReason</name>
@@ -8293,6 +8589,82 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Served by TerraLab</source>
             <translation>由 TerraLab 提供</translation>
+        </message>
+    </context>
+    <context>
+        <name>MemoryCard</name>
+        <message>
+            <source>Add</source>
+            <translation>添加</translation>
+        </message>
+        <message>
+            <source>Added to memory</source>
+            <translation>已添加到记忆</translation>
+        </message>
+        <message>
+            <source>Memory</source>
+            <translation>记忆</translation>
+        </message>
+        <message>
+            <source>No thanks</source>
+            <translation>不用了</translation>
+        </message>
+        <message>
+            <source>Remember this for next time?</source>
+            <translation>下次记住这一点吗？</translation>
+        </message>
+        <message>
+            <source>Replaces: {0}</source>
+            <translation>替换：{0}</translation>
+        </message>
+        <message>
+            <source>Settings</source>
+            <translation>设置</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>收起</translation>
+        </message>
+        <message>
+            <source>Show the whole note</source>
+            <translation>显示完整笔记</translation>
+        </message>
+    </context>
+    <context>
+        <name>Toast</name>
+        <message>
+            <source>Available when the agent finishes</source>
+            <translation>智能体完成后可用</translation>
+        </message>
+    </context>
+    <context>
+        <name>_LayerList</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} 项</translation>
+        </message>
+        <message>
+            <source>Layers affected</source>
+            <translation>受影响的图层</translation>
+        </message>
+        <message>
+            <source>Removed</source>
+            <translation>已移除</translation>
+        </message>
+        <message>
+            <source>Restored</source>
+            <translation>已恢复</translation>
+        </message>
+    </context>
+    <context>
+        <name>_VersionRow</name>
+        <message>
+            <source>Current</source>
+            <translation>当前</translation>
+        </message>
+        <message>
+            <source>Restore</source>
+            <translation>恢复</translation>
         </message>
     </context>
 </TS>

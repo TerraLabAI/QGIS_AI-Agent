@@ -34,6 +34,9 @@ import sys
 
 from qgis.PyQt.QtCore import QUrl
 
+from ..core.links import URL_STOP, open_data_chip
+from .markdown_view import SOURCE_SCHEME
+
 
 
 _FENCED = re.compile(r"```.*?```|~~~.*?~~~|\[[^\]]*\]\([^)]*\)", re.DOTALL)
@@ -123,6 +126,72 @@ def suffix_of(path: str) -> str:
 
     name = str(path or "").rstrip(". \t")
     return os.path.splitext(name)[1].lstrip(".").lower()
+
+
+
+
+
+
+
+GIS_SUFFIXES = frozenset((
+    "gpkg", "shp", "geojson", "kml", "kmz", "gml", "gpx", "dxf", "fgb",
+    "tab", "mif", "parquet", "gdb", "sqlite", "dbf",
+    "tif", "tiff", "img", "jp2", "asc", "vrt", "nc", "hdf", "hgt", "dem",
+    "ecw", "sid", "las", "laz", "copc",
+))
+
+_SHAPE_SIDECARS = frozenset(("shx", "prj", "cpg", "qix", "sbn", "sbx", "qmd"))
+_TEXT_TABLES = frozenset(("csv", "tsv"))
+
+
+def _table_has_geometry(path: str) -> bool:
+
+    try:
+        with open(path, encoding="utf-8-sig", errors="replace") as handle:
+            header = handle.readline(4096)
+    except (OSError, ValueError):
+        return False
+    names = {x.strip().strip('"\'').lower() for x in re.split(r"[,;\t|]", header)}
+    has_x = bool(names & {"x", "lon", "lng", "long", "longitude", "easting"})
+    has_y = bool(names & {"y", "lat", "latitude", "northing"})
+    return (has_x and has_y) or bool(names & {"wkt", "geometry", "geom", "the_geom"})
+
+
+def gis_data_path(path: str) -> str:
+
+
+
+
+
+
+
+    text = str(path or "")
+    if not text or is_remote_or_device(text):
+        return ""
+    lowered = text.lower()
+    for tail in (".aux.xml", ".ovr", ".shp.xml"):
+        if lowered.endswith(tail) and len(text) > len(tail):
+            base = text[: -len(tail)]
+            return base if suffix_of(base) in GIS_SUFFIXES and os.path.isfile(base) else ""
+    suffix = suffix_of(text)
+    stem = os.path.splitext(text)[0]
+    if suffix in _SHAPE_SIDECARS or suffix == "dbf":
+        for ext in (".shp", ".SHP"):
+            if os.path.isfile(stem + ext):
+                return stem + ext
+        return text if suffix == "dbf" else ""
+    if suffix in GIS_SUFFIXES:
+        return text
+    if suffix in _TEXT_TABLES:
+        return text if _table_has_geometry(text) else ""
+    if suffix == "json":
+        try:
+            with open(text, encoding="utf-8", errors="replace") as handle:
+                head = handle.read(2048)
+        except (OSError, ValueError):
+            return ""
+        return text if '"FeatureCollection"' in head or '"Feature"' in head else ""
+    return ""
 
 
 def is_remote_or_device(path: str) -> bool:
@@ -300,7 +369,7 @@ def _plain(text: str) -> str:
 
 
 
-_URL = re.compile(r"(?<![\w</])https?://[^\s<>\"'`\x00]+", re.IGNORECASE)
+_URL = re.compile(r"(?<![\w</])https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
 _URL_TRAILING = _TRAILING + "*_~"
 _URL_PAIRS = {")": "(", "]": "["}
 
@@ -336,6 +405,11 @@ def _link_url(match) -> str:
     target = (url.replace("(", "%28").replace(")", "%29").replace(" ", "%20")
               .replace("[", "%5B").replace("]", "%5D"))
     title = url.replace("\\", "\\\\").replace('"', '\\"')
+    chip = open_data_chip(url).replace(" ", "\u00a0")
+    if chip:
+
+
+        return f'[{escape_markdown_label(chip)}]({SOURCE_SCHEME}{target} "{title}")' + tail
     return f'[{escape_markdown_label(url_label(url))}]({target} "{title}")' + tail
 
 

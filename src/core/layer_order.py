@@ -458,28 +458,45 @@ def _root():
 
 
 
-STACK_BACKDROP, STACK_RASTER, STACK_POLYGON, STACK_LINE, STACK_POINT = 0, 1, 2, 3, 4
 
 
 
-STACK_LARGER_RATIO = 4.0
+
+
+
+
+def _stack_rules() -> dict:
+    from . import tuning
+
+    return tuning.service_doc("stack_rules") or {}
+
+
+def _rank_of(kind: str) -> int | None:
+    order = _stack_rules().get("order") or []
+    return order.index(kind) if kind in order else None
 
 
 def stack_rank(layer) -> int | None:
 
+    kind = stack_kind(layer)
+    return _rank_of(kind) if kind else None
+
+
+def stack_kind(layer) -> str | None:
+
     if layer is None:
         return None
     if is_backdrop(layer):
-        return STACK_BACKDROP
+        return "backdrop"
     try:
         from qgis.core import QgsRasterLayer, QgsVectorLayer
     except ImportError:
         return None
     if isinstance(layer, QgsRasterLayer):
-        return STACK_RASTER
+        return "raster"
     if not isinstance(layer, QgsVectorLayer):
 
-        return STACK_RASTER if hasattr(layer, "extent") else None
+        return "raster" if hasattr(layer, "extent") else None
     try:
         name = str(layer.geometryType())
         try:
@@ -491,12 +508,9 @@ def stack_rank(layer) -> int | None:
     except Exception:  # noqa: BLE001
         return None
     lowered = name.lower()
-    if "polygon" in lowered:
-        return STACK_POLYGON
-    if "line" in lowered:
-        return STACK_LINE
-    if "point" in lowered:
-        return STACK_POINT
+    for kind in ("polygon", "line", "point"):
+        if kind in lowered:
+            return kind
     return None
 
 
@@ -517,6 +531,10 @@ def stack_slot(rank: int, area: float | None, others: list[tuple]) -> int:
 
 
 
+    rules = _stack_rules()
+    ratio = rules.get("larger_ratio")
+    raster, polygon = _rank_of("raster"), _rank_of("polygon")
+    keep_raster = rules.get("raster_over_filled") is True and raster is not None and polygon is not None
     index = 0
     for position, other in enumerate(others):
         other_rank, other_area = other[0], other[1]
@@ -524,12 +542,12 @@ def stack_slot(rank: int, area: float | None, others: list[tuple]) -> int:
         if other_rank is None:
             continue
         if other_rank > rank:
-            if rank == STACK_RASTER and other_rank == STACK_POLYGON and other_fills:
+            if keep_raster and rank == raster and other_rank == polygon and other_fills:
                 break
             index = position + 1
             continue
-        if (other_rank == rank and area and other_area and area > 0 and other_area > 0
-                and area >= other_area * STACK_LARGER_RATIO):
+        if (ratio and other_rank == rank and area and other_area and area > 0 and other_area > 0
+                and area >= other_area * ratio):
             index = position + 1
             continue
         break
@@ -758,7 +776,7 @@ def place_new(layer, root=None) -> dict:
             keyed.append((None, None))
             continue
         other_rank = stack_rank(other)
-        if other_rank == STACK_POLYGON:
+        if other_rank is not None and stack_kind(other) == "polygon":
             ranked.append((other_rank, drawn_area(other), _paints_fill(other)))
         else:
             ranked.append((other_rank, drawn_area(other)))
