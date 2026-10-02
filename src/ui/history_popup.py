@@ -21,6 +21,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import os
@@ -52,6 +55,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .card_base import reduced_motion
+from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .shared import event_pos, keep_on_screen, screen_area_at
@@ -67,6 +71,7 @@ from .style import (
     MOTION_POP_MS,
     RADIUS_CARD,
     RADIUS_CHIP,
+    RED,
     SURFACE,
     hover_pill,
     paint_shadow,
@@ -76,7 +81,6 @@ from .widgets import IconButton
 
 
 
-SHEET_WIDTH = 300
 SHEET_MIN_WIDTH = 240
 SHEET_MARGIN = 24
 SHEET_TOP = 32
@@ -89,6 +93,7 @@ _SHADOW = 16
 _SEARCH_GLYPH = 14
 _MAX_ROWS = 60
 _POP_RISE = 4
+_BIN_PX = 28
 
 
 _QUERY_DEBOUNCE_MS = 100
@@ -314,11 +319,12 @@ class _Row(QWidget):
         row.addWidget(self._meta, 0, Qt.AlignmentFlag.AlignVCenter)
         self._delete = None
         if deletable:
+
+
             self._delete = IconButton(self, "trash", 14, tr("Delete chat"))
-            self._delete.setFixedSize(28, 28)
+            self._delete.setFixedSize(_BIN_PX, _BIN_PX)
             self._delete.clicked.connect(self.delete_clicked.emit)
             self._delete.hide()
-            row.addWidget(self._delete, 0, Qt.AlignmentFlag.AlignVCenter)
         self._elide()
 
     def set_selected(self, selected: bool) -> None:
@@ -336,22 +342,29 @@ class _Row(QWidget):
             return
         showing = self._hover or self._selected or self._current
         self._delete.setVisible(showing)
+        if showing:
+            self._delete.move(self.width() - _BIN_PX - 2, (self.height() - _BIN_PX) // 2)
+            self._delete.raise_()
 
         self._meta.setVisible(bool(self._full_meta) and not showing)
+        self._elide()
 
     def _elide(self) -> None:
         meta_width = 0
-        if self._full_meta:
+        bin_showing = self._delete is not None and self._delete.isVisibleTo(self)
+        if bin_showing:
+            meta_width = _BIN_PX - 4
+        elif self._full_meta:
             meta_width = min(_META_MAX_PX, self._meta.fontMetrics().horizontalAdvance(self._full_meta) + 4)
             self._meta.setText(self._meta.fontMetrics().elidedText(
                 self._full_meta, Qt.TextElideMode.ElideRight, max(24, meta_width)))
-        width = self.width() - 2 * _ROW_PAD_X - 32 - meta_width
+        width = self.width() - 2 * _ROW_PAD_X - meta_width - (8 if meta_width else 0)
         metrics = self._title.fontMetrics()
         self._title.setText(metrics.elidedText(self._full_title, Qt.TextElideMode.ElideRight, max(40, width)))
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
-        self._elide()
+        self._sync_delete() if self._delete is not None else self._elide()
 
     def enterEvent(self, event):  # noqa: N802
         self._hover = True
@@ -514,7 +527,7 @@ class HistoryPopup(QWidget):
 
     def show_over(self, panel: QWidget) -> None:
 
-        width = max(SHEET_MIN_WIDTH, min(SHEET_WIDTH, panel.width() - SHEET_MARGIN))
+        width = max(SHEET_MIN_WIDTH, panel.width() - SHEET_MARGIN)
         self._search.clear()
         self._text_cache.clear()
         self._limit = _MAX_ROWS
@@ -704,13 +717,13 @@ class HistoryPopup(QWidget):
         project = _project_name(path) or self.tr("Unsaved project")
 
 
+
+
         mine = _same_project(path, self._current_project)
-        meta = when if mine else project
-
-
-        stamp = str(item.get("updated_at") or item.get("updated_at_iso") or "")
-        if mine and not self._search.text().strip() and date_band(stamp) == BAND_YESTERDAY:
-            meta = ""
+        if self._search.text().strip():
+            meta = when if mine else project
+        else:
+            meta = "" if mine else project
         row = _Row(title, True, self._content, meta=meta)
         row.setToolTip("\n".join(p for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
         row.set_current(thread_id == self._current_thread)
@@ -783,6 +796,30 @@ class HistoryPopup(QWidget):
         self.thread_selected.emit(thread_id)
 
     def _on_delete(self, thread_id: str) -> None:
+
+
+        title = next((str(t.get("title") or "") for t in self._threads
+                      if str(t.get("id") or "") == thread_id), "")
+        host = self.parentWidget().window() if self.parentWidget() is not None else None
+
+        self.hide()
+        if not ask_confirm(
+            host,
+            window_title=self.tr("Delete chat"),
+            title=self.tr("Delete chat?"),
+            points=(("trash", self.tr('This deletes "{title}" and the project versions saved with it. '
+                                      "It cannot be undone.").format(title=title or self.tr("Untitled chat"))),),
+            cancel_text=self.tr("Cancel"),
+            confirm_text=self.tr("Delete chat"),
+            glyph="trash",
+            accent=RED,
+        ):
+
+            self.move(self._final)
+            self.setWindowOpacity(1.0)
+            self.show()
+            self._search.setFocus(Qt.FocusReason.PopupFocusReason)
+            return
         self._threads = [t for t in self._threads if str(t.get("id") or "") != thread_id]
         self._text_cache.pop(thread_id, None)
         self._rebuild()

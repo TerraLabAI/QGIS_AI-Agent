@@ -339,47 +339,73 @@ def _embedded_urls(text: str, skip_first: bool = False) -> list[str]:
     return found
 
 
-def _check_one_address(text: str) -> dict | None:
+def _read_address(text: str) -> tuple[dict | None, str]:
+
 
     stripped = text.strip()
     if stripped.lower().startswith(tuning.names("vsi_cloud", _VSI_CLOUD)):
         return _refusal("Cloud bucket handlers (/vsis3, /vsigs, /vsiaz, ...) are not opened by the agent: they "
                         "would spend the user's own cloud credentials.",
-                        "A public https URL, or a downloaded file, works instead.")
+                        "A public https URL, or a downloaded file, works instead."), ""
     kind, rest = security.unwrap_vsi(stripped)
     if kind == "refused":
-        return _refusal("The standard streams are not opened by the agent.", "A file or a URL works too.")
+        return _refusal("The standard streams are not opened by the agent.", "A file or a URL works too."), ""
     stripped = rest if kind == "remote" else stripped
     stripped = _DRIVER_PREFIX_RE.sub("", stripped).strip().strip('"\'')
     scheme = _scheme_of(stripped)
     if not scheme:
-        return None
+        return None, ""
     if scheme in tuning.names("denied_schemes", _DENIED_SCHEMES):
         return _refusal(f"{scheme}:// URLs are not fetched by the agent.",
-                        "An http(s) URL, or the local file attached or named, works instead.")
-    if scheme in ("http", "https"):
-        error = security.validate_url(stripped)
+                        "An http(s) URL, or the local file attached or named, works instead."), ""
+    return None, stripped if scheme in ("http", "https") else ""
+
+
+def _check_one_address(text: str) -> dict | None:
+
+    refusal, url = _read_address(text)
+    if refusal is None and url:
+        error = security.validate_url(url)
         if error:
             return _refusal(error, "")
-    return None
+    return refusal
 
 
-def _check_urls(args: dict) -> dict | None:
+def _addresses(args: dict):
+
     for text in _string_leaves(args):
-        problem = _check_one_address(text)
-        if problem:
-            return problem
+        yield text
 
 
 
 
         decoded = unquote(text)
         for variant in (text, decoded) if decoded != text else (text,):
-            for embedded in _embedded_urls(variant):
-                problem = _check_one_address(embedded)
-                if problem:
-                    return problem
+            yield from _embedded_urls(variant)
+
+
+def _check_urls(args: dict) -> dict | None:
+    for text in _addresses(args):
+        problem = _check_one_address(text)
+        if problem:
+            return problem
     return None
+
+
+def url_hosts(args: dict) -> list[str]:
+
+
+
+
+    hosts: list[str] = []
+    for text in _addresses(args):
+        refusal, url = _read_address(text)
+        if refusal is not None:
+            break
+        host = security.name_to_resolve(url) if url else ""
+        if host and host not in hosts:
+            hosts.append(host)
+    return hosts
 
 
 
@@ -790,8 +816,13 @@ _CREATE_COUNT_KEYS = ("count", "num_features", "number_of_points", "point_count"
 
 
 
+
+
+
+
 _OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fetch_overture",
-                             "create_grid_layer", "add_data", "map_drainage"})
+                             "create_grid_layer", "add_data", "map_drainage",
+                             "add_cog_layer", "add_stac_layer"})
 
 
 

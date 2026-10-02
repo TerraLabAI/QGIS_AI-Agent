@@ -57,10 +57,10 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, Qt, QTime
 
 from ..core import net
+from ..core.background import run_on_main_thread
 from ..core.context import _temporal_range
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 from .query_tools import STATS_CHUNK
 
@@ -905,24 +905,24 @@ def _set_layer_temporal(args: dict) -> dict:
         return plan
     cancelled = net.current_cancel_check()
     try:
-        state = _run_on_main_thread(_open, args, plan, timeout=60)
+        state = run_on_main_thread(_open, args, plan, timeout=60)
         if "_error" in state:
             return state
         if plan["kind"] == "off":
-            return _run_on_main_thread(_switch_off, state, timeout=60)
+            return run_on_main_thread(_switch_off, state, timeout=60)
         if plan["kind"] in ("field", "expression"):
             try:
                 while True:
                     if cancelled is not None and cancelled():
                         return _stopped()
-                    if _run_on_main_thread(_read, state, timeout=120):
+                    if run_on_main_thread(_read, state, timeout=120):
                         break
             finally:
-                _run_on_main_thread(_close, state, timeout=30)
+                run_on_main_thread(_close, state, timeout=30)
         setting = _decide(state)
         if "_error" in setting:
             return setting
-        return _run_on_main_thread(_apply, state, setting, timeout=60)
+        return run_on_main_thread(_apply, state, setting, timeout=60)
     except InterruptedError:
         return _stopped()
 

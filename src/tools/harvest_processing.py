@@ -215,7 +215,7 @@ def _run_or_defer(alg_id: str, params: dict, output_name: str):
 
 
 
-    from .processing_tools import _heavy_inputs, _start_async_processing
+    from .processing_run import _heavy_inputs, _start_async_processing
 
     if _heavy_inputs(params):
         alg = QgsApplication.processingRegistry().algorithmById(alg_id)
@@ -739,7 +739,7 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    from .processing_tools import _ASYNC_PIXELS, _start_async_processing
+    from .processing_run import _ASYNC_PIXELS, _start_async_processing
 
     pixels = cols * rows
 
@@ -879,7 +879,7 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    from .processing_tools import raster_file_problem
+    from .processing_run import raster_file_problem
 
     problem = raster_file_problem(output_path)
     if problem:

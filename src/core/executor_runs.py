@@ -11,7 +11,7 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import background, code_guard, layout_show, licence, limits, machine, stalls
+from . import background, code_guard, layer_egress, layout_show, licence, limits, machine, stalls
 from .checkpoints import KIND_AFTER
 from .context import stamp_thread
 from .executor_idempotency import IdempotencyTable
@@ -98,20 +98,15 @@ class _ExecutorRuns:
 
 
 
+        if not who:
+            return
 
-        if who:
 
 
-
-            sentence = (f"QGIS stopped answering for {seconds:.0f} seconds during {who}. The window "
-                        "was frozen for that long, so this one call is refused.")
-        else:
-            sentence = (f"QGIS stopped answering for {seconds:.0f} seconds, with no tool call of this "
-                        "run in flight. Nothing is refused; the window was busy with something else.")
+        sentence = (f"QGIS stopped answering for {seconds:.0f} seconds during {who}. The window "
+                    "was frozen for that long, so this one call is refused.")
         for run_id in list(self._run_mode):
-            if who:
-                self._blocked[run_id] = sentence
-            self.run_blocked.emit(run_id, sentence)
+            self._blocked[run_id] = sentence
 
     def _on_main_thread_stalled(self, seconds: float, where: str) -> None:
 
@@ -130,6 +125,15 @@ class _ExecutorRuns:
         if send is not None:
             send(seconds, where, calls)
 
+    def _on_main_thread_thawed(self, seconds: float) -> None:
+
+
+        if not self._run_mode:
+            return
+        send = getattr(self._session, "send_busy", None)
+        if send is not None:
+            send(seconds, "", "", True)
+
     def _sweep_deadlines(self, now: float | None = None) -> None:
 
         if self._waiting_for_history and self._table.ready and not self._closed:
@@ -138,7 +142,10 @@ class _ExecutorRuns:
                 self.handle_tool_call(call)
         if self._held:
             self._read_held()
-        if not (self._run_mode or self._inflight or self._background or self._waiting_for_history or self._held):
+        if self._queued:
+            self._take_turns()
+        if not (self._run_mode or self._inflight or self._background or self._waiting_for_history or self._held
+                or self._queued):
 
 
 
@@ -233,7 +240,6 @@ class _ExecutorRuns:
         log_warning(sentence)
         if run_id:
             self._blocked[run_id] = sentence
-            self.run_blocked.emit(run_id, sentence)
 
 
 
@@ -251,6 +257,8 @@ class _ExecutorRuns:
 
 
         self._refresh_proxy()
+
+        self.record_pending_after()
         self._run_mode[run_id] = (mode, approval)
         self._threads[run_id] = thread_id or ""
 
@@ -259,6 +267,7 @@ class _ExecutorRuns:
         self._touched[run_id] = set()
         self._cancelled.pop(run_id, None)
         self._blocked.pop(run_id, None)
+        layer_egress.begin_run(run_id)
         if guards is not None:
             self._budgets[run_id] = guards.RunBudget()
         self.follower.enabled = bool(getattr(self._settings, "follow_edits", True))
@@ -288,7 +297,8 @@ class _ExecutorRuns:
                 log_warning(f"Canvas follower not halted on Stop: {exc}")
             self._cancel_tasks(run_id)
         self._drop_held(run_id)
-        for tool_call_id, (task_run, task) in list(self._background.items()):
+        self._drop_queued(run_id)
+        for tool_call_id, (task_run, task, _call) in list(self._background.items()):
             if task_run == run_id:
                 self._background.pop(tool_call_id, None)
                 background.cancel(task)
@@ -350,6 +360,7 @@ class _ExecutorRuns:
         self._background.clear()
         self._inflight.clear()
         self._held.clear()
+        self._queued.clear()
         self._listen_tasks(False)
         self.watchdog.stop()
         background.cancel_all()
@@ -394,9 +405,11 @@ class _ExecutorRuns:
 
         if (any(c.get("run_id") == run_id for c in [*self._pending.values(), *self._questions.values()])
                 or any(c.get("run_id") == run_id for c in self._waiting_for_history.values())
-                or any(task_run == run_id for task_run, _task in self._background.values())
-                or any(entry[0].get("run_id") == run_id for entry in self._held.values())):
+                or any(task_run == run_id for task_run, _task, _call in self._background.values())
+                or any(entry[0].get("run_id") == run_id for entry in self._held.values())
+                or run_id in self._queued):
             self.cancel_run(run_id, halt=False)
+        layer_egress.end_run(run_id)
         self._run_mode.pop(run_id, None)
         self._touched.pop(run_id, None)
         self._budgets.pop(run_id, None)
@@ -458,6 +471,8 @@ class _ExecutorRuns:
 
 
 
+
+
         try:
             diff = snapshot.diff()
         except Exception as exc:  # noqa: BLE001
@@ -470,6 +485,29 @@ class _ExecutorRuns:
 
         if not diff_changed(diff):
             return
+        self._after_pending = (run_id, thread_id, run_index, snapshot, changed, changed_layer_items(diff), prompt)
+
+    def record_pending_after(self) -> bool:
+
+
+
+
+
+
+
+        pending, self._after_pending = self._after_pending, None
+        if pending is None:
+            return False
+        run_id, thread_id, run_index, snapshot, changed, items, prompt = pending
+        with stalls.probe("executor.record_after"):
+            return self._capture_after(run_id, thread_id, run_index, snapshot, changed, items, prompt)
+
+    def drop_pending_after(self) -> None:
+
+        self._after_pending = None
+
+    def _capture_after(self, run_id: str, thread_id: str, run_index: int, snapshot: RunSnapshot,
+                       changed: int, items: list, prompt: str) -> bool:
 
 
 
@@ -481,7 +519,7 @@ class _ExecutorRuns:
         if moved:
             try:
                 if not diff_changed(current.snapshot.diff()):
-                    return
+                    return False
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Snapshot diff against the restored point failed: {exc}")
         after = RunSnapshot(f"{run_id or 'run'}-after")
@@ -499,7 +537,8 @@ class _ExecutorRuns:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"After-run file copies failed: {exc}")
             self.history.add(thread_id, KIND_AFTER, run_id, run_index, after, changed,
-                             changed_layer_items(diff), prompt, fork=not moved)
+                             items, prompt, fork=not moved)
+        return captured
 
     def snapshot_for(self, run_id: str) -> RunSnapshot | None:
         return self._snapshots.get(run_id)

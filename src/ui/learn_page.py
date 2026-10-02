@@ -32,8 +32,8 @@ import hashlib
 import os
 import tempfile
 
-from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QObject, QRectF, QSize, Qt, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPainterPath, QPixmap
+from qgis.PyQt.QtCore import QCoreApplication, QObject, QRectF, QSize, Qt, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QFrame,
@@ -47,6 +47,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.host_platform import retry_file_op
 from .font_scale import scale_px_length
 from .icons import pixmap_for
+from .image_guard import read_bounded_image
 from .settings_pages import HAIRLINE, MUTED, ROW_NOTE_QSS, Page
 from .shared import PLUGIN_CACHE_DIR, event_pos, get_learn_items, resolve_qt_enum
 from .style import ACCENT_BORDER, ACCENT_TINT, FONT_BASE, FONT_HINT, RADIUS_CARD
@@ -113,23 +114,7 @@ def cached_thumbnail(url: str) -> QImage | None:
             data = handle.read(MAX_THUMBNAIL_BYTES)
     except OSError:
         return None
-    return _read_bounded_image(data)
-
-
-def _read_bounded_image(data: bytes) -> QImage | None:
-
-    try:
-        buffer = QBuffer()
-        buffer.setData(QByteArray(data))
-        buffer.open(QIODevice.OpenModeFlag.ReadOnly)
-        reader = QImageReader(buffer)
-        size = reader.size()
-        if size.isValid() and size.width() * size.height() > 16 * 1024 * 1024:
-            return None
-        image = reader.read()
-        return None if image.isNull() else image
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        return None
+    return read_bounded_image(data, 16 * 1024 * 1024)
 
 
 def store_thumbnail(url: str, data: bytes) -> None:
@@ -229,7 +214,7 @@ class ThumbnailLoader(QObject):
             pass
         if not data or len(data) > MAX_THUMBNAIL_BYTES:
             return
-        image = _read_bounded_image(data)
+        image = read_bounded_image(data, 16 * 1024 * 1024)
         if image is None:
             return
         store_thumbnail(self._url, data)
@@ -371,9 +356,8 @@ class LearnPage(Page):
 
     def __init__(self, parent=None):
         super().__init__(
-            parent.tr("Tutorials") if parent is not None else "Tutorials",
-            parent.tr("Videos and guides to get started. They open in your browser.")
-            if parent is not None else "",
+            QCoreApplication.translate("LearnPage", "Tutorials"),
+            QCoreApplication.translate("LearnPage", "Videos and guides to get started. They open in your browser."),
             parent)
         items = [i for i in get_learn_items() if str(i.get("url") or "").startswith("https://")]
         if not items:

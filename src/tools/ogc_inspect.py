@@ -297,7 +297,7 @@ def attach_layer_in_link(answer: dict, pasted: str, request: dict) -> dict:
     if service == "WFS" and request["request"].lower() == "getfeature":
         out["direct_download"] = {"tool": "add_vector_from_url", "args": {"url": pasted}}
         said += (" The link itself is a feature download: direct_download loads exactly what it asks for as "
-                 "a file, while layer_in_link streams the layer from the service.")
+                 "a file, while layer_in_link loads the layer from the service through add_data.")
     out["message"] = said + (" " + str(answer.get("message")) if answer.get("message") and recognized else "")
     return out
 

@@ -54,7 +54,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     unsteer_requested = pyqtSignal(str, str)
 
     queue_send_requested = pyqtSignal(str, object, object)
-    edit_requested = pyqtSignal(str)
     undo_retry_requested = pyqtSignal(str)
 
 
@@ -64,8 +63,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     question_auto_answered = pyqtSignal(str, int)
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
-    feedback = pyqtSignal(str, bool)
-    feedback_reason = pyqtSignal(str, str, str)
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal(str, bool)
 
@@ -138,9 +135,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
         self._run_requests: dict[str, str] = {}
 
-
-        self._last_user_bubble = None
-        self._edit_available = False
         self._error_cards: dict = {}
         self._explain_runs = True
         self._show_tool_details = True

@@ -31,12 +31,13 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import net
+from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.links import host_is
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import stac_tools as _stac
 from . import volume_guard
-from .data_tools import _run_on_main_thread
+from .data_common import built_here, worker_options
 from .harvest_view import _extent_dict, _feature_count
 
 _ARCGIS_URL_RE = re.compile(
@@ -169,13 +170,15 @@ def _arcgis_query_params(url: str) -> tuple[str, str]:
     return ("" if where == "1=1" else where), query.get("token", "").strip()
 
 
-def _box_in(box: list, crs) -> list:
+def _box_in(box: list, crs, context=None) -> list:
+
 
 
     rect = QgsRectangle(box[0], box[1], box[2], box[3])
     wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
     if crs.isValid() and crs != wgs84:
-        rect = QgsCoordinateTransform(wgs84, crs, QgsProject.instance()).transformBoundingBox(rect)
+        rect = QgsCoordinateTransform(wgs84, crs, context if context is not None
+                                      else QgsProject.instance()).transformBoundingBox(rect)
     return [rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()]
 
 
@@ -334,6 +337,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
 
 
 
+
     def _native_crs():
 
         native = QgsCoordinateReferenceSystem(_arcgis_wkid(info or {}) or "")
@@ -345,22 +349,33 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         if token:
             probe.setParam("token", token)
         probe.setSql("1=0")
-        return QgsVectorLayer(probe.uri(False), "probe", "arcgisfeatureserver").crs()
+
+        return QgsVectorLayer(probe.uri(False), "probe", "arcgisfeatureserver", worker_options()).crs()
+
+
+    context = (run_on_main_thread(lambda: QgsProject.instance().transformContext(), timeout=10)
+               if box is not None and kind == "feature" else None)
+
+    def _feature_layer(options):
+        uri = QgsDataSourceUri()
+        uri.setParam("url", url)
+        uri.setParam("crs", crs or _arcgis_wkid(info or {}) or "EPSG:4326")
+        if box is not None:
+
+
+            uri.setParam("bbox", ",".join(repr(part) for part in _box_in(box, _native_crs(), context)))
+        if token:
+            uri.setParam("token", token)
+        if where:
+            uri.setSql(where)
+        return QgsVectorLayer(uri.uri(False), name, "arcgisfeatureserver", options)
+
+    built = built_here(lambda: _feature_layer(worker_options())) if kind == "feature" else None
 
     def _create():
         uri = QgsDataSourceUri()
         if kind == "feature":
-            uri.setParam("url", url)
-            uri.setParam("crs", crs or _arcgis_wkid(info or {}) or "EPSG:4326")
-            if box is not None:
-
-
-                uri.setParam("bbox", ",".join(repr(part) for part in _box_in(box, _native_crs())))
-            if token:
-                uri.setParam("token", token)
-            if where:
-                uri.setSql(where)
-            layer = QgsVectorLayer(uri.uri(False), name, "arcgisfeatureserver")
+            layer = built if built is not None else _feature_layer(QgsVectorLayer.LayerOptions())
         else:
             uri.setParam("url", root)
             if layer_id is not None:
@@ -402,7 +417,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         QgsProject.instance().addMapLayer(layer)
         return _describe_added(layer, kind, url)
 
-    out = _run_on_main_thread(_create, timeout=120)
+    out = run_on_main_thread(_create, timeout=120)
     if out.get("_error"):
         return out
     out["service"] = service

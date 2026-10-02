@@ -24,7 +24,7 @@ from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
 from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
-from .style import ACCENT, LINE_STRONG, RADIUS_CARD, SURFACE
+from .style import ACCENT, INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
 
 
 
@@ -40,6 +40,7 @@ _SHEET_QSS = _POPOVER_QSS + (
     f"QFrame#attachPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
     "QFrame#attachPopover QLabel#exampleTitle { font-weight: 500; }"
+    f"QFrame#attachPopover QLabel#exampleTitle:disabled {{ color: {INK_3}; }}"
 )
 
 
@@ -112,12 +113,29 @@ class AttachPopover(QFrame):
         self._add_row(
             _Row("photo_file", FILES_ACCENT, self.tr("Add photos & files"), "", "", self),
             self.add_files_requested)
+        self._layer_row = _Row(
+            "layers", LAYER_ACCENT, self.tr("Attach a layer of this project"), "", "", self)
         self._add_row(
 
 
 
-            _Row("layers", LAYER_ACCENT, self.tr("Attach a layer of this project"), "", "", self),
+            self._layer_row,
             self.add_layer_requested)
+
+    def set_layers_available(self, available: bool) -> None:
+
+
+
+
+
+
+
+        row = self._layer_row
+        row.setEnabled(bool(available))
+        row.setCursor(Qt.CursorShape.PointingHandCursor if available else Qt.CursorShape.ArrowCursor)
+        row._full_note = "" if available else self.tr("No layers in this project yet.")
+        row._note.setVisible(not available)
+        row._elide()
 
     def _add_row(self, row: _Row, signal) -> None:
         row.clicked.connect(lambda: self._choose(signal))
@@ -173,6 +191,7 @@ class AttachPopover(QFrame):
             self._set_focus((self._focus + step) % len(self._rows))
             return
         if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and 0 <= self._focus < len(self._rows):
-            self._rows[self._focus].clicked.emit()
+            if self._rows[self._focus].isEnabled():
+                self._rows[self._focus].clicked.emit()
             return
         super().keyPressEvent(event)

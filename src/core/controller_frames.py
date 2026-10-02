@@ -7,10 +7,9 @@
 from __future__ import annotations
 
 import json
-import re
 import time
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from ..api.account import usage_to_runs
 from . import telemetry
@@ -79,21 +78,39 @@ class _ControllerFrames:
         if state == "signed_out" and self._account.has_activation_key:
 
             self._account.refresh_activation_async(force=True)
+        elif state == "offline" and self._account.has_activation_key and not self._session.closed_on_purpose:
+
+
+            self._account.refresh_activation_async()
         if state in ("offline", "connecting"):
-            if self._run is not None and not self._conn_lost_timer.isActive():
+            if self._link_notice:
+                self._say_connection_lost()
+            elif self._run is not None and not self._conn_lost_timer.isActive():
                 self._conn_lost_timer.start()
         else:
             self._conn_lost_timer.stop()
+            if self._link_notice:
+                self._link_notice = ""
+                if self._run is not None:
+                    self._panel_call("set_link_notice", self._run["run_id"], "")
 
     def _say_connection_lost(self) -> None:
-        if self._run is not None:
 
-            self._panel_call("set_status_line", self._run["run_id"], tr("Connection lost. Reconnecting..."))
+
+        if self._run is None:
+            return
+        cause = getattr(self._session, "link_cause", None)
+        if callable(cause) and cause() == "internet":
+            text = tr("No internet connection. Retrying.")
+        else:
+            text = tr("TerraLab is restarting. Your task will resume.")
+        if text != self._link_notice:
+
+            self._link_notice = text
+            self._panel_call("set_link_notice", self._run["run_id"], text)
 
     def _on_session_started(self, session: dict) -> None:
         self._session_error_shown = None
-
-        self._panel_call("set_edit_available", self._session.edit_last_available)
         resumed = bool(session.get("resumed"))
         action = self._runs.session_started(session.get("resumed"))
         run = self._run
@@ -119,7 +136,7 @@ class _ControllerFrames:
             self._lost_timer.start(RESUME_OUTCOME_MS)
         elif action == AWAIT_RESUME:
             self._panel_call("set_status_line", run["run_id"],
-                             tr("Reconnected. Waiting for the agent service to resume the run..."))
+                             tr("Reconnected. Waiting for TerraLab to resume the run..."))
             self._touch_watchdog(RESUME_GRACE_S)
         self._panel_call("set_model_label", str(session.get("model_label") or ""))
 
@@ -128,8 +145,11 @@ class _ControllerFrames:
         set_plan_features(session.get("plan_features"))
 
 
-
-        self._panel_call("set_paid_plan", not bool(session.get("is_free_tier", True)))
+        paid = self._settings.last_paid
+        if "is_free_tier" in session:
+            paid = not bool(session.get("is_free_tier"))
+            self._settings.last_paid = paid
+        self._panel_call("set_paid_plan", paid)
 
 
 
@@ -210,6 +230,7 @@ class _ControllerFrames:
         quota = session.get("quota") if isinstance(session.get("quota"), dict) else None
         if quota:
             self._on_usage(quota)
+            self._account.note_session_accepted()
         log(f"Session {str(session.get('session_id') or '')[:8]} online, model {session.get('model_label')}")
 
     def _on_usage(self, usage: dict) -> None:
@@ -320,8 +341,10 @@ class _ControllerFrames:
             return
         if not getattr(spec(str(call.get("name") or "")), "waits_on_user", False):
 
-            self._panel_call("add_tool_call", tool_call_id, run_id, str(call.get("name") or ""), args,
-                             str(call.get("danger") or "read"), str(call.get("sentence") or ""))
+
+
+            self._panel_later("add_tool_call", tool_call_id, run_id, str(call.get("name") or ""), args,
+                              str(call.get("danger") or "read"), str(call.get("sentence") or ""))
         else:
             self._question_args[tool_call_id] = args
         self._text_break[run_id] = True
@@ -343,6 +366,8 @@ class _ControllerFrames:
         if run_id not in self._agent_text:
             return
         tool_call_id = str(frame.get("tool_call_id") or "")[:256]
+        if self._panel_queue:
+            self._drain_panel()
         cards = getattr(getattr(self._panel, "message_list", None), "tool_card", None)
         if callable(cards) and cards(tool_call_id) is not None:
             return
@@ -384,9 +409,16 @@ class _ControllerFrames:
                 "detail": detail, "server_side": True})
 
     def _on_tool_started(self, call: dict) -> None:
+
+
+
+
+
         self._pause_watchdog()
-        self._panel_call("set_status_line", str(call.get("run_id") or ""),
-                         str(call.get("sentence") or call.get("name") or ""))
+        tool_call_id = str(call.get("tool_call_id") or "")
+        if tool_call_id in self._poll_calls:
+            return
+        self._panel_later("show_call_running", str(call.get("run_id") or ""), tool_call_id)
 
     def _on_tool_finished(self, tool_call_id: str, ok: bool, summary: str, duration: float, detail: str,
                           result=None) -> None:
@@ -400,7 +432,7 @@ class _ControllerFrames:
             self._call_names.pop(tool_call_id, None)
             self._touch_watchdog()
             return
-        self._panel_call("finish_tool_call", tool_call_id, ok, summary, duration, detail, result)
+        self._panel_later("finish_tool_call", tool_call_id, ok, summary, duration, detail, result)
         run_id = self._runs.close_call(tool_call_id)
         self._call_names.pop(tool_call_id, None)
         self._touch_watchdog()
@@ -417,6 +449,10 @@ class _ControllerFrames:
         addresses = self._executor.unvouched_for(tool_call_id)
 
         grant = self._executor.grant_for(tool_call_id)
+        if self._executor.covers_answer(tool_call_id):
+
+
+            grant = f"{grant} answer".strip()
 
         group = self._executor.card_group(tool_call_id)
         extra = [addresses or None, grant, group]
@@ -531,23 +567,6 @@ class _ControllerFrames:
         else:
             self._panel_call("resolve_permission", tool_call_id, decision)
 
-    def _on_run_blocked(self, run_id: str, sentence: str) -> None:
-
-
-
-
-
-
-        run = self._run
-        if run is None or run["run_id"] != run_id:
-            return
-        match = re.search(r"(\d+) seconds", str(sentence or ""))
-        if match:
-            text = tr("QGIS stopped responding for {n} seconds during this run.").format(n=match.group(1))
-        else:
-            text = tr("QGIS stopped responding for a while during this run.")
-        self._panel_optional("note_run_blocked", run_id, text)
-
     def _on_run_end(self, run_id: str, status: str, summary: str, usage: dict, verification) -> None:
         if run_id not in self._agent_text:
 
@@ -604,6 +623,9 @@ class _ControllerFrames:
                     self._question_args.pop(tool_call_id, None)
                     self._poll_calls.discard(tool_call_id)
                 self._release_composer()
+
+
+        QTimer.singleShot(0, self._record_after_point)
         if closing:
 
             self._restore_after_run(run_id)
@@ -613,6 +635,14 @@ class _ControllerFrames:
                 pass
 
             self._flush_steers(run_id)
+
+    def _record_after_point(self) -> None:
+
+        try:
+            if self._executor.record_pending_after():
+                self._send_history()
+        except Exception as exc:  # noqa: BLE001
+            report_exception(exc, "record_after_point", module=__name__)
 
     def _release_composer(self) -> None:
 
@@ -651,7 +681,9 @@ class _ControllerFrames:
 
 
 
-        run_changes = run_change_items(self._executor.ended_run_report(run_id, snapshot), touched)
+
+        answer = self._agent_text.get(run_id, "")[self._answer_start.get(run_id, 0):]
+        run_changes = run_change_items(self._executor.ended_run_report(run_id, snapshot), touched, answer)
         if isinstance(verification, dict):
             for key in ("lines", "checks", "items"):
                 if isinstance(verification.get(key), (list, tuple)):
@@ -692,6 +724,10 @@ class _ControllerFrames:
             "output_tokens": usage.get("output_tokens"), "cached_tokens": usage.get("cached_tokens"),
             "cost_eur": usage.get("cost_eur"),
             "review_lines": len(lines) + len(changes), "snapshot": bool(snapshot and snapshot.captured)})
+
+
+        if status == RunStatus.DONE and telemetry.first_run_recorded():
+            telemetry.track(ev.FIRST_RUN_MILESTONE, {"run_id": run_id})
         thread_id = (self._run or {}).get("thread_id") or self._thread_id
         if thread_id:
             self._store.update_agent_message(thread_id, run_id, {
@@ -714,7 +750,7 @@ class _ControllerFrames:
     def _on_server_error(self, error: dict) -> None:
         run_id = error.get("run_id")
         code = str(error.get("code") or ServerErrorCode.INTERNAL)
-        message = str(error.get("message") or tr("The agent service reported an error."))
+        message = str(error.get("message") or tr("TerraLab reported an error."))
         retryable = bool(error.get("retryable"))
         run = self._run
         if (code == ServerErrorCode.BUSY and retryable

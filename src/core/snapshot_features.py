@@ -815,7 +815,8 @@ def feature_signatures(layer, budget: int, deadline: float | None = None) -> dic
     return reader.out
 
 
-class _SignatureReader(threading.Thread):
+class _SignatureReader:
+
 
 
 
@@ -823,13 +824,17 @@ class _SignatureReader(threading.Thread):
 
 
     def __init__(self, source, request):
-        super().__init__(name="AI Agent snapshot signatures", daemon=True)
         self._source = source
         self._request = request
         self.connected = threading.Event()
         self.done = threading.Event()
         self.stop = threading.Event()
         self.out: dict | None = None
+
+    def start(self) -> None:
+        from . import background
+
+        background.start_kept_thread(self.run, name="AI Agent snapshot signatures")
 
     def run(self) -> None:
         out: dict | None = {}

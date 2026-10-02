@@ -8,8 +8,11 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import math
 import os
+import sqlite3
 import uuid
 import zipfile
 from urllib.parse import quote, unquote
@@ -120,6 +123,9 @@ def register_gis_case_tools(registry: ToolRegistry):
                     "format": {"type": "string", "enum": ["zip", "gpkg"]},
                 },
                 "required": ["output_path"],
+
+
+                "x-zip-relinked": True,
             },
             handler=_package_project,
             background=True,
@@ -347,15 +353,104 @@ def _arcname(path: str, project_dir: str) -> str:
 
 
 
-
-
     try:
         common = os.path.commonpath([project_dir, path])
         if os.path.normcase(os.path.normpath(common)) == os.path.normcase(os.path.normpath(project_dir)):
-            return os.path.relpath(path, project_dir)
+            return os.path.relpath(path, project_dir).replace(os.sep, "/")
     except ValueError:
         pass
-    return os.path.basename(path)
+    return ""
+
+
+def _path_key(path: str) -> str:
+    return os.path.normcase(os.path.abspath(path))
+
+
+
+
+
+_STEM_SIDECARS = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".csvt", ".tfw", ".tifw", ".tiffw",
+                  ".wld", ".jgw", ".pgw", ".j2w", ".hdr", ".rrd", ".aux", ".qml", ".qmd")
+_NAME_SIDECARS = (".aux.xml", ".ovr", ".msk", ".xml")
+
+
+def _sidecars(path: str) -> list:
+    stem = os.path.splitext(path)[0]
+    found = []
+    for candidate in [stem + suffix for suffix in _STEM_SIDECARS] + [path + suffix for suffix in _NAME_SIDECARS]:
+        if _path_key(candidate) != _path_key(path) and os.path.isfile(candidate) and candidate not in found:
+            found.append(candidate)
+    return found
+
+
+def _archive_places(project_path: str, project_dir: str, paths: list) -> list:
+
+
+
+
+
+
+
+    places: list = []
+    taken = {os.path.basename(project_path).lower()}
+    placed: set = set()
+    outside: dict = {}
+
+    def add(path: str, arcname: str) -> None:
+        places.append((path, arcname))
+        taken.add(arcname.lower())
+        placed.add(_path_key(path))
+
+    for path in sorted(paths):
+        group = [path] if path.lower().endswith(_SQLITE_FILES) else [path, *_sidecars(path)]
+        if _arcname(path, project_dir):
+            for member in group:
+                if _path_key(member) not in placed:
+                    add(member, _arcname(member, project_dir))
+        else:
+            folder = outside.setdefault(_path_key(os.path.dirname(path)), [])
+            folder.extend(member for member in group if member not in folder)
+    for files in outside.values():
+        files = [member for member in files if _path_key(member) not in placed]
+        prefix, number = "", 1
+        while any(f"{prefix}{os.path.basename(member)}".lower() in taken for member in files):
+            number += 1
+            prefix = f"external-{number}/"
+        for member in files:
+            add(member, prefix + os.path.basename(member))
+    return places
+
+
+def _moved_source(layer, old_path: str, new_path: str):
+
+    source = layer.source() or ""
+    try:
+        from qgis.core import QgsProviderRegistry
+
+        registry = QgsProviderRegistry.instance()
+        parts = registry.decodeUri(layer.providerType(), source)
+        if isinstance(parts, dict) and parts.get("path"):
+            parts["path"] = new_path
+            encoded = registry.encodeUri(layer.providerType(), parts)
+            if encoded:
+                return encoded
+    except Exception:  # noqa: BLE001
+        parts = None
+    if old_path and old_path in source:
+        return source.replace(old_path, new_path, 1)
+    return None
+
+
+def _not_packed(layer, path: str) -> str:
+
+    provider = layer.providerType()
+    if provider == "memory":
+        return "a temporary layer with no file: the unzipped project has it without features"
+    if path and os.path.isdir(path):
+        return f"a folder dataset ({os.path.basename(os.path.normpath(path))}); only files are packed"
+    if path and os.path.isabs(path) and "://" not in path:
+        return f"its file was not found at {path}"
+    return f"not a local file ({provider}): it still reads from its source where the project opens"
 
 
 def _package_project_snapshot(args: dict) -> dict:
@@ -387,20 +482,136 @@ def _package_project_snapshot(args: dict) -> dict:
 
 
 
-    seen: dict = {os.path.normcase(os.path.abspath(project_path)): project_path}
+    local: dict = {}
+    layer_files = []
     skipped = []
     for layer in project.mapLayers().values():
         path = _source_path(layer)
         if path and os.path.isfile(path):
-            seen.setdefault(os.path.normcase(os.path.abspath(path)), path)
+            local.setdefault(_path_key(path), path)
+            layer_files.append((layer, path))
         else:
-            skipped.append(layer.name())
+            skipped.append({"layer": layer.name(), "reason": _not_packed(layer, path)})
+    places = _archive_places(project_path, project_dir, list(local.values()))
+    where = {_path_key(path): arcname for path, arcname in places}
+
+
+
+
+
+    from qgis.core import QgsPathResolver, QgsReadWriteContext
+    from qgis.PyQt.QtCore import QFileInfo
+
+    base = QFileInfo(project_path).canonicalPath() or QFileInfo(project_path).absolutePath()
+    context = QgsReadWriteContext()
+    context.setPathResolver(QgsPathResolver(project_path))
+    sources = {}
+    for layer, path in layer_files:
+        moved = _moved_source(layer, path, f"{base}/{where[_path_key(path)]}")
+        if moved is None:
+            skipped.append({"layer": layer.name(), "reason": "its file is in the archive, but the zipped project "
+                                                             "still names its old place"})
+            continue
+        sources[layer.id()] = [layer.name(), layer.encodedSource(moved, context)]
     return {
         "output": output,
-        "project_dir": project_dir,
-        "local": sorted(set(seen.values())),
+        "project_path": project_path,
+        "places": places,
+        "sources": sources,
         "skipped": skipped,
     }
+
+
+
+
+
+
+_SQLITE_FILES = (".gpkg", ".sqlite")
+
+
+def _sqlite_copy(path: str, beside: str) -> str:
+
+
+    try:
+        source = sqlite3.connect(path)
+        try:
+            target = sqlite3.connect(beside)
+            try:
+                source.backup(target)
+            finally:
+                target.close()
+        finally:
+            source.close()
+        return beside
+    except sqlite3.Error:
+        with contextlib.suppress(OSError):
+            os.unlink(beside)
+        return path
+
+
+def _relinked_qgs(data: bytes, sources: dict) -> tuple:
+
+    from qgis.PyQt.QtCore import QByteArray
+    from qgis.PyQt.QtXml import QDomDocument
+
+    doc = QDomDocument()
+    doc.setContent(QByteArray(data))
+    if doc.documentElement().isNull():
+        return data, set()
+    found = set()
+    layers = doc.elementsByTagName("maplayer")
+    for index in range(layers.count()):
+        element = layers.at(index).toElement()
+        entry = sources.get(element.firstChildElement("id").text())
+        datasource = element.firstChildElement("datasource")
+        if entry is None or datasource.isNull():
+            continue
+        while datasource.hasChildNodes():
+            datasource.removeChild(datasource.firstChild())
+        datasource.appendChild(doc.createTextNode(entry[1]))
+        found.add(element.firstChildElement("id").text())
+    nodes = doc.elementsByTagName("layer-tree-layer")
+    for index in range(nodes.count()):
+        element = nodes.at(index).toElement()
+        entry = sources.get(element.attribute("id"))
+        if entry is not None and element.hasAttribute("source"):
+            element.setAttribute("source", entry[1])
+
+    absolute = _property(_property(doc.documentElement().firstChildElement("properties"), "Paths"), "Absolute")
+    if not absolute.isNull():
+        while absolute.hasChildNodes():
+            absolute.removeChild(absolute.firstChild())
+        absolute.appendChild(doc.createTextNode("false"))
+    return bytes(doc.toByteArray(2)), found
+
+
+def _property(element, name: str):
+
+    child = element.firstChildElement()
+    while not child.isNull():
+        if child.tagName() == name or (child.tagName() == "properties" and child.attribute("name") == name):
+            return child
+        child = child.nextSiblingElement()
+    return child
+
+
+def _project_copy(project_path: str, sources: dict) -> tuple:
+
+
+
+
+    if not project_path.lower().endswith(".qgz"):
+        with open(project_path, "rb") as handle:
+            return _relinked_qgs(handle.read(), sources)
+    found: set = set()
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(project_path) as source, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as target:
+        for info in source.infolist():
+            data = source.read(info.filename)
+            if info.filename.lower().endswith(".qgs"):
+                data, found = _relinked_qgs(data, sources)
+            target.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
+    return buffer.getvalue(), found
 
 
 def _package_project(args: dict) -> dict:
@@ -421,8 +632,8 @@ def _package_project(args: dict) -> dict:
     if "_error" in snapshot:
         return snapshot
     output = snapshot["output"]
-    project_dir = snapshot["project_dir"]
-    local = snapshot["local"]
+    project_path = snapshot["project_path"]
+    sources = snapshot["sources"]
     skipped = snapshot["skipped"]
     folder = os.path.dirname(output) or "."
     stage = os.path.join(folder, f".{os.path.basename(output)}.{uuid.uuid4().hex}.part")
@@ -442,8 +653,8 @@ def _package_project(args: dict) -> dict:
     cancelled = net.current_cancel_check()
     completed = False
 
-    def write_file(archive, path: str) -> None:
-        info = zipfile.ZipInfo.from_file(path, _arcname(path, project_dir))
+    def write_file(archive, path: str, arcname: str) -> None:
+        info = zipfile.ZipInfo.from_file(path, arcname)
         info.compress_type = zipfile.ZIP_DEFLATED
         with archive.open(info, "w", force_zip64=True) as target, open(path, "rb") as source:
             while True:
@@ -457,14 +668,20 @@ def _package_project(args: dict) -> dict:
 
     try:
         with zipfile.ZipFile(stage, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for path in sorted(local):
-                write_file(archive, path)
-                if path.lower().endswith(".shp"):
-                    stem, _ = os.path.splitext(path)
-                    for suffix in (".dbf", ".shx", ".prj", ".cpg"):
-                        sibling = stem + suffix
-                        if os.path.isfile(sibling):
-                            write_file(archive, sibling)
+            project_bytes, found = _project_copy(project_path, sources)
+            info = zipfile.ZipInfo.from_file(project_path, os.path.basename(project_path))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, project_bytes)
+            for path, arcname in snapshot["places"]:
+                if path.lower().endswith(_SQLITE_FILES):
+                    copy = _sqlite_copy(path, stage + ".sqlite")
+                    try:
+                        write_file(archive, copy, arcname)
+                    finally:
+                        if copy != path:
+                            os.unlink(copy)
+                    continue
+                write_file(archive, path, arcname)
 
 
 
@@ -482,9 +699,13 @@ def _package_project(args: dict) -> dict:
                 os.unlink(stage)
             except FileNotFoundError:
                 pass
+    for layer_id, (name, _source) in sources.items():
+        if layer_id not in found:
+            skipped.append({"layer": name, "reason": "its file is in the archive, but the layer is not in the saved "
+                                                     "project file (added or changed since the last save)"})
     return {
         "package_path": output,
-        "file_count": len(local),
+        "file_count": len(snapshot["places"]) + 1,
         "skipped_layers": skipped,
         "file_size": os.path.getsize(output),
         "size_units": "bytes",

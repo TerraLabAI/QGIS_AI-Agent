@@ -30,6 +30,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import re
@@ -88,10 +92,14 @@ from .tool_describe import (
     call_sentence,
     call_subject,
     check_warning,
+    connector_line,
+    count_text,
     describe_tool_call,
     describe_tool_parts,
     failure_reason,
+    failure_short,
     group_number,
+    is_processing_call,
     outcome_sentence,
     result_facts,
     source_text,
@@ -233,6 +241,7 @@ class ToolCard(QWidget):
         self._line = describe_tool_call(name, self.args, resolved_args)
         self._verb, self._chip_text = describe_tool_parts(name, self.args, resolved_args)
         self.connector = connector_for_call(name, self.args)
+        self._is_processing = is_processing_call(name)
         glyph, self._colour_token, self.family = tool_glyph(name, self.args)
 
 
@@ -247,7 +256,11 @@ class ToolCard(QWidget):
             self._colour_token = token or "accent_ink"
             self._subject, self._over_area = call_subject(name, self.args)
         self.glyph = glyph
-        self._label_text = (str(self.connector.get("name") or "") if self.connector else "")
+
+
+
+        self._label_text = connector_line(name, resolved_args, self.subject_text()) \
+            if self.connector is not None else ""
         self._label_text = self._label_text or self._verb
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
@@ -325,6 +338,15 @@ class ToolCard(QWidget):
         self._sentence_label.setObjectName("toolSentence")
         self._sentence_label.setStyleSheet(_TOOL_SUB_QSS)
         body.addWidget(self._sentence_label)
+
+
+        self._failure_full = False
+        self._failure_host = QWidget(self._body)
+        failure_row = FlowLayout(self._failure_host, SPACE_CARD, SPACE_CARD)
+        self._failure_btn = self._button(self.tr("Show the whole message"), self._toggle_failure)
+        failure_row.addWidget(self._failure_btn)
+        self._failure_host.hide()
+        body.addWidget(self._failure_host)
 
 
 
@@ -413,8 +435,24 @@ class ToolCard(QWidget):
         if self.ok is None or self.ended in ("denied", "stopped", "unfinished"):
             return ""
         if self.ok is False:
-            return failure_reason(self.summary)
+            return self.failure_text()
         return check_warning(self.summary)
+
+    def failure_text(self) -> str:
+
+
+
+
+        short = failure_short(self.summary)
+        return failure_reason(self.summary) if self._failure_full or not short else short
+
+    def _failure_has_more(self) -> bool:
+        return self.ok is False and not self.ended and \
+            failure_reason(self.summary) != failure_short(self.summary)
+
+    def _toggle_failure(self) -> None:
+        self._failure_full = not self._failure_full
+        self._sync_sentence()
 
     def has_code(self) -> bool:
         return self._source_pending is not None or self._source_block is not None
@@ -429,6 +467,10 @@ class ToolCard(QWidget):
         text = self.extra_text() if self._bare else self.sentence_text()
         self._sentence_label.setText(text)
         self._sentence_label.setVisible(bool(text))
+        more = self._failure_has_more()
+        self._failure_btn.setText(self.tr("Show less") if self._failure_full
+                                  else self.tr("Show the whole message"))
+        self._failure_host.setVisible(more)
 
 
 
@@ -557,6 +599,20 @@ class ToolCard(QWidget):
             colour = token
         return qcolor(colour or INK_2)
 
+    def source_text(self) -> str:
+
+
+
+        if self.connector is not None:
+            return str(self.connector.get("name") or "")
+        if self._is_processing:
+            return self._chip_text
+        return ""
+
+    def head_text(self) -> str:
+
+        return self._label_text
+
     def subject_text(self) -> str:
 
 
@@ -578,7 +634,9 @@ class ToolCard(QWidget):
 
 
         if self.connector is not None and self.connector.get("id"):
-            return f"connector:{self.connector['id']}"
+
+
+            return f"connector:{self.connector['id']}:{self._label_text}"
 
 
         return f"tool:{self.name}:{self._verb}" if self.name else ""
@@ -625,10 +683,7 @@ class ToolCard(QWidget):
             if facts["count"] is not None:
 
 
-
-                count = int(facts["count"])
-                chip = (self.tr("1 feature") if count == 1
-                        else self.tr("{n} features").format(n=group_number(count)))
+                chip = count_text(self.summary, self.detail)
             elif facts["layer"]:
                 chip = facts["layer"]
             elif facts["facts"]:

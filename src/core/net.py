@@ -111,8 +111,8 @@ from .net_opener import (
     withdrawn_reason,
 )
 from .net_state import (
-    _cancelled,
     current_cancel_check,
+    is_cancelled,
     set_cancel_check,
 )
 from .net_stream import (
@@ -133,6 +133,7 @@ __all__ = [
     "CHUNK",
     "clear_cache",
     "current_cancel_check",
+    "is_cancelled",
     "DEFAULT_CONNECT_TIMEOUT_S",
     "DEFAULT_POLICY",
     "describe_failure",
@@ -283,20 +284,26 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
     total = 0
     reader = getattr(response, "read1", None) or response.read
     reading_from = time.monotonic()
-    while True:
-        if _cancelled(cancel):
-            raise FetchCancelled("The run was stopped.")
-        if deadline is not None and time.monotonic() > deadline:
-            allowed = f"{budget:g}" if budget else "allotted"
-            raise FetchDeadline(f"The download took longer than the {allowed}s allowed: "
-                                f"{_arrived(total, time.monotonic() - reading_from)}.")
-        block = reader(min(CHUNK, max_bytes + 1 - total))
-        if not block:
-            break
-        parts.append(block)
-        total += len(block)
-        if total > max_bytes:
-            raise FetchTooLarge(f"The answer is larger than the {max_bytes} bytes this tool reads.")
+    try:
+        while True:
+            if is_cancelled(cancel):
+                raise FetchCancelled("The run was stopped.")
+            if deadline is not None and time.monotonic() > deadline:
+                allowed = f"{budget:g}" if budget else "allotted"
+                raise FetchDeadline(f"The download took longer than the {allowed}s allowed: "
+                                    f"{_arrived(total, time.monotonic() - reading_from)}.")
+            block = reader(min(CHUNK, max_bytes + 1 - total))
+            if not block:
+                break
+            parts.append(block)
+            total += len(block)
+            if total > max_bytes:
+                raise FetchTooLarge(f"The answer is larger than the {max_bytes} bytes this tool reads.")
+    except (http.client.HTTPException, OSError) as exc:
+
+        with contextlib.suppress(AttributeError, TypeError):
+            exc.received = b"".join(parts)
+        raise
     return b"".join(parts)
 
 
@@ -452,7 +459,7 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
 
 
 
-        if _cancelled(cancel):
+        if is_cancelled(cancel):
             raise FetchCancelled("The run was stopped.")
         hit = _cache_get(key)
 
@@ -468,7 +475,7 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
             _wait_for_owner(waiter, share_wait, cancel)
 
 
-            if _cancelled(cancel):
+            if is_cancelled(cancel):
                 raise FetchCancelled("The run was stopped.")
             hit = _cache_get(key)
             if hit is not None and len(hit.body) <= max_bytes:
@@ -478,7 +485,7 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
 
 
     try:
-        if _cancelled(cancel):
+        if is_cancelled(cancel):
             raise FetchCancelled("The run was stopped.")
         host = _hostname(url)
         held = link_is_down(host)
@@ -579,8 +586,12 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
     extra = {"connect_timeout": connect_timeout} if connect_timeout else {}
+    plain = False
     try:
         with open_url(request, timeout=timeout, **extra) as response:
+
+
+            plain = str(response.headers.get("Content-Encoding") or "identity").strip().lower() == "identity"
             promised = _declared_length(response.headers)
             if (promised is not None and promised > max_bytes
                     and request.get_method() != "HEAD"):
@@ -651,9 +662,11 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
             if promised is not None and len(body) < promised and request.get_method() != "HEAD":
-                raise FetchTruncated(
+                cut = FetchTruncated(
                     f"The download stopped after {len(body)} of the {promised} bytes the server "
                     "said it was sending. The connection dropped.")
+                cut.received = body if plain else b""
+                raise cut
             inflated = _inflate(body, headers.get("content-encoding", ""), max_bytes)
             if inflated is not body:
 
@@ -677,12 +690,16 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
                 exc.headers, None) from exc
         raise exc
     except urllib.error.URLError as exc:
+        with contextlib.suppress(AttributeError, TypeError):
+            exc.received = getattr(exc, "received", b"") if plain else b""
         raise _explain_url_error(exc) from exc
     except (http.client.HTTPException, OSError) as exc:
 
 
         if _is_drop(exc):
-            raise _dropped(request.full_url, exc) from exc
+            dropped = _dropped(request.full_url, exc)
+            dropped.received = getattr(exc, "received", b"") if plain else b""
+            raise dropped from exc
         raise
 
 
@@ -800,7 +817,7 @@ def fetch_to_file(request, path: str, *, timeout: float, max_bytes: int, total_t
     if not request.has_header("Accept-encoding"):
         request.add_header("Accept-encoding", "gzip, deflate")
     deadline = time.monotonic() + total_timeout if total_timeout else None
-    if _cancelled(cancel):
+    if is_cancelled(cancel):
         raise FetchCancelled("The run was stopped.")
     host = _hostname(url)
     held = link_is_down(host)
@@ -878,7 +895,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
             reading_from = time.perf_counter()
             with open(part, "wb") as handle:
                 while True:
-                    if _cancelled(cancel):
+                    if is_cancelled(cancel):
                         raise FetchCancelled("The run was stopped.")
                     if deadline is not None and time.monotonic() > deadline:
                         allowed = f"{budget:g}" if budget else "allotted"
@@ -936,7 +953,7 @@ def _wait_for_owner(event: threading.Event, seconds: float, cancel) -> None:
         left = end - time.monotonic()
         if left <= 0:
             return
-        if _cancelled(cancel):
+        if is_cancelled(cancel):
             return
         if event.wait(min(left, _TICK)):
             return
@@ -1047,7 +1064,7 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
                     ready.wait(left)
                 if state["won"]:
                     raise _NotNeeded(f"a mirror ahead of {index} answered first")
-            if _cancelled(parent_cancel):
+            if is_cancelled(parent_cancel):
                 raise _NotNeeded("the run was stopped before this mirror was asked")
         try:
             value = call()

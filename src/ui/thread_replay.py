@@ -8,6 +8,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from ..core.tool_registry import spec
@@ -114,20 +116,57 @@ def finish_replay(panel) -> None:
             run.plan.finish("cancelled")
 
 
+def _split(m: dict) -> tuple[str, str]:
+
+
+
+    text = str(m.get("text") or "")
+    try:
+        start = int(m.get("answer_start") or 0)
+    except (TypeError, ValueError):
+        start = 0
+    if not m.get("tool_calls") or not 0 < start < len(text):
+        return "", text.strip()
+    commentary, answer = text[:start].strip(), text[start:].strip()
+    if not commentary or not answer:
+        return "", text.strip()
+    return commentary, answer
+
+
+def _replay_commentary(panel, text: str, run_id: str) -> None:
+
+    bubble = AgentBubble(text)
+    bubble.run_id = run_id
+    bubble.link_activated.connect(panel._on_bubble_link)
+    panel._add(bubble, animate=False)
+
+
 def _agent_steps(panel, m: dict, run_id: str) -> list:
 
     steps = []
     plan = m.get("plan") or []
     if plan:
         steps.append(lambda: panel._plan_card_for(run_id).set_steps(plan))
+    commentary, _answer = _split(m)
+    calls = m.get("tool_calls") or []
+
+
+
+    asked = [i for i, c in enumerate(calls) if isinstance(c, dict)
+             and getattr(spec(str(c.get("name") or "")), "waits_on_user", False)]
+    after_call = asked[-1] if commentary and asked else -1
+    if commentary and after_call < 0:
+        steps.append(lambda: _replay_commentary(panel, commentary, run_id))
 
 
     steers = [s for s in m.get("steers") or [] if isinstance(s, dict) and str(s.get("text") or "").strip()]
-    for index, call in enumerate(m.get("tool_calls") or []):
+    for index, call in enumerate(calls):
         steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) == index)
         if isinstance(call, dict):
             steps.append(lambda call=call: _replay_tool(panel, run_id, call))
-    count = len(m.get("tool_calls") or [])
+        if index == after_call:
+            steps.append(lambda: _replay_commentary(panel, commentary, run_id))
+    count = len(calls)
     steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) >= count)
     steps.append(lambda: _agent_answer(panel, m, run_id))
     return steps
@@ -145,7 +184,7 @@ def _replay_steer(panel, steer: dict) -> None:
 
 
 def _agent_answer(panel, m: dict, run_id: str) -> None:
-    text = str(m.get("text") or "").strip()
+    text = _split(m)[1]
     status = str(m.get("status") or "")
     summary = str(m.get("summary") or "").strip()
     if not text and summary and status == "done":
@@ -153,8 +192,8 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
     usage = m.get("usage") if isinstance(m.get("usage"), dict) else {}
     seconds = usage.get("duration_s", usage.get("elapsed_s"))
 
-
-    for block in panel.message_list.traces_of(run_id) if run_id else ():
+    blocks = panel.message_list.traces_of(run_id) if run_id else []
+    for block in blocks:
         if not block.is_empty():
             block.finish(status or "done", seconds, stored=True)
     plan = panel._run(run_id).plan if run_id else None
@@ -162,6 +201,7 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
         plan.finish(status)
     if text:
         bubble = AgentBubble(text)
+        bubble.run_id = run_id
 
         bubble.link_activated.connect(panel._on_bubble_link)
         if run_id:
@@ -173,23 +213,20 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
         sources = m.get("sources")
         if isinstance(sources, list):
             bubble.set_sources([x for x in sources[:50] if isinstance(x, dict)])
-        blocks = panel.message_list.traces_of(run_id) if run_id else []
-        bubble.set_footnote(panel._run_footnote(blocks, usage))
         panel._add(bubble, animate=False)
 
 
     changes = m.get("run_changes") if isinstance(m.get("run_changes"), dict) else None
     if status and status != "running":
         _replay_summary(panel, status, "" if text else summary, usage, m.get("verification"),
-                        has_text=bool(text), with_changes=not changes)
+                        has_text=bool(text), with_changes=not changes,
+                        has_block=any(not block.is_empty() for block in blocks))
         if not text and run_id and status != "done":
 
 
             bubble = panel.answer_row(run_id, animate=False)
             panel._run(run_id).bubble = bubble
             bubble.finish_streaming()
-            blocks = panel.message_list.traces_of(run_id)
-            bubble.set_footnote(panel._run_footnote(blocks, usage))
         if changes and run_id:
             panel.add_run_changes(run_id, changes, animate=False)
 
@@ -197,13 +234,15 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
 
 
 def _replay_summary(panel, status: str, summary: str, usage, verification, has_text: bool,
-                    with_changes: bool = True) -> None:
+                    with_changes: bool = True, has_block: bool = False) -> None:
+
+
     lines = RunSummaryCard._verification_lines(verification, with_changes=with_changes)
     if status == "done":
         lines = [line for line in lines if not _is_nothing_changed(line)]
     if has_text:
         summary = ""
-    if summary or lines or status != "done":
+    if summary or lines or (status not in ("done", "cancelled") and not has_block):
         panel._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None),
                    animate=False)
 

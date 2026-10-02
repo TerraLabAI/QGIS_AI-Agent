@@ -51,6 +51,12 @@ class FetchDropped(urllib.error.URLError):
 
 
 
+
+
+
+
+    received = b""
+
     def __init__(self, reason, host: str = ""):
         super().__init__(reason)
         self.host = host

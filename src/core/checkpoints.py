@@ -24,6 +24,7 @@ import time
 import uuid
 
 from qgis.core import QgsProject
+from qgis.PyQt.QtCore import QTimer
 
 from .host_platform import retry_file_op
 from .logger import log_warning
@@ -31,7 +32,6 @@ from .snapshot import (
     MAX_HASH_FILE_BYTES,
     MAX_INDEX_BYTES,
     REASON_MEMORY_LOST,
-    REASON_UNSAVED_EDITS,
     RunSnapshot,
     checkpoints_dir,
     diff_changed,
@@ -137,9 +137,6 @@ NOT_BACKED_NO_BACKUP = "no_backup"
 NOT_BACKED_NEW_FILE = "new_file"
 NOT_BACKED_OTHER_PROJECT = "other_project"
 NOT_BACKED_OLD_PROJECT_FILE = "old_project_file"
-
-
-NOT_BACKED_UNSAVED_EDITS = REASON_UNSAVED_EDITS
 
 
 def _clean_log(value) -> list:
@@ -754,6 +751,19 @@ class CheckpointHistory:
                 log_warning(f"Checkpoint snapshot discard failed: {e}")
         self._entries[thread_id] = kept
 
+    def _trim_later(self, thread_id: str, keep_id: str) -> None:
+
+        entries = self._entries.get(thread_id)
+        if not entries or not any(e.id == keep_id for e in entries):
+            return
+        count = len(entries)
+        try:
+            self._trim(thread_id, keep_id)
+            if len(self._entries.get(thread_id, [])) != count:
+                self._save(thread_id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Checkpoint retention failed: {exc}")
+
 
 
     def next_run_index(self, thread_id: str) -> int:
@@ -890,7 +900,12 @@ class CheckpointHistory:
 
     def add(self, thread_id: str, kind: str, run_id: str, run_index: int, snapshot: RunSnapshot,
             changed_layers: int = 0, layers: list | None = None, prompt: str = "",
-            fork: bool = True) -> Checkpoint:
+            fork: bool = True, trim_later: bool = False) -> Checkpoint:
+
+
+
+
+
 
 
 
@@ -942,7 +957,10 @@ class CheckpointHistory:
         else:
             entries.insert(current + 1, entry)
         self._current[thread_id] = entry.id
-        self._trim(thread_id, entry.id)
+        if trim_later:
+            QTimer.singleShot(0, lambda: self._trim_later(thread_id, entry.id))
+        else:
+            self._trim(thread_id, entry.id)
         self._save(thread_id)
         if snapshot is not None:
             snapshot.on_features_ready(lambda: self._save(thread_id))

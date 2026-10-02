@@ -20,6 +20,8 @@
 from __future__ import annotations
 
 import calendar
+import contextlib
+import hashlib
 import json
 import os
 import re
@@ -37,18 +39,19 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorTileLayer,
 )
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import dataset_docs, limits, net, tuning, vsi
-from ..core.background import on_main_thread, still_awaited
+from ..core.background import run_on_main_thread, still_awaited
 from ..core.crs_ref import crs_ref
-from ..core.host_platform import remove_tree
+from ..core.host_platform import remove_tree, retry_file_op
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import encode_uri_url
 from ..core.tool_registry import Tool, ToolRegistry
 from . import volume_guard
-from .data_tools import _avoid_reserved_name, _run_on_main_thread
+from .data_common import built_here, worker_options
+from .data_tools import _avoid_reserved_name
 
 
 
@@ -134,6 +137,7 @@ def register_stac_tools(registry: ToolRegistry):
             "properties": {
                 "url": {"type": "string"},
                 "name": {"type": "string"},
+                "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
             },
             "required": ["url"],
         },
@@ -156,6 +160,7 @@ def register_stac_tools(registry: ToolRegistry):
                     "type": "string",
                 },
                 "name": {"type": "string"},
+                "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
             },
             "required": [],
         },
@@ -440,18 +445,7 @@ def _raster_built_here(source: str, name: str):
 
 
     vsi.apply_persistent()
-    if on_main_thread():
-        return None
-    options = QgsRasterLayer.LayerOptions()
-    options.skipCrsValidation = True
-    layer = QgsRasterLayer(source, name, "gdal", options)
-    if layer.isValid() and not layer.crs().isValid():
-        return None
-    app = QCoreApplication.instance()
-    if app is None:
-        return None
-    layer.moveToThread(app.thread())
-    return layer
+    return built_here(lambda: QgsRasterLayer(source, name, "gdal", worker_options(QgsRasterLayer)))
 
 
 
@@ -474,12 +468,225 @@ _ONE_SHOT_MAX_BYTES = 128 * 1024 * 1024
 _ONE_SHOT_TIMEOUT = 60
 
 
+
+
+
+
+_ONE_SHOT_PIECE_BYTES = 1024 * 1024
+_ONE_SHOT_STREAMS = 4
+
+
+
+
+
+
+
+_ONE_SHOT_PIECE_STALLS = 5
+_ONE_SHOT_PIECE_ASKS = 20
+_ONE_SHOT_RETRY_BASE_S = 1.0
+_ONE_SHOT_RETRY_CODES = (429, 500, 502, 503, 504)
+
+
 def _is_one_shot_result(url: str) -> bool:
 
     try:
         return urllib.parse.urlsplit(url).path == _ONE_SHOT_PATH
     except ValueError:
         return False
+
+
+def _one_shot_part_paths(url: str) -> tuple[str, str]:
+
+    from ..core.policy import AGENT_TMP_DIR
+
+    query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    token = (query.get("t") or [url])[0]
+    key = hashlib.sha256(token.encode("utf-8")).hexdigest()[:24]
+    folder = os.path.join(AGENT_TMP_DIR, "eodata-parts")
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    return os.path.join(folder, f"{key}.part"), os.path.join(folder, f"{key}.json")
+
+
+def _content_range_total(headers: dict) -> int | None:
+
+    raw = next((str(v) for k, v in (headers or {}).items() if str(k).lower() == "content-range"), "")
+    try:
+        return int(raw.rsplit("/", 1)[1])
+    except (IndexError, ValueError):
+        return None
+
+
+def _piece_worth_asking_again(exc: BaseException) -> bool:
+
+    if isinstance(exc, (net.FetchCancelled, net.FetchTooLarge, net.FetchTooSlow, net.FetchWithdrawn,
+                        net.LocalUrlRefused)):
+        return False
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code in _ONE_SHOT_RETRY_CODES
+    return isinstance(exc, (net.FetchDropped, net.FetchDeadline)) or bool(net.describe_failure(exc))
+
+
+def _read_piece(ask, start: int, end: int, stopped) -> tuple[bytes, dict]:
+
+
+
+
+
+
+
+
+
+    have = b""
+    stalls = asks = 0
+    while True:
+        asks += 1
+        at = start + len(have)
+        try:
+            answer = ask(at, end)
+        except Exception as exc:
+            if not _piece_worth_asking_again(exc):
+                raise
+            got = getattr(exc, "received", b"") or b""
+            have += got
+            stalls = 0 if got else stalls + 1
+            if stalls >= _ONE_SHOT_PIECE_STALLS or asks >= _ONE_SHOT_PIECE_ASKS:
+                raise net.FetchDropped(
+                    f"The download was cut {asks} times on bytes {start} to {end} of the file, the last "
+                    f"time with {len(have)} of those {end - start + 1} bytes in hand: {exc}",
+                    getattr(exc, "host", "")) from exc
+            delay = 0.0 if got else _ONE_SHOT_RETRY_BASE_S * 2 ** (stalls - 1)
+            log_warning(f"Result download: bytes {at} to {end} stopped after {len(got)} ({exc}); "
+                        f"asking again from byte {start + len(have)} in {delay:.0f} s "
+                        f"(try {asks + 1} of at most {_ONE_SHOT_PIECE_ASKS}).")
+            waited_until = time.monotonic() + delay
+            while time.monotonic() < waited_until:
+                if stopped():
+                    raise net.FetchCancelled("The run was stopped.") from exc
+                time.sleep(min(0.2, max(0.0, waited_until - time.monotonic())))
+            continue
+        headers = {str(k): str(v) for k, v in (answer.headers or {}).items()}
+        if at > start:
+
+            given = next((v for k, v in headers.items() if k.lower() == "content-range"), "")
+            if not given and start == 0:
+
+                return answer.body, headers
+            if not given.replace(" ", "").lower().startswith(f"bytes{at}-"):
+                raise urllib.error.URLError(f"Asked for the file from byte {at}, the server answered "
+                                            f"{given or 'the whole file'}.")
+        return have + answer.body, headers
+
+
+def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
+
+
+
+
+
+
+
+
+    import concurrent.futures
+
+    part, record_path = _one_shot_part_paths(url)
+
+
+    cancel = net.current_cancel_check()
+    gave_up = threading.Event()
+
+    def stopped() -> bool:
+        return gave_up.is_set() or net.is_cancelled(cancel)
+
+    try:
+        with open(record_path, encoding="utf-8") as handle:
+            record = json.load(handle)
+    except (OSError, ValueError):
+        record = {}
+    if not (isinstance(record, dict) and isinstance(record.get("total"), int)
+            and os.path.exists(part) and os.path.getsize(part) == record["total"]):
+        record = {}
+
+    def ask(start: int, end: int, whole: bool = False):
+        request = urllib.request.Request(url, headers={
+            "User-Agent": _USER_AGENT, "Range": f"bytes={start}-{end}",
+
+            "Accept-encoding": "identity"})
+
+
+
+        return net.fetch(request, timeout=_ONE_SHOT_TIMEOUT,
+                         max_bytes=_ONE_SHOT_MAX_BYTES if whole else end - start + 1,
+                         total_timeout=_ONE_SHOT_TIMEOUT * (_TOTAL_TIMEOUT_FACTOR if whole else 2),
+                         polite=polite, cancel=stopped)
+
+    if not record:
+        body, headers = _read_piece(lambda at, end: ask(at, end, whole=True), 0, _ONE_SHOT_PIECE_BYTES - 1, stopped)
+        total = _content_range_total(headers)
+        if total is None or total > _ONE_SHOT_MAX_BYTES:
+            if total is not None:
+                raise net.FetchTooLarge(f"The file is {total} bytes, over the {_ONE_SHOT_MAX_BYTES} "
+                                        "bytes this tool reads.")
+
+            with open(part, "wb") as handle:
+                handle.write(body)
+            return part, headers
+        with open(part, "wb") as handle:
+            handle.truncate(total)
+            handle.seek(0)
+            handle.write(body)
+        record = {"total": total, "done": [0], "headers": headers}
+        with open(record_path, "w", encoding="utf-8") as handle:
+            json.dump(record, handle)
+    total = record["total"]
+    done = set(record.get("done") or [])
+    missing = [i for i in range(max(1, -(-total // _ONE_SHOT_PIECE_BYTES))) if i not in done]
+    lock = threading.Lock()
+    failures: list[BaseException] = []
+
+    def piece(index: int) -> None:
+        start = index * _ONE_SHOT_PIECE_BYTES
+        end = min(total, start + _ONE_SHOT_PIECE_BYTES) - 1
+        try:
+            body, _headers = _read_piece(ask, start, end, stopped)
+            if len(body) != end - start + 1:
+                raise net.FetchTruncated(f"The download stopped after {len(body)} of the "
+                                         f"{end - start + 1} bytes of one piece.")
+        except BaseException as exc:
+            with lock:
+                if not gave_up.is_set():
+                    failures.append(exc)
+                    gave_up.set()
+            raise
+        with lock:
+            with open(part, "r+b") as handle:
+                handle.seek(start)
+                handle.write(body)
+            record["done"] = sorted(done.union(record.get("done") or [], [index]))
+            with open(record_path, "w", encoding="utf-8") as handle:
+                json.dump(record, handle)
+
+    if missing:
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=_ONE_SHOT_STREAMS)
+        try:
+            futures = [pool.submit(piece, i) for i in missing]
+            concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_EXCEPTION)
+        finally:
+
+
+            pool.shutdown(wait=False, cancel_futures=True)
+        if failures:
+            failure = failures[0]
+            with lock:
+                kept = sum(min(total, (i + 1) * _ONE_SHOT_PIECE_BYTES) - i * _ONE_SHOT_PIECE_BYTES
+                           for i in record.get("done") or [])
+            if isinstance(failure, net.FetchDropped) and kept:
+                raise net.FetchDropped(f"{failure} {kept} of the file's {total} bytes are kept on this "
+                                       "computer, and the same url asks only for the rest.",
+                                       getattr(failure, "host", "")) from failure
+            raise failure
+    with contextlib.suppress(OSError):
+        os.remove(record_path)
+    return part, record["headers"]
 
 
 def _localise_one_shot(url: str, name: str | None) -> dict | None:
@@ -529,10 +736,17 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
 
 
     request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    downloaded = body = None
     try:
+        if one_shot:
 
-        response = net.fetch(request, timeout=_ONE_SHOT_TIMEOUT, max_bytes=_ONE_SHOT_MAX_BYTES,
-                             total_timeout=_ONE_SHOT_TIMEOUT * _TOTAL_TIMEOUT_FACTOR, polite=polite)
+            downloaded, headers = _download_one_shot(url, polite)
+            if os.path.getsize(downloaded) == 0:
+                body = b""
+        else:
+            response = net.fetch(request, timeout=_ONE_SHOT_TIMEOUT, max_bytes=_ONE_SHOT_MAX_BYTES,
+                                 total_timeout=_ONE_SHOT_TIMEOUT * _TOTAL_TIMEOUT_FACTOR, polite=polite)
+            body, headers = response.body, response.headers
     except Exception as exc:  # noqa: BLE001
         if isinstance(exc, net.FetchCancelled):
             return {"_error": "The raster download was stopped.", "_code": "CANCELLED",
@@ -559,14 +773,13 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                                    "retry of this url usually finishes it.", "url": url}
         return {"_error": f"Could not download that raster: {exc}", "_code": "EXECUTION_FAILED",
                 "_suggestion": "A working address serves the file itself, not a page about it.", "url": url}
-    body = response.body
 
 
-    headers = response.headers or {}
+    headers = {str(k).lower(): v for k, v in (headers or {}).items()}
     credit = {key: urllib.parse.unquote(str(headers.get(header) or "")).strip()[:500]
               for key, header in (("licence", "x-data-licence"), ("attribution", "x-data-attribution"))}
     credit = {key: value for key, value in credit.items() if value}
-    if not body:
+    if body is not None and not body:
         return {"_error": "That address returned an empty file.",
                 "_code": "EXECUTION_FAILED",
                 "_suggestion": "The producing tool gives a fresh url." if one_shot
@@ -575,8 +788,13 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
 
     path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}.tif")
     try:
-        with open(path, "wb") as handle:
-            handle.write(body)
+        if downloaded is not None:
+
+
+            retry_file_op(os.replace, downloaded, path)
+        else:
+            with open(path, "wb") as handle:
+                handle.write(body)
     except OSError as exc:
         return {"_error": f"Could not write the downloaded result to disk: {exc}",
                 "_code": "EXECUTION_FAILED",
@@ -613,7 +831,7 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                       if one_shot else "Downloaded to this machine: this address is not streamable."),
         }
 
-    return _run_on_main_thread(_create, timeout=60)
+    return run_on_main_thread(_create, timeout=60)
 
 
 def _probe_raster_url(url: str) -> tuple[int, str]:
@@ -653,7 +871,8 @@ def _probe_raster_url(url: str) -> tuple[int, str]:
                  "Cloud-Optimized, or the server ignores range requests.")
 
 
-def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: dict | None = None) -> dict:
+def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: dict | None = None,
+             bbox: list | None = None) -> dict:
 
 
 
@@ -680,12 +899,18 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         if note and not local.get("_error"):
             local["_note"] = f"{note} {local.get('_note', '')}".strip()
         return local
+    source, window = f"/vsicurl/{final_url}", None
+    if bbox:
+        window = _read_window(final_url, bbox, name)
+        if window.get("_error"):
+            return window
+        source = window.pop("path")
     from .elevation_style import apply_elevation_style, elevation_stretch
-    stretch = elevation_stretch(f"/vsicurl/{final_url}", name)
-    built = _raster_built_here(f"/vsicurl/{final_url}", name or "COG")
+    stretch = elevation_stretch(source, name)
+    built = _raster_built_here(source, name or "COG")
 
     def _create():
-        layer = built if built is not None else QgsRasterLayer(f"/vsicurl/{final_url}", name or "COG", "gdal")
+        layer = built if built is not None else QgsRasterLayer(source, name or "COG", "gdal")
         if not layer.isValid():
             return {
                 "_error": "Could not open the raster.",
@@ -713,6 +938,7 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             "layer_name": layer.name(),
             "layer_id": layer.id(),
             "url": final_url,
+            **({"path": source, "window": window} if window else {}),
             **({"styled": styled} if styled else {}),
             **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
             "width": layer.width(),
@@ -721,7 +947,7 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             "crs": _crs_label(layer.crs()),
         }
 
-    result = _run_on_main_thread(_create, timeout=60)
+    result = run_on_main_thread(_create, timeout=60)
     if result.get("_error"):
         if result.get("_error") == "Could not open the raster.":
             status, cause = _probe_raster_url(final_url)
@@ -757,6 +983,162 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         result["suggestion"] = ("A cloud-optimized GeoTIFF asset of the same item is georeferenced: its key "
                                 "as asset to add_stac_layer, or its href to add_cog_layer.")
     return result
+
+
+def _bounds(transformation, xmin: float, ymin: float, xmax: float, ymax: float) -> tuple:
+
+
+    if hasattr(transformation, "TransformBounds"):
+        return transformation.TransformBounds(xmin, ymin, xmax, ymax, 21)
+    steps = [i / 20.0 for i in range(21)]
+    edge = ([(xmin + (xmax - xmin) * t, y) for t in steps for y in (ymin, ymax)]
+            + [(x, ymin + (ymax - ymin) * t) for t in steps for x in (xmin, xmax)])
+    points = [transformation.TransformPoint(x, y)[:2] for x, y in edge]
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _read_window(url: str, bbox: list, name: str | None) -> dict:
+
+
+
+
+
+
+    from osgeo import gdal, osr
+
+    vsi.apply_persistent()
+    try:
+        dataset = gdal.Open(f"/vsicurl/{url}")
+    except RuntimeError:
+        dataset = None
+    if dataset is None:
+        return {"_error": f"Could not open the raster: {gdal.GetLastErrorMsg() or 'GDAL could not read it'}",
+                "_code": "INVALID_ARGS", "url": url}
+    transform = dataset.GetGeoTransform()
+    wkt = dataset.GetProjection()
+    if not wkt or transform[2] or transform[4]:
+        return {"_error": "This raster has no CRS or a rotated grid, so a bbox cannot be placed on it.",
+                "_code": "INVALID_ARGS", "_suggestion": "The same call without bbox adds it whole.", "url": url}
+    target = osr.SpatialReference()
+    target.ImportFromWkt(wkt)
+    target.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    horizontal = _horizontal_part(osr, target)
+    wgs84 = osr.SpatialReference()
+    wgs84.ImportFromEPSG(4326)
+    wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    west, south, east, north = bbox
+    xmin, ymin, xmax, ymax = _bounds(osr.CoordinateTransformation(wgs84, target), west, south, east, north)
+    width, height = dataset.RasterXSize, dataset.RasterYSize
+    col = lambda x: (x - transform[0]) / transform[1]  # noqa: E731
+    row = lambda y: (y - transform[3]) / transform[5]  # noqa: E731
+    left, right = sorted((col(xmin), col(xmax)))
+    top, bottom = sorted((row(ymin), row(ymax)))
+    x0, y0 = max(0, int(left)), max(0, int(top))
+    x1, y1 = min(width, int(-(-right // 1))), min(height, int(-(-bottom // 1)))
+    if x1 <= x0 or y1 <= y0:
+        corners = _bounds(osr.CoordinateTransformation(target, wgs84),
+            transform[0], transform[3] + height * transform[5], transform[0] + width * transform[1],
+            transform[3])
+        return {"_error": "The bbox does not overlap this raster.", "_code": "INVALID_ARGS",
+                "_suggestion": "The raster covers [west, south, east, north] "
+                               f"{[round(v, 5) for v in corners]} in EPSG:4326.", "url": url}
+    cols, rows = x1 - x0, y1 - y0
+    band_bytes = sum(gdal.GetDataTypeSize(dataset.GetRasterBand(i + 1).DataType) // 8
+                     for i in range(dataset.RasterCount))
+    size = cols * rows * max(1, band_bytes)
+
+
+    ceiling = limits.MAX_STREAM_BYTES
+    if size > ceiling:
+        return {"_error": (f"The window of this raster under that bbox is {cols} x {rows} cells "
+                           f"({size // 1048576} MB), over the limit of {ceiling // 1048576} MB."),
+                "_code": limits.CEILING_CODE,
+                "_suggestion": "A smaller bbox; split a large area into several boxes.", "url": url}
+    directory = create_managed_temp_dir("cog")
+    path = os.path.join(directory, f"{_safe_file_stem(name or 'raster')}.tif")
+    try:
+        failure = _copy_window(gdal, dataset, path, x0, y0, cols, rows,
+                               horizontal.ExportToWkt() if horizontal is not None else None)
+    except Exception as exc:  # noqa: BLE001
+        remove_tree(directory)
+        return {"_error": (f"This QGIS's GDAL {gdal.__version__} could not copy the window "
+                           f"({type(exc).__name__}: {exc})."), "_code": "EXECUTION_FAILED",
+                "_suggestion": "The same call without bbox streams the whole raster.", "url": url}
+    if failure is not None:
+        remove_tree(directory)
+        if failure == "":
+            return {"_error": "Stopped before the window was read.", "_code": "CANCELLED",
+                    "_suggestion": "The user stopped it; nothing was added.", "url": url}
+        return {"_error": f"Could not read that window of the raster: {failure}", "_code": "NETWORK_ERROR",
+                "_suggestion": "A read cut halfway usually finishes on a second call.", "url": url}
+    left_x, top_y = transform[0] + x0 * transform[1], transform[3] + y0 * transform[5]
+    target = horizontal or target
+    return {"path": path, "pixels": [cols, rows], "offset": [x0, y0], "size_bytes": os.path.getsize(path),
+            "crs": (target.GetAuthorityName(None) or "") + (":" + target.GetAuthorityCode(None)
+                                                             if target.GetAuthorityCode(None) else ""),
+            "extent": [left_x, top_y + rows * transform[5], left_x + cols * transform[1], top_y]}
+
+
+
+
+
+_WINDOW_SWATH_BYTES = 1024 * 1024
+
+
+def _horizontal_part(osr, srs):
+
+
+
+
+
+
+
+
+    try:
+        if not srs.IsCompound():
+            return None
+        for node in ("PROJCS", "GEOGCS"):
+            if srs.GetAuthorityName(node) == "EPSG" and srs.GetAuthorityCode(node):
+                part = osr.SpatialReference()
+                part.ImportFromEPSG(int(srs.GetAuthorityCode(node)))
+                part.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+                return part
+    except Exception:  # noqa: BLE001
+        return None
+    return None
+
+
+def _copy_window(gdal, dataset, path: str, x0: int, y0: int, cols: int, rows: int,
+                 srs_wkt: str | None = None) -> str | None:
+
+
+
+
+
+
+    def keep_going(_complete, _message, _data):
+        return 0 if _pmtiles_cancelled() else 1
+
+
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", None)
+    if set_option is not None:
+        set_option("GDAL_SWATH_SIZE", str(_WINDOW_SWATH_BYTES))
+    try:
+        written = gdal.Translate(path, dataset, srcWin=[x0, y0, cols, rows], callback=keep_going,
+                                 creationOptions=["COMPRESS=DEFLATE", "TILED=YES", "BIGTIFF=IF_SAFER"],
+                                 **({"outputSRS": srs_wkt} if srs_wkt else {}))
+    except RuntimeError as exc:
+        written, failure = None, str(exc)
+    else:
+        failure = gdal.GetLastErrorMsg()
+    finally:
+        if set_option is not None:
+            set_option("GDAL_SWATH_SIZE", None)
+    if written is None:
+        return "" if _pmtiles_cancelled() else (failure or "GDAL could not write the window")
+    written = None
+    return None
 
 
 def normalise_crs(layer) -> str:
@@ -813,8 +1195,14 @@ def _add_cog_layer(args: dict) -> dict:
     if not url:
         return {"_error": "url is required"}
     name = args.get("name")
+    bbox = None
+    if args.get("bbox"):
+        bbox = _parse_bbox(args["bbox"])
+        if bbox is None:
+            return {"_error": "That bbox is not a usable box.", "_code": "INVALID_ARGS",
+                    "_suggestion": "[west, south, east, north] in EPSG:4326."}
     final_url, note = _signed_href(url)
-    result = _add_cog(final_url, name, note=note)
+    result = _add_cog(final_url, name, note=note, bbox=bbox)
 
 
     dataset_docs.attach(result, url)
@@ -973,6 +1361,12 @@ def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, s
 
 
 def _add_stac_layer(args: dict) -> dict:
+    bbox = None
+    if args.get("bbox"):
+        bbox = _parse_bbox(args["bbox"])
+        if bbox is None:
+            return {"_error": "That bbox is not a usable box.", "_code": "INVALID_ARGS",
+                    "_suggestion": "[west, south, east, north] in EPSG:4326."}
     item_url = args.get("item_url")
     if not item_url:
         stac_url = _stac_root(args)
@@ -1016,7 +1410,7 @@ def _add_stac_layer(args: dict) -> dict:
                           props.get("end_datetime") or props.get("datetime"))
     if acquired:
         extra["data_date"] = acquired
-    result = _add_cog(final_url, name, note=note, extra=extra)
+    result = _add_cog(final_url, name, note=note, extra=extra, bbox=bbox)
     dataset_docs.attach(result, item_url)
     return result
 
@@ -1173,7 +1567,7 @@ def _bbox_4326(args: dict) -> tuple[list | None, str]:
             return parsed, f"the {key} argument"
         return None, f"{key} was given but is not a bbox in EPSG:4326"
     try:
-        canvas = _run_on_main_thread(_canvas_bbox_4326, timeout=10)
+        canvas = run_on_main_thread(_canvas_bbox_4326, timeout=10)
     except Exception:  # noqa: BLE001
         canvas = None
     if canvas:
@@ -1684,7 +2078,7 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
 
 
 
-    result = _run_on_main_thread(_create, timeout=_PMTILES_ADD_TIMEOUT)
+    result = run_on_main_thread(_create, timeout=_PMTILES_ADD_TIMEOUT)
     if result.get("_error"):
         return result
 
@@ -1767,7 +2161,7 @@ def _add_pmtiles_as_tiles(url: str, name: str | None, args: dict) -> dict:
 
 
 
-        result = _run_on_main_thread(_create, timeout=_PMTILES_BUILD_TIMEOUT)
+        result = run_on_main_thread(_create, timeout=_PMTILES_BUILD_TIMEOUT)
     except TimeoutError:
 
 

@@ -54,15 +54,14 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
 from ..core import background, limits, net, output_paths, security
+from ..core.background import run_on_main_thread
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 
 SHAPES = ("straight", "curved", "geodesic")
 
 
-_ROW_BATCH = 2_000
 _STOP_POLL_S = 0.05
 
 
@@ -135,13 +134,6 @@ def _normalize_key(text) -> str:
 
 def _stopped() -> dict:
     return tool_error("Stopped before the flow lines were written.", "CANCELLED", "No file was written.")
-
-
-def _is_cancelled(check) -> bool:
-    try:
-        return callable(check) and bool(check())
-    except Exception:  # noqa: BLE001
-        return False
 
 
 
@@ -335,11 +327,10 @@ def _read_places_index(state: dict, plan: dict, cancelled) -> dict:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="create_flow_lines places",
-                              args=(state["source"], state["request"], state["feedback"]))
-    thread.start()
+    background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
+                                 name="create_flow_lines places")
     while not over.wait(_STOP_POLL_S):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             halted.set()
             state["feedback"].cancel()
             raise InterruptedError("Stopped while the places were read")
@@ -416,11 +407,10 @@ def _read_table(state: dict, plan: dict, cancelled) -> list:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="create_flow_lines read",
-                              args=(state["source"], state["request"], state["feedback"]))
-    thread.start()
+    background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
+                                 name="create_flow_lines read")
     while not over.wait(_STOP_POLL_S):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             halted.set()
             state["feedback"].cancel()
             raise InterruptedError("Stopped while the table was read")
@@ -660,7 +650,7 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
     from qgis.core import QgsFeature, QgsGeometry
 
     from .persist_tools import _write_vector
-    from .processing_tools import _process_outputs
+    from .processing_run import _process_outputs
     from .symbology_tools import _set_layer_symbology
 
     cut = len(matched) > plan["max_lines"]
@@ -767,7 +757,7 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
 def _create_flow_lines(args: dict) -> dict:
     started = time.monotonic()
     cancelled = net.current_cancel_check()
-    plan = _run_on_main_thread(_plan, args, timeout=60)
+    plan = run_on_main_thread(_plan, args, timeout=60)
     if "_error" in plan:
         return plan
 
@@ -775,7 +765,7 @@ def _create_flow_lines(args: dict) -> dict:
     if plan["mode"] == "places":
         places_state: dict = {}
         try:
-            opened = _run_on_main_thread(_open_places, plan, places_state, timeout=60)
+            opened = run_on_main_thread(_open_places, plan, places_state, timeout=60)
             if opened:
                 return opened
             places_index = _read_places_index(places_state, plan, cancelled)
@@ -787,7 +777,7 @@ def _create_flow_lines(args: dict) -> dict:
 
     state: dict = {"read": 0, "cut": False}
     try:
-        opened = _run_on_main_thread(_open_table, plan, state, timeout=60)
+        opened = run_on_main_thread(_open_table, plan, state, timeout=60)
         if opened:
             return opened
         rows = _read_table(state, plan, cancelled)
@@ -800,7 +790,7 @@ def _create_flow_lines(args: dict) -> dict:
     matched, report = _match_rows(rows, plan, places_index)
     if matched is None:
         return report
-    if _is_cancelled(cancelled):
+    if net.is_cancelled(cancelled):
         return _stopped()
     if not matched:
         result = {"rows_read": state["read"], "lines_written": 0, **report}
@@ -811,10 +801,10 @@ def _create_flow_lines(args: dict) -> dict:
         return result
 
     shape, shape_auto = _decide_shape(plan, matched)
-    built = _run_on_main_thread(_build_output, plan, matched, shape, timeout=180)
+    built = run_on_main_thread(_build_output, plan, matched, shape, timeout=180)
     if "_error" in built:
         return built
-    if _is_cancelled(cancelled):
+    if net.is_cancelled(cancelled):
         return _stopped()
 
     result = {"rows_read": state["read"], "matched_rows": len(matched), **report, **built,

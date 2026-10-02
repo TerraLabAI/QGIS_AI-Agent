@@ -36,11 +36,11 @@ from qgis.core import Qgis, QgsCoordinateReferenceSystem, QgsProject, QgsRasterL
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import limits, net, output_paths, security, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 
@@ -702,7 +702,7 @@ def _georeference_raster(args: dict) -> dict:
     started = time.monotonic()
     cancelled = net.current_cancel_check()
 
-    facts = _run_on_main_thread(_source_facts, args.get("raster"), args.get("crs"))
+    facts = run_on_main_thread(_source_facts, args.get("raster"), args.get("crs"))
     if "_error" in facts:
         return facts
     if facts["geographic"]:
@@ -738,7 +738,7 @@ def _georeference_raster(args: dict) -> dict:
                     names.append(layer.name())
             return {"names": names}
 
-        readers = _run_on_main_thread(_readers)
+        readers = run_on_main_thread(_readers)
         if readers.get("names"):
             listed = ", ".join(repr(name) for name in readers["names"][:5])
             return tool_error(
@@ -844,7 +844,7 @@ def _georeference_raster(args: dict) -> dict:
         return failed
 
     name = str(args.get("name") or f"{facts['name']} georeferenced")
-    added = _run_on_main_thread(_add_raster, target, name, timeout=60)
+    added = run_on_main_thread(_add_raster, target, name, timeout=60)
     if "_error" in added:
         return added
 

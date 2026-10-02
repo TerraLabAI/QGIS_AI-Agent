@@ -28,6 +28,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import os
@@ -46,7 +55,9 @@ from qgis.PyQt.QtWidgets import (
 
 from .attach_card import HoverReveal
 from .icons import pixmap_for
-from .style import INK_2, RADIUS_CONTROL, SPACE_CARD, repolish
+from .layer_links import _MoreChip
+from .shared import event_pos
+from .style import HOVER, INK_2, RADIUS_CONTROL, SPACE_CARD, repolish
 from .widgets import ElidedLabel, IconButton
 
 CARD_RADIUS = 10
@@ -279,6 +290,9 @@ class FileOutputCard(QWidget):
         self._tile.setFixedSize(TILE_SIZE, TILE_SIZE)
         self._tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._tile.setProperty("gone", not self.on_disk)
+
+
+        self._tile.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._paint_tile()
         row.addWidget(self._tile, 0, Qt.AlignmentFlag.AlignVCenter)
 
@@ -293,6 +307,8 @@ class FileOutputCard(QWidget):
         self._kind_label = QLabel(self._subtitle(), self._frame)
         self._kind_label.setObjectName("fileKind")
         lines.addWidget(self._kind_label)
+        for label in (self._name_label, self._kind_label):
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         row.addLayout(lines, 1)
 
 
@@ -301,7 +317,11 @@ class FileOutputCard(QWidget):
 
 
         self._actions = QWidget(self._frame)
-        self._actions.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
+        self._actions.setObjectName("fileActions")
+        self._actions.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._actions.setStyleSheet(
+            f"QWidget#fileActions {{ background: {HOVER}; border: none;"
+            f" border-radius: {RADIUS_CONTROL}px; }}")
         actions = QHBoxLayout(self._actions)
         actions.setContentsMargins(0, 0, 0, 0)
         actions.setSpacing(2)
@@ -312,7 +332,6 @@ class FileOutputCard(QWidget):
         self._add_action(actions, "external", "open", self._open_words())
         width = len(self._buttons) * ACTION_PX + (len(self._buttons) - 1) * 2
         self._actions.setFixedSize(width, ACTION_PX)
-        row.setContentsMargins(CARD_PAD_X, CARD_PAD_Y, CARD_PAD_X + width + CARD_GAP, CARD_PAD_Y)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -327,6 +346,8 @@ class FileOutputCard(QWidget):
         self._set_tooltip()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(self._name)
+        if self.on_disk:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
         self._reveal = _ActionReveal(self, self._actions)
@@ -421,7 +442,7 @@ class FileOutputCard(QWidget):
         tip = self.path if self.on_disk else self.tr(
             "{path}\nThis file is no longer where the run wrote it.").format(path=self.path)
         self.setAccessibleDescription(tip)
-        for widget in (self._frame, self._name_label, self._kind_label, self._tile):
+        for widget in (self, self._frame, self._name_label, self._kind_label, self._tile):
             widget.setToolTip(tip)
 
 
@@ -440,6 +461,10 @@ class FileOutputCard(QWidget):
         self._kind_label.setText(self._subtitle())
         self._paint_tile()
         self._actions.setEnabled(now)
+        if now:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.unsetCursor()
         self._set_tooltip()
 
     def keyPressEvent(self, event):  # noqa: N802
@@ -448,6 +473,22 @@ class FileOutputCard(QWidget):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.rect().contains(event_pos(event)):
+                self._fire("open")
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
@@ -487,31 +528,19 @@ def _rounded(pixmap: QPixmap, side: int, radius: int) -> QPixmap:
     return out
 
 
-class _MoreRow(QLabel):
+class _FilesMore(_MoreChip):
 
 
 
 
 
 
-    clicked = pyqtSignal()
-
-    def __init__(self, hidden: int, parent=None):
-        super().__init__(parent)
-        self.setObjectName("fileMore")
-        self.setText(self.tr("+%n more", "", int(hidden)))
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAccessibleName(self.text())
-
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
+    def set_count(self, count: int) -> None:
+        super().set_count(count)
+        self.setToolTip("")
 
     def keyPressEvent(self, event):  # noqa: N802
+
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self.clicked.emit()
             event.accept()
@@ -520,6 +549,7 @@ class _MoreRow(QLabel):
 
 
 class FileCardStack(QWidget):
+
 
 
 
@@ -544,13 +574,13 @@ class FileCardStack(QWidget):
             self._cards.append(card)
             self._column.addWidget(card)
         self._more = None
-        hidden = len(self._cards) - FOLD_AT
-        if hidden > 0:
-            for card in self._cards[FOLD_AT:]:
-                card.hide()
-            self._more = _MoreRow(hidden, self)
-            self._more.clicked.connect(self.show_all)
-            self._column.addWidget(self._more)
+        self._all = False
+        if len(self._cards) > FOLD_AT:
+            self._more = _FilesMore(self)
+            self._more.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            self._more.clicked.connect(self._toggle)
+            self._column.addWidget(self._more, 0, Qt.AlignmentFlag.AlignLeft)
+            self._fold()
         policy = self.sizePolicy()
         policy.setHorizontalPolicy(QSizePolicy.Policy.Expanding)
         policy.setVerticalPolicy(QSizePolicy.Policy.Minimum)
@@ -564,10 +594,21 @@ class FileCardStack(QWidget):
         return list(self._cards)
 
     def show_all(self) -> None:
-        for card in self._cards:
-            card.show()
+
+        self._all = True
+        self._fold()
+
+    def _toggle(self) -> None:
+
+        self._all = not self._all
+        self._fold()
+
+    def _fold(self) -> None:
+        for index, card in enumerate(self._cards):
+            card.setVisible(self._all or index < FOLD_AT)
         if self._more is not None:
-            self._more.hide()
+            self._more.set_count(0 if self._all else len(self._cards) - FOLD_AT)
+            self._more.updateGeometry()
         self.updateGeometry()
 
     def follow_disk(self) -> None:

@@ -540,9 +540,6 @@ def shrink_bbox(box, ceiling_km2: float, margin: float = FIT_MARGIN):
 
 
 CEILING_CODE = "INVALID_ARGS"
-RUN_CODE = "RUN_BUDGET"
-
-
 def _with_machine(advice: str) -> str:
 
 

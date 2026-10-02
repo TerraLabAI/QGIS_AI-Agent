@@ -40,6 +40,7 @@
 
 
 
+
 from __future__ import annotations
 
 import contextlib
@@ -198,7 +199,7 @@ class _ExecutorCode:
         if self._code_class_allowed(call):
             return False
         if plan.get("reasons"):
-            call["sentence"] = tr("Run Python code that {what}.").format(what="; ".join(plan["reasons"][:4]))
+            call["sentence"] = tr("Run Python code ({what}).").format(what="; ".join(plan["reasons"][:4]))
         return True
 
     def _code_class_allowed(self, call: dict) -> bool:
@@ -287,6 +288,7 @@ class _ExecutorCode:
 
 
         before = call.pop("code_editing_before", None)
+        opened = before is None or bool(_editing_layer_ids() - before)
         if before is not None:
             _discard_new_edit_sessions(before)
         held = self._unsaved_edits()
@@ -296,6 +298,12 @@ class _ExecutorCode:
             plan["reasons"] = list(plan.get("reasons") or []) + [
                 tr("ran with unsaved edits open on {layers}, so nothing was put back").format(
                     layers=", ".join(held[:3]))]
+            if own:
+                snapshot.discard()
+            return
+        if not opened and snapshot.unchanged_since_capture():
+
+            log("execute_code stopped before it changed anything, the project is kept as it is")
             if own:
                 snapshot.discard()
             return
@@ -366,7 +374,7 @@ class _ExecutorCode:
         reasons = plan.get("reasons") or []
         call["always"] = True
         if reasons:
-            call["sentence"] = tr("Run Python code that {what}.").format(what="; ".join(reasons[:4]))
+            call["sentence"] = tr("Run Python code ({what}).").format(what="; ".join(reasons[:4]))
         self._executing.discard(tool_call_id)
         self._pending[tool_call_id] = call
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)

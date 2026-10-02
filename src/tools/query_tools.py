@@ -14,6 +14,8 @@ import time
 
 from qgis.core import (
     QgsExpression,
+    QgsExpressionContext,
+    QgsExpressionContextUtils,
     QgsFeatureRequest,
     QgsFeedback,
     QgsGeometry,
@@ -24,6 +26,7 @@ from qgis.core import (
 )
 
 from ..core import background, ground, limits, net
+from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request, first_feature
 from ..core.geometry_budget import VertexBudget
@@ -33,7 +36,6 @@ from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
 from ..core.vsi import streamed_in_place
 from ._layers import loaded_feature_count
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _field_not_found_error, _find_layer, _jsonable_value, _layer_not_found_error
 from .project_tools import _is_remote_vector, filter_facts
 
@@ -414,7 +416,7 @@ _REMOTE_COUNT_BUDGET_S = 20.0
 
 def _get_features_off_thread(args: dict) -> dict:
     cancelled = net.current_cancel_check()
-    plan = _run_on_main_thread(_features_plan, args, True, timeout=60)
+    plan = run_on_main_thread(_features_plan, args, True, timeout=60)
     if "_error" in plan:
         return plan
     out: dict = {}
@@ -433,10 +435,8 @@ def _get_features_off_thread(args: dict) -> dict:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="get_features read",
-                              args=(plan.pop("source"), plan["request"], plan.get("count_request"),
-                                    plan["feedback"]))
-    thread.start()
+    background.start_kept_thread(reader, plan.pop("source"), plan["request"], plan.get("count_request"),
+                                 plan["feedback"], name="get_features read")
     while not over.wait(_STOP_POLL_S):
         if callable(cancelled) and cancelled():
             halted.set()
@@ -492,14 +492,16 @@ def _measurement(expr, layer) -> dict:
         return {}
     measured_on = ground.measure_on_ellipsoid(expr, layer)
     out: dict = {}
+
+    bare = expr.expression().strip() in _MEASURE_FUNCTIONS
     if measured_on:
         out["ellipsoid"] = measured_on
         out["corrected"] = ("This project measures planar (ellipsoid NONE), so the expression was measured on "
                             "the WGS84 ellipsoid here and the value below is ground measure.")
         if "$area" in used:
-            out["area_units"] = "square metres of ground"
+            out["area_units" if bare else "$area_units"] = "square metres of ground"
         if used - {"$area"}:
-            out["length_units"] = "metres of ground"
+            out["length_units" if bare else "$length_units"] = "metres of ground"
         return {"measurement": out}
     try:
         from qgis.core import QgsUnitTypes
@@ -507,9 +509,9 @@ def _measurement(expr, layer) -> dict:
         project = QgsProject.instance()
         out["ellipsoid"] = str(project.ellipsoid() or "")
         if "$area" in used:
-            out["area_units"] = QgsUnitTypes.toString(project.areaUnits())
+            out["area_units" if bare else "$area_units"] = QgsUnitTypes.toString(project.areaUnits())
         if used - {"$area"}:
-            out["length_units"] = QgsUnitTypes.toString(project.distanceUnits())
+            out["length_units" if bare else "$length_units"] = QgsUnitTypes.toString(project.distanceUnits())
     except Exception:  # noqa: BLE001
         return {}
     return {"measurement": out} if out else {}
@@ -710,7 +712,7 @@ def _get_field_statistics(args: dict) -> dict:
 
 def _scan_field(args: dict) -> dict:
 
-    state = _run_on_main_thread(_stats_open, args["layer_name"], args.get("field"), timeout=60)
+    state = run_on_main_thread(_stats_open, args["layer_name"], args.get("field"), args, timeout=60)
     if state.get("_error"):
         return state
 
@@ -721,27 +723,25 @@ def _scan_field(args: dict) -> dict:
         state["features"] = remote.getFeatures(state["request"])
     try:
         while True:
-            cancelled = net.current_cancel_check()
-            try:
-                stopped = callable(cancelled) and bool(cancelled())
-            except Exception:  # noqa: BLE001
-                stopped = False
-            if stopped:
+            if net.is_cancelled():
                 return {"_error": "The run was stopped.", "_code": "CANCELLED",
                         "_suggestion": "The user stopped the run."}
             if remote is not None:
                 if _stats_read(state):
                     break
                 background.breathe(state["total"])
-            elif _run_on_main_thread(_stats_read, state, timeout=120):
+            elif run_on_main_thread(_stats_read, state, timeout=120):
                 break
     finally:
         if remote is not None:
             _stats_close(state)
         else:
-            _run_on_main_thread(_stats_close, state, timeout=30)
+            run_on_main_thread(_stats_close, state, timeout=30)
 
-    return {**_stats_summary(state), **state["filter_facts"]}
+    out = {**_stats_summary(state), **state["filter_facts"], **state["extra"]}
+    if state.get("groups") is not None:
+        out.update(_group_rows(state))
+    return out
 
 
 def _band_number(field: str) -> int:
@@ -777,8 +777,34 @@ def _not_a_vector_error(layer, field: str = "") -> dict:
     }
 
 
-def _stats_open(layer_name: str, field: str) -> dict:
+def _stats_expression(layer, text: str, what: str):
 
+
+
+
+
+
+
+    expr = QgsExpression(text)
+    if expr.hasParserError():
+        return None, None, {"_error": f"{what} {text!r} is not a field of {layer.name()!r} and does not parse as "
+                                      f"an expression: {expr.parserErrorString()}",
+                            "code": "INVALID_ARGS", "fields": [f.name() for f in layer.fields()]}
+    fields = layer.fields()
+    for column in sorted(expr.referencedColumns()):
+        if column != QgsFeatureRequest.ALL_ATTRIBUTES and fields.lookupField(column) < 0:
+            return None, None, _field_not_found_error(layer, column)
+    return expr, _measurement(expr, layer), None
+
+
+def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
+
+
+
+
+
+
+    args = args or {}
     layer = _find_layer(layer_name)
     if not layer:
         return _layer_not_found_error(layer_name)
@@ -789,16 +815,55 @@ def _stats_open(layer_name: str, field: str) -> dict:
                 "code": "INVALID_ARGS",
                 "fields": [f.name() for f in layer.fields()],
                 "suggestion": "'fields' lists the names 'field' accepts."}
-    index = layer.fields().indexOf(field)
+    fields = layer.fields()
+    index = fields.indexOf(field)
+    expr = context = None
+    extra: dict = {}
     if index < 0:
+        if QgsExpression(field).hasParserError() or field.isidentifier():
 
 
 
-        return _field_not_found_error(layer, field)
-    request = QgsFeatureRequest().setFlags(QgsFeatureRequest.Flag.NoGeometry)
-    request.setSubsetOfAttributes([index])
+            return _field_not_found_error(layer, field)
+        expr, measured, error = _stats_expression(layer, field, "field")
+        if error:
+            return error
+        extra.update(measured)
+    group_by = str(args.get("group_by") or "").strip()
+    group_index = -1
+    if group_by:
+        group_index = fields.lookupField(group_by)
+        if group_index < 0:
+            return _field_not_found_error(layer, group_by)
+    row_filter = str(args.get("filter") or "").strip()
+    keep = None
+    context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+    if row_filter:
+        keep, measured, error = _stats_expression(layer, row_filter, "filter")
+        if error:
+            return error
+        extra["filter"] = row_filter
+        if not measured:
+
+            keep = None
+            request_filter = row_filter
+    request = QgsFeatureRequest()
+    if expr is None and not row_filter:
+        request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
+        request.setSubsetOfAttributes([i for i in (index, group_index) if i >= 0])
+    else:
+        if row_filter and keep is None:
+            request.setFilterExpression(request_filter)
+            request.setExpressionContext(QgsExpressionContext(context))
+        if not any(e is not None and e.needsGeometry() for e in (expr, keep, QgsExpression(row_filter))):
+            request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
+    for prepared in (expr, keep):
+        if prepared is not None:
+            prepared.prepare(context)
     state = {"layer_name": layer.name(), "field": field, "index": index, "numbers": [], "others": [],
-             "total": 0, "missing": 0, "numeric_only": True, "filter_facts": filter_facts(layer)}
+             "total": 0, "missing": 0, "numeric_only": True, "filter_facts": filter_facts(layer),
+             "expr": expr, "keep": keep, "context": context, "group_index": group_index, "group_by": group_by,
+             "groups": {} if group_by else None, "extra": extra}
     if _is_remote_vector(layer):
 
         state.update(source=QgsVectorLayerFeatureSource(layer), request=request)
@@ -815,19 +880,65 @@ def _stats_read(state: dict) -> bool:
 
 
     numbers, others, index = state["numbers"], state["others"], state["index"]
+    expr, context, groups, group_index = state["expr"], state["context"], state["groups"], state["group_index"]
+    keep = state["keep"]
     for read, feature in enumerate(state["features"], start=1):
+        if expr is not None or keep is not None:
+            context.setFeature(feature)
+        if keep is not None and not keep.evaluate(context):
+            if read >= STATS_CHUNK:
+                return False
+            continue
         state["total"] += 1
-        value = feature[index]
+        if expr is None:
+            value = feature[index]
+        else:
+            value = expr.evaluate(context)
+        number = None
         if value is None or (hasattr(value, "isNull") and value.isNull()):
             state["missing"] += 1
         elif state["numeric_only"] and not isinstance(value, bool) and isinstance(value, (int, float)):
-            numbers.append(float(value))
+            number = float(value)
+            numbers.append(number)
         else:
             state["numeric_only"] = False
             others.append(value)
+        if groups is not None:
+            key = _jsonable_value(feature[group_index])
+            if not isinstance(key, (str, int, float, bool, type(None))):
+                key = str(key)
+            row = groups.get(key)
+            if row is None:
+                row = groups[key] = [0, 0, 0.0, None, None]
+            row[0] += 1
+            if number is not None:
+                row[1] += 1
+                row[2] += number
+                row[3] = number if row[3] is None else min(row[3], number)
+                row[4] = number if row[4] is None else max(row[4], number)
         if read >= STATS_CHUNK:
             return False
     return True
+
+
+
+_GROUP_ROWS = 100
+
+
+def _group_rows(state: dict) -> dict:
+
+    rows = []
+    for key, (count, numbers, total, low, high) in state["groups"].items():
+        row = {"value": key, "count": count}
+        if numbers:
+            row.update(sum=_jsonable_value(total), mean=_jsonable_value(total / numbers),
+                       min=_jsonable_value(low), max=_jsonable_value(high))
+        rows.append(row)
+    rows.sort(key=lambda row: (-(row.get("sum") or 0), -row["count"]))
+    out = {"group_by": state["group_by"], "groups_total": len(rows), "groups": rows[:_GROUP_ROWS]}
+    if len(rows) > _GROUP_ROWS:
+        out["groups_note"] = f"The {_GROUP_ROWS} groups with the largest sum of {len(rows)}."
+    return out
 
 
 def _stats_close(state: dict) -> None:
@@ -1453,6 +1564,7 @@ def _band_quantiles(read: dict, cancelled) -> dict:
         array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
         nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
         scale, offset = raster_band.GetScale() or 1.0, raster_band.GetOffset() or 0.0
+        transform = dataset.GetGeoTransform()
     except (RuntimeError, TypeError, ValueError, AttributeError):
         return {}
     finally:
@@ -1470,20 +1582,106 @@ def _band_quantiles(read: dict, cancelled) -> dict:
         valid &= ~((flat >= low) & (flat <= high))
     values = flat[valid].astype("float64") * scale + offset
     if not values.size:
-        return {}
+        return {"ranges": [], "ranges_note": _NO_VALID_PIXEL} if read.get("ranges") else {}
+    out = {}
+    if read.get("ranges"):
+        areas = _value_areas(np, read, transform, yoff, height, buf_w, buf_h, (width * height) / float(buf_w * buf_h))
+        out = _range_counts(np, values, read, (width * height) / float(buf_w * buf_h),
+                            areas[valid] if getattr(areas, "shape", None) else areas)
     found = np.percentile(values, _PERCENTILES)
-    return {"quantiles": {f"p{p}": round(float(v), 4) for p, v in zip(_PERCENTILES, found)},
+    return {**out, "quantiles": {f"p{p}": round(float(v), 4) for p, v in zip(_PERCENTILES, found)},
             "quantiles_note": (f"Percentiles of {int(values.size):,} valid cells"
                                + (f", read decimated by {step:.1f} in each direction" if step > 1.0 else "")
                                + ". Equal-count class breaks: 4 classes p25 p50 p75, 5 classes p20 p40 p60 p80, "
                                  "10 classes every p10; use them as the breaks, no code needed.")}
 
 
+_NO_VALID_PIXEL = "no valid pixel in the cells read: every one is nodata"
+
+_AUTHALIC_RADIUS_M = 6371007.181
+
+
+def _value_areas(np, read: dict, transform, yoff: int, height: int, buf_w: int, buf_h: int, factor: float):
+
+
+
+    if read.get("geographic"):
+        try:
+            _x0, step_x, skew_x, y0, skew_y, step_y = transform
+        except (TypeError, ValueError):
+            return None
+        if not step_x or not step_y or skew_x or skew_y:
+            return None
+        rows_per_value = height / float(buf_h)
+        centre = y0 + step_y * (yoff + (np.arange(buf_h) + 0.5) * rows_per_value)
+        half = abs(step_y) / 2.0
+        band = np.abs(np.sin(np.radians(np.clip(centre + half, -90, 90)))
+                      - np.sin(np.radians(np.clip(centre - half, -90, 90))))
+        cell = _AUTHALIC_RADIUS_M ** 2 * math.radians(abs(step_x)) * band
+        return np.repeat(cell * factor, buf_w)
+    pixel_area = read.get("pixel_area_m2")
+    return pixel_area * factor if pixel_area else None
+
+
+def _range_counts(np, values, read: dict, factor: float, areas=None) -> dict:
+
+
+
+
+
+
+    rows = []
+    for item in read["ranges"]:
+        try:
+            low, high = item
+            low = None if low is None else float(low)
+            high = None if high is None else float(high)
+        except (TypeError, ValueError):
+            return {"ranges_note": "ranges is a list of [low, high] pairs of numbers (null for no bound)"}
+        inside = np.ones(values.shape, dtype=bool)
+        if low is not None:
+            inside &= values >= low
+        if high is not None:
+            inside &= values < high
+        count = int(inside.sum())
+        row = {"low": low, "high": high, "pixels": int(round(count * factor)),
+               "share_pct": round(100.0 * count / values.size, 3)}
+        if getattr(areas, "shape", None):
+            row["area_km2"] = round(float(areas[inside].sum()) / 1e6, 4)
+        elif areas:
+            row["area_km2"] = round(count * areas / 1e6, 4)
+        rows.append(row)
+    if factor > 1.0:
+        note = f"read decimated, each value read stands for {factor:.1f} pixels; low included, high excluded"
+    else:
+        note = "every valid pixel read; low included, high excluded"
+    if getattr(areas, "shape", None):
+        note += "; a grid in degrees: each row's cells measured at that row's latitude"
+    elif areas is None:
+        note += "; no area: the pixel's ground size is unknown here"
+    return {"ranges": rows, "ranges_note": note}
+
+
 def _get_raster_band_stats(args: dict) -> dict:
-    out = _run_on_main_thread(_band_stats_on_main, args, timeout=limits.current("CALL_MAX_SECONDS_MAIN"))
+    for low, high in args.get("ranges") or ():
+        if low is not None and high is not None and float(low) > float(high):
+            return {"_error": f"Range [{low}, {high}] has its low above its high, so it holds no value.",
+                    "code": "INVALID_ARGS", "suggestion": "Each range is [low, high], low first."}
+    out = run_on_main_thread(_band_stats_on_main, args, True, timeout=limits.current("CALL_MAX_SECONDS_MAIN"))
+    cancelled = net.current_cancel_check()
+    sampled = out.pop("_sampled_read", None) if isinstance(out, dict) else None
+    if sampled:
+        measured = _sampled_band_stats(sampled, cancelled)
+        if cancelled is not None and cancelled():
+            return {"_error": "The run was stopped.", "code": "CANCELLED",
+                    "suggestion": "The user stopped the run."}
+        if measured is not None:
+            out.update(measured)
+            return out
+
+        out = run_on_main_thread(_band_stats_on_main, args, False, timeout=limits.current("CALL_MAX_SECONDS_MAIN"))
     source = out.pop("_exact_source", None) if isinstance(out, dict) else None
     quantile_read = out.pop("_quantile_read", None) if isinstance(out, dict) else None
-    cancelled = net.current_cancel_check()
     if quantile_read:
         out.update(_band_quantiles(quantile_read, cancelled))
     if not source:
@@ -1502,7 +1700,139 @@ def _get_raster_band_stats(args: dict) -> dict:
     return out
 
 
-def _band_stats_on_main(args: dict) -> dict:
+
+
+
+
+
+_REMOTE_SAMPLE_PIXELS = 1_000_000
+
+
+def _sampled_band_stats(read: dict, cancelled) -> dict | None:
+
+
+
+
+
+
+    try:
+        import numpy as np
+        from osgeo import gdal
+    except ImportError:
+        return None
+    gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
+    dataset = None
+    try:
+        dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
+        if dataset is None or read["band"] > dataset.RasterCount:
+            return None
+        window = _Bounds(*read["window"]) if read.get("window") else None
+        xoff, yoff, width, height = _window_pixels(dataset, window)
+        step = max(1.0, math.sqrt(width * height / float(_REMOTE_SAMPLE_PIXELS)))
+        buf_w, buf_h = max(1, int(width / step)), max(1, int(height / step))
+        raster_band = dataset.GetRasterBand(read["band"])
+        array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
+        nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
+        scale, offset = raster_band.GetScale() or 1.0, raster_band.GetOffset() or 0.0
+        transform = dataset.GetGeoTransform()
+    except (RuntimeError, TypeError, ValueError, AttributeError):
+        return None
+    finally:
+        dataset = None
+        gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", None)
+    if array is None or (cancelled is not None and cancelled()):
+        return None
+    flat = array.ravel()
+    valid = np.ones(flat.shape, dtype=bool)
+    if np.issubdtype(flat.dtype, np.floating):
+        valid &= np.isfinite(flat)
+    if nodata is not None:
+        valid &= flat != nodata
+    for low, high in read.get("user_nodata") or ():
+        valid &= ~((flat >= low) & (flat <= high))
+    values = flat[valid].astype("float64") * scale + offset
+    sampled, counted = int(flat.size), int(values.size)
+    coverage = round(100.0 * counted / sampled, 1) if sampled else None
+    full = int(read.get("full") or 0)
+    out = {"pixels_counted": counted, "coverage_pct": coverage,
+           "measured": (f"approximate: a sample of {sampled:,} cells read at 1/{step:.0f} of the raster's "
+                        "resolution; native:zonalstatisticsfb over the area reads every pixel")}
+    if counted:
+        lo, hi, mean = float(values.min()), float(values.max()), float(values.mean())
+        out.update({"min": lo, "max": hi, "mean": mean, "stddev": float(values.std()), "range": hi - lo,
+                    "sum": float(values.sum())})
+        found = np.percentile(values, _PERCENTILES)
+        out["quantiles"] = {f"p{p}": round(float(v), 4) for p, v in zip(_PERCENTILES, found)}
+        out["quantiles_note"] = (f"Percentiles of the {counted:,} valid cells of the same sample. Equal-count class "
+                                 "breaks: 4 classes p25 p50 p75, 5 classes p20 p40 p60 p80, 10 classes every p10; "
+                                 "use them as the breaks, no code needed.")
+    else:
+        mean = float("nan")
+        out.update({"min": None, "max": None, "mean": None, "stddev": None, "range": None, "sum": None})
+    if full > sampled:
+        out["sum_is_sample"] = True
+        out["sum_note"] = (f"Read on {sampled:,} of the raster's {full:,} pixels: sum is not its total. "
+                           "native:zonalstatisticsfb over the area reads every pixel.")
+        out["extremes_are_sample"] = True
+        out["extremes_note"] = (f"min and max are those of the {sampled:,} cells read, not the raster's: its "
+                                "highest and lowest cells can lie between them.")
+    _coverage_note(out, counted, mean, coverage, "gdal")
+    if read.get("ranges") and counted:
+        areas = _value_areas(np, read, transform, yoff, height, buf_w, buf_h, (width * height) / float(buf_w * buf_h))
+        out.update(_range_counts(np, values, read, (width * height) / float(buf_w * buf_h),
+                                 areas[valid] if getattr(areas, "shape", None) else areas))
+    elif read.get("ranges"):
+        out.update({"ranges": [], "ranges_note": _NO_VALID_PIXEL})
+    if read.get("class_counts"):
+        out.update(_class_counts(read["source"], read["band"], window, read.get("pixel_area_m2"),
+                                 _REMOTE_SAMPLE_PIXELS))
+    return out
+
+
+def _sample_plan(args: dict, layer, provider, band: int, window, why: str) -> dict:
+
+
+
+
+
+
+    try:
+        has_overviews = bool(provider.hasPyramids())
+    except Exception:  # noqa: BLE001
+        has_overviews = False
+    if has_overviews:
+        window, why = None, ""
+    out = {"layer": layer.name(), "band": band, "band_count": layer.bandCount(), "crs": crs_ref(layer.crs())}
+    if window is not None:
+        out["measured_over"] = _extent_block(window, layer.crs())
+        full_extent = layer.extent()
+        if not full_extent.isNull() and full_extent.width() > 0 and full_extent.height() > 0:
+            out["measured_over"]["share_of_raster_pct"] = round(
+                100.0 * (window.width() * window.height()) / (full_extent.width() * full_extent.height()), 2)
+        out["window_note"] = (f"{why}. Every number above describes that window only, not the whole raster; "
+                              "gdal:cliprasterbyextent over the area gives a clip that measures the whole raster.")
+    grid = ground.pixel_facts(layer)
+    if grid:
+        out["grid"] = grid
+    out["_sampled_read"] = {
+        "source": str(provider.dataSourceUri() or ""), "band": band,
+        "window": (None if window is None else
+                   (window.xMinimum(), window.yMinimum(), window.xMaximum(), window.yMaximum())),
+        "source_nodata": bool(provider.useSourceNoDataValue(band)),
+        "user_nodata": [(r.min(), r.max()) for r in provider.userNoDataValues(band)],
+        "full": int(layer.width() or 0) * int(layer.height() or 0),
+        "class_counts": bool(args.get("class_counts")),
+        "ranges": args.get("ranges") or None,
+        "pixel_area_m2": (grid or {}).get("pixel_area_m2"), "geographic": bool(layer.crs().isGeographic()),
+    }
+    return out
+
+
+def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
+
+
+
+
 
 
     layer = _find_layer(args["layer_name"])
@@ -1517,6 +1847,8 @@ def _band_stats_on_main(args: dict) -> dict:
                 "_code": "INVALID_ARGS", "_suggestion": "Bands are numbered from 1."}
     provider = layer.dataProvider()
     window, why = _measured_window(layer)
+    if sample_in_worker and str(layer.providerType() or "") == "gdal" and _remote_raster(layer):
+        return _sample_plan(args, layer, provider, band, window, why)
     try:
         from qgis.core import QgsRectangle
 
@@ -1570,6 +1902,7 @@ def _band_stats_on_main(args: dict) -> dict:
         out["extremes_are_sample"] = True
         out["extremes_note"] = (f"min and max are those of the {read:,} pixels read, not the raster's: its "
                                 "highest and lowest cells can lie between them.")
+        out["measured"] = f"approximate: QGIS's sample of {read:,} cells"
         if (window is None and full <= _EXACT_STATS_PIXELS_MAX and layer.providerType() == "gdal"
                 and not _remote_raster(layer) and not provider.userNoDataValues(band)
                 and (provider.useSourceNoDataValue(band) or not provider.sourceHasNoDataValue(band))):
@@ -1595,10 +1928,16 @@ def _band_stats_on_main(args: dict) -> dict:
     if grid:
         out["grid"] = grid
     if args.get("class_counts"):
-        out.update(_class_counts(layer, provider, band, window))
+        out.update(_class_counts(provider.dataSourceUri(), band, window,
+                                 ground.pixel_facts(layer).get("pixel_area_m2")))
+    ranges = args.get("ranges")
+    if ranges and layer.providerType() != "gdal":
+        out["ranges_note"] = "the source is not a GDAL raster (a tile service or a WMS has no pixel values to count)"
     if layer.providerType() == "gdal":
 
         out["_quantile_read"] = {
+            "ranges": ranges or None, "pixel_area_m2": (grid or {}).get("pixel_area_m2"),
+            "geographic": bool(layer.crs().isGeographic()),
             "source": str(provider.dataSourceUri() or ""), "band": band,
             "window": (None if window is None else
                        (window.xMinimum(), window.yMinimum(), window.xMaximum(), window.yMaximum())),
@@ -1639,7 +1978,7 @@ def _window_pixels(dataset, window) -> tuple:
     return left, top, right - left, bottom - top
 
 
-def _class_counts(layer, provider, band: int, window=None) -> dict:
+def _class_counts(source: str, band: int, window=None, pixel_area=None, pixels: int = _CLASS_COUNT_PIXELS) -> dict:
 
 
 
@@ -1652,7 +1991,6 @@ def _class_counts(layer, provider, band: int, window=None) -> dict:
         from osgeo import gdal
     except Exception as exc:  # nosec B110
         return {"class_counts_note": f"GDAL or numpy unavailable: {exc}"}
-    source = provider.dataSourceUri()
     try:
 
 
@@ -1664,7 +2002,7 @@ def _class_counts(layer, provider, band: int, window=None) -> dict:
         return {"class_counts_note": "the source is not a GDAL raster (a tile service or a WMS has no class table)"}
     try:
         xoff, yoff, width, height = _window_pixels(dataset, window)
-        scale = max(1.0, math.sqrt(width * height / float(_CLASS_COUNT_PIXELS)))
+        scale = max(1.0, math.sqrt(width * height / float(pixels)))
         buf_w, buf_h = max(1, int(width / scale)), max(1, int(height / scale))
         raster_band = dataset.GetRasterBand(band)
         array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
@@ -1694,7 +2032,6 @@ def _class_counts(layer, provider, band: int, window=None) -> dict:
         return out
     total = int(counts.sum()) or 1
     factor = (width * height) / float(buf_w * buf_h)
-    pixel_area = ground.pixel_facts(layer).get("pixel_area_m2")
     classes = []
     for value, count in zip(values.tolist(), counts.tolist()):
         row = {"value": value, "share_pct": round(100.0 * count / total, 2), "pixels": int(round(count * factor))}

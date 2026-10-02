@@ -21,8 +21,10 @@ from qgis.core import (
     QgsVectorLayer,
     QgsWkbTypes,
 )
+from qgis.PyQt import sip
 
 from ..core import ground, limits
+from ..core.background import main_qthread, main_thread_invoker, on_main_thread, run_on_main_thread, still_awaited
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, release_pooled_handles, remove_quietly, retry_file_op
 from ..core.layer_order import feature_count_of, is_remote_vector
@@ -33,11 +35,73 @@ from ..core.security import validate_path
 from ..core.tool_registry import coded_fact, tool_error
 from . import vector_write
 from ._compat import FIELD_TYPES
-from .csv_loader import CSV_EXTENSIONS
+from .csv_loader import CSV_EXTENSIONS, add_csv
+from .data_common import built_here, worker_options
 from .layer_lookup import _find_layer, _layer_not_found_error
 from .missing_file import missing_file
 
 _CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".gpx", ".dxf", ".vrt")
+
+
+
+
+
+
+
+
+
+
+
+_NOT_AWAITED = {"_error": "The call this layer was read for had already ended; the layer was not added.",
+                "code": "TIMEOUT"}
+
+
+def _drop(obj) -> None:
+
+    if obj is not None and not sip.isdeleted(obj):
+        sip.delete(obj)
+
+
+def _to_main(layer):
+
+
+    if layer is not None and not on_main_thread():
+        target = main_qthread()
+        if target is not None:
+            layer.moveToThread(target)
+    return layer
+
+
+def _checked_path(path: str) -> str | None:
+
+    return run_on_main_thread(validate_path, path, False, timeout=60)
+
+
+def _on_main_with(built, build_on_main, add) -> dict:
+
+
+
+
+
+
+    holder = {"layer": built}
+
+    def _main():
+        layer = holder.pop("layer", None)
+        if layer is None:
+            layer = build_on_main()
+        try:
+            return add(layer)
+        finally:
+            if QgsProject.instance().mapLayer(layer.id()) is not layer:
+                _drop(layer)
+
+    try:
+        return run_on_main_thread(_main, timeout=60)
+    except BaseException:
+        if holder.get("layer") is not None:
+            main_thread_invoker().invoke(lambda: _drop(holder.pop("layer", None)))
+        raise
 
 
 def _virtual_source_path(path: str) -> str | None:
@@ -163,32 +227,28 @@ MERGE_OFFER = ("layer=<extension> (for example layer='shp') or a pattern (layer=
 
 def describe_sublayers(path: str, names: list) -> list:
 
+
+
+
+
+    options = QgsVectorLayer.LayerOptions() if on_main_thread() else worker_options()
     out = []
     for name in names:
-        probe = QgsVectorLayer(f"{path}|layername={name}", name, "ogr")
+        probe = QgsVectorLayer(f"{path}|layername={name}", name, "ogr", options)
         if not probe.isValid():
             out.append({"name": name, "valid": False})
-            continue
-        out.append({
-            "name": name,
-            "geometry": QgsWkbTypes.displayString(probe.wkbType()),
-            "feature_count": probe.featureCount(),
-            "crs": crs_ref(probe.crs()),
-        })
+        else:
+            out.append({
+                "name": name,
+                "geometry": QgsWkbTypes.displayString(probe.wkbType()),
+                "feature_count": probe.featureCount(),
+                "crs": crs_ref(probe.crs()),
+            })
+        _drop(probe)
     return out
 
 
 _REMOTE_VECTOR_PREFIXES = ("http://", "https://", "/vsicurl/")
-
-
-def _add_vector_layer_is_remote(args: dict) -> bool:
-
-
-
-
-
-
-    return str(args.get("path") or "").startswith(_REMOTE_VECTOR_PREFIXES)
 
 
 _CAD_EXTENSIONS = (".dwg", ".dxf")
@@ -201,20 +261,15 @@ def _safe_cad_stem(value: str) -> str:
     return stem
 
 
-def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
+def _cad_crs_question(path: str, name: str) -> dict:
 
 
 
 
 
+    from .crs_at_load import _VERDICT_FACT, suggestion, verdict
 
-    if not str(crs or "").strip():
-
-
-
-        from .crs_at_load import _VERDICT_FACT, suggestion, verdict
-
-        probe = QgsVectorLayer(path, name, "ogr")
+    def refusal(probe) -> dict:
         found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False) if probe.isValid() else {}
         found = found or {"verdict": "missing", "candidates": []}
         candidate_crs = [authid for authid, _why in found["candidates"]]
@@ -228,6 +283,48 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
 
                 "variant": "candidates" if candidate_crs else "none", "layer": name, "cad": True,
                 **_VERDICT_FACT.get(found["verdict"], {})}
+
+    if on_main_thread():
+        probe = QgsVectorLayer(path, name, "ogr")
+        try:
+            return refusal(probe)
+        finally:
+            _drop(probe)
+    probe = QgsVectorLayer(path, name, "ogr", worker_options())
+    if probe.isValid():
+        probe.extent()
+    holder = {"probe": _to_main(probe)}
+    del probe
+
+    def judge() -> dict:
+        probe = holder.pop("probe")
+        try:
+            return refusal(probe)
+        finally:
+            _drop(probe)
+
+    try:
+        return run_on_main_thread(judge, timeout=60)
+    except BaseException:
+        if holder.get("probe") is not None:
+            main_thread_invoker().invoke(lambda: _drop(holder.pop("probe", None)))
+        raise
+
+
+def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
+
+
+
+
+
+
+
+
+    if not str(crs or "").strip():
+
+
+
+        return _cad_crs_question(path, name)
     target = QgsCoordinateReferenceSystem(str(crs).strip())
     if not target.isValid():
         return {"_error": f"The CRS {crs!r} is not known to QGIS; the CAD file was not imported.",
@@ -269,20 +366,91 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
         return {"_error": f"Could not convert {os.path.basename(path)} to GeoPackage: {exc}",
                 "code": "EXECUTION_FAILED",
                 **coded_fact(hint="cad_convert_failed")}
-    uri = f"{gpkg}|layername={_safe_cad_stem(name)}"
-    layer = QgsVectorLayer(uri, name, "ogr")
-    if not layer.isValid():
-        return {"_error": f"GDAL created {gpkg}, but QGIS could not open its GeoPackage layer.",
-                "code": "EXECUTION_FAILED",
-                **coded_fact(hint="cad_open_failed")}
-    styled = _cad_layer_colours(path, layer)
-    QgsProject.instance().addMapLayer(layer)
-    out = {"name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount(),
-           "crs": crs_ref(layer.crs()), "path": gpkg, "gpkg_path": gpkg,
-           "source_format": os.path.splitext(path)[1].lower().lstrip("."), "crs_assigned": target.authid()}
-    if styled:
-        out["styled"] = styled
-    return out
+    table = _safe_cad_stem(name)
+    parts = _geometry_parts(gpkg, table) or [(f"{gpkg}|layername={table}", "")]
+
+
+    built: list = []
+    for uri, word in parts:
+        facts: dict = {}
+        label = f"{name} ({word})" if word else name
+
+        def make(uri=uri, label=label, facts=facts):
+            layer = QgsVectorLayer(uri, label, "ogr", worker_options())
+            if layer.isValid():
+                facts["count"] = layer.featureCount()
+                facts["by_layer"] = layer.fields().lookupField("Layer") >= 0
+            return layer
+
+        built.append({"layer": built_here(make), "uri": uri, "label": label, "word": word, "facts": facts})
+    colours = (_cad_colours(path) if any(p["layer"] is None or p["facts"].get("by_layer") for p in built)
+               else None)
+
+    def drop_unadded() -> None:
+        for part in built:
+            layer = part.pop("layer", None)
+            if layer is not None and QgsProject.instance().mapLayer(layer.id()) is not layer:
+                _drop(layer)
+
+    def add() -> dict:
+        try:
+            layers = []
+            for part in built:
+                if part.get("layer") is None:
+                    part["layer"] = QgsVectorLayer(part["uri"], part["label"], "ogr")
+                    part["facts"].clear()
+                if not part["layer"].isValid():
+                    return {"_error": f"GDAL created {gpkg}, but QGIS could not open its GeoPackage layer.",
+                            "code": "EXECUTION_FAILED",
+                            **coded_fact(hint="cad_open_failed")}
+                layers.append((part["layer"], part["word"], _cad_layer_style(part["layer"], colours),
+                               part["facts"].get("count")))
+            if not still_awaited():
+                return dict(_NOT_AWAITED)
+            for layer, _word, _styled, _count in layers:
+                QgsProject.instance().addMapLayer(layer)
+
+            def count(layer, known):
+                return known if known is not None else layer.featureCount()
+
+            layer, _word, styled, known = layers[0]
+            out = {"name": layer.name(), "layer_id": layer.id(), "feature_count": count(layer, known),
+                   "crs": crs_ref(layer.crs()), "path": gpkg, "gpkg_path": gpkg,
+                   "source_format": os.path.splitext(path)[1].lower().lstrip("."), "crs_assigned": target.authid()}
+            if styled:
+                out["styled"] = styled
+            if len(layers) > 1:
+                out["layers"] = [{"name": each.name(), "layer_id": each.id(), "geometry": word,
+                                  "feature_count": count(each, known)} for each, word, _styled, known in layers]
+            return out
+        finally:
+            drop_unadded()
+
+    try:
+        return run_on_main_thread(add, timeout=60)
+    except BaseException:
+        main_thread_invoker().invoke(drop_unadded)
+        raise
+
+
+def _geometry_parts(gpkg: str, table: str) -> list:
+
+
+
+
+
+
+
+    try:
+        from qgis.core import Qgis, QgsProviderRegistry
+
+        details = QgsProviderRegistry.instance().querySublayers(gpkg, Qgis.SublayerQueryFlag.ResolveGeometryType)
+    except Exception:  # noqa: BLE001
+        return []
+    parts = [d for d in details if d.name() == table and d.featureCount() != 0]
+    if len(parts) < 2:
+        return []
+    return [(d.uri(), QgsWkbTypes.geometryDisplayString(QgsWkbTypes.geometryType(d.wkbType()))) for d in parts]
 
 
 
@@ -292,30 +460,19 @@ _CAD_COLOUR_RE = re.compile(r"\b(?:fc|c):#([0-9A-Fa-f]{6})([0-9A-Fa-f]{2})?")
 _CAD_COLOUR_READ_MAX = 500_000
 
 
-def _cad_layer_colours(path: str, layer) -> str:
-
-
-
-
-
-
+def _cad_colours(path: str) -> tuple | None:
 
 
     from collections import Counter
 
-    from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
-    from qgis.PyQt.QtGui import QColor
-
-    if layer.fields().lookupField("Layer") < 0:
-        return ""
     try:
         from osgeo import ogr
 
         source = ogr.Open(path)
     except Exception:  # noqa: BLE001
-        return ""
+        return None
     if source is None:
-        return ""
+        return None
     colours: dict[str, Counter] = {}
     hidden: dict[str, int] = {}
     read = 0
@@ -338,6 +495,25 @@ def _cad_layer_colours(path: str, layer) -> str:
                 continue
             counter[match.group(1).lower()] += 1
     source = None
+    return colours, hidden
+
+
+def _cad_layer_style(layer, read: tuple | None) -> str:
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
+    from qgis.PyQt.QtGui import QColor
+
+    if read is None or layer.fields().lookupField("Layer") < 0:
+        return ""
+    colours, hidden = read
     if not colours:
         return ""
     categories = []
@@ -362,16 +538,28 @@ def _cad_layer_colours(path: str, layer) -> str:
 
 
 def _add_vector_layer(args: dict) -> dict:
+
+
+
+
+
     path = args["path"]
     name = args.get("name") or os.path.splitext(os.path.basename(path))[0]
 
     if path.startswith(_REMOTE_VECTOR_PREFIXES):
         from .data_tools import _add_vector_from_url
         url = path.replace("/vsicurl/", "") if path.startswith("/vsicurl/") else path
-        return _add_vector_from_url({"url": url, "layer_name": name})
+        return _add_vector_from_url({"url": url, "layer_name": name, "crs": args.get("crs")})
 
-    real_path = _virtual_source_path(path) or path
-    path_error = validate_path(real_path, write=False)
+
+
+    file_part, _bar, options = path.partition("|")
+    if options and not args.get("name"):
+        from qgis.core import QgsProviderRegistry
+
+        name = QgsProviderRegistry.instance().decodeUri("ogr", path).get("layerName") or name
+    real_path = _virtual_source_path(file_part) or file_part
+    path_error = _checked_path(real_path)
     if path_error:
         return {"_error": path_error}
 
@@ -388,15 +576,15 @@ def _add_vector_layer(args: dict) -> dict:
             return _add_vector_layer({"path": value, "crs": args.get("crs"),
                                       "name": args.get("name") or os.path.splitext(os.path.basename(value))[0]})
         if action == "merge":
-            return start_folder_merge(real_path, value, name)
+
+            return run_on_main_thread(lambda: start_folder_merge(real_path, value, name), timeout=60)
         return value
 
     if real_path.lower().endswith(_CAD_EXTENSIONS):
         return _add_cad_to_gpkg(real_path, name, args.get("crs"))
 
     if path.lower().endswith(CSV_EXTENSIONS):
-        from .csv_loader import load_csv
-        return load_csv(path, name, args.get("crs"))
+        return add_csv(path, name, args.get("crs"))
 
     uri = path
     wanted = str(args.get("layer") or "").strip()
@@ -428,13 +616,11 @@ def _add_vector_layer(args: dict) -> dict:
             import shutil
             import zipfile
 
-            from .csv_loader import load_csv
-
             local = os.path.join(create_managed_temp_dir("unzipped"), os.path.basename(table[0]))
             with zipfile.ZipFile(path) as archive, archive.open(table[0]) as source, open(local, "wb") as sink:
                 shutil.copyfileobj(source, sink)
-            return load_csv(local, args.get("name") or os.path.splitext(os.path.basename(table[0]))[0],
-                            args.get("crs"))
+            return add_csv(local, args.get("name") or os.path.splitext(os.path.basename(table[0]))[0],
+                           args.get("crs"))
         sublayer = ""
         if wanted:
             picked = members_matching(members, wanted)
@@ -452,10 +638,10 @@ def _add_vector_layer(args: dict) -> dict:
                                    "raster inside it loads with kind='raster'.")}
         if len(members) > 1 and wanted:
 
-            from .vector_merge import start_folder_merge
+            from . import vector_merge
 
-            return start_folder_merge(_zip_member_uri(path, "").rstrip("/"),
-                                      [_zip_member_uri(path, member) for member in members], name)
+            folder, sources = _zip_member_uri(path, "").rstrip("/"), [_zip_member_uri(path, m) for m in members]
+            return run_on_main_thread(lambda: vector_merge.start_folder_merge(folder, sources, name), timeout=60)
         if len(members) > 1:
 
             return {
@@ -495,14 +681,56 @@ def _add_vector_layer(args: dict) -> dict:
             if not args.get("name"):
                 name = names[0]
 
-    layer = QgsVectorLayer(uri, name, "ogr")
-    if not layer.isValid():
-        if archive_members:
-            return {"_error": f"Failed to load vector layer from: {uri}", "layers": archive_members[:50],
-                    "suggestion": "The zip itself, with layer set to one of the listed files."}
-        return {"_error": f"Failed to load vector layer from: {uri}"}
+    facts: dict = {}
 
-    split = None
+    def make():
+        layer, facts["split"] = _open_vector(uri, name, real_path, worker_options())
+        if layer.isValid():
+            facts["count"] = layer.featureCount()
+        return layer
+
+    built = built_here(make)
+    on_main: dict = {}
+
+    def build_on_main():
+        layer, on_main["split"] = _open_vector(uri, name, real_path, QgsVectorLayer.LayerOptions())
+        return layer
+
+    def add(layer) -> dict:
+        if not layer.isValid():
+            if archive_members:
+                return {"_error": f"Failed to load vector layer from: {uri}", "layers": archive_members[:50],
+                        "suggestion": "The zip itself, with layer set to one of the listed files."}
+            return {"_error": f"Failed to load vector layer from: {uri}"}
+        split = facts.get("split") if built is not None else on_main.get("split")
+        crs_outcome = _apply_requested_crs(layer, args.get("crs"))
+        if not still_awaited():
+            return dict(_NOT_AWAITED)
+        QgsProject.instance().addMapLayer(layer)
+        out = {
+            "name": layer.name(),
+            "layer_id": layer.id(),
+            "feature_count": facts["count"] if built is not None and "count" in facts else layer.featureCount(),
+            "crs": crs_ref(layer.crs()),
+        }
+        out.update(crs_outcome)
+        if split is not None:
+            from .vector_merge import split_note
+
+            out.update({"path": split["gpkg"], "source_format": os.path.splitext(real_path)[1].lstrip(".").lower(),
+                        "description_fields": split["description_fields"], "_note": split_note(split)})
+        return out
+
+    return _on_main_with(built, build_on_main, add)
+
+
+def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
+
+
+
+
+
+
     if real_path.lower().endswith((".kml", ".kmz")):
 
         from .vector_merge import split_description
@@ -510,27 +738,11 @@ def _add_vector_layer(args: dict) -> dict:
         source, _sep, sublayer = uri.partition("|layername=")
         split = split_description(source, sublayer or None, name)
         if split is not None:
-            rebuilt = QgsVectorLayer(split["uri"], name, "ogr")
+            rebuilt = QgsVectorLayer(split["uri"], name, "ogr", options)
             if rebuilt.isValid():
-                layer = rebuilt
-            else:
-                split = None
-
-    crs_outcome = _apply_requested_crs(layer, args.get("crs"))
-    QgsProject.instance().addMapLayer(layer)
-    out = {
-        "name": layer.name(),
-        "layer_id": layer.id(),
-        "feature_count": layer.featureCount(),
-        "crs": crs_ref(layer.crs()),
-    }
-    out.update(crs_outcome)
-    if split is not None:
-        from .vector_merge import split_note
-
-        out.update({"path": split["gpkg"], "source_format": os.path.splitext(real_path)[1].lstrip(".").lower(),
-                    "description_fields": split["description_fields"], "_note": split_note(split)})
-    return out
+                return rebuilt, split
+            _drop(rebuilt)
+    return QgsVectorLayer(uri, name, "ogr", options), None
 
 
 
@@ -578,7 +790,7 @@ def _add_raster_layer(args: dict) -> dict:
         return {"_error": "add_raster_layer loads LOCAL raster files only. For remote imagery use "
                           "add_xyz_layer (tile services) or add_wms_layer (WMS)."}
 
-    path_error = validate_path(path, write=False)
+    path_error = _checked_path(path)
     if path_error:
         return {"_error": path_error}
 
@@ -603,23 +815,32 @@ def _add_raster_layer(args: dict) -> dict:
         source = _zip_member_uri(path, picked[0])
         if not args.get("name"):
             name = os.path.splitext(os.path.basename(picked[0]))[0]
-    layer = QgsRasterLayer(source, name)
-    if not layer.isValid():
-        return {"_error": f"Failed to load raster layer from: {source}"}
-
     from .elevation_style import apply_elevation_style, elevation_stretch
     from .stac_tools import normalise_crs
-    normalise_crs(layer)
-    styled = apply_elevation_style(layer, elevation_stretch(source, name))
-    QgsProject.instance().addMapLayer(layer)
-    return {
-        "name": layer.name(),
-        "layer_id": layer.id(),
-        "crs": crs_ref(layer.crs()),
-        "width": layer.width(),
-        "height": layer.height(),
-        **({"styled": styled} if styled else {}),
-    }
+
+
+
+    stretch = elevation_stretch(source, name)
+    built = built_here(lambda: QgsRasterLayer(source, name, "gdal", worker_options(QgsRasterLayer)))
+
+    def add(layer) -> dict:
+        if not layer.isValid():
+            return {"_error": f"Failed to load raster layer from: {source}"}
+        normalise_crs(layer)
+        styled = apply_elevation_style(layer, stretch)
+        if not still_awaited():
+            return dict(_NOT_AWAITED)
+        QgsProject.instance().addMapLayer(layer)
+        return {
+            "name": layer.name(),
+            "layer_id": layer.id(),
+            "crs": crs_ref(layer.crs()),
+            "width": layer.width(),
+            "height": layer.height(),
+            **({"styled": styled} if styled else {}),
+        }
+
+    return _on_main_with(built, lambda: QgsRasterLayer(source, name), add)
 
 
 
@@ -1214,8 +1435,23 @@ def _delete_with_retry(path: str, attempts: int = 8, pause: float = 0.02) -> boo
     return False
 
 
+def _staging_failure(path: str, exc: Exception) -> dict:
+    return {"_error": f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
+            "_code": "EXECUTION_FAILED",
+            "suggestion": "The volume needs room, and the folder needs write access."}
+
+
+def _copy_into_staging(_task, source: str, staging: str) -> bool:
+
+    from ..core.snapshot_files import _sqlite_copy
+
+    _sqlite_copy(source, staging)
+    return True
+
+
 def _export_in_background(layer, path: str, staging: str, driver: str, options, count: int, released: list,
-                          extra: dict | None = None):
+                          extra: dict | None = None, stage_from: str | None = None):
+
 
 
 
@@ -1224,9 +1460,9 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
 
     try:
-        from qgis.core import QgsVectorFileWriterTask
+        from qgis.core import QgsTask, QgsVectorFileWriterTask
 
-        from .processing_tools import register_task
+        from .processing_run import register_task
     except ImportError:
         return None
     try:
@@ -1236,6 +1472,15 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
     except (TypeError, ValueError):
         _discard_staged_write(staging)
         return None
+    copy = None
+    if stage_from:
+        try:
+            copy = QgsTask.fromFunction(f"Copy {os.path.basename(stage_from)} before the export",
+                                        _copy_into_staging, stage_from, staging)
+            task.addSubTask(copy, [], enum_member(QgsTask, "SubTaskDependency", "ParentDependsOnSubTask"))
+        except (AttributeError, TypeError, ValueError):
+            _discard_staged_write(staging)
+            return None
     done = {"exported": path, "format": driver, "feature_count": count,
             "selected_only": options.onlySelectedFeatures}
     done.update(extra or {})
@@ -1297,6 +1542,12 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
             _discard_staged_write(staging)
             entry.pop("partial_file", None)
+            failed_copy = getattr(copy, "exception", None) if copy is not None else None
+            if failed_copy is not None and entry.get("status") == "running":
+                entry["status"] = "error"
+                entry["error"] = (f"Could not prepare the export beside {os.path.basename(path)}: {failed_copy}. "
+                                  f"{os.path.basename(path)} is unchanged.")
+                return
             entry.setdefault("note", (f"The export was stopped. {os.path.basename(path)} was not touched: "
                                       f"the write went to a file of its own, which has been removed."))
 
@@ -1544,6 +1795,7 @@ def _export_layer(args: dict) -> dict:
 
 
     replaced_layer_in_place = False
+    stage_from = None
 
 
 
@@ -1569,17 +1821,21 @@ def _export_layer(args: dict) -> dict:
 
 
 
+
+
             import sqlite3
 
-            from ..core.snapshot_files import _sqlite_copy
+            from ..core.snapshot import INLINE_BACKUP_BYTES
+            from ..core.snapshot_files import _backup_size, _sqlite_copy
 
             try:
-                _sqlite_copy(path, staging)
+                if _backup_size(path) > INLINE_BACKUP_BYTES:
+                    stage_from = path
+                else:
+                    _sqlite_copy(path, staging)
             except (OSError, sqlite3.Error) as exc:
                 _discard_staged_write(staging)
-                return {"_error": f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
-                        "_code": "EXECUTION_FAILED",
-                        "suggestion": "The volume needs room, and the folder needs write access."}
+                return _staging_failure(path, exc)
             options.actionOnExistingFile = enum_member(
                 QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
             replaced_layer_in_place = True
@@ -1610,11 +1866,23 @@ def _export_layer(args: dict) -> dict:
 
 
 
-    if remote or count > limits.current("SYNC_FEATURE_LOOP_MAX"):
+    if remote or stage_from or count > limits.current("SYNC_FEATURE_LOOP_MAX"):
         started = _export_in_background(layer, path, staging, driver, options, count, released,
-                                        extra={"geometry_written": geometry_written} if geometry_written else None)
+                                        extra={"geometry_written": geometry_written} if geometry_written else None,
+                                        stage_from=stage_from)
         if started is not None:
             return started
+    if stage_from:
+
+        import sqlite3
+
+        from ..core.snapshot_files import _sqlite_copy
+
+        try:
+            _sqlite_copy(stage_from, staging)
+        except (OSError, sqlite3.Error) as exc:
+            _discard_staged_write(staging)
+            return _staging_failure(path, exc)
 
     error_code, error_msg, *_ = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer, staging, QgsProject.instance().transformContext(), options

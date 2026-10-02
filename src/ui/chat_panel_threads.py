@@ -44,6 +44,8 @@ class _ChatPanelThreads:
 
 
         self.header.set_history_available(signed_in and empty and not gated)
+
+        self.header.set_new_chat_available(signed_in and not gated)
         if gated:
             self._quota_host.hide()
             self._runs_host.hide()
@@ -61,7 +63,6 @@ class _ChatPanelThreads:
 
             self.sidebar = sidebar = install_sidebar(self)
             sidebar.new_thread_requested.connect(self.new_thread_requested.emit)
-            sidebar.home_requested.connect(self.new_thread_requested.emit)
             sidebar.search_requested.connect(lambda: self.header.history_menu().show_over(self))
             sidebar.thread_selected.connect(self.thread_selected.emit)
             sidebar.upgrade_requested.connect(lambda: self._on_upgrade("sidebar"))
@@ -203,21 +204,24 @@ class _ChatPanelThreads:
 
 
 
+
+
         points: dict = {}
+        later = 0
         for row in history_rows(self._history):
+            live_request = row["type"] == "request" and row["live"]
 
             if (row["type"] != "request" or row["live"] is None
                     or not (usable(row["before"]) and usable(row["after"]))):
+                later += 1 if live_request else 0
                 continue
-            request = row["request"]
             if row["live"]:
-                tip = (self.tr("Back to before “{request}”").format(request=request) if request
-                       else self.tr("Back to before this request"))
-                points[row["run_id"]] = ("undo", row_target(row), tip)
+                tip = self.tr("Remove what this request changed on the map")
+                points[row["run_id"]] = ("undo", row_target(row), tip, later)
+                later += 1
             else:
-                tip = (self.tr("Forward to after “{request}”").format(request=request) if request
-                       else self.tr("Forward to after this request"))
-                points[row["run_id"]] = ("redo", row_target(row), tip)
+                tip = self.tr("Bring back what this request changed")
+                points[row["run_id"]] = ("redo", row_target(row), tip, 0)
         return points
 
     def _sync_answer_restores(self) -> None:
@@ -230,7 +234,6 @@ class _ChatPanelThreads:
         except (AttributeError, RuntimeError):
             pass
         points = self._answer_points() if not running else {}
-        self._sync_edit()
         for run_id, card in list(self._error_cards.items()):
             try:
                 card.set_undo_retry(points.get(run_id, ("",))[0] == "undo")
@@ -240,9 +243,9 @@ class _ChatPanelThreads:
             bubble = getattr(run, "bubble", None)
             if bubble is None or not bubble.is_finished():
                 continue
-            mode, _cid, tip = points.get(run_id, ("", "", ""))
+            mode, _cid, tip, later = points.get(run_id, ("", "", "", 0))
             try:
-                bubble.set_restore(mode, tip)
+                bubble.set_restore(mode, tip, later)
             except RuntimeError:
                 continue
 
@@ -267,9 +270,10 @@ class _ChatPanelThreads:
 
 
 
+
         link = (action, "restore:" + checkpoint_id) if action and checkpoint_id else None
         if ok:
-            self.composer.show_hint(text, sticky=True, link=link)
+            self.composer.show_hint(text, sticky=link is not None, link=link)
         else:
             self.composer.show_warning(text, sticky=True, focus=False, link=link)
 
@@ -317,17 +321,6 @@ class _ChatPanelThreads:
         self._add(note)
         self.message_list.scroll_to_bottom()
 
-    def note_run_blocked(self, run_id: str, text: str) -> None:
-
-
-        run = self._live_run(str(run_id or ""))
-        text = str(text or "").strip()
-        if run is None or not text or run.blocked_noted:
-            return
-        run.blocked_noted = True
-        block = run.trace if run.trace is not None else self._trace_for(run.run_id)
-        block.add_note(text)
-
 
 
 
@@ -351,14 +344,10 @@ class _ChatPanelThreads:
         self._status = None
         self._current_run = None
         self._run_requests = {}
-        self._last_user_bubble = None
 
         self.set_queue_thread(None)
         self._error_cards = {}
         self.composer.set_running(False)
-
-        if self.composer.end_edit():
-            self.edit_requested.emit("")
 
         self.composer.clear_chips()
         self._changed_count = 0

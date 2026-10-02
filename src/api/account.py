@@ -16,9 +16,7 @@
 
 from __future__ import annotations
 
-import hashlib
 import secrets
-import string
 import time
 from typing import Any, Callable
 
@@ -95,18 +93,6 @@ def get_plans_page_url(cta_source: str = "plugin") -> str:
     from ..ui.shared import get_upgrade_url
     source = "".join(ch for ch in str(cta_source or "") if ch.isalnum() or ch == "_") or "plugin"
     return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
-
-
-_MATCH_ALPHABET = "".join(c for c in string.ascii_uppercase + string.digits if c not in "01IO")
-
-
-def pairing_match_code(code: str) -> str:
-
-
-
-    digest = hashlib.sha256(str(code or "").encode("utf-8")).digest()
-    bits = (digest[0] << 16) | (digest[1] << 8) | digest[2]
-    return "".join(_MATCH_ALPHABET[(bits >> (19 - i * 5)) & 31] for i in range(4))
 
 
 def get_device_platform() -> str:
@@ -202,7 +188,7 @@ class Account(QObject):
     signed_out = pyqtSignal()
     session_expired = pyqtSignal(str)
     pairing_started = pyqtSignal(str)
-    pairing_address = pyqtSignal(str)
+    pairing_address = pyqtSignal(str, str)
     pairing_browser_seen = pyqtSignal()
     pairing_stalled = pyqtSignal(str, str)
     pairing_link_back = pyqtSignal()
@@ -306,13 +292,30 @@ class Account(QObject):
         self._pending_code = secrets.token_urlsafe(32)
         self._open_pairing_page(self._pending_code)
 
-    def pairing_match_code(self) -> str:
-
-        return pairing_match_code(self._pending_code) if self._pending_code else ""
-
     def reopen_pairing_page(self) -> None:
+
+
+
+
         if self._pending_code:
             self._open_pairing_page(self._pending_code)
+            if self._copy_to_clipboard(self._pairing_url):
+                self.pairing_address.emit(tr("Link copied: paste it in your browser."), "info")
+
+    @staticmethod
+    def _copy_to_clipboard(text: str) -> bool:
+        if not text:
+            return False
+        try:
+            from qgis.PyQt.QtWidgets import QApplication
+
+            clipboard = QApplication.clipboard()
+            if clipboard is None:
+                return False
+            clipboard.setText(text)
+            return True
+        except Exception:  # noqa: BLE001
+            return False
 
     def _open_pairing_page(self, code: str) -> None:
         self._start_pairing_poll(code)
@@ -351,23 +354,13 @@ class Account(QObject):
         log("Pairing started")
 
     def _show_pairing_address(self, url: str) -> None:
-        copied = False
-        try:
-            from qgis.PyQt.QtWidgets import QApplication
-
-            clipboard = QApplication.clipboard()
-            if clipboard is not None:
-                clipboard.setText(url)
-                copied = True
-        except Exception:
-            copied = False
-        if copied:
+        if self._copy_to_clipboard(url):
             message = tr("QGIS could not open a browser. The sign-in address is copied to your "
                          "clipboard: paste it into a browser to finish, then come back here. It works once.")
         else:
             message = tr("QGIS could not open a browser. Open this address to finish signing in, "
                          "then come back here. It works once:\n{}").format(url)
-        self.pairing_address.emit(message)
+        self.pairing_address.emit(message, "warning")
 
     def _on_pairing_succeeded(self, key: str) -> None:
         if not self.is_valid_key(key):
@@ -422,15 +415,13 @@ class Account(QObject):
 
     def _on_pairing_stalled(self, reason: str = "") -> None:
         if reason == PairingPollTask.STALL_OFFLINE:
-            self.pairing_stalled.emit(reason, tr("No connection to terra-lab.ai. Still trying..."))
+            self.pairing_stalled.emit(reason, tr("Can't reach TerraLab. Retrying."))
             return
         if reason == PairingPollTask.STALL_CODE_EXPIRED:
             message = tr("This sign-in code has expired. Click Cancel, then Sign in to get a new one.")
         else:
-            message = tr("Still waiting for the sign-in page. If no browser opened, or the page "
-                         "shows an error, click Cancel and try again.")
-            if self._pairing_url:
-                message += "\n\n" + tr("You can also open this address by hand:\n{}").format(self._pairing_url)
+            message = tr("Still waiting for the sign-in page. No browser? Click Open browser: "
+                         "it also copies the link, to paste in your browser.")
         self.pairing_stalled.emit(reason, message)
 
     def cancel_pairing(self) -> None:
@@ -483,6 +474,13 @@ class Account(QObject):
         self._revalidate_task = task
         QgsApplication.taskManager().addTask(task)
 
+    def note_session_accepted(self) -> None:
+
+
+
+        self._last_key_validation_unix = time.time()
+        self._last_key_validation_at = time.monotonic()
+
     def unlock(self) -> bool:
 
 
@@ -521,11 +519,17 @@ class Account(QObject):
         client = self._client
 
         def _fetch():
-            account = client.get_account(auth=auth)
+
+
+
+
+            account = client.get_account(auth=auth, include_usage=True)
             if not isinstance(account, dict) or "error" in account:
                 return account
             account = dict(account)
-            usage = client.get_usage(auth=auth)
+            usage = account.pop("usage", None)
+            if not isinstance(usage, dict) or not usage:
+                usage = client.get_usage(auth=auth)
             if not isinstance(usage, dict) or "error" in usage:
                 return usage if isinstance(usage, dict) else {
                     "error": tr("Could not load account usage."), "code": "USAGE_ERROR"}
@@ -672,6 +676,9 @@ class Account(QObject):
             self.session_expired.emit(expired)
             log_warning("Stored key rejected on revalidation")
             return
+
+
+        self._last_key_validation_at = time.monotonic()
         if normalized == "SUBSCRIPTION_INACTIVE":
             if not self._billing_warning_shown:
                 self._billing_warning_shown = True

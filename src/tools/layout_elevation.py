@@ -135,8 +135,29 @@ def snapshot_3d_view(args: dict):
     for key, apply in _CAMERA_OVERRIDES:
         if args.get(key) is not None:
             apply(pose, float(args[key]))
-    return {"canvas": source, "index": index, "count": len(views),
-            "settings": Qgs3DMapSettings(source.mapSettings()), "pose": pose}, None
+    settings = Qgs3DMapSettings(source.mapSettings())
+    _origin_on_ground(settings, pose)
+    return {"canvas": source, "index": index, "count": len(views), "settings": settings, "pose": pose}, None
+
+
+def _origin_on_ground(settings, pose) -> None:
+
+
+
+
+
+
+
+
+
+    from qgis._3d import Qgs3DMapScene
+    from qgis.core import QgsVector3D
+
+    if not hasattr(Qgs3DMapScene, "hasSceneOriginShiftEnabled"):
+        return
+    origin, centre = settings.origin(), pose.centerPoint()
+    settings.setOrigin(QgsVector3D(origin.x() + centre.x(), origin.y() + centre.y(), 0.0))
+    pose.setCenterPoint(QgsVector3D(0.0, 0.0, origin.z() + centre.z()))
 
 
 def _set_distance(pose, metres: float) -> None:

@@ -13,9 +13,11 @@
 
 
 
+
+
+
 from __future__ import annotations
 
-import os
 import sys
 from urllib.parse import quote
 
@@ -24,8 +26,7 @@ from qgis.PyQt.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBo
 from ..core.host_platform import os_info, os_label
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
-from ..core.settings import account_dir
-from .external_links import open_email, open_local_path
+from .external_links import open_email
 from .font_scale import scale_px_length
 from .shared import exec_dialog, get_support_email, plugin_version, tr
 from .style import _BTN_GHOST, _BTN_PRIMARY, BTN_PILL_PX
@@ -87,7 +88,6 @@ def _policy_line() -> str:
 class ErrorReportDialog(QDialog):
 
 
-
     def __init__(self, error_message: str = "", run_id: str = "", parent=None, report_provider=None):
         super().__init__(parent)
         self.setWindowTitle(tr("Report a problem"))
@@ -99,43 +99,40 @@ class ErrorReportDialog(QDialog):
 
         self._provider = report_provider
         self._export: dict | None = None
-        self._saved_path = ""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
         label = QLabel(self._explanation(), self)
         label.setWordWrap(True)
         layout.addWidget(label)
+        if report_provider is not None:
+            from .settings_pages import ROW_NOTE_QSS
+
+
+
+
+            detail = QLabel(self._included(), self)
+            detail.setWordWrap(True)
+            detail.setStyleSheet(ROW_NOTE_QSS)
+            layout.addWidget(detail)
         self._copy = QPushButton(self._copy_label(), self)
         self._copy.setStyleSheet(_BTN_PRIMARY)
         self._copy.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._copy.clicked.connect(self._on_copy)
         layout.addWidget(self._copy)
-        self._save: QPushButton | None = None
-        if report_provider is not None:
-
-
-            self._save = QPushButton(tr("2. Save it as a file"), self)
-            self._save.setStyleSheet(_BTN_GHOST)
-            self._save.setFixedHeight(scale_px_length(BTN_PILL_PX))
-            self._save.clicked.connect(self._on_save)
-            layout.addWidget(self._save)
         email = get_support_email()
 
 
 
-        step = 3 if self._save is not None else 2
-        self._email = QPushButton(
-            tr("{step}. Open an email to {email}").format(step=step, email=email), self)
+        self._email = QPushButton(tr("Open an email"), self)
+        self._email.setToolTip(email)
         self._email.setStyleSheet(_BTN_GHOST)
         self._email.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._email.clicked.connect(self._on_email)
         layout.addWidget(self._email)
 
     def _copy_label(self) -> str:
-        if self._provider is None:
-            return tr("1. Copy diagnostics")
-        return tr("1. Copy the whole session")
+        return tr("Copy report")
 
     def _explanation(self) -> str:
 
@@ -144,13 +141,14 @@ class ErrorReportDialog(QDialog):
 
 
 
-        if self._provider is None:
-            return tr("Copy the diagnostics, then send them to support.")
+        return tr("Copy a report of this problem, then paste it into an email to us.")
+
+    def _included(self) -> str:
+
         return tr(
-            "The report holds this whole session: your messages, every tool the agent ran "
-            "with its arguments and what came back, the plan it followed and the recent log "
-            "lines. Your activation key, your passwords and the contents of your files are "
-            "never in it.")
+            "This conversation: your messages, each step the AI took and what it found, "
+            "and technical details about QGIS and the plugin. Never your passwords, your "
+            "sign-in or the contents of your files.")
 
 
 
@@ -193,32 +191,6 @@ class ErrorReportDialog(QDialog):
                 runs=counts.get("runs", 0), calls=counts.get("tool_calls", 0)))
         else:
             self._copy.setText(tr("Copied"))
-
-    def _on_save(self) -> None:
-        if self._save is None:
-            return
-        if self._saved_path:
-            open_local_path(self._saved_path, parent=self)
-            return
-        export = self.report()
-        if export is None:
-            self._save.setText(tr("There is no session to save"))
-            return
-        from ..core.session_export import default_name, write_json
-
-        folder = os.path.join(account_dir(), "reports")
-        try:
-            os.makedirs(folder, exist_ok=True)
-            path = os.path.join(folder, default_name(export))
-            write_json(path, export)
-        except OSError as exc:
-            log_warning(f"The session report could not be written: {exc}")
-            self._save.setText(tr("The file could not be written"))
-            return
-        self._saved_path = path
-
-
-        self._save.setText(tr("Saved. Open {name}").format(name=os.path.basename(path)))
 
     def _on_email(self) -> None:
         email = get_support_email()

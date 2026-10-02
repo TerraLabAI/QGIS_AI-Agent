@@ -141,6 +141,7 @@ class PanelActionsMixin:
 
     def _on_undo(self) -> None:
 
+        self._executor.record_pending_after()
         entry = self._executor.history.previous(self._thread_id or "")
         if entry is None:
             self.notice.emit("info", tr("Nothing to undo."))
@@ -148,6 +149,7 @@ class PanelActionsMixin:
         self._on_restore(entry.id, False)
 
     def _on_discard_all(self, confirmed: bool = False) -> None:
+        self._executor.record_pending_after()
         entry = self._executor.history.first(self._thread_id or "")
         if entry is None:
             self.notice.emit("info", tr("Nothing to discard: this chat changed nothing yet."))
@@ -168,6 +170,8 @@ class PanelActionsMixin:
 
 
             return
+
+        self._executor.record_pending_after()
         history = self._executor.history
         thread_id = self._thread_id or ""
         entry = history.find(checkpoint_id)
@@ -241,8 +245,12 @@ class PanelActionsMixin:
         self._send_history()
         back = steps >= 0
         action, target = "", ""
-        if left is not None and left.id != entry.id and left.available:
-            action, target = (tr("Put back") if back else tr("Undo")), left.id
+
+
+
+        short = not ok or bool(self._not_back(entry, result))
+        if short and left is not None and left.id != entry.id and left.available:
+            action, target = (tr("Redo") if back else tr("Undo")), left.id
         self._panel_call("show_restore_notice", self._restored_text(entry, result, back), ok, action, target)
 
     def _on_restore_after_stop(self, run_id: str) -> None:
@@ -269,6 +277,7 @@ class PanelActionsMixin:
 
     def _go_back_before(self, run_id: str) -> None:
 
+        self._executor.record_pending_after()
         history = self._executor.history
         thread_id = self._thread_id or ""
         before = next((e for e in reversed(history.entries(thread_id))
@@ -280,7 +289,7 @@ class PanelActionsMixin:
             return
         if not before.available:
             self.notice.emit("warning", tr("Stopped. The version before this request is no longer kept, "
-                                           "so nothing was put back."))
+                                           "so nothing was undone."))
             return
         self._on_restore(before.id, False)
 
@@ -370,12 +379,16 @@ class PanelActionsMixin:
         words = _request_words(entry)
         if entry.kind == KIND_EDITS:
             text = tr("Back to your own changes.") if back else tr("Forward to your own changes.")
+        elif entry.kind == KIND_AFTER and not back:
+
+            text = tr("Brought back what “{request}” changed.").format(request=words)
+        elif entry.kind != KIND_AFTER and back:
+
+            text = tr("Removed what “{request}” changed.").format(request=words)
         elif entry.kind == KIND_AFTER:
-            text = (tr("Back to after “{request}”.") if back
-                    else tr("Forward to after “{request}”.")).format(request=words)
+            text = tr("Removed what came after “{request}”.").format(request=words)
         else:
-            text = (tr("Back to before “{request}”.") if back
-                    else tr("Forward to before “{request}”.")).format(request=words)
+            text = tr("Brought back everything up to “{request}”.").format(request=words)
         missing = self._not_back(entry, result)
         return f"{text} {missing}" if missing else text
 

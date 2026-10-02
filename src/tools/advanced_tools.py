@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import code_effects
 from ..core.tool_registry import Tool, ToolRegistry
-from . import isolated_code, raster_overviews
+from . import isolated_code, layout_ready, raster_overviews
 from .advanced_code import (  # noqa: F401
     _api_help,
     _execute_code,
@@ -148,9 +148,6 @@ def register_advanced_tools(registry: ToolRegistry):
                 "background": {
                     "type": "string",
                 },
-                "warmup": {
-                    "type": "boolean",
-                },
                 "save_path": {
                     "type": "string",
                 },
@@ -160,6 +157,7 @@ def register_advanced_tools(registry: ToolRegistry):
         },
         handler=_render_map,
         background=True,
+
 
 
         prepare=raster_overviews.prepare_render,
@@ -221,7 +219,9 @@ def register_advanced_tools(registry: ToolRegistry):
         },
         handler=_export_layout,
         replaces_file_at="output_path",
-        prepare=raster_overviews.prepare_layout,
+
+
+        prepare=layout_ready.prepare_export,
     ))
 
     registry.register(Tool(

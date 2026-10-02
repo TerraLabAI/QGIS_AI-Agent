@@ -47,6 +47,7 @@ from qgis.PyQt.QtWidgets import QSizePolicy, QWidget
 
 from ...core.logger import log_warning
 from ..font_scale import widget_pixel_ratio
+from ..image_guard import read_bounded_image
 
 
 def _thumbs():
@@ -80,24 +81,12 @@ def _decode(data: bytes, width: int):
 
 
 
-    from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice
-    from qgis.PyQt.QtGui import QImageReader
-
-    try:
-        buffer = QBuffer()
-        buffer.setData(QByteArray(data))
-        buffer.open(QIODevice.OpenModeFlag.ReadOnly)
-        reader = QImageReader(buffer)
-        size = reader.size()
-        if size.isValid():
-            if size.width() * size.height() > 16 * 1024 * 1024:
-                return None
-            if width and size.width() > width:
-                reader.setScaledSize(QSize(width, max(1, round(size.height() * width / size.width()))))
-        image = reader.read()
-        return None if image.isNull() else image
-    except (AttributeError, RuntimeError, TypeError, ValueError):
+    def fit_width(size: QSize) -> QSize | None:
+        if width and size.width() > width:
+            return QSize(width, max(1, round(size.height() * width / size.width())))
         return None
+
+    return read_bounded_image(data, 16 * 1024 * 1024, fit_width)
 
 
 def _read_file(url: str):
@@ -483,7 +472,9 @@ _SMALL_WORDS = {"of", "the", "and", "de", "du", "des", "la", "le", "les", "del",
                 "for", "van", "von", "y", "et", "&"}
 
 
-def monogram(name: str, code: str = "") -> str:
+def monogram(name: str, code: str = "", room: int = 2) -> str:
+
+
 
 
 
@@ -498,7 +489,7 @@ def monogram(name: str, code: str = "") -> str:
         return "?"
     first = "".join(ch for ch in words[0] if ch.isalnum())
     if 2 <= len(first) <= 5 and first.isupper():
-        return first[:2]
+        return first if len(first) <= max(2, int(room)) else first[:2]
     big = [w for w in words if w.lower() not in _SMALL_WORDS and w[:1].isalnum()]
     if len(big) >= 2:
         return (big[0][0] + big[1][0]).upper()
@@ -536,7 +527,9 @@ def monogram_pixmap(letters: str, accent: str, side: int, ratio: float = 1.0) ->
         painter.setBrush(fill)
         painter.drawRoundedRect(box, radius, radius)
         font = QFont(painter.font())
-        font.setPixelSize(max(7, int(side * 0.4)))
+
+        share = 0.4 if len(letters) <= 2 else (0.3 if len(letters) == 3 else 0.25)
+        font.setPixelSize(max(7, int(side * share)))
         font.setWeight(QFont.Weight.DemiBold)
         painter.setFont(font)
         painter.setPen(QColor(255, 255, 255))
@@ -565,7 +558,9 @@ def source_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0):
         code = country_of(row)
     except Exception:  # noqa: BLE001
         code = ""
-    return monogram_pixmap(monogram(str((row or {}).get("name") or ""), code), accent, side, ratio)
+
+    room = 4 if side >= 32 else 2
+    return monogram_pixmap(monogram(str((row or {}).get("name") or ""), code, room), accent, side, ratio)
 
 
 class _MarkWatcher(QObject):

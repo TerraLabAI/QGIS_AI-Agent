@@ -28,9 +28,8 @@ from ..core.qt_compat import enum_member, field_type
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import guards
-from ._layers import closest_layers, closest_names, match_names
-from .core_tools import _layer_not_found_error
-from .layer_lookup import _find_layer_note
+from ._layers import closest_layers, closest_names, match_names, resolve_layer_note
+from .layer_lookup import _layer_not_found_error
 
 
 
@@ -179,6 +178,7 @@ def register_layer_tools(registry: ToolRegistry):
             "properties": {
                 "name": {"type": "string"},
                 "parent_group": {"type": "string"},
+                "collapsed": {"type": "boolean"},
             },
             "required": ["name"],
         },
@@ -316,7 +316,7 @@ def register_layer_tools(registry: ToolRegistry):
 
 
 def _set_active_layer(args: dict) -> dict:
-    layer, note = _find_layer_note(args["layer_name"])
+    layer, note = resolve_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
     iface.setActiveLayer(layer)
@@ -373,7 +373,7 @@ def _set_layers_visibility(args: dict) -> dict:
     missing: list[str] = []
     notes: list[str] = []
     for name in args.get("layers") or []:
-        layer, note = _find_layer_note(str(name))
+        layer, note = resolve_layer_note(str(name))
         if layer is None:
             missing.append(str(name))
             continue
@@ -407,7 +407,7 @@ def _set_layers_visibility(args: dict) -> dict:
             f"No layer matched{': ' + listed if listed else ''}.",
             "LAYER_NOT_FOUND" if missing else "INVALID_ARGS",
             "list_layers gives valid names and ids. A pattern or group must exist.")
-    changed: list[str] = []
+    touched: list = []
     for layer_id, layer in targets.items():
         node = root.findLayer(layer_id)
         if node is None or node.isVisible() == visible and node.itemVisibilityChecked() == visible:
@@ -419,9 +419,21 @@ def _set_layers_visibility(args: dict) -> dict:
                 if isinstance(parent, QgsLayerTreeGroup) and not parent.itemVisibilityChecked():
                     parent.setItemVisibilityChecked(True)
                 parent = parent.parent()
-        changed.append(layer.name())
+        touched.append((layer, node))
+
+
+    changed = [layer.name() for layer, node in touched if node.isVisible() == visible]
+    off = [(layer, node) for layer, node in touched if node.isVisible() != visible]
     out = {"visible": visible, "matched": len(targets), "changed": changed,
-           "unchanged": len(targets) - len(changed)}
+           "unchanged": len(targets) - len(touched)}
+    if off:
+        out["not_applied"] = [layer.name() for layer, _node in off]
+        exclusive = sorted({node.parent().name() for _layer, node in off
+                            if isinstance(node.parent(), QgsLayerTreeGroup) and node.parent().isMutuallyExclusive()})
+        out["not_applied_note"] = (
+            "these layers read " + ("hidden" if visible else "drawn") + " in the layer tree after the call"
+            + (f": QGIS keeps one layer ticked in a mutually exclusive group, so ticking one unticks the "
+               f"others ({', '.join(exclusive)})" if exclusive and visible else ""))
     if missing:
         out["not_found"] = missing
         note = "No layer answers to " + ", ".join(repr(name) for name in missing) + "."
@@ -436,7 +448,7 @@ def _set_layers_visibility(args: dict) -> dict:
 
 
 def _set_layer_visibility(args: dict) -> dict:
-    layer, note = _find_layer_note(args["layer_name"])
+    layer, note = resolve_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
 
@@ -608,7 +620,7 @@ def _create_memory_layer(args: dict) -> dict:
 
 
 def _save_layer_to_gpkg(args: dict) -> dict:
-    layer, note = _find_layer_note(args["layer"])
+    layer, note = resolve_layer_note(args["layer"])
     if not layer:
         return _layer_not_found_error(args["layer"])
     if not isinstance(layer, QgsVectorLayer):
@@ -753,12 +765,20 @@ def _create_layer_group(args: dict) -> dict:
         container = root
 
 
-    for child in container.children():
-        if isinstance(child, QgsLayerTreeGroup) and child.name() == name:
-            return {"created": name, "existed": True}
+    group = next((child for child in container.children()
+                  if isinstance(child, QgsLayerTreeGroup) and child.name() == name), None)
+    existed = group is not None
+    if group is None:
+        group = container.addGroup(name)
+    out = {"created": name, "existed": existed}
 
-    container.addGroup(name)
-    return {"created": name, "existed": False}
+
+
+    collapsed = args.get("collapsed")
+    if collapsed is not None:
+        group.setExpanded(not collapsed)
+        out["collapsed"] = not group.isExpanded()
+    return out
 
 
 def _group_names(root) -> list[str]:
@@ -809,8 +829,22 @@ def _group_not_found(root, name: str) -> dict:
     return tool_error(message, "INVALID_ARGS", advice)
 
 
+def _visible_above(root, layer) -> dict:
+
+    out: dict = {}
+    for other in root.layerOrder():
+        if other is None:
+            continue
+        if other.id() == layer.id():
+            return out
+        node = root.findLayer(other.id())
+        if node is not None and node.isVisible():
+            out[other.id()] = other.name()
+    return out
+
+
 def _move_layer_to_group(args: dict) -> dict:
-    layer, note = _find_layer_note(args["layer_name"])
+    layer, note = resolve_layer_note(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
 
@@ -828,6 +862,7 @@ def _move_layer_to_group(args: dict) -> dict:
         group = root.insertGroup(0, wanted)
         created = True
 
+    above_before = _visible_above(root, layer)
     node = root.findLayer(layer.id())
     if node is None:
 
@@ -840,6 +875,16 @@ def _move_layer_to_group(args: dict) -> dict:
         node.parent().removeChildNode(node)
 
     out = {"moved": layer.name(), "layer_id": layer.id(), "to_group": group.name()}
+
+
+    if node is not None:
+        above_after = _visible_above(root, layer)
+        under = [name for lid, name in above_after.items() if lid not in above_before]
+        over = [name for lid, name in above_before.items() if lid not in above_after]
+        if under:
+            out["now_draws_under"] = under
+        if over:
+            out["now_draws_over"] = over
     if created:
         out["group_created"] = True
     if node is None:

@@ -372,6 +372,142 @@ def _schema(layer) -> dict:
         return {}
 
 
+
+
+
+
+_RANGE_EXACT_PIXELS = 4_000_000
+_RANGE_SAMPLE_PIXELS = 250_000
+
+
+def _local_gdal_file(layer) -> str:
+
+
+
+
+
+    import os
+
+    if not hasattr(layer, "bandCount") or layer.providerType() != "gdal":
+        return ""
+    path = str(layer.source()).split("|", 1)[0]
+    if not os.path.isfile(path):
+        return ""
+    from osgeo import gdal
+
+    dataset = gdal.OpenEx(path, gdal.OF_RASTER)
+    files = dataset.GetFileList() if dataset is not None else None
+    dataset = None
+    return path if files and all(os.path.isfile(f) for f in files) else ""
+
+
+def _band_range(layer) -> dict:
+
+
+
+
+
+
+
+
+
+
+    from . import tuning
+
+    if not tuning.flag("results", "layer_facts", False):
+        return {}
+    read = _READ_AHEAD.get(layer.id()) if hasattr(layer, "id") else None
+    if read is not None:
+        return dict(read)
+    try:
+        import warnings as _warnings
+
+        from qgis.core import QgsRasterBandStats
+
+        from .qt_compat import enum_member
+
+        if not _local_gdal_file(layer):
+            return {}
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore", DeprecationWarning)
+            wanted = (enum_member(QgsRasterBandStats, "Stats", "Min")
+                      | enum_member(QgsRasterBandStats, "Stats", "Max"))
+            sampled = layer.width() * layer.height() > _RANGE_EXACT_PIXELS
+
+            stats = layer.dataProvider().bandStatistics(1, wanted, layer.extent(),
+                                                        _RANGE_SAMPLE_PIXELS if sampled else 0)
+        low, high = float(stats.minimumValue), float(stats.maximumValue)
+    except Exception:  # noqa: BLE001
+        return {}
+    if low > high:
+        return {"band1": "no valid pixel in a sample" if sampled else "no valid pixel"}
+    out = {"band1_min": round(low, 6), "band1_max": round(high, 6)}
+    if sampled:
+        out["band1_sampled"] = True
+    return out
+
+
+
+
+
+
+_READ_AHEAD: dict = {}
+_READ_AHEAD_KEPT = 64
+
+
+def read_ahead(layer) -> None:
+
+
+
+
+    from . import tuning
+
+    if not tuning.flag("results", "layer_facts", False):
+        return
+    try:
+        if layer.width() * layer.height() > _RANGE_EXACT_PIXELS:
+            return
+        path = _local_gdal_file(layer)
+        if not path:
+            return
+        facts = _whole_band_range(path)
+    except Exception:  # noqa: BLE001
+        return
+    if facts is not None:
+        _READ_AHEAD[layer.id()] = facts
+        while len(_READ_AHEAD) > _READ_AHEAD_KEPT:
+            _READ_AHEAD.pop(next(iter(_READ_AHEAD)))
+
+
+def _whole_band_range(path: str) -> dict | None:
+
+
+    from osgeo import gdal
+
+    dataset = gdal.OpenEx(path, gdal.OF_RASTER)
+    if dataset is None:
+        return None
+    band = dataset.GetRasterBand(1)
+    gt = dataset.GetGeoTransform(can_return_null=True)
+    if gt is None or gt[2] or gt[4] or dataset.GetGCPCount():
+        return None
+    try:
+        stats = band.GetStatistics(False, False)
+        if stats is None or stats[3] < 0:
+            stats = band.ComputeStatistics(False)
+    except RuntimeError:
+        stats = None
+    if not stats:
+        return {"band1": "no valid pixel"}
+    scale, offset = band.GetScale(), band.GetOffset()
+    scale = 1.0 if scale is None else float(scale)
+    offset = 0.0 if offset is None else float(offset)
+    low, high = float(stats[0]), float(stats[1])
+    if scale != 1.0 or offset != 0.0:
+        low, high = sorted((low * scale + offset, high * scale + offset))
+    return {"band1_min": round(low, 6), "band1_max": round(high, 6)}
+
+
 def _listed(result: dict) -> list[dict]:
 
 
@@ -399,6 +535,7 @@ def describe(result) -> None:
 
 
 
+
     if not isinstance(result, dict) or "_error" in result:
         return
     try:
@@ -411,7 +548,7 @@ def describe(result) -> None:
             layer = project.mapLayer(lid)
             if layer is None:
                 continue
-            facts = _schema(layer)
+            facts = _schema(layer) or _band_range(layer)
             if not facts:
                 continue
             if "layer_id" not in entry and "crs" not in entry:

@@ -19,6 +19,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import math
@@ -30,7 +34,6 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 from ..icons import pixmap_for
 from ..widgets import ElidedLabel
 from . import common as C
-from .parts import label
 from .pressable import Pressable, labels_through
 
 _ROW_H = 36
@@ -45,7 +48,7 @@ class RailRow(Pressable):
 
     selected = pyqtSignal(str)
 
-    def __init__(self, key: str, text: str, glyph: str = "", parent=None):
+    def __init__(self, key: str, text: str, glyph: str = "", parent=None, indent: int = 0):
         super().__init__(parent, radius=C.RADIUS_ROW,
                          rest=lambda: C.T.selected if self._current else None,
                          hover=lambda: C.T.selected if self._current else C.T.hover,
@@ -54,7 +57,8 @@ class RailRow(Pressable):
         self._current = False
         self.setFixedHeight(C.px(_ROW_H))
         row = QHBoxLayout(self)
-        row.setContentsMargins(C.px(_ROW_PAD), 0, C.px(_ROW_PAD), 0)
+        self._indent = indent
+        row.setContentsMargins(C.px(_ROW_PAD) + indent, 0, C.px(_ROW_PAD), 0)
         row.setSpacing(C.px(_ROW_PAD))
         self._glyph = bool(glyph)
         if glyph:
@@ -78,7 +82,7 @@ class RailRow(Pressable):
         width = math.ceil(QFontMetricsF(self.text.font()).horizontalAdvance(self.text.full_text()))
         if self._glyph:
             width += _GLYPH_PX + C.px(_ROW_PAD)
-        return width + 2 * C.px(_ROW_PAD)
+        return width + 2 * C.px(_ROW_PAD) + self._indent
 
     def set_current(self, current: bool) -> None:
         if self._current != bool(current):
@@ -91,7 +95,7 @@ class LibraryRail(QFrame):
 
     selected = pyqtSignal(str)
 
-    def __init__(self, places: list, heading: str, groups: list, parent=None):
+    def __init__(self, places: list, groups: list, parent=None):
         super().__init__(parent)
         self.setObjectName("librarySidebar")
         self.setStyleSheet(f"QFrame#librarySidebar {{ background: {C.T.rail}; border: none; }}")
@@ -99,21 +103,20 @@ class LibraryRail(QFrame):
         col = QVBoxLayout(self)
         col.setContentsMargins(C.px(_RAIL_PAD), C.px(12), C.px(_RAIL_PAD), C.px(12))
         col.setSpacing(C.px(2))
-        for key, glyph, text in places:
+        self._group_keys: list = []
+        self._other_places: list = [key for key, _glyph, _text in places[1:]]
+        for index, (key, glyph, text) in enumerate(places):
             col.addWidget(self._row(key, text, glyph))
-        if groups:
-            col.addSpacing(C.px(20))
-            head = label(self, heading, C.SMALL_PX, C.T.text_2)
-            head.setContentsMargins(C.px(10), 0, 0, C.px(6))
-            col.addWidget(head)
-            for key, text in groups:
-                col.addWidget(self._row(key, text))
+            if index == 0:
+                for group_key, group_text in groups:
+                    col.addWidget(self._row(group_key, group_text, indent=_GLYPH_PX + C.px(_ROW_PAD)))
+                    self._group_keys.append(group_key)
         col.addStretch(1)
         widest = max((row.natural_width() for row in self._rows.values()), default=0)
         self.setFixedWidth(max(C.px(C.RAIL_W), min(C.px(_RAIL_MAX_W), widest + 2 * C.px(_RAIL_PAD))))
 
-    def _row(self, key: str, text: str, glyph: str = "") -> RailRow:
-        row = RailRow(key, text, glyph, self)
+    def _row(self, key: str, text: str, glyph: str = "", indent: int = 0) -> RailRow:
+        row = RailRow(key, text, glyph, self, indent)
         row.selected.connect(self.selected.emit)
         self._rows[key] = row
         return row
@@ -121,6 +124,10 @@ class LibraryRail(QFrame):
     def set_current(self, key: str) -> None:
         for row_key, row in self._rows.items():
             row.set_current(row_key == key)
+
+        nested = key not in self._other_places
+        for group_key in self._group_keys:
+            self._rows[group_key].setVisible(nested)
 
     def keys(self) -> list:
         return list(self._rows)

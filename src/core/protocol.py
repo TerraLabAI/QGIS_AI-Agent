@@ -205,7 +205,7 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
           tool_manifest: list | None = None, resume_session_id: str | None = None,
           telemetry: bool = True, improve: bool = True, last_seq: int | None = None,
           python_version: str = "", libraries: list | None = None,
-          crash: dict | None = None) -> dict:
+          crash: dict | None = None, catalog_tag: str = "", last_drop: dict | None = None) -> dict:
     frame = {
         "type": FrameType.HELLO,
         "activation_key": activation_key,
@@ -237,6 +237,9 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
         frame["tool_manifest"] = tool_manifest
     if resume_session_id:
         frame["resume_session_id"] = resume_session_id
+        if last_drop:
+
+            frame["last_drop"] = last_drop
     if last_seq is not None:
 
 
@@ -256,6 +259,12 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
         frame["crash"] = crash
+    if catalog_tag:
+
+
+
+
+        frame["catalog_tag"] = str(catalog_tag)
     return frame
 
 
@@ -339,6 +348,18 @@ def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "
     return _with_code_class(frame, code_class)
 
 
+def call_timing(arrived: float, started: float, answered: float, sent: float) -> dict:
+
+
+
+
+
+    def ms(at: float) -> int:
+        return max(0, int(round((at - arrived) * 1000)))
+
+    return {"started_ms": ms(started), "answered_ms": ms(answered), "sent_ms": ms(sent)}
+
+
 def _with_code_class(frame: dict, code_class: str) -> dict:
 
 
@@ -378,11 +399,16 @@ def error_disposition(code: str) -> str:
 
 
 def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
-               code_class: str = "") -> dict:
-    return _with_code_class({"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
-                             "code": code, "message": message, "suggestion": suggestion or "",
-                             "retryable": error_disposition(code) == "retry",
-                             "disposition": error_disposition(code)}, code_class)
+               code_class: str = "", detail: str = "") -> dict:
+
+
+    frame = _with_code_class({"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
+                              "code": code, "message": message, "suggestion": suggestion or "",
+                              "retryable": error_disposition(code) == "retry",
+                              "disposition": error_disposition(code)}, code_class)
+    if detail:
+        frame["detail"] = str(detail)
+    return frame
 
 
 def permission_response(tool_call_id: str, run_id: str, decision: str) -> dict:
@@ -392,8 +418,19 @@ def permission_response(tool_call_id: str, run_id: str, decision: str) -> dict:
             "run_id": run_id, "decision": decision}
 
 
-def cancel(run_id: str) -> dict:
-    return {"type": FrameType.CANCEL, "run_id": run_id}
+
+CANCEL_STOP = "stop"
+CANCEL_PROJECT_CLOSED = "project_closed"
+CANCEL_SIGNED_OUT = "signed_out"
+CANCEL_QGIS_CLOSED = "qgis_closed"
+CANCEL_SERVER_SILENT = "server_silent"
+
+
+def cancel(run_id: str, reason: str = "") -> dict:
+    frame = {"type": FrameType.CANCEL, "run_id": run_id}
+    if reason:
+        frame["reason"] = str(reason)
+    return frame
 
 
 def unsteer(run_id: str, steer_id: str) -> dict:
@@ -404,16 +441,6 @@ def unsteer(run_id: str, steer_id: str) -> dict:
 def steer(run_id: str, steer_id: str, text: str) -> dict:
 
     return {"type": FrameType.STEER, "run_id": run_id, "steer_id": steer_id, "text": text}
-
-
-def feedback(run_id: str, up: bool, reason_code: str = "", reason: str = "") -> dict:
-
-    frame = {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
-    if reason_code:
-        frame["reason_code"] = reason_code
-    if reason:
-        frame["reason"] = reason[:500]
-    return frame
 
 
 def ping() -> dict:
@@ -428,11 +455,16 @@ def upload(upload_id: str, name: str, seq: int, total: int, data_base64: str) ->
             "seq": int(seq), "total": int(total), "data_base64": data_base64}
 
 
-def busy(seconds: float, where: str, calls: str) -> dict:
+def busy(seconds: float, where: str, calls: str, ended: bool = False) -> dict:
 
 
-    return {"type": FrameType.BUSY, "seconds": round(float(seconds), 1),
-            "where": str(where)[:300], "calls": str(calls)[:300]}
+
+
+    frame = {"type": FrameType.BUSY, "seconds": round(float(seconds), 1),
+             "where": str(where)[:300], "calls": str(calls)[:300]}
+    if ended:
+        frame["ended"] = True
+    return frame
 
 
 

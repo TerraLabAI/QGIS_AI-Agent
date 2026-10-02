@@ -683,6 +683,24 @@ def _api_family(cls_name: str, wanted: str, public: list) -> str:
     return f"{cls_name} has no {wanted}. Its {verb} methods are: {shown}{more}."
 
 
+def _inside_a_word(wanted: str, name: str) -> bool:
+
+
+
+
+
+
+    folded, start = name.casefold(), 0
+    found = False
+    while True:
+        at = folded.find(wanted.casefold(), start)
+        if at < 0:
+            return found
+        if at == 0 or name[at - 1] == "_" or name[at].isupper():
+            return False
+        found, start = True, at + 1
+
+
 def _api_help(exc: Exception) -> str:
 
     text = str(exc)
@@ -702,7 +720,8 @@ def _api_help(exc: Exception) -> str:
                 return (f"{match.group(1)} has no {match.group(2)} of its own: it is scoped as {scoped} "
                         "in this QGIS.")
             public = [a for a in dir(cls) if not a.startswith("_")]
-            near = difflib.get_close_matches(match.group(2), public, n=5, cutoff=0.6)
+            near = [a for a in difflib.get_close_matches(match.group(2), public, n=5, cutoff=0.6)
+                    if not _inside_a_word(match.group(2), a)]
             if not near:
 
 

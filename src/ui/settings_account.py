@@ -14,6 +14,12 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
@@ -21,7 +27,6 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QSizePolicy,
@@ -32,6 +37,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.logger import log_warning
 from ..core.profile import clear_memory_notes
 from .account_settings_dialog import _ACCOUNT_OFFLINE_CODES, format_count, resolve_plan_runs
+from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length
@@ -44,6 +50,7 @@ from .settings_pages import (
     ROW_TITLE_QSS,
     USAGE_KEYS,
     Page,
+    ProCard,
     SettingGroup,
     SettingRow,
     Switch,
@@ -51,14 +58,16 @@ from .settings_pages import (
 )
 from .shared import (
     PRODUCT_ID,
-    exec_dialog,
     format_reset_date,
     get_dashboard_url,
     get_plan_name,
     get_pricing_url,
+    get_pro_runs_per_month,
     get_served_pro_points,
+    get_support_email,
     safe_disconnect,
 )
+from .widgets import ElidedLabel
 
 
 _AVATAR_D = 36
@@ -114,17 +123,20 @@ class AccountPageMixin:
         if "improve_enabled" in info:
             self.set_improve_enabled(bool(info["improve_enabled"]))
         self._sync_improve_plan(info)
-
-
-        try:
-            self._paint_billing(info)
-        except RuntimeError:
-            pass
         self._sync_upgrade_pill(info)
         self._clear_account()
 
 
         self._account_email = ""
+        code = str(info.get("error_code") or "").strip().upper()
+        if info.get("loading"):
+            self._account_state = "loading"
+        elif code in ("SIGNED_OUT", "INVALID_KEY"):
+            self._account_state = "signed_out"
+        elif info.get("error") or code:
+            self._account_state = "error"
+        else:
+            self._account_state = "loaded"
         if info.get("loading"):
             group = SettingGroup(self._account_box)
             group.add_row(SettingRow(self.tr("Loading account info..."), "", None, group))
@@ -191,49 +203,48 @@ class AccountPageMixin:
 
     def _show_account_error(self, message: str, code: str) -> None:
 
+
+
+
+
+
+
         code = (code or "").strip().upper()
-        retry = False
-        manage = False
-        note = ""
-        if code == "SIGNED_OUT":
-            title = message or self.tr("Sign in to see your account.")
+        action = None
+        if code in ("SIGNED_OUT", "INVALID_KEY"):
+
+
+
+            title = (self.tr("This computer was signed out") if code == "INVALID_KEY"
+                     else self.tr("Sign in to see your account"))
+            note = self.tr("Your plan, runs and settings appear here once you sign in.")
+            action = self._button(self.tr("Sign in"), PRIMARY_BTN_QSS)
+            action.clicked.connect(self._on_sign_in)
         elif code == "SUBSCRIPTION_INACTIVE":
             title = self.tr("Your last payment may have failed")
             note = self.tr("Update your payment method to fix it.")
-            manage = True
-        elif code == "INVALID_KEY":
-            title = self.tr("This computer is no longer signed in")
-            note = self.tr("Sign out, then sign in again.")
+            action = self._button(self.tr("Update payment method"), PRIMARY_BTN_QSS)
+            action.clicked.connect(lambda: self._open_dashboard("error_card"))
         elif code in _ACCOUNT_OFFLINE_CODES:
             title = self.tr("Could not reach TerraLab")
             note = self.tr("Check your internet connection, then retry.")
-            retry = True
+            action = self._button(self.tr("Retry"), GHOST_BTN_QSS)
+            action.clicked.connect(self._on_retry)
         else:
-            title = message or self.tr("Could not load your account")
+            title = self.tr("Could not load your account")
             note = self.tr("Try again in a moment.")
-            retry = True
+            action = self._button(self.tr("Retry"), GHOST_BTN_QSS)
+            action.clicked.connect(self._on_retry)
         group = SettingGroup(self._account_box)
-        holder = None
-        if code != "SIGNED_OUT":
-            holder = QWidget(group)
-            buttons = QHBoxLayout(holder)
-            buttons.setContentsMargins(0, 0, 0, 0)
-            buttons.setSpacing(8)
-            if manage:
-                btn = self._button(self.tr("Update payment method"), PRIMARY_BTN_QSS)
-                btn.clicked.connect(lambda: self._open_dashboard("error_card"))
-                buttons.addWidget(btn)
-            if retry:
-                btn = self._button(self.tr("Retry"), GHOST_BTN_QSS)
-                btn.clicked.connect(self._on_retry)
-                buttons.addWidget(btn)
-            out = self._button(self.tr("Sign out"), GHOST_BTN_QSS)
-            out.clicked.connect(self._on_sign_out)
-            buttons.addWidget(out)
-        group.add_row(SettingRow(title, note, holder, group))
+        row = SettingRow(title, note, action, group)
+        detail = (message or "").strip()
+        if detail and detail != title and code not in ("SIGNED_OUT", "INVALID_KEY"):
+            row.setToolTip(detail if not code else f"{detail} ({code})")
+        group.add_row(row)
         self._account_col.addWidget(group)
 
     def _show_account(self, account: dict, usage: dict) -> None:
+
 
 
         email = str(account.get("email") or "-")
@@ -263,62 +274,49 @@ class AccountPageMixin:
         id_col = QVBoxLayout()
         id_col.setContentsMargins(0, 0, 0, 0)
         id_col.setSpacing(1)
-        email_lbl = QLabel(email, chip)
-        email_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        email_lbl = ElidedLabel(email, chip, Qt.TextElideMode.ElideMiddle)
         email_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: palette(text); background: transparent;")
         id_col.addWidget(email_lbl)
-
-
-
-        plan_line = plan_name if plan.is_subscriber else self.tr(
-            "{plan} · Personal, non-commercial use").format(plan=plan_name)
-        plan_lbl = QLabel(plan_line, chip)
-        plan_lbl.setStyleSheet(ROW_NOTE_QSS)
-        plan_lbl.setWordWrap(True)
-        id_col.addWidget(plan_lbl)
         chip_row.addLayout(id_col, 1)
-        manage = self._button(self.tr("Manage"), GHOST_BTN_QSS)
-        manage.setToolTip(self.tr("Manage account in browser"))
-        manage.setAccessibleName(self.tr("Manage account in browser"))
-        manage.clicked.connect(lambda: self._open_dashboard("account_card"))
-        chip_row.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         out = self._button(self.tr("Sign out"), GHOST_BTN_QSS)
         out.clicked.connect(self._on_sign_out)
         chip_row.addWidget(out, 0, Qt.AlignmentFlag.AlignVCenter)
         group.add_row(chip)
 
-        runs = self._runs_row(plan, group)
-        if runs is not None:
-            group.add_row(runs)
+        group.add_row(self._plan_row(plan, plan_name, group))
+        self._account_col.addWidget(group)
 
         if not plan.is_subscriber:
 
 
-            upgrade = self._button(self.tr("Upgrade"), PRIMARY_BTN_QSS)
-            upgrade.setAccessibleName(self.tr("Upgrade to Pro"))
-            upgrade.clicked.connect(self._on_upgrade)
-            points = get_served_pro_points()
-            group.add_row(SettingRow(self.tr("Pro: commercial use and more runs"),
-                                     " · ".join(points) if points else
-                                     self.tr("Plus memory, your instructions and higher effort."),
-                                     upgrade, group))
-            _note_settings_upsell()
-        self._account_col.addWidget(group)
 
-    def _runs_row(self, plan, parent: QWidget) -> QFrame | None:
+            points = get_served_pro_points()
+            card = ProCard(self.tr("Commercial use and more runs with Pro"),
+                           " · ".join(points) if points else
+                           self.tr("Plus memory, your instructions and higher effort."),
+                           self._account_box)
+            card.upgrade_requested.connect(self._on_upgrade)
+            self._account_col.addWidget(card)
+            _note_settings_upsell()
+
+    def _plan_row(self, plan, plan_name: str, parent: QWidget) -> QFrame:
+
+
 
         if plan.limit is not None and plan.used is not None:
             left = max(0, int(plan.limit) - int(plan.used))
-            title = self.tr("{left} of {limit} runs left").format(
+            runs = self.tr("{left} of {limit} runs left").format(
                 left=format_count(left), limit=format_count(plan.limit))
         elif plan.used is not None:
-            title = self.tr("{used} runs this month").format(used=format_count(plan.used))
+            runs = self.tr("{used} runs this month").format(used=format_count(plan.used))
         else:
-            title = ""
+            runs = ""
         reset_str = format_reset_date(plan.reset_iso or "")
         reset = self.tr("Resets {date}").format(date=reset_str) if reset_str else ""
-        if not title and not reset:
-            return None
+
+        title = plan_name if plan.is_subscriber else self.tr(
+            "{plan} · Personal, non-commercial use").format(plan=plan_name)
         row = QFrame(parent)
         row.setObjectName("settingsRow")
         row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
@@ -328,14 +326,29 @@ class AccountPageMixin:
         line = QHBoxLayout()
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(12)
-        title_lbl = QLabel(title or reset, row)
+        words = QVBoxLayout()
+        words.setContentsMargins(0, 0, 0, 0)
+        words.setSpacing(2)
+        title_lbl = QLabel(title, row)
         title_lbl.setStyleSheet(ROW_TITLE_QSS)
-        line.addWidget(title_lbl, 1)
-        if title and reset:
-            reset_lbl = QLabel(reset, row)
-            reset_lbl.setStyleSheet(ROW_NOTE_QSS)
-            line.addWidget(reset_lbl, 0, Qt.AlignmentFlag.AlignVCenter)
+        title_lbl.setWordWrap(True)
+        words.addWidget(title_lbl)
+        facts = " · ".join(part for part in (runs, reset) if part)
+        if facts:
+            facts_lbl = QLabel(facts, row)
+            facts_lbl.setStyleSheet(ROW_NOTE_QSS)
+            facts_lbl.setWordWrap(True)
+            words.addWidget(facts_lbl)
+        line.addLayout(words, 1)
+        manage = self._button(self.tr("Manage plan"), GHOST_BTN_QSS)
+        manage.setToolTip(self.tr("Your plan, payment method and invoices, on the TerraLab "
+                                  "website. Payment never happens inside QGIS."))
+        manage.clicked.connect(lambda: self._open_dashboard("account_card"))
+        line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(line)
+        if plan.is_subscriber:
+            row.setToolTip(self.tr("Need more than {n} runs a month? Write to {email}.").format(
+                n=get_pro_runs_per_month(), email=get_support_email()))
         if plan.limit is not None and plan.used is not None:
             bar = QProgressBar(row)
             bar.setRange(0, max(int(plan.limit), 1))
@@ -343,7 +356,7 @@ class AccountPageMixin:
             bar.setTextVisible(False)
             bar.setFixedHeight(6)
             bar.setStyleSheet(PROGRESS_QSS)
-            bar.setAccessibleName(title)
+            bar.setAccessibleName(runs)
             col.addWidget(bar)
         return row
 
@@ -420,15 +433,18 @@ class AccountPageMixin:
         self.set_account_info({"loading": True})
         self.refresh_requested.emit()
 
+    def _on_sign_in(self) -> None:
+
+        self.sign_in_requested.emit()
+        self.accept()
+
     def _on_sign_out(self) -> None:
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle(self.tr("Sign out"))
-        box.setText(self.tr("Sign out of AI Agent?"))
-        box.setInformativeText(self.tr("You can sign back in anytime from QGIS."))
-        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        box.setDefaultButton(QMessageBox.StandardButton.No)
-        if exec_dialog(box) != QMessageBox.StandardButton.Yes:
+
+
+        if not ask_confirm(self, title=self.tr("Sign out of AI Agent?"),
+                           note=self.tr("You can sign back in anytime from QGIS."),
+                           confirm_text=self.tr("Sign out"), glyph="person",
+                           object_name="signOutConfirm"):
             return
         self.sign_out_requested.emit()
         self.accept()
@@ -514,13 +530,19 @@ class AccountPageMixin:
         if button is None or row is None:
             return
         email = str(getattr(self, "_account_email", "") or "").strip()
+        state = getattr(self, "_account_state", "loading")
         try:
             button.setEnabled(bool(email))
             if email:
                 row.set_note(self.tr("Erases your account and its data. All TerraLab plugins stop."))
                 row.setToolTip(self.tr("To confirm, you type your email address again."))
-            else:
+            elif state == "signed_out":
                 row.set_note(self.tr("Sign in first to delete your account."))
+                row.setToolTip("")
+            else:
+
+
+                row.set_note("")
                 row.setToolTip("")
         except RuntimeError:
             pass
@@ -597,16 +619,12 @@ class AccountPageMixin:
         self.telemetry_toggled.emit(self._telemetry_enabled)
 
     def _on_reset(self) -> None:
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle(self.tr("Reset all settings"))
-        box.setText(self.tr("Reset all settings?"))
-        box.setInformativeText(self.tr("Language, style, permissions, your profile and your memory "
-                                       "notes go back to their defaults. You stay signed in."))
-        reset = box.addButton(self.tr("Reset"), QMessageBox.ButtonRole.AcceptRole)
-        box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
-        exec_dialog(box)
-        if box.clickedButton() is not reset:
+        if not ask_confirm(self, title=self.tr("Reset all settings?"),
+                           note=self.tr("Language, style, permissions, your profile and your "
+                                        "memory notes go back to their defaults. You stay "
+                                        "signed in."),
+                           confirm_text=self.tr("Reset"), glyph="warning",
+                           object_name="resetConfirm"):
             return
         for timer in self._pending.values():
             timer.stop()

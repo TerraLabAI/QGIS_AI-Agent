@@ -175,17 +175,6 @@ CLIP_TO_HINT = (" For a named place, fetch_overture with the theme and clip_to t
 
 
 
-def hosted_quiet_km2() -> float:
-    return limits.current("FETCH_HOSTED_QUIET_KM2")
-
-
-def hosted_quiet_sparse_km2() -> float:
-    return limits.current("FETCH_HOSTED_QUIET_SPARSE_KM2")
-
-
-
-
-
 
 
 
@@ -262,13 +251,6 @@ _POINT_VALUE = re.compile(
     r"mini_roundabout|motorway_junction|speed_camera|elevator|passing_place|milestone|toll_gantry|"
     r"trailhead|emergency_bay|station|halt|tram_stop|level_crossing|subway_entrance|buffer_stop|"
     r"switch|signal)\b", re.IGNORECASE)
-
-
-def asks_for_points(query) -> bool:
-
-    text = str(query or "")
-    elements = {m.group(1).lower() for m in _ELEMENT.finditer(text)}
-    return (elements == {"node"}) or bool(_POINT_VALUE.search(text))
 
 
 def own_region_km2(name: str, args: dict) -> float:
@@ -1029,9 +1011,11 @@ def check(name: str, args: dict) -> dict:
             if hosted and area > hosted_cap:
                 fit = fitting_zone(args, hosted_cap)
                 return {
-                    "error": (f"Zone too large for one {name} call: {area:,.1f} km², and TerraLab's tiles "
-                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² in one call."
-                              + CLIP_TO_HINT + LIFT_HINT + WHOLE_BEFORE_PART),
+
+
+                    "error": (f"This zone is too large to load at once: {area:,.1f} km², and TerraLab's tiles "
+                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² at a time."),
+                    "routes": (CLIP_TO_HINT + LIFT_HINT + WHOLE_BEFORE_PART).strip(),
 
 
                     "suggestion": (whole_zone_route(name, args, area)
@@ -1047,17 +1031,16 @@ def check(name: str, args: dict) -> dict:
             if area > hard:
                 fit = fitting_zone(args, hard)
                 return {
-                    "error": (f"Zone too large for one {name} call: {area:,.1f} km², and {provider}."
-                              + FOOTPRINTS_WHOLE + WHOLE_BEFORE_PART
+                    "error": (f"This zone is too large to load at once: {area:,.1f} km², and {provider}."
                               if provider else
 
 
-                              f"Zone too large for one {name} call: {area:,.1f} km², the most one call "
-                              f"reads in tiles from TerraLab's Overpass is {hard:,.0f} km²."
+                              f"This zone is too large to load at once: {area:,.1f} km², the most one "
+                              f"load reads in tiles from TerraLab's Overpass is {hard:,.0f} km²."
                               if own and hard == own else
-                              f"Zone too large for one {name} call: {area:,.1f} km², the cap for "
-                              f"{'dense features' if dense else 'a fetch'} is {hard:.0f} km². Loading it "
-                              "would take minutes and leave a layer QGIS cannot draw.")
+                              f"This zone is too large to load at once: {area:,.1f} km², the cap for "
+                              f"{'dense features' if dense else 'one load'} is {hard:.0f} km². Loading it "
+                              "would take minutes and leave a layer QGIS cannot draw."),
 
 
 
@@ -1066,7 +1049,7 @@ def check(name: str, args: dict) -> dict:
 
 
 
-                             + ("" if provider else LIFT_HINT + WHOLE_BEFORE_PART),
+                    "routes": ((FOOTPRINTS_WHOLE if provider else LIFT_HINT) + WHOLE_BEFORE_PART).strip(),
 
 
 

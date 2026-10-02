@@ -122,6 +122,14 @@ class ActivationCard(QWidget):
         connect_col = QVBoxLayout(self._connect_section)
         connect_col.setContentsMargins(0, 0, 0, 0)
         connect_col.setSpacing(6)
+
+
+        self._reason = QLabel(self._connect_section)
+        self._reason.setWordWrap(True)
+        self._reason.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._reason.setStyleSheet(_msg_label_qss("warning"))
+        self._reason.hide()
+        connect_col.addWidget(self._reason)
         self._connect_btn = QPushButton(self.tr("Sign in / Sign up to start"), self._connect_section)
         self._connect_btn.setToolTip(self.tr("Sign in via your browser to start using AI Agent"))
         self._connect_btn.setFixedHeight(BTN_PRIMARY_WIDE_PX)
@@ -131,7 +139,7 @@ class ActivationCard(QWidget):
         self._connect_btn.clicked.connect(self.sign_in_requested.emit)
         connect_col.addWidget(self._connect_btn)
 
-        hint_card = QFrame(self._connect_section)
+        hint_card = self._hint_card = QFrame(self._connect_section)
         hint_card.setObjectName("signinHintCard")
         hint_card.setStyleSheet(_HINT_CARD_QSS)
         hint_col = QVBoxLayout(hint_card)
@@ -171,14 +179,6 @@ class ActivationCard(QWidget):
         status_row.addWidget(self._wait_status, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addStretch(1)
         wait_col.addLayout(status_row)
-
-
-        self._code_label = QLabel("", self._wait_section)
-        self._code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._code_label.setWordWrap(True)
-        self._code_label.setStyleSheet("font-size: 12px; color: palette(text);")
-        self._code_label.hide()
-        wait_col.addWidget(self._code_label)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(SPACE_CARD)
         self._reopen_btn = QPushButton(self.tr("Open browser"), self._wait_section)
@@ -255,20 +255,21 @@ class ActivationCard(QWidget):
 
 
 
+
+
         self.state = "signed_out"
         self.pairing_code = ""
         self._spinner.stop()
         self._wait_section.hide()
         self._account_section.hide()
         self._connect_section.show()
-        if message:
-            self._set_subtitle(self.tr("Your sign-in is no longer valid on this computer."))
-            self._connect_btn.setText(self.tr("Sign in again"))
-            self.set_message(message, "warning")
-        else:
-            self._set_subtitle("")
-            self._connect_btn.setText(self.tr("Sign in / Sign up to start"))
-            self.clear_message()
+        self._set_subtitle("")
+        self.clear_message()
+        self._reason.setText(message or "")
+        self._reason.setVisible(bool(message))
+        self._hint_card.setVisible(not message)
+        self._connect_btn.setText(self.tr("Sign in again") if message
+                                  else self.tr("Sign in / Sign up to start"))
 
     def show_pairing_waiting(self, code: str = "", url: str = "") -> None:
         self.state = "pairing"
@@ -277,10 +278,6 @@ class ActivationCard(QWidget):
         self._connect_section.hide()
         self._account_section.hide()
         self._message.hide()
-        if self.pairing_code:
-            self._code_label.setText(
-                self.tr("The browser page should show the code {code}").format(code=self.pairing_code))
-        self._code_label.setVisible(bool(self.pairing_code))
         self._wait_section.show()
         self._spinner.start()
         self._set_subtitle(self.tr("Finish the sign-in in your browser, then come back here."))

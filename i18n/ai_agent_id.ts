@@ -40,7 +40,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>Zona buffer beserta isinya, dihitung.</translation>
+            <translation>Area buffer beserta isinya, dihitung.</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -50,12 +50,12 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>Menambahkan peta dasar saat kanvas masih kosong</translation>
+            <translation>Menambahkan basemap saat peta masih kosong</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>Menambahkan judul, legenda, bilah skala, panah utara, kredit</translation>
+            <translation>Menambahkan judul, legenda, scale bar, north arrow, kredit</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -65,7 +65,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>Lembar A4 dengan judul, legenda, bilah skala, dan panah utara.</translation>
+            <translation>Lembar A4 dengan judul, legenda, scale bar, dan north arrow.</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -110,12 +110,12 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>Buat buffer layer garis sejauh 100 m dalam CRS metrik, hitung berapa titik yang masuk di setiap buffer, dan berikan sepuluh dengan jumlah terbanyak sebagai tabel yang mudah dibaca. Gunakan layer saya sendiri bila proyek memiliki layer garis dan layer titik; jika tidak, unduh jalan dan toko dari distrik pilihan Anda, dan sebutkan.</translation>
+            <translation>Buat buffer layer garis sejauh 100 m dalam CRS metrik, hitung berapa titik yang masuk di setiap buffer, dan berikan sepuluh dengan jumlah terbanyak sebagai tabel yang mudah dibaca. Gunakan layer saya sendiri bila proyek memiliki layer garis dan layer titik; jika tidak, unduh jalan dan toko dari distrik pilihan Anda, dan sebutkan distriknya.</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Buffers the lines by 100 m</source>
-            <translation>Buat buffer garis sejauh 100 m</translation>
+            <translation>Membuat buffer garis sejauh 100 m</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -130,7 +130,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>Buat tata letak lanskap A4 dari tampilan saat ini dengan judul, legenda, bilah skala dalam meter, panah utara, dan baris kredit yang menyebutkan sumber data, lalu ekspor ke PDF pada 300 dpi. Jika kanvas kosong, tambahkan peta dasar di tempat pilihan Anda terlebih dahulu, agar lembar memiliki peta.</translation>
+            <translation>Buat layout lanskap A4 dari tampilan saat ini dengan judul, legenda, scale bar dalam meter, north arrow, dan baris kredit yang menyebutkan sumber data, lalu ekspor ke PDF pada 300 dpi. Jika map canvas kosong, tambahkan basemap lebih dulu di tempat yang Anda pilih, agar lembar itu berisi peta.</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -150,7 +150,7 @@
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Composer</source>
-            <translation>Komposer</translation>
+            <translation>Kotak pesan</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -210,7 +210,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>Membuat tata letak lanskap A4 dengan bingkai peta</translation>
+            <translation>Membuat layout lanskap A4 dengan bingkai peta</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -230,17 +230,17 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>Unduh dari OpenStreetMap setiap sekolah, taman, dan halte bus di satu distrik. Kerjakan di area kanvas saya, atau pilih distrik kota yang terpetakan dengan baik dan sebutkan. Tempatkan dalam tiga layer, taman sebagai poligon, terapkan gaya yang berbeda pada masing-masing, dan beri tahu saya berapa fitur yang dipegang masing-masing. Kueri ketiganya satu per satu.</translation>
+            <translation>Unduh dari OpenStreetMap semua sekolah, taman, dan halte bus di satu distrik. Kerjakan di area yang sedang tampil di peta saya, atau pilih distrik di kota yang terpetakan dengan baik dan sebutkan. Letakkan dalam tiga layer, taman sebagai poligon, atur simbologi yang berbeda untuk masing-masing, dan beri tahu saya berapa banyak feature di tiap layer. Jalankan kueri untuk ketiganya satu per satu.</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>During a run</source>
-            <translation>Selama proses berjalan</translation>
+            <translation>Selama proses</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Everything the panel does without leaving the keyboard.</source>
-            <translation>Semua yang dilakukan panel tanpa melepas keyboard.</translation>
+            <translation>Semua yang bisa dilakukan di panel hanya dengan keyboard.</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -300,7 +300,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Map</source>
-            <translation>Petakan</translation>
+            <translation>Peta</translation>
         </message>
         <message>
             <location filename="src/ui/terralab_menu.py" />
@@ -365,7 +365,7 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Privacy Policy</source>
-            <translation>Kebijakan Privasi</translation>
+            <translation>Kebijakan privasi</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -380,7 +380,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Pull OpenStreetMap data for an area</source>
-            <translation>Tarik data OpenStreetMap untuk sebuah area</translation>
+            <translation>Ambil data OpenStreetMap untuk sebuah area</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -405,7 +405,7 @@
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>Ran a processing algorithm</source>
-            <translation>Menjalankan algoritma processing</translation>
+            <translation>Menjalankan algoritma Processing</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
@@ -430,17 +430,17 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Reports the feature count of the three</source>
-            <translation>Melaporkan jumlah fitur dari ketiganya</translation>
+            <translation>Melaporkan jumlah feature dari ketiganya</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Reprojects to a metric CRS before measuring</source>
-            <translation>Memproyeksi ulang ke CRS metrik sebelum mengukur</translation>
+            <translation>Memproyeksikan ulang ke CRS metrik sebelum mengukur</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Returns the ten highest as a readable table</source>
-            <translation>Mengembalikan sepuluh tertinggi sebagai tabel yang mudah dibaca</translation>
+            <translation>Menampilkan sepuluh teratas sebagai tabel yang mudah dibaca</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -480,7 +480,7 @@
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Stop button</source>
-            <translation>Tombol berhenti</translation>
+            <translation>Tombol Hentikan</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -490,7 +490,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Takes the area from the canvas, or picks one</source>
-            <translation>Mengambil area dari kanvas, atau memilih satu</translation>
+            <translation>Mengambil area dari peta, atau memilih satu</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -510,7 +510,7 @@
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>The agent wants to run this action.</source>
-            <translation>Agent ingin menjalankan tindakan ini.</translation>
+            <translation>Agen ingin menjalankan aksi ini.</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -530,7 +530,7 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
-            <translation>Data tersebut membantu kami memperbaiki bug. Anda dapat mematikannya di setelan kapan saja.</translation>
+            <translation>Data tersebut membantu kami memperbaiki bug. Anda dapat mematikannya di Pengaturan kapan saja.</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -616,9 +616,9 @@
             <source>Your account and the data attached to it are erased. Every TerraLab plugin stops working right away, on this computer and on any other, and a paid subscription stops renewing.
 
 The erasure is final once the grace period ends. Until then you can cancel it by signing in on terra-lab.ai.</source>
-            <translation>Akun Anda dan data yang terlampir padanya dihapus. Setiap TerraLab plugin langsung berhenti bekerja, baik di komputer ini maupun di komputer lain, dan langganan berbayar berhenti diperpanjang.
+            <translation>Akun Anda dan data yang terkait dengannya dihapus. Semua plugin TerraLab langsung berhenti bekerja, baik di komputer ini maupun di komputer lain, dan langganan berbayar berhenti diperpanjang.
 
-Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda dapat membatalkannya dengan masuk ke terra-lab.ai.</translation>
+Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu, Anda dapat membatalkannya dengan masuk ke terra-lab.ai.</translation>
         </message>
         <message>
             <source>%n layers keep the data they have now</source>
@@ -666,11 +666,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>its backup could not be written</source>
-            <translation>pencadangannya tidak dapat ditulis</translation>
+            <translation>cadangannya tidak dapat ditulis</translation>
         </message>
         <message>
             <source>its file was over the backup limit</source>
-            <translation>filenya melebihi batas pencadangan</translation>
+            <translation>file layer ini melebihi batas pencadangan</translation>
         </message>
         <message>
             <source>no backup was made</source>
@@ -698,11 +698,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Copied: {runs} runs, {calls} tool calls</source>
-            <translation>Disalin: {runs} run, {calls} panggilan tool</translation>
+            <translation>Disalin: {runs} proses, {calls} pemanggilan tool</translation>
         </message>
         <message>
             <source>Could not copy</source>
-            <translation>Tidak dapat menyalin</translation>
+            <translation>Gagal menyalin</translation>
         </message>
         <message>
             <source>Saved. Open {name}</source>
@@ -823,12 +823,12 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>it was a temporary layer held in memory, and QGIS has restarted since</source>
-            <translation>layer ini bersifat sementara dan disimpan di memori, dan QGIS telah dimulai ulang sejak saat itu</translation>
+            <translation>layer sementara di memori, dan QGIS sudah dimulai ulang sejak itu</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>it was changed in place and no copy was made first</source>
-            <translation>diubah langsung tanpa salinan yang dibuat lebih dulu</translation>
+            <translation>diubah langsung di file aslinya, tanpa salinan lebih dulu</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -878,7 +878,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>{name}: {before} to {after} features</source>
-            <translation>{name}: {before} ke {after} fitur</translation>
+            <translation>{name}: dari {before} menjadi {after} feature</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -931,7 +931,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
-            <translation>layer ini tidak lagi ada dalam proyek.</translation>
+            <translation>Layer ini sudah tidak ada di proyek.</translation>
         </message>
         <message>
             <source>after request {n}</source>
@@ -971,39 +971,39 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Add a coordinate grid to the layout</source>
-            <translation>Tambahkan grid koordinat ke tata letak</translation>
+            <translation>Tambahkan grid koordinat ke layout</translation>
         </message>
         <message>
             <source>Add a label to the layout</source>
-            <translation>Tambahkan label ke tata letak</translation>
+            <translation>Tambahkan label ke layout</translation>
         </message>
         <message>
             <source>Add a legend to the layout</source>
-            <translation>Tambahkan legenda ke tata letak</translation>
+            <translation>Tambahkan legenda ke layout</translation>
         </message>
         <message>
             <source>Add a map to the layout</source>
-            <translation>Tambahkan peta ke tata letak</translation>
+            <translation>Tambahkan peta ke layout</translation>
         </message>
         <message>
             <source>Add a north arrow to the layout</source>
-            <translation>Tambahkan panah utara ke tata letak</translation>
+            <translation>Tambahkan north arrow ke layout</translation>
         </message>
         <message>
             <source>Add a scale bar to the layout</source>
-            <translation>Tambahkan bilah skala ke tata letak</translation>
+            <translation>Tambahkan scale bar ke layout</translation>
         </message>
         <message>
             <source>Add an elevation profile to the layout</source>
-            <translation>Tambahkan profil elevasi ke tata letak</translation>
+            <translation>Tambahkan profil elevasi ke layout</translation>
         </message>
         <message>
             <source>Add features to {layer_name}</source>
-            <translation>Tambahkan fitur ke {layer_name}</translation>
+            <translation>Tambahkan feature ke {layer_name}</translation>
         </message>
         <message>
             <source>Add the 3D view to the layout</source>
-            <translation>Tambahkan tampilan 3D ke tata letak</translation>
+            <translation>Tambahkan tampilan 3D ke layout</translation>
         </message>
         <message>
             <source>Add the ArcGIS layer[ {name}]</source>
@@ -1023,15 +1023,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Add the basemap[ {name}]</source>
-            <translation>Tambahkan peta dasar[ {name}]</translation>
+            <translation>Tambahkan basemap[ {name}]</translation>
         </message>
         <message>
             <source>Add the bookmark {name}</source>
-            <translation>Tambahkan penanda {name}</translation>
+            <translation>Tambahkan bookmark {name}</translation>
         </message>
         <message>
             <source>Add the field {field_name} to {layer_name}</source>
-            <translation>Tambahkan bidang {field_name} ke {layer_name}</translation>
+            <translation>Tambahkan field {field_name} ke {layer_name}</translation>
         </message>
         <message>
             <source>Add the raster[ {name}]</source>
@@ -1083,7 +1083,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Change the layout legend</source>
-            <translation>Ubah legenda tata letak</translation>
+            <translation>Ubah legenda layout</translation>
         </message>
         <message>
             <source>Chart {x_field}[ and {y_field}] of {layer}</source>
@@ -1107,7 +1107,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Clear the selection[ of {layer_name}]</source>
-            <translation>Bersihkan pilihan[ dari {layer_name}]</translation>
+            <translation>Bersihkan seleksi[ dari {layer_name}]</translation>
         </message>
         <message>
             <source>Compare raster compatibility</source>
@@ -1147,7 +1147,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Create a {geometry_type} feature[ in {target_layer}]</source>
-            <translation>Buat fitur {geometry_type}[ di {target_layer}]</translation>
+            <translation>Buat feature {geometry_type}[ di {target_layer}]</translation>
         </message>
         <message>
             <source>Create the group {name}</source>
@@ -1159,23 +1159,23 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Create the layout {name}</source>
-            <translation>Buat tata letak {name}</translation>
+            <translation>Buat layout {name}</translation>
         </message>
         <message>
             <source>Create the layout {name} from a template</source>
-            <translation>Buat tata letak {name} dari templat</translation>
+            <translation>Buat layout {name} dari templat</translation>
         </message>
         <message>
             <source>Delete features from {layer_name}</source>
-            <translation>Hapus fitur dari {layer_name}</translation>
+            <translation>Hapus feature dari {layer_name}</translation>
         </message>
         <message>
             <source>Delete the field {field_name} from {layer_name}</source>
-            <translation>Hapus bidang {field_name} dari {layer_name}</translation>
+            <translation>Hapus field {field_name} dari {layer_name}</translation>
         </message>
         <message>
             <source>Duplicate {layer_name}[ as {new_name}]</source>
-            <translation>Duplikat {layer_name}[ sebagai {new_name}]</translation>
+            <translation>Duplikasi {layer_name}[ sebagai {new_name}]</translation>
         </message>
         <message>
             <source>Evaluate an expression</source>
@@ -1191,7 +1191,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Export the layout</source>
-            <translation>Ekspor tata letak</translation>
+            <translation>Ekspor layout</translation>
         </message>
         <message>
             <source>Export {layer_name} as a 3D model to {path}</source>
@@ -1215,7 +1215,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Fetch building footprints[ as {layer_name}]</source>
-            <translation>Ambil jejak bangunan[ sebagai {layer_name}]</translation>
+            <translation>Ambil footprint bangunan[ sebagai {layer_name}]</translation>
         </message>
         <message>
             <source>Filter the map by elevation</source>
@@ -1243,7 +1243,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Georeference {raster}</source>
-            <translation>Georeferensi {raster}</translation>
+            <translation>Georeferensikan {raster}</translation>
         </message>
         <message>
             <source>Get a Sentinel image</source>
@@ -1263,7 +1263,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Identify features at a point</source>
-            <translation>Identifikasi fitur pada titik</translation>
+            <translation>Identifikasi feature pada titik</translation>
         </message>
         <message>
             <source>Import from the QGIS Hub</source>
@@ -1307,7 +1307,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>List the layouts</source>
-            <translation>Daftar tata letak</translation>
+            <translation>Daftar layout</translation>
         </message>
         <message>
             <source>List the plugins</source>
@@ -1327,7 +1327,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Lock a layout item</source>
-            <translation>Kunci item tata letak</translation>
+            <translation>Kunci item layout</translation>
         </message>
         <message>
             <source>Look at the QGIS window</source>
@@ -1387,11 +1387,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Open the Plugin Manager on {plugin_name}</source>
-            <translation>Buka Manajer Plugin pada {plugin_name}</translation>
+            <translation>Buka Plugin Manager pada {plugin_name}</translation>
         </message>
         <message>
             <source>Open the attribute table[ of {layer_name}]</source>
-            <translation>Buka tabel atribut[ dari {layer_name}]</translation>
+            <translation>Buka attribute table[ dari {layer_name}]</translation>
         </message>
         <message>
             <source>Open the project {path}</source>
@@ -1419,7 +1419,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Read features of {layer_name}</source>
-            <translation>Baca fitur {layer_name}</translation>
+            <translation>Baca feature {layer_name}</translation>
         </message>
         <message>
             <source>Read the AI Agent documentation[ on {query}]</source>
@@ -1439,7 +1439,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
-            <translation>Baca cakupan {layer_name}</translation>
+            <translation>Baca extent {layer_name}</translation>
         </message>
         <message>
             <source>Read the help of {algorithm_id}</source>
@@ -1479,11 +1479,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Read the selection[ of {layer_name}]</source>
-            <translation>Baca pilihan[ dari {layer_name}]</translation>
+            <translation>Baca seleksi[ dari {layer_name}]</translation>
         </message>
         <message>
             <source>Read the style of {layer_name}</source>
-            <translation>Baca gaya {layer_name}</translation>
+            <translation>Baca simbologi {layer_name}</translation>
         </message>
         <message>
             <source>Remove {layer_name}</source>
@@ -1503,7 +1503,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Reshape a feature of {layer_name}</source>
-            <translation>Ubah bentuk fitur {layer_name}</translation>
+            <translation>Ubah bentuk feature {layer_name}</translation>
         </message>
         <message>
             <source>Run Python code[: {description}]</source>
@@ -1535,7 +1535,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Save the layout as a template</source>
-            <translation>Simpan tata letak sebagai templat</translation>
+            <translation>Simpan layout sebagai templat</translation>
         </message>
         <message>
             <source>Save the project[ to {path}]</source>
@@ -1591,7 +1591,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
-            <translation>Cari alat pemrosesan[ untuk {query}]</translation>
+            <translation>Cari tool Processing[ untuk {query}]</translation>
         </message>
         <message>
             <source>Search the web[ for {query}]</source>
@@ -1599,7 +1599,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Select features in {layer_name}</source>
-            <translation>Pilih fitur di {layer_name}</translation>
+            <translation>Pilih feature di {layer_name}</translation>
         </message>
         <message>
             <source>Select in {layer_name} by shape</source>
@@ -1607,11 +1607,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Select in {layer_name} where {field_name} {operator} {value}</source>
-            <translation>Pilih di {layer_name} di mana {field_name} {operator} {value}</translation>
+            <translation>Pilih feature di {layer_name} yang {field_name} {operator} {value}</translation>
         </message>
         <message>
             <source>Select {layer_name} in the layer panel</source>
-            <translation>Pilih {layer_name} di panel layer</translation>
+            <translation>Pilih {layer_name} di panel Layers</translation>
         </message>
         <message>
             <source>Set NoData on {layer_name}</source>
@@ -1639,7 +1639,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Set the raster attribute table on {layer_name}</source>
-            <translation>Atur tabel atribut raster pada {layer_name}</translation>
+            <translation>Atur raster attribute table pada {layer_name}</translation>
         </message>
         <message>
             <source>Set {property} on {layer_name}</source>
@@ -1671,15 +1671,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Style raster classes on {layer_name}</source>
-            <translation>Gayakan kelas raster pada {layer_name}</translation>
+            <translation>Atur simbologi kelas raster pada {layer_name}</translation>
         </message>
         <message>
             <source>Style the point cloud {layer_name}</source>
-            <translation>Gayakan awan titik {layer_name}</translation>
+            <translation>Atur simbologi point cloud {layer_name}</translation>
         </message>
         <message>
             <source>Style {layer_name}</source>
-            <translation>Gayakan {layer_name}</translation>
+            <translation>Atur simbologi {layer_name}</translation>
         </message>
         <message>
             <source>Take a screenshot</source>
@@ -1707,11 +1707,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Update features of {layer_name}</source>
-            <translation>Perbarui fitur {layer_name}</translation>
+            <translation>Perbarui feature {layer_name}</translation>
         </message>
         <message>
             <source>What it can do, what it asks before doing, and how to undo a run.</source>
-            <translation>Apa yang bisa dilakukannya, apa yang ditanyakan sebelum bertindak, dan cara membatalkan sebuah proses.</translation>
+            <translation>Apa yang bisa dilakukannya, apa yang ditanyakan sebelum bertindak, dan cara mengurungkan sebuah proses.</translation>
         </message>
         <message>
             <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
@@ -1722,16 +1722,16 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <translation>Statistik zonal dengan Earth Engine</translation>
         </message>
         <message>
-            <source>Zone of interest[: {label}][ from {layer_name}]</source>
-            <translation>Zona minat[: {label}][ dari {layer_name}]</translation>
+            <source>Area of interest[: {label}][ from {layer_name}]</source>
+            <translation>Area of interest[: {label}][ dari {layer_name}]</translation>
         </message>
         <message>
             <source>Zoom to the selection[ of {layer_name}]</source>
-            <translation>Perbesar ke pilihan[ dari {layer_name}]</translation>
+            <translation>Zoom ke seleksi[ dari {layer_name}]</translation>
         </message>
         <message>
             <source>Zoom to {layer_name}</source>
-            <translation>Perbesar ke {layer_name}</translation>
+            <translation>Zoom ke {layer_name}</translation>
         </message>
         <message>
             <source>{count} ms</source>
@@ -1739,15 +1739,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>{count} s</source>
-            <translation>{count} s</translation>
+            <translation>{count} detik</translation>
         </message>
         <message>
             <source>{minutes} min</source>
-            <translation>{minutes} min</translation>
+            <translation>{minutes} menit</translation>
         </message>
         <message>
             <source>{minutes} min {seconds} s</source>
-            <translation>{minutes} min {seconds} s</translation>
+            <translation>{minutes} menit {seconds} detik</translation>
         </message>
         <message>
             <source>It adds the layer to the existing GeoPackage {path}.</source>
@@ -1775,7 +1775,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>That file is also its input: the original is overwritten.</source>
-            <translation>File itu juga menjadi inputnya: file asli ditimpa.</translation>
+            <translation>File itu juga berfungsi sebagai input: file asli ditimpa.</translation>
         </message>
         <message>
             <source>The input is only read, not changed.</source>
@@ -1791,7 +1791,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>This algorithm has no output of its own: it changes its input in place.</source>
-            <translation>Algoritma ini tidak memiliki output sendiri: algoritma ini mengubah inputnya di tempat.</translation>
+            <translation>Algoritma ini tidak memiliki output sendiri: algoritma ini mengubah input secara langsung.</translation>
         </message>
         <message>
             <location filename="src/tools/harvest_project.py" />
@@ -1804,7 +1804,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>1 layer won't come back: {names}</source>
-            <translation>1 layer tidak akan kembali: {names}</translation>
+            <translation>1 layer tidak akan dipulihkan: {names}</translation>
         </message>
         <message>
             <source>1 result</source>
@@ -1828,11 +1828,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Go back to an earlier version of your project</source>
-            <translation>Kembali ke versi proyek Anda yang lebih awal</translation>
+            <translation>Mundur ke versi proyek sebelumnya</translation>
         </message>
         <message>
             <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
-            <translation>Kembali memulihkan proyek dan setiap layer cadangan. Layer ini menyimpan data yang mereka miliki sekarang:</translation>
+            <translation>Mundur memulihkan proyek dan setiap layer yang punya cadangan. Layer berikut mempertahankan data yang ada sekarang:</translation>
         </message>
         <message>
             <source>Good to know</source>
@@ -1856,11 +1856,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Put back brings the project to where this request left it.</source>
-            <translation>Kembalikan memulihkan proyek ke kondisi saat permintaan ini selesai.</translation>
+            <translation>Ulangi membawa proyek ke keadaan saat permintaan ini selesai.</translation>
         </message>
         <message>
             <source>Put it back</source>
-            <translation>Kembalikan</translation>
+            <translation>Ulangi</translation>
         </message>
         <message>
             <source>Read a web page</source>
@@ -1872,7 +1872,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Real tasks the agent runs from one sentence. Open one to see its prompt.</source>
-            <translation>Tugas nyata yang dijalankan agen dari satu kalimat. Buka salah satunya untuk melihat prompt-nya.</translation>
+            <translation>Tugas nyata yang dijalankan agen dari satu kalimat. Buka salah satu untuk melihat prompt yang dipakai.</translation>
         </message>
         <message>
             <source>Restore puts the project back as this request left it.</source>
@@ -1900,11 +1900,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Undo puts the project back as it was before this request.</source>
-            <translation>Batalkan mengembalikan proyek seperti sebelum permintaan ini.</translation>
+            <translation>Urungkan mengembalikan proyek seperti sebelum permintaan ini.</translation>
         </message>
         <message>
             <source>Undo the agent's last request</source>
-            <translation>Batalkan permintaan terakhir agen</translation>
+            <translation>Urungkan permintaan terakhir agen</translation>
         </message>
         <message>
             <source>Use this example</source>
@@ -1920,7 +1920,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>{n} layers won't come back: {names}</source>
-            <translation>{n} layer tidak akan kembali: {names}</translation>
+            <translation>{n} layer tidak akan dipulihkan: {names}</translation>
         </message>
         <message>
             <source>• {layer}: {reason}</source>
@@ -1936,15 +1936,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Change a north arrow of the layout {layout_name}</source>
-            <translation>Ubah panah utara pada layout {layout_name}</translation>
+            <translation>Ubah north arrow pada layout {layout_name}</translation>
         </message>
         <message>
             <source>Change a scale bar of the layout {layout_name}</source>
-            <translation>Ubah bilah skala pada layout {layout_name}</translation>
+            <translation>Ubah scale bar pada layout {layout_name}</translation>
         </message>
         <message>
             <source>Edit the last queued message</source>
-            <translation>Edit pesan terakhir yang diantrekan</translation>
+            <translation>Edit pesan terakhir dalam antrean</translation>
         </message>
         <message>
             <source>In an empty box</source>
@@ -1952,7 +1952,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Queue a message</source>
-            <translation>Antrekan pesan</translation>
+            <translation>Masukkan pesan ke antrean</translation>
         </message>
         <message>
             <source>Remove one item from the layout {layout_name}</source>
@@ -1964,11 +1964,258 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>AI Agent {version} is installed.</source>
-            <translation>AI Agent {version} sudah terpasang.</translation>
+            <translation>AI Agent {version} sudah terinstal.</translation>
         </message>
         <message>
             <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
-            <translation>AI Agent {version} sudah terpasang. Mulai ulang QGIS untuk menggunakannya.</translation>
+            <translation>AI Agent {version} sudah terinstal. Mulai ulang QGIS untuk menggunakannya.</translation>
+        </message>
+        <message>
+            <location filename="src/tools/core_tools.py" />
+            <source>Search the processing tools[ for {search}]</source>
+            <translation>Cari tool Processing[ untuk {search}]</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {feature}</source>
+            <translation>Instal {feature}</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {package}</source>
+            <translation>Instal {package}</translation>
+        </message>
+        <message>
+            <source>1 feature</source>
+            <translation>1 fitur</translation>
+        </message>
+        <message>
+            <source>1 field</source>
+            <translation>1 kolom</translation>
+        </message>
+        <message>
+            <source>1 file</source>
+            <translation>1 file</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 layer</translation>
+        </message>
+        <message>
+            <source>1 row</source>
+            <translation>1 baris</translation>
+        </message>
+        <message>
+            <source>Add {name}[ from {source}]</source>
+            <translation>Tambahkan {name}[ dari {source}]</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed.</source>
+            <translation>Kembalikan apa yang diubah permintaan ini.</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} around {INPUT}</source>
+            <translation>Buffer {DISTANCE} di sekitar {INPUT}</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} on one side of {INPUT}</source>
+            <translation>Buffer {DISTANCE} di satu sisi {INPUT}</translation>
+        </message>
+        <message>
+            <source>Centroids of {INPUT}</source>
+            <translation>Centroid dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to an extent</source>
+            <translation>Klip {INPUT} ke sebuah ekstensi</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {MASK}</source>
+            <translation>Klip {INPUT} ke {MASK}</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {OVERLAY}</source>
+            <translation>Klip {INPUT} ke {OVERLAY}</translation>
+        </message>
+        <message>
+            <source>Compute {FIELD_NAME} in {INPUT}</source>
+            <translation>Hitung {FIELD_NAME} di {INPUT}</translation>
+        </message>
+        <message>
+            <source>Contours of {INPUT}[ every {INTERVAL}]</source>
+            <translation>Kontur dari {INPUT}[ setiap {INTERVAL}]</translation>
+        </message>
+        <message>
+            <source>Copy a report of this problem, then paste it into an email to us.</source>
+            <translation>Salin laporan masalah ini, lalu tempel ke email untuk kami.</translation>
+        </message>
+        <message>
+            <source>Copy report</source>
+            <translation>Salin laporan</translation>
+        </message>
+        <message>
+            <source>Count {POINTS} in each feature of {POLYGONS}</source>
+            <translation>Hitung {POINTS} di setiap fitur {POLYGONS}</translation>
+        </message>
+        <message>
+            <source>Dissolve {INPUT}[ by {FIELD}]</source>
+            <translation>Gabungkan (dissolve) {INPUT}[ berdasarkan {FIELD}]</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}</source>
+            <translation>Ekstrak fitur dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT} by location</source>
+            <translation>Ekstrak fitur dari {INPUT} berdasarkan lokasi</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}[ by {FIELD}]</source>
+            <translation>Ekstrak fitur dari {INPUT}[ berdasarkan {FIELD}]</translation>
+        </message>
+        <message>
+            <source>Fix the geometries of {INPUT}</source>
+            <translation>Perbaiki geometri {INPUT}</translation>
+        </message>
+        <message>
+            <source>Get {what}</source>
+            <translation>Ambil {what}</translation>
+        </message>
+        <message>
+            <source>Heatmap of {INPUT}[ with a radius of {RADIUS}]</source>
+            <translation>Peta panas dari {INPUT}[ dengan radius {RADIUS}]</translation>
+        </message>
+        <message>
+            <source>Hillshade of {INPUT}</source>
+            <translation>Hillshade dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>Intersect {INPUT} with {OVERLAY}</source>
+            <translation>Irisan {INPUT} dengan {OVERLAY}</translation>
+        </message>
+        <message>
+            <source>Join {INPUT_2} to {INPUT}</source>
+            <translation>Gabungkan {INPUT_2} ke {INPUT}</translation>
+        </message>
+        <message>
+            <source>Join {JOIN} to {INPUT} by location</source>
+            <translation>Gabungkan {JOIN} ke {INPUT} berdasarkan lokasi</translation>
+        </message>
+        <message>
+            <source>Merge {LAYERS}</source>
+            <translation>Satukan {LAYERS}</translation>
+        </message>
+        <message>
+            <source>Open an email</source>
+            <translation>Buka email</translation>
+        </message>
+        <message>
+            <source>Polygonize {INPUT}</source>
+            <translation>Poligonkan {INPUT}</translation>
+        </message>
+        <message>
+            <source>Rasterize {INPUT}</source>
+            <translation>Rasterisasi {INPUT}</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map.</source>
+            <translation>Hapus apa yang diubah permintaan ini di peta.</translation>
+        </message>
+        <message>
+            <source>Remove {OVERLAY} from {INPUT}</source>
+            <translation>Hapus {OVERLAY} dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT} to {TARGET_CRS}</source>
+            <translation>Proyeksikan ulang {INPUT} ke {TARGET_CRS}</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT}[ to {TARGET_CRS}]</source>
+            <translation>Proyeksikan ulang {INPUT}[ ke {TARGET_CRS}]</translation>
+        </message>
+        <message>
+            <source>Run processing</source>
+            <translation>Jalankan pemrosesan</translation>
+        </message>
+        <message>
+            <source>Save it as a file</source>
+            <translation>Simpan sebagai file</translation>
+        </message>
+        <message>
+            <source>Simplify {INPUT}[ with a tolerance of {TOLERANCE}]</source>
+            <translation>Sederhanakan {INPUT}[ dengan toleransi {TOLERANCE}]</translation>
+        </message>
+        <message>
+            <source>Slope of {INPUT}</source>
+            <translation>Kemiringan dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>Smooth {INPUT}</source>
+            <translation>Haluskan {INPUT}</translation>
+        </message>
+        <message>
+            <source>Split {INPUT} into single parts</source>
+            <translation>Pecah {INPUT} menjadi bagian tunggal</translation>
+        </message>
+        <message>
+            <source>Statistics of {INPUT_RASTER} in each feature of {INPUT}</source>
+            <translation>Statistik {INPUT_RASTER} di setiap fitur {INPUT}</translation>
+        </message>
+        <message>
+            <source>The agent reads it at its next step</source>
+            <translation>Agen membacanya pada langkah berikutnya</translation>
+        </message>
+        <message>
+            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
+            <translation>Percakapan ini: pesan Anda, setiap langkah yang diambil AI dan temuannya, serta detail teknis tentang QGIS dan plugin. Tidak pernah berisi kata sandi, data masuk Anda, atau isi file Anda.</translation>
+        </message>
+        <message>
+            <source>Turn {INPUT} into lines</source>
+            <translation>Ubah {INPUT} menjadi garis</translation>
+        </message>
+        <message>
+            <source>Union of {INPUT}[ and {OVERLAY}]</source>
+            <translation>Gabungan (union) dari {INPUT}[ dan {OVERLAY}]</translation>
+        </message>
+        <message>
+            <source>Voronoi polygons of {INPUT}</source>
+            <translation>Poligon Voronoi dari {INPUT}</translation>
+        </message>
+        <message>
+            <source>What is included</source>
+            <translation>Apa saja yang disertakan</translation>
+        </message>
+        <message>
+            <source>{algorithm} on {layer}</source>
+            <translation>{algorithm} pada {layer}</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} fitur</translation>
+        </message>
+        <message>
+            <source>{n} fields</source>
+            <translation>{n} kolom</translation>
+        </message>
+        <message>
+            <source>{n} files</source>
+            <translation>{n} file</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} layer</translation>
+        </message>
+        <message>
+            <source>{n} results</source>
+            <translation>{n} hasil</translation>
+        </message>
+        <message>
+            <source>{n} rows</source>
+            <translation>{n} baris</translation>
+        </message>
+        <message>
+            <source>{tool} on {layer}</source>
+            <translation>{tool} pada {layer}</translation>
         </message>
     </context>
     <context>
@@ -2064,11 +2311,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Show in QGIS</source>
-            <translation>Tampilkan di QGIS</translation>
+            <translation>Lihat di QGIS</translation>
         </message>
         <message>
             <source>Shown in QGIS</source>
-            <translation>Ditampilkan di QGIS</translation>
+            <translation>Tampil di QGIS</translation>
         </message>
     </context>
     <context>
@@ -2089,17 +2336,17 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{geometry} layer</source>
-            <translation>{geometry} layer</translation>
+            <translation>layer {geometry}</translation>
         </message>
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{kind}, 1 feature</source>
-            <translation>{kind}, 1 fitur</translation>
+            <translation>{kind}, 1 feature</translation>
         </message>
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{kind}, {count} features</source>
-            <translation>{kind}, {count} fitur</translation>
+            <translation>{kind}, {count} feature</translation>
         </message>
     </context>
     <context>
@@ -2145,11 +2392,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/options_page.py" />
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
-            <translation>Buka panel dengan Ctrl+Alt+A, atau ketik "ai" diikuti dengan pertanyaan di bilah locator (Ctrl+K). Klik kanan layer, fitur, atau peta untuk bertanya tentangnya.</translation>
+            <translation>Buka panel dengan Ctrl+Alt+A, atau ketik "ai" diikuti pertanyaan di locator bar (Ctrl+K). Klik kanan layer, feature, atau peta untuk bertanya tentangnya.</translation>
         </message>
         <message>
             <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
-            <translation>AI Agent dari TerraLab adalah agen AI Anda di dalam QGIS: memuat data, menata layer, menjalankan analisis, dan membuat tata letak. AI Agent meminta persetujuan sebelum perubahan berisiko dan Anda dapat membatalkan eksekusi.</translation>
+            <translation>AI Agent dari TerraLab adalah agen AI Anda di dalam QGIS: memuat data, mengatur simbologi layer, menjalankan analisis, dan membuat layout. AI Agent meminta persetujuan sebelum perubahan berisiko dan Anda dapat mengurungkan satu proses.</translation>
         </message>
     </context>
     <context>
@@ -2177,7 +2424,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/plugin.py" />
             <source>Refreshing AI Agent settings</source>
-            <translation>Menyegarkan setelan AI Agent</translation>
+            <translation>Menyegarkan pengaturan AI Agent</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
@@ -2199,7 +2446,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>QGIS changed theme. Reload AI Agent, or restart QGIS, for its panel to follow.</source>
-            <translation>QGIS berganti tema. Muat ulang AI Agent, atau mulai ulang QGIS, agar panel mengikuti.</translation>
+            <translation>QGIS berganti tema. Muat ulang AI Agent, atau mulai ulang QGIS, agar panel ikut berubah.</translation>
         </message>
         <message>
             <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
@@ -2207,7 +2454,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Show</source>
-            <translation>Tampilkan</translation>
+            <translation>Lihat</translation>
         </message>
         <message>
             <source>The agent is waiting for your approval.</source>
@@ -2287,7 +2534,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/api/account.py" />
             <source>Sign in first, then you can delete your account.</source>
-            <translation>Masuk terlebih dahulu, lalu Anda dapat menghapus akun Anda.</translation>
+            <translation>Masuk dulu, lalu Anda dapat menghapus akun.</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2307,7 +2554,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/api/account.py" />
             <source>Still waiting for the sign-in page. If no browser opened, or the page shows an error, click Cancel and try again.</source>
-            <translation>Halaman masuk masih ditunggu. Jika browser tidak terbuka atau halaman menampilkan error, klik Batal dan coba lagi.</translation>
+            <translation>Masih menunggu halaman masuk. Jika browser tidak terbuka atau halaman menampilkan error, klik Batal, lalu coba lagi.</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2332,7 +2579,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/api/account.py" />
             <source>This computer is not signed in to that account. Sign in again, then delete it.</source>
-            <translation>Komputer ini tidak masuk ke akun tersebut. Masuk lagi, lalu hapus akun itu.</translation>
+            <translation>Komputer ini belum masuk ke akun tersebut. Masuk lagi, lalu hapus akun itu.</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2379,7 +2626,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/api/account.py" />
             <source>Your plan is already running on its maximum number of computers. Close AI Agent on one of them, then try again.</source>
-            <translation>Paket Anda sudah berjalan pada jumlah komputer maksimum. Tutup AI Agent di salah satunya, lalu coba lagi.</translation>
+            <translation>Paket Anda sudah digunakan di jumlah komputer maksimum. Tutup AI Agent di salah satunya, lalu coba lagi.</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2392,12 +2639,12 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Unexpected response from the server. Please try again.</source>
-            <translation>Respons tak terduga dari server. Silakan coba lagi.</translation>
+            <translation>Respons tak terduga dari server. Coba lagi.</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password. Click Sign in to enter it.</source>
-            <translation>Anda sudah masuk di komputer ini, tetapi QGIS tidak dapat membaca status masuk Anda sampai Anda memasukkan kata sandi utama. Klik Masuk untuk memasukkannya.</translation>
+            <translation>Anda sudah masuk di komputer ini, tetapi QGIS tidak dapat membaca status masuk sampai Anda memasukkan master password. Klik Masuk untuk memasukkannya.</translation>
         </message>
         <message>
             <source>Opening the checkout</source>
@@ -2405,7 +2652,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Signed in (from {}).</source>
-            <translation>Masuk (dari {}).</translation>
+            <translation>Berhasil masuk (dari {}).</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
@@ -2414,6 +2661,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>No connection to terra-lab.ai. Still trying...</source>
             <translation>Tidak ada koneksi ke terra-lab.ai. Masih mencoba...</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>Link copied: paste it in your browser.</source>
+            <translation>Tautan disalin: tempel di browser Anda.</translation>
+        </message>
+        <message>
+            <source>Still waiting for the sign-in page. No browser? Click Open browser: it also copies the link, to paste in your browser.</source>
+            <translation>Masih menunggu halaman masuk. Tidak ada browser? Klik Buka browser: tautan juga ikut disalin, lalu tempel di browser Anda.</translation>
         </message>
     </context>
     <context>
@@ -2644,7 +2903,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>Lalu minta apa saja ke AI: muat data, atur tampilan layer, jalankan analisis, edit fitur.</translation>
+            <translation>Lalu minta apa saja ke AI: muat data, atur simbologi layer, jalankan analisis, edit feature.</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2689,17 +2948,17 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>1 feature</source>
-            <translation>1 fitur</translation>
+            <translation>1 feature</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>did not work</source>
-            <translation>tidak berfungsi</translation>
+            <translation>tidak berhasil</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>{n} features</source>
-            <translation>{n} fitur</translation>
+            <translation>{n} feature</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
@@ -2729,7 +2988,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>{count} s</source>
-            <translation>{count} dtk</translation>
+            <translation>{count} detik</translation>
         </message>
     </context>
     <context>
@@ -2737,7 +2996,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>Agent</source>
-            <translation>Agent</translation>
+            <translation>Agen</translation>
         </message>
         <message>
             <source>Undone</source>
@@ -2745,15 +3004,31 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Put back</source>
-            <translation>Kembalikan</translation>
+            <translation>Ulangi</translation>
         </message>
         <message>
             <source>Undo</source>
-            <translation>Batalkan</translation>
+            <translation>Urungkan</translation>
         </message>
         <message>
             <source>Copy</source>
             <translation>Salin</translation>
+        </message>
+        <message>
+            <source>Also undoes the later request</source>
+            <translation>Juga membatalkan permintaan berikutnya</translation>
+        </message>
+        <message>
+            <source>Also undoes the {n} later requests</source>
+            <translation>Juga membatalkan {n} permintaan berikutnya</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>Kembali ke sini</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Ulangi</translation>
         </message>
     </context>
     <context>
@@ -2806,7 +3081,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller.py" />
             <source>No layer, feature or file changed</source>
-            <translation>Tidak ada layer, fitur, atau file yang berubah</translation>
+            <translation>Tidak ada layer, feature, atau file yang berubah</translation>
         </message>
         <message>
             <location filename="src/core/snapshot_report.py" />
@@ -2831,7 +3106,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>Nothing to undo.</source>
-            <translation>Tidak ada yang dapat dibatalkan.</translation>
+            <translation>Tidak ada yang dapat diurungkan.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -2851,17 +3126,17 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>Stop the current run before going back.</source>
-            <translation>Hentikan eksekusi saat ini sebelum kembali.</translation>
+            <translation>Hentikan proses saat ini sebelum mundur.</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>Stop the current run before starting a new chat.</source>
-            <translation>Hentikan eksekusi saat ini sebelum memulai chat baru.</translation>
+            <translation>Hentikan proses saat ini sebelum memulai chat baru.</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>Stop the current run before switching chats.</source>
-            <translation>Hentikan eksekusi saat ini sebelum beralih chat.</translation>
+            <translation>Hentikan proses saat ini sebelum beralih chat.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -2871,7 +3146,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller.py" />
             <source>The agent service reported an error.</source>
-            <translation>Layanan agent melaporkan error.</translation>
+            <translation>Layanan agen melaporkan error.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -2886,7 +3161,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller.py" />
             <source>The user dismissed the proposal.</source>
-            <translation>Pengguna menolak usulan tersebut.</translation>
+            <translation>Pengguna mengabaikan usulan tersebut.</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
@@ -2930,19 +3205,19 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Deleted 1 working layer</source>
-            <translation>Menghapus 1 working layer</translation>
+            <translation>1 layer kerja dihapus</translation>
         </message>
         <message>
             <source>Deleted {n} working layers</source>
-            <translation>Menghapus {n} working layer</translation>
+            <translation>{n} layer kerja dihapus</translation>
         </message>
         <message>
             <source>Kept 1 working layer</source>
-            <translation>Menyimpan 1 working layer</translation>
+            <translation>1 layer kerja dipertahankan</translation>
         </message>
         <message>
             <source>Kept {n} working layers</source>
-            <translation>Menyimpan {n} working layer</translation>
+            <translation>{n} layer kerja dipertahankan</translation>
         </message>
         <message>
             <source>The service is updating. Resuming...</source>
@@ -2954,15 +3229,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Tidied 1 working layer away</source>
-            <translation>Merapikan 1 working layer</translation>
+            <translation>1 layer kerja dirapikan</translation>
         </message>
         <message>
             <source>Tidied {n} working layers away</source>
-            <translation>Merapikan {n} working layer</translation>
+            <translation>{n} layer kerja dirapikan</translation>
         </message>
         <message>
             <source>Working layers</source>
-            <translation>Working layer</translation>
+            <translation>Layer kerja</translation>
         </message>
         <message>
             <source>Basemaps here are limited without QuickMapServices.</source>
@@ -3008,7 +3283,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller_frames.py" />
             <source>QGIS stopped responding for {n} seconds during this run.</source>
-            <translation>QGIS berhenti merespons selama {n} detik selama proses ini.</translation>
+            <translation>QGIS berhenti merespons selama {n} detik dalam proses ini.</translation>
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
@@ -3023,7 +3298,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/controller_account.py" />
             <source>Stopped: signed out.</source>
-            <translation>Dihentikan: keluar.</translation>
+            <translation>Dihentikan: Anda sudah keluar.</translation>
         </message>
         <message>
             <location filename="src/core/controller_projects.py" />
@@ -3070,7 +3345,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Could not fully go back to {point}. {reason}</source>
-            <translation>Tidak dapat sepenuhnya kembali ke {point}. {reason}</translation>
+            <translation>Tidak dapat sepenuhnya mundur ke {point}. {reason}</translation>
         </message>
         <message>
             <source>No results</source>
@@ -3082,11 +3357,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action.</source>
-            <translation>Mode izin berubah. Perubahan ini berlaku mulai tindakan berikutnya.</translation>
+            <translation>Mode izin berubah. Perubahan ini berlaku mulai aksi berikutnya.</translation>
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
-            <translation>Mode izin berubah. Perubahan ini berlaku mulai tindakan berikutnya; kartu yang terbuka masih memerlukan jawaban Anda.</translation>
+            <translation>Mode izin berubah. Perubahan ini berlaku mulai aksi berikutnya; kartu yang terbuka masih memerlukan jawaban Anda.</translation>
         </message>
         <message>
             <source>The message could not be sent: the connection to the agent service is down.</source>
@@ -3098,7 +3373,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>after “{request}”</source>
-            <translation>setelah “{request}”</translation>
+            <translation>setelah "{request}"</translation>
         </message>
         <message>
             <source>before request {n}</source>
@@ -3106,7 +3381,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>before “{request}”</source>
-            <translation>sebelum “{request}”</translation>
+            <translation>sebelum "{request}"</translation>
         </message>
         <message>
             <source>data put back in {files}</source>
@@ -3126,23 +3401,23 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Back to after “{request}”.</source>
-            <translation>Kembali ke setelah “{request}”.</translation>
+            <translation>Mundur ke setelah "{request}".</translation>
         </message>
         <message>
             <source>Back to before “{request}”.</source>
-            <translation>Kembali ke sebelum “{request}”.</translation>
+            <translation>Mundur ke sebelum "{request}".</translation>
         </message>
         <message>
             <source>Back to your own changes.</source>
-            <translation>Kembali ke perubahan Anda sendiri.</translation>
+            <translation>Mundur ke perubahan Anda sendiri.</translation>
         </message>
         <message>
             <source>Forward to after “{request}”.</source>
-            <translation>Maju ke setelah “{request}”.</translation>
+            <translation>Maju ke setelah "{request}".</translation>
         </message>
         <message>
             <source>Forward to before “{request}”.</source>
-            <translation>Maju ke sebelum “{request}”.</translation>
+            <translation>Maju ke sebelum "{request}".</translation>
         </message>
         <message>
             <source>Forward to your own changes.</source>
@@ -3150,11 +3425,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Put back</source>
-            <translation>Kembalikan</translation>
+            <translation>Ulangi</translation>
         </message>
         <message>
             <source>Signed in (from {}).</source>
-            <translation>Masuk (dari {}).</translation>
+            <translation>Berhasil masuk (dari {}).</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
@@ -3182,7 +3457,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Undo</source>
-            <translation>Batalkan</translation>
+            <translation>Urungkan</translation>
         </message>
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
@@ -3204,13 +3479,93 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <source>{names} didn't come back.</source>
             <translation>{names} tidak kembali.</translation>
         </message>
+        <message>
+            <source>Brought back everything up to “{request}”.</source>
+            <translation>Semuanya dikembalikan sampai “{request}”.</translation>
+        </message>
+        <message>
+            <source>Brought back what “{request}” changed.</source>
+            <translation>Perubahan dari “{request}” dikembalikan.</translation>
+        </message>
+        <message>
+            <source>Moved 1 layer into {group}</source>
+            <translation>1 layer dipindahkan ke {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} layer dipindahkan ke {group}</translation>
+        </message>
+        <message>
+            <source>No internet connection. Retrying.</source>
+            <translation>Tidak ada koneksi internet. Mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>Tidak terhubung ke TerraLab, jadi tidak ada yang terkirim. Menyambung kembali sekarang: pesan Anda tetap tersimpan, dan Coba lagi akan mengirimnya setelah koneksi pulih.</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. Retry once the connection is back.</source>
+            <translation>Tidak terhubung ke TerraLab. Coba lagi setelah koneksi pulih.</translation>
+        </message>
+        <message>
+            <source>Reconnected. Waiting for TerraLab to resume the run...</source>
+            <translation>Terhubung kembali. Menunggu TerraLab melanjutkan proses...</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Ulangi</translation>
+        </message>
+        <message>
+            <source>Removed what came after “{request}”.</source>
+            <translation>Yang terjadi setelah “{request}” dihapus.</translation>
+        </message>
+        <message>
+            <source>Removed what “{request}” changed.</source>
+            <translation>Perubahan dari “{request}” dihapus.</translation>
+        </message>
+        <message>
+            <source>Stopped. The version before this request is no longer kept, so nothing was undone.</source>
+            <translation>Dihentikan. Versi sebelum permintaan ini tidak lagi disimpan, jadi tidak ada yang dibatalkan.</translation>
+        </message>
+        <message>
+            <source>TerraLab is restarting. Your task will resume.</source>
+            <translation>TerraLab sedang memulai ulang. Tugas Anda akan dilanjutkan.</translation>
+        </message>
+        <message>
+            <source>TerraLab reported an error.</source>
+            <translation>TerraLab melaporkan kesalahan.</translation>
+        </message>
+        <message>
+            <source>TerraLab stopped answering. The run was ended, you can retry it.</source>
+            <translation>TerraLab berhenti merespons. Proses diakhiri, Anda bisa mencobanya lagi.</translation>
+        </message>
+        <message>
+            <source>The connection dropped and TerraLab no longer has this run. You can retry it.</source>
+            <translation>Koneksi terputus dan TerraLab tidak lagi memiliki proses ini. Anda bisa mencobanya lagi.</translation>
+        </message>
+        <message>
+            <source>The connection to TerraLab was lost and did not come back. The run was ended, you can retry it once you are online.</source>
+            <translation>Koneksi ke TerraLab terputus dan tidak pulih. Proses diakhiri, Anda bisa mencobanya lagi setelah online.</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to TerraLab is down.</source>
+            <translation>Pesan tidak dapat dikirim: koneksi ke TerraLab terputus.</translation>
+        </message>
+        <message>
+            <source>The run ended without a summary from TerraLab.</source>
+            <translation>Proses berakhir tanpa ringkasan dari TerraLab.</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Tata letak cetak diubah</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
         <message>
             <location filename="src/core/session.py" />
             <source>A gateway blocked the connection (HTTP {code}). If this network shows a sign-in page, open it in your browser first.</source>
-            <translation>Gateway memblokir koneksi (HTTP {code}). Jika jaringan ini menampilkan halaman masuk, buka terlebih dahulu di browser Anda.</translation>
+            <translation>Gateway memblokir koneksi (HTTP {code}). Jika jaringan ini menampilkan halaman masuk, buka halaman tersebut di browser Anda terlebih dahulu.</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -3240,7 +3595,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/session.py" />
             <source>The server certificate could not be verified. If your network inspects secure traffic, add its certificate in QGIS (Settings &gt; Options &gt; Authentication).</source>
-            <translation>Sertifikat server tidak dapat diverifikasi. Jika jaringan Anda memeriksa lalu lintas aman, tambahkan sertifikatnya di QGIS (Settings &gt; Options &gt; Authentication).</translation>
+            <translation>Sertifikat server tidak dapat diverifikasi. Jika jaringan Anda memeriksa lalu lintas terenkripsi, tambahkan sertifikatnya di QGIS (Settings &gt; Options &gt; Authentication).</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -3255,7 +3610,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/core/session.py" />
             <source>The server name could not be resolved. Check your internet connection.</source>
-            <translation>Nama server tidak dapat diselesaikan. Periksa koneksi internet Anda.</translation>
+            <translation>Nama server tidak ditemukan. Periksa koneksi internet Anda.</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -3273,6 +3628,18 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>TerraLab's server is not answering. Retrying.</source>
             <translation>Server TerraLab tidak merespons. Mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>TerraLab is unavailable right now (HTTP {code}).</source>
+            <translation>TerraLab sedang tidak tersedia (HTTP {code}).</translation>
+        </message>
+        <message>
+            <source>The proxy refused the connection to TerraLab.</source>
+            <translation>Proxy menolak koneksi ke TerraLab.</translation>
         </message>
     </context>
     <context>
@@ -3294,6 +3661,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
             <location filename="src/ui/attach_menu.py" />
             <source>Attach a layer of this project</source>
             <translation>Lampirkan layer dari proyek ini</translation>
+        </message>
+        <message>
+            <source>No layers in this project yet.</source>
+            <translation>Belum ada layer di proyek ini.</translation>
         </message>
     </context>
     <context>
@@ -3455,19 +3826,19 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>%n actions</source>
-            <translation>%n tindakan</translation>
+            <translation>%n aksi</translation>
         </message>
         <message>
             <source>1 action</source>
-            <translation>1 tindakan</translation>
+            <translation>1 aksi</translation>
         </message>
         <message>
             <source>Back to before this request</source>
-            <translation>Kembali ke sebelum permintaan ini</translation>
+            <translation>Mundur ke sebelum permintaan ini</translation>
         </message>
         <message>
             <source>Back to before “{request}”</source>
-            <translation>Kembali ke sebelum “{request}”</translation>
+            <translation>Mundur ke sebelum "{request}"</translation>
         </message>
         <message>
             <source>Forward to after this request</source>
@@ -3475,7 +3846,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Forward to after “{request}”</source>
-            <translation>Maju ke setelah “{request}”</translation>
+            <translation>Maju ke setelah "{request}"</translation>
         </message>
         <message>
             <source>Waiting for your approval</source>
@@ -3495,7 +3866,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Not connected to the agent service. The message stays queued.</source>
-            <translation>Tidak terhubung ke layanan agen. Pesan tetap diantrekan.</translation>
+            <translation>Tidak terhubung ke layanan agen. Pesan tetap dalam antrean.</translation>
         </message>
         <message>
             <source>Paused · nothing is sent until you choose</source>
@@ -3503,7 +3874,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Queued</source>
-            <translation>Diantrekan</translation>
+            <translation>Dalam antrean</translation>
         </message>
         <message>
             <source>Send this message now</source>
@@ -3511,7 +3882,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
-            <translation>Agen kini membaca percakapan sebelumnya sebagai catatan yang lebih ringkas yang menyimpan permintaan Anda dan apa yang dibuatnya.</translation>
+            <translation>Agen kini membaca percakapan sebelumnya dalam bentuk catatan yang lebih ringkas, tetap memuat permintaan Anda dan apa yang telah dibuatnya.</translation>
         </message>
         <message>
             <source>Undo what this message did</source>
@@ -3527,7 +3898,23 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>{n} queued</source>
-            <translation>{n} diantrekan</translation>
+            <translation>{n} dalam antrean</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed</source>
+            <translation>Kembalikan apa yang diubah permintaan ini</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. The message stays queued.</source>
+            <translation>Tidak terhubung ke TerraLab. Pesan tetap dalam antrean.</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map</source>
+            <translation>Hapus apa yang diubah permintaan ini di peta</translation>
+        </message>
+        <message>
+            <source>Waiting for your answer</source>
+            <translation>Menunggu jawaban Anda</translation>
         </message>
     </context>
     <context>
@@ -3545,7 +3932,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/sidebar.py" />
             <source>Expand the sidebar</source>
-            <translation>Bentangkan bilah sisi</translation>
+            <translation>Perluas bilah sisi</translation>
         </message>
         <message>
             <location filename="src/ui/sidebar.py" />
@@ -3585,7 +3972,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/sidebar.py" />
             <source>Do more with Pro</source>
-            <translation>Lakukan lebih banyak dengan Pro</translation>
+            <translation>Lebih bisa dengan Pro</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
         </message>
     </context>
     <context>
@@ -3613,15 +4004,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Back to the project as it was before the first request</source>
-            <translation>Kembali ke proyek seperti sebelum permintaan pertama</translation>
+            <translation>Mundur ke proyek seperti sebelum permintaan pertama</translation>
         </message>
         <message>
             <source>Back to the oldest version still kept</source>
-            <translation>Kembali ke versi terlama yang masih disimpan</translation>
+            <translation>Mundur ke versi tertua yang masih disimpan</translation>
         </message>
         <message>
             <source>Going back never deletes anything.</source>
-            <translation>Kembali tidak pernah menghapus apa pun.</translation>
+            <translation>Mundur tidak pernah menghapus apa pun.</translation>
         </message>
         <message>
             <source>In a closed project</source>
@@ -3637,7 +4028,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Put back</source>
-            <translation>Kembalikan</translation>
+            <translation>Ulangi</translation>
         </message>
         <message>
             <source>Request {n}</source>
@@ -3649,15 +4040,15 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Stop and go back to before this request</source>
-            <translation>Hentikan dan kembali ke sebelum permintaan ini</translation>
+            <translation>Hentikan dan mundur ke sebelum permintaan ini</translation>
         </message>
         <message>
             <source>Stop and go back to before “{request}”</source>
-            <translation>Hentikan dan kembali ke sebelum “{request}”</translation>
+            <translation>Hentikan dan mundur ke sebelum "{request}"</translation>
         </message>
         <message>
             <source>Stops the run, then puts the project back as it was before this request.</source>
-            <translation>Menghentikan proses, lalu mengembalikan proyek seperti sebelumnya sebelum permintaan ini.</translation>
+            <translation>Menghentikan proses, lalu mengembalikan proyek ke keadaan sebelum permintaan ini.</translation>
         </message>
         <message>
             <source>Undo</source>
@@ -3665,7 +4056,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Undo everything in this chat</source>
-            <translation>Urungkan semua yang ada di obrolan ini</translation>
+            <translation>Urungkan semua di chat ini</translation>
         </message>
         <message>
             <source>Versions of this project</source>
@@ -3674,6 +4065,22 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Your own changes</source>
             <translation>Perubahan Anda sendiri</translation>
+        </message>
+        <message>
+            <source>Also undoes 1 later request</source>
+            <translation>Juga membatalkan 1 permintaan berikutnya</translation>
+        </message>
+        <message>
+            <source>Also undoes {n} later requests</source>
+            <translation>Juga membatalkan {n} permintaan berikutnya</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>Kembali ke sini</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>Ulangi</translation>
         </message>
     </context>
     <context>
@@ -3762,7 +4169,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/composer.py" />
             <source>That does not read like a task yet. Say what you want in a sentence.</source>
-            <translation>Itu belum terbaca sebagai tugas. Jelaskan keinginan Anda dalam satu kalimat.</translation>
+            <translation>Ini belum berupa tugas. Jelaskan apa yang Anda inginkan dalam satu kalimat.</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3800,7 +4207,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>{n} left out, {total} at most</source>
-            <translation>{n} dilewati, maksimal {total}</translation>
+            <translation>{n} tidak disertakan, maksimal {total}</translation>
         </message>
         <message>
             <source>{level} effort needs Pro. Pick Low, or upgrade.</source>
@@ -3829,7 +4236,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/composer.py" />
             <source>This message is {n} characters long, over the {cap} one message can carry. Shorten it.</source>
-            <translation>Pesan ini memiliki {n} karakter, melebihi batas {cap} yang dapat dibawa satu pesan. Persingkat pesannya.</translation>
+            <translation>Pesan ini {n} karakter, melebihi batas {cap} karakter per pesan. Persingkat pesan Anda.</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3856,11 +4263,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Not connected to the agent service. Reconnecting now.</source>
-            <translation>Tidak terhubung ke layanan agen. Sedang menyambungkan kembali.</translation>
+            <translation>Tidak terhubung ke layanan agen. Sedang menghubungkan ulang.</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
-            <translation>Tidak terhubung ke layanan agen. Sedang menyambungkan kembali; ketik pesan, dan pesan akan dikirim.</translation>
+            <translation>Tidak terhubung ke layanan agen. Sedang menghubungkan ulang; ketik saja, pesan akan dikirim.</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
@@ -3868,19 +4275,19 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
-            <translation>Menyambungkan kembali ke layanan agen. Tekan untuk mencoba lagi sekarang; pesan Anda tetap tersimpan.</translation>
+            <translation>Menghubungkan ulang ke layanan agen. Tekan untuk mencoba lagi sekarang; pesan Anda tetap tersimpan.</translation>
         </message>
         <message>
             <source>Reconnecting to the agent service. Type, it will be sent.</source>
-            <translation>Menyambungkan kembali ke layanan agen. Ketik pesan, dan pesan akan dikirim.</translation>
+            <translation>Menghubungkan ulang ke layanan agen. Ketik saja, pesan akan dikirim.</translation>
         </message>
         <message>
             <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
-            <translation>Menyambungkan kembali ke layanan agen. Pesan Anda tetap di sini dan akan dikirim segera setelah koneksi kembali.</translation>
+            <translation>Menghubungkan ulang ke layanan agen. Pesan Anda tetap di sini dan akan dikirim segera setelah koneksi kembali.</translation>
         </message>
         <message>
             <source>Retry the connection</source>
-            <translation>Coba sambungkan kembali</translation>
+            <translation>Coba hubungkan ulang</translation>
         </message>
         <message>
             <source>Add photos &amp; files</source>
@@ -3888,7 +4295,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>a folder cannot be added, drop its files: {names}</source>
-            <translation>folder tidak dapat ditambahkan, seret file-nya: {names}</translation>
+            <translation>folder tidak dapat ditambahkan, seret file di dalamnya: {names}</translation>
         </message>
         <message>
             <source>too large, {mb} MB at most: {names}</source>
@@ -3896,11 +4303,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Queue</source>
-            <translation>Antrekan</translation>
+            <translation>Antrean</translation>
         </message>
         <message>
             <source>Queue it: the agent reads it at its next step (Enter)</source>
-            <translation>Antrekan: agen membacanya pada langkah berikutnya (Enter)</translation>
+            <translation>Masukkan ke antrean: agen membacanya pada langkah berikutnya (Enter)</translation>
         </message>
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
@@ -3909,6 +4316,30 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Your message stays here and goes out as soon as the connection is back.</source>
             <translation>Pesan Anda tetap berada di sini dan akan terkirim segera setelah koneksi kembali.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Press to retry now; your message is kept.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Tekan untuk mencoba lagi sekarang; pesan Anda tetap tersimpan.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying now.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Mencoba lagi sekarang.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Mencoba lagi. Pesan Anda tetap di sini dan terkirim begitu koneksi pulih.</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab. Your message goes out as soon as the connection is up.</source>
+            <translation>Menyambung ke TerraLab. Pesan Anda terkirim begitu koneksi tersambung.</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab...</source>
+            <translation>Menyambung ke TerraLab...</translation>
         </message>
     </context>
     <context>
@@ -3921,12 +4352,12 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/composer_input.py" />
             <source>QGIS plugins</source>
-            <translation>plugin QGIS</translation>
+            <translation>Plugin QGIS</translation>
         </message>
         <message>
             <location filename="src/ui/composer_input.py" />
             <source>Layers</source>
-            <translation>Layers</translation>
+            <translation>Layer</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -4158,7 +4589,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/connector_page.py" />
             <source>Your own account with the provider: it will ask for a key.</source>
-            <translation>Akun Anda sendiri pada penyedia: ia akan meminta kunci.</translation>
+            <translation>Akun Anda sendiri di penyedia: Anda akan diminta memasukkan kunci.</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -4180,7 +4611,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Nothing, but it is run by volunteers. Expect it to be slower or stricter about how much you can ask for.</source>
-            <translation>Tidak ada, tetapi layanan ini dijalankan sukarelawan. Layanan ini mungkin lebih lambat atau lebih ketat tentang jumlah permintaan Anda.</translation>
+            <translation>Tidak ada, tetapi layanan ini dikelola oleh sukarelawan. Layanan bisa lebih lambat atau lebih ketat membatasi jumlah permintaan Anda.</translation>
         </message>
         <message>
             <source>%n ready datasets</source>
@@ -4208,7 +4639,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Puts @{name} in the chat box, for a question of your own.</source>
-            <translation>Menempatkan @{name} di kotak obrolan, untuk pertanyaan Anda sendiri.</translation>
+            <translation>Memasukkan @{name} ke kotak chat, untuk pertanyaan Anda sendiri.</translation>
         </message>
         <message>
             <source>Show all %n examples</source>
@@ -4216,11 +4647,19 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>The logo belongs to its owner, who does not endorse AI Agent.</source>
-            <translation>Logo tersebut milik pemiliknya, yang tidak mendukung AI Agent.</translation>
+            <translation>Logo ini milik pemiliknya, yang tidak merekomendasikan AI Agent.</translation>
         </message>
         <message>
             <source>Use in chat</source>
-            <translation>Gunakan di obrolan</translation>
+            <translation>Gunakan di chat</translation>
+        </message>
+        <message>
+            <source>Fewer details</source>
+            <translation>Lebih sedikit detail</translation>
+        </message>
+        <message>
+            <source>More details</source>
+            <translation>Detail selengkapnya</translation>
         </message>
     </context>
     <context>
@@ -4355,7 +4794,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Click changed rows to toggle</source>
-            <translation>Klik baris yang berubah untuk mengalihkan</translation>
+            <translation>Klik baris yang berubah untuk memilih atau membatalkan pilihan</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -4365,12 +4804,12 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Proposed changes</source>
-            <translation>Perubahan yang diusulkan</translation>
+            <translation>Usulan perubahan</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>applied {n}</source>
-            <translation>diterapkan {n}</translation>
+            <translation>{n} diterapkan</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -4411,7 +4850,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Drop to add to the chat</source>
-            <translation>Seret untuk menambahkan ke obrolan</translation>
+            <translation>Lepas untuk menambah ke chat</translation>
         </message>
         <message>
             <source>Photos, files, or a layer of this project</source>
@@ -4443,7 +4882,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>Mulai bekerja secepat mungkin. Terbaik untuk edit cepat dan pertanyaan. Tidak merencanakan atau meriset.</translation>
+            <translation>Langsung bekerja secepat mungkin. Cocok untuk edit cepat dan pertanyaan. Tidak merencanakan atau meneliti.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -4461,7 +4900,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Effort can be changed after this run ends</source>
-            <translation>Tingkat upaya dapat diubah setelah eksekusi ini selesai</translation>
+            <translation>Upaya dapat diubah setelah proses ini selesai</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -4474,6 +4913,10 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>{level} needs Pro. Pick Low to send.</source>
+            <translation>{level} memerlukan Pro. Pilih Low untuk mengirim.</translation>
         </message>
     </context>
     <context>
@@ -4581,7 +5024,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/header.py" />
             <source>Dock or undock this panel</source>
-            <translation>Pasang atau lepas panel ini</translation>
+            <translation>Sematkan atau lepas panel ini</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
@@ -4609,7 +5052,7 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>See what Pro unlocks</source>
-            <translation>Lihat fitur yang dibuka oleh Pro</translation>
+            <translation>Lihat apa yang dibuka Pro</translation>
         </message>
         <message>
             <source>by TerraLab</source>
@@ -4617,7 +5060,11 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         </message>
         <message>
             <source>Go back to an earlier version ({key})</source>
-            <translation>Kembali ke versi sebelumnya ({key})</translation>
+            <translation>Mundur ke versi sebelumnya ({key})</translation>
+        </message>
+        <message>
+            <source>Settings ({email})</source>
+            <translation>Pengaturan ({email})</translation>
         </message>
     </context>
     <context>
@@ -4700,11 +5147,23 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>{n} min ago</source>
-            <translation>{n} mnt lalu</translation>
+            <translation>{n} menit lalu</translation>
         </message>
         <message>
             <source>Show older chats</source>
-            <translation>Tampilkan obrolan lama</translation>
+            <translation>Tampilkan chat lama</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Delete chat?</source>
+            <translation>Hapus obrolan?</translation>
+        </message>
+        <message>
+            <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
+            <translation>Ini menghapus "{title}" dan versi proyek yang disimpan bersamanya. Tindakan ini tidak dapat dibatalkan.</translation>
         </message>
     </context>
     <context>
@@ -4725,22 +5184,22 @@ Penghapusan menjadi final setelah masa tenggang berakhir. Sampai saat itu, Anda 
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>Field</source>
-            <translation>Bidang</translation>
+            <translation>Field</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>File</source>
-            <translation>Berkas</translation>
+            <translation>File</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>Layout</source>
-            <translation>Tata letak</translation>
+            <translation>Layout</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>Map extent</source>
-            <translation>Ekstent peta</translation>
+            <translation>Extent peta</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
@@ -4804,6 +5263,14 @@ Klik untuk membuka halamannya.</translation>
             <source>The tutorials arrive when the panel connects.</source>
             <translation>Tutorial muncul saat panel terhubung.</translation>
         </message>
+        <message>
+            <source>Tutorials</source>
+            <translation>Tutorial</translation>
+        </message>
+        <message>
+            <source>Videos and guides to get started. They open in your browser.</source>
+            <translation>Video dan panduan untuk memulai. Dibuka di browser Anda.</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -4815,12 +5282,12 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about the selected feature</source>
-            <translation>Tanyakan kepada AI Agent tentang fitur yang dipilih</translation>
+            <translation>Tanya AI Agent tentang feature yang dipilih</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about the {n} selected features</source>
-            <translation>Tanyakan kepada AI Agent tentang {n} fitur yang dipilih</translation>
+            <translation>Tanya AI Agent tentang {n} feature yang dipilih</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
@@ -4830,35 +5297,35 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about this feature</source>
-            <translation>Tanya AI Agent tentang fitur ini</translation>
+            <translation>Tanya AI Agent tentang feature ini</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about this layer</source>
-            <translation>Tanyakan kepada AI Agent tentang layer ini</translation>
+            <translation>Tanya AI Agent tentang layer ini</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about this view</source>
-            <translation>Tanyakan kepada AI Agent tentang tampilan ini</translation>
+            <translation>Tanya AI Agent tentang tampilan ini</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>current extent</source>
-            <translation>jangkauan saat ini</translation>
+            <translation>extent saat ini</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>selection ({n} features)</source>
-            <translation>pilihan ({n} fitur)</translation>
+            <translation>seleksi ({n} feature)</translation>
         </message>
         <message>
             <source>Ask AI Agent about group {name} (1 layer)</source>
-            <translation>Tanyakan kepada AI Agent tentang grup {name} (1 layer)</translation>
+            <translation>Tanya AI Agent tentang grup {name} (1 layer)</translation>
         </message>
         <message>
             <source>selection (1 feature)</source>
-            <translation>seleksi (1 fitur)</translation>
+            <translation>seleksi (1 feature)</translation>
         </message>
     </context>
     <context>
@@ -4901,6 +5368,10 @@ Klik untuk membuka halamannya.</translation>
             <source>Unexpected response from the server. Please try again.</source>
             <translation>Respons tak terduga dari server. Coba lagi.</translation>
         </message>
+        <message>
+            <source>Can't reach TerraLab. Check your internet connection, then click Sign in to try again.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Periksa koneksi internet Anda, lalu klik Masuk untuk mencoba lagi.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionCard</name>
@@ -4922,12 +5393,12 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Hide values</source>
-            <translation>Sembunyikan nilai</translation>
+            <translation>Tutup nilai</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Needs your approval</source>
-            <translation>Membutuhkan persetujuan Anda</translation>
+            <translation>Perlu persetujuan Anda</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -4964,7 +5435,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Show fewer lines</source>
-            <translation>Tampilkan lebih sedikit baris</translation>
+            <translation>Lebih sedikit baris</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4992,11 +5463,11 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>{hosts} were not named by you or by a known catalog.</source>
-            <translation>{hosts} tidak dinamai oleh Anda atau oleh katalog yang dikenal.</translation>
+            <translation>{hosts} tidak Anda sebut dan tidak tercantum di katalog yang dikenal.</translation>
         </message>
         <message>
             <source>{host} was not named by you or by a known catalog.</source>
-            <translation>{host} tidak dinamai oleh Anda atau oleh katalog yang dikenal.</translation>
+            <translation>{host} tidak Anda sebut dan tidak tercantum di katalog yang dikenal.</translation>
         </message>
         <message>
             <source>Hide the code</source>
@@ -5012,15 +5483,35 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>{n} actions wait for your approval.</source>
-            <translation>{n} tindakan menunggu persetujuan Anda.</translation>
+            <translation>{n} aksi menunggu persetujuan Anda.</translation>
         </message>
         <message>
             <source>Allow for this run</source>
-            <translation>Izinkan kali ini</translation>
+            <translation>Izinkan untuk proses ini</translation>
         </message>
         <message>
             <source>Allowed for this run</source>
-            <translation>Diizinkan kali ini</translation>
+            <translation>Diizinkan untuk proses ini</translation>
+        </message>
+        <message>
+            <source>Your answer also counts for the next calls of this kind in this answer.</source>
+            <translation>Jawaban Anda juga berlaku untuk pemanggilan sejenis berikutnya dalam jawaban ini.</translation>
+        </message>
+        <message>
+            <source>{action}, {n} times</source>
+            <translation>{action}, {n} kali</translation>
+        </message>
+        <message>
+            <source>{hosts}: sites you did not name, in no known catalog</source>
+            <translation>{hosts}: situs yang tidak Anda sebutkan, tidak ada di katalog yang dikenal</translation>
+        </message>
+        <message>
+            <source>{host}: a site you did not name, in no known catalog</source>
+            <translation>{host}: situs yang tidak Anda sebutkan, tidak ada di katalog yang dikenal</translation>
+        </message>
+        <message>
+            <source>{n} actions</source>
+            <translation>{n} tindakan</translation>
         </message>
     </context>
     <context>
@@ -5091,7 +5582,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>What AI Agent may do without asking</source>
-            <translation>Yang dapat dilakukan AI Agent tanpa bertanya</translation>
+            <translation>Yang boleh dilakukan AI Agent tanpa bertanya</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -5130,7 +5621,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Asks before deleting, overwriting, installing or reaching an unknown site.</source>
-            <translation>Bertanya sebelum menghapus, menimpa, menginstal, atau mengunjungi situs yang tidak dikenal.</translation>
+            <translation>Bertanya sebelum menghapus, menimpa, menginstal, atau mengakses situs yang tidak dikenal.</translation>
         </message>
         <message>
             <source>Deletes layers, overwrites files and runs Python code without asking.</source>
@@ -5158,11 +5649,15 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Spending credits or reaching an unknown site still asks first.</source>
-            <translation>Menghabiskan kredit atau mengunjungi situs yang tidak dikenal tetap meminta izin terlebih dahulu.</translation>
+            <translation>Menghabiskan kredit atau mengakses situs yang tidak dikenal tetap meminta izin terlebih dahulu.</translation>
         </message>
         <message>
             <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
-            <translation>Bekerja sendiri. Hanya bertanya tentang kredit, pemasangan, plugin lain, dan situs yang tidak dikenal.</translation>
+            <translation>Bekerja sendiri. Hanya bertanya tentang kredit, instalasi, plugin lain, dan situs yang tidak dikenal.</translation>
+        </message>
+        <message>
+            <source>{mode}: what AI Agent may do without asking</source>
+            <translation>{mode}: apa yang boleh dilakukan AI Agent tanpa bertanya</translation>
         </message>
     </context>
     <context>
@@ -5183,6 +5678,14 @@ Klik untuk membuka halamannya.</translation>
             <location filename="src/ui/settings_pages.py" />
             <source>PRO</source>
             <translation>PRO</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>What Pro adds</source>
+            <translation>Yang ditambahkan Pro</translation>
         </message>
     </context>
     <context>
@@ -5225,7 +5728,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>pending</source>
-            <translation>tertunda</translation>
+            <translation>menunggu</translation>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
@@ -5363,19 +5866,19 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
-            <translation>Gratis untuk penggunaan pribadi dan studi. Pro mencakup pekerjaan untuk klien dan pemberi kerja.</translation>
+            <translation>Free cocok untuk penggunaan pribadi dan studi. Pro mencakup pekerjaan untuk klien dan pemberi kerja.</translation>
         </message>
         <message>
             <source>Free runs come back at your monthly reset.</source>
-            <translation>Jalan gratis kembali pada reset bulanan Anda.</translation>
+            <translation>Proses gratis kembali saat reset bulanan Anda.</translation>
         </message>
         <message>
             <source>Free runs come back on {date}.</source>
-            <translation>Jalan gratis kembali pada {date}.</translation>
+            <translation>Proses gratis kembali pada {date}.</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
-            <translation>Effort Medium dan High untuk tugas yang lebih sulit</translation>
+            <translation>Upaya Medium dan High untuk tugas yang lebih sulit</translation>
         </message>
         <message>
             <source>Memory and your instructions</source>
@@ -5383,11 +5886,11 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Pro: more and better</source>
-            <translation>Pro: lebih banyak dan lebih baik</translation>
+            <translation>Pro: lebih banyak, lebih baik</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
-            <translation>Anda menjalankan {n} tugas bulan ini.</translation>
+            <translation>Anda menjalankan {n} proses bulan ini.</translation>
         </message>
         <message>
             <source>{amount}/month</source>
@@ -5399,11 +5902,15 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>{n} runs a month</source>
-            <translation>{n} jalan per bulan</translation>
+            <translation>{n} proses per bulan</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · batalkan kapan saja</translation>
+        </message>
+        <message>
+            <source>What Pro includes</source>
+            <translation>Yang termasuk dalam Pro</translation>
         </message>
     </context>
     <context>
@@ -5459,17 +5966,17 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>High confidence</source>
-            <translation>Kepercayaan tinggi</translation>
+            <translation>Keyakinan tinggi</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Low confidence</source>
-            <translation>Kepercayaan rendah</translation>
+            <translation>Keyakinan rendah</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Medium confidence</source>
-            <translation>Kepercayaan sedang</translation>
+            <translation>Keyakinan sedang</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -5479,12 +5986,12 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Want me to run this?</source>
-            <translation>Jalankan ini?</translation>
+            <translation>Mau saya jalankan ini?</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>pending</source>
-            <translation>tertunda</translation>
+            <translation>menunggu</translation>
         </message>
     </context>
     <context>
@@ -5529,23 +6036,23 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Go back</source>
-            <translation>Kembali</translation>
+            <translation>Mundur</translation>
         </message>
         <message>
             <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
-            <translation>Kembali ke {point}? Edit Anda sejak saat itu disimpan sebagai versi yang dapat Anda kembalikan.</translation>
+            <translation>Mundur ke {point}? Edit Anda sejak saat itu tetap tersimpan sebagai versi yang dapat Anda pulihkan.</translation>
         </message>
         <message>
             <source>Go back? Your edits since then are kept as a version you can return to.</source>
-            <translation>Kembali? Edit Anda sejak saat itu disimpan sebagai versi yang dapat Anda kembalikan.</translation>
+            <translation>Mundur? Edit Anda sejak saat itu tetap tersimpan sebagai versi yang dapat Anda pulihkan.</translation>
         </message>
         <message>
             <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
-            <translation>Urungkan semua yang dilakukan agen di obrolan ini, kembali ke versi tertua yang masih disimpan? Anda dapat memulihkannya.</translation>
+            <translation>Urungkan semua yang dilakukan agen di chat ini, mundur ke versi tertua yang masih disimpan? Anda dapat memulihkannya.</translation>
         </message>
         <message>
             <source>Undo everything the agent did in this chat? You can put it back.</source>
-            <translation>Urungkan semua yang dilakukan agen di obrolan ini? Anda dapat memulihkannya.</translation>
+            <translation>Urungkan semua yang dilakukan agen di chat ini? Anda dapat memulihkannya.</translation>
         </message>
     </context>
     <context>
@@ -5587,7 +6094,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>%n earlier actions</source>
-            <translation>%n tindakan sebelumnya</translation>
+            <translation>%n aksi sebelumnya</translation>
         </message>
         <message>
             <source>Failed after {time}</source>
@@ -5604,6 +6111,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>QGIS closed before this finished</source>
             <translation>QGIS ditutup sebelum ini selesai</translation>
+        </message>
+        <message>
+            <source>denied</source>
+            <translation>ditolak</translation>
+        </message>
+        <message>
+            <source>{step} and {n} more</source>
+            <translation>{step} dan {n} lainnya</translation>
         </message>
     </context>
     <context>
@@ -5666,7 +6181,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Answer a question for me after</source>
-            <translation>Jawab pertanyaan untuk saya setelah itu</translation>
+            <translation>Jawab pertanyaan untuk saya setelah</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5676,7 +6191,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Auto</source>
-            <translation>Otomatis</translation>
+            <translation>Auto</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5716,7 +6231,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>Konteks yang dibaca AI pada awal setiap percakapan, dan catatan yang disimpannya di antaranya.</translation>
+            <translation>Konteks yang dibaca AI di awal setiap percakapan, dan catatan yang disimpannya dari satu percakapan ke percakapan berikutnya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5741,7 +6256,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Detailed</source>
-            <translation>Terperinci</translation>
+            <translation>Rinci</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5751,7 +6266,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Everything the panel does without leaving the keyboard.</source>
-            <translation>Semua yang dilakukan panel tanpa meninggalkan keyboard.</translation>
+            <translation>Semua yang bisa dilakukan di panel hanya dengan keyboard.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5766,7 +6281,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Free plan</source>
-            <translation>Paket gratis</translation>
+            <translation>Paket Free</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5781,7 +6296,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>Cara kerjanya. Contoh: selalu jawab dalam bahasa Prancis, beri nama layer baru dalam snake_case, jangan pernah menghapus layer tanpa bertanya.</translation>
+            <translation>Cara AI harus bekerja. Contoh: selalu jawab dalam bahasa Prancis, beri nama layer baru dalam snake_case, jangan pernah menghapus layer tanpa bertanya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5801,7 +6316,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How you work</source>
-            <translation>Cara Anda bekerja</translation>
+            <translation>Cara kerja Anda</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5926,7 +6441,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Plain words</source>
-            <translation>Kata-kata sederhana</translation>
+            <translation>Kata biasa</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5966,7 +6481,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Regular</source>
-            <translation>Sering</translation>
+            <translation>Menengah</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5976,32 +6491,32 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Reset</source>
-            <translation>Atur ulang</translation>
+            <translation>Reset</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Reset all settings</source>
-            <translation>Atur ulang semua pengaturan</translation>
+            <translation>Reset semua pengaturan</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Reset all settings?</source>
-            <translation>Atur ulang semua pengaturan?</translation>
+            <translation>Reset semua pengaturan?</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Resets {date}</source>
-            <translation>Direset {date}</translation>
+            <translation>Direset pada {date}</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Response language</source>
-            <translation>Bahasa respons</translation>
+            <translation>Bahasa jawaban</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Response style</source>
-            <translation>Gaya respons</translation>
+            <translation>Gaya jawaban</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6031,7 +6546,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Show tool details in the trace</source>
-            <translation>Tampilkan detail alat dalam jejak</translation>
+            <translation>Tampilkan detail tool di jejak</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6081,7 +6596,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>The plan this copy of QGIS is signed in on.</source>
-            <translation>Paket yang digunakan salinan QGIS ini.</translation>
+            <translation>Paket tempat salinan QGIS ini masuk.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6121,7 +6636,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Upgrade to Pro</source>
-            <translation>Tingkatkan ke Pro</translation>
+            <translation>Upgrade ke Pro</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6136,7 +6651,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>What the AI should call you</source>
-            <translation>Nama panggilan Anda menurut AI</translation>
+            <translation>Cara AI memanggil Anda</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6281,7 +6796,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
-            <translation>Pindahkan peta ke apa yang diubahnya</translation>
+            <translation>Pindahkan peta ke area yang diubah</translation>
         </message>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
@@ -6297,7 +6812,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
-            <translation>Catatan Anda sebagai file Markdown di komputer ini. Ubah kata atau hapus salah satunya di sana, dan percakapan berikutnya akan mengikuti.</translation>
+            <translation>Catatan Anda sebagai file Markdown di komputer ini. Ubah isi atau hapus salah satunya di sana, dan percakapan berikutnya akan mengikuti.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6322,7 +6837,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Do more with Pro</source>
-            <translation>Lakukan lebih banyak dengan Pro</translation>
+            <translation>Lebih banyak di Pro</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6332,7 +6847,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Errors, versions and which features you use, linked to your account. On Pro, only that you used the app and when.</source>
-            <translation>Error, versi, dan fitur yang Anda gunakan, ditautkan ke akun Anda. Di Pro, hanya bahwa Anda menggunakan aplikasi dan kapan.</translation>
+            <translation>Error, versi, dan fitur yang Anda gunakan, ditautkan ke akun Anda. Di Pro, hanya tercatat bahwa Anda menggunakan aplikasi, beserta waktunya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6387,7 +6902,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>This computer is no longer signed in</source>
-            <translation>Komputer ini tidak lagi masuk</translation>
+            <translation>Anda tidak lagi masuk di komputer ini</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6397,7 +6912,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Try again in a moment.</source>
-            <translation>Coba lagi sebentar.</translation>
+            <translation>Coba lagi sebentar lagi.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6407,7 +6922,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_personalisation.py" />
             <source>Unlock with Pro</source>
-            <translation>Buka dengan Pro</translation>
+            <translation>Aktifkan dengan Pro</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6422,7 +6937,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>Apa pun yang Anda tulis tidak pernah dibaca untuk menyempurnakan produk, apa pun pengaturan sakelar ini.</translation>
+            <translation>Isi tulisan Anda tidak pernah dibaca untuk menyempurnakan produk, bagaimanapun sakelar ini diatur.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6450,7 +6965,67 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Upgrade</source>
-            <translation>Tingkatkan</translation>
+            <translation>Upgrade</translation>
+        </message>
+        <message>
+            <source>Commercial use and more runs with Pro</source>
+            <translation>Penggunaan komersial dan lebih banyak proses dengan Pro</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+        <message>
+            <source>Manage plan</source>
+            <translation>Kelola paket</translation>
+        </message>
+        <message>
+            <source>Memory between conversations</source>
+            <translation>Memori antar percakapan</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Lainnya</translation>
+        </message>
+        <message>
+            <source>Opens a window</source>
+            <translation>Membuka jendela</translation>
+        </message>
+        <message>
+            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
+            <translation>Pro membaca siapa Anda dan aturan tetap Anda sebelum setiap proses: pekerjaan, kota, CRS yang biasa Anda pakai, bahasa jawabannya, cara menamai layer, dan hal yang tidak boleh dilakukan tanpa bertanya.</translation>
+        </message>
+        <message>
+            <source>Show the steps it takes</source>
+            <translation>Tampilkan langkah yang diambil</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in to see your account</source>
+            <translation>Masuk untuk melihat akun Anda</translation>
+        </message>
+        <message>
+            <source>The list of steps above each answer.</source>
+            <translation>Daftar langkah di atas setiap jawaban.</translation>
+        </message>
+        <message>
+            <source>This computer was signed out</source>
+            <translation>Komputer ini telah dikeluarkan dari akun</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on the TerraLab website. Payment never happens inside QGIS.</source>
+            <translation>Paket, metode pembayaran, dan faktur Anda, di situs web TerraLab. Pembayaran tidak pernah dilakukan di dalam QGIS.</translation>
+        </message>
+        <message>
+            <source>Your plan, runs and settings appear here once you sign in.</source>
+            <translation>Paket, proses, dan pengaturan Anda muncul di sini setelah Anda masuk.</translation>
+        </message>
+        <message>
+            <source>Your profile and instructions, read before every run</source>
+            <translation>Profil dan instruksi Anda, dibaca sebelum setiap proses</translation>
         </message>
     </context>
     <context>
@@ -6482,6 +7057,54 @@ Klik untuk membuka halamannya.</translation>
             <location filename="src/ui/source_marks.py" />
             <source>{n} sources</source>
             <translation>{n} sumber</translation>
+        </message>
+        <message>
+            <source>Copied</source>
+            <translation>Tersalin</translation>
+        </message>
+        <message>
+            <source>Copy credits</source>
+            <translation>Salin kredit</translation>
+        </message>
+        <message>
+            <source>Copy one credit line per source, for a print layout</source>
+            <translation>Salin satu baris kredit per sumber, untuk layout cetak</translation>
+        </message>
+        <message>
+            <source>{n} scenes, {span}</source>
+            <translation>{n} scene, {span}</translation>
+        </message>
+        <message>
+            <source>Access</source>
+            <translation>Akses</translation>
+        </message>
+        <message>
+            <source>Credit</source>
+            <translation>Kredit</translation>
+        </message>
+        <message>
+            <source>Date</source>
+            <translation>Tanggal</translation>
+        </message>
+        <message>
+            <source>Dates</source>
+            <translation>Tanggal</translation>
+        </message>
+        <message>
+            <source>Files</source>
+            <translation>File</translation>
+        </message>
+        <message>
+            <source>Licence</source>
+            <translation>Lisensi</translation>
+        </message>
+        <message>
+            <source>Resolution</source>
+            <translation>Resolusi</translation>
+        </message>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>Disajikan oleh TerraLab</translation>
         </message>
     </context>
     <context>
@@ -6520,7 +7143,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/api/terralab_client.py" />
             <source>Proxy connection failed. Check QGIS proxy settings (Settings &gt; Options &gt; Network).</source>
-            <translation>Koneksi proxy gagal. Periksa pengaturan proxy QGIS (Pengaturan &gt; Opsi &gt; Jaringan).</translation>
+            <translation>Koneksi proxy gagal. Periksa pengaturan proxy QGIS (Settings &gt; Options &gt; Network).</translation>
         </message>
         <message>
             <location filename="src/api/terralab_client.py" />
@@ -6555,7 +7178,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/api/terralab_client.py" />
             <source>The service is temporarily unavailable (server error). Your connection is fine, please try again in a few minutes.</source>
-            <translation>Layanan tidak tersedia sementara (error server). Koneksi Anda baik, coba lagi dalam beberapa menit.</translation>
+            <translation>Layanan sementara tidak tersedia (error server). Koneksi Anda tidak bermasalah, coba lagi dalam beberapa menit.</translation>
         </message>
     </context>
     <context>
@@ -6563,7 +7186,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>1 feature</source>
-            <translation>1 fitur</translation>
+            <translation>1 feature</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6608,7 +7231,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>{n} features</source>
-            <translation>{n} fitur</translation>
+            <translation>{n} feature</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6632,7 +7255,7 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>not run, permission denied</source>
-            <translation>tidak dijalankan, ditolak</translation>
+            <translation>tidak dijalankan, izin ditolak</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6655,6 +7278,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Show that plugin's panel again. Nothing is run and nothing is spent.</source>
             <translation>Tampilkan lagi panel plugin itu. Tidak ada yang dijalankan dan tidak ada biaya yang dikeluarkan.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show the whole message</source>
+            <translation>Tampilkan seluruh pesan</translation>
         </message>
     </context>
     <context>
@@ -6712,11 +7343,11 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/core/executor.py" />
             <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
-            <translation>{what} pada '{layer}' yang CRS {crs}-nya geografis: jarak akan dihitung dalam derajat, bukan meter.</translation>
+            <translation>{what} pada '{layer}' dengan CRS geografis {crs}: jarak akan dihitung dalam derajat, bukan meter.</translation>
         </message>
         <message>
             <source>This run has ended; the call was not executed.</source>
-            <translation>Run ini telah berakhir; panggilan tidak dijalankan.</translation>
+            <translation>Proses ini telah berakhir; panggilan tidak dijalankan.</translation>
         </message>
         <message>
             <source>Your answer covers the other code this answer runs.</source>
@@ -6724,7 +7355,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Your answer covers the other {tool} calls this answer makes.</source>
-            <translation>Jawaban Anda mencakup panggilan {tool} lain yang dibuat jawaban ini.</translation>
+            <translation>Jawaban Anda berlaku untuk panggilan {tool} lain dalam jawaban agen ini.</translation>
         </message>
         <message>
             <source>Question mode is read only: the snippet {what}.</source>
@@ -6740,19 +7371,23 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>could not be saved first, so Undo could not take it back</source>
-            <translation>tidak dapat disimpan terlebih dahulu, sehingga Undo tidak dapat mengembalikannya</translation>
+            <translation>tidak dapat disimpan terlebih dahulu, sehingga Urungkan tidak dapat mengembalikannya</translation>
         </message>
         <message>
             <source>deletes features from {files}</source>
-            <translation>menghapus fitur dari {files}</translation>
+            <translation>menghapus feature dari {files}</translation>
         </message>
         <message>
             <source>saves an edit into {files}</source>
-            <translation>menyimpan editan ke {files}</translation>
+            <translation>menyimpan edit ke {files}</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>
-            <translation>berjalan dengan edit yang belum disimpan terbuka di {layers}, jadi tidak ada yang dikembalikan</translation>
+            <translation>berjalan saat {layers} masih memiliki edit yang belum disimpan, jadi tidak ada yang dikembalikan</translation>
+        </message>
+        <message>
+            <source>Run Python code ({what}).</source>
+            <translation>Jalankan kode Python ({what}).</translation>
         </message>
     </context>
     <context>
@@ -6858,12 +7493,12 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>CRS-nya berubah. Klik untuk membukanya di QGIS.</translation>
+            <translation>CRS layer ini berubah. Klik untuk membukanya di QGIS.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>Filenya telah ditulis ke disk. Klik untuk membukanya di QGIS.</translation>
+            <translation>File layer ini telah ditulis ke disk. Klik untuk membukanya di QGIS.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -6913,16 +7548,16 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>styled</source>
-            <translation>diberi gaya</translation>
+            <translation>simbologi</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d} fitur. Klik untuk membukanya di QGIS.</translation>
+            <translation>{n:+d} feature. Klik untuk membukanya di QGIS.</translation>
         </message>
         <message>
             <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} fitur. Klik untuk membukanya di QGIS.</translation>
+            <translation>{n:+d} feature. Klik untuk membukanya di QGIS.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -6932,17 +7567,17 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Credit: {credit}</source>
-            <translation>Kredit: {credit}</translation>
+            <translation>Atribusi: {credit}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
-            <translation>CRS-nya berubah. Klik untuk memilihnya di panel Layers.</translation>
+            <translation>CRS layer ini berubah. Klik untuk memilihnya di panel Layers.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
-            <translation>Filenya telah ditulis ke disk. Klik untuk memilihnya di panel Layers.</translation>
+            <translation>File layer ini telah ditulis ke disk. Klik untuk memilihnya di panel Layers.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -6957,20 +7592,28 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
-            <translation>{n:+d} fitur. Klik untuk memilihnya di panel Layers.</translation>
+            <translation>{n:+d} feature. Klik untuk memilihnya di panel Layers.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
-            <translation>{n:+d} fitur. Klik untuk memilihnya di panel Layers.</translation>
+            <translation>{n:+d} feature. Klik untuk memilihnya di panel Layers.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
-            <translation>layer ini tidak lagi ada dalam proyek.</translation>
+            <translation>Layer ini sudah tidak ada di proyek.</translation>
         </message>
         <message>
             <source>renamed</source>
             <translation>diubah namanya</translation>
+        </message>
+        <message>
+            <source>New layer, %n features. Click to select it in the Layers panel.</source>
+            <translation>Layer baru, %n fitur. Klik untuk memilihnya di panel Layer.</translation>
+        </message>
+        <message>
+            <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
+            <translation>Layer baru, 1 fitur. Klik untuk memilihnya di panel Layer.</translation>
         </message>
     </context>
     <context>
@@ -7010,12 +7653,12 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Answers itself in %n seconds</source>
-            <translation>Terjawab sendiri dalam %n detik</translation>
+            <translation>Menjawab sendiri dalam %n detik</translation>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Answers itself in 1 second</source>
-            <translation>Terjawab sendiri dalam 1 detik</translation>
+            <translation>Menjawab sendiri dalam 1 detik</translation>
         </message>
     </context>
     <context>
@@ -7049,22 +7692,22 @@ Klik untuk membuka halamannya.</translation>
         <name>NoticeBar</name>
         <message>
             <source>Dismiss</source>
-            <translation>Tutup</translation>
+            <translation>Abaikan</translation>
         </message>
         <message>
             <source>Read more</source>
-            <translation>Baca selengkapnya</translation>
+            <translation>Selengkapnya</translation>
         </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
             <source>Install in QGIS</source>
-            <translation>Pasang di QGIS</translation>
+            <translation>Instal di QGIS</translation>
         </message>
         <message>
             <source>Installed</source>
-            <translation>Terpasang</translation>
+            <translation>Terinstal</translation>
         </message>
         <message>
             <source>Open in QGIS</source>
@@ -7072,7 +7715,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
-            <translation>Membuka pengelola plugin QGIS pada plugin ini.</translation>
+            <translation>Buka pengelola plugin QGIS pada plugin ini.</translation>
         </message>
         <message>
             <source>Read the guide</source>
@@ -7103,7 +7746,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>Dua plugin TerraLab lainnya untuk QGIS. Keduanya dapat dipasang dari sini.</translation>
+            <translation>Dua plugin TerraLab lainnya untuk QGIS. Keduanya dapat diinstal dari sini.</translation>
         </message>
         <message>
             <location filename="src/ui/siblings_page.py" />
@@ -7162,39 +7805,39 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Deleted {n} working layer</source>
-            <translation>Menghapus {n} working layer</translation>
+            <translation>{n} layer kerja dihapus</translation>
         </message>
         <message>
             <source>Deleted {n} working layers</source>
-            <translation>Menghapus {n} working layer</translation>
+            <translation>{n} layer kerja dihapus</translation>
         </message>
         <message>
             <source>I left {n} working layer behind.</source>
-            <translation>Saya meninggalkan {n} working layer.</translation>
+            <translation>Saya meninggalkan {n} layer kerja.</translation>
         </message>
         <message>
             <source>I left {n} working layers behind.</source>
-            <translation>Saya meninggalkan {n} working layer.</translation>
+            <translation>Saya meninggalkan {n} layer kerja.</translation>
         </message>
         <message>
             <source>Keep them</source>
-            <translation>Simpan</translation>
+            <translation>Pertahankan</translation>
         </message>
         <message>
             <source>Kept {n} working layer</source>
-            <translation>Menyimpan {n} working layer</translation>
+            <translation>{n} layer kerja dipertahankan</translation>
         </message>
         <message>
             <source>Kept {n} working layers</source>
-            <translation>Menyimpan {n} working layer</translation>
+            <translation>{n} layer kerja dipertahankan</translation>
         </message>
         <message>
             <source>Tidied {n} working layer away</source>
-            <translation>Merapikan {n} working layer</translation>
+            <translation>{n} layer kerja dirapikan</translation>
         </message>
         <message>
             <source>Tidied {n} working layers away</source>
-            <translation>Merapikan {n} working layer</translation>
+            <translation>{n} layer kerja dirapikan</translation>
         </message>
         <message>
             <source>Tidy up</source>
@@ -7202,7 +7845,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Working layers</source>
-            <translation>Working layer</translation>
+            <translation>Layer kerja</translation>
         </message>
         <message>
             <source>and {n} more</source>
@@ -7211,6 +7854,34 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>pending</source>
             <translation>tertunda</translation>
+        </message>
+        <message>
+            <source>Group and hide</source>
+            <translation>Kelompokkan dan sembunyikan</translation>
+        </message>
+        <message>
+            <source>Keep them where they are</source>
+            <translation>Biarkan di tempatnya</translation>
+        </message>
+        <message>
+            <source>Move them into a hidden, collapsed group named {group}</source>
+            <translation>Pindahkan ke grup tersembunyi dan terlipat bernama {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layer into {group}</source>
+            <translation>{n} layer dipindahkan ke {group}</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} layer dipindahkan ke {group}</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layer behind</source>
+            <translation>Agen meninggalkan {n} layer kerja</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layers behind</source>
+            <translation>Agen meninggalkan {n} layer kerja</translation>
         </message>
     </context>
     <context>
@@ -7248,7 +7919,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Out of runs</source>
-            <translation>Kehabisan proses</translation>
+            <translation>Proses habis</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -7306,7 +7977,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Live, loaded {day}</source>
-            <translation>Live, dimuat {day}</translation>
+            <translation>Langsung, dimuat {day}</translation>
         </message>
         <message>
             <source>Your own file</source>
@@ -7322,7 +7993,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>extent: {box} ({crs})</source>
-            <translation>jangkauan: {box} ({crs})</translation>
+            <translation>extent: {box} ({crs})</translation>
         </message>
         <message>
             <source>inputs: {names}</source>
@@ -7338,7 +8009,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>tool: {tool}</source>
-            <translation>alat: {tool}</translation>
+            <translation>tool: {tool}</translation>
         </message>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
@@ -7349,7 +8020,15 @@ Klik untuk membuka halamannya.</translation>
         <name>_MoreChip</name>
         <message>
             <source>+{n} more</source>
-            <translation>+{n} lainnya</translation>
+            <translation>+{n} lagi</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Tampilkan satu baris layer</translation>
         </message>
     </context>
     <context>
@@ -7367,7 +8046,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>Select All</source>
-            <translation>Pilih Semua</translation>
+            <translation>Pilih semua</translation>
         </message>
     </context>
     <context>
@@ -7494,11 +8173,15 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         </message>
         <message>
             <source>Get Pro for High effort</source>
-            <translation>Dapatkan Pro untuk High effort</translation>
+            <translation>Dapatkan Pro untuk upaya High</translation>
         </message>
         <message>
             <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro: {n} jalan per bulan, effort Medium dan High untuk tugas yang lebih sulit, Autopilot</translation>
+            <translation>Pro: {n} proses per bulan, upaya Medium dan High untuk tugas yang lebih sulit, Autopilot</translation>
+        </message>
+        <message>
+            <source>Get more runs with Pro</source>
+            <translation>Dapatkan lebih banyak proses dengan Pro</translation>
         </message>
     </context>
     <context>
@@ -7534,7 +8217,7 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         </message>
         <message>
             <source>Did not do what I asked</source>
-            <translation>Tidak melakukan apa yang saya minta</translation>
+            <translation>Tidak sesuai permintaan saya</translation>
         </message>
         <message>
             <source>Send</source>
@@ -7546,7 +8229,7 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         </message>
         <message>
             <source>Too slow</source>
-            <translation>Terlalu lambat</translation>
+            <translation>Kelamaan</translation>
         </message>
         <message>
             <source>What went wrong? (optional)</source>
@@ -7577,6 +8260,39 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Send this message now</source>
             <translation>Kirim pesan ini sekarang</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FilesMore</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} lainnya</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Tampilkan satu baris layer</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceDetails</name>
+        <message>
+            <source>Open dataset page</source>
+            <translation>Buka halaman dataset</translation>
+        </message>
+        <message>
+            <source>Open page</source>
+            <translation>Buka halaman</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceRow</name>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>Disajikan oleh TerraLab</translation>
         </message>
     </context>
 </TS>

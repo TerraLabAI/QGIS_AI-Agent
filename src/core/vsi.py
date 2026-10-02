@@ -160,14 +160,21 @@ def _qgis_extra_cas() -> bytes:
 
 
 
+
+
+
+
     try:
         from qgis.core import QgsApplication
-        from qgis.PyQt.QtNetwork import QSslConfiguration
 
         manager = QgsApplication.authManager()
-        trusted = manager.trustedCaCerts() if manager is not None else []
-        system = {bytes(cert.digest()).hex() for cert in QSslConfiguration.systemCaCertificates()}
-        extra = [cert for cert in trusted if bytes(cert.digest()).hex() not in system]
+        if manager is None:
+            return b""
+        added = list(manager.databaseCAs()) + list(manager.extraFileCAs())
+        if not added:
+            return b""
+        trusted = {bytes(cert.digest()).hex() for cert in manager.trustedCaCerts()}
+        extra = [cert for cert in added if bytes(cert.digest()).hex() in trusted]
         return b"".join(bytes(cert.toPem()) for cert in extra)
     except Exception:  # noqa: BLE001
         return b""
@@ -184,7 +191,10 @@ def _ca_bundle_with_qgis_extras():
 
 
 
-    extra = _qgis_extra_cas()
+    from .background import on_main_thread, run_on_main_thread
+
+
+    extra = _qgis_extra_cas() if on_main_thread() else run_on_main_thread(_qgis_extra_cas, timeout=10)
     if not extra:
         return None
     import os
@@ -247,8 +257,14 @@ def apply_persistent() -> bool:
                 gdal.SetConfigOption(key, None)
         else:
             gdal.SetConfigOption(key, value)
+    from .background import MainThreadBusy
+
     try:
         bundle = _ca_bundle_with_qgis_extras()
+    except MainThreadBusy:
+
+
+        return True
     except Exception:  # noqa: BLE001
         bundle = None
     if bundle:

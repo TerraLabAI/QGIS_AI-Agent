@@ -49,10 +49,10 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import background, limits, net, output_paths, security
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 
 KINDS = ("histogram", "bar", "scatter", "line")
@@ -384,11 +384,10 @@ def _read(state: dict, plan: dict, values: _Values, cancelled) -> None:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="create_chart read",
-                              args=(state["source"], state["request"], state["feedback"]))
-    thread.start()
+    background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
+                                 name="create_chart read")
     while not over.wait(_STOP_POLL_S):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             halted.set()
             state["feedback"].cancel()
             raise InterruptedError("Stopped while the features were read")
@@ -965,13 +964,6 @@ def _stopped() -> dict:
     return tool_error("Stopped before the chart was written.", "CANCELLED", "No file was written.")
 
 
-def _is_cancelled(check) -> bool:
-    try:
-        return callable(check) and bool(check())
-    except Exception:  # noqa: BLE001
-        return False
-
-
 def _remove(path: str) -> None:
     if path:
         remove_quietly(path)
@@ -996,11 +988,11 @@ def _create_chart(args: dict) -> dict:
     cancelled = net.current_cancel_check()
     state: dict = {"read": 0, "cut": False}
     try:
-        plan = _run_on_main_thread(_plan, args, timeout=60)
+        plan = run_on_main_thread(_plan, args, timeout=60)
         if "_error" in plan:
             return plan
         values = _Values(plan)
-        opened = _run_on_main_thread(_open, plan, state, timeout=60)
+        opened = run_on_main_thread(_open, plan, state, timeout=60)
         if opened:
             return opened
         _read(state, plan, values, cancelled)
@@ -1015,7 +1007,7 @@ def _create_chart(args: dict) -> dict:
     chart = _chart(plan, values)
     if "_error" in chart:
         return chart
-    if _is_cancelled(cancelled):
+    if net.is_cancelled(cancelled):
         return _stopped()
     target = plan["target"]
     folder = os.path.dirname(target)
@@ -1033,7 +1025,7 @@ def _create_chart(args: dict) -> dict:
             _remove(part)
             return tool_error(f"The chart could not be written in {folder}.", "EXECUTION_FAILED",
                               "No such folder, or no room; another output_path may work.")
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             _remove(part)
             return _stopped()
         try:

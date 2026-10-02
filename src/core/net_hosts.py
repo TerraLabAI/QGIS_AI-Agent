@@ -16,7 +16,7 @@ from collections import namedtuple
 
 from . import tuning
 from .net_failure import FetchCancelled, FetchDeadline
-from .net_state import _cancelled
+from .net_state import is_cancelled
 
 
 
@@ -44,7 +44,9 @@ from .net_state import _cancelled
 
 
 
-CONTACT = "yvann.barbot@terra-lab.ai"
+
+
+
 
 
 
@@ -76,7 +78,7 @@ def user_agent() -> str:
 
     global _UA_CACHE
     if _UA_CACHE is None:
-        _UA_CACHE = f"QGIS-AI-Agent/{_plugin_version()} (+{PROJECT_URL}; contact: {CONTACT})"
+        _UA_CACHE = f"QGIS-AI-Agent/{_plugin_version()} (+{PROJECT_URL})"
     return _UA_CACHE
 
 
@@ -343,7 +345,7 @@ class _HostGate:
 
     def _acquire(self, cancel, deadline: float | None) -> None:
         while not self._slots.acquire(timeout=_TICK):
-            if _cancelled(cancel):
+            if is_cancelled(cancel):
                 raise FetchCancelled("The run was stopped.")
             if deadline is not None and time.monotonic() > deadline:
                 raise FetchDeadline("The host was busy for longer than this fetch was allowed to take.")
@@ -487,7 +489,7 @@ def _pause(seconds: float, cancel, deadline: float | None) -> None:
         left = end - time.monotonic()
         if left <= 0:
             return
-        if _cancelled(cancel):
+        if is_cancelled(cancel):
             raise FetchCancelled("The run was stopped.")
         time.sleep(min(left, _TICK))
 

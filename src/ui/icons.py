@@ -1612,34 +1612,6 @@ def logo_icon(widget, size: int = 18) -> QIcon:
     return QIcon(logo_pixmap(widget, size))
 
 
-def spinner_frames(color: QColor, size: int = 14, count: int = 12, ratio: float = 1.0) -> list:
-
-    frames = []
-    for i in range(count):
-        physical = max(1, int(round(size * ratio)))
-        pixmap = QPixmap(physical, physical)
-        pixmap.setDevicePixelRatio(ratio)
-        pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(pixmap)
-        try:
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            pen = _pen(color, max(1.5, size / 7.0))
-            painter.setPen(pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            margin = pen.widthF()
-            rect = QRectF(margin, margin, size - 2 * margin, size - 2 * margin)
-            angle = int(-(360 / count) * i * 16)
-            painter.drawArc(rect, angle, 270 * 16)
-        finally:
-            painter.end()
-        frames.append(pixmap)
-    return frames
-
-
-def icon_size(size: int = 20) -> QSize:
-    return QSize(size, size)
-
-
 
 
 def _draw_float_window(p: QPainter, c: QColor) -> None:
@@ -1659,6 +1631,3 @@ ICON_NAMES = tuple(_GLYPHS)
 LUCIDE_NAMES = tuple(lucide.PREFIX + key for key in (*lucide.SHAPES, "sparkle"))
 
 
-def is_drawable(name: str) -> bool:
-
-    return name in _GLYPHS or name in LUCIDE_NAMES

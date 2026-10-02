@@ -282,12 +282,6 @@ def shortcut_columns() -> tuple:
     def key(label: str) -> tuple:
         return ((label, True),)
 
-    def key_or(label: str, word: str) -> tuple:
-        return ((label, True), (word, False))
-
-    def word(label: str) -> tuple:
-        return ((label, False),)
-
 
 
 
@@ -312,21 +306,20 @@ def shortcut_columns() -> tuple:
 
         (tr("Go back to an earlier version of your project"), "", key(native("Ctrl+Alt+H"))),
     )
+
+
+
+
     during = (
-        (tr("Stop the run"), "", key_or(esc_key, tr("Stop button"))),
-        (tr("Answer a permission card"), "", word(tr("Allow / Deny"))),
-        (tr("Queue a message"), tr("Sends when the agent finishes"), key(enter_key)),
+        (tr("Stop the run"), "", key(esc_key)),
+        (tr("Queue a message"), tr("The agent reads it at its next step"), key(enter_key)),
         (tr("Edit the last queued message"), tr("In an empty box"), key(native("Up"))),
-    )
-    chats = (
-        (tr("Open a recent chat"), "", word(tr("Chat history button"))),
-        (tr("Start a new chat"), "", word(tr("New chat button"))),
     )
 
 
     return (
         ((tr("Composer"), composer), (tr("Panel"), panel)),
-        ((tr("History"), history), (tr("During a run"), during), (tr("Chats"), chats)),
+        ((tr("History"), history), (tr("During a run"), during)),
     )
 
 

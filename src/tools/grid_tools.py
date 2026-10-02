@@ -30,9 +30,9 @@ import importlib.util
 import itertools
 import math
 
+from ..core.background import run_on_main_thread
 from ..core.logger import log
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 from .deps_tools import OPTIONAL_DEPENDENCIES
 
 
@@ -596,7 +596,7 @@ def _layer_bbox_4326(layer_name: str):
         QgsProject,
     )
 
-    from .core_tools import _find_layer
+    from .layer_lookup import _find_layer
 
     layer = _find_layer(layer_name)
     if layer is None:
@@ -639,7 +639,7 @@ def _resolve_extent(args: dict) -> tuple:
 
     layer_name = args.get("layer")
     if layer_name:
-        raw = _run_on_main_thread(_layer_bbox_4326, layer_name, timeout=30)
+        raw = run_on_main_thread(_layer_bbox_4326, layer_name, timeout=30)
         if raw is None:
             return None, None, tool_error(
                 f"Layer '{layer_name}' not found.",
@@ -649,7 +649,7 @@ def _resolve_extent(args: dict) -> tuple:
         bbox, error = _read_bbox(raw)
         return (None, None, error) if error else (bbox, f"layer:{layer_name}", None)
 
-    raw = _run_on_main_thread(_canvas_bbox_4326, timeout=30)
+    raw = run_on_main_thread(_canvas_bbox_4326, timeout=30)
     if not raw:
         return None, None, tool_error(
             "No extent given and the map canvas extent is unavailable.",
@@ -771,7 +771,7 @@ def _create_grid_layer(args: dict) -> dict:
         )
 
     name = args.get("layer_name") or f"{system} grid res {resolution}"
-    created = _run_on_main_thread(_build_grid_layer, name, system, resolution, cells, timeout=120)
+    created = run_on_main_thread(_build_grid_layer, name, system, resolution, cells, timeout=120)
     if isinstance(created, dict) and created.get("_error"):
         return created
 

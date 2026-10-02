@@ -170,6 +170,17 @@ def apply_gray_stretch(layer, stretch: dict | None) -> str:
     return f"grey stretch from {low:,.4g} to {high:,.4g} (2-98 % cumulative cut)"
 
 
+def min_max_stats():
+
+    from qgis.core import QgsRasterBandStats
+
+    from ..core.qt_compat import enum_member
+
+
+
+    return enum_member(QgsRasterBandStats, "Stats", "Min") | enum_member(QgsRasterBandStats, "Stats", "Max")
+
+
 def band_range(layer, band: int = 1) -> tuple | None:
 
 
@@ -177,17 +188,13 @@ def band_range(layer, band: int = 1) -> tuple | None:
 
 
     try:
-        from qgis.core import QgsRasterBandStats
+        from .raster_overviews import read_ahead
 
-        from ..core.qt_compat import enum_member
+        def measure() -> tuple:
+            stats = layer.dataProvider().bandStatistics(int(band), min_max_stats(), layer.extent(), 250000)
+            return stats.minimumValue, stats.maximumValue
 
-        provider = layer.dataProvider()
-
-
-        wanted = (enum_member(QgsRasterBandStats, "Stats", "Min")
-                  | enum_member(QgsRasterBandStats, "Stats", "Max"))
-        stats = provider.bandStatistics(int(band), wanted, layer.extent(), 250000)
-        low, high = float(stats.minimumValue), float(stats.maximumValue)
+        low, high = (float(value) for value in read_ahead(("range", int(band)), measure))
     except Exception:  # noqa: BLE001
         return None
     import math as _math
@@ -365,6 +372,22 @@ def _early_bilinear(layer) -> None:
         return
 
 
+def degrees_z_factor(layer) -> float | None:
+
+
+
+
+
+
+    import math
+
+    crs = layer.crs()
+    if not (crs.isValid() and crs.isGeographic()):
+        return None
+    latitude = layer.extent().center().y()
+    return 1.0 / (111320.0 * max(0.1, math.cos(math.radians(latitude))))
+
+
 def add_relief_overlay(layer, band: int = 1) -> dict:
 
 
@@ -392,15 +415,7 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
         return {"_error": "The DEM could not be copied for its hillshade."}
     copy.setName(f"{layer.name()} relief")
     renderer = QgsHillshadeRenderer(copy.dataProvider(), int(band), 315.0, 45.0)
-    z_factor = 1.0
-    crs = layer.crs()
-    if crs.isValid() and crs.isGeographic():
-
-
-        import math
-
-        latitude = layer.extent().center().y()
-        z_factor = 1.0 / (111320.0 * max(0.1, math.cos(math.radians(latitude))))
+    z_factor = degrees_z_factor(layer) or 1.0
     renderer.setZFactor(z_factor)
     copy.setRenderer(renderer)
     pipe = copy.resampleFilter()
@@ -426,5 +441,6 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
 
 
 __all__ = ["RELIEF_PROPERTY", "add_relief_overlay", "apply_elevation_style", "apply_gray_stretch",
-           "apply_ramp_style", "band_range", "elevation_ramp", "elevation_stretch", "looks_like_elevation",
+           "apply_ramp_style", "band_range", "degrees_z_factor", "elevation_ramp", "elevation_stretch",
+           "looks_like_elevation",
            "names_elevation", "sample_stretch"]

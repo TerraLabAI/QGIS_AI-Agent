@@ -26,6 +26,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
@@ -59,8 +60,10 @@ class ConnectorPage(QWidget):
     prompt_chosen = pyqtSignal(str, object)
     example_opened = pyqtSignal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, root: str = ""):
         super().__init__(parent)
+
+        self._root = root
         self._id = ""
         self._url = ""
         self._name = ""
@@ -149,7 +152,7 @@ class ConnectorPage(QWidget):
 
     def _head(self, detail: dict, subtitle: str, button: QPushButton | None) -> None:
         name = str(detail.get("name") or detail.get("id") or "")
-        self._crumbs.set_trail([self.tr("Data sources"), name])
+        self._crumbs.set_trail([self._root or self.tr("Data sources"), name])
         self._col.addWidget(self._mark(detail))
         self._gap(C.SPACE_2)
         self._col.addWidget(PageHeader(self._column, name, subtitle, button))
@@ -261,28 +264,63 @@ class ConnectorPage(QWidget):
         return host
 
     def _information(self, detail: dict) -> QWidget:
-        table = InfoTable(self._column)
-        table.link_activated.connect(self._open_link)
+
+
+
+
+        host = QWidget(self._column)
+        col = QVBoxLayout(host)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(C.px(C.SPACE_2))
+        first = self._table(host)
+        for name, value in ((self.tr("Licence"), str(detail.get("licence") or "")),
+                            (self.tr("Coverage"), str(detail.get("coverage") or ""))):
+            if value.strip():
+                first.add(name, value)
         count = int(detail.get("datasets") or 0)
-        rows = [
-            (self.tr("Licence"), str(detail.get("licence") or "")),
-            (self.tr("Coverage"), str(detail.get("coverage") or "")),
+        more = self._table(host)
+        for name, value in (
             (self.tr("Datasets"), (self.tr("1 ready dataset") if count == 1
                                    else self.tr("%n ready datasets", "", count)) if count else ""),
             (self.tr("What it needs"), self._status_line(detail)),
             (self.tr("Attribution"), str(detail.get("attribution") or "")),
-        ]
-        caveat = str(detail.get("caveat") or "").strip()
-        if caveat:
-            rows.append((self.tr("Good to know"), caveat))
-        for name, value in rows:
+            (self.tr("Good to know"), str(detail.get("caveat") or "")),
+        ):
             if str(value).strip():
-                table.add(name, str(value))
+                more.add(name, str(value))
         if self._url.startswith("https://"):
-            table.add(self.tr("Website"), link_html(self._url, _host(self._url)), rich=True)
+            more.add(self.tr("Website"), link_html(self._url, _host(self._url)), rich=True)
         terms = str(detail.get("terms_url") or "")
         if terms.startswith("https://") and terms != self._url:
-            table.add(self.tr("Terms"), link_html(terms, _host(terms)), rich=True)
+            more.add(self.tr("Terms"), link_html(terms, _host(terms)), rich=True)
+        if not first.rows():
+
+            first.hide()
+            col.addWidget(more)
+            return host
+        col.addWidget(first)
+        if more.rows():
+            toggle = QPushButton(self.tr("More details"), host)
+            toggle.setObjectName("connectorMoreDetails")
+            toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+            toggle.setStyleSheet(C.ghost_qss())
+            toggle.setAutoDefault(False)
+            more.hide()
+
+            def flip() -> None:
+                showing = not more.isVisible()
+                more.setVisible(showing)
+                toggle.setText(self.tr("Fewer details") if showing else self.tr("More details"))
+                self._fit()
+
+            toggle.clicked.connect(flip)
+            col.addWidget(toggle, 0, Qt.AlignmentFlag.AlignLeft)
+            col.addWidget(more)
+        return host
+
+    def _table(self, parent: QWidget) -> InfoTable:
+        table = InfoTable(parent)
+        table.link_activated.connect(self._open_link)
         return table
 
     def _open_link(self, href: str) -> None:

@@ -302,6 +302,19 @@ class ComposerInput(QPlainTextEdit):
         self.setFocus(Qt.FocusReason.OtherFocusReason)
         self._update_completion()
 
+    def has_layers(self) -> bool:
+
+
+
+
+
+
+        if self._provider is None:
+            items = self._static_items
+        else:
+            items = self._ask(self._provider)
+        return any(isinstance(i, dict) and i.get("kind") == LAYER for i in items or [])
+
     def begin_layer_mention(self) -> None:
 
         self.begin_mention(LAYER)

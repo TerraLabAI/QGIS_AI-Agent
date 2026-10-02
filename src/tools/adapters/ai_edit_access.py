@@ -12,8 +12,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import importlib
@@ -21,7 +19,7 @@ import time
 from typing import Any
 
 from ...core.logger import log_warning
-from .._widgets import AI_EDIT_KEYS, process_events
+from .._widgets import AI_EDIT_KEYS, process_events, sibling_plugin
 
 
 RESOLUTION_LABELS = ("1K", "2K", "4K")
@@ -37,12 +35,7 @@ OVERLAY_WATCH_SECONDS = 1200
 
 def _find_plugin() -> tuple[str | None, Any]:
 
-    import qgis.utils
-    for key in AI_EDIT_KEYS:
-        inst = qgis.utils.plugins.get(key)
-        if inst is not None:
-            return key, inst
-    return None, None
+    return sibling_plugin(AI_EDIT_KEYS)
 
 
 def _attr(inst, *names):

@@ -189,9 +189,6 @@ class Composer(QFrame):
 
     notice_link_activated = pyqtSignal(str)
 
-
-    edit_dropped = pyqtSignal()
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("composer")
@@ -213,7 +210,9 @@ class Composer(QFrame):
         self._effort_locked = False
 
 
-        self._compact_controls = False
+
+
+        self._compact_controls = 0
         self._last_sent = ""
 
 
@@ -224,6 +223,11 @@ class Composer(QFrame):
 
 
         self._conn_state = "online"
+
+
+
+
+        self._been_online = False
 
 
         self._offline_cause = ""
@@ -242,8 +246,6 @@ class Composer(QFrame):
 
 
         self._sticky_hint = False
-
-        self._editing = False
         self._items: list[dict] = []
         self._tags: dict[str, AttachmentTag] = {}
         self._chips = ChipRow()
@@ -293,9 +295,6 @@ class Composer(QFrame):
         self._input.submitted.connect(self._on_submit)
         self._input.textChanged.connect(self._sync_send_enabled)
         self._input.textChanged.connect(self._clear_warning)
-        self._input.textChanged.connect(self._drop_edit_when_empty)
-        self.attachments_changed.connect(self._drop_edit_when_empty)
-        self.chips_changed.connect(self._drop_edit_when_empty)
         self._input.mentions_changed.connect(self._on_mentions_changed)
         self._input.files_requested.connect(self._on_add_files)
         self._input.recall_requested.connect(self._recall_last)
@@ -339,7 +338,7 @@ class Composer(QFrame):
         col.addLayout(row)
         self._hint_timer = QTimer(self)
         self._hint_timer.setSingleShot(True)
-        self._hint_timer.timeout.connect(self._hint.hide)
+        self._hint_timer.timeout.connect(self._passing_line_over)
 
         self._paint_send()
         self._sync_send_enabled()
@@ -381,6 +380,9 @@ class Composer(QFrame):
 
 
 
+
+
+
         margins = self.contentsMargins()
         room = self.width() - margins.left() - margins.right()
         if room <= 0:
@@ -396,25 +398,33 @@ class Composer(QFrame):
                  + _SEND_SIZE
                  + 2 * SPACE_OUTER
                  + _ROW_MIN_GAP)
-        full = (fixed
-                + self._chip_width(self._permission_chip, False)
-                + self._chip_width(self._effort_chip, False))
-        compact = self._compact_controls
-        if not compact and full > room:
-            compact = True
-        elif compact and full + _ROW_HYSTERESIS <= room:
-            compact = False
-        if compact == self._compact_controls:
+        perm, effort = self._permission_chip, self._effort_chip
+        needs = (fixed + self._chip_width(perm, False) + self._chip_width(effort, False),
+                 fixed + self._chip_width(perm, False) + self._chip_width(effort, True))
+
+        def level_for(margin: int) -> int:
+            for level, need in enumerate(needs):
+                if need + margin <= room:
+                    return level
+            return len(needs)
+
+        level = self._compact_controls
+        wider = level_for(0)
+        if wider > level:
+            level = wider
+        else:
+            level = min(level, level_for(_ROW_HYSTERESIS))
+        if level == self._compact_controls:
             return
-        self._compact_controls = compact
-        for chip in (self._permission_chip, self._effort_chip):
+        self._compact_controls = level
+        for chip, compact in ((effort, level >= 1), (perm, level >= 2)):
             setter = getattr(chip, "set_compact", None)
             if callable(setter):
                 setter(compact)
 
     def controls_are_compact(self) -> bool:
 
-        return self._compact_controls
+        return self._compact_controls > 0
 
 
 
@@ -527,15 +537,12 @@ class Composer(QFrame):
             level = names.get(self._effort_chip.chosen(), "")
             line = self.tr("Pro unlocks {level} effort. Or pick Low.")
             self._input.setPlaceholderText(line.format(level=level))
-        elif self._offline:
+        elif self._offline and self._been_online and self._hint.isHidden() and not self._running:
 
 
 
 
-            self._input.setPlaceholderText(
-                self.tr("Not connected to the agent service. Reconnecting; type, it will be sent.")
-                if self._conn_state != "connecting" else
-                self.tr("Reconnecting to the agent service. Type, it will be sent."))
+            self._input.setPlaceholderText(self.tr("Can't reach TerraLab. Retrying."))
         else:
             self._input.setPlaceholderText(self._placeholder)
 
@@ -583,6 +590,7 @@ class Composer(QFrame):
         self._hint_timer.stop()
         if not sticky:
             self._hint_timer.start(_HINT_WARN_MS)
+        self._apply_placeholder()
         if focus:
 
 
@@ -624,32 +632,23 @@ class Composer(QFrame):
                 if self._offline and self._offline_cause:
                     self.show_warning(self._offline_line(), sticky=True, focus=False)
             return
+        self._passing_line_over()
+
+    def _passing_line_over(self) -> None:
+
+
+
+
         self._clear_hint()
+        if self._offline and (self._offline_cause or (self._pending_send and not self._in_offline_grace())):
+            self.show_warning(self._offline_line(), sticky=True, focus=False)
 
     def _clear_hint(self) -> None:
         self._sticky_hint = False
-        if self._hint.isVisible():
+        if not self._hint.isHidden():
             self._hint_timer.stop()
             self._hint.hide()
-
-    def show_edit_line(self, text: str, link: tuple[str, str] | None = None) -> None:
-
-
-        self.show_hint(text, sticky=True, link=link)
-        self._editing = True
-
-    def end_edit(self) -> bool:
-
-        was, self._editing = self._editing, False
-        if was:
-            self._clear_hint()
-        return was
-
-    def _drop_edit_when_empty(self) -> None:
-
-        if self._editing and not (self.text().strip() or self._items or len(self._chips)):
-            self.end_edit()
-            self.edit_dropped.emit()
+            self._apply_placeholder()
 
 
 
@@ -691,6 +690,11 @@ class Composer(QFrame):
 
 
             dialog.deleteLater()
+
+    def take_example_prompt(self, text: str, chip=None) -> None:
+
+
+        self._on_example_prompt(text, chip)
 
     def _on_example_prompt(self, text: str, chip=None) -> None:
 
@@ -737,6 +741,7 @@ class Composer(QFrame):
         if self._blocked:
             return
         self._attach_btn.set_active(True)
+        self.attach_popover().set_layers_available(self._input.has_layers())
         self.attach_popover().show_above(self._attach_btn, self.window())
 
 
@@ -1023,6 +1028,7 @@ class Composer(QFrame):
         self._paint_send()
         self._sync_send_enabled()
         self._sync_effort_run_lock()
+        self._apply_placeholder()
 
     def is_running(self) -> bool:
         return self._running
@@ -1078,6 +1084,7 @@ class Composer(QFrame):
         self._offline = bool(offline)
         if not self._offline:
             self._offline_cause = ""
+            self._been_online = True
         elif cause is not None:
             self._offline_cause = str(cause)
         if self._offline and not was_offline:
@@ -1110,27 +1117,33 @@ class Composer(QFrame):
             self._clear_hint()
 
     def _in_offline_grace(self) -> bool:
-        return self._offline and self._offline_grace.isActive()
+
+
+
+        if not self._offline:
+            return False
+        if self._offline_grace.isActive():
+            return True
+        return not self._been_online and self._conn_state == "connecting" and not self._offline_cause
 
     def _on_offline_grace_over(self) -> None:
 
         if not self._offline:
             return
         self._paint_send()
-        if self._pending_send:
+        if self._pending_send and not self._in_offline_grace():
             self.show_warning(self._offline_line(), sticky=True, focus=False)
 
     def _offline_line(self) -> str:
 
+        if self._in_offline_grace():
+            return self.tr("Connecting to TerraLab. Your message goes out as soon as the connection is up.")
         if self._offline_cause:
             if not self._pending_send:
                 return self._offline_cause
             return self._offline_cause + " " + self.tr(
                 "Your message stays here and goes out as soon as the connection is back.")
-        if self._conn_state == "connecting":
-            return self.tr("Reconnecting to the agent service. Your message stays here and "
-                           "goes out as soon as the connection is back.")
-        return self.tr("Not connected to the agent service. Your message stays here and goes "
+        return self.tr("Can't reach TerraLab. Retrying. Your message stays here and goes "
                        "out as soon as the connection is back.")
 
     def _flush_pending_send(self) -> None:
@@ -1196,16 +1209,15 @@ class Composer(QFrame):
 
 
             self._send_btn.setIcon(
-                icon_for(self._send_btn, "undo", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
+                icon_for(self._send_btn, "lu.refresh-cw", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
             self._send_btn.setToolTip(
-                self.tr("Reconnecting to the agent service. Press to try again now; your message is kept.")
-                if self._conn_state == "connecting" else
-                self.tr("Not connected to the agent service. Press to try again now; your message is kept."))
+                self.tr("Can't reach TerraLab. Press to retry now; your message is kept."))
             self._send_btn.setAccessibleName(self.tr("Retry the connection"))
         else:
             self._send_btn.setIcon(
                 icon_for(self._send_btn, "arrow_up", _DISC_GLYPH, QColor(ON_ACCENT), disabled))
-            self._send_btn.setToolTip(self._send_help())
+            self._send_btn.setToolTip(self.tr("Connecting to TerraLab...") if self._in_offline_grace()
+                                      else self._send_help())
             self._send_btn.setAccessibleName(self.tr("Send"))
 
     def _sync_send_enabled(self) -> None:
@@ -1255,10 +1267,15 @@ class Composer(QFrame):
             if self.text().strip() or self._items:
                 self._pending_send = True
             if self._in_offline_grace():
+
+
+
+                if self._pending_send:
+                    self.show_hint(self._offline_line(), sticky=True)
                 self.reconnect_requested.emit()
                 return
             self.show_warning(self._offline_line() if self._pending_send else
-                              self.tr("Not connected to the agent service. Reconnecting now."),
+                              self.tr("Can't reach TerraLab. Retrying now."),
                               sticky=True)
             self.reconnect_requested.emit()
             return

@@ -25,6 +25,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.core import QgsProject
@@ -93,7 +107,47 @@ def reopen(names) -> int:
     return opened
 
 
+def quiet_atlas(designer) -> bool:
+
+
+
+
+
+
+    try:
+        from qgis.gui import QgsMapLayerComboBox
+        from qgis.PyQt import sip
+        from qgis.PyQt.QtWidgets import QComboBox
+
+        window = designer.window()
+
+
+        found = window.findChild(QComboBox, "mAtlasCoverageLayerComboBox") if window else None
+        if found is None or not found.inherits("QgsMapLayerComboBox"):
+            return False
+        combo = found if isinstance(found, QgsMapLayerComboBox) else sip.cast(found, QgsMapLayerComboBox)
+        master = designer.masterLayout()
+        atlas = master.atlas() if master is not None and hasattr(master, "atlas") else None
+        if combo.allowEmptyLayer() or (atlas is not None and atlas.enabled()):
+            return False
+        combo.setAllowEmptyLayer(True)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Layout designer atlas combo left as it is: {exc}")
+        return False
+
+
+def _iface():
+    try:
+        from qgis.utils import iface
+
+        return iface
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def install() -> None:
+
 
     global _CONNECTED
     if _CONNECTED:
@@ -103,6 +157,14 @@ def install() -> None:
         _CONNECTED = True
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Layout designer guard not installed: {exc}")
+    iface = _iface()
+    try:
+        if iface is not None:
+            iface.layoutDesignerOpened.connect(quiet_atlas)
+        for designer in _designers():
+            quiet_atlas(designer)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Layout designer atlas guard not installed: {exc}")
 
 
 def shutdown() -> None:
@@ -114,4 +176,10 @@ def shutdown() -> None:
         QgsProject.instance().aboutToBeCleared.disconnect(close_designers)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Layout designer guard not disconnected: {exc}")
+    iface = _iface()
+    if iface is not None:
+        try:
+            iface.layoutDesignerOpened.disconnect(quiet_atlas)
+        except Exception:  # nosec B110
+            pass
     _CONNECTED = False

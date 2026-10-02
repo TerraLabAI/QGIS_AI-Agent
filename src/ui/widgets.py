@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+import re
+
 from qgis.PyQt.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer
 from qgis.PyQt.QtGui import QColor, QKeySequence, QPainter, QPalette, QPen, QTextOption
 from qgis.PyQt.QtWidgets import (
@@ -203,6 +205,10 @@ class Spinner(QWidget):
             return
 
 
+
+_MEASURE_RE = re.compile(r"\d[\d.,]*(?:[ \u00a0]?(?:%|[^\W\d_]{1,3}\b))?")
+
+
 class ElidedLabel(QLabel):
 
 
@@ -212,6 +218,7 @@ class ElidedLabel(QLabel):
                  mode: Qt.TextElideMode = Qt.TextElideMode.ElideRight):
         super().__init__(parent)
         self._full = ""
+        self._tail = ""
 
 
 
@@ -221,6 +228,12 @@ class ElidedLabel(QLabel):
 
     def set_elide_mode(self, mode: Qt.TextElideMode) -> None:
         self._elide_mode = mode
+        self.update()
+
+    def set_kept_tail(self, tail: str) -> None:
+
+
+        self._tail = tail or ""
         self.update()
 
     def setText(self, text: str) -> None:  # noqa: N802
@@ -249,6 +262,19 @@ class ElidedLabel(QLabel):
         hint = super().minimumSizeHint()
         return QSize(24, hint.height())
 
+    def _keep_measures(self, full: str, shown: str) -> str:
+
+
+
+        if self._elide_mode != Qt.TextElideMode.ElideRight or not shown.endswith("\u2026") \
+                or shown == full:
+            return shown
+        cut = len(shown) - 1
+        for match in _MEASURE_RE.finditer(full):
+            if match.start() < cut < match.end():
+                return full[:match.start()].rstrip() + "\u2026"
+        return shown
+
     def paintEvent(self, event):  # noqa: N802
         try:
             painter = QPainter(self)
@@ -257,7 +283,14 @@ class ElidedLabel(QLabel):
             self.drawFrame(painter)
             rect = self.contentsRect()
             metrics = self.fontMetrics()
-            text = metrics.elidedText(self._full, self._elide_mode, rect.width())
+            tail = self._tail if self._tail and self._full.endswith(self._tail) else ""
+            if tail and metrics.horizontalAdvance(self._full) > rect.width():
+                head = self._full[:-len(tail)]
+                room = max(0, rect.width() - metrics.horizontalAdvance(tail))
+                text = self._keep_measures(head, metrics.elidedText(head, self._elide_mode, room)) + tail
+            else:
+                text = self._keep_measures(
+                    self._full, metrics.elidedText(self._full, self._elide_mode, rect.width()))
             painter.setPen(self.palette().color(QPalette.ColorRole.WindowText))
             painter.setFont(self.font())
             option = QTextOption(self.alignment())
@@ -267,10 +300,6 @@ class ElidedLabel(QLabel):
         except Exception:  # noqa: BLE001
             return
 
-
-
-
-_UNBOUNDED_PX = 1 << 20
 
 
 
@@ -370,55 +399,6 @@ class ChatLabel(QLabel):
         select_all.triggered.connect(lambda: self.setSelection(0, len(super(ChatLabel, self).text())))
         menu.exec(event.globalPos())
         event.accept()
-
-
-class WrapLabel(QLabel):
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def __init__(self, text: str = "", parent=None):
-        super().__init__(text, parent)
-        self.setWordWrap(True)
-        policy = self.sizePolicy()
-        policy.setHeightForWidth(True)
-        self.setSizePolicy(policy)
-        self._sync_height()
-
-    def setText(self, text: str) -> None:  # noqa: N802
-        super().setText(text)
-        self._sync_height()
-
-    def resizeEvent(self, event):  # noqa: N802
-        super().resizeEvent(event)
-        self._sync_height()
-
-    def _sync_height(self) -> None:
-
-
-
-
-
-
-
-        rect = self.contentsRect()
-        if rect.width() <= 0 or not self.text():
-            return
-        flags = int(Qt.TextFlag.TextWordWrap) | int(self.alignment())
-        text_height = self.fontMetrics().boundingRect(
-            0, 0, rect.width(), _UNBOUNDED_PX, flags, self.text()).height()
-        needed = text_height + (self.height() - rect.height())
-        if needed > 0 and needed != self.minimumHeight():
-            self.setMinimumHeight(needed)
 
 
 class IconButton(QToolButton):

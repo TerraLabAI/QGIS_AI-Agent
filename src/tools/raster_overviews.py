@@ -18,12 +18,19 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
+import contextlib
 import os
 import time
 
-from qgis.core import QgsLayoutItemMap, QgsProject, QgsRasterLayer
+from qgis.core import QgsLayoutItemMap, QgsProject, QgsRasterLayer, QgsRectangle
 
 from ..core import net
 from ..core.host_platform import remove_quietly
@@ -153,15 +160,13 @@ def _build(path: str) -> str:
     return failure
 
 
-def prepare_layout(args: dict):
+def _work_for(wanted: dict, before: str, reads: dict | None = None):
 
 
 
 
 
-    wanted = layout_rasters(_layout_named(args))
-    if not wanted:
-        return None
+
 
     def work():
         built, started = [], time.perf_counter()
@@ -172,8 +177,13 @@ def prepare_layout(args: dict):
             else:
                 built.append(layer_id)
         seconds = round(time.perf_counter() - started, 1)
+        answers = _read(reads, reopen=bool(built)) if reads else {}
 
         def finish() -> dict:
+            if reads:
+                _READY.clear()
+                _READY[reads["layer_id"]] = answers
+                reads.pop("clone", None)
             names = []
             for layer_id in built:
                 layer = QgsProject.instance().mapLayer(layer_id)
@@ -187,12 +197,138 @@ def prepare_layout(args: dict):
                     continue
                 names.append(layer.name())
             if names:
-                log(f"Overviews built in {seconds} s before drawing the layout: {', '.join(names)}")
+                log(f"Overviews built in {seconds} s before {before}: {', '.join(names)}")
             return {"overviews_built": names, "seconds": seconds} if names else {}
 
         return finish
 
     return work
+
+
+def prepare_layout(args: dict):
+
+    wanted = layout_rasters(_layout_named(args))
+    return _work_for(wanted, "drawing the layout") if wanted else None
+
+
+
+_MEASURED_STYLES = ("singleband_pseudocolor", "singleband_gray", "multiband_color")
+
+
+def prepare_raster_style(args: dict):
+
+
+
+
+
+    if str(args.get("style_type") or "") not in _MEASURED_STYLES:
+        return None
+    typed = args.get("min_value") is not None and args.get("max_value") is not None
+    if typed and args.get("cumulative_cut") in (None, "", []) and args.get("min_max") == "min_max":
+        return None
+    from ._layers import resolve_layer
+
+    layer = resolve_layer(str(args.get("layer_name") or ""))
+    path = _needs_overviews(layer)
+    reads = _plan_reads(layer, args)
+    if not path and not reads:
+        return None
+    return _work_for({layer.id(): path} if path else {}, "measuring its range for the style", reads)
+
+
+
+
+
+
+
+
+
+
+
+_STATS_SAMPLE = 250_000
+_READY: dict = {}
+_ACTIVE: list = []
+
+
+def _bands(args: dict, count: int) -> list:
+    style = str(args.get("style_type") or "")
+    names = (("red_band", 1), ("green_band", 2), ("blue_band", 3)) if style == "multiband_color" else (("band", 1),)
+    out = []
+    for name, fallback in names:
+        try:
+            band = int(args.get(name, fallback))
+        except (TypeError, ValueError):
+            continue
+        if 1 <= band <= count and band not in out:
+            out.append(band)
+    return out
+
+
+def _plan_reads(layer, args: dict) -> dict | None:
+
+
+    if not isinstance(layer, QgsRasterLayer) or layer.providerType() != "gdal":
+        return None
+    try:
+        provider = layer.dataProvider()
+        bands = _bands(args, provider.bandCount())
+        if not bands:
+            return None
+        from .style_defaults import _rules
+
+        rules = _rules("stretch")
+        cut = (rules.get("cut_low"), rules.get("cut_high"))
+        return {"layer_id": layer.id(), "clone": provider.clone(), "bands": bands,
+                "extent": QgsRectangle(layer.extent()), "cut": cut if None not in cut else None}
+    except (AttributeError, RuntimeError) as exc:
+        log_warning(f"Band reads not made ahead: {exc}")
+        return None
+
+
+def _read(reads: dict, reopen: bool = False) -> dict:
+
+
+
+
+    from ._compat import RASTER_STATS_ALL
+    from .elevation_style import min_max_stats
+    from .style_defaults import _RASTER_SAMPLE
+
+    clone, extent, answers = reads["clone"], reads["extent"], {}
+    if reopen:
+        clone.reloadData()
+    cancel = net.current_cancel_check()
+    for band in reads["bands"]:
+        if cancel is not None and cancel():
+            break
+        try:
+            stats = clone.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
+            answers[("stats", band)] = (stats.minimumValue, stats.maximumValue)
+            stats = clone.bandStatistics(band, min_max_stats(), extent, 250000)
+            answers[("range", band)] = (stats.minimumValue, stats.maximumValue)
+            if reads["cut"] is not None:
+                low, high = reads["cut"]
+                answers[("cut", band, low, high)] = tuple(clone.cumulativeCut(band, low / 100.0, high / 100.0,
+                                                                               extent, _RASTER_SAMPLE))
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Band {band} not read ahead: {exc}")
+    return answers
+
+
+@contextlib.contextmanager
+def answers_for(layer):
+
+    _ACTIVE.append(_READY.pop(layer.id(), {}) if layer is not None else {})
+    try:
+        yield
+    finally:
+        _ACTIVE.pop()
+
+
+def read_ahead(key: tuple, compute):
+
+    answers = _ACTIVE[-1] if _ACTIVE else {}
+    return answers[key] if key in answers else compute()
 
 
 def prepare_render(args: dict):

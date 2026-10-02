@@ -77,6 +77,8 @@ def credit_layer(layer, licence="", attribution="") -> dict:
 
 
 
+
+
     def _texts(value, limit: int) -> list:
         items = value if isinstance(value, (list, tuple)) else [value]
         out = []
@@ -132,9 +134,11 @@ def credit_layer(layer, licence="", attribution="") -> dict:
 def _locale_date(first, pattern: str) -> str:
 
     try:
-        from qgis.PyQt.QtCore import QDate, QLocale
+        from qgis.PyQt.QtCore import QDate
 
-        text = QLocale().toString(QDate(first.year, first.month, first.day), pattern)
+        from .i18n import words_locale
+
+        text = words_locale().toString(QDate(first.year, first.month, first.day), pattern)
         if isinstance(text, str) and text:
             return text
     except Exception:  # noqa: BLE001  # nosec B110
@@ -144,19 +148,21 @@ def _locale_date(first, pattern: str) -> str:
 
 def date_text(value) -> str:
 
+    from .i18n import day_pattern
+
     parsed = data_date.parse(value)
     if parsed is None:
         return tr("Date unknown")
     kind, first, last = parsed
     if kind == data_date.LIVE:
-        return tr("Live, loaded {day}").format(day=_locale_date(first, "d MMMM yyyy"))
+        return tr("Live, loaded {day}").format(day=_locale_date(first, day_pattern()))
     if kind == "year":
         return str(first.year)
     if kind == "span":
         return f"{first.year}-{last.year}"
     if kind == "month":
         return _locale_date(first, "MMMM yyyy")
-    return _locale_date(first, "d MMMM yyyy")
+    return _locale_date(first, day_pattern())
 
 
 def provider_of(attribution: str, page_url: str = "") -> str:
@@ -339,10 +345,16 @@ def _entry_for(result, layer_id: str, name: str) -> dict | None:
 
 def _address_of(holders, url: str) -> str:
 
+
+
+
+
+
     for holder in holders:
-        value = str(holder.get("url") or "").strip()
-        if value.startswith(("http://", "https://")):
-            return value
+        for key in ("url", "source"):
+            value = str(holder.get(key) or "").strip()
+            if value.startswith(("http://", "https://")):
+                return value
     return url
 
 
@@ -407,7 +419,9 @@ def credit_added(layers, result, tool: str = "", args=None) -> None:
 
 
 
-                url = _address_of(holders, url)
+
+                url = _address_of([*holders, args] if isinstance(args, dict) else holders, url)
+                sublayer = next((str(h["typename"]) for h in holders if h.get("typename")), sublayer)
             row = catalog.source_licence(url, sublayer) if url else None
             for key, prefix in (("collection", "stac:"), ("theme", "overture:")):
                 if row is not None:

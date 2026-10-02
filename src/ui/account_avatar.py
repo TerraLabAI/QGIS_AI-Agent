@@ -18,11 +18,12 @@ import hashlib
 import os
 import tempfile
 
-from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QObject, Qt, QUrl, pyqtSignal
-from qgis.PyQt.QtGui import QImage, QImageReader, QPainter, QPainterPath, QPixmap
+from qgis.PyQt.QtCore import QObject, Qt, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ..core.host_platform import retry_file_op
+from .image_guard import read_bounded_image
 from .shared import PLUGIN_CACHE_DIR, resolve_qt_enum
 
 
@@ -102,26 +103,10 @@ def cached_avatar_pixmap(url: str, diameter: int) -> QPixmap | None:
             data = handle.read(MAX_AVATAR_BYTES)
     except OSError:
         return None
-    image = _read_bounded_image(data)
+    image = read_bounded_image(data, MAX_AVATAR_PIXELS)
     if image is None:
         return None
     return circular_avatar_pixmap(image, diameter)
-
-
-def _read_bounded_image(data: bytes) -> QImage | None:
-
-    try:
-        buffer = QBuffer()
-        buffer.setData(QByteArray(data))
-        buffer.open(QIODevice.OpenModeFlag.ReadOnly)
-        reader = QImageReader(buffer)
-        size = reader.size()
-        if size.isValid() and size.width() * size.height() > MAX_AVATAR_PIXELS:
-            return None
-        image = reader.read()
-        return None if image.isNull() else image
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        return None
 
 
 def store_avatar_bytes(url: str, data: bytes) -> None:
@@ -235,7 +220,7 @@ class AccountAvatarLoader(QObject):
             pass
         if not data or len(data) > MAX_AVATAR_BYTES:
             return
-        image = _read_bounded_image(data)
+        image = read_bounded_image(data, MAX_AVATAR_PIXELS)
         if image is None:
             return
         pixmap = circular_avatar_pixmap(image, self._diameter)

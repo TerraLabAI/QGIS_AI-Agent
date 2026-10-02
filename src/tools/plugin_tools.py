@@ -177,12 +177,16 @@ def _reach(folder: str) -> dict:
 
 
 
+
+
+
+
 def _lists_plugin_actions(args: dict) -> bool:
-    return not str(args.get("action_path") or "").strip()
+    return not args.get("action_path")
 
 
 def _lists_menu(args: dict) -> bool:
-    return bool(args.get("list_only")) or not str(args.get("action_path") or "").strip()
+    return args.get("list_only") is True or not args.get("action_path")
 
 
 def register_plugin_tools(registry: ToolRegistry):

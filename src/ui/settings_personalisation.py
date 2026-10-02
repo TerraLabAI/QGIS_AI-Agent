@@ -47,6 +47,7 @@ from .settings_pages import (
     INPUT_QSS,
     ROW_NOTE_QSS,
     TEXTAREA_QSS,
+    Disclosure,
     NoteRow,
     Page,
     ProCard,
@@ -108,6 +109,15 @@ class PersonalisationPageMixin:
                                  self.tr("How often the AI asks before acting."),
                                  self._questions_segments, group))
 
+
+
+
+        more = SettingGroup(None, flat=True)
+        self._answers_more = Disclosure(self.tr("More"), more, group)
+        self._answers_more.layout().setContentsMargins(14, 4, 14, 8)
+        group.add_row(self._answers_more)
+        answers, group = group, more
+
         self._timeout_combo = QComboBox(group)
         self._timeout_combo.setStyleSheet(combo_qss(self))
         self._timeout_combo.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -128,8 +138,11 @@ class PersonalisationPageMixin:
 
         self._tools_switch = Switch(group, self._store.show_tool_details)
         self._tools_switch.toggled.connect(self._on_tools_toggled)
-        group.add_row(SettingRow(self.tr("Show tool details in the trace"),
-                                 self.tr("Each step with its inputs and results, under the answer."),
+
+
+
+        group.add_row(SettingRow(self.tr("Show the steps it takes"),
+                                 self.tr("The list of steps above each answer."),
                                  self._tools_switch, group))
 
 
@@ -141,7 +154,7 @@ class PersonalisationPageMixin:
             self.tr("Move the map to what it changes"),
             self.tr("The view goes to each edit as it happens. Off keeps your view where you put it."),
             self._follow_switch, group))
-        return group
+        return answers
 
     def _timeout_texts(self) -> tuple:
 
@@ -256,20 +269,22 @@ class PersonalisationPageMixin:
                                     self._role_edit, identity))
         page.add(identity)
         locked = self._memory_locked()
+
+
+
         self._about_edit, self._about_count = self._text_block(
             page, self.tr("About you"),
             self.tr("Who you are and what you work on. Example: urban planner at the city of Lyon, "
                     "I mostly work with cadastre and PLU layers in EPSG:2154."),
             self._store.profile_about, "about", pro_only=locked,
-            pro_note=self.tr("Pro reads this before every run, so your job, your city and your usual "
-                             "CRS do not have to be typed into each prompt."))
+            pro_note=self.tr("Pro reads who you are and your standing rules before every run: "
+                             "your job, your city, your usual CRS, the language it answers in, "
+                             "how it names layers and what it must never do without asking."))
         self._instructions_edit, self._instructions_count = self._text_block(
             page, self.tr("Instructions for the AI"),
             self.tr("How it should work. Example: always answer in French, name new layers in "
                     "snake_case, never delete a layer without asking."),
-            self._store.profile_instructions, "instructions", pro_only=locked,
-            pro_note=self.tr("Pro follows your standing rules in every run: the language it answers in, "
-                             "how it names layers, and what it must never do without asking."))
+            self._store.profile_instructions, "instructions", pro_only=locked)
         page.add_group_title(self.tr("How you work"))
         page.add(self._build_work_preferences(page))
 
@@ -360,7 +375,7 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-    def _pro_card(self, host, note: str) -> ProCard:
+    def _pro_card(self, host, note: str, title: str = "") -> ProCard:
 
 
 
@@ -372,7 +387,8 @@ class PersonalisationPageMixin:
 
 
 
-        card = ProCard(self.tr("Included with Pro"), note, self.tr("Unlock with Pro"), host)
+        card = ProCard(title or self.tr("Your profile and instructions, read before every run"),
+                       note, host)
         card.upgrade_requested.connect(self._on_upgrade)
         host.add(card)
         return card
@@ -458,7 +474,8 @@ class PersonalisationPageMixin:
         card = SectionCard(page)
         page.add(card)
         pro = self._pro_card(
-            card, self.tr("Pro reads your notes at the start of every conversation."))
+            card, self.tr("Pro reads your notes at the start of every conversation."),
+            self.tr("Memory between conversations"))
         pro.setVisible(locked)
         intro = QLabel(self.tr("Short reminders it keeps between conversations."), card)
         intro.setStyleSheet(ROW_NOTE_QSS)

@@ -770,7 +770,7 @@ def _field_is_text(layer, index: int) -> bool:
 
 
 def _select_by_attribute(args: dict) -> dict:
-    from .core_tools import _field_not_found_error, _layer_not_found_error
+    from .layer_lookup import _field_not_found_error, _layer_not_found_error
     layer = _find_vector_layer(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])

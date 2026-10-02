@@ -20,6 +20,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEasingCurve, QEvent, QRect, Qt, QVariantAnimation, pyqtSignal
@@ -72,7 +73,6 @@ _TOP_PX = 40
 _GLYPH = 18
 _GLYPH_SLOT = 20
 _MARK = 20
-_CHEVRON = 16
 _PAD = 8
 _GAP = 8
 _SLIDE_MS = 200
@@ -282,7 +282,6 @@ class ChatSidebar(QWidget):
 
 
     new_thread_requested = pyqtSignal()
-    home_requested = pyqtSignal()
     search_requested = pyqtSignal()
     thread_selected = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
@@ -312,6 +311,7 @@ class ChatSidebar(QWidget):
         self._col = col
 
 
+
         top = QWidget(self)
         top.setFixedHeight(_TOP_PX)
         head = QHBoxLayout(top)
@@ -326,10 +326,6 @@ class ChatSidebar(QWidget):
         self._workspace.setObjectName("sidebarWorkspace")
         self._workspace.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         head.addWidget(self._workspace, 1, Qt.AlignmentFlag.AlignVCenter)
-        self._chevron = QLabel(top)
-        self._chevron.setFixedSize(_CHEVRON, _CHEVRON)
-        self._chevron.setPixmap(pixmap_for(top, "chevron_down", _CHEVRON, qcolor(INK_3)))
-        head.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addSpacing(_GAP)
         self._fold_btn = self._icon_button(top, "sidebar", self.tr("Collapse the sidebar"))
         self._fold_btn.clicked.connect(self.collapse)
@@ -354,7 +350,6 @@ class ChatSidebar(QWidget):
         self._rows.setContentsMargins(0, 0, 0, 0)
         self._rows.setSpacing(1)
         self._new_row = self._nav_row("new_chat", self.tr("New chat"), self.new_thread_requested)
-        self._home_row = self._nav_row("home", self.tr("Home"), self.home_requested)
         self._search_row = self._nav_row("search", self.tr("Search chats"), self.search_requested)
         self._rows.addSpacing(_PAD)
         self._recents_label = QLabel(self.tr("Recents").upper(), self._host)
@@ -373,7 +368,7 @@ class ChatSidebar(QWidget):
         self._rule.setFrameShape(QFrame.Shape.NoFrame)
         col.addWidget(self._rule)
         col.addSpacing(_PAD)
-        self._upgrade_row = _Row("sparkles", self.tr("Do more with Pro"), "sidebarUpgrade", self, accent_color())
+        self._upgrade_row = _Row("sparkles", self.tr("Get Pro"), "sidebarUpgrade", self, accent_color())
         self._upgrade_row.clicked.connect(self.upgrade_requested.emit)
         self._copy.append(self._upgrade_row)
         col.addWidget(self._upgrade_row)
@@ -550,7 +545,6 @@ class ChatSidebar(QWidget):
             row.set_copy_visible(show_copy)
             row.setVisible(show_copy)
         self._workspace.setVisible(show_copy)
-        self._chevron.setVisible(show_copy)
         self._mark.setVisible(show_copy)
         self._fold_btn.setVisible(show_copy)
         self._expand_btn.setVisible(not show_copy)

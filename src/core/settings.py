@@ -24,7 +24,7 @@ from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from qgis.PyQt.QtCore import QLocale, QSysInfo
 
 from .host_platform import IS_WINDOWS, retry_file_op
-from .plan import effort_allowed, effort_default, effort_name
+from .plan import effort_allowed, effort_default, effort_name, efforts_stated
 from .policy import state_dir  # noqa: F401
 
 GROUP = "TerraLab/AIAgent"
@@ -367,6 +367,17 @@ class Settings:
     def last_run_version(self, value: str) -> None:
         self._set("last_run_version", str(value or ""))
 
+    @property
+    def last_paid(self) -> bool:
+
+
+
+        return self._get("last_paid", "0") == "1"
+
+    @last_paid.setter
+    def last_paid(self, value: bool) -> None:
+        self._set("last_paid", "1" if value else "0")
+
 
 
     @property
@@ -621,6 +632,8 @@ class Settings:
 
 
 
+
+
         value = self._get("effort", "")
 
 
@@ -633,7 +646,12 @@ class Settings:
         legacy = {"fast": "low", "pro": "medium"}.get(self._get("model_mode", ""), "")
         if legacy and effort_allowed(legacy):
             return legacy
-        return effort_default()
+        if efforts_stated():
+            default = effort_default()
+            if self._get("effort_last_default", "") != default:
+                self._set("effort_last_default", default)
+            return default
+        return effort_name(self._get("effort_last_default", "")) or effort_default()
 
     @effort.setter
     def effort(self, value: str) -> None:

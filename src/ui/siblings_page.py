@@ -38,7 +38,7 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -240,7 +240,7 @@ class SiblingsPage(Page):
 
     def __init__(self, parent=None):
         def translate(text: str) -> str:
-            return parent.tr(text) if parent is not None else text
+            return QCoreApplication.translate("SiblingsPage", text)
 
 
 

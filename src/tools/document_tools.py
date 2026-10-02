@@ -190,10 +190,10 @@ def _build_docx(*, title: str, summary: str, fields: list[str], rows: list[list[
 
 
 def _export_document_report(args: dict) -> dict:
-    from .data_tools import _run_on_main_thread
+    from ..core.background import run_on_main_thread
 
     try:
-        plan = _run_on_main_thread(_prepare, args, timeout=60)
+        plan = run_on_main_thread(_prepare, args, timeout=60)
     except InterruptedError:
         return tool_error("The document report was stopped.", "STOPPED", "It can be retried.")
     if not isinstance(plan, dict) or "_error" in plan:

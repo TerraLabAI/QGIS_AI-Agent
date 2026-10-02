@@ -115,9 +115,12 @@ def _get_algorithm_help(args: dict) -> dict:
         elif param["required"]:
             example[param["name"]] = f"<{param['type']}>"
     out["required"] = [p["name"] for p in params if p["required"] and not p.get("destination")]
-    out["example_call"] = {"tool": "run_processing",
-                           "arguments": {"algorithm_id": alg.id(), "parameters": example,
-                                         "output_name": "<the layer name for the user>"}}
+    arguments: dict = {"algorithm_id": alg.id(), "parameters": example}
+    if any(p.get("destination") for p in params):
+
+
+        arguments["output_name"] = "<the layer name for the user>"
+    out["example_call"] = {"tool": "run_processing", "arguments": arguments}
 
 
 

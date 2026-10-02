@@ -49,10 +49,15 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QFrame,
@@ -70,13 +75,14 @@ from ..core.logger import log_warning
 from ..core.plan import memory_allowed
 from ..core.profile import profile_context
 from ..core.settings import Settings
+from .connector_page import ConnectorPage
+from .connectors_page import ConnectorsPage, cases_of, sources_by_id
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length
 from .icons import icon_for, logo_pixmap, logo_size
 from .learn_page import LearnPage
 from .permission_chip import glyph_tile
 from .settings_account import AccountPageMixin
-from .settings_billing import BillingPageMixin
 from .settings_pages import (
     MUTED,
     SAVED_HINT_QSS,
@@ -104,9 +110,8 @@ from .style import ACCENT, ACCENT_DARK, FONT_HINT, ON_ACCENT
 
 
 
-
-_DIALOG_W, _DIALOG_H = 1080, 760
-_DIALOG_MIN_W, _DIALOG_MIN_H = 820, 560
+_DIALOG_W, _DIALOG_H = 900, 640
+_DIALOG_MIN_W, _DIALOG_MIN_H = 660, 460
 _NAV_W = 186
 _SAVE_DEBOUNCE_MS = 600
 _SAVED_HINT_MS = 1600
@@ -129,6 +134,10 @@ _NAV_TINTS = {
     "book": "#C96A8C",
     "gem": "#C98A2E",
     "play": "#D0533C",
+
+
+    "terminal": "#6B7A8F",
+    "puzzle": "#7C6CD0",
 
     "chat_bubble": "#3E86D6",
     "warning": "#D0533C",
@@ -164,12 +173,13 @@ class _LinkTile(QWidget):
         super().mouseReleaseEvent(event)
 
 
-class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixin, QDialog):
+class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
     values_changed = pyqtSignal(dict)
     profile_changed = pyqtSignal(dict)
     sign_out_requested = pyqtSignal()
+    sign_in_requested = pyqtSignal()
     delete_account_requested = pyqtSignal(str)
     refresh_requested = pyqtSignal()
     telemetry_toggled = pyqtSignal(bool)
@@ -177,6 +187,9 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
     dashboard_opened = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
     help_requested = pyqtSignal(str)
+
+    prompt_chosen = pyqtSignal(str, object)
+    example_chosen = pyqtSignal(str)
 
     def __init__(self, parent=None, account_info: dict | None = None,
                  settings_values: dict | None = None):
@@ -237,9 +250,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
         self._saved_timer.timeout.connect(self._saved_hint.hide)
         self._right = right
 
-
-
-
+        self._add_page("globe", self.tr("Connectors"), self._build_connectors())
         self._add_page("pencil", self.tr("Personalisation"), self._build_personalisation())
         self._add_page("terminal", self.tr("Keyboard shortcuts"), self._build_shortcuts())
         self._add_page("play", self.tr("Tutorials"), self._build_tutorials())
@@ -250,8 +261,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
 
         self._add_page("puzzle", self.tr("More plugins"), self._build_siblings())
         self._add_page("person", self.tr("Account"), self._build_account())
-        self._billing_index = self._nav.count()
-        self._add_page("gem", self.tr("Billing"), self._build_billing())
 
 
 
@@ -285,6 +294,9 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
         self._nav.setCursor(Qt.CursorShape.PointingHandCursor)
         self._nav.setUniformItemSizes(True)
         self._nav.currentRowChanged.connect(self._on_nav_changed)
+
+
+        self._nav.itemClicked.connect(self._on_nav_clicked)
         col.addWidget(self._nav, 1)
 
 
@@ -295,7 +307,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
 
 
 
-        self._upgrade_pill = QPushButton(self.tr("Do more with Pro"), side)
+        self._upgrade_pill = QPushButton(self.tr("Get Pro"), side)
         self._upgrade_pill.setStyleSheet(_RAIL_CTA_QSS)
         self._upgrade_pill.setCursor(Qt.CursorShape.PointingHandCursor)
         self._upgrade_pill.setAutoDefault(False)
@@ -406,7 +418,32 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
         item = QListWidgetItem(icon, label)
         item.setSizeHint(QSize(0, scale_px_length(32)))
         item.setData(Qt.ItemDataRole.UserRole, f"action:{kind}")
+        item.setToolTip(self.tr("Opens a window"))
         self._nav.addItem(item)
+
+
+
+        mark = QWidget(self._nav)
+        line = QHBoxLayout(mark)
+        line.setContentsMargins(0, 0, 10, 0)
+        line.addStretch(1)
+        glyph_label = QLabel(mark)
+        glyph_label.setPixmap(icon_for(self, "external", 12, QColor(MUTED)).pixmap(12, 12))
+        glyph_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        line.addWidget(glyph_label, 0, Qt.AlignmentFlag.AlignVCenter)
+        mark.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        mark.setStyleSheet("background: transparent;")
+        self._nav.setItemWidget(item, mark)
+
+
+        font = QFont(self._nav.font())
+        font.setPixelSize(scale_px_length(13))
+
+
+        needed = QFontMetrics(font).horizontalAdvance(label) + scale_px_length(6 + 8 + 16 + 8 + 8 + 12 + 10 + 6)
+        side = self._nav.parentWidget()
+        if side is not None and needed > side.width():
+            side.setFixedWidth(needed)
 
     def _on_nav_changed(self, row: int) -> None:
         item = self._nav.item(row) if row >= 0 else None
@@ -488,6 +525,98 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, BillingPageMixi
         page = LearnPage(self)
         page.opened.connect(self._on_learn_opened)
         return page
+
+    def _build_connectors(self) -> QStackedWidget:
+
+
+
+
+
+
+
+        from .use_cases import use_cases
+
+        self._sources = sources_by_id()
+        self._cases = list(use_cases())
+        from .library import common as C
+
+        stack = QStackedWidget(self)
+
+
+        stack.setObjectName("settingsConnectors")
+        stack.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        stack.setStyleSheet(C.qss(f"QStackedWidget#settingsConnectors {{ background: {C.T.bg}; }}")
+                            + C.scroll_qss())
+        self._directory = ConnectorsPage(stack, self.tr("Connectors"))
+        self._directory.connector_opened.connect(self._open_source)
+        self._directory.set_data(list(self._sources.values()), self._cases)
+        self._source = ConnectorPage(stack, self.tr("Connectors"))
+        self._source.back_requested.connect(self._to_directory)
+        self._source.prompt_chosen.connect(self._on_source_prompt)
+        self._source.example_opened.connect(self._open_example)
+        stack.addWidget(self._directory)
+        stack.addWidget(self._source)
+        self._connectors_stack = stack
+        return stack
+
+    def _on_nav_clicked(self, item) -> None:
+        if self._nav.row(item) == 0 and self._connectors_stack.currentWidget() is self._source:
+            self._to_directory()
+
+    def set_connectors(self) -> None:
+
+
+
+        from .use_cases import use_cases
+
+        self._sources = sources_by_id()
+        self._cases = list(use_cases())
+        self._directory.remember_scroll()
+        self._directory.set_data(list(self._sources.values()), self._cases)
+        key = getattr(self._source, "_id", "")
+        if self._connectors_stack.currentWidget() is self._source and key in self._sources:
+            self._source.set_connector(self._sources[key], cases_of(key, self._cases))
+
+    def _open_source(self, key: str) -> None:
+        row = self._sources.get(str(key))
+        if row is None:
+            return
+        self._directory.remember_scroll()
+        self._source.set_connector(row, cases_of(str(key), self._cases))
+        self._connectors_stack.setCurrentWidget(self._source)
+
+    def _to_directory(self) -> None:
+        self._directory.set_data(list(self._sources.values()), self._cases)
+        self._connectors_stack.setCurrentWidget(self._directory)
+
+    def _on_source_prompt(self, text: str, chip) -> None:
+
+
+        self.accept()
+        self.prompt_chosen.emit(str(text or ""), dict(chip) if isinstance(chip, dict) else {})
+
+    def _open_example(self, case) -> None:
+
+
+        from .library.dialog import ExamplesDialog
+        from .shared import exec_dialog
+
+        library = ExamplesDialog(self, opened_from="settings")
+        library.open_case(case)
+        library.example_chosen.connect(self.example_chosen.emit)
+        library.prompt_chosen.connect(self._on_source_prompt)
+        try:
+            exec_dialog(library)
+        finally:
+            library.deleteLater()
+
+    def keyPressEvent(self, event):  # noqa: N802
+
+        if (event.key() == Qt.Key.Key_Escape and self._pages.currentIndex() == 0
+                and self._connectors_stack.currentWidget() is self._source):
+            self._to_directory()
+            return
+        super().keyPressEvent(event)
 
     def _build_siblings(self) -> SiblingsPage:
 

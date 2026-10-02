@@ -49,13 +49,13 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 from qgis.PyQt.QtGui import QColor
 
 from ..core import background, limits, net, security, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly
 from ..core.layer_order import feature_count_of
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import spatial_stats_math as sm
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 
 METHODS = ("getis_ord_gi_star", "local_moran", "standard_deviational_ellipse")
@@ -357,13 +357,6 @@ def _open(plan: dict, state: dict) -> dict | None:
     return None
 
 
-def _is_cancelled(check) -> bool:
-    try:
-        return callable(check) and bool(check())
-    except Exception:  # noqa: BLE001
-        return False
-
-
 def _read(state: dict, plan: dict, rows: list, cancelled) -> None:
 
 
@@ -380,11 +373,10 @@ def _read(state: dict, plan: dict, rows: list, cancelled) -> None:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="spatial_statistics read",
-                              args=(state["source"], state["request"], state["feedback"]))
-    thread.start()
+    background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
+                                 name="spatial_statistics read")
     while not over.wait(_STOP_POLL_S):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             halted.set()
             state["feedback"].cancel()
             raise InterruptedError("Stopped while the features were read")
@@ -707,7 +699,7 @@ def _write_copy(plan: dict, rows: list, new_fields: list, cancelled) -> tuple:
     writer = _writer(path, table, fields, plan["wkb_type"], plan["crs"], plan["transform_context"])
     try:
         for index, row in enumerate(rows):
-            if index % sm.CHECK_EVERY == 0 and _is_cancelled(cancelled):
+            if index % sm.CHECK_EVERY == 0 and net.is_cancelled(cancelled):
                 raise InterruptedError("Stopped while the output was written")
             feature = QgsFeature(fields)
             feature.setGeometry(row["geometry"])
@@ -738,7 +730,7 @@ def _write_ellipses(plan: dict, found: dict, cancelled) -> tuple:
              else f"{plan['std_devs']} standard deviation(s)")
     try:
         for shape in found["shapes"]:
-            if _is_cancelled(cancelled):
+            if net.is_cancelled(cancelled):
                 raise InterruptedError("Stopped while the output was written")
             feature = QgsFeature(fields)
             feature.setGeometry(QgsGeometry.fromPolygonXY([[QgsPointXY(x, y) for x, y in shape["ring"]]]))
@@ -815,10 +807,10 @@ def _spatial_statistics(args: dict) -> dict:
     state: dict = {"read": 0, "cut": False}
     rows: list = []
     try:
-        plan = _run_on_main_thread(_plan, args, timeout=60)
+        plan = run_on_main_thread(_plan, args, timeout=60)
         if "_error" in plan:
             return plan
-        opened = _run_on_main_thread(_open, plan, state, timeout=60)
+        opened = run_on_main_thread(_open, plan, state, timeout=60)
         if opened:
             return opened
         _read(state, plan, rows, cancelled)
@@ -841,7 +833,7 @@ def _spatial_statistics(args: dict) -> dict:
                 return found["_refusal"]
             path, table = _write_ellipses(plan, found, cancelled)
             name = plan["output_name"] or f"{plan['layer']} ellipse"
-            added = _run_on_main_thread(_add_layer, plan, path, table, "", name, timeout=60)
+            added = run_on_main_thread(_add_layer, plan, path, table, "", name, timeout=60)
             if "_error" in added:
                 return added
             result.update(_ellipse_result(plan, found))
@@ -853,7 +845,7 @@ def _spatial_statistics(args: dict) -> dict:
             path, table, names = _write_copy(plan, rows, computed["fields"], cancelled)
             default = "hotspots (Gi*)" if plan["method"] == "getis_ord_gi_star" else "clusters (local Moran)"
             name = plan["output_name"] or f"{plan['layer']} {default}"
-            added = _run_on_main_thread(_add_layer, plan, path, table, names[2], name, timeout=60)
+            added = run_on_main_thread(_add_layer, plan, path, table, names[2], name, timeout=60)
             if "_error" in added:
                 return added
             result["field"] = plan["field"]["name"]

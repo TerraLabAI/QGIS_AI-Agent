@@ -27,7 +27,7 @@ from __future__ import annotations
 import os
 
 from ..core.logger import log, log_warning
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
+from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_api_version, sibling_plugin
 
 
 
@@ -38,12 +38,14 @@ PRODUCTS = {
     "ai_segment": {
         "keys": tuple(AI_SEGMENT_KEYS),
         "product_id": "ai-segmentation",
+        "min_api": 3,
 
         "commands": ("detect_auto", "auto_detect_status", "cancel_auto", "set_auto_zone"),
     },
     "ai_edit": {
         "keys": tuple(AI_EDIT_KEYS),
         "product_id": "ai-edit",
+        "min_api": 2,
     },
 }
 
@@ -93,11 +95,9 @@ def presence(keys) -> dict:
 
 
     import qgis.utils
-    loaded = getattr(qgis.utils, "plugins", None) or {}
-    for key in keys:
-        plugin = loaded.get(key)
-        if plugin is not None:
-            return {"state": "loaded", "folder": key, "plugin": plugin}
+    key, plugin = sibling_plugin(keys)
+    if plugin is not None:
+        return {"state": "loaded", "folder": key, "plugin": plugin}
     available = set(getattr(qgis.utils, "available_plugins", None) or [])
     folder = next((key for key in keys if key in available), None)
     if folder is None:
@@ -263,9 +263,13 @@ def _press_connect(plugin) -> bool:
 
 def outdated(tool: str, plugin) -> bool:
 
-    commands = PRODUCTS[tool].get("commands") or ()
+    product = PRODUCTS[tool]
+    commands = product.get("commands") or ()
     api = getattr(plugin, "mcp_api", None)
-    return bool(commands) and (api is None or any(getattr(api, name, None) is None for name in commands))
+    if commands and (api is None or any(getattr(api, name, None) is None for name in commands)):
+        return True
+    version = sibling_api_version(plugin)
+    return version is not None and version < product.get("min_api", 0)
 
 
 def setup(tool: str) -> dict:

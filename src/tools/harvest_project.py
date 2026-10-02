@@ -35,7 +35,7 @@ from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import guards
 from ._compat import enum_value
-from .core_tools import _jsonable_value
+from .layer_lookup import _jsonable_value
 
 
 def _runs_own_sql(args: dict) -> bool:

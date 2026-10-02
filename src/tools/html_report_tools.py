@@ -184,7 +184,7 @@ def _render_figures(declared) -> tuple[dict, dict, list]:
         if not report_page.FIGURE_ID.match(name):
             errors.append({"id": name, "error": "id must be letters, digits, - or _, at most 64 characters"})
             continue
-        render_args = {"warmup": True}
+        render_args = {}
         for key in ("layer_names", "extent", "crs"):
             if entry.get(key):
                 render_args[key] = entry[key]

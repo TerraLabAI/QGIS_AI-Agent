@@ -18,6 +18,7 @@ import socket
 import ssl
 import struct
 import time
+import zlib
 from typing import Callable
 from urllib.parse import quote, unquote, urlsplit
 
@@ -315,11 +316,25 @@ class SocketReader:
 
 def read_frame(reader: SocketReader, require_mask: bool) -> tuple[bool, int, bytes]:
 
+    fin, _compressed, opcode, payload = read_frame_ext(reader, require_mask, False)
+    return fin, opcode, payload
+
+
+def read_frame_ext(reader: SocketReader, require_mask: bool,
+                   deflate: bool) -> tuple[bool, bool, int, bytes]:
+
+
+
+
+
     b1, b2 = reader.read_exact(2)
     fin = bool(b1 & 0x80)
-    if b1 & 0x70:
-        raise WsProtocolError("reserved bits set (no extension was negotiated)")
     opcode = b1 & 0x0F
+    compressed = bool(b1 & 0x40)
+    if b1 & 0x30 or (compressed and not deflate):
+        raise WsProtocolError("reserved bits set (no extension was negotiated)")
+    if compressed and opcode not in (OP_TEXT, OP_BINARY):
+        raise WsProtocolError("compressed bit on a control or continuation frame")
     if opcode not in (OP_CONT, OP_TEXT, OP_BINARY, OP_CLOSE, OP_PING, OP_PONG):
         raise WsProtocolError(f"unknown opcode {opcode}")
     masked = bool(b2 & 0x80)
@@ -345,7 +360,7 @@ def read_frame(reader: SocketReader, require_mask: bool) -> tuple[bool, int, byt
 
 
 
-    return fin, opcode, payload
+    return fin, compressed, opcode, payload
 
 
 def decode_text(payload: bytes) -> str:
@@ -353,3 +368,80 @@ def decode_text(payload: bytes) -> str:
         return payload.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise WsProtocolError(f"invalid UTF-8 in text frame: {exc}", 1007) from exc
+
+
+
+
+
+
+DEFLATE_OFFER = "permessage-deflate; client_max_window_bits"
+_DEFLATE_TAIL = b"\x00\x00\xff\xff"
+
+
+class Deflate:
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, client_bits: int = 15, client_no_takeover: bool = False,
+                 server_no_takeover: bool = False):
+        self.client_bits = client_bits
+        self.client_no_takeover = client_no_takeover
+        self.server_no_takeover = server_no_takeover
+        self._encoder = None
+        self._decoder = None
+
+    @classmethod
+    def from_answer(cls, header: str) -> Deflate:
+
+        parts = [p.strip() for p in header.split(";")]
+        if parts[0].lower() != "permessage-deflate" or "," in header:
+            raise WsHandshakeError(f"server enabled an extension that was not offered: {header}")
+        out = cls()
+        seen = set()
+        for part in parts[1:]:
+            name, _, value = part.partition("=")
+            name, value = name.strip().lower(), value.strip().strip('"')
+            if name in seen:
+                raise WsHandshakeError(f"duplicate {name} in the deflate answer")
+            seen.add(name)
+            if name == "client_no_context_takeover" and not value:
+                out.client_no_takeover = True
+            elif name == "server_no_context_takeover" and not value:
+                out.server_no_takeover = True
+            elif name == "client_max_window_bits" and value.isdigit() and 8 <= int(value) <= 15:
+                out.client_bits = int(value)
+            elif name == "server_max_window_bits" and value.isdigit() and 8 <= int(value) <= 15:
+                pass
+            else:
+                raise WsHandshakeError(f"unexpected deflate parameter: {part}")
+        return out
+
+    @property
+    def sends_compressed(self) -> bool:
+
+
+        return self.client_bits >= 9
+
+    def compress(self, data: bytes) -> bytes:
+        if self._encoder is None or self.client_no_takeover:
+            self._encoder = zlib.compressobj(6, zlib.DEFLATED, -self.client_bits)
+        out = self._encoder.compress(data) + self._encoder.flush(zlib.Z_SYNC_FLUSH)
+        return out[:-4] if out.endswith(_DEFLATE_TAIL) else out
+
+    def decompress(self, data: bytes, limit: int = MAX_MESSAGE_BYTES) -> bytes:
+        if self._decoder is None or self.server_no_takeover:
+            self._decoder = zlib.decompressobj(-15)
+        try:
+            out = self._decoder.decompress(data + _DEFLATE_TAIL, limit + 1)
+        except zlib.error as exc:
+            raise WsProtocolError(f"compressed message is corrupt: {exc}", 1007) from exc
+        if len(out) > limit or self._decoder.unconsumed_tail:
+            raise WsProtocolError("decompressed message exceeds the 16 MiB limit", 1009)
+        return out

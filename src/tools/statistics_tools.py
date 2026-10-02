@@ -30,10 +30,11 @@ from qgis.core import (
 )
 
 from ..core import net, tuning
+from ..core.background import run_on_main_thread
 from ..core.licence import set_layer_attribution
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import Tool, ToolRegistry
-from .data_tools import _avoid_reserved_name, _run_on_main_thread
+from .data_tools import _avoid_reserved_name
 
 
 
@@ -224,7 +225,7 @@ def _map_statistic(args: dict) -> dict:
                   "Loaded from an address given by the caller; the join was not performed or checked here.")
     abstract = (f"{name}. Source: {source or 'not stated'}. Year: {year or 'not stated'}. "
                 f"Licence: {licence or 'not stated'}. {provenance}")
-    built = _run_on_main_thread(_build, str(path), name, field, classes, mode_name,
+    built = run_on_main_thread(_build, str(path), name, field, classes, mode_name,
                                 str(args.get("color_ramp") or ""), credit, abstract,
                                 licence, source, url if joined_here else "")
     if isinstance(built, dict) and built.get("_error"):

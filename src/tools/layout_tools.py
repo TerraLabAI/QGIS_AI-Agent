@@ -76,12 +76,14 @@ try:
 except ImportError:
     Qgis = None
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
-from qgis.PyQt.QtGui import QFont
+from qgis.PyQt.QtGui import QFont, QFontInfo
 from qgis.utils import iface
 
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry
-from .layer_lookup import _find_layer_note, _layer_not_found_error
+from ._layers import resolve_layer_note
+from .colour_text import hex_from_qcolor, qcolor_from_text
+from .layer_lookup import _layer_not_found_error
 
 _PAGE_SIZES = ["A4", "A3", "A2", "A1", "A0", "Letter"]
 
@@ -183,6 +185,7 @@ def register_layout_tools(registry: ToolRegistry):
                 "map_theme": {"type": "string"},
                 "crs": {"type": "string"},
                 "item_id": {"type": "string"},
+                "background_color": {"type": "string"},
             },
             "required": ["layout_name"],
         },
@@ -232,6 +235,10 @@ def register_layout_tools(registry: ToolRegistry):
                     "enum": ["left", "center", "right"],
                 },
                 "item_id": {"type": "string"},
+                "font_color": {"type": "string"},
+                "font_family": {"type": "string"},
+                "frame": {"type": "boolean"},
+                "background_color": {"type": "string"},
             },
             "required": ["layout_name"],
         },
@@ -312,6 +319,8 @@ def register_layout_tools(registry: ToolRegistry):
                 "split_layers": {"type": "boolean"},
                 "hide_headers": {"type": "boolean"},
                 "map_id": {"type": "string"},
+                "frame": {"type": "boolean"},
+                "background_color": {"type": "string"},
             },
             "required": ["layout_name"],
         },
@@ -1291,13 +1300,54 @@ def _edited(layout, item, placement: dict, args: dict, read) -> dict:
     return result
 
 
+def _apply_box_style(item, args: dict, text: bool = False):
+
+
+
+
+
+    colours = {}
+    for key in ("background_color", "font_color") if text else ("background_color",):
+        if args.get(key) is not None:
+            colours[key] = qcolor_from_text(str(args[key]))
+            if not colours[key].isValid():
+                return None, {"_error": f"{key} {args[key]!r} is not a colour.", "code": "INVALID_ARGS",
+                              "suggestion": "A colour is written #rrggbb."}
+    applied = {}
+    if args.get("frame") is not None:
+        item.setFrameEnabled(bool(args["frame"]))
+        applied["frame"] = item.frameEnabled()
+    if "background_color" in colours:
+        item.setBackgroundEnabled(True)
+        item.setBackgroundColor(colours["background_color"])
+        applied["background_color"] = hex_from_qcolor(item.backgroundColor())
+    if text and args.get("font_family"):
+        font = QFont(item.font())
+        font.setFamily(str(args["font_family"]))
+        item.setFont(font)
+        applied["font_family"] = QFontInfo(font).family()
+        if applied["font_family"].casefold() != str(args["font_family"]).casefold():
+            applied["font_family_note"] = (f"{str(args['font_family'])!r} is not installed here; "
+                                           f"QGIS draws the text in {applied['font_family']!r}.")
+    if "font_color" in colours:
+        if hasattr(item, "textFormat"):
+            text_format = item.textFormat()
+            text_format.setColor(colours["font_color"])
+            item.setTextFormat(text_format)
+            applied["font_color"] = hex_from_qcolor(item.textFormat().color())
+        else:
+            item.setFontColor(colours["font_color"])
+            applied["font_color"] = hex_from_qcolor(item.fontColor())
+    return applied, None
+
+
 def _map_layers_for_lock(args):
 
     names = args.get("layers")
     if names:
         layers, missing = [], []
         for name in names:
-            layer, _ = _find_layer_note(name)
+            layer, _ = resolve_layer_note(name)
             if layer is None:
                 missing.append(str(name))
             else:
@@ -1756,7 +1806,7 @@ def _subject(args: dict):
     extent = args.get("extent")
     layer_name = None if extent else args.get("layer")
     if layer_name:
-        layer, _note = _find_layer_note(layer_name)
+        layer, _note = resolve_layer_note(layer_name)
         if layer is None:
             return None, "", _layer_not_found_error(layer_name)
         project = QgsProject.instance()
@@ -1993,6 +2043,9 @@ def _add_layout_map(args: dict) -> dict:
     map_item.attemptMove(_mm_point(args["x"], args["y"]))
     map_item.attemptResize(_mm_size(args["width"], args["height"]))
     map_item.setFrameEnabled(bool(args.get("frame", True)))
+    style, error = _apply_box_style(map_item, args)
+    if error:
+        return error
     if map_crs is not None:
         map_item.setCrs(map_crs)
     layout.addLayoutItem(map_item)
@@ -2054,6 +2107,7 @@ def _add_layout_map(args: dict) -> dict:
             return locked
     result = _with_new_item(layout, map_item)
     result.update(placement)
+    result.update(style)
     if source:
         result["fitted_to"] = source
     if args.get("layer") and args.get("extent"):
@@ -2102,11 +2156,30 @@ def _frame_crs_facts(map_item) -> dict:
             f"{frame_crs.authid()} draws in degrees: at {abs(centre):.0f} degrees of latitude shapes print "
             f"{stretch:.2f} times wider east-west than north-south, and a scale bar holds near the frame's "
             "centre only; the crs argument draws the frame in a projected CRS without changing the project's")
+
+
+    area = frame_crs.bounds()
+    project = QgsProject.instance()
+    if not frame_crs.isGeographic() and area is not None and not area.isEmpty():
+        try:
+            seen = QgsCoordinateTransform(frame_crs, QgsCoordinateReferenceSystem("EPSG:4326"),
+                                          project.transformContext()).transformBoundingBox(map_item.extent())
+        except Exception:  # noqa: BLE001
+            seen = None
+        if seen is None or not seen.intersects(area):
+            where = (f" It lies near longitude {seen.center().x():.1f}, latitude {seen.center().y():.1f}."
+                     if seen is not None and not seen.isEmpty() else "")
+            facts["extent_note"] = (
+                f"The frame's extent is outside the area {frame_crs.authid()} is defined for (longitude "
+                f"{area.xMinimum():.1f} to {area.xMaximum():.1f}, latitude {area.yMinimum():.1f} to "
+                f"{area.yMaximum():.1f}).{where} extent is read in the project's CRS "
+                f"({project.crs().authid()}) and shown in the frame's.")
     return facts
 
 
 _MAP_EDIT_READS = frozenset({"layout_name", "item_id", "x", "y", "width", "height", "extent", "layer", "frame",
-                             "scale", "lock_item", "lock_layers", "lock_style", "layers", "map_theme"})
+                             "background_color", "scale", "lock_item", "lock_layers", "lock_style", "layers",
+                             "map_theme"})
 
 
 def _edit_layout_map(layout, args: dict) -> dict:
@@ -2133,8 +2206,9 @@ def _edit_layout_map(layout, args: dict) -> dict:
                         "code": "INVALID_EXTENT"}
         subject = rect
     shown = QgsRectangle(map_item.extent())
-    if args.get("frame") is not None:
-        map_item.setFrameEnabled(bool(args["frame"]))
+    style, error = _apply_box_style(map_item, args)
+    if error:
+        return error
     placement = _edit_geometry(layout, map_item, args, resizable=True, inset=_is_inset(map_item))
     if subject is not None:
         map_item.zoomToExtent(subject)
@@ -2158,6 +2232,7 @@ def _edit_layout_map(layout, args: dict) -> dict:
         if locked.get("_error"):
             return locked
     result = _edited(layout, map_item, placement, args, _MAP_EDIT_READS)
+    result.update(style)
     shown = map_item.extent()
     result["extent_shown"] = [round(shown.xMinimum(), 6), round(shown.yMinimum(), 6),
                               round(shown.xMaximum(), 6), round(shown.yMaximum(), 6)]
@@ -2304,12 +2379,15 @@ def _add_layout_label(args: dict) -> dict:
     text = args["text"]
     existing = next((item for item in layout.items() if _same_label(item, text, args["x"], args["y"])), None)
     if existing is not None:
-        existing.attemptResize(_mm_size(args["width"], args["height"]))
-        result = _with_new_item(layout, existing)
+
+
+        result = _edit_layout_label(layout, {**args, "item_id": existing.uuid()})
+        if result.get("_error"):
+            return result
+        result["new_item_uuid"] = existing.uuid()
         result["reused_existing_label"] = True
         result["note"] = ("This label was already on the layout at this spot with this text, so it was "
-                          "resized rather than drawn a second time over itself. The sheet is as you "
-                          "wanted it; move on.")
+                          "changed in place rather than drawn a second time over itself.")
         return result
 
     label = QgsLayoutItemLabel(layout)
@@ -2322,6 +2400,9 @@ def _add_layout_label(args: dict) -> dict:
     label.setFont(font)
 
     _label_halign(label, args.get("halign"))
+    style, error = _apply_box_style(label, args, text=True)
+    if error:
+        return error
 
     label.attemptMove(_mm_point(args["x"], args["y"]))
     label.attemptResize(_mm_size(args["width"], args["height"]))
@@ -2332,6 +2413,7 @@ def _add_layout_label(args: dict) -> dict:
                            resizable=True)
     result = _with_new_item(layout, label)
     result.update(placement)
+    result.update(style)
     return result
 
 
@@ -2348,12 +2430,15 @@ def _label_halign(label, halign) -> None:
 
 
 _LABEL_EDIT_READS = frozenset({"layout_name", "item_id", "text", "x", "y", "width", "height", "font_size", "bold",
-                               "halign"})
+                               "halign", "font_color", "font_family", "frame", "background_color"})
 
 
 def _edit_layout_label(layout, args: dict) -> dict:
 
     label, error = _find_item(layout, args["item_id"], QgsLayoutItemLabel, "label")
+    if error:
+        return error
+    style, error = _apply_box_style(label, args, text=True)
     if error:
         return error
     if args.get("text") is not None:
@@ -2373,7 +2458,9 @@ def _edit_layout_label(layout, args: dict) -> dict:
     if placement or args.get("x") is not None or args.get("y") is not None:
         here = label.positionWithUnits()
         label.setCustomProperty(_ASKED_AT, f"{here.x()},{here.y()}")
-    return _edited(layout, label, placement, args, _LABEL_EDIT_READS)
+    result = _edited(layout, label, placement, args, _LABEL_EDIT_READS)
+    result.update(style)
+    return result
 
 
 def _legend_patch_shape(value: str):
@@ -2500,6 +2587,9 @@ def _add_layout_legend(args: dict) -> dict:
         return error
 
     has_position = args.get("x") is not None and args.get("y") is not None
+    if args.get("background_color") is not None and not qcolor_from_text(str(args["background_color"])).isValid():
+        return {"_error": f"background_color {args['background_color']!r} is not a colour.", "code": "INVALID_ARGS",
+                "suggestion": "A colour is written #rrggbb."}
     editing = bool(str(args.get("legend_id") or "").strip())
     if editing:
         legend, error = _find_legend(layout, args["legend_id"])
@@ -2557,6 +2647,7 @@ def _add_layout_legend(args: dict) -> dict:
 
 
         layout.addLayoutItem(legend)
+    style, _ = _apply_box_style(legend, args)
     removed = _legend_pick_layers(legend, args.get("layers"), args.get("hide_layers"))
     defaults = {} if editing else _default_curation(legend, args)
     curation = _curate_legend(legend, args)
@@ -2612,6 +2703,7 @@ def _add_layout_legend(args: dict) -> dict:
     result["entries"] = entries
     result["linked_map"] = map_item.uuid() if map_item else None
     result["columns"] = legend.columnCount()
+    result.update(style)
     if curation:
         result["curation"] = curation
     if defaults:
@@ -3129,6 +3221,8 @@ def _get_layout_info(args: dict) -> dict:
 
         return report_summary(layout)
     result = _layout_summary(layout)
+    result["edit_in_place"] = ("A uuid as item_id on add_layout_map, add_layout_label, add_layout_scalebar or "
+                               "add_layout_north_arrow, or as legend_id on add_layout_legend, changes that item.")
     from ..core.layout_quality import assess_layout
     result["layout_checks"] = assess_layout(layout)
     furniture = furniture_check(layout)

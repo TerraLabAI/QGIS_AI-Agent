@@ -30,7 +30,7 @@ from ..core import limits
 from ..core.background import run_on_main_thread
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
-from .core_tools import _find_layer, _layer_not_found_error
+from .layer_lookup import _find_layer, _layer_not_found_error
 
 
 def _encode_jpeg(image, quality=70) -> bytes:
@@ -83,7 +83,6 @@ def _is_tiled_raster(layer) -> bool:
 
 
 
-
     try:
         if isinstance(layer, QgsRasterLayer):
             return layer.providerType() in ("wms", "wmts", "xyz")
@@ -128,49 +127,7 @@ def _apply_background(settings, background) -> None:
             pass
 
 
-def _hash_image(image) -> str:
-
-
-    bits = image.bits()
-    bits.setsize(image.sizeInBytes())
-    return hashlib.sha256(bytes(bits)).hexdigest()
-
-
-
-
-
-
-
-
-MAX_FRAME_STEPS = 120
-
 _UNSAFE_IN_A_FRAME_NAME = re.compile(r"[^A-Za-z0-9_.-]")
-
-
-def _empty_memory_provider(provider) -> None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    try:
-        ids = list(provider.allFeatureIds())
-    except (AttributeError, RuntimeError):
-        ids = []
-    if ids:
-        provider.deleteFeatures(ids)
-    else:
-        provider.truncate()
 
 
 def _safe_frame_prefix(value, default: str) -> str:
@@ -212,36 +169,6 @@ def _prepare_frame_folder(path: str, prefix: str = ""):
     return None
 
 
-def _render_stable(settings, max_passes: int = 3):
-
-
-
-
-
-
-
-
-
-
-
-    last_hash = None
-    image = None
-    errors = []
-    passes = 0
-    for _ in range(max(1, max_passes)):
-        job = QgsMapRendererParallelJob(settings)
-        job.start()
-        job.waitForFinished()
-        image = job.renderedImage()
-        errors = [{"layer_id": e.layerID, "message": e.message} for e in job.errors()]
-        passes += 1
-        digest = _hash_image(image)
-        if digest == last_hash:
-            return image, passes, True, errors
-        last_hash = digest
-    return image, passes, False, errors
-
-
 
 
 _RENDER_PASS_SECONDS = 120.0
@@ -263,6 +190,7 @@ _RENDER_PASS_FLOOR_S = 8.0
 
 
 def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
+
 
 
 
@@ -299,6 +227,7 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
                 if ended is not None:
                     holder["image"] = ended.renderedImage()
                     holder["errors"] = [{"layer_id": e.layerID, "message": e.message} for e in ended.errors()]
+                    holder["labels"] = ended.takeLabelingResults()
             finally:
                 done.set()
                 QTimer.singleShot(0, lambda: _JOBS_ALIVE.pop(key, None))
@@ -324,16 +253,16 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
                 pass
         run_on_main_thread(cancel, timeout=10)
         if stopped:
-            return None, [{"layer_id": "", "message": _STOPPED}]
+            return None, [{"layer_id": "", "message": _STOPPED}], None
 
 
         layers_s = holder.get("layers_s")
         where = (f"the layers were drawn after {layers_s:.0f} s and the labels were still being placed"
                  if layers_s is not None else "the layers were still drawing")
-        return None, [{"layer_id": "", "message": f"render not finished after {budget:.0f} s: {where}"}]
+        return None, [{"layer_id": "", "message": f"render not finished after {budget:.0f} s: {where}"}], None
     if "image" not in holder:
-        return None, [{"layer_id": "", "message": "the render job ended without an image"}]
-    return holder["image"], holder.get("errors", [])
+        return None, [{"layer_id": "", "message": "the render job ended without an image"}], None
+    return holder["image"], holder.get("errors", []), holder.get("labels")
 
 
 
@@ -509,19 +438,25 @@ def _in_project_order(layers) -> tuple:
 
 def _slow_layer_names(layers) -> list:
 
-    names = []
+
+
+
+
+    remote, pixels = [], []
     for layer in layers or ():
         try:
-            provider = ""
             try:
                 provider = str(layer.providerType() or "").lower()
+                source = str(layer.source() or "").lower()
             except (AttributeError, RuntimeError):
-                provider = ""
-            if provider in _REMOTE_PROVIDERS or isinstance(layer, (QgsRasterLayer, _vector_tile_class())):
-                names.append(layer.name())
+                provider, source = "", ""
+            if provider in _REMOTE_PROVIDERS or "://" in source.split("|")[0] or "/vsicurl" in source:
+                remote.append(layer.name())
+            elif isinstance(layer, (QgsRasterLayer, _vector_tile_class())):
+                pixels.append(layer.name())
         except (AttributeError, RuntimeError):
             continue
-    return names
+    return remote or pixels
 
 
 def _extent_in(layer, destination) -> QgsRectangle | None:
@@ -755,6 +690,7 @@ def _keep_render(fingerprint: str, image, plan: dict, passes: int) -> None:
     _RENDER_CACHE[fingerprint] = {
         "at": time.monotonic(), "run": _current_run_token(), "image": image, "passes": passes,
         "layers_rendered": plan["layers_rendered"], "width": plan["width"], "height": plan["height"],
+        "labels": plan.get("labels"),
     }
 
 
@@ -768,7 +704,13 @@ def _shrink_for_fallback(settings, width, height) -> tuple:
     return small_w, small_h
 
 
-def _render_stable_async(settings, max_passes: int = 3, warm: bool = False, confirm: bool = True):
+def _render_once_async(settings, tiles: bool):
+
+
+
+
+
+
 
 
 
@@ -783,42 +725,43 @@ def _render_stable_async(settings, max_passes: int = 3, warm: bool = False, conf
 
 
     deadline = time.monotonic() + _RENDER_TOTAL_SECONDS
-    if warm:
+    image, errors, labels = _render_pass_async(settings, _RENDER_TOTAL_SECONDS)
+    if image is None:
+        return None, 1, False, errors, None
+    if not (errors or (tiles and _image_is_uniform(image))):
+        return image, 1, True, errors, labels
+    left = deadline - time.monotonic()
+    if left < _RENDER_PASS_FLOOR_S:
+        return image, 1, False, errors, labels
+    again, again_errors, again_labels = _render_pass_async(settings, left)
+    if again is None:
+        if any(e.get("message") == _STOPPED for e in again_errors):
+            return None, 2, False, again_errors, None
+        return image, 2, False, errors, labels
+    return again, 2, not (tiles and _image_is_uniform(again)), again_errors, again_labels
 
 
-
-        _render_pass_async(settings, _RENDER_TOTAL_SECONDS / 3.0)
-    last_hash = None
-    image = None
-    errors = []
-    passes = 0
-    for _ in range(max(1, max_passes)):
-        left = deadline - time.monotonic()
-        if left < _RENDER_PASS_FLOOR_S and image is not None:
-            break
-        got, got_errors = _render_pass_async(settings, left)
-        passes += 1
-        if got is None and any(e.get("message") == _STOPPED for e in got_errors):
-            return None, passes, False, got_errors
-        if got is None:
-
-
-            if image is None:
-                return None, passes, False, got_errors
-            return image, passes, False, errors
-        image, errors = got, got_errors
-        if not confirm:
-            return image, passes, True, errors
-        digest = _hash_image(image)
-        if digest == last_hash:
+def _label_facts(results, settings, layer_ids: list) -> list:
 
 
 
 
-            if not (warm and _image_is_uniform(image)):
-                return image, passes, True, errors
-        last_hash = digest
-    return image, passes, False, errors
+    from .harvest_canvas import _labels_in_view, _labels_placed
+
+    facts = []
+    project = QgsProject.instance()
+    for layer_id in layer_ids:
+        layer = project.mapLayer(layer_id)
+        placed = _labels_placed(layer_id, results) if layer is not None else None
+        if placed is None:
+            continue
+        entry = {"layer": layer.name(), "drawn": placed[0]}
+        entry.update(_labels_in_view(layer, None, placed[1],
+                                     view=(settings.visibleExtent(), settings.destinationCrs())))
+        if placed[2]:
+            entry["overlapping"] = placed[2]
+        facts.append(entry)
+    return facts
 
 
 def _blank_note(image, planned: dict) -> dict:
@@ -854,6 +797,14 @@ def _blank_note(image, planned: dict) -> dict:
             "zoom_to_layer, would draw it; this is a framing mistake, not a broken layer.")
         note["data_extent"] = data
         note["off_extent"] = outside
+        return note
+    if not planned.get("tiles", True):
+
+
+        painted = ", ".join(inside[:8]) or "any of the layers"
+        note["note"] = (f"Every pixel is the same colour: nothing was painted of {painted}"
+                        + (", whose data lies inside this extent" if inside else "")
+                        + ". Any error QGIS raised for a layer is in render_errors.")
         return note
     note["note"] = ("Every pixel is the same colour. Over a tile layer this is usually tiles that have "
                     "not arrived yet, so a second render often differs. When a second render is blank "
@@ -904,7 +855,7 @@ def _render_answer(args: dict, image, planned: dict, passes: int, stable: bool, 
     if "_error" in result:
         return result
     result.update(_blank_note(image, planned))
-    keys = ["extent_note", "size_note", "order_note", "layout_note", "left_out", "canvas_unchanged"]
+    keys = ["extent_note", "size_note", "order_note", "layout_note", "left_out", "canvas_unchanged", "labels"]
     if planned.get("off_extent"):
 
 
@@ -921,7 +872,38 @@ def _render_answer(args: dict, image, planned: dict, passes: int, stable: bool, 
 _TARGETS = frozenset({"canvas", "layout", "file"})
 
 
+def _layout_page(args: dict) -> dict:
+
+
+
+
+
+
+
+    from . import layout_ready, render_look
+
+    started = run_on_main_thread(render_look.layout_page_start, args, timeout=30)
+    if "_error" in started:
+        return started
+    ready = started["ready"]
+    try:
+        layout_ready.wait(ready, _RENDER_TOTAL_SECONDS)
+        if ready["stopped"]:
+            return {"_error": "The render was stopped.", "code": "CANCELLED"}
+        if ready["unfinished"]:
+            late = ready["unfinished"]
+            return {"_error": (f"The maps of page {started['page']} of '{started['layout_name']}' did not finish "
+                               f"drawing in {_RENDER_TOTAL_SECONDS:.0f} s."),
+                    "slow_layers": late,
+                    "suggestion": (f"Still drawing: {', '.join(late[:6])}. set_layers_visibility hides a heavy "
+                                   "layer; a smaller page or map frame draws less.")}
+        return run_on_main_thread(render_look.layout_page_draw, started, timeout=60)
+    finally:
+        layout_ready.discard(ready)
+
+
 def _render_target(args: dict) -> dict:
+
 
 
 
@@ -934,7 +916,7 @@ def _render_target(args: dict) -> dict:
     if isinstance(box, dict):
         return box
     if target == "layout":
-        drawn = run_on_main_thread(render_look.layout_page_plan, args, timeout=60)
+        drawn = _layout_page(args)
     else:
         drawn = render_look.file_image(args)
     if "_error" in drawn:
@@ -966,8 +948,7 @@ def _render_map(args: dict) -> dict:
     planned = run_on_main_thread(_plan_render, args, timeout=30)
     if "_error" in planned:
         return planned
-    settings, width, height, warm = (planned["settings"], planned["width"],
-                                     planned["height"], planned["warm"])
+    settings, width, height = planned["settings"], planned["width"], planned["height"]
 
 
 
@@ -977,7 +958,7 @@ def _render_map(args: dict) -> dict:
     if cached is not None:
         kept = dict(planned)
         kept.update(width=cached["width"], height=cached["height"],
-                    layers_rendered=cached["layers_rendered"])
+                    layers_rendered=cached["layers_rendered"], labels=cached.get("labels"))
         result = _render_answer(args, cached["image"], kept, cached["passes"], True, [])
         if "_error" not in result:
             result["unchanged"] = True
@@ -987,8 +968,7 @@ def _render_map(args: dict) -> dict:
         return result
 
     began = time.monotonic()
-    image, passes, stable, render_errors = _render_stable_async(settings, warm=warm,
-                                                                confirm=planned.get("tiles", True))
+    image, passes, stable, render_errors, labels = _render_once_async(settings, planned["tiles"])
     full_errors = list(render_errors)
     if image is None and any(e.get("message") == _STOPPED for e in render_errors):
         return {"_error": "The render was stopped.", "code": "CANCELLED"}
@@ -998,7 +978,7 @@ def _render_map(args: dict) -> dict:
 
 
         small = run_on_main_thread(_shrink_for_fallback, settings, width, height, timeout=10)
-        image, render_errors = _render_pass_async(settings, _FALLBACK_SECONDS)
+        image, render_errors, labels = _render_pass_async(settings, _FALLBACK_SECONDS)
         passes += 1
         stable = False
         reduced = small
@@ -1021,6 +1001,9 @@ def _render_map(args: dict) -> dict:
     if reduced is not None:
         planned = dict(planned)
         planned["width"], planned["height"] = reduced
+    if labels is not None and planned.get("labelled"):
+        planned = dict(planned)
+        planned["labels"] = run_on_main_thread(_label_facts, labels, settings, planned["labelled"], timeout=10)
     result = _render_answer(args, image, planned, passes, stable, render_errors)
     if "_error" in result:
         return result
@@ -1102,6 +1085,11 @@ def _plan_render(args: dict) -> dict:
 
     settings = QgsMapSettings()
     settings.setOutputSize(QSize(width, height))
+
+
+
+
+    settings.setTransformContext(QgsProject.instance().transformContext())
     _apply_quality_flags(settings)
 
 
@@ -1200,10 +1188,10 @@ def _plan_render(args: dict) -> dict:
 
     _apply_background(settings, args.get("background"))
     tiles = any(_is_tiled_raster(layer) for layer in layers)
-    warm = bool(args.get("warmup", True)) and tiles
     notes = [note for note in (degrees_note, frame_note) if note]
     plan = {"settings": settings, "layers_rendered": [layer.name() for layer in layers],
-            "width": width, "height": height, "warm": warm, "tiles": tiles, "extent_note": " ".join(notes),
+            "labelled": [layer.id() for layer in layers if isinstance(layer, QgsVectorLayer) and layer.labelsEnabled()],
+            "width": width, "height": height, "tiles": tiles, "extent_note": " ".join(notes),
             "slow_layers": _slow_layer_names(layers), "off_extent": outside, "in_extent": inside,
             "out_of_scale": _out_of_scale(layers, settings)}
     if size_note:

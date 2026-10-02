@@ -154,6 +154,58 @@ def scrub_sensitive(text: str) -> str:
     return cleaned.split(marker, 1)[0] + marker if marker in cleaned else cleaned
 
 
+
+
+
+
+
+_SEG = r"(?:[^\\/\r\n\"'<>|:*?]*\\|[^\\/\r\n\t\"'<>|:*?]*/)"
+_LAST = r"[^\s\\/\"'<>|,;()\[\]]*"
+_URL_RE = re.compile(r"(?i)\b([a-z][a-z0-9+.-]{1,15})://([^\s/\"'<>|\\]*)([^\s\"'<>|]*)")
+_QUOTED_PATH_RE = re.compile(r"([\"'])((?:[A-Za-z]:[\\/]|\\\\|~[\\/]|/[^\s/\"']+/)[^\"'\r\n]*)\1")
+_DRIVE_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]+" + _SEG + "*" + _LAST)
+_UNC_PATH_RE = re.compile(r"(?<![\w\\])\\{2,4}[^\s\\/\"'<>|]+[\\/]+" + _SEG + "*" + _LAST)
+_TILDE_RE = re.compile(r"(?<![\w~])~[\\/]+" + _SEG + "*" + _LAST)
+_UNIX_RE = re.compile(r"(?<![\w.:/\\~<>-])/(?:[^\s/\"'<>|]+/)+[^\s/\"'<>|,;()\[\]]*")
+_EXT_RE = re.compile(r"\.([A-Za-z0-9]{1,8})$")
+
+DETAIL_CHARS = 2000
+
+
+def _path_placeholder(path: str) -> str:
+
+
+    tail = re.split(r"[\\/]+", path.rstrip("\\/. "))[-1] if path else ""
+    if tail.lower().endswith(".py"):
+        return ".../" + tail
+    found = _EXT_RE.search(tail)
+    return f"<file.{found.group(1).lower()}>" if found else "<path>"
+
+
+def _url_placeholder(match) -> str:
+    scheme, host, rest = match.group(1), match.group(2), match.group(3)
+
+    trail = rest[len(rest.rstrip(".,;:!?)]")):]
+    rest = rest[:len(rest) - len(trail)]
+    if scheme.lower() == "file":
+        return _path_placeholder(rest or host) + trail
+    host = host.rsplit("@", 1)[-1]
+    shown = f"{scheme}://{host}/..." if rest.strip("/") else f"{scheme}://{host}"
+    return shown + trail
+
+
+def strip_paths(text: str, limit: int = 0) -> str:
+
+
+    if not text:
+        return ""
+    text = _URL_RE.sub(_url_placeholder, str(text))
+    text = _QUOTED_PATH_RE.sub(lambda m: m.group(1) + _path_placeholder(m.group(2)) + m.group(1), text)
+    for pattern in (_DRIVE_RE, _UNC_PATH_RE, _TILDE_RE, _UNIX_RE):
+        text = pattern.sub(lambda m: _path_placeholder(m.group(0)), text)
+    return text if not limit or len(text) <= limit else text[:limit] + "..."
+
+
 def scrub_secrets(text: str) -> str:
 
     if not text:

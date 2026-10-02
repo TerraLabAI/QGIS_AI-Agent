@@ -54,7 +54,7 @@ import time
 import types
 from collections import OrderedDict
 
-from ..core import code_guard, code_split, limits, net, security, tuning
+from ..core import background, code_guard, code_split, limits, net, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_tree
 from ..core.layer_order import WEB_SERVICE_PROVIDERS
@@ -1015,7 +1015,7 @@ def _read_web_services(code: str, cancel_check) -> dict | None:
             finally:
                 over.set()
 
-        threading.Thread(target=reader, name="execute_code web service read", daemon=True).start()
+        background.start_kept_thread(reader, name="execute_code web service read")
         while not over.wait(POLL_S):
             if callable(cancel_check) and cancel_check():
                 feedback.cancel()

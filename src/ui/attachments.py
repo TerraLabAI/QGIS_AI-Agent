@@ -78,9 +78,6 @@ def _patterns(exts) -> str:
 IMAGE_PATTERNS = _patterns(IMAGE_EXTS)
 DATA_PATTERNS = _patterns(DATA_EXTS)
 DOC_PATTERNS = _patterns(DOC_EXTS)
-ALL_PATTERNS = _patterns(IMAGE_EXTS + DATA_EXTS + DOC_EXTS)
-
-
 def image_filter() -> str:
     return f"{tr('Images')} ({IMAGE_PATTERNS})"
 

@@ -212,6 +212,10 @@ class _QueueRow(QFrame):
 
     def set_arrow(self, shown: bool, enabled: bool, tip: str) -> None:
         self._arrow_shown = bool(shown)
+
+        policy = self.up.sizePolicy()
+        policy.setRetainSizeWhenHidden(self._arrow_shown)
+        self.up.setSizePolicy(policy)
         self.up.setEnabled(bool(enabled))
         self.up.setToolTip(tip)
         self._sync_active()
@@ -625,7 +629,7 @@ class _ChatPanelQueue:
 
 
         if self.composer.connection_state() != "online":
-            self.composer.show_warning(self.tr("Not connected to the agent service. The message stays queued."))
+            self.composer.show_warning(self.tr("Not connected to TerraLab. The message stays queued."))
             return False
         before = self._last_run
         chips = live_layer_chips(item["chips"], layer_name)

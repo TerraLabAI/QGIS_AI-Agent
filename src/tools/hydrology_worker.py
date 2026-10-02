@@ -15,10 +15,10 @@ import struct
 import time
 
 from ..core import limits, machine, net, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import tool_error
-from .data_tools import _run_on_main_thread
 from .hydrology_layers import (
     _add_drainage_layers,
     _add_ramp_raster,
@@ -146,10 +146,10 @@ def _delineate(args: dict, checkpoint) -> dict:
                           "r.watershed then r.water.outlet (GRASS) works without them.")
     gdal.UseExceptions()
 
-    facts = _run_on_main_thread(_dem_facts, str(args["dem"]))
+    facts = run_on_main_thread(_dem_facts, str(args["dem"]))
     if "_error" in facts:
         return facts
-    resolved = _run_on_main_thread(_resolve_outlet, args["outlet"], facts["crs_wkt"])
+    resolved = run_on_main_thread(_resolve_outlet, args["outlet"], facts["crs_wkt"])
     if "_error" in resolved:
         return resolved
     lon, lat = resolved["lon"], resolved["lat"]
@@ -288,7 +288,7 @@ def _delineate(args: dict, checkpoint) -> dict:
 
 
 
-    area_km2 = _run_on_main_thread(_ellipsoid_area_km2, wkb, facts["crs_wkt"])
+    area_km2 = run_on_main_thread(_ellipsoid_area_km2, wkb, facts["crs_wkt"])
 
     to_wgs84 = osr.CoordinateTransformation(raster_srs, wgs84)
     sx = wx0 + (c_s + 0.5) * dx
@@ -296,7 +296,7 @@ def _delineate(args: dict, checkpoint) -> dict:
     s_lon, s_lat, _ = to_wgs84.TransformPoint(sx, sy)
 
     name = str(args.get("name") or f"Watershed {area_km2:.1f} km2")
-    added = _run_on_main_thread(_add_watershed_layer, wkb, facts["crs_wkt"], name, {
+    added = run_on_main_thread(_add_watershed_layer, wkb, facts["crs_wkt"], name, {
         "area_km2": round(area_km2, 3), "mean_slope_deg": round(mean_slope, 2),
         "outlet_lon": round(s_lon, 6), "outlet_lat": round(s_lat, 6), "cells": cells,
     })
@@ -375,7 +375,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
                           "r.stream.extract then r.stream.order (GRASS) works without them.")
     gdal.UseExceptions()
 
-    facts = _run_on_main_thread(_dem_facts, str(args["dem"]))
+    facts = run_on_main_thread(_dem_facts, str(args["dem"]))
     if "_error" in facts:
         return facts
     dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
@@ -404,7 +404,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         return tool_error(f"radius_km {radius_km:g} is over the {_max_radius_km():g} km limit.", "INVALID_ARGS",
                           f"radius_km can go up to {_max_radius_km():g}, same outlet.")
     if args.get("outlet"):
-        resolved = _run_on_main_thread(_resolve_outlet, args["outlet"], facts["crs_wkt"])
+        resolved = run_on_main_thread(_resolve_outlet, args["outlet"], facts["crs_wkt"])
         if "_error" in resolved:
             return resolved
         lat_ref = resolved["lat"]
@@ -421,7 +421,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         r_min, r_max = max(0, row_c - half_rows), min(facts["height"], row_c + half_rows + 1)
         area = "the watershed of the outlet"
     elif args.get("mask_layer"):
-        mask = _run_on_main_thread(_mask_geometry, str(args["mask_layer"]), facts["crs_wkt"])
+        mask = run_on_main_thread(_mask_geometry, str(args["mask_layer"]), facts["crs_wkt"])
         if "_error" in mask:
             return mask
         xmin, ymin, xmax, ymax = mask["extent"]
@@ -563,7 +563,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
 
     name = str(args.get("name") or ("Streams (Strahler)" if min_order == 1 else f"Streams, Strahler {min_order}+"))
     rows.sort(key=lambda row: row[1])
-    added = _run_on_main_thread(_add_stream_layers, facts["crs_wkt"], name, rows, path, timeout=120)
+    added = run_on_main_thread(_add_stream_layers, facts["crs_wkt"], name, rows, path, timeout=120)
 
 
 
@@ -840,7 +840,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
     label, geometries = "", None
     if args.get("area"):
-        area = _run_on_main_thread(_mask_geometry, str(args["area"]), wgs84.ExportToWkt())
+        area = run_on_main_thread(_mask_geometry, str(args["area"]), wgs84.ExportToWkt())
         if "_error" in area:
             area["suggestion"] = str(area.get("suggestion") or "").replace("mask_layer", "area")
             return area
@@ -862,7 +862,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         progress["dem_loaded"] = True
         dem_ref = str(loaded["layer_id"])
     checkpoint()
-    facts = _run_on_main_thread(_dem_facts, dem_ref)
+    facts = run_on_main_thread(_dem_facts, dem_ref)
     if "_error" in facts:
         return facts
     dem_style = {"renderer": facts.get("renderer", "")}
@@ -871,7 +871,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
         stretch = sample_stretch(facts["source"])
         if stretch:
-            dem_style = _run_on_main_thread(_style_dem, facts["layer_id"], stretch) or dem_style
+            dem_style = run_on_main_thread(_style_dem, facts["layer_id"], stretch) or dem_style
     dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
@@ -1075,7 +1075,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
     exits = []
     if args.get("outlet"):
-        resolved = _run_on_main_thread(_resolve_outlet, args["outlet"], analysis_wkt)
+        resolved = run_on_main_thread(_resolve_outlet, args["outlet"], analysis_wkt)
         if "_error" in resolved:
             return resolved
         col = int(math.floor((resolved["x"] - gx0) / gdx))
@@ -1181,7 +1181,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     rows.sort(key=lambda row: row[1])
 
     checkpoint()
-    area_km2 = _run_on_main_thread(_ellipsoid_area_km2, wkb, analysis_wkt)
+    area_km2 = run_on_main_thread(_ellipsoid_area_km2, wkb, analysis_wkt)
     prefix = str(args.get("name") or label or "").strip()
     watershed_name = f"{prefix} watershed {area_km2:.1f} km2" if prefix else f"Watershed {area_km2:.1f} km2"
     streams_name = f"{prefix} streams (Strahler)" if prefix else "Streams (Strahler)"
@@ -1201,7 +1201,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         if "_error" in raster:
             return raster
         checkpoint()
-    added = _run_on_main_thread(_add_drainage_layers, analysis_wkt, streams_name, rows, wkb, watershed_name, {
+    added = run_on_main_thread(_add_drainage_layers, analysis_wkt, streams_name, rows, wkb, watershed_name, {
         "area_km2": round(area_km2, 3), "mean_slope_deg": round(mean_slope, 2),
         "outlet_lon": lon, "outlet_lat": lat, "cells": cells,
     }, path, raster, timeout=120)
@@ -1405,7 +1405,7 @@ def _twi_answer(args, facts, where, grid, inside, invalid, original, accumulatio
                           "A full disk is the likely cause.")
     checkpoint()
     prefix = str(args.get("name") or label or facts["name"]).strip() or "DEM"
-    added = _run_on_main_thread(_add_ramp_raster, path, f"{prefix} TWI", low, max(high, low + 1e-3),
+    added = run_on_main_thread(_add_ramp_raster, path, f"{prefix} TWI", low, max(high, low + 1e-3),
                                 "wetness index", timeout=60)
     if not isinstance(added, dict) or "_error" in added:
         remove_tree(folder)

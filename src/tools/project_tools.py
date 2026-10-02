@@ -18,7 +18,7 @@ from ..core.layer_order import is_remote_vector as _is_remote_vector
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
-from ._widgets import AI_EDIT_KEYS
+from ._widgets import AI_EDIT_KEYS, sibling_plugin
 from .layer_lookup import _duplicate_layer_names, _find_layer, _geometry_type_name, _layer_not_found_error
 
 
@@ -187,8 +187,6 @@ def _project_integrations() -> dict:
 
     integrations: dict = {}
     try:
-        import qgis.utils
-
         from .integration_tools import aiseg_presence
         presence = aiseg_presence()
         plugin = presence["plugin"]
@@ -202,12 +200,10 @@ def _project_integrations() -> dict:
 
             integrations["ai_segmentation"] = {"installed": True, "ready": False, "state": presence["state"]}
 
-        for key in AI_EDIT_KEYS:
-            plugin = qgis.utils.plugins.get(key)
-            if plugin:
-                integrations["ai_edit"] = {"installed": True, "initialized": hasattr(plugin, "_auth_manager")}
-                break
-        if "ai_edit" not in integrations:
+        _, plugin = sibling_plugin(AI_EDIT_KEYS)
+        if plugin:
+            integrations["ai_edit"] = {"installed": True, "initialized": hasattr(plugin, "_auth_manager")}
+        else:
             integrations["ai_edit"] = {"installed": False}
     except Exception:  # nosec B110
         pass
@@ -242,6 +238,84 @@ def _get_project_info(args: dict) -> dict:
     }
 
 
+
+
+
+_WHERE_BUDGET_CHARS = 12_000
+_SOURCE_CHARS = 300
+
+
+def _origin(address: str) -> str:
+
+
+
+    import urllib.parse
+
+    text = str(address or "").strip()
+    while text.startswith("/vsi"):
+        parts = text.split("/", 2)
+        if len(parts) < 3:
+            return ""
+        text = parts[2]
+    try:
+        url = urllib.parse.urlsplit(text)
+        host, port = url.hostname, url.port
+    except ValueError:
+        return ""
+    if not url.scheme or not host:
+        return ""
+    return f"{url.scheme.lower()}://{host}" + (f":{port}" if port else "")
+
+
+def _layer_source(layer) -> str:
+
+
+
+    from qgis.core import QgsDataSourceUri, QgsProviderRegistry
+
+    provider = layer.providerType() or ""
+    source = layer.source() or ""
+    try:
+        parts = QgsProviderRegistry.instance().decodeUri(provider, source) or {}
+    except Exception:  # noqa: BLE001
+        parts = {}
+    path = layer_file_path(layer)
+    if path:
+        name = parts.get("layerName")
+        return f"{path}|layername={name}"[:_SOURCE_CHARS] if name else path
+    if provider in ("memory", "virtual"):
+        return provider
+
+
+    encoded = QgsDataSourceUri()
+    encoded.setEncodedUri(source)
+    plain = QgsDataSourceUri(source[3:] if source.startswith("PG:") else source)
+    for address in (parts.get("url"), parts.get("path"), encoded.param("url"), plain.param("url"),
+                    source[3:] if source.startswith("PG:") else None):
+        origin = _origin(address) if isinstance(address, str) else ""
+        if origin:
+            return f"{provider}: {origin}"
+    host = parts.get("host") or plain.host()
+    return f"{provider}: {host}" if host else provider
+
+
+def _layer_extent(layer) -> list | None:
+
+
+
+
+    if _is_remote_vector(layer):
+        return None
+    try:
+        box = layer.extent()
+        if box.isNull():
+            return None
+        digits = 6 if layer.crs().isGeographic() else 2
+        return [round(v, digits) for v in (box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum())]
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _list_layers(args: dict) -> dict:
     verbose = bool(args.get("verbose", False))
     try:
@@ -262,6 +336,7 @@ def _list_layers(args: dict) -> dict:
     all_layers = [(layer.id(), layer) for layer in ordered]
     all_layers += [(lid, layer) for lid, layer in layers.items() if lid not in placed]
     result = []
+    where_chars = where_layers = 0
     for position, (lid, layer) in enumerate(all_layers[:limit], start=1):
         node = root.findLayer(lid)
         info = {
@@ -280,8 +355,21 @@ def _list_layers(args: dict) -> dict:
             fc = _safe_feature_count(layer)
             info["feature_count"] = fc if fc is not None else "unknown"
             info["geometry_type"] = _geometry_type_name(layer)
+        if verbose and where_chars < _WHERE_BUDGET_CHARS:
+            where = {"extent": _layer_extent(layer)}
+            try:
+                where["source"] = _layer_source(layer)
+            except Exception:  # noqa: BLE001
+                where["source"] = None
+            where = {k: v for k, v in where.items() if v}
+            where_chars += len(dump_json(where))
+            info.update(where)
+            where_layers += 1
         result.append(info)
     out = {"layers": result, "count": len(all_layers)}
+    if verbose and where_layers < len(result):
+        out["extent_and_source_note"] = (f"extent and source for the first {where_layers} layers; "
+                                         f"the rest passed the {_WHERE_BUDGET_CHARS} character budget")
     if len(all_layers) > len(result):
         out["layers_omitted"] = len(all_layers) - len(result)
     return out

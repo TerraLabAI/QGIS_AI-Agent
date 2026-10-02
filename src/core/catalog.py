@@ -41,8 +41,6 @@ FALLBACK_OVERPASS = "https://overpass-api.de/api/interpreter"
 FALLBACK_OWN_OVERPASS = "https://overpass.terra-lab.ai/api/interpreter"
 FALLBACK_MIRRORS = (FALLBACK_OWN_OVERPASS, FALLBACK_OVERPASS)
 
-FALLBACK_SHELF_CAP = 6
-
 
 _SHELF_CAP_MIN, _SHELF_CAP_MAX = 3, 24
 _MAX_BASEMAPS = 40
@@ -264,10 +262,6 @@ def set_connector_shelves(payload) -> None:
     if isinstance(order, list):
         out["order"] = [str(k) for k in order if isinstance(k, str) and k]
     _shelves = out
-
-
-def shelf_cap() -> int:
-    return int(_shelves.get("cap") or FALLBACK_SHELF_CAP)
 
 
 def shelf_order() -> list:

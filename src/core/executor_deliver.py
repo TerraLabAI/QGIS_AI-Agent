@@ -13,7 +13,7 @@ import time
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import layout_show, licence, limits, postcondition, scratch, security, stalls, tuning
+from . import layer_egress, layout_show, licence, limits, postcondition, scratch, security, stalls, tuning
 from .checkpoints import KIND_BEFORE
 from .context import stamp_thread
 from .executor_code import CODE_TOOL
@@ -221,6 +221,11 @@ class _ExecutorDeliver:
             result["layer_count"] = counted
 
 
+        refused = layer_egress.take_refusals(run_id)
+        if refused and isinstance(result, dict):
+            result["network_refused"] = refused
+
+
 
 
 
@@ -235,6 +240,8 @@ class _ExecutorDeliver:
             late = getattr(self.stacker, "from_task", set())
             mine = [lay for lay in added if lay.id() not in late and self.stacker.added_by(lay) == tool_call_id]
             licence.credit_added(mine, result, tool=name, args=args)
+
+            layer_egress.note_run_layers(added)
             licence.credit_added([lay for lay in added if lay not in mine], None)
 
             stamp_thread(added, self._threads.get(run_id, ""))
@@ -382,7 +389,7 @@ class _ExecutorDeliver:
 
 
                 self.history.add(thread_id, KIND_BEFORE, run_id, index, snapshot,
-                                 prompt=self._prompts.get(run_id, ""), fork=False)
+                                 prompt=self._prompts.get(run_id, ""), fork=False, trim_later=True)
         with stalls.probe("snapshot.backups"):
             mutates = guards is not None and name in guards.DATA_MUTATORS
             if danger == Danger.DESTRUCTIVE or mutates:

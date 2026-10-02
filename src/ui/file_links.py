@@ -19,6 +19,13 @@
 
 
 
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import os
@@ -289,6 +296,49 @@ def _plain(text: str) -> str:
     return text.replace("\\", "\\\\")
 
 
+
+
+
+
+_URL = re.compile(r"(?<![\w</])https?://[^\s<>\"'`\x00]+", re.IGNORECASE)
+_URL_TRAILING = _TRAILING + "*_~"
+_URL_PAIRS = {")": "(", "]": "["}
+
+_URL_FILE = re.compile(r"^[^/?#]+\.[A-Za-z0-9]{2,5}$")
+
+
+def url_label(url: str) -> str:
+
+    from urllib.parse import unquote, urlsplit
+
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    segment = unquote(parts.path.rstrip("/").rsplit("/", 1)[-1]) if parts.path else ""
+    if segment and _URL_FILE.match(segment) and not segment.lower().startswith("index."):
+        return segment
+    host = (parts.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    return host or url
+
+
+def _link_url(match) -> str:
+    url = match.group(0)
+    tail = ""
+    while url and (url[-1] in _URL_TRAILING or (
+            url[-1] in _URL_PAIRS and url.count(_URL_PAIRS[url[-1]]) < url.count(url[-1]))):
+        tail = url[-1] + tail
+        url = url[:-1]
+    if "://" not in url or url.endswith("://"):
+        return match.group(0)
+    target = (url.replace("(", "%28").replace(")", "%29").replace(" ", "%20")
+              .replace("[", "%5B").replace("]", "%5D"))
+    title = url.replace("\\", "\\\\").replace('"', '\\"')
+    return f'[{escape_markdown_label(url_label(url))}]({target} "{title}")' + tail
+
+
 def _link_bare(match, budget: _ExistsBudget) -> str:
     candidate = match.group(0)
     path = _longest_existing(candidate, budget)
@@ -342,5 +392,9 @@ def linkify_paths(text: str) -> str:
 
     masked = _FENCED.sub(keep, masked)
     masked = _INLINE_CODE.sub(keep, masked)
+
+
+    masked = _URL.sub(_link_url, masked)
+    masked = _FENCED.sub(keep, masked)
     masked = _CANDIDATE.sub(lambda m: _link_bare(m, budget), masked)
     return re.sub(r"\x00(\d+)\x00", restore, masked)

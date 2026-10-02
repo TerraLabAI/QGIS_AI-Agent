@@ -10,7 +10,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from .controller_actions import _project_path
 from .logger import log_warning
-from .protocol import RunStatus
+from .protocol import CANCEL_PROJECT_CLOSED, RunStatus
 from .snapshot import changed_layer_items
 
 
@@ -76,6 +76,8 @@ class _ControllerProjects:
         run = self._run
         if run is not None and self._executor.main_call_in_flight(run["run_id"]):
             return
+
+        self._executor.drop_pending_after()
         self._executor.history.project_replaced()
         if run is None:
             return
@@ -83,7 +85,7 @@ class _ControllerProjects:
         log_warning(f"Run {run_id[:8]}: the project was closed mid-run, ending the run")
         try:
             self._runs.stop(run_id)
-            self._session.send_cancel(run_id)
+            self._session.send_cancel(run_id, CANCEL_PROJECT_CLOSED)
             self._executor.project_replaced(run_id)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run {run_id[:8]}: a step of ending it on project close failed: {exc}")

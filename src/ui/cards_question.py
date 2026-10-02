@@ -56,7 +56,6 @@ from .card_controls import (
     _Mark,
     _pill,
     ask_head,
-    done_row,
 )
 from .cards_click import _ClickRow
 from .font_scale import scale_px_length, scale_qss_font_px
@@ -283,7 +282,9 @@ class _Page(QWidget):
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_CARD)
-        self.head = ask_head(self, self.question, lambda: self.submit(""), self.tr("Skip"))
+
+
+        self.head = ask_head(self, self.question)
         col.addWidget(self.head)
         if self.options:
             col.addWidget(self._build_options())
@@ -730,10 +731,13 @@ class QuestionCard(_Card, FoldMixin):
         if self._folding or self._done.isVisible():
             return
         self._folding = True
+
+
+        from .bubbles import UserBubble
+
         for page in self._pages:
-            row = done_row(self._done, "check" if page.answer else "dash", qcolor(INK_3),
-                           f"{page.question} · {page.shown_answer()}")
-            self._done_col.addWidget(row)
+            if page.answer:
+                self._done_col.addWidget(UserBubble(page.answer, parent=self._done))
         self._body.setEnabled(False)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.fold_body(self._body, self._show_done)
@@ -746,6 +750,8 @@ class QuestionCard(_Card, FoldMixin):
 
         body, self._body = self._body, None
         self._done.show()
+        if not any(page.answer for page in self._pages):
+            self.hide()
         if body is not None:
             body.hide()
             body.setParent(None)

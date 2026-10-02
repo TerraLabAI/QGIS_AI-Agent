@@ -19,6 +19,7 @@ import zlib
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer
 
 from ..core import http_headers, limits, links, net, security, vsi
+from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, remove_tree
 from ..core.policy import create_managed_temp_dir
@@ -37,9 +38,10 @@ from .data_common import (
     _download_timeout,
     _http_fetch,
     _layer_from_geojson_str,
-    _run_on_main_thread,
     _safe_filename,
     _vector_uri_for,
+    built_here,
+    worker_options,
 )
 from .data_portals import (
     _build_direct_import_result,
@@ -280,8 +282,10 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
         if cut.get("layer_in_file"):
             local = f"{local}|layername={cut['layer_in_file']}"
 
+        built_local = built_here(lambda: QgsVectorLayer(local, name, "ogr", worker_options()))
+
         def _create_local():
-            layer = QgsVectorLayer(local, name, "ogr")
+            layer = built_local if built_local is not None else QgsVectorLayer(local, name, "ogr")
             if not layer.isValid():
                 return {"_error": f"QGIS could not read the extract cut from {url}.",
                         "_code": "EXECUTION_FAILED",
@@ -301,10 +305,25 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
                           "local. The whole file was not downloaded."),
             }
 
-        return _run_on_main_thread(_create_local, timeout=_VSICURL_TIMEOUT_S)
+        return run_on_main_thread(_create_local, timeout=_VSICURL_TIMEOUT_S)
+
+
+
+    facts: dict = {}
+
+    def _make():
+        layer = QgsVectorLayer(source, name, "ogr", worker_options())
+        if layer.isValid():
+            if not sublayer:
+                facts["others"] = _sublayers_of(layer)
+            if size and size < _WARN_REMOTE_BYTES:
+                facts["count"] = layer.featureCount()
+        return layer
+
+    built = built_here(_make)
 
     def _create():
-        layer = QgsVectorLayer(source, name, "ogr")
+        layer = built if built is not None else QgsVectorLayer(source, name, "ogr")
         if not layer.isValid():
             return {"_error": f"QGIS could not read {url} over HTTP range requests.",
                     "_code": "INVALID_ARGS",
@@ -340,19 +359,19 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
         if sublayer:
             out["layer"] = sublayer
         else:
-            others = _sublayers_of(layer)
+            others = facts["others"] if "others" in facts else _sublayers_of(layer)
             if len(others) > 1:
                 out["layers_available"] = others
                 out["_note"] += f" This source holds {len(others)} layers; layer=<name> picks another."
 
 
         if size and size < _WARN_REMOTE_BYTES:
-            count = layer.featureCount()
+            count = facts["count"] if "count" in facts else layer.featureCount()
             if count is not None and 0 <= count <= _COUNT_CEILING:
                 out["feature_count"] = int(count)
         return out
 
-    return _run_on_main_thread(_create, timeout=_VSICURL_TIMEOUT_S)
+    return run_on_main_thread(_create, timeout=_VSICURL_TIMEOUT_S)
 
 
 
@@ -577,7 +596,7 @@ def _add_inline_geojson(link: dict, layer_name) -> dict:
         return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount(),
                 "resolved_from": link["resolved_from"]}
 
-    return _run_on_main_thread(_create, timeout=30)
+    return run_on_main_thread(_create, timeout=30)
 
 
 def _disposition_filename(disposition: str) -> str:
@@ -800,9 +819,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
             if gdbs and not readable and len(gdbs) == 1:
 
 
-                loaded = _run_on_main_thread(
-                    lambda: _add_vector_layer({"path": gdbs[0], "layer": wanted or None, "name": layer_name}),
-                    timeout=30)
+                loaded = _add_vector_layer({"path": gdbs[0], "layer": wanted or None, "name": layer_name})
                 if isinstance(loaded, dict) and loaded.get("_error") is not None:
                     return _discard_download(tmp_dir, loaded)
                 if isinstance(loaded, dict) and loaded.get("layers") and not loaded.get("layer_id"):
@@ -825,12 +842,11 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
                     sources = [candidates[name] for name in picked]
                     merged_name = layer_name or os.path.splitext(os.path.basename(filepath))[0]
-                    return _run_on_main_thread(lambda: start_folder_merge(tmp_dir, sources, merged_name),
+                    return run_on_main_thread(lambda: start_folder_merge(tmp_dir, sources, merged_name),
                                                timeout=30)
                 if candidates[picked[0]] in gdbs:
                     gdb = candidates[picked[0]]
-                    return _run_on_main_thread(lambda: _add_vector_layer({"path": gdb, "name": layer_name}),
-                                               timeout=30)
+                    return _add_vector_layer({"path": gdb, "name": layer_name})
                 readable = [candidates[picked[0]]]
             elif len(candidates) > 1:
 
@@ -881,14 +897,25 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
         layer_name = os.path.splitext(os.path.basename(filepath))[0]
 
     final_layer_name = layer_name
+    if filepath.lower().endswith((".dxf", ".dwg")):
+
+
+
+        from .layer_io_tools import _add_cad_to_gpkg
+
+
+        loaded = _add_cad_to_gpkg(filepath, layer_name, args.get("crs"))
+        if isinstance(loaded, dict) and loaded.get("_error") is not None:
+            return _discard_download(tmp_dir, loaded)
+        return loaded
     if filepath.lower().endswith((".csv", ".tsv")):
 
 
 
-        from .csv_loader import load_csv
+        from .csv_loader import add_csv
 
         stem = layer_name or os.path.splitext(os.path.basename(filepath))[0]
-        loaded = _run_on_main_thread(lambda: load_csv(filepath, stem, args.get("crs")), timeout=30)
+        loaded = add_csv(filepath, stem, args.get("crs"), timeout=30)
         if isinstance(loaded, dict) and loaded.get("_error") is not None:
             return _discard_download(tmp_dir, loaded)
         return loaded
@@ -898,19 +925,30 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
         from .vector_merge import split_description, split_note
 
-        split = split_description(filepath, None, final_layer_name)
+        try:
+            split = split_description(filepath, None, final_layer_name)
+        except InterruptedError:
+            _discard_download(tmp_dir, {})
+            raise
         if split is not None:
             final_filepath = split["uri"]
 
-    def _create():
-        layer = QgsVectorLayer(final_filepath, final_layer_name, "ogr")
+    def _open(options):
+        layer = QgsVectorLayer(final_filepath, final_layer_name, "ogr", options)
         if layer.isValid() and final_filepath.lower().endswith(".gpx") and layer.featureCount() == 0:
 
             for sublayer in ("tracks", "routes", "track_points"):
-                candidate = QgsVectorLayer(f"{final_filepath}|layername={sublayer}", final_layer_name, "ogr")
+                candidate = QgsVectorLayer(f"{final_filepath}|layername={sublayer}", final_layer_name, "ogr", options)
                 if candidate.isValid() and candidate.featureCount() > 0:
                     layer = candidate
                     break
+        return layer
+
+
+    built = built_here(lambda: _open(worker_options()))
+
+    def _create():
+        layer = built if built is not None else _open(QgsVectorLayer.LayerOptions())
         if not layer.isValid():
             return {"_error": f"QGIS could not open {os.path.basename(final_filepath)} as a vector layer: "
                     f"{layer.error().summary() or 'the format is unsupported or the file is empty'}.",
@@ -946,7 +984,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                                  "read the wrong sublayer. inspect_data_source shows what else is in it.")
         return result
 
-    out = _run_on_main_thread(_create, timeout=30)
+    out = run_on_main_thread(_create, timeout=30)
 
 
 
@@ -1031,7 +1069,7 @@ def _inspect_local_file(path: str) -> dict:
         out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
                     "message": "Direct vector import is available."})
         if ext in (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml"):
-            from .core_tools import _sublayer_names, describe_sublayers
+            from .layer_io_tools import _sublayer_names, describe_sublayers
             names = _sublayer_names(path)
             if len(names) > 1:
                 out["layers"] = describe_sublayers(path, names)

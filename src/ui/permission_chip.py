@@ -460,6 +460,8 @@ class PermissionChip(QToolButton):
 
 
 
+
+
         compact = bool(compact)
         if compact == self._compact:
             return
@@ -487,6 +489,10 @@ class PermissionChip(QToolButton):
 
         name = self._names().get(shown, "")
         self.setText("" if self._compact else name)
+        if self._compact and name:
+            self.setToolTip(self.tr("{mode}: what AI Agent may do without asking").format(mode=name))
+        else:
+            self.setToolTip(self.tr("What AI Agent may do without asking"))
         self.setAccessibleName(self.tr("Permission mode"))
         self.setAccessibleDescription(name)
         self.updateGeometry()

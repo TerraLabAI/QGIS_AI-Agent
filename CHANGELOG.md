@@ -9,6 +9,67 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.5.5] - 2026-10-02
+
+### Added
+
+- A remote raster (Cloud Optimized GeoTIFF, STAC asset or raster web address) can load only the box
+  you need, saved as a local GeoTIFF, instead of the whole file followed by a clip.
+- Print layouts: labels, maps and legends take a frame, a background colour and a font colour or
+  family, when added and later on an item already on the sheet.
+- Categorized styles take each value's own colour, legend label and size or width.
+- Layer statistics can be grouped, filtered and measured, and raster value ranges counted.
+- Layer groups can be folded or unfolded.
+- A WFS layer can be copied with a filter the service applies, so the copy holds only the matches.
+- Each source under an answer shows its licence, access, scene dates and resolution behind a
+  chevron, with a button to copy the credits.
+
+### Changed
+
+- Maps render in one pass: about twice as fast with a basemap (an OpenStreetMap basemap and two
+  layers went from 7.2 s to 2.8 s).
+- Band statistics of a raster read over the network are sampled in the background: about 5 times
+  faster, and QGIS no longer freezes while they are computed.
+- Large layers, WFS and OGC API layers, style changes and GeoPackage exports are read off the main
+  thread, so QGIS stays responsive.
+- On a slow or unstable connection the panel connects about 3 times faster and comes back from a
+  drop in a few seconds instead of about 27.
+- The 11 translations are reworded to read naturally and use QGIS's own terms; the shared zone
+  layer is named "Area of interest" in the user's language.
+- The chat no longer shows a "QGIS stopped responding" line.
+- The sign-in card no longer shows a 4-character match code.
+- Web layers the agent adds cannot reach this computer or the local network unless you typed
+  the address.
+- The chat is plainer: an allowed card leaves nothing behind and a denied one a single line, code
+  cards say in words what the code does, and answers no longer carry thumbs or a copy button.
+- Local files, Processing results, WMS and WMTS layers and layout exports are built off the main
+  thread, so QGIS keeps responding while they load or render.
+- Settings open on Connectors; Billing is folded into Account with a Manage plan button.
+- Dates, months and status lines follow the panel's language.
+
+### Fixed
+
+- A result download cut mid-way resumes from the byte it reached instead of failing.
+- OpenStreetMap areas split across map tiles come back as one feature each (Slovenia: 212
+  municipalities, not 234 or 258), and coastal areas selected by an outline are kept whole.
+- WMS, WMTS and WCS layers whose name holds a colon load.
+- An OpenStreetMap download with lines and polygons no longer reports an error after adding its
+  layers.
+- Colours written with transparency (#rrggbbaa) read the same way everywhere.
+- Graduated and categorized line styles keep their class colours.
+- A code step QGIS stops to ask permission for no longer reloads the project when it had changed
+  nothing: on a project of 255 layers the window was blocked for 18 to 37 s each time.
+- Stop ends a large KML split, an identify on an ArcGIS layer or a run with the link down within
+  a second.
+- Styling or measuring a layer added in the same step finds it instead of answering that the layer
+  does not exist.
+- A request that only builds a print layout gets its own Undo, and Undo on an earlier request warns
+  that it also removes that layout instead of dropping it silently.
+- The shared Area of interest keeps its shape when the project is saved and reopened.
+- With a QGIS proxy that cannot be reached, the panel says so within about 45 s instead of asking
+  you to sign out and in again.
+- Processing on a raster web address whose server cannot send part of a file works again.
+
 ## [1.5.3] - 2026-09-28
 
 ### Changed

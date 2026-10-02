@@ -36,11 +36,13 @@ from __future__ import annotations
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeatureRequest,
+    QgsGeometry,
     QgsProject,
     QgsVectorLayer,
 )
 
 from ..core import tuning
+from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
 from ._layers import loaded_feature_count
 from .layer_lookup import _find_layer
@@ -52,6 +54,9 @@ _GEOMETRY_SAMPLE = 1000
 
 
 _KEY_SAMPLE = 5
+
+_FILLED_SAMPLE = 1000
+_FILLED_COLUMNS = 6
 
 
 
@@ -338,6 +343,41 @@ def _key_sample(layer, field_name) -> list[str]:
     return sorted(str(value) for value in list(values)[:_KEY_SAMPLE])
 
 
+def _joined_columns_filled(input_layer, output_layer) -> dict:
+
+
+
+
+
+
+    if input_layer is None or not isinstance(output_layer, QgsVectorLayer):
+        return {}
+    ahead = _READ_AHEAD.pop(("filled", output_layer.id()), None)
+    if ahead is not None:
+        return ahead
+    try:
+        had = set(input_layer.fields().names())
+
+        keys = set(output_layer.primaryKeyAttributes())
+        added = [field.name() for index, field in enumerate(output_layer.fields())
+                 if field.name() not in had and index not in keys][:_FILLED_COLUMNS]
+        if not added:
+            return {}
+        request = feature_request(attributes=added, geometry=False, limit=_FILLED_SAMPLE,
+                                  fields=output_layer.fields())
+        with_value = dict.fromkeys(added, 0)
+        read = 0
+        for feature in output_layer.getFeatures(request):
+            read += 1
+            for name in added:
+                value = feature[name]
+                if value is not None and not (hasattr(value, "isNull") and value.isNull()):
+                    with_value[name] += 1
+    except Exception:  # noqa: BLE001
+        return {}
+    return {"rows_read": read, "joined_columns_with_value": with_value} if read else {}
+
+
 def _join_checks(algorithm_id: str, parameters: dict, outputs: dict,
                  input_layer, output_layer) -> tuple[dict | None, list[str]]:
 
@@ -363,6 +403,7 @@ def _join_checks(algorithm_id: str, parameters: dict, outputs: dict,
     ratio = (matched / total) if total else None
     if ratio is not None:
         report["match_ratio"] = round(ratio, 4)
+    report.update(_joined_columns_filled(input_layer, output_layer))
 
     warnings: list[str] = []
     if total and ratio is not None and ratio < JOIN_WARN_RATIO:
@@ -438,13 +479,189 @@ def _mask_covered_pct(input_layer, mask_layer) -> float | None:
         return None
 
 
+
+
+
+
+_READ_AHEAD: dict = {}
+_READ_AHEAD_KEPT = 64
+
+
+def joined_input_fields(algorithm_id: str, parameters: dict) -> list | None:
+
+
+    if str(algorithm_id or "").lower() not in _algs("join_algorithms", _JOIN_ALGORITHMS):
+        return None
+    layer = _input_layer(parameters if isinstance(parameters, dict) else {})
+    return list(layer.fields().names()) if layer is not None else None
+
+
+def read_ahead(layer, layer_id: str, joined_from: list | None = None) -> None:
+
+
+
+
+
+
+
+
+
+
+    try:
+        source = str(layer.source())
+        found = _geometry_sample(_ogr_rows(source))
+        if found is not None:
+            _remember("geometries", layer_id, found)
+        if joined_from is not None:
+            filled = _ogr_filled(source, set(joined_from))
+            if filled is not None:
+                _remember("filled", layer_id, filled)
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+
+
+def read_ahead_memory(source, layer_id: str) -> None:
+
+
+    try:
+        found = _geometry_sample((feature.id(), feature.geometry()) for feature in source.getFeatures(_request()))
+        if found is not None:
+            _remember("geometries", layer_id, found)
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+
+
+def _remember(kind: str, layer_id: str, found: dict) -> None:
+    _READ_AHEAD[(kind, layer_id)] = found
+    while len(_READ_AHEAD) > _READ_AHEAD_KEPT:
+        _READ_AHEAD.pop(next(iter(_READ_AHEAD)), None)
+
+
+
+
+
+
+_REPORTED: dict = {}
+
+
+def _reported(layer, found: dict) -> None:
+    try:
+        layer_id = layer.id()
+        if layer_id not in _REPORTED:
+            layer.editingStarted.connect(lambda lid=layer_id: _REPORTED.pop(lid, None))
+        _REPORTED[layer_id] = dict(found)
+        while len(_REPORTED) > _READ_AHEAD_KEPT:
+            _REPORTED.pop(next(iter(_REPORTED)), None)
+    except Exception:  # noqa: BLE001  # nosec B110
+        _REPORTED.pop(layer.id(), None)
+
+
+def _ogr_rows(source: str):
+
+
+
+    from osgeo import gdal
+
+    path, _, options = source.partition("|")
+    table = None
+    if options:
+        key, _, table = options.partition("=")
+        if key != "layername" or "|" in table:
+            return None
+    dataset = gdal.OpenEx(path, gdal.OF_VECTOR | gdal.OF_READONLY)
+    if dataset is None:
+        return None
+    try:
+        if table is None and dataset.GetLayerCount() != 1:
+            return None
+        ogr_layer = dataset.GetLayerByName(table) if table else dataset.GetLayer(0)
+        if ogr_layer is None:
+            return None
+        rows = []
+        for feature in ogr_layer:
+            geometry = feature.GetGeometryRef()
+            wkb = bytes(geometry.ExportToIsoWkb()) if geometry is not None else None
+            rows.append((feature.GetFID(), _from_wkb(wkb) if wkb else None))
+            if len(rows) >= _GEOMETRY_SAMPLE:
+                break
+        return rows
+    finally:
+        dataset = None
+
+
+def _ogr_filled(source: str, had: set) -> dict | None:
+
+
+
+    from osgeo import gdal
+
+    path, _, options = source.partition("|")
+    table = None
+    if options:
+        key, _, table = options.partition("=")
+        if key != "layername" or "|" in table:
+            return None
+    dataset = gdal.OpenEx(path, gdal.OF_VECTOR | gdal.OF_READONLY)
+    if dataset is None:
+        return None
+    try:
+        if table is None and dataset.GetLayerCount() != 1:
+            return None
+        ogr_layer = dataset.GetLayerByName(table) if table else dataset.GetLayer(0)
+        if ogr_layer is None:
+            return None
+        definition = ogr_layer.GetLayerDefn()
+        names = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
+        added = [(index, name) for index, name in enumerate(names) if name not in had][:_FILLED_COLUMNS]
+        if not added:
+            return {}
+        ogr_layer.SetIgnoredFields(["OGR_GEOMETRY"])
+        with_value = {name: 0 for _index, name in added}
+        read = 0
+        for feature in ogr_layer:
+            read += 1
+            for index, name in added:
+                if feature.IsFieldSetAndNotNull(index):
+                    with_value[name] += 1
+            if read >= _FILLED_SAMPLE:
+                break
+        return {"rows_read": read, "joined_columns_with_value": with_value} if read else {}
+    finally:
+        dataset = None
+
+
+def _from_wkb(wkb: bytes):
+
+    geometry = QgsGeometry()
+    made = geometry.fromWkb(wkb)
+    return made if isinstance(made, QgsGeometry) else geometry
+
+
+def _request() -> QgsFeatureRequest:
+    return QgsFeatureRequest().setLimit(_GEOMETRY_SAMPLE).setNoAttributes()
+
+
 def _invalid_geometries(layer) -> dict | None:
 
 
-
-
-
     if not isinstance(layer, QgsVectorLayer):
+        return None
+    reported = _REPORTED.get(layer.id())
+    if reported is not None:
+        return dict(reported)
+    try:
+        return _geometry_sample((feature.id(), feature.geometry()) for feature in layer.getFeatures(_request()))
+    except Exception:
+        return None
+
+
+def _geometry_sample(rows) -> dict | None:
+
+
+
+
+
+    if rows is None:
         return None
 
 
@@ -452,7 +669,6 @@ def _invalid_geometries(layer) -> dict | None:
 
     budget = VertexBudget()
     try:
-        request = QgsFeatureRequest().setLimit(_GEOMETRY_SAMPLE).setNoAttributes()
         invalid = 0
         checked = 0
 
@@ -460,15 +676,14 @@ def _invalid_geometries(layer) -> dict | None:
 
         no_geometry = 0
         skipped = []
-        for feature in layer.getFeatures(request):
+        for fid, geometry in rows:
             if budget.exhausted():
                 break
-            geometry = feature.geometry()
             if geometry is None or geometry.isNull() or geometry.isEmpty():
                 no_geometry += 1
                 continue
             if budget.oversize(geometry):
-                skipped.append(feature.id())
+                skipped.append(fid)
                 continue
             checked += 1
             if not geometry.isGeosValid():
@@ -794,6 +1009,10 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                                                         input_layer, output_layer)
         checks.update(raster_report)
         warnings.extend(raster_warnings)
+        terrain = _terrain_cell_note(algorithm_id, parameters, input_layer)
+        if terrain:
+            checks["ground_metres_per_input_unit"] = terrain[0]
+            warnings.append(terrain[1])
         if algorithm_id in _algs("raster_masked", _RASTER_MASKED) and _is_raster(input_layer):
             covered = _mask_covered_pct(input_layer, _overlay_layer(parameters))
             if covered is not None:
@@ -803,8 +1022,11 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                         f"the input raster covers only {covered:g}% of the mask's box, so the output holds "
                         "data over that part of the mask only, not the mask's whole area.")
 
-        geometry = _invalid_geometries(output_layer)
+        geometry = _READ_AHEAD.pop(("geometries", output_layer.id()), None) if output_layer is not None else None
+        if geometry is None:
+            geometry = _invalid_geometries(output_layer)
         if geometry is not None:
+            _reported(output_layer, geometry)
             checks["invalid_geometries"] = geometry
             if geometry["invalid"]:
                 warnings.append(_Coded(
@@ -831,7 +1053,11 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
             if features_in is not None and features_out is not None:
                 grew = (algorithm_id in _algs("never_grows", _NEVER_GROWS)
                         and features_out > features_in)
-                if not _dissolves(algorithm_id, parameters) and not grew:
+                if (features_in and features_out == features_in
+                        and algorithm_id in _algs("reduces_rows", _REDUCES_ROWS)):
+                    warnings.append(f"{algorithm_id.split(':')[-1]} returned as many features as it received: "
+                                    f"{features_in} in, {features_out} out, so none were merged or dropped.")
+                elif not _dissolves(algorithm_id, parameters) and not grew:
                     checks["row_count_reconciled"] = True
 
         _invariant_checks(algorithm_id, parameters, output_layer, features_in, features_out, checks, warnings)
@@ -844,6 +1070,38 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
         return checks or None
     except Exception:  # nosec B110
         return None
+
+
+def _terrain_cell_note(algorithm_id: str, parameters: dict, input_layer):
+
+
+
+
+
+
+    from ..core import ground
+    from .processing_guards import _TERRAIN_BY_CELL, _metric
+
+    if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL) or not _is_raster(input_layer):
+        return None
+    crs = input_layer.crs()
+
+
+    if not crs.isValid() or crs.isGeographic() or not _metric(crs):
+        return None
+    metres = ground.layer_metres_per_unit(input_layer)
+    try:
+        factor = metres * float(parameters.get("Z_FACTOR") or 1) / float(parameters.get("SCALE") or 1)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+    if metres is None or abs(factor - 1.0) <= ground.TOLERANCE:
+        return None
+    import math
+    read = math.degrees(math.atan(math.tan(math.radians(35)) * factor))
+    return round(metres, 3), (
+        f"one {crs.authid() or 'input'} unit is {metres:.3g} m of ground where this DEM sits, while its heights "
+        f"are metres: the gradient it gives is {factor:.3g} times the ground's, so a 35 degree slope reads "
+        f"{read:.0f} degrees and the relief is shaded {'flatter' if factor < 1 else 'steeper'} than it is.")
 
 
 

@@ -101,6 +101,16 @@ def pixel_facts(layer) -> dict:
         return {}
     out = {"width": width, "height": height, "size_units": "pixels",
            "pixel_size": {"x": round(px, 6), "y": round(py, 6), "units": "layer units"}}
+
+
+
+    try:
+        provider = layer.dataProvider()
+        kinds = [data_type_name(provider, band) for band in range(1, min(int(layer.bandCount()), _TYPES_LISTED) + 1)]
+    except Exception:  # noqa: BLE001
+        kinds = []
+    if kinds:
+        out["data_type"] = kinds[0] if len(set(kinds)) == 1 else kinds
     point = _work_point(layer)
     cell = pixel_on_ground(layer.crs(), point.x(), point.y(), px, py) if point is not None else None
     if cell:
@@ -109,6 +119,21 @@ def pixel_facts(layer) -> dict:
         out["pixel_note"] = (f"One pixel is {across:.3g} m by {down:.3g} m of ground, {area:.4g} m²: "
                              f"a pixel count times pixel_area_m2 is the area.")
     return out
+
+
+
+_TYPES_LISTED = 32
+
+
+def data_type_name(provider, band: int) -> str:
+
+    from qgis.core import QgsRasterLayer
+
+    kind = provider.dataType(band)
+    try:
+        return str(QgsRasterLayer.dataTypeToString(kind))
+    except Exception:  # noqa: BLE001
+        return str(getattr(kind, "name", kind))
 
 
 def pixel_on_ground(crs, x: float, y: float, px: float, py: float) -> tuple | None:

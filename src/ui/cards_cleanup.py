@@ -18,6 +18,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import pyqtSignal
@@ -72,15 +73,17 @@ class CleanupCard(_Card, FoldMixin):
         self.items = [dict(i) for i in (items or []) if isinstance(i, dict)]
         self.decision: str | None = None
         count = len(self.items)
-        self.title = (self.tr("I left {n} working layer behind.").format(n=count) if count == 1
-                      else self.tr("I left {n} working layers behind.").format(n=count))
+
+
+        self.title = (self.tr("The agent left {n} working layer behind").format(n=count) if count == 1
+                      else self.tr("The agent left {n} working layers behind").format(n=count))
 
         self._body = QWidget(self)
         body = QVBoxLayout(self._body)
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(SPACE_OUTER)
         body.addWidget(ask_head(self._body, self.title, lambda: self._decide("keep"),
-                                self.tr("Keep them"), dismiss_focusable=True))
+                                self.tr("Keep them where they are"), dismiss_focusable=True))
         body.addWidget(self._build_names())
         body.addWidget(self._build_footer())
         self._col.addWidget(self._body)
@@ -121,10 +124,16 @@ class CleanupCard(_Card, FoldMixin):
 
 
 
+
+
+
         lay.addWidget(_pill(self._button(self.tr("Delete"), _BTN_GHOST_PILL,
                                          lambda: self._decide("delete"))))
-        lay.addWidget(_pill(self._button(self.tr("Tidy up"), _BTN_PRIMARY_PILL,
-                                         lambda: self._decide("group"))))
+        group = _pill(self._button(self.tr("Group and hide"), _BTN_PRIMARY_PILL,
+                                   lambda: self._decide("group")))
+        group.setToolTip(self.tr("Move them into a hidden, collapsed group named {group}").format(
+            group=self.tr("Working layers")))
+        lay.addWidget(group)
         return footer
 
 
@@ -152,8 +161,9 @@ class CleanupCard(_Card, FoldMixin):
             return (self.tr("Deleted {n} working layer").format(n=count) if count == 1
                     else self.tr("Deleted {n} working layers").format(n=count))
         if self.decision == "group":
-            return (self.tr("Tidied {n} working layer away").format(n=count) if count == 1
-                    else self.tr("Tidied {n} working layers away").format(n=count))
+            group = self.tr("Working layers")
+            return (self.tr("Moved {n} layer into {group}").format(n=count, group=group) if count == 1
+                    else self.tr("Moved {n} layers into {group}").format(n=count, group=group))
         return (self.tr("Kept {n} working layer").format(n=count) if count == 1
                 else self.tr("Kept {n} working layers").format(n=count))
 

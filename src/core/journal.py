@@ -121,18 +121,30 @@ def fields_named(args) -> list[str]:
     return _unique(names)[:_fields()]
 
 
-def backed_up(snapshot, lid: str, path: str) -> bool:
+def backup_check(snapshot):
+
+
+
+
+
+
+
 
     if snapshot is None:
-        return False
-    if lid and lid in (snapshot.backups or {}):
-        return True
-    if not path:
-        return False
-    real = os.path.realpath(path)
-    if real in (snapshot.file_backups or {}):
-        return True
-    return any(os.path.realpath(src) == real for copies in snapshot.backups.values() for src, _dst in copies)
+        return lambda lid, path: False
+    copied = None
+
+    def backed_up(lid: str, path: str) -> bool:
+        nonlocal copied
+        if lid and lid in (snapshot.backups or {}):
+            return True
+        if not path:
+            return False
+        if copied is None:
+            copied = snapshot.copied_files()
+        return snapshot.real_path(path) in copied
+
+    return backed_up
 
 
 def file_layer_ids(project) -> list:
@@ -157,16 +169,17 @@ def before_call(project, layer_ids, paths, snapshot=None) -> dict:
 
 
     layers = project.mapLayers()
+    backed_up = backup_check(snapshot)
     named = {}
     for lid in _unique(layer_ids):
         layer = layers.get(lid)
         if layer is not None:
             state = layer_state(layer)
-            state["backup"] = backed_up(snapshot, lid, state.get("path") or "")
+            state["backup"] = backed_up(lid, state.get("path") or "")
             named[lid] = state
     return {"ids": {lid: _text(layer.name()) for lid, layer in layers.items()},
             "layers": named,
-            "files": {path: {"existed": os.path.isfile(path), "backup": backed_up(snapshot, "", path)}
+            "files": {path: {"existed": os.path.isfile(path), "backup": backed_up("", path)}
                       for path in _unique(paths)[:_items()]}}
 
 

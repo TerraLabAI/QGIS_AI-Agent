@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 
-from qgis.core import QgsLayoutExporter, QgsProject, QgsRectangle
+from qgis.core import QgsLayoutExporter, QgsLayoutItemMap, QgsProject, QgsRectangle
 
 from ..core import licence, limits, output_paths
 from ..core.host_platform import retry_file_op
@@ -611,14 +612,10 @@ def _output_folder(output_path: str, args: dict) -> tuple:
     return folder, None
 
 
-def _export_layout(args: dict) -> dict:
-    layout_name = args["layout_name"]
-    output_path = args["output_path"]
-    fmt, fmt_error = _export_format(args, output_path)
-    if fmt_error:
-        return {"_error": fmt_error, "_code": "INVALID_ARGS",
-                "_suggestion": "format matching the file name, or no format at all, lets the "
-                               "extension decide."}
+def _asked_dpi(args: dict) -> tuple:
+
+
+
 
 
 
@@ -629,6 +626,124 @@ def _export_layout(args: dict) -> dict:
     dpi = max(10, min(requested, max_dpi))
     ceiling_note = (f"Exported at {dpi} dpi, this computer's ceiling at the moment, rather than {requested}."
                     if requested > max_dpi else "")
+    return dpi, requested, ceiling_note, max_dpi
+
+
+def _scaled_extent(reference, wanted):
+
+
+
+
+    try:
+        wanted = float(wanted)
+        current = float(reference.scale())
+        if (not math.isfinite(wanted) or wanted < 1 or not current > 0
+                or (reference.atlasDriven() and reference.atlasScalingMode() == enum_member(
+                    QgsLayoutItemMap, "AtlasScalingMode", "Fixed"))):
+            return None
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return None
+    extent = QgsRectangle(reference.extent())
+    if abs(wanted - current) > 4 * sys.float_info.epsilon:
+        extent.scale(wanted / current)
+    return extent
+
+
+def export_flags(fmt: str):
+
+    if fmt == "pdf":
+        return QgsLayoutExporter.PdfExportSettings().flags
+    if fmt == "svg":
+        return QgsLayoutExporter.SvgExportSettings().flags
+    return QgsLayoutExporter.ImageExportSettings().flags
+
+
+def export_view(args: dict):
+
+
+
+
+
+
+
+
+    from . import layout_ready
+
+    layout = QgsProject.instance().layoutManager().layoutByName(str(args.get("layout_name") or ""))
+    if layout is None:
+        return None
+    fmt, fmt_error = _export_format(args, str(args.get("output_path") or ""))
+    if fmt_error or fmt == "qpt":
+        return None
+    dpi, _requested, _note, max_dpi = _asked_dpi(args)
+    if getattr(layout, "pageCollection", None) is None:
+        from .report_tools import _parts
+
+        if (fmt != "pdf" and fmt not in _IMAGE_FORMATS) or any(
+                args.get(key) not in (None, False) for key in ("scale", "meters_per_pixel", "georeference")):
+            return None
+        for _label, part in _parts(layout):
+            dpi = min(dpi, _fit_dpi(part, int(dpi), fmt)[0])
+        return layout_ready.paint_dpi(fmt, dpi), export_flags(fmt), {}, "report"
+    extents, ratio = {}, 1.0
+    reference = layout.referenceMap()
+    if args.get("scale") is not None:
+        scaled = _scaled_extent(reference, args.get("scale")) if reference is not None else None
+        if scaled is None or not reference.extent().width() > 0:
+            return None
+        ratio = scaled.width() / reference.extent().width()
+        extents[reference.uuid()] = scaled
+    if args.get("meters_per_pixel") is None:
+        dpi = _fit_dpi(layout, int(dpi), fmt)[0]
+    else:
+        if fmt not in _IMAGE_FORMATS or reference is None:
+            return None
+        exporter = QgsLayoutExporter(layout)
+
+        dpi = _dpi_for_ground(exporter, reference, args.get("meters_per_pixel"), max_dpi,
+                              measure=lambda: _ground_per_pixel(exporter, reference, 100)[0] * ratio)
+        if isinstance(dpi, dict):
+            return None
+    return layout_ready.paint_dpi(fmt, dpi), export_flags(fmt), extents, "layout"
+
+
+def _not_drawn(ready: dict, layout_name: str) -> dict:
+
+
+    if ready["stopped"]:
+        return {"_error": "The export was stopped while its maps were being drawn; no file was written.",
+                "code": "CANCELLED"}
+    late = ready["unfinished"]
+    return {"_error": (f"The maps of '{layout_name}' did not finish drawing in the time a call has, so "
+                       f"nothing was exported. Still drawing: {', '.join(late[:6])}."),
+            "_code": "TIMEOUT", "slow_layers": late,
+            "_suggestion": "A lower dpi, a smaller page or map frame, or hiding a layer drawn over the "
+                           "network, draws less."}
+
+
+def _export_layout(args: dict) -> dict:
+    from . import layout_ready
+
+
+
+    ready = layout_ready.take(str(args.get("layout_name") or ""))
+    try:
+        return _export_layout_with(args, ready)
+    finally:
+        layout_ready.discard(ready)
+
+
+def _export_layout_with(args: dict, ready) -> dict:
+    from . import layout_ready
+
+    layout_name = args["layout_name"]
+    output_path = args["output_path"]
+    fmt, fmt_error = _export_format(args, output_path)
+    if fmt_error:
+        return {"_error": fmt_error, "_code": "INVALID_ARGS",
+                "_suggestion": "format matching the file name, or no format at all, lets the "
+                               "extension decide."}
+    dpi, requested, ceiling_note, max_dpi = _asked_dpi(args)
     wanted_ground = args.get("meters_per_pixel")
 
     georeference = bool(args.get("georeference")) or wanted_ground is not None
@@ -655,11 +770,15 @@ def _export_layout(args: dict) -> dict:
     if getattr(layout, "pageCollection", None) is None:
 
 
-        from .report_tools import export_report
+        from .report_tools import _parts, export_report
 
+        if ready is not None and (ready["stopped"] or ready["unfinished"]):
+            return _not_drawn(ready, layout_name)
         held = PixelSizeHold(layout, dpi)
         try:
-            out = export_report(layout, args, fmt, output_path, dpi)
+
+            out = layout_ready.drawn([part for _label, part in _parts(layout)], ready,
+                                     lambda: export_report(layout, args, fmt, output_path, dpi))
         finally:
             held.restore()
         pixel_units = held.report()
@@ -721,6 +840,11 @@ def _export_layout(args: dict) -> dict:
 
     if fmt == "qpt":
         return _save_template(layout, output_path, created_folder, scale_note)
+    paint_dpi = layout_ready.paint_dpi(fmt, dpi)
+    if (ready is not None and (ready["stopped"] or ready["unfinished"])
+            and layout_ready.applies(layout, ready, paint_dpi)):
+        _restore_scale_on_refusal(reference_map, pre_scale_extent)
+        return _not_drawn(ready, layout_name)
 
 
 
@@ -730,8 +854,7 @@ def _export_layout(args: dict) -> dict:
 
     held = PixelSizeHold(layout, dpi)
 
-    exported = False
-    try:
+    def export():
         if fmt == "pdf":
             settings = QgsLayoutExporter.PdfExportSettings()
             settings.dpi = dpi
@@ -746,21 +869,25 @@ def _export_layout(args: dict) -> dict:
                     settings.forceVectorOutput = True
                 except AttributeError:
                     pass
-            result = exporter.exportToPdf(output_path, settings)
-        elif fmt in _IMAGE_FORMATS:
+            return exporter.exportToPdf(output_path, settings)
+        if fmt in _IMAGE_FORMATS:
             settings = QgsLayoutExporter.ImageExportSettings()
             settings.dpi = dpi
 
 
 
             settings.generateWorldFile = georeference
-            result = exporter.exportToImage(output_path, settings)
-        elif fmt == "svg":
-            settings = QgsLayoutExporter.SvgExportSettings()
-            settings.dpi = dpi
-            result = exporter.exportToSvg(output_path, settings)
-        else:
+            return exporter.exportToImage(output_path, settings)
+        settings = QgsLayoutExporter.SvgExportSettings()
+        settings.dpi = dpi
+        return exporter.exportToSvg(output_path, settings)
+
+    exported = False
+    try:
+        if fmt not in _IMAGE_FORMATS and fmt not in ("pdf", "svg"):
             return {"_error": f"Unsupported format: {fmt}"}
+
+        result = layout_ready.drawn(layout, ready, export, paint_dpi)
         exported = True
     finally:
         held.restore()

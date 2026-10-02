@@ -54,9 +54,6 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
     question_resolved = pyqtSignal(str, str)
     project_changed = pyqtSignal(int)
 
-
-    run_blocked = pyqtSignal(str, str)
-
     def __init__(self, registry, session, settings, parent=None):
         super().__init__(parent)
         self._registry = registry
@@ -66,6 +63,12 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
         self._executing: set[str] = set()
         self._table = IdempotencyTable()
         self._waiting_for_history: dict[str, dict] = {}
+
+        self._resolving: dict[str, dict] = {}
+
+
+
+        self._queued: dict[str, dict[str, tuple[dict, float]]] = {}
         self._pending: dict[str, dict] = {}
         self._questions: dict[str, dict] = {}
 
@@ -151,6 +154,9 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
         self._held: dict[str, tuple] = {}
         self._hold_listening = False
         self.last_snapshot: RunSnapshot | None = None
+
+
+        self._after_pending: tuple | None = None
         self.history = CheckpointHistory()
 
 
@@ -158,8 +164,10 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
         self.watchdog = MainThreadWatchdog(describe=self._inflight_description,
                                            on_blocked=self._on_main_thread_blocked,
                                            on_tick=self._sweep_deadlines,
-                                           on_stall=self._on_main_thread_stalled)
+                                           on_stall=self._on_main_thread_stalled,
+                                           on_thaw=self._on_main_thread_thawed)
         self.watchdog.start()
+        self.tool_finished.connect(self._turn_over)
         stalls.add_context_provider(self._inflight_description)
 
 

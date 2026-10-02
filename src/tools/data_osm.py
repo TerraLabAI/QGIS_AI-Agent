@@ -18,6 +18,7 @@ import urllib.request
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..core import catalog, limits, net, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.policy import create_managed_temp_dir
 from . import volume_guard
@@ -34,9 +35,9 @@ from .data_common import (
     _osm_recent,
     _osm_remember,
     _overpass_timeout,
-    _run_on_main_thread,
     _service,
     _vector_source_from_features,
+    _worker_layer,
 )
 from .data_inspect import _human_bytes, _safe_extract_stem
 from .data_osm_geometry import (
@@ -469,15 +470,16 @@ def _fetch_building_footprints(args: dict) -> dict:
         else:
 
             uri = _vector_source_from_features(features, name, "footprints")
+            built = _worker_layer(uri, name)
 
-            def _create(uri=uri, name=name):
-                layer = _layer_from_source(uri, name)
+            def _create(uri=uri, name=name, built=built):
+                layer = _layer_from_source(uri, name, built)
                 if not layer.isValid():
                     return {"_error": f"Could not build a layer from the {name} footprints."}
                 QgsProject.instance().addMapLayer(layer)
                 return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount()}
 
-            made = _run_on_main_thread(_create, timeout=45)
+            made = run_on_main_thread(_create, timeout=45)
         if made.get("_error"):
             if not added:
                 return made
@@ -701,12 +703,13 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
     for family in _LIFTED_FAMILIES:
         if family in by_family:
             shown = f"{layer_name} {family}" if several else layer_name
-            planned.append((family, shown, _vector_source_from_features(by_family[family], shown, "osm")))
+            uri = _vector_source_from_features(by_family[family], shown, "osm")
+            planned.append((family, shown, uri, _worker_layer(uri, shown)))
 
     def _create():
         added = []
-        for family, shown, uri in planned:
-            layer = _layer_from_source(uri, shown)
+        for family, shown, uri, built in planned:
+            layer = _layer_from_source(uri, shown, built)
             if not layer.isValid():
                 continue
             QgsProject.instance().addMapLayer(layer)
@@ -727,12 +730,12 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
                 entry.update(licence="ODbL 1.0", attribution=_OSM_ATTRIBUTION)
             out["layers"] = added
             out["feature_count"] = sum(entry["feature_count"] for entry in added)
-            out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[f]: len(by_family[f]) for f, _s, _u in planned}
+            out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[f]: len(by_family[f]) for f, *_rest in planned}
         else:
             out.update(added[0])
         return out
 
-    out = _run_on_main_thread(_create, timeout=30)
+    out = run_on_main_thread(_create, timeout=30)
     if not out.get("_error"):
         own_host = volume_guard.own_overpass_host()
         if fallback_note:
@@ -1136,7 +1139,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
             return added
 
         check()
-        added = _run_on_main_thread(_create, timeout=30)
+        added = run_on_main_thread(_create, timeout=30)
         if not added:
             return {"_error": f"QGIS could not read the GeoPackage written for {layer_name}.",
                     "code": "EXECUTION_FAILED"}
@@ -1316,5 +1319,4 @@ __all__ = [
     "_osm_stream_convert",
     "_overture_clip",
     "_own_overpass_unreachable",
-    "_run_on_main_thread",
 ]

@@ -85,12 +85,18 @@ class MainThreadWatchdog:
 
 
     def __init__(self, describe=None, on_blocked=None, on_tick=None, tick_s: float | None = None,
-                 blocked_s: float | None = None, on_stall=None):
+                 blocked_s: float | None = None, on_stall=None, on_thaw=None):
         self._describe = describe
         self._on_blocked = on_blocked
 
 
         self._on_stall = on_stall
+
+
+
+        self._on_thaw = on_thaw
+
+        self._reported_for: float | None = None
         self._main_ident: int | None = None
         self._helper: threading.Thread | None = None
         self._helper_stop = threading.Event()
@@ -167,6 +173,7 @@ class MainThreadWatchdog:
                     "watchdog_stall_repeat_s", STALL_REPEAT_S, 10.0):
                 continue
             reported_for, reported_at = last, held
+            self._reported_for = last
             try:
                 self._on_stall(held, main_thread_frames(self._main_ident))
             except Exception as exc:  # noqa: BLE001
@@ -195,8 +202,17 @@ class MainThreadWatchdog:
 
 
         now = time.monotonic() if now is None else float(now)
-        gap = now - self._last
+        previous = self._last
+        gap = now - previous
         self._last = now
+        if self._reported_for is not None and self._reported_for == previous:
+
+            self._reported_for = None
+            if self._on_thaw is not None:
+                try:
+                    self._on_thaw(gap)
+                except Exception as exc:  # noqa: BLE001
+                    log_warning(f"Thaw report failed: {exc}")
         timer = self._timer
         if timer is not None:
 

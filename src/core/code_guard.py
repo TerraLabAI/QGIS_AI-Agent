@@ -311,10 +311,6 @@ class CodeTimeout(BaseException):
 WAITING_ON_USER = threading.Event()
 
 
-class CodeRefused(ValueError):
-    pass
-
-
 
 
 def _processing_refusal(algorithm: object) -> str | None:

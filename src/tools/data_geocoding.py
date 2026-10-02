@@ -13,6 +13,7 @@ import urllib.request
 from qgis.core import QgsCoordinateReferenceSystem, QgsDistanceArea, QgsPointXY, QgsProject
 
 from ..core import net, tuning
+from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
 from .data_common import (
     _CACHE_CATALOG_S,
@@ -31,7 +32,6 @@ from .data_common import (
     _layer_from_geojson_str,
     _osrm_base,
     _project_crs_transform,
-    _run_on_main_thread,
     _service,
     _text,
     _viewbox_bounds,
@@ -909,7 +909,7 @@ def _geocode(args: dict) -> dict:
 
 
     try:
-        viewbox = _run_on_main_thread(_canvas_viewbox_4326)
+        viewbox = run_on_main_thread(_canvas_viewbox_4326)
     except Exception:  # nosec B110
         viewbox = None
 
@@ -1010,7 +1010,7 @@ def _geocode(args: dict) -> dict:
 
     project_crs = None
     try:
-        transformed = _run_on_main_thread(
+        transformed = run_on_main_thread(
             _project_crs_transform, [(r["lon"], r["lat"]) for r in output]
         )
         if transformed:
@@ -1053,7 +1053,7 @@ def _geocode(args: dict) -> dict:
     layer_name = str(args.get("layer_name") or "").strip()
     if layer_name:
         try:
-            out["layer"] = _run_on_main_thread(_add_geocode_layer, layer_name, query, output[0])
+            out["layer"] = run_on_main_thread(_add_geocode_layer, layer_name, query, output[0])
         except Exception as e:  # noqa: BLE001
             out["layer_error"] = f"Could not add the point layer: {e}"
     return out
@@ -1121,7 +1121,7 @@ def _reverse_geocode(args: dict) -> dict:
 
 
     try:
-        transformed = _run_on_main_thread(
+        transformed = run_on_main_thread(
             _project_crs_transform, [(out["lon"], out["lat"])]
         )
         if transformed:
@@ -1250,7 +1250,7 @@ def _get_route(args: dict) -> dict:
                      "guarantee, not for production use. Credit OSRM and OpenStreetMap contributors."),
         }
 
-    return _run_on_main_thread(_create, timeout=10)
+    return run_on_main_thread(_create, timeout=10)
 
 
 def _measure_distance(args: dict) -> dict:
@@ -1294,6 +1294,5 @@ __all__ = [
     "_photon_forward_url",
     "_resolve_geocode_provider",
     "_reverse_geocode",
-    "_run_on_main_thread",
     "_without_generic_place_words",
 ]

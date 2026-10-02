@@ -15,16 +15,10 @@ import urllib.request
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVectorLayer
 
 from ..core import limits, net, tuning
-from ..core.background import breathe, gc_paused, run_on_main_thread
+from ..core.background import breathe, gc_paused, main_qthread, on_main_thread
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import ServedValueMissing
-
-
-
-
-_run_on_main_thread = run_on_main_thread
-
 
 _WINDOWS_RESERVED_NAMES = (
     {"con", "prn", "aux", "nul"}
@@ -150,7 +144,8 @@ def _vector_source_from_geojson(geojson_str: str, layer_name: str, subdir: str =
 _JSON_PIECEWISE_CHARS = 2 * 1024 * 1024
 
 
-def _json_array_items(text: str, key: str) -> list | None:
+def _json_array_items(text: str, key: str) -> tuple | None:
+
 
 
 
@@ -174,7 +169,7 @@ def _json_array_items(text: str, key: str) -> list | None:
             if index >= length:
                 return None
             if text[index] == "]":
-                return items
+                return items, start, index + 1
             item, index = decoder.raw_decode(text, index)
             items.append(item)
             breathe(len(items))
@@ -184,11 +179,21 @@ def _json_array_items(text: str, key: str) -> list | None:
 
 def _json_object(text: str, array_key: str) -> dict:
 
+
+
+
     if len(text) >= _JSON_PIECEWISE_CHARS:
         with gc_paused():
-            items = _json_array_items(text, array_key)
-        if items is not None:
-            return {array_key: items}
+            found = _json_array_items(text, array_key)
+        if found is not None:
+            items, start, end = found
+            try:
+                rest = json.loads(text[:start] + "[]" + text[end:])
+            except ValueError:
+                rest = None
+            if isinstance(rest, dict):
+                rest[array_key] = items
+                return rest
     with gc_paused():
         return json.loads(text)
 
@@ -215,9 +220,65 @@ def _vector_source_from_features(features: list, layer_name: str, subdir: str = 
     return _vector_uri_for(_feature_collection_file(features, layer_name, subdir))
 
 
-def _layer_from_source(uri: str, layer_name: str):
+def worker_options(kind=QgsVectorLayer):
 
-    return QgsVectorLayer(uri, layer_name, "ogr")
+    options = kind.LayerOptions()
+    options.skipCrsValidation = True
+    return options
+
+
+def built_here(make, read_extent: bool = True):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if on_main_thread():
+        return None
+    try:
+        layer = make()
+        if layer is None:
+            return None
+        if layer.isValid():
+            if layer.isSpatial() and not layer.crs().isValid():
+                return None
+            if read_extent:
+                layer.extent()
+    except InterruptedError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Layer not built off the main thread: {exc}")
+        return None
+    target = main_qthread()
+    if target is None:
+        return None
+    layer.moveToThread(target)
+    return layer
+
+
+def _layer_from_source(uri: str, layer_name: str, built=None):
+
+
+    return built if built is not None else QgsVectorLayer(uri, layer_name, "ogr")
+
+
+def _worker_layer(uri: str, layer_name: str):
+
+    return built_here(lambda: QgsVectorLayer(uri, layer_name, "ogr", worker_options()))
 
 
 def _layer_from_geojson_str(geojson_str: str, layer_name: str, subdir: str = "osm"):
@@ -572,7 +633,6 @@ __all__ = [
     "_osrm_base",
     "_overpass_timeout",
     "_project_crs_transform",
-    "_run_on_main_thread",
     "_safe_filename",
     "_service",
     "_text",

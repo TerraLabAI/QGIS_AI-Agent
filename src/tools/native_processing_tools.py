@@ -34,7 +34,7 @@ from ..core import tuning
 from ..core.logger import log_warning
 from ..core.tool_registry import Tool as RuntimeTool
 from ..core.tool_registry import ToolRegistry, tool_error
-from .processing_tools import _run_processing
+from .processing_run import _run_processing
 
 
 

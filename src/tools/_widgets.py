@@ -13,6 +13,7 @@ import hashlib
 import re
 from typing import Any
 
+import qgis.utils
 from qgis.PyQt.QtCore import QPoint, QRect
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 from qgis.utils import iface, plugins
@@ -29,6 +30,46 @@ AI_SEGMENT_KEYS = (
     "AI_Segmentation",
     "ai_segmentation",
 )
+
+_SIBLING_NAMES = {"AI Edit": AI_EDIT_KEYS, "AI Segmentation": AI_SEGMENT_KEYS}
+
+
+def sibling_plugin(keys) -> tuple[str | None, Any]:
+    keys = tuple(keys)
+    loaded = getattr(qgis.utils, "plugins", None) or {}
+    for key in keys:
+        inst = loaded.get(key)
+        if inst is not None:
+            return key, inst
+    product = next((name for name, known in _SIBLING_NAMES.items() if keys and keys[0] in known), "")
+    if not product:
+        return None, None
+    from qgis.utils import pluginMetadata
+
+    for key, inst in list(loaded.items()):
+        try:
+            title = str(pluginMetadata(key, "name") or "")
+        except Exception:  # noqa: BLE001
+            title = ""
+        if title.startswith(product) and hasattr(inst, "mcp_api"):
+            return key, inst
+    return None, None
+
+
+def sibling_api_version(plugin) -> int | None:
+    api = getattr(plugin, "mcp_api", None)
+    if api is None:
+        return None
+    try:
+        reported = api.capabilities()
+        if isinstance(reported, dict) and isinstance(reported.get("api_version"), int):
+            return reported["api_version"]
+    except Exception:  # nosec B110
+        pass
+    import sys
+
+    version = getattr(sys.modules.get(type(api).__module__), "API_VERSION", None)
+    return version if isinstance(version, int) else None
 
 
 def _app() -> QApplication:

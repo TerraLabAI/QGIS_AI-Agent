@@ -27,7 +27,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from . import ground, tuning
 from .crs_ref import crs_ref
 from .feature_requests import feature_request, first_feature
-from .layer_order import WEB_SERVICE_PROVIDERS
+from .layer_order import is_web_service
 from .layer_order import positions as tree_positions
 from .layer_rank import FLOOR_ORDER, fields_named_in, named_in, offset_from_view, rank_layers, view_of
 from .layer_rank import detailed_ids as choose_detailed
@@ -167,7 +167,7 @@ def source_kind(layer) -> str:
     source = (layer.source() or "").lower()
     if provider == "memory":
         return "memory"
-    if provider in WEB_SERVICE_PROVIDERS:
+    if is_web_service(layer):
         return "wfs"
     if provider == "wms":
         return "xyz" if "type=xyz" in source else "wms"
@@ -545,14 +545,6 @@ def _band1_span(layer) -> tuple[str, list] | None:
         return None
 
 
-def _data_type_name(provider, band: int) -> str:
-    kind = provider.dataType(band)
-    try:
-        return str(QgsRasterLayer.dataTypeToString(kind))
-    except Exception:  # noqa: BLE001
-        return str(getattr(kind, "name", kind))
-
-
 def raster_card(layer) -> dict:
 
 
@@ -568,7 +560,7 @@ def raster_card(layer) -> dict:
     if provider is None:
         return card
     try:
-        card["band1_type"] = _data_type_name(provider, 1)
+        card["band1_type"] = ground.data_type_name(provider, 1)
     except Exception:  # nosec B110
         pass
     try:
@@ -1086,13 +1078,15 @@ def _home_relative_dir(text: str) -> str:
     return text
 
 
-def _layout_names(project) -> list[str]:
+def _layout_names(project) -> list[str] | None:
+
+
 
     try:
         cap = _cap("max_layout_names", MAX_LAYOUT_NAMES)
         return [layout.name() for layout in project.layoutManager().printLayouts()][:cap]
     except Exception:  # nosec B110
-        return []
+        return None
 
 
 def _capped_layers(layers: list, places: dict, active_id) -> list:
@@ -1381,7 +1375,7 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
     measure = project_measure(project)
     if measure:
         context["project_measure"] = measure
-    if layouts:
+    if layouts or layouts is None:
         context["layouts"] = layouts
     history = _recent_processing()
     if history:

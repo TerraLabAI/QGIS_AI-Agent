@@ -33,11 +33,12 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import http_headers, limits, links, net
+from ..core.background import run_on_main_thread
 from ..core.qt_compat import field_type
 from ..core.security import is_local_url, local_url_refusal
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import volume_guard
-from .data_tools import _USER_AGENT, _run_on_main_thread, expand_link
+from .data_tools import _USER_AGENT, expand_link
 
 _TIMEOUT_S = 30
 _MAX_BYTES = 25 * 1024 * 1024
@@ -725,4 +726,4 @@ def _add_points_from_json(args: dict) -> dict:
             "note": "Memory layer in EPSG:4326: reproject before measuring; save_layer_to_gpkg keeps it.",
         }
 
-    return _run_on_main_thread(_create, timeout=60)
+    return run_on_main_thread(_create, timeout=60)

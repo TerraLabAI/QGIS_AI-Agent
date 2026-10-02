@@ -117,17 +117,6 @@ def quickmapservices_info() -> dict:
             "url": served.get("url") or ""}
 
 
-def is_quickmapservices_installed() -> bool:
-
-
-
-
-
-
-
-    return _find_installed_plugin(_QUICKMAPSERVICES_LOCAL["keys"]) is not None
-
-
 def _find_installed_plugin(keys: tuple[str, ...]):
     try:
         import qgis.utils
@@ -223,14 +212,6 @@ def open_sibling_tutorial(product_id: str) -> None:
     sibling = SIBLINGS.get(product_id)
     if sibling:
         open_external_url(sibling["tutorial_url"])
-
-
-def open_ai_edit_page() -> None:
-    open_sibling_page("ai-edit")
-
-
-def open_ai_segmentation_page() -> None:
-    open_sibling_page("ai-segmentation")
 
 
 def open_sibling(product_id: str) -> str:
@@ -468,11 +449,3 @@ def make_sibling_action(parent, iface, product_id: str, label: str, tooltip: str
     return action
 
 
-def make_ai_edit_action(parent, iface, label: str, tooltip: str,
-                        icon: QIcon | None = None) -> QAction:
-    return make_sibling_action(parent, iface, "ai-edit", label, tooltip, icon)
-
-
-def make_ai_segmentation_action(parent, iface, label: str, tooltip: str,
-                                icon: QIcon | None = None) -> QAction:
-    return make_sibling_action(parent, iface, "ai-segmentation", label, tooltip, icon)

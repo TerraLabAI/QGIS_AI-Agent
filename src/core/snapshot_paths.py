@@ -13,6 +13,8 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import os
+import time
+import xml.etree.ElementTree as ET  # nosec B405
 
 from qgis.core import QgsProviderRegistry
 
@@ -262,12 +264,51 @@ def _ordered_layers(project) -> list:
     return order
 
 
+
+
+LAYOUT_DIGEST_SECONDS = 0.1
+
+
+def _xml_digest(data: bytes) -> str:
+
+
+    digest = hashlib.sha1(usedforsecurity=False)
+    for element in ET.fromstring(data).iter():  # nosec B314
+        digest.update(repr((element.tag, sorted(element.attrib.items()),
+                            (element.text or "").strip())).encode("utf-8", "replace"))
+    return digest.hexdigest()[:16]
+
+
+def _layout_marks(project) -> list:
+
+
+
+    from qgis.core import QgsReadWriteContext
+    from qgis.PyQt.QtXml import QDomDocument
+
+    marks: list = []
+    deadline = time.monotonic() + LAYOUT_DIGEST_SECONDS
+    for layout in sorted(project.layoutManager().layouts(), key=lambda item: str(item.name())):
+        digest = ""
+        if time.monotonic() < deadline:
+            try:
+                document = QDomDocument()
+                document.appendChild(layout.writeXml(document, QgsReadWriteContext()))
+                digest = _xml_digest(bytes(document.toByteArray()))
+            except Exception:  # nosec B110
+                digest = ""
+        marks.append([str(layout.name()), digest])
+    return marks
+
+
 def _project_state(project) -> dict:
 
 
 
 
-    state: dict = {"crs": "", "tree": []}
+
+
+    state: dict = {"crs": "", "tree": [], "layouts": []}
     try:
         state["crs"] = project.crs().authid() or ""
     except Exception:  # nosec B110
@@ -281,6 +322,10 @@ def _project_state(project) -> dict:
                 groups.append(str(parent.name() or ""))
                 parent = parent.parent()
             state["tree"].append([str(node.layerId()), "/".join(reversed(groups)), bool(node.isVisible())])
+    except Exception:  # nosec B110
+        pass
+    try:
+        state["layouts"] = _layout_marks(project)
     except Exception:  # nosec B110
         pass
     return state

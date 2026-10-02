@@ -13,11 +13,12 @@ from __future__ import annotations
 import base64
 import binascii
 
-from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPainterPath, QPixmap
+from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout, QWidget
 
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
+from .image_guard import read_bounded_image
 from .shared import event_pos
 from .style import FONT_HINT
 from .widgets import IconButton
@@ -59,26 +60,14 @@ def image_of(item: dict) -> QImage | None:
 
 def _read_bounded_image(source) -> QImage | None:
 
-    try:
-        if isinstance(source, (bytes, bytearray)):
-            buffer = QBuffer()
-            buffer.setData(QByteArray(bytes(source)))
-            buffer.open(QIODevice.OpenModeFlag.ReadOnly)
-            reader = QImageReader(buffer)
-        else:
-            reader = QImageReader(str(source))
-        size = reader.size()
-        if size.isValid():
-            if size.width() * size.height() > _MAX_IMAGE_PIXELS * 4:
-                return None
-            if max(size.width(), size.height()) > _MAX_IMAGE_SIDE:
-                scale = min(_MAX_IMAGE_SIDE / size.width(), _MAX_IMAGE_SIDE / size.height())
-                reader.setScaledSize(QSize(max(1, int(size.width() * scale)),
-                                           max(1, int(size.height() * scale))))
-        image = reader.read()
-        return None if image.isNull() else image
-    except (AttributeError, RuntimeError, TypeError, ValueError):
+    return read_bounded_image(source, _MAX_IMAGE_PIXELS * 4, _fit_side)
+
+
+def _fit_side(size: QSize) -> QSize | None:
+    if max(size.width(), size.height()) <= _MAX_IMAGE_SIDE:
         return None
+    scale = min(_MAX_IMAGE_SIDE / size.width(), _MAX_IMAGE_SIDE / size.height())
+    return QSize(max(1, int(size.width() * scale)), max(1, int(size.height() * scale)))
 
 
 class ClickableThumb(QLabel):

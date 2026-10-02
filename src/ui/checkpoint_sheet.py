@@ -31,6 +31,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import os
@@ -313,9 +315,9 @@ def _details(row: dict, tr) -> str:
     elif row["live"] is None:
         lines = [tr("Restore puts the project back as this request left it.")]
     elif row["live"]:
-        lines = [tr("Undo puts the project back as it was before this request.")]
+        lines = [tr("Remove what this request changed on the map.")]
     else:
-        lines = [tr("Put back brings the project to where this request left it.")]
+        lines = [tr("Bring back what this request changed.")]
     if row.get("request"):
         lines.append(f"“{row['request']}”")
     source = row.get("after") or row.get("before") or {}
@@ -604,11 +606,14 @@ class CheckpointSheet(QFrame):
 
         undone = any(row["live"] is False for row in rows)
         now_placed = False
+        later = 0
         for row in rows:
             if undone and row["live"] and not now_placed:
                 self._col.addWidget(_NowLine(self._host))
                 now_placed = True
-            self._col.addWidget(self._row_for(row))
+            self._col.addWidget(self._row_for(row, later))
+            if row["type"] == "request" and row["live"]:
+                later += 1
         if undone and not now_placed:
             self._col.addWidget(_NowLine(self._host))
         self._col.addStretch(1)
@@ -628,7 +633,7 @@ class CheckpointSheet(QFrame):
         self._everything = everything
         self._rows.append(everything)
 
-    def _row_for(self, row: dict) -> _VersionRow:
+    def _row_for(self, row: dict, later: int = 0) -> _VersionRow:
         target = row.get("target")
         cid = row_target(row)
         if row["type"] == "edits":
@@ -636,8 +641,12 @@ class CheckpointSheet(QFrame):
         else:
             title = row["request"] or self.tr("Request {n}").format(
                 n=_whole((row.get("after") or {}).get("run_index")))
+
+
+
             verb = (self.tr("Restore") if row["live"] is None
-                    else self.tr("Undo") if row["live"] else self.tr("Put back"))
+                    else self.tr("Redo") if not row["live"]
+                    else self.tr("Go back here") if later else self.tr("Undo"))
         note = False
         if isinstance(target, dict) and target.get("other_project"):
             name = str(target.get("project") or "")
@@ -649,6 +658,9 @@ class CheckpointSheet(QFrame):
         widget = _VersionRow(title, _when(row.get("created_at")), verb, warning_line(items, self.tr),
                              self._host, undone=row["type"] == "request" and row["live"] is False, note=note)
         tip = _details(row, self.tr)
+        if row["type"] == "request" and row["live"] and later:
+            tip = (self.tr("Also undoes {n} later requests") if later > 1
+                   else self.tr("Also undoes 1 later request")).format(n=later) + "\n" + tip
         if items:
             tip += "\n\n" + warning_tooltip(items, self.tr)
         widget.setToolTip(tip)

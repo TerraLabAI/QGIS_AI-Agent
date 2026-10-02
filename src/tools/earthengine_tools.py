@@ -264,9 +264,9 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
         QgsProject.instance().addMapLayer(layer)
         return {"layer_name": layer.name(), "layer_id": layer.id()}
 
-    from .data_tools import _run_on_main_thread
+    from ..core.background import run_on_main_thread
 
-    created = _run_on_main_thread(_create, timeout=30)
+    created = run_on_main_thread(_create, timeout=30)
     if created is None:
         return {"_error": f"Failed to create XYZ layer from Earth Engine tiles for '{ee_id}'", "_code": "LAYER_INVALID"}
 
@@ -402,14 +402,14 @@ def _resolve_source_image(args: dict, ee):
     ee_id = args.get("ee_id")
 
     if layer_name:
-        from .core_tools import _find_layer
-        from .data_tools import _run_on_main_thread
+        from ..core.background import run_on_main_thread
+        from .layer_lookup import _find_layer
 
 
-        layer = _run_on_main_thread(_find_layer, layer_name)
+        layer = run_on_main_thread(_find_layer, layer_name)
         if layer is None:
             return None, {"_error": f"Layer '{layer_name}' not found or ambiguous", "_code": "LAYER_NOT_FOUND"}
-        cached = _EE_LAYERS.get(_run_on_main_thread(layer.id))
+        cached = _EE_LAYERS.get(run_on_main_thread(layer.id))
         if cached is None:
             return None, {
                 "_error": f"Layer '{layer_name}' is not an Earth Engine layer added in this session",
@@ -520,9 +520,10 @@ def _bbox_to_wsen(args: dict) -> tuple | None:
         if w >= e or s >= n:
             raise _BadBbox("bbox is empty: xmin must be < xmax and ymin < ymax")
         return w, s, e, n
-    from .data_tools import _canvas_viewbox_4326, _run_on_main_thread
+    from ..core.background import run_on_main_thread
+    from .data_tools import _canvas_viewbox_4326
 
-    viewbox = _run_on_main_thread(_canvas_viewbox_4326)
+    viewbox = run_on_main_thread(_canvas_viewbox_4326)
     if not viewbox:
         return None
     try:

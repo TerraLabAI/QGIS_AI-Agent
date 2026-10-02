@@ -19,7 +19,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import security
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer
-from .processing_tools import _run_processing
+from .processing_run import _run_processing
 
 
 def register_mesh_tools(registry: ToolRegistry) -> None:

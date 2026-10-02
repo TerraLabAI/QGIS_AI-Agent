@@ -15,7 +15,7 @@ from . import telemetry
 from . import telemetry_events as ev
 from .controller_actions import _project_path
 from .logger import log, log_warning
-from .protocol import RunStatus
+from .protocol import CANCEL_SIGNED_OUT, RunStatus
 from .threads import ThreadStore
 
 
@@ -87,7 +87,7 @@ class _ControllerAccount:
         if run is None:
             return
         try:
-            self._session.send_cancel(run["run_id"])
+            self._session.send_cancel(run["run_id"], CANCEL_SIGNED_OUT)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run {run['run_id'][:8]}: no cancel sent when the account left: {exc}")
         finally:
@@ -142,8 +142,13 @@ class _ControllerAccount:
 
     def _on_pairing_failed(self, message: str, code: str) -> None:
         telemetry.track(ev.PAIRING_FAILED, {"error_code": code, "duration_ms": self._since_pairing_ms()})
-        self._panel_call("set_connection_state", "signed_out", message)
-        self._panel_call("show_error", None, code, message, False, "")
+
+
+
+
+
+        self._panel_call("set_connection_state", "signed_out", "")
+        self._panel_call("set_connection_state", "error", message)
 
     def _raise_qgis(self) -> None:
 

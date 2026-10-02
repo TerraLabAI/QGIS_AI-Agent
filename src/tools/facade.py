@@ -27,25 +27,27 @@ from qgis.core import QgsProject, QgsRasterLayer, QgsUnitTypes, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import dataset_docs, ground, links, net
+from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import core_tools as _core
 from . import data_tools as _data
 from . import integration_tools as _integration
+from . import layer_io_tools as _layer_io
 from . import ogc_inspect
 from . import sibling_setup as _setup
 from . import stac_tools as _stac
-from ._widgets import AI_EDIT_KEYS
+from ._widgets import AI_EDIT_KEYS, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as _AIEDIT
 from .crs_at_load import check_loaded
 from .csv_loader import CSV_EXTENSIONS
-from .data_ogc import _wfs_typenames
-from .data_tools import _run_on_main_thread
+from .data_basemaps import VECTOR_TILE_EXTENSIONS, _add_oapif_layer, _add_vector_tile_layer, _oapif_collection
+from .data_inspect import hosted_department_url
+from .data_ogc import _add_wcs_layer, _wfs_typenames
 from .harvest_remote import _add_arcgis_rest_layer, _arcgis_parse
-from .layer_io_tools import NO_CRS_WARNING, point_cloud_provider
+from .layer_io_tools import NO_CRS_WARNING, _add_point_cloud_layer, _add_raster_layer, point_cloud_provider
 
 
 
@@ -106,9 +108,12 @@ def register_facade_tools(registry: ToolRegistry):
         name="add_data",
         danger="write",
         visible=5,
-        label=QT_TRANSLATE_NOOP("AIAgent", "Add {source}[ as {name}]"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Add {name}[ from {source}]"),
         input_schema={
             "type": "object",
+
+
+            "x-raster-window": True,
             "properties": {
                 "source": {
                     "type": "string",
@@ -144,6 +149,9 @@ def register_facade_tools(registry: ToolRegistry):
                 "zmax": {"type": "integer"},
 
                 "max_features": {"type": "integer", "minimum": 1},
+
+
+                "where": {"type": "string"},
                 "full_extent": {
                     "type": "object",
                     "properties": {"quote": {"type": "string"}, "place": {"type": "string"}},
@@ -160,7 +168,7 @@ def register_facade_tools(registry: ToolRegistry):
             "x-zip-listing": True,
         },
         handler=_add_data,
-        background=_add_data_is_remote,
+        background=_add_data_off_main,
     ))
 
     registry.register(Tool(
@@ -290,7 +298,7 @@ def register_facade_tools(registry: ToolRegistry):
         },
         handler=_ai_segment,
         action_danger=AI_SEGMENT_ACTION_DANGER,
-        argument_check=_integration.aiseg_imagery_refusal,
+        argument_check=_integration.aiseg_argument_refusal,
     ))
 
     registry.register(Tool(
@@ -360,7 +368,7 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
 
 
 
-        return "vectortile" if ext in _data.VECTOR_TILE_EXTENSIONS else "xyz"
+        return "vectortile" if ext in VECTOR_TILE_EXTENSIONS else "xyz"
     if _is_url(text):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(text).query.lower())
         service = (query.get("service") or [""])[0]
@@ -385,7 +393,7 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
 
 
 
-        if "/collections/" in lower and _data._oapif_collection(text) is None and "/items/" in lower:
+        if "/collections/" in lower and _oapif_collection(text) is None and "/items/" in lower:
             return "stac"
         if ext == ".json" and "stac" in lower:
             return "stac"
@@ -394,15 +402,19 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
         if ext in _RASTER_EXT:
             return "cog"
         return "vector"
+
+
+    path = text.split("|", 1)[0]
+    ext = _extension(path)
     if ext == ".pmtiles":
         return "pmtiles"
-    if point_cloud_provider(text):
+    if point_cloud_provider(path):
         return "pointcloud"
     if ext in _RASTER_EXT:
         return "raster"
     if ext in _VECTOR_EXT:
         return "vector"
-    if os.path.exists(text):
+    if os.path.exists(path):
         return "vector"
 
     return "xyz"
@@ -435,6 +447,24 @@ def _service_layer(kind: str, source: str) -> str | dict:
 _SERVICE_NAMES_SHOWN = 40
 
 
+def _drawn_service(kind: str, source: str) -> str:
+
+    if kind == "wms":
+        return "a WMS service"
+    if not _is_url(source) or kind == "xyz":
+        return ""
+    query = {key.lower(): value.lower() for key, value in urllib.parse.parse_qsl(urllib.parse.urlsplit(source).query)}
+    if query.get("request") == "getmap" or query.get("service") == "wms":
+        return "a WMS service"
+    parsed = _arcgis_parse(source)
+
+
+    if parsed is not None and (kind == "raster" or parsed[1] == "imageserver"
+                               or (parsed[1] == "mapserver" and parsed[2] is None)):
+        return "an ArcGIS map or image service"
+    return ""
+
+
 def _dispatch_add(kind: str, args: dict) -> dict:
     source = args["source"]
     name = args.get("name")
@@ -451,6 +481,19 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             "INVALID_ARGS",
             "[west, south, east, north] in EPSG:4326, west below east and south below north.",
         )
+    drawn = bbox and _drawn_service(kind, source)
+    if drawn:
+
+
+        return tool_error(f"bbox is not read for {drawn}; nothing was loaded.", "INVALID_ARGS",
+                          "The same call without bbox adds the service, drawn for whatever the map shows.")
+    where = str(args.get("where") or "").strip()
+    if where and not (kind == "wfs" or (kind in ("vector", "raster") and _is_url(source)
+                                        and _arcgis_parse(source) is not None)):
+
+        return tool_error("where is read for a WFS type or an ArcGIS feature layer, and this source is "
+                          "neither; nothing was loaded.", "INVALID_ARGS",
+                          "Without where the source loads whole, and set_layer_filter filters a loaded layer.")
     if kind == "vector":
         if _is_url(source):
 
@@ -467,39 +510,46 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
                 return _add_arcgis_rest_layer({"url": source, "name": name, "crs": crs, "bbox": bbox,
-                                               "full_extent": args.get("full_extent")})
+                                               "where": where, "full_extent": args.get("full_extent")})
 
 
 
-            if _data._oapif_collection(source) is not None:
-                return _data._add_oapif_layer({"url": source, "name": name})
+            if _oapif_collection(source) is not None:
+                return _add_oapif_layer({"url": source, "name": name})
             return _data._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
-                                               "layer_name": name, "layer": layer, "bbox": bbox,
+                                               "layer_name": name, "layer": layer, "bbox": bbox, "crs": crs,
                                                "full_extent": args.get("full_extent")})
-        return _core._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer})
+        return _layer_io._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer})
     if kind == "raster":
         if _is_url(source):
             if _arcgis_parse(source) is not None:
                 return _add_arcgis_rest_layer({"url": source, "name": name, "crs": crs, "kind": "map",
-                                               "full_extent": args.get("full_extent")})
+                                               "where": where, "full_extent": args.get("full_extent")})
             address = source.replace("/vsicurl/", "", 1)
-            streamed = _stac._add_cog_layer({"url": address, "name": name})
+            streamed = _stac._add_cog_layer({"url": address, "name": name, "bbox": bbox})
 
 
 
 
 
-            if streamed.get("_error") and streamed.get("_code") != "PERMISSION_DENIED":
+
+
+            if streamed.get("_error") and streamed.get("_code") != "PERMISSION_DENIED" and (
+                    not bbox or str(streamed["_error"]).startswith("Could not open the raster")):
 
 
 
-                return _stac.add_raster_downloaded(address, name)
+                downloaded = _stac.add_raster_downloaded(address, name)
+                if bbox and not downloaded.get("_error"):
+                    downloaded["warning"] = ("The bbox was not applied: this file cannot be streamed, so it "
+                                             "was downloaded and added whole.")
+                return downloaded
             return streamed
-        return _core._add_raster_layer({"path": source, "name": name, "layer": layer})
+        return _add_raster_layer({"path": source, "name": name, "layer": layer})
     if kind == "cog":
-        return _stac._add_cog_layer({"url": source.replace("/vsicurl/", "", 1), "name": name})
+        return _stac._add_cog_layer({"url": source.replace("/vsicurl/", "", 1), "name": name, "bbox": bbox})
     if kind == "stac":
-        return _stac._add_stac_layer({"item_url": source, "name": name, "asset": layer})
+        return _stac._add_stac_layer({"item_url": source, "name": name, "asset": layer, "bbox": bbox})
     if kind == "pmtiles":
 
 
@@ -507,13 +557,13 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                                          "bbox": bbox or args.get("bbox"), "mode": args.get("mode"),
                                          "full_extent": args.get("full_extent")})
     if kind == "pointcloud":
-        return _core._add_point_cloud_layer({"path": source, "name": name})
+        return _add_point_cloud_layer({"path": source, "name": name})
     if kind == "xyz":
 
         return _data._add_xyz_layer({"source": source, "name": name, "bbox": bbox or args.get("bbox"),
                                      "zmin": args.get("zmin"), "zmax": args.get("zmax")})
     if kind == "vectortile":
-        return _data._add_vector_tile_layer({
+        return _add_vector_tile_layer({
             "url": source, "name": name, "style": args.get("style"),
             "zmin": args.get("zmin"), "zmax": args.get("zmax"),
         })
@@ -542,7 +592,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             )
 
 
-        wfs_args = {"url": source, "typename": layer, "name": name, "bbox": bbox,
+        wfs_args = {"url": source, "typename": layer, "name": name, "bbox": bbox, "where": where,
                     "max_features": args.get("max_features"), "full_extent": args.get("full_extent")}
         if crs:
             wfs_args["crs"] = crs
@@ -554,7 +604,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                 "INVALID_ARGS",
                 "layer=<coverage id>. inspect_data_source lists what the service serves.",
             )
-        return _data._add_wcs_layer({"url": source, "coverage": layer, "name": name, "crs": crs, "bbox": bbox})
+        return _add_wcs_layer({"url": source, "coverage": layer, "name": name, "crs": crs, "bbox": bbox})
     return tool_error(f"Unknown kind: {kind}", "INVALID_ARGS", f"kind must be one of {list(ADD_DATA_KINDS)}.")
 
 
@@ -627,8 +677,18 @@ def _move_to_group(layer, group_name: str):
 
 
 
-
 _REMOTE_KINDS = frozenset({"cog", "stac", "pmtiles", "wms", "wfs", "vectortile", "wcs"})
+
+
+_LOCAL_FILE_KINDS = frozenset({"vector", "raster"})
+
+
+def _add_data_off_main(args: dict) -> bool:
+
+    if _add_data_is_remote(args):
+        return True
+    source = str(args.get("source") or "").strip()
+    return bool(source) and deduce_kind(source, args.get("kind")) in _LOCAL_FILE_KINDS
 
 
 def _add_data_is_remote(args: dict) -> bool:
@@ -664,7 +724,7 @@ def _merge_crs_check(described: dict, found: dict) -> None:
 
 
 def _add_data(args: dict) -> dict:
-    source = _data.hosted_department_url(str(args.get("source") or "").strip())
+    source = hosted_department_url(str(args.get("source") or "").strip())
     if not source:
         return tool_error("source is empty.", "INVALID_ARGS", "a path, URL, service endpoint or basemap name.")
     args = dict(args, source=source)
@@ -735,6 +795,10 @@ def _add_data(args: dict) -> dict:
 
             "bbox", "box_km2", "path", "gpkg_path", "source_format", "layer", "seconds",
 
+            "window",
+
+            "where",
+
 
             "dataset_notes",
 
@@ -746,6 +810,8 @@ def _add_data(args: dict) -> dict:
             "data_date",
 
             "crs_assigned",
+
+            "layers",
 
             "description_fields",
 
@@ -765,7 +831,7 @@ def _add_data(args: dict) -> dict:
 
 
 
-    return _run_on_main_thread(_finish, timeout=120)
+    return run_on_main_thread(_finish, timeout=120)
 
 
 
@@ -789,9 +855,7 @@ def _signed_out(tool: str, label: str) -> dict:
 
 
 def _loaded(keys) -> bool:
-    import qgis.utils
-
-    return any(qgis.utils.plugins.get(key) is not None for key in keys)
+    return sibling_plugin(keys)[1] is not None
 
 
 def _aiseg_not_running(presence: dict) -> dict:
@@ -825,6 +889,11 @@ def _ai_edit(args: dict) -> dict:
             "AI Edit by TerraLab is installed but not running.", "PERMISSION_DENIED",
             ("ai_edit action setup switches the plugin on." if found["state"] == "disabled"
              else _setup.not_running("ai_edit", found)["action_required"]),
+        )
+    if _setup.outdated("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]):
+        return tool_error(
+            "AI Edit by TerraLab is older than this agent supports.", "PLUGIN_OUTDATED",
+            "ai_edit action setup opens the Plugin Manager on AI Edit, where the person clicks Upgrade.",
         )
     if action == "generate":
         if not str(args.get("prompt") or "").strip():

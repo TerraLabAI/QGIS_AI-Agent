@@ -12,6 +12,7 @@
 
 
 
+
 from __future__ import annotations
 
 import os
@@ -121,15 +122,17 @@ def _print_layouts(manager) -> list:
         return []
 
 
-def layout_page_plan(args: dict) -> dict:
+def layout_page_start(args: dict) -> dict:
 
 
 
 
 
-    from qgis.core import QgsLayoutExporter, QgsProject
+
+    from qgis.core import QgsLayoutMeasurement, QgsProject
 
     from ..core.layout_quality import assess_layout
+    from . import layout_ready
 
     manager = QgsProject.instance().layoutManager()
     wanted = str(args.get("layout_name") or "").strip()
@@ -169,11 +172,9 @@ def layout_page_plan(args: dict) -> dict:
     page_box = next((row for row in facts.get("pages_mm") or [] if row.get("page") == page), None)
     rect = pages.page(page - 1).rect()
     width, height = _sized(rect.width() or 1.0, rect.height() or 1.0, args)
-    image = QgsLayoutExporter(layout).renderPageToImage(page - 1, QSize(width, height), 0)
-    if image is None or image.isNull():
-        return {"_error": f"QGIS could not draw page {page} of '{layout.name()}'.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "get_layout_info shows the page size and the map item's extent."}
+
+    inch = layout.convertToLayoutUnits(QgsLayoutMeasurement(25.4))
+    dpi = layout_ready.page_dpi(width, height, rect.width() or 1.0, rect.height() or 1.0, inch)
 
     outside = [row.get("item") for row in facts.get("items") or []
                if row.get("status") == "warning" and row.get("inside_page") is False]
@@ -189,7 +190,33 @@ def layout_page_plan(args: dict) -> dict:
                        "at this page again.")
     if facts.get("warnings"):
         out["layout_warnings"] = facts["warnings"][:8]
-    return {"image": image, "facts": out}
+    return {"layout_name": layout.name(), "page": page, "width": width, "height": height, "facts": out,
+            "ready": layout_ready.start(layout, {page - 1}, dpi)}
+
+
+def layout_page_draw(started: dict) -> dict:
+
+
+
+
+
+
+    from qgis.core import QgsLayoutExporter, QgsProject
+
+    from . import layout_ready
+
+    layout = QgsProject.instance().layoutManager().layoutByName(started["layout_name"])
+    if layout is None:
+        return {"_error": f"Layout not found: {started['layout_name']}", "_code": "INVALID_ARGS",
+                "_suggestion": "list_layouts names the layouts of this project."}
+    page, size = started["page"], QSize(started["width"], started["height"])
+    image = layout_ready.drawn(layout, started["ready"],
+                               lambda: QgsLayoutExporter(layout).renderPageToImage(page - 1, size, 0))
+    if image is None or image.isNull():
+        return {"_error": f"QGIS could not draw page {page} of '{layout.name()}'.",
+                "_code": "EXECUTION_FAILED",
+                "_suggestion": "get_layout_info shows the page size and the map item's extent."}
+    return {"image": image, "facts": started["facts"]}
 
 
 def _svg_image(path: str, args: dict):

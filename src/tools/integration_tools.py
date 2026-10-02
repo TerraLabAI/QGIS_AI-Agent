@@ -19,19 +19,14 @@ from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry
 from . import cost_guard
 from . import sibling_setup as _setup
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
+from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as AIEDIT
 
 AISEG_KEYS = list(AI_SEGMENT_KEYS)
 
 
 def _find_plugin(candidate_keys: list[str]):
-    import qgis.utils
-    for key in candidate_keys:
-        plugin = qgis.utils.plugins.get(key)
-        if plugin is not None:
-            return key, plugin
-    return None, None
+    return sibling_plugin(candidate_keys)
 
 
 def aiseg_presence() -> dict:
@@ -478,6 +473,15 @@ def _aiseg_add_balance(plugin, status: dict) -> None:
         left = reader() if callable(reader) else None
         if left is not None:
             status["auto_km2_left_this_month"] = round(float(left), 1)
+            if float(left) <= 0:
+
+
+
+                status["can_run_auto"] = False
+                status["blocker"] = ("auto_km2_left_this_month is 0.0: the account has no Automatic detection "
+                                     "area left, and detect_auto is refused for credits until it renews")
+                if str(status.get("hint") or "").startswith("detect_auto can run now"):
+                    status.pop("hint")
     except Exception as exc:  # noqa: BLE001
         log_warning(f"AI Segmentation balance not read: {exc}")
 
@@ -634,33 +638,34 @@ def _aiseg_class_preflight(api, object_class: str, args: dict) -> dict | None:
 
     detail = described.get("_error")
     if detail:
-        out = {
-            "_error": (
+        nearest = described.get("_suggestions")
+        nearest = [str(token) for token in nearest] if isinstance(nearest, list) else []
+        return {
+            "error": (
                 f"'{object_class}' is not an object class AI Segmentation can detect, "
                 f"and running it would spend credits for nothing. {detail}"
             ),
-            "_suggestion": (
-                "ai_segment presets (action 'presets') lists catalogue tokens; exemplars "
+            "code": "INVALID_ARGS",
+            "suggestion": (
+                ("Nearest catalogue tokens: " + ", ".join(f"'{t}'" for t in nearest) + ". "
+                 if nearest else "")
+                + "ai_segment presets (action 'presets') lists catalogue tokens; exemplars "
                 "(example boxes around one instance) need no class word."
             ),
         }
-        nearest = described.get("_suggestions")
-        if isinstance(nearest, list) and nearest:
-            out["nearest_classes"] = [str(token) for token in nearest]
-        return out
 
     if described.get("weak") and not args.get("accept_weak_class"):
         token = str(described.get("token") or object_class)
         return {
-            "_error": (
+            "error": (
                 f"'{token}' names a kind of ground cover, not a countable object, so a zone run "
                 "returns soft ragged outlines rather than separate instances."
             ),
-            "_suggestion": (
+            "code": "INVALID_ARGS",
+            "suggestion": (
                 "Running this spends credits on soft ragged outlines. accept_weak_class: true "
                 "runs it once the user agrees; countable objects need another ai_segment presets token."
             ),
-            "weak_class": token,
         }
     return None
 
@@ -730,9 +735,7 @@ def _aiseg_imagery_name(name: str) -> str:
     return layer.name() if layer is not None else name
 
 
-def aiseg_imagery_refusal(args: dict) -> dict | None:
-
-
+def _aiseg_imagery_refusal(args: dict) -> dict | None:
 
 
 
@@ -742,7 +745,7 @@ def aiseg_imagery_refusal(args: dict) -> dict | None:
 
 
     wanted = str(args.get("layer_name") or "").strip()
-    if args.get("action") != "detect_auto" or not wanted:
+    if not wanted:
         return None
     name = _aiseg_imagery_name(wanted)
     try:
@@ -771,6 +774,104 @@ def aiseg_imagery_refusal(args: dict) -> dict | None:
     }
 
 
+
+
+def _aiseg_detect_params(fn) -> frozenset | None:
+
+    try:
+        import inspect
+
+        return frozenset(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):
+        return None
+
+
+def _aiseg_zone_outside_refusal(plugin, args: dict) -> dict | None:
+
+
+
+
+
+
+
+    try:
+
+        args = {**args, "layer_name": _aiseg_imagery_name(str(args.get("layer_name") or "").strip())}
+        layer = _aiseg_raster_layer(plugin, args["layer_name"])
+        provider = layer.dataProvider() if layer is not None else None
+        if provider is None or provider.name() != "gdal":
+            return None
+        wkt = _aiseg_zone_wkt(plugin, args)
+        if not wkt:
+            return None
+        from qgis.core import QgsGeometry
+
+        zone = QgsGeometry.fromWkt(wkt)
+        extent = layer.extent()
+        if zone is None or zone.isEmpty() or extent.isEmpty() or zone.boundingBox().intersects(extent):
+            return None
+    except Exception:  # noqa: BLE001
+        return None
+    return {
+        "error": (f"The zone lies outside '{layer.name()}': that raster covers none of it, so the run "
+                  "would read blank tiles and AI Segmentation refuses it."),
+        "code": "INVALID_ARGS",
+        "suggestion": ("Online imagery (a satellite basemap) covers any zone; a local raster covers only its "
+                       "own extent."),
+    }
+
+
+def aiseg_argument_refusal(args: dict) -> dict | None:
+
+
+
+
+
+
+
+
+
+
+    if args.get("action") != "detect_auto":
+        return None
+    refusal = _aiseg_imagery_refusal(args)
+    if refusal is not None:
+        return refusal
+    object_class = str(args.get("object_class") or "").strip()
+    exemplars = args.get("exemplars")
+    if not object_class and not exemplars:
+        return {"error": "Needs object_class or exemplars.", "code": "INVALID_ARGS",
+                "suggestion": "A class token (e.g. 'building'), or exemplar boxes for reference-image mode."}
+    try:
+        _, plugin = _find_plugin(AISEG_KEYS)
+    except Exception:  # noqa: BLE001
+        return None
+    api = getattr(plugin, "mcp_api", None) if plugin else None
+    fn = getattr(api, "detect_auto", None) if api is not None else None
+    if fn is None:
+        return None
+    if object_class and not exemplars:
+        refusal = _aiseg_class_preflight(api, object_class, args)
+        if refusal is not None:
+            return refusal
+    params = _aiseg_detect_params(fn)
+    if exemplars and params is not None and "exemplars" not in params:
+        return {"error": "This AI Segmentation version does not support reference-image exemplars.",
+                "code": "INVALID_ARGS", "suggestion": "QGIS Plugin Manager has an update."}
+
+    if (params is None or "wait" not in params) and cost_guard.detaches(args):
+        area = cost_guard.zone_area_km2(args, cost_guard.SEGMENTATION) or 0.0
+        return {
+            "error": (f"This zone is {area:,.1f} km² and the installed AI Segmentation can only "
+                      "run a sweep the caller waits on, which it gives up and cancels after "
+                      "about 5 minutes. A zone this size needs a newer build."),
+            "code": "INVALID_ARGS",
+            "suggestion": ("QGIS Plugin Manager updates AI Segmentation; a zone of a few km² "
+                           "also finishes inside that window."),
+        }
+    return _aiseg_zone_outside_refusal(plugin, args)
+
+
 def _aiseg_detect_auto(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
@@ -790,46 +891,20 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
         object_class = (args.get("object_class") or "").strip()
         exemplars = args.get("exemplars")
-        if not object_class and not exemplars:
-            return {
-                "_error": "Needs object_class or exemplars.",
-                "_suggestion": "A class token (e.g. 'building'), or exemplar boxes for reference-image mode.",
-            }
-
-
-
-
-
-        if object_class and not exemplars:
-            refusal = _aiseg_class_preflight(api, object_class, args)
-            if refusal is not None:
-                return refusal
-
-
         wanted = (args.get("layer_name") or "").strip()
         if wanted:
             args = {**args, "layer_name": _aiseg_imagery_name(wanted)}
-
-
-
 
         kwargs = {
             "zone_wkt": _aiseg_zone_wkt(plugin, args),
             "object_class": object_class,
             "layer_name": args.get("layer_name"),
         }
+        params = _aiseg_detect_params(fn)
+
+
         if exemplars:
-            try:
-                import inspect
-                if "exemplars" in inspect.signature(fn).parameters:
-                    kwargs["exemplars"] = exemplars
-                else:
-                    return {"_error": (
-                        "This AI Segmentation version does not support reference-image "
-                        "exemplars; QGIS Plugin Manager has an update."
-                    )}
-            except (TypeError, ValueError):
-                kwargs["exemplars"] = exemplars
+            kwargs["exemplars"] = exemplars
 
 
 
@@ -842,33 +917,17 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
 
 
-        try:
-            import inspect
-            detached = "wait" in inspect.signature(fn).parameters
-        except (TypeError, ValueError):
-            detached = False
-        if not detached:
-            if cost_guard.detaches(args):
-                area = cost_guard.zone_area_km2(args, cost_guard.SEGMENTATION) or 0.0
-                return {
-                    "_error": (f"This zone is {area:,.1f} km² and the installed AI Segmentation can only "
-                               "run a sweep the caller waits on, which it gives up and cancels after "
-                               "about 5 minutes. A zone this size needs a newer build."),
-                    "_suggestion": ("QGIS Plugin Manager updates AI Segmentation; a zone of a few km² "
-                                    "also finishes inside that window."),
-                }
-        else:
+        detached = params is not None and "wait" in params
+        if detached:
             kwargs["wait"] = False
 
 
 
 
         detail = args.get("detail")
-        if detail is not None:
+        if detail is not None and params is not None and "detail" in params:
             try:
-                import inspect
-                if "detail" in inspect.signature(fn).parameters:
-                    kwargs["detail"] = int(detail)
+                kwargs["detail"] = int(detail)
             except (TypeError, ValueError):
                 pass
 

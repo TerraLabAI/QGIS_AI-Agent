@@ -260,7 +260,8 @@ def closest_names(query: str, names: list[str], limit: int = 3) -> list[str]:
     return out
 
 
-def closest_layers(query: str, layers: list, limit: int = 3) -> list[dict]:
+def closest_layers(query: str, layers: list, limit: int = 3, floor: float = 0.4) -> list[dict]:
+
 
 
 
@@ -274,7 +275,7 @@ def closest_layers(query: str, layers: list, limit: int = 3) -> list[dict]:
             log_debug(f"closest_layers: reading a layer's name/id failed: {exc}")
             continue
     scored.sort(key=lambda item: (-item[0], item[1]))
-    return [{"name": name, "id": layer_id} for score, name, layer_id in scored[:limit] if score >= 0.4]
+    return [{"name": name, "id": layer_id} for score, name, layer_id in scored[:limit] if score >= floor]
 
 
 def resolve_layer(name_or_id: str):
@@ -589,7 +590,9 @@ def layer_not_found(name_or_id: str) -> dict:
         msg += f" Did you mean: {listing}?"
         suggestion = f"The id {close[0]['id']!r} names {close[0]['name']!r} specifically."
     else:
-        shown = [{"id": layer.id(), "name": layer.name()} for layer in layers[:6]]
+
+
+        shown = closest_layers(text, layers, limit=6, floor=0)
         msg += " Available: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in shown)
         msg += f" (+{len(layers) - len(shown)} more)." if len(layers) > len(shown) else "."
         suggestion = "One of the ids here, or list_layers, names a specific layer."

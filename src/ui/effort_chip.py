@@ -144,6 +144,10 @@ _POPOVER_QSS = scale_qss_font_px(
     f" border-radius: 12px; padding: 0 10px; font-size: {FONT_MICRO + 1}px; font-weight: 600; }}"
     f"QPushButton#effortCta:hover {{ background: {ACCENT_DARK}; }}"
     f"QPushButton#effortCta:pressed {{ background: {ACCENT_DARK}; }}"
+
+
+    f"QLabel#effortHead {{ font-size: {FONT_MICRO}px; font-weight: 600;"
+    f" letter-spacing: 0.7px; color: {INK_3}; background: transparent; border: none; }}"
     "QLabel { background: transparent; border: none; }"
 )
 
@@ -764,6 +768,37 @@ class EffortSlider(QWidget):
         painter.end()
 
 
+class _StopNames(QWidget):
+
+
+
+
+
+
+    def __init__(self, slider: EffortSlider, names: list, parent=None):
+        super().__init__(parent)
+        self._slider = slider
+        self._names = list(names)
+        font = QFont(self.font())
+        font.setPixelSize(max(9, FONT_MICRO))
+        self.setFont(font)
+        self.setFixedHeight(QFontMetrics(font).height() + 2)
+
+    def paintEvent(self, event):  # noqa: N802
+        painter = QPainter(self)
+        try:
+            metrics = QFontMetrics(self.font())
+            for index, name in enumerate(self._names):
+                width = metrics.horizontalAdvance(name)
+                x = self._slider._stop_x(index) - width / 2
+                x = max(0.0, min(float(self.width() - width), x))
+                locked = index >= self._slider._locked_from
+                painter.setPen(qcolor(INK_3 if locked else INK_2))
+                painter.drawText(int(round(x)), metrics.ascent() + 1, name)
+        finally:
+            painter.end()
+
+
 class EffortPopover(QFrame):
 
 
@@ -795,6 +830,9 @@ class EffortPopover(QFrame):
         self._dip.setEasingCurve(QEasingCurve.Type.InOutSine)
         self._dip.valueChanged.connect(self._on_dip)
         self._pending: tuple[str, str] | None = None
+        self._head = QLabel(QCoreApplication.translate("EffortChip", "Effort").upper(), self)
+        self._head.setObjectName("effortHead")
+        col.addWidget(self._head)
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
         head.setSpacing(8)
@@ -838,6 +876,9 @@ class EffortPopover(QFrame):
         self.slider.changed.connect(self._on_changed)
         self.slider.locked_reached.connect(self._show)
         col.addWidget(self.slider)
+        self._stops = _StopNames(self.slider, [self._texts.get(e, ("", ""))[0] for e in EFFORTS], self)
+        self._stops.setFixedWidth(_TEXT_WIDTH)
+        col.addWidget(self._stops)
         self._paid = False
         self._show(DEFAULT_EFFORT)
 
@@ -849,6 +890,7 @@ class EffortPopover(QFrame):
 
         self._paid = bool(paid)
         self.slider.set_locked_from(len(pickable_efforts(self._paid)))
+        self._stops.update()
         self._price.setVisible(self.slider.is_locked(HIGH))
         self._show(EFFORTS[self.slider._preview])
 
@@ -1070,7 +1112,10 @@ class EffortChip(QToolButton):
         if self._run_locked:
             self.setToolTip(self.tr("Effort can be changed after this run ends"))
         elif self.is_locked():
-            self.setToolTip(self.tr("Pro only: this message runs on Low"))
+
+
+            name = self._names().get(self._effort, "")
+            self.setToolTip(self.tr("{level} needs Pro. Pick Low to send.").format(level=name))
         else:
             self.setToolTip(self.tr("How hard the agent works on the next message"))
         self.updateGeometry()

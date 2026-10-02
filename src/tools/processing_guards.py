@@ -27,6 +27,7 @@ from qgis.core import (
     QgsExpressionContext,
     QgsExpressionContextUtils,
     QgsFeatureRequest,
+    QgsProcessing,
     QgsProcessingFeatureSourceDefinition,
     QgsProject,
     QgsRasterLayer,
@@ -36,6 +37,7 @@ from qgis.core import (
 from ..core import ground, limits, tuning, vsi
 from ..core.logger import log_debug, log_warning
 from ..core.policy import create_managed_temp_dir
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 from .layer_lookup import _find_layer
 from .project_tools import _is_remote_vector
@@ -849,6 +851,88 @@ def _layer_list_keys(alg) -> set:
         except Exception:  # nosec B112
             continue
     return keys
+
+
+def _takes_rasters(definition) -> bool:
+
+    try:
+        wanted = (enum_member(Qgis, "ProcessingSourceType", "Raster", None)
+                  or enum_member(QgsProcessing, "SourceType", "TypeRaster", None))
+        return wanted is not None and definition.layerType() == wanted
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def streamable_path(text) -> str | None:
+
+
+
+
+
+
+
+
+
+    text = text.strip() if isinstance(text, str) else ""
+    if not text.lower().startswith(("http://", "https://")):
+        return None
+    listed = tuple(ext for ext in vsi.VSICURL_ALLOWED_EXTENSIONS if ext != "{noext}")
+    head = text.split("?", 1)[0]
+    opens = head.lower().endswith(listed) or (
+        "{noext}" in vsi.VSICURL_ALLOWED_EXTENSIONS and "." not in head.rsplit("/", 1)[-1])
+    return "/vsicurl/" + text if opens else None
+
+
+def streamed_raster_addresses(alg, parameters: dict, opened=()) -> tuple[dict, list[str]]:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    out = dict(parameters)
+    repairs: list[str] = []
+    try:
+        definitions = list(alg.parameterDefinitions()) if alg is not None else []
+    except Exception:  # noqa: BLE001
+        return out, repairs
+
+    def streamed(item):
+        path = streamable_path(item)
+        return path if path is not None and path in opened else item
+
+    for definition in definitions:
+        try:
+            kind, name = definition.type(), definition.name()
+        except Exception:  # nosec B112
+            continue
+        value = parameters.get(name)
+        if kind == "raster" and isinstance(value, str):
+            swapped = streamed(value)
+        elif kind == "multilayer" and isinstance(value, list) and _takes_rasters(definition):
+            swapped = [streamed(item) for item in value]
+        else:
+            continue
+        if swapped != value:
+            out[name] = swapped
+            repairs.append(f"{name}: a web address read as a /vsicurl/ path. Handed to Processing as it was, an "
+                           "address is downloaded whole on QGIS's main thread before the run; /vsicurl/ reads only "
+                           "the parts the algorithm asks for.")
+    return out, repairs
 
 
 
@@ -1991,6 +2075,9 @@ _PROVENANCE_COMMAND_MAX = 2000
 
 
 def _stamp_provenance(layer, provenance: dict) -> None:
+
+
+
 
 
 

@@ -11,6 +11,7 @@
 
 
 
+
 from __future__ import annotations
 
 import contextlib
@@ -22,7 +23,7 @@ from ..core.tool_registry import coded_fact
 
 
 
-_FIELD_SAMPLE = 20_000
+FIELD_SAMPLE = 20_000
 
 _RASTER_SAMPLE = 250_000
 
@@ -48,28 +49,6 @@ def _number(value):
     return number if math.isfinite(number) else None
 
 
-def field_values(layer, index: int, cap: int = _FIELD_SAMPLE) -> list:
-
-    from qgis.core import QgsFeatureRequest
-
-    request = QgsFeatureRequest().setSubsetOfAttributes([index])
-    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    if flag is not None:
-        request.setFlags(flag)
-    request.setLimit(cap)
-    values = []
-    features = layer.getFeatures(request)
-    try:
-        for feature in features:
-            number = _number(feature[index])
-            if number is not None:
-                values.append(number)
-    finally:
-        with contextlib.suppress(Exception):
-            features.close()
-    return values
-
-
 def skewness(values: list):
 
     count = len(values)
@@ -90,7 +69,8 @@ def _short(number: float) -> str:
     return f"{number:.3g}"
 
 
-def graduated_choice(layer, index: int) -> dict:
+def graduated_choice(field: str, values: list) -> dict:
+
 
 
 
@@ -102,12 +82,10 @@ def graduated_choice(layer, index: int) -> dict:
     skewed_mode, even_mode, cut = rules.get("skewed_mode"), rules.get("even_mode"), rules.get("skew_min")
     if not skewed_mode or not even_mode or cut is None:
         return {}
-    values = field_values(layer, index)
     g1 = skewness(values)
     if g1 is None:
         return {}
     ordered = sorted(values)
-    field = layer.fields().at(index).name()
     facts = {"field": field, "skewness": round(g1, 1), "median": _short(ordered[len(ordered) // 2]),
              "low": _short(ordered[0]), "high": _short(ordered[-1])}
     if abs(g1) >= cut:
@@ -125,7 +103,7 @@ def graduated_choice(layer, index: int) -> dict:
     return out
 
 
-def class_counts(layer, index: int, ranges: list[tuple[float, float]], cap: int = _FIELD_SAMPLE) -> list[int]:
+def class_counts(values: list, ranges: list[tuple[float, float]]) -> list[int]:
 
 
 
@@ -135,7 +113,6 @@ def class_counts(layer, index: int, ranges: list[tuple[float, float]], cap: int 
 
     if not ranges:
         return []
-    values = field_values(layer, index, cap)
     counts = [0] * len(ranges)
     for value in values:
         for i, (_, high) in enumerate(ranges):
@@ -187,11 +164,19 @@ def _lab(color) -> tuple:
     return 116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))
 
 
-def closest_class_colours(layer, renderer, remote: bool = False) -> dict:
+def touching_classes(layer, remote: bool) -> bool:
+
+
+    from qgis.core import QgsWkbTypes
+
+    polygons = layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
+    return polygons and not remote and layer.featureCount() <= _NEIGHBOUR_FEATURES
+
+
+def closest_class_colours(renderer, touching=None) -> dict:
 
 
 
-    from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils, QgsSpatialIndex, QgsWkbTypes
 
     colours = {}
     for category in renderer.categories():
@@ -201,47 +186,49 @@ def closest_class_colours(layer, renderer, remote: bool = False) -> dict:
             colours[str(value)] = (category.label() or str(value), _lab(category.symbol().color()))
     if len(colours) < 2:
         return {}
-
-    def distance(a, b):
-        return math.dist(colours[a][1], colours[b][1])
-
-    pairs = []
-    polygons = layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
-    if polygons and not remote and layer.featureCount() <= _NEIGHBOUR_FEATURES:
-        attribute = renderer.classAttribute()
-        expression = QgsExpression(QgsExpression.quotedColumnRef(attribute)
-                                   if layer.fields().indexOf(attribute) >= 0 else attribute)
-        context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
-        features, classes = {}, {}
-        for feature in layer.getFeatures():
-            context.setFeature(feature)
-            features[feature.id()] = feature
-            classes[feature.id()] = str(expression.evaluate(context))
-        index = QgsSpatialIndex()
-        for feature in features.values():
-            index.addFeature(feature)
-        for fid, feature in features.items():
-            geometry = feature.geometry()
-            for other in index.intersects(geometry.boundingBox()):
-                a, b = classes[fid], classes.get(other)
-                if other <= fid or a == b or a not in colours or b not in colours:
-                    continue
-                if geometry.intersects(features[other].geometry()):
-                    pairs.append((distance(a, b), a, b))
+    if touching is not None:
+        pairs = [(math.dist(colours[a][1], colours[b][1]), a, b) for a, b in touching
+                 if a in colours and b in colours]
+        found = min(pairs) if pairs else None
         between = "touching features"
     else:
-        names = sorted(colours)
-        pairs = [(distance(a, b), a, b) for i, a in enumerate(names) for b in names[i + 1:]]
+        found = _closest_pair(colours)
         between = "classes"
-    if not pairs:
+    if found is None:
         return {}
-    closest, a, b = min(pairs)
+    closest, a, b = found
     if closest >= _CLOSE_DELTA_E:
         return {}
     return {"closest_colours": {"classes": [colours[a][0], colours[b][0]], "delta_e": round(closest, 1),
                                 "between": between,
                                 "note": (f"colours under {_CLOSE_DELTA_E:.0f} delta E (CIE76) apart read as one "
                                          "at a glance")}}
+
+
+def _closest_pair(colours: dict):
+
+
+
+
+
+
+
+    cells: dict = {}
+    for name, (_label, lab) in colours.items():
+        cells.setdefault(tuple(math.floor(c / _CLOSE_DELTA_E) for c in lab), []).append(name)
+    best = None
+    for (x, y, z), names in cells.items():
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    for b in cells.get((x + dx, y + dy, z + dz), ()):
+                        for a in names:
+                            if a < b:
+                                pair = (math.dist(colours[a][1], colours[b][1]), a, b)
+                                if best is None or pair < best:
+                                    best = pair
+    return best if best is not None and best[0] < _CLOSE_DELTA_E else None
+
 
 
 
@@ -369,8 +356,11 @@ def long_tail_cut(layer, band: int, low: float, high: float) -> dict:
     if lower is None or upper is None or ratio is None:
         return {}
     try:
-        cut_low, cut_high = layer.dataProvider().cumulativeCut(int(band), lower / 100.0, upper / 100.0,
-                                                               layer.extent(), _RASTER_SAMPLE)
+        from .raster_overviews import read_ahead
+
+        cut_low, cut_high = read_ahead(("cut", int(band), lower, upper), lambda: tuple(
+            layer.dataProvider().cumulativeCut(int(band), lower / 100.0, upper / 100.0, layer.extent(),
+                                               _RASTER_SAMPLE)))
         cut_low, cut_high = float(cut_low), float(cut_high)
     except Exception:  # noqa: BLE001
         return {}
@@ -524,6 +514,9 @@ def carry_style(source, target, algorithm_id: str, replace: bool = False) -> dic
     if isinstance(imported, tuple) and imported and not imported[0]:
         return {}
     if isinstance(target, QgsVectorLayer):
+
+
+        target.setOpacity(source.opacity())
 
         with contextlib.suppress(Exception):
             settings = target.labeling().settings() if target.labeling() is not None else None

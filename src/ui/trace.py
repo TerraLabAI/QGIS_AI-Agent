@@ -36,6 +36,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import (
@@ -65,8 +66,8 @@ from .style import (
     SPACE_TIGHT,
     qcolor,
 )
-from .trace_rows import Chevron, HoverRow, ThoughtRow, fade_up
-from .trace_tools import ActivityRow
+from .trace_rows import _HINT_QSS, Chevron, HoverRow, ThoughtRow, fade_up
+from .trace_tools import MEASURE_HEAD_RE, ActivityRow
 from .widgets import ChatLabel, ElidedLabel
 
 
@@ -160,13 +161,21 @@ class RunTrace(QWidget):
 
 
 
-        self._title = ElidedLabel("", self._head)
+        self._title = ElidedLabel("", self._head, Qt.TextElideMode.ElideMiddle)
         self._title.setObjectName("traceTitle")
         self._title.setStyleSheet(_TRACE_TITLE_QSS)
         self._title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._title.hide()
         head.addWidget(self._title, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+        self._title_outcome = QLabel("", self._head)
+        self._title_outcome.setObjectName("traceTitleOutcome")
+        self._title_outcome.setStyleSheet(_HINT_QSS)
+        self._title_outcome.hide()
+        head.addWidget(self._title_outcome, 0, Qt.AlignmentFlag.AlignVCenter)
         self._clock = ElapsedClock(started, self._head)
+        self._clock_hidden = False
         head.addWidget(self._clock, 0, Qt.AlignmentFlag.AlignVCenter)
         self._chevron = Chevron(_CHEVRON_PX, self._head)
         head.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -210,6 +219,10 @@ class RunTrace(QWidget):
         self.tools.append(card)
         last = self._last_row()
         key = card.stack_key()
+        for earlier in self.rows():
+
+
+            earlier.end_job()
         if key and isinstance(last, ActivityRow) and last.key == key:
             last.add(card)
             row = last
@@ -220,6 +233,10 @@ class RunTrace(QWidget):
         self._sync_head()
         self._grew()
 
+    def hide_clock(self, hidden: bool) -> None:
+        self._clock_hidden = bool(hidden)
+        self._sync_head()
+
     def set_activity(self, text: str) -> None:
 
 
@@ -229,6 +246,9 @@ class RunTrace(QWidget):
         if text and "{" not in text:
             self._latest = text
             self._sync_head()
+        rows = self.rows()
+        if rows:
+            rows[-1].set_job_status(text)
 
     def _last_row(self):
 
@@ -272,10 +292,6 @@ class RunTrace(QWidget):
     def rows(self) -> list:
 
         return [widget for widget in self._lines() if isinstance(widget, ActivityRow)]
-
-    def step_count(self) -> int:
-
-        return sum(card.repeats for card in self.tools)
 
     def failed_count(self) -> int:
         return sum(1 for card in self.tools
@@ -368,7 +384,7 @@ class RunTrace(QWidget):
             self._icon.setPixmap(pixmap_for(self, "lu.sparkle", _SPARK_PX,
                                             qcolor(INK_2 if live and self._live else INK_3)))
 
-        self._clock.setVisible(live and self._live)
+        self._clock.setVisible(live and self._live and not self._clock_hidden)
         if live:
             self._live_text.setText(self.running_title())
             motion = not (callable(self._reduced_motion) and self._reduced_motion())
@@ -376,11 +392,31 @@ class RunTrace(QWidget):
             self._live_text.start()
         else:
             self._live_text.stop()
-            self._title.setText(self.head_line())
+
+
+            line = self.head_line()
+            step = " ".join(self._result_row(self.rows()).line().split()) if len(self.rows()) > 1 else ""
+            at = line.find(step) if step else -1
+            self._title.set_kept_tail(line[at + len(step):] if at >= 0 else "")
+
+
+            shown = step or line
+            self._title.set_elide_mode(
+                Qt.TextElideMode.ElideRight if MEASURE_HEAD_RE.match(shown)
+                else Qt.TextElideMode.ElideMiddle)
+            self._title.setText(line)
+        rows = self.rows()
+        last = rows[-1].cards[-1] if not live and len(rows) == 1 and rows[0].cards else None
+        denied = last is not None and str(getattr(last, "ended", "") or "") == "denied" \
+            and self.status not in ("failed", "cancelled", "interrupted")
+        self._title_outcome.setText(self.tr("denied") if denied else "")
+        self._title_outcome.setVisible(denied)
         self._live_text.setVisible(live)
         self._title.setVisible(not live)
 
     def head_line(self) -> str:
+
+
 
 
 
@@ -402,11 +438,21 @@ class RunTrace(QWidget):
         if len(rows) == 1:
             return rows[0].line()
         if rows:
-            names = list(dict.fromkeys(row.label() for row in rows if row.label()))
-            return " \u00b7 ".join(names)
+            step = " ".join(self._result_row(rows).line().split())
+            return self.tr("{step} and {n} more").format(step=step, n=len(rows) - 1)
         if took:
             return self.tr("Thought for {time}").format(time=took)
         return self.tr("Done")
+
+    @staticmethod
+    def _result_row(rows: list):
+
+
+
+        done = [row for row in rows if row.cards and row.cards[-1].ok]
+        changed = [row for row in done
+                   if any(str(getattr(card, "danger", "read")) != "read" for card in row.cards)]
+        return (changed or done or rows)[-1]
 
 
 
@@ -417,6 +463,8 @@ class RunTrace(QWidget):
         if self.status != "running":
             return
         self.status = "closed"
+        for row in self.rows():
+            row.end_job()
         self.duration_s = self._clock.elapsed() if self._live else None
         self._clock.freeze(self.duration_s)
         self._sync_head()
@@ -436,6 +484,8 @@ class RunTrace(QWidget):
             return
         was_live = self.status == "running"
         self.status = status or "done"
+        for row in self.rows():
+            row.end_job()
         if was_live:
             if self._live and not stored:
                 self.duration_s = self._clock.elapsed()

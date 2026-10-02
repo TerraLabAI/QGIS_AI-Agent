@@ -28,8 +28,8 @@ from ..core.follow import hold_view
 from ..core.layer_order import is_remote_vector
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .core_tools import _find_layer, _layer_not_found_error
 from .feature_tools import _find_vector_layer
+from .layer_lookup import _find_layer, _layer_not_found_error
 
 
 def register_harvest_canvas_tools(registry: ToolRegistry):
@@ -197,13 +197,22 @@ def _get_layer_labeling(args: dict) -> dict:
     placed = _labels_placed(layer.id())
     if placed is not None:
         result["labels_placed_last_render"] = placed[0]
+        if placed[2] is not None:
+            result["labels_overlapping_last_render"] = placed[2]
 
         settings = labeling.settings() if labeling.type() != "rule-based" else None
         result.update(_labels_in_view(layer, settings, placed[1]))
     return result
 
 
-def _labels_placed(layer_id: str):
+def _labels_placed(layer_id: str, results=None):
+
+
+
+
+
+
+
 
 
 
@@ -211,14 +220,67 @@ def _labels_placed(layer_id: str):
 
 
     try:
-        results = iface.mapCanvas().labelingResults()
+        if results is None:
+            results = iface.mapCanvas().labelingResults()
         if results is None:
             return None
         positions = [position for position in results.allLabels()
-                     if position.layerID == layer_id and not getattr(position, "isUnplaced", False)]
-        return len(positions), {position.featureId for position in positions}
+                     if not getattr(position, "isUnplaced", False)]
+        groups = {}
+        for index, position in enumerate(positions):
+            linked = getattr(position, "groupedLabelId", 0)
+            groups.setdefault((position.layerID, linked) if linked else index, []).append(position)
+        labels = list(groups.values())
+        mine = [parts for parts in labels if parts[0].layerID == layer_id]
+        return (len(mine), {parts[0].featureId for parts in mine},
+                _overlapping(labels, layer_id) if len(positions) <= _LABEL_OVERLAP_CAP else None)
     except Exception:  # nosec B110
         return None
+
+
+
+
+_LABEL_OVERLAP_CAP = 1500
+
+
+def _drawn_shape(position):
+
+
+    shape = getattr(position, "labelGeometry", None)
+    if shape is not None and not shape.isEmpty():
+        return shape
+    corners = list(getattr(position, "cornerPoints", None) or [])
+    if len(corners) >= 3:
+        return QgsGeometry.fromPolygonXY([corners + corners[:1]])
+    return QgsGeometry.fromRect(position.labelRect)
+
+
+def _overlapping(labels: list, layer_id: str) -> int:
+
+
+
+    parts = sorted((part.labelRect.xMinimum(), part.labelRect.yMinimum(), part.labelRect.xMaximum(),
+                    part.labelRect.yMaximum(), label, slot)
+                   for label, label_parts in enumerate(labels) for slot, part in enumerate(label_parts))
+    shapes = {}
+
+    def shape(entry):
+        key = (entry[4], entry[5])
+        if key not in shapes:
+            shapes[key] = _drawn_shape(labels[entry[4]][entry[5]])
+        return shapes[key]
+
+    hit = set()
+    for i, a in enumerate(parts):
+        for j in range(i + 1, len(parts)):
+            b = parts[j]
+            if b[0] >= a[2]:
+                break
+            if a[4] == b[4] or (a[4] in hit and b[4] in hit) or not (a[1] < b[3] and b[1] < a[3]):
+                continue
+            if shape(a).intersection(shape(b)).area() > 0:
+                hit.update((a[4], b[4]))
+    return sum(1 for label in hit if labels[label][0].layerID == layer_id)
 
 
 
@@ -227,7 +289,7 @@ def _labels_placed(layer_id: str):
 _LABEL_VIEW_FEATURES = 2000
 
 
-def _labels_in_view(layer, settings, drawn: set) -> dict:
+def _labels_in_view(layer, settings, drawn: set, view=None) -> dict:
 
 
 
@@ -235,9 +297,10 @@ def _labels_in_view(layer, settings, drawn: set) -> dict:
     if is_remote_vector(layer) or layer.featureCount() > _LABEL_VIEW_FEATURES:
         return {}
     try:
-        canvas = iface.mapCanvas()
-        extent = QgsCoordinateTransform(canvas.mapSettings().destinationCrs(), layer.crs(),
-                                        QgsProject.instance()).transformBoundingBox(canvas.extent())
+        if view is None:
+            canvas = iface.mapCanvas()
+            view = (canvas.extent(), canvas.mapSettings().destinationCrs())
+        extent = QgsCoordinateTransform(view[1], layer.crs(), QgsProject.instance()).transformBoundingBox(view[0])
         request = QgsFeatureRequest().setFilterRect(extent)
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
         text = None

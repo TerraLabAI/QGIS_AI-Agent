@@ -58,7 +58,14 @@ RETRY_BACKOFF_S = 2.0
 FINAL_TIMEOUT_MS = 3_000
 STRING_MAX = 64
 ENABLED_CACHE_S = 5.0
-MAX_INFLIGHT = 4
+
+
+
+
+MAX_INFLIGHT = 1
+
+
+SEND_TIMEOUT_MS = 8_000
 
 
 LIFECYCLE = frozenset({
@@ -286,9 +293,10 @@ def _trim_locked() -> None:
 
 def _on_main_thread() -> bool:
     try:
-        from qgis.PyQt.QtCore import QCoreApplication, QThread
-        app = QCoreApplication.instance()
-        return app is not None and QThread.currentThread() == app.thread()
+        from qgis.PyQt.QtCore import QCoreApplication
+
+        from .background import on_main_thread
+        return QCoreApplication.instance() is not None and on_main_thread()
     except Exception:  # noqa: BLE001
         return False
 
@@ -369,7 +377,7 @@ class _TelemetryFlushTask(QgsTask):
                 return False
             try:
                 result = TerraLabClient().send_telemetry_batch(
-                    self._events, self._auth, timeout_ms=FINAL_TIMEOUT_MS if self._final else None)
+                    self._events, self._auth, timeout_ms=FINAL_TIMEOUT_MS if self._final else SEND_TIMEOUT_MS)
                 if not isinstance(result, dict) or not result.get("error"):
                     return True
             except Exception:  # nosec B110

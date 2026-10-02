@@ -56,13 +56,14 @@ from contextlib import closing
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import http_headers, net
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.logger import log
 from ..core.output_paths import default_folder, exports_folder, safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _USER_AGENT, _run_on_main_thread
+from .data_tools import _USER_AGENT
 
 HUB = "https://hub.qgis.org"
 _LIST_URL = HUB + "/api/v1/resources/"
@@ -512,7 +513,7 @@ def _import_style(data: bytes, label: str, uuid: str, args: dict) -> dict:
         return {"added": added, "renamed": renamed, "applied": applied}
 
     try:
-        done = _run_on_main_thread(_on_main, timeout=60)
+        done = run_on_main_thread(_on_main, timeout=60)
     finally:
         shutil.rmtree(folder, ignore_errors=True)
     if done.get("_error"):
@@ -602,7 +603,7 @@ def _import_palette(data: bytes, label: str, uuid: str, args: dict) -> dict:
         target.tagSymbol(entity, final, [_HUB_TAG])
         return final
 
-    final = _run_on_main_thread(_on_main, timeout=30)
+    final = run_on_main_thread(_on_main, timeout=30)
     if not final:
         return tool_error(f"QGIS refused the palette '{label}'.", "EXECUTION_FAILED", "Other results vary.")
     return {
@@ -845,7 +846,7 @@ def _import_layer_definition(data: bytes, label: str, uuid: str, args: dict, arc
         if saved.get("_error"):
             return saved
         folder = saved["folder"]
-    decoded = _run_on_main_thread(_decode_sources, sources, timeout=30)
+    decoded = run_on_main_thread(_decode_sources, sources, timeout=30)
     hosts, files, refused = _check_sources(decoded, folder)
     if refused:
         if folder:
@@ -872,7 +873,7 @@ def _import_layer_definition(data: bytes, label: str, uuid: str, args: dict, arc
                 "layers": [{"name": layer.name(), "id": layer.id(), "valid": layer.isValid(),
                             "provider": layer.providerType()} for layer in layers]}
 
-    done = _run_on_main_thread(_on_main, timeout=60)
+    done = run_on_main_thread(_on_main, timeout=60)
     if done.get("_error") or not done.get("ok"):
         if folder:
             remove_tree(folder)
@@ -1010,7 +1011,7 @@ def _write_members(archive: zipfile.ZipFile, keep: list, label: str, uuid: str) 
     if sum(info.file_size for info in keep) > _FILE_MAX_BYTES:
         return tool_error("This Hub item unpacks to more than one download may be.", "INVALID_ARGS",
                           "Its Hub page offers a direct download.")
-    base = _run_on_main_thread(default_folder, timeout=10)
+    base = run_on_main_thread(default_folder, timeout=10)
     stem = safe_file_name(label, fallback=uuid[:8])[:60].strip(" .") or uuid[:8]
     folder = os.path.join(base, _HUB_TAG, stem)
 
@@ -1021,7 +1022,7 @@ def _write_members(archive: zipfile.ZipFile, keep: list, label: str, uuid: str) 
 
 
 
-        folder = os.path.join(_run_on_main_thread(exports_folder, timeout=10), _HUB_TAG, stem)
+        folder = os.path.join(run_on_main_thread(exports_folder, timeout=10), _HUB_TAG, stem)
     candidate, n = folder, 1
     while os.path.exists(candidate):
         n += 1

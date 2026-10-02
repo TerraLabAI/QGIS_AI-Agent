@@ -7,49 +7,30 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import limits, net, tuning
+from ..core import tuning
 from ..core.tool_registry import Tool, ToolRegistry
 from . import volume_guard
 from .data_basemaps import (
-    VECTOR_TILE_EXTENSIONS,
-    _add_oapif_layer,
-    _add_vector_tile_layer,
     _add_xyz_layer,
     _list_xyz_sources,
-    _oapif_collection,
-    _resolve_tilejson,
-    _twin_of,
     add_xyz_runs_in_background,
 )
 from .data_common import (
-    _CACHE_GEOCODE_S,
-    _GEOCODE_TIMEOUT,
     _OSRM_PROFILES,
-    _OWN_GEOCODE_TIMEOUT,
     _USER_AGENT,
     _WINDOWS_FORBIDDEN_CHARS,
     _WINDOWS_RESERVED_NAMES,
     _avoid_reserved_name,
-    _bbox_km2,
     _canvas_viewbox_4326,
-    _footprint_box,
-    _osrm_base,
-    _project_crs_transform,
-    _run_on_main_thread,
     _safe_filename,
 )
 from .data_geocoding import (
     _BACKEND_GEOCODE_BATCH_MAX,
-    _DEFAULT_GEOCODE_PROVIDER,
     _GEOCODE_PROVIDER_IDS,
-    _GEOCODE_PROVIDERS,
     _geocode,
     _geocode_one_address,
     _get_route,
     _measure_distance,
-    _parse_cartociudad_forward,
-    _parse_nominatim_forward,
-    _parse_photon_forward,
     _reverse_geocode,
 )
 from .data_inspect import (
@@ -59,54 +40,26 @@ from .data_inspect import (
     _inspect_data_source,
     _inspect_is_remote,
     expand_link,
-    hosted_department_url,
 )
 from .data_ogc import (
-    _WFS_CAPS_MAX_BYTES,
-    _WFS_MATCHED_RE,
-    _WFS_TYPENAME_RE,
-    WFS_WARN_FEATURES,
-    WFS_WIRE_BYTES_PER_FEATURE,
-    _add_wcs_layer,
     _add_wfs_layer,
     _add_wms_layer,
-    _wfs_failure,
-    _wfs_hits,
-    _wfs_restrict_to_view,
 )
 from .data_osm import (
-    _FOOTPRINT_DEFAULT_SOURCES,
     _FOOTPRINT_SOURCE_INPUTS,
     _FOOTPRINT_SOURCES,
     _fetch_building_footprints,
     _fetch_osm_data,
     _fetch_osm_data_preflight,
-    _osm_area_refusal,
-    _osm_from_hosted,
-    _own_overpass_unreachable,
-)
-from .data_osm_geometry import (
-    _geometry_counts,
-    _osm_to_geojson,
 )
 from .data_overture import (
-    _overture_matches,
-    _overture_tile,
-    _overture_tile_url,
     _overture_tiles,
 )
 from .data_overture_extract import (
     _fetch_overture,
     _fetch_overture_preflight,
-    _overture_clip,
-    _overture_extract,
 )
 from .data_portals import (
-    _hub_resources,
-    _normalise_format_preference,
-    _parse_arcgis_hub_results,
-    _parse_ckan_results,
-    _portal_text,
     _search_open_data,
 )
 
@@ -409,6 +362,9 @@ def register_data_tools(registry: ToolRegistry):
                 "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
 
 
+                "where": {"type": "string"},
+
+
                 "full_extent": {
                     "type": "object",
                     "properties": {"quote": {"type": "string"}, "place": {"type": "string"}},
@@ -620,65 +576,18 @@ def _refresh_served_vocabularies() -> None:
 
 __all__ = [
     "register_data_tools",
-    "VECTOR_TILE_EXTENSIONS",
-    "WFS_WARN_FEATURES",
-    "WFS_WIRE_BYTES_PER_FEATURE",
     "_BACKEND_GEOCODE_BATCH_MAX",
-    "_CACHE_GEOCODE_S",
-    "_DEFAULT_GEOCODE_PROVIDER",
-    "_FOOTPRINT_DEFAULT_SOURCES",
-    "_GEOCODE_PROVIDERS",
-    "_GEOCODE_TIMEOUT",
     "_OSRM_PROFILES",
-    "_OWN_GEOCODE_TIMEOUT",
     "_USER_AGENT",
-    "_WFS_CAPS_MAX_BYTES",
-    "_WFS_MATCHED_RE",
-    "_WFS_TYPENAME_RE",
     "_WINDOWS_FORBIDDEN_CHARS",
     "_WINDOWS_RESERVED_NAMES",
-    "_add_oapif_layer",
     "_add_vector_over_range_requests",
-    "_add_vector_tile_layer",
-    "_add_wcs_layer",
     "_avoid_reserved_name",
-    "_bbox_km2",
     "_canvas_viewbox_4326",
     "_extract_remote_vector",
-    "_footprint_box",
     "_geocode_one_address",
-    "_geometry_counts",
-    "_hub_resources",
-    "_normalise_format_preference",
-    "_oapif_collection",
-    "_osm_area_refusal",
-    "_osm_from_hosted",
-    "_osm_to_geojson",
-    "_osrm_base",
-    "_overture_clip",
-    "_overture_extract",
-    "_overture_matches",
-    "_overture_tile",
-    "_overture_tile_url",
     "_overture_tiles",
-    "_own_overpass_unreachable",
-    "_parse_arcgis_hub_results",
-    "_parse_cartociudad_forward",
-    "_parse_ckan_results",
-    "_parse_nominatim_forward",
-    "_parse_photon_forward",
-    "_portal_text",
-    "_project_crs_transform",
-    "_resolve_tilejson",
-    "_run_on_main_thread",
     "_safe_filename",
-    "_twin_of",
-    "_wfs_failure",
-    "_wfs_hits",
-    "_wfs_restrict_to_view",
     "expand_link",
-    "hosted_department_url",
-    "limits",
-    "net",
     "volume_guard",
 ]

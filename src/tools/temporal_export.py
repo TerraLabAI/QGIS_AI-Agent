@@ -59,7 +59,7 @@ _DAY_MS = 86_400_000
 
 def running_export() -> str | None:
 
-    from .processing_tools import _PROCESSING_TASKS
+    from .processing_run import _PROCESSING_TASKS
 
     return next((task_id for task_id, entry in _PROCESSING_TASKS.items()
                  if isinstance(entry.get("sequence"), FrameExport) and entry.get("status") == "running"), None)
@@ -282,7 +282,7 @@ class FrameExport:
         return os.path.join(self.folder, _name(self.prefix, frame))
 
     def start(self) -> dict:
-        from .processing_tools import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
+        from .processing_run import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
 
         _sweep_consumed_tasks()
         _PROCESSING_TASKS[self.task_id] = self.entry

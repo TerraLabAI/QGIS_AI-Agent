@@ -311,6 +311,9 @@ class Tool:
 
 
 
+
+
+
     name: str
     input_schema: dict
     handler: Callable[[dict], Any]
@@ -502,56 +505,84 @@ class ToolRegistry:
                                sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-    def execute(self, name: str, arguments: dict) -> dict:
+    def check_arguments(self, name: str, arguments: dict) -> dict | None:
+
+
+
+
+
+
+
+        try:
+            return self._prepare(name, arguments)[2]
+        except Exception as e:  # noqa: BLE001
+            return self._failure(name, e)
+
+    def _prepare(self, name: str, arguments: dict) -> tuple[Tool | None, Any, dict | None]:
+
         tool = self._tools.get(name)
         if not tool:
-            return tool_error(
+            return None, arguments, tool_error(
                 f"Tool not found: {name}",
                 "TOOL_NOT_FOUND",
                 "search_tools finds the right name against the manifest.",
             )
+        if isinstance(arguments, dict):
+            arguments = _expand_home(self._coerce_arguments(tool.input_schema, arguments))
+        validation_error = self._validate_arguments(tool, arguments)
+        if validation_error:
+            return tool, arguments, tool_error(
+                validation_error,
+                "INVALID_ARGS",
+                "The tool's parameters schema states what each argument must be.",
+            )
+        return tool, arguments, None
+
+    def execute(self, name: str, arguments: dict) -> dict:
         try:
-            if isinstance(arguments, dict):
-                arguments = _expand_home(self._coerce_arguments(tool.input_schema, arguments))
-            validation_error = self._validate_arguments(tool, arguments)
-            if validation_error:
-                return tool_error(
-                    validation_error,
-                    "INVALID_ARGS",
-                    "The tool's parameters schema states what each argument must be.",
-                )
+            tool, arguments, refused = self._prepare(name, arguments)
+            if refused:
+                return refused
             result = tool.handler(arguments)
-        except _ArgumentDepthExceeded:
+        except Exception as e:
+            return self._failure(name, e)
+        return self._normalize_result(result)
+
+    @staticmethod
+    def _failure(name: str, e: Exception) -> dict:
+
+
+
+
+        if isinstance(e, _ArgumentDepthExceeded):
             return tool_error(
                 f"Arguments for tool '{name}' are nested too deeply",
                 "INVALID_ARGS",
                 "A flatter argument shape matches the tool's parameters schema.",
             )
-        except ServedValueMissing as e:
+        if isinstance(e, ServedValueMissing):
             log_warning(f"Tool '{name}': {e}")
             return tool_error(str(e), "SERVICE_NOT_RECEIVED", "It arrives after reconnect.",
                               hint="served_value_missing", key=e.key)
-        except Exception as e:
-            network = _network_failure(e)
-            if network:
+        network = _network_failure(e)
+        if network:
 
 
-                log_warning(f"Tool '{name}' lost its network: {network}")
-                return tool_error(network, "NETWORK_ERROR", _network_suggestion())
-            cls = e.__class__.__name__
-            detail = str(e).strip()
-            message = f"{cls}: {detail}" if detail else f"{cls} (no message)"
-            full_traceback = traceback.format_exc()
-            log_warning(f"Tool '{name}' raised {message}\n{full_traceback}")
-            error = tool_error(
-                message,
-                "EXECUTION_FAILED",
-                _refused_file_suggestion(e)
-                or "The traceback names the error; the same call unchanged fails the same way.",
-            )
-            error["traceback"] = _short_traceback(e)
-            return error
-        return self._normalize_result(result)
+            log_warning(f"Tool '{name}' lost its network: {network}")
+            return tool_error(network, "NETWORK_ERROR", _network_suggestion())
+        cls = e.__class__.__name__
+        detail = str(e).strip()
+        message = f"{cls}: {detail}" if detail else f"{cls} (no message)"
+        full_traceback = traceback.format_exc()
+        log_warning(f"Tool '{name}' raised {message}\n{full_traceback}")
+        error = tool_error(
+            message,
+            "EXECUTION_FAILED",
+            _refused_file_suggestion(e)
+            or "The traceback names the error; the same call unchanged fails the same way.",
+        )
+        error["traceback"] = _short_traceback(e)
+        return error
 
     @staticmethod
     def _normalize_result(result: Any) -> Any:

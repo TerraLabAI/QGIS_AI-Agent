@@ -5,7 +5,7 @@
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
-            <translation>%n 件の例</translation>
+            <translation>%n件の作例</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -20,7 +20,7 @@
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>1 example</source>
-            <translation>1 件の例</translation>
+            <translation>1件の作例</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -45,7 +45,7 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
-            <translation>AI Agentとあなたのデータ</translation>
+            <translation>AI Agentとデータ</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -70,7 +70,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Analyse</source>
-            <translation>分析</translation>
+            <translation>解析</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -90,7 +90,7 @@
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>Asked {source} for {what} in the current view</source>
-            <translation>現在のビュー内の{what}を{source}に要求しました</translation>
+            <translation>現在の表示範囲内の{what}を{source}に要求しました</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -105,12 +105,12 @@
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bring back the last message you sent</source>
-            <translation>送信した最後のメッセージを戻す</translation>
+            <translation>直前に送信したメッセージを呼び出す</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>ラインレイヤーをメートル法CRSで100mバッファし、各バッファ内に入るポイント数を数え、上位10件を読みやすい表で示してください。ラインとポイントのレイヤーがプロジェクトにある場合はそれを使い、ない場合は選んだ地区の道路と店舗をダウンロードし、どれを選んだか教えてください。</translation>
+            <translation>メートル単位のCRSでラインレイヤを100mバッファし、各バッファ内に入るポイントの数を数えて、多い順に上位10件を読みやすい表で示してください。プロジェクトにラインとポイントのレイヤがある場合はそれを使い、ない場合は選んだ地区の道路と店舗をダウンロードして、どの地区を選んだか教えてください。</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -130,7 +130,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>現在のビューをA4横レイアウトにし、タイトル、凡例、メートル単位のスケールバー、方位記号、データソース名のクレジット行を付けて、300dpiのPDFに書き出してください。キャンバスが空の場合は、先に選んだ場所のベースマップを追加し、シートに地図が載るようにしてください。</translation>
+            <translation>現在の表示範囲でA4横向きのレイアウトを作成し、タイトル、凡例、メートル単位のスケールバー、方位記号、データソース名を記載したクレジット行を付けて、300dpiのPDFにエクスポートしてください。キャンバスが空の場合は、先に場所を選んでベースマップを追加し、シートに地図が載るようにしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -190,17 +190,17 @@
         <message>
             <location filename="src/ui/external_links.py" />
             <source>Copy the folder below and paste it into your file manager.</source>
-            <translation>下のフォルダーをコピーして、ファイルマネージャーに貼り付けてください。</translation>
+            <translation>下のフォルダをコピーして、ファイルマネージャに貼り付けてください。</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
             <source>Copy the support address below into your email app.</source>
-            <translation>下のサポートアドレスをメールアプリにコピーしてください。</translation>
+            <translation>下のサポートアドレスをコピーして、メールアプリに貼り付けてください。</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Count what falls within a distance</source>
-            <translation>距離内に入るものをカウント</translation>
+            <translation>距離内に入るものを数える</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -215,12 +215,12 @@
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
-            <translation>アカウントを削除する</translation>
+            <translation>アカウントを削除</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete your TerraLab account</source>
-            <translation>TerraLabアカウントを削除する</translation>
+            <translation>TerraLabアカウントを削除</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -230,7 +230,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>1つの地区の学校、公園、バス停をOpenStreetMapからすべてダウンロードしてください。キャンバスの表示範囲で作業するか、地図整備の進んだ都市の地区を選んでどれか教えてください。3つのレイヤーに分け、公園はポリゴンで、各スタイルを変えて、各レイヤーのフィーチャ数を教えてください。3件のクエリは1件ずつ実行してください。</translation>
+            <translation>OpenStreetMapから、1つの地区にある学校、公園、バス停をすべてダウンロードしてください。キャンバスが表示している場所で作業するか、地図整備の進んだ都市の地区を選び、どの地区か教えてください。3つのレイヤに分け、公園はポリゴンにし、それぞれ見分けがつくようにスタイルを設定して、各レイヤの地物の数を教えてください。3つのクエリは1つずつ実行してください。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -245,7 +245,7 @@
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>Examples</source>
-            <translation>例</translation>
+            <translation>作例</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -255,7 +255,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>シートを300dpiのPDFに出力します</translation>
+            <translation>シートを300dpiのPDFにエクスポートします</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -285,7 +285,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>公園はポリゴンのまま、他はポイントにする</translation>
+            <translation>公園はポリゴン、ほかはポイントで保持します</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -295,17 +295,17 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Loads each answer as its own layer</source>
-            <translation>各回答を別々のlayerとして読み込む</translation>
+            <translation>各回答を個別のレイヤとして読み込みます</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Map</source>
-            <translation>マップ</translation>
+            <translation>地図</translation>
         </message>
         <message>
             <location filename="src/ui/terralab_menu.py" />
             <source>More from TerraLab...</source>
-            <translation>TerraLabのその他の情報...</translation>
+            <translation>TerraLabのその他の情報…</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -350,7 +350,7 @@
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Or drag it from the Layers panel</source>
-            <translation>またはレイヤーパネルからドラッグ</translation>
+            <translation>またはレイヤパネルからドラッグ</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -390,7 +390,7 @@
         <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a file manager.</source>
-            <translation>QGISはファイルマネージャーを開けませんでした。</translation>
+            <translation>QGISはファイルマネージャを開けませんでした。</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -430,12 +430,12 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Reports the feature count of the three</source>
-            <translation>3つのフィーチャ数を報告する</translation>
+            <translation>3つのレイヤの地物数を報告します</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Reprojects to a metric CRS before measuring</source>
-            <translation>計測前にメートル法CRSに再投影します</translation>
+            <translation>計測の前に、メートル単位のCRSに再投影します</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -445,12 +445,12 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
-            <translation>欧州で実行、フランスに保存されます。</translation>
+            <translation>欧州で実行され、フランスに保存されます。</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>1地区の学校、公園、停留所を3レイヤーで取得済みです。</translation>
+            <translation>1地区の学校、公園、停留所を3つのレイヤで取得します。</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -465,12 +465,12 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>3件のOverpassクエリを順に送信します:学校、公園、停留所</translation>
+            <translation>3件のOverpassクエリを順に送信します：学校、公園、停留所</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Signed in as {email}</source>
-            <translation>{email}でサインイン中</translation>
+            <translation>{email}でログイン中</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -490,7 +490,7 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Takes the area from the canvas, or picks one</source>
-            <translation>キャンバスから範囲を取るか、1件選びます</translation>
+            <translation>キャンバスからエリアを取得するか、1つ選びます</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -515,7 +515,7 @@
         <message>
             <location filename="src/ui/external_links.py" />
             <source>The folder is copied to your clipboard: paste it into your file manager.</source>
-            <translation>フォルダーをクリップボードにコピーしました。ファイルマネージャーに貼り付けてください。</translation>
+            <translation>フォルダをクリップボードにコピーしました。ファイルマネージャに貼り付けてください。</translation>
         </message>
         <message>
             <location filename="src/ui/library/detail.py" />
@@ -530,7 +530,7 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
-            <translation>バグ修正に役立てます。設定でいつでもオフにできます。</translation>
+            <translation>バグの修正に役立ちます。「設定」でいつでもオフにできます。</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -550,12 +550,12 @@
         <message>
             <location filename="src/ui/use_cases.py" />
             <source>Uses my lines and points, or downloads both</source>
-            <translation>私のラインとポイントを使うか、両方ダウンロードします</translation>
+            <translation>手持ちのラインとポイントを使うか、両方をダウンロードします</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>We read every message.</source>
-            <translation>すべてのメッセージを読んでいます。</translation>
+            <translation>いただいたメッセージはすべて読んでいます。</translation>
         </message>
         <message>
             <location filename="src/ui/library/detail.py" />
@@ -570,27 +570,27 @@
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Your message and your layer names, never your files. No model is trained on them.</source>
-            <translation>メッセージとレイヤー名のみで、ファイル自体は送信されません。それらでモデルを学習することはありません。</translation>
+            <translation>メッセージとレイヤ名のみで、ファイルは送信されません。モデルの学習には使用されません。</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>did not work</source>
-            <translation>動作しませんでした</translation>
+            <translation>失敗しました</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>into a new layer</source>
-            <translation>新しいレイヤーへ</translation>
+            <translation>新しいレイヤに出力</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>into the layer {name}</source>
-            <translation>レイヤー{name}へ</translation>
+            <translation>レイヤ{name}に出力</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
             <source>into {layer}</source>
-            <translation>{layer}へ</translation>
+            <translation>{layer}に出力</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -616,9 +616,9 @@
             <source>Your account and the data attached to it are erased. Every TerraLab plugin stops working right away, on this computer and on any other, and a paid subscription stops renewing.
 
 The erasure is final once the grace period ends. Until then you can cancel it by signing in on terra-lab.ai.</source>
-            <translation>アカウントとそれに紐づくデータは消去されます。このコンピューター上でも他のコンピューター上でも、TerraLab のすべてのプラグインは直ちに動作しなくなり、有料サブスクリプションの更新も停止します。
+            <translation>アカウントとそれに紐づくデータは消去されます。このコンピュータでも他のコンピュータでも、TerraLabのすべてのプラグインはすぐに動作しなくなり、有料サブスクリプションの更新も停止します。
 
-猶予期間が終了すると、消去は確定し、元に戻せません。それまでは、terra-lab.ai にサインインして消去をキャンセルできます。</translation>
+猶予期間が終了すると、消去は確定します。それまでは、terra-lab.aiにログインして消去をキャンセルできます。</translation>
         </message>
         <message>
             <source>%n layers keep the data they have now</source>
@@ -662,7 +662,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>it lives in a database or a service, not in a file</source>
-            <translation>ファイルではなくデータベースやサービスにある</translation>
+            <translation>ファイルではなくデータベースやサービスにあります</translation>
         </message>
         <message>
             <source>its backup could not be written</source>
@@ -670,7 +670,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>its file was over the backup limit</source>
-            <translation>ファイルがバックアップ上限超え</translation>
+            <translation>ファイルがバックアップの上限を超えていました</translation>
         </message>
         <message>
             <source>no backup was made</source>
@@ -678,7 +678,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>not a file</source>
-            <translation>ファイルではない</translation>
+            <translation>ファイルではありません</translation>
         </message>
         <message>
             <source>too large</source>
@@ -698,7 +698,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Copied: {runs} runs, {calls} tool calls</source>
-            <translation>コピー済み:{runs}回実行、{calls}回ツール呼び出し</translation>
+            <translation>コピーしました：実行{runs}回、ツール呼び出し{calls}件</translation>
         </message>
         <message>
             <source>Could not copy</source>
@@ -706,7 +706,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Saved. Open {name}</source>
-            <translation>保存済み。{name}を開く</translation>
+            <translation>保存しました。{name}を開く</translation>
         </message>
         <message>
             <source>The file could not be written</source>
@@ -714,7 +714,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>The report holds this whole session: your messages, every tool the agent ran with its arguments and what came back, the plan it followed and the recent log lines. Your activation key, your passwords and the contents of your files are never in it.</source>
-            <translation>レポートにはこのセッション全体が含まれます:メッセージ、実行した全ツールと引数・結果、従ったプラン、最近のログ行。アクティベーションキー、パスワード、ファイル内容は含まれません。</translation>
+            <translation>レポートにはこのセッション全体が含まれます：メッセージ、エージェントが実行したすべてのツールとその引数・結果、従った計画、直近のログ行。アクティベーションキー、パスワード、ファイルの内容は含まれません。</translation>
         </message>
         <message>
             <source>There is no session to save</source>
@@ -734,7 +734,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>The message you send is the part that reaches us: we keep it 90 days to make AI Agent better. On {pro}, no copy at all.</source>
-            <translation>あなたが送るメッセージが私たちに届く部分です。AI Agent を改善するために 90 日間保管します。{pro} では、コピーは一切ありません。</translation>
+            <translation>当社に届くのは、送信したメッセージです。AI Agentを改善するため、90日間保管します。{pro}では、コピーは一切残りません。</translation>
         </message>
         <message>
             <source>After this run</source>
@@ -818,7 +818,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>emptied by a restart</source>
-            <translation>再起動で失われた</translation>
+            <translation>再起動で失われました</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -848,7 +848,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>the run wrote this file, and a restore deletes no file</source>
-            <translation>この実行がこのファイルを書き込み、復元はファイルを削除しません</translation>
+            <translation>この実行が書き込んだファイルです。復元ではファイルは削除されません</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -878,16 +878,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>{name}: {before} to {after} features</source>
-            <translation>{name}: {before}から{after}フィーチャへ</translation>
+            <translation>{name}：地物{before}件から{after}件へ</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>{name}: {fields}</source>
-            <translation>{name}: {fields}</translation>
+            <translation>{name}：{fields}</translation>
         </message>
         <message>
             <source>Allow / Deny</source>
-            <translation>許可 / 拒否</translation>
+            <translation>許可／拒否</translation>
         </message>
         <message>
             <source>Before: {request}</source>
@@ -895,7 +895,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Changed: {changes}</source>
-            <translation>変更後: {changes}</translation>
+            <translation>変更：{changes}</translation>
         </message>
         <message>
             <source>Chat history button</source>
@@ -907,7 +907,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>No examples match</source>
-            <translation>一致する例はありません</translation>
+            <translation>一致する作例はありません</translation>
         </message>
         <message>
             <source>Now</source>
@@ -931,7 +931,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
-            <translation>このlayerはプロジェクトにもうありません。</translation>
+            <translation>このレイヤはもうプロジェクトにありません。</translation>
         </message>
         <message>
             <source>after request {n}</source>
@@ -963,11 +963,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>AI Edit: {action}</source>
-            <translation>AI Edit: {action}</translation>
+            <translation>AI Edit：{action}</translation>
         </message>
         <message>
             <source>AI Segmentation[: detect {object_class}][ ({action})]</source>
-            <translation>AI Segmentation[: {object_class} を検出][ ({action})]</translation>
+            <translation>AI Segmentation[：{object_class}を検出][（{action}）]</translation>
         </message>
         <message>
             <source>Add a coordinate grid to the layout</source>
@@ -991,55 +991,55 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Add a scale bar to the layout</source>
-            <translation>レイアウトに縮尺バーを追加</translation>
+            <translation>レイアウトにスケールバーを追加</translation>
         </message>
         <message>
             <source>Add an elevation profile to the layout</source>
-            <translation>レイアウトに標高プロファイルを追加</translation>
+            <translation>レイアウトに標高断面図を追加</translation>
         </message>
         <message>
             <source>Add features to {layer_name}</source>
-            <translation>{layer_name} に地物を追加</translation>
+            <translation>{layer_name}に地物を追加</translation>
         </message>
         <message>
             <source>Add the 3D view to the layout</source>
-            <translation>レイアウトに 3D ビューを追加</translation>
+            <translation>レイアウトに3Dビューを追加</translation>
         </message>
         <message>
             <source>Add the ArcGIS layer[ {name}]</source>
-            <translation>ArcGIS レイヤを追加[ {name}]</translation>
+            <translation>ArcGISレイヤを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the Earth Engine dataset[ {name}]</source>
-            <translation>Earth Engine データセットを追加[ {name}]</translation>
+            <translation>Earth Engineデータセットを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the WFS layer[ {name}]</source>
-            <translation>WFS レイヤを追加[ {name}]</translation>
+            <translation>WFSレイヤを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the WMS layer[ {name}]</source>
-            <translation>WMS レイヤを追加[ {name}]</translation>
+            <translation>WMSレイヤを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the basemap[ {name}]</source>
-            <translation>ベースマップを追加[ {name}]</translation>
+            <translation>ベースマップを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the bookmark {name}</source>
-            <translation>ブックマーク {name} を追加</translation>
+            <translation>ブックマーク{name}を追加</translation>
         </message>
         <message>
             <source>Add the field {field_name} to {layer_name}</source>
-            <translation>{layer_name} にフィールド {field_name} を追加</translation>
+            <translation>{layer_name}にフィールド{field_name}を追加</translation>
         </message>
         <message>
             <source>Add the raster[ {name}]</source>
-            <translation>raster を追加[ {name}]</translation>
+            <translation>ラスタを追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the satellite image[ {name}]</source>
-            <translation>衛星画像を追加[ {name}]</translation>
+            <translation>衛星画像を追加[：{name}]</translation>
         </message>
         <message>
             <source>Add the tiles[ {name}]</source>
@@ -1047,35 +1047,35 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Add {path}[ as {name}]</source>
-            <translation>{path} を追加[ {name} として]</translation>
+            <translation>{path}を追加[（{name}として）]</translation>
         </message>
         <message>
             <source>Add {source}[ as {name}]</source>
-            <translation>{source} を追加[ {name} として]</translation>
+            <translation>{source}を追加[（{name}として）]</translation>
         </message>
         <message>
             <source>Add {table} from {connection}</source>
-            <translation>{connection} から {table} を追加</translation>
+            <translation>{connection}から{table}を追加</translation>
         </message>
         <message>
             <source>Add {url}[ as {layer_name}]</source>
-            <translation>{url} を追加[ {layer_name} として]</translation>
+            <translation>{url}を追加[（{layer_name}として）]</translation>
         </message>
         <message>
             <source>Animate {layer_name} over time[ by {field}]</source>
-            <translation>{layer_name} を時間方向にアニメーション[ {field} で]</translation>
+            <translation>{layer_name}を時間方向にアニメーション化[（{field}基準）]</translation>
         </message>
         <message>
             <source>Apply the style {path} to {layer_name}</source>
-            <translation>{layer_name} にスタイル {path} を適用</translation>
+            <translation>{layer_name}にスタイル{path}を適用</translation>
         </message>
         <message>
             <source>Build the report {name}</source>
-            <translation>レポート {name} を作成</translation>
+            <translation>レポート{name}を作成</translation>
         </message>
         <message>
             <source>Calculate {field_name} in {layer_name}</source>
-            <translation>{layer_name} の {field_name} を計算</translation>
+            <translation>{layer_name}の{field_name}を計算</translation>
         </message>
         <message>
             <source>Cancel the running task</source>
@@ -1087,7 +1087,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Chart {x_field}[ and {y_field}] of {layer}</source>
-            <translation>{layer} の {x_field} をグラフ化[ および {y_field}]</translation>
+            <translation>{layer}のグラフ：{x_field}[と{y_field}]</translation>
         </message>
         <message>
             <source>Check an expression</source>
@@ -1095,11 +1095,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Check the geometries of {layer_name}</source>
-            <translation>{layer_name} のジオメトリを確認</translation>
+            <translation>{layer_name}のジオメトリを確認</translation>
         </message>
         <message>
             <source>Check the optional dependencies</source>
-            <translation>オプション依存関係を確認</translation>
+            <translation>オプションの依存関係を確認</translation>
         </message>
         <message>
             <source>Check the running task</source>
@@ -1107,11 +1107,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Clear the selection[ of {layer_name}]</source>
-            <translation>選択を解除[ {layer_name} の]</translation>
+            <translation>選択範囲を解除[（{layer_name}）]</translation>
         </message>
         <message>
             <source>Compare raster compatibility</source>
-            <translation>raster の互換性を比較</translation>
+            <translation>ラスタの互換性を比較</translation>
         </message>
         <message>
             <source>Compute a route</source>
@@ -1119,15 +1119,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Compute an index with Earth Engine</source>
-            <translation>Earth Engine でインデックスを計算</translation>
+            <translation>Earth Engineで指数を計算</translation>
         </message>
         <message>
             <source>Compute relief images[ of {dem}]</source>
-            <translation>起伏画像を計算[ {dem} の]</translation>
+            <translation>起伏画像を計算[（{dem}）]</translation>
         </message>
         <message>
             <source>Compute the wetness index[ of {area}]</source>
-            <translation>湿潤指数を計算[ {area} の]</translation>
+            <translation>湿潤指数を計算[（{area}）]</translation>
         </message>
         <message>
             <source>Configure temporal layers and playback</source>
@@ -1135,47 +1135,47 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Configure the attribute form of {layer_name}</source>
-            <translation>{layer_name} の属性フォームを設定</translation>
+            <translation>{layer_name}の属性フォームを設定</translation>
         </message>
         <message>
             <source>Convert coordinates to {target_crs}</source>
-            <translation>座標を {target_crs} に変換</translation>
+            <translation>座標を{target_crs}に変換</translation>
         </message>
         <message>
             <source>Create a hillshade[ from {layer_name}]</source>
-            <translation>陰影起伏を作成[ {layer_name} から]</translation>
+            <translation>陰影図を作成[（{layer_name}から）]</translation>
         </message>
         <message>
             <source>Create a {geometry_type} feature[ in {target_layer}]</source>
-            <translation>{geometry_type} 地物を作成[ {target_layer} に]</translation>
+            <translation>{geometry_type}の地物を作成[（{target_layer}内）]</translation>
         </message>
         <message>
             <source>Create the group {name}</source>
-            <translation>グループ {name} を作成</translation>
+            <translation>グループ{name}を作成</translation>
         </message>
         <message>
             <source>Create the layer {name}</source>
-            <translation>レイヤ {name} を作成</translation>
+            <translation>レイヤ{name}を作成</translation>
         </message>
         <message>
             <source>Create the layout {name}</source>
-            <translation>レイアウト {name} を作成</translation>
+            <translation>レイアウト{name}を作成</translation>
         </message>
         <message>
             <source>Create the layout {name} from a template</source>
-            <translation>テンプレートからレイアウト {name} を作成</translation>
+            <translation>テンプレートからレイアウト{name}を作成</translation>
         </message>
         <message>
             <source>Delete features from {layer_name}</source>
-            <translation>{layer_name} から地物を削除</translation>
+            <translation>{layer_name}から地物を削除</translation>
         </message>
         <message>
             <source>Delete the field {field_name} from {layer_name}</source>
-            <translation>{layer_name} からフィールド {field_name} を削除</translation>
+            <translation>{layer_name}からフィールド{field_name}を削除</translation>
         </message>
         <message>
             <source>Duplicate {layer_name}[ as {new_name}]</source>
-            <translation>{layer_name} を複製[ {new_name} として]</translation>
+            <translation>{layer_name}を複製[（{new_name}として）]</translation>
         </message>
         <message>
             <source>Evaluate an expression</source>
@@ -1187,7 +1187,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Export the animation frames as PNG[ to {out_dir}]</source>
-            <translation>アニメーションフレームを PNG としてエクスポート[ {out_dir} に]</translation>
+            <translation>アニメーションフレームをPNGとしてエクスポート[（{out_dir}へ）]</translation>
         </message>
         <message>
             <source>Export the layout</source>
@@ -1195,27 +1195,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Export {layer_name} as a 3D model to {path}</source>
-            <translation>{layer_name} を 3D モデルとして {path} にエクスポート</translation>
+            <translation>{layer_name}を3Dモデルとして{path}にエクスポート</translation>
         </message>
         <message>
             <source>Export {layer_name} to {path}</source>
-            <translation>{layer_name} を {path} にエクスポート</translation>
+            <translation>{layer_name}を{path}にエクスポート</translation>
         </message>
         <message>
             <source>Fetch OpenStreetMap data[ as {layer_name}]</source>
-            <translation>OpenStreetMap データを取得[ {layer_name} として]</translation>
+            <translation>OpenStreetMapデータを取得[（{layer_name}として）]</translation>
         </message>
         <message>
             <source>Fetch OpenStreetMap {theme}[ as {layer_name}]</source>
-            <translation>OpenStreetMap の {theme} を取得[ {layer_name} として]</translation>
+            <translation>OpenStreetMapの{theme}を取得[（{layer_name}として）]</translation>
         </message>
         <message>
             <source>Fetch Overture {theme}[ as {layer_name}]</source>
-            <translation>Overture の {theme} を取得[ {layer_name} として]</translation>
+            <translation>Overtureの{theme}を取得[（{layer_name}として）]</translation>
         </message>
         <message>
             <source>Fetch building footprints[ as {layer_name}]</source>
-            <translation>建物フットプリントを取得[ {layer_name} として]</translation>
+            <translation>建物フットプリントを取得[（{layer_name}として）]</translation>
         </message>
         <message>
             <source>Filter the map by elevation</source>
@@ -1223,7 +1223,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Filter {layer_name}[: {filter}]</source>
-            <translation>{layer_name} をフィルタ[: {filter}]</translation>
+            <translation>{layer_name}をフィルタ[：{filter}]</translation>
         </message>
         <message>
             <source>Find duplicate project layers</source>
@@ -1235,19 +1235,19 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Find {query} on the map</source>
-            <translation>地図で {query} を検索</translation>
+            <translation>地図で{query}を検索</translation>
         </message>
         <message>
             <source>Flow lines from {origin_field} to {destination_field} of {table_layer}</source>
-            <translation>{table_layer} の {origin_field} から {destination_field} へのフローライン</translation>
+            <translation>{table_layer}の{origin_field}から{destination_field}へのフローライン</translation>
         </message>
         <message>
             <source>Georeference {raster}</source>
-            <translation>{raster} をジオレファレンス</translation>
+            <translation>{raster}をジオリファレンス</translation>
         </message>
         <message>
             <source>Get a Sentinel image</source>
-            <translation>Sentinel 画像を取得</translation>
+            <translation>Sentinel画像を取得</translation>
         </message>
         <message>
             <source>Get an elevation model</source>
@@ -1255,35 +1255,35 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
-            <translation>Hans van der Kwast によるレビュー、QGIS で収録。</translation>
+            <translation>Hans van der Kwastによるレビュー、QGISで収録。</translation>
         </message>
         <message>
             <source>Identify a CRS from WKT or a .prj file</source>
-            <translation>WKT または .prj ファイルから CRS を特定</translation>
+            <translation>WKTまたは.prjファイルからCRSを特定</translation>
         </message>
         <message>
             <source>Identify features at a point</source>
-            <translation>ポイントの地物を特定</translation>
+            <translation>ポイントの地物情報を表示</translation>
         </message>
         <message>
             <source>Import from the QGIS Hub</source>
-            <translation>QGIS Hub からインポート</translation>
+            <translation>QGIS Hubからインポート</translation>
         </message>
         <message>
             <source>Import {layer_name} into PostGIS[ table {table}]</source>
-            <translation>{layer_name} を PostGIS にインポート[ テーブル {table}]</translation>
+            <translation>{layer_name}をPostGISにインポート[（テーブル：{table}）]</translation>
         </message>
         <message>
             <source>Inspect or configure a mesh layer</source>
-            <translation>メッシュレイヤを検査または設定</translation>
+            <translation>メッシュレイヤを調査／設定</translation>
         </message>
         <message>
             <source>Inspect {layer_name}</source>
-            <translation>{layer_name} を検査</translation>
+            <translation>{layer_name}を調査</translation>
         </message>
         <message>
             <source>Inspect {url}</source>
-            <translation>{url} を検査</translation>
+            <translation>{url}を調査</translation>
         </message>
         <message>
             <source>Install {name}</source>
@@ -1291,15 +1291,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Join a table to {layer_name}</source>
-            <translation>テーブルを {layer_name} に結合</translation>
+            <translation>テーブルを{layer_name}に結合</translation>
         </message>
         <message>
             <source>Join {join_layer} onto {target_layer}</source>
-            <translation>{join_layer} を {target_layer} に結合</translation>
+            <translation>{join_layer}を{target_layer}に結合</translation>
         </message>
         <message>
             <source>Label {layer_name}[ by {field}]</source>
-            <translation>{layer_name} にラベル[ {field} で]</translation>
+            <translation>{layer_name}にラベルを設定[（{field}別）]</translation>
         </message>
         <message>
             <source>List the layers</source>
@@ -1311,7 +1311,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>List the plugins</source>
-            <translation>plugin を一覧表示</translation>
+            <translation>プラグインを一覧表示</translation>
         </message>
         <message>
             <source>List the satellite catalogs</source>
@@ -1319,19 +1319,19 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Load 3D Tiles[ from {url}]</source>
-            <translation>3D Tiles を読み込み[ {url} から]</translation>
+            <translation>3D Tilesを読み込み[（{url}から）]</translation>
         </message>
         <message>
             <source>Load GTFS feed {source}</source>
-            <translation>GTFS フィード {source} を読み込み</translation>
+            <translation>GTFSフィード{source}を読み込み</translation>
         </message>
         <message>
             <source>Lock a layout item</source>
-            <translation>レイアウト項目をロック</translation>
+            <translation>レイアウトアイテムを固定</translation>
         </message>
         <message>
             <source>Look at the QGIS window</source>
-            <translation>QGIS ウィンドウを見る</translation>
+            <translation>QGISウィンドウを見る</translation>
         </message>
         <message>
             <source>Look at the interface</source>
@@ -1339,7 +1339,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Look for data on the web[ for {query}]</source>
-            <translation>ウェブでデータを探す[ {query} について]</translation>
+            <translation>Webでデータを探す[：{query}]</translation>
         </message>
         <message>
             <source>Look for data on this computer</source>
@@ -1347,23 +1347,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
-            <translation>起伏異常を探す[ {lrm_layer} で][ {dem} で]</translation>
+            <translation>起伏異常を探す[（{lrm_layer}内）][（{dem}内）]</translation>
         </message>
         <message>
             <source>Look up the place[ {query}]</source>
-            <translation>場所を検索[ {query}]</translation>
+            <translation>場所を検索[：{query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
-            <translation>一時レイヤを永続化[ {gpkg_path} に]</translation>
+            <translation>一時レイヤを永続化[：{gpkg_path}]</translation>
         </message>
         <message>
             <source>Map decoration[ {decoration}]</source>
-            <translation>地図装飾[ {decoration}]</translation>
+            <translation>地図装飾[：{decoration}]</translation>
         </message>
         <message>
             <source>Map the watershed and streams[ of {area}]</source>
-            <translation>流域と河川をマッピング[ {area} の]</translation>
+            <translation>流域と河川をマッピング[（{area}）]</translation>
         </message>
         <message>
             <source>Measure a distance</source>
@@ -1375,123 +1375,123 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Move the map view</source>
-            <translation>地図ビューを移動</translation>
+            <translation>マップビューを移動</translation>
         </message>
         <message>
             <source>Move {layer_name} to {group_name}</source>
-            <translation>{layer_name} を {group_name} に移動</translation>
+            <translation>{layer_name}を{group_name}に移動</translation>
         </message>
         <message>
             <source>Open or configure a 3D map view[ with {dem_layer}]</source>
-            <translation>3D 地図ビューを開くか設定[ {dem_layer} を使用]</translation>
+            <translation>3Dビューを開く／設定[（{dem_layer}を使用）]</translation>
         </message>
         <message>
             <source>Open the Plugin Manager on {plugin_name}</source>
-            <translation>plugin マネージャで {plugin_name} を開く</translation>
+            <translation>プラグインマネージャで{plugin_name}を開く</translation>
         </message>
         <message>
             <source>Open the attribute table[ of {layer_name}]</source>
-            <translation>属性テーブルを開く[ {layer_name} の]</translation>
+            <translation>属性テーブルを開く[（{layer_name}）]</translation>
         </message>
         <message>
             <source>Open the project {path}</source>
-            <translation>プロジェクト {path} を開く</translation>
+            <translation>プロジェクト{path}を開く</translation>
         </message>
         <message>
             <source>Open the {plugin_name} panel</source>
-            <translation>{plugin_name} パネルを開く</translation>
+            <translation>{plugin_name}パネルを開く</translation>
         </message>
         <message>
             <source>Project relations[: {child_layer} to {parent_layer}]</source>
-            <translation>プロジェクトのリレーション[: {child_layer} から {parent_layer} へ]</translation>
+            <translation>プロジェクトのリレーション[：{child_layer}から{parent_layer}へ]</translation>
         </message>
         <message>
             <source>Raster calculation[ as {name}]</source>
-            <translation>raster 計算[ {name} として]</translation>
+            <translation>ラスタ計算[（{name}として）]</translation>
         </message>
         <message>
             <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>NASA Earthdata コレクションを読み取る[ {short_name}]</translation>
+            <translation>NASA Earthdataのコレクションを読み取り[：{short_name}]</translation>
         </message>
         <message>
             <source>Read a coordinate from the map</source>
-            <translation>地図から座標を読み取る</translation>
+            <translation>地図から座標を読み取り</translation>
         </message>
         <message>
             <source>Read features of {layer_name}</source>
-            <translation>{layer_name} の地物を読み取る</translation>
+            <translation>{layer_name}の地物を読み取り</translation>
         </message>
         <message>
             <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>AI Agent のドキュメントを読む[ {query} について]</translation>
+            <translation>AI Agentのドキュメントを読む[：{query}]</translation>
         </message>
         <message>
             <source>Read the CRS of {layer_name}</source>
-            <translation>{layer_name} の CRS を読み取る</translation>
+            <translation>{layer_name}のCRSを読み取り</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
-            <translation>Python エラーを読み取る</translation>
+            <translation>Pythonエラーを読み取り</translation>
         </message>
         <message>
             <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>QGIS ドキュメントを読む[ {query} について]</translation>
+            <translation>QGISのドキュメントを読む[：{query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
-            <translation>{layer_name} の範囲を読み取る</translation>
+            <translation>{layer_name}の領域を読み取り</translation>
         </message>
         <message>
             <source>Read the help of {algorithm_id}</source>
-            <translation>{algorithm_id} のヘルプを読み取る</translation>
+            <translation>{algorithm_id}のヘルプを読み取り</translation>
         </message>
         <message>
             <source>Read the interface</source>
-            <translation>インターフェースを読み取る</translation>
+            <translation>インターフェースを読み取り</translation>
         </message>
         <message>
             <source>Read the labels of {layer_name}</source>
-            <translation>{layer_name} のラベルを読み取る</translation>
+            <translation>{layer_name}のラベルを読み取り</translation>
         </message>
         <message>
             <source>Read the layer tree</source>
-            <translation>レイヤツリーを読み取る</translation>
+            <translation>レイヤツリーを読み取り</translation>
         </message>
         <message>
             <source>Read the map scale</source>
-            <translation>地図縮尺を読み取る</translation>
+            <translation>地図の縮尺を読み取り</translation>
         </message>
         <message>
             <source>Read the map view</source>
-            <translation>地図ビューを読み取る</translation>
+            <translation>マップビューを読み取り</translation>
         </message>
         <message>
             <source>Read the network log</source>
-            <translation>ネットワークログを読み取る</translation>
+            <translation>ネットワークログを読み取り</translation>
         </message>
         <message>
             <source>Read the project</source>
-            <translation>プロジェクトを読み取る</translation>
+            <translation>プロジェクトを読み取り</translation>
         </message>
         <message>
             <source>Read the project details</source>
-            <translation>プロジェクトの詳細を読み取る</translation>
+            <translation>プロジェクトの詳細を読み取り</translation>
         </message>
         <message>
             <source>Read the selection[ of {layer_name}]</source>
-            <translation>選択を読み取る[ {layer_name} の]</translation>
+            <translation>選択範囲を読み取り[（{layer_name}）]</translation>
         </message>
         <message>
             <source>Read the style of {layer_name}</source>
-            <translation>{layer_name} のスタイルを読み取る</translation>
+            <translation>{layer_name}のスタイルを読み取り</translation>
         </message>
         <message>
             <source>Remove {layer_name}</source>
-            <translation>{layer_name} を削除</translation>
+            <translation>{layer_name}を削除</translation>
         </message>
         <message>
             <source>Rename {old_name} to {new_name} in {layer_name}</source>
-            <translation>{layer_name} の {old_name} を {new_name} に名前変更</translation>
+            <translation>{layer_name}の{old_name}の名前を{new_name}に変更</translation>
         </message>
         <message>
             <source>Render the map</source>
@@ -1503,15 +1503,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Reshape a feature of {layer_name}</source>
-            <translation>{layer_name} の地物を整形</translation>
+            <translation>{layer_name}の地物を整形</translation>
         </message>
         <message>
             <source>Run Python code[: {description}]</source>
-            <translation>Python コードを実行[: {description}]</translation>
+            <translation>Pythonコードを実行[：{description}]</translation>
         </message>
         <message>
             <source>Run a SQL query</source>
-            <translation>SQL クエリを実行</translation>
+            <translation>SQLクエリを実行</translation>
         </message>
         <message>
             <source>Run several commands</source>
@@ -1519,11 +1519,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Sample several rasters at points</source>
-            <translation>複数の raster をポイントでサンプリング</translation>
+            <translation>複数のラスタをポイントでサンプリング</translation>
         </message>
         <message>
             <source>Sample {layer_name} at a point</source>
-            <translation>ポイントで {layer_name} をサンプリング</translation>
+            <translation>ポイントで{layer_name}をサンプリング</translation>
         </message>
         <message>
             <source>Save the Processing script {name}</source>
@@ -1531,7 +1531,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Save the custom CRS {name}</source>
-            <translation>カスタム CRS {name} を保存</translation>
+            <translation>カスタムCRS {name}を保存</translation>
         </message>
         <message>
             <source>Save the layout as a template</source>
@@ -1539,35 +1539,35 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Save the project[ to {path}]</source>
-            <translation>プロジェクトを保存[ {path} に]</translation>
+            <translation>プロジェクトを保存[：{path}]</translation>
         </message>
         <message>
             <source>Save the style of {layer_name}</source>
-            <translation>{layer_name} のスタイルを保存</translation>
+            <translation>{layer_name}のスタイルを保存</translation>
         </message>
         <message>
             <source>Save {layer} to {gpkg_path}</source>
-            <translation>{layer} を {gpkg_path} に保存</translation>
+            <translation>{layer}を{gpkg_path}に保存</translation>
         </message>
         <message>
             <source>Saved a Processing script</source>
-            <translation>Processing スクリプトを保存しました</translation>
+            <translation>プロセシングスクリプトを保存しました</translation>
         </message>
         <message>
             <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Copernicus 画像を検索[ {collection} の]</translation>
+            <translation>Copernicus画像を検索[：{collection}]</translation>
         </message>
         <message>
             <source>Search NASA Earthdata files</source>
-            <translation>NASA Earthdata ファイルを検索</translation>
+            <translation>NASA Earthdataファイルを検索</translation>
         </message>
         <message>
             <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>NASA Earthdata を検索[ {query} について]</translation>
+            <translation>NASA Earthdataを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search open data[ for {query}]</source>
-            <translation>オープンデータを検索[ {query} について]</translation>
+            <translation>オープンデータを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search satellite images</source>
@@ -1575,87 +1575,87 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Search statistics[ on {topic}]</source>
-            <translation>統計を検索[ {topic} について]</translation>
+            <translation>統計を検索[：{topic}]</translation>
         </message>
         <message>
             <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Earth Engine カタログを検索[ {query} について]</translation>
+            <translation>Earth Engineのカタログを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
-            <translation>QGIS Hub を検索[ {query} について]</translation>
+            <translation>QGIS Hubを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search the data catalog[ for {query}]</source>
-            <translation>データカタログを検索[ {query} について]</translation>
+            <translation>データカタログを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
-            <translation>Processing ツールを検索[ {query} について]</translation>
+            <translation>プロセシングツールを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search the web[ for {query}]</source>
-            <translation>ウェブを検索[ {query} について]</translation>
+            <translation>Web検索[：{query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
-            <translation>{layer_name} の地物を選択</translation>
+            <translation>{layer_name}の地物を選択</translation>
         </message>
         <message>
             <source>Select in {layer_name} by shape</source>
-            <translation>{layer_name} で形状により選択</translation>
+            <translation>{layer_name}で形状により選択</translation>
         </message>
         <message>
             <source>Select in {layer_name} where {field_name} {operator} {value}</source>
-            <translation>{layer_name} で {field_name} {operator} {value} の条件で選択</translation>
+            <translation>{layer_name}で{field_name} {operator} {value}を満たす地物を選択</translation>
         </message>
         <message>
             <source>Select {layer_name} in the layer panel</source>
-            <translation>レイヤパネルで {layer_name} を選択</translation>
+            <translation>レイヤパネルで{layer_name}を選択</translation>
         </message>
         <message>
             <source>Set NoData on {layer_name}</source>
-            <translation>{layer_name} に NoData を設定</translation>
+            <translation>{layer_name}にNoData値を設定</translation>
         </message>
         <message>
             <source>Set legend image for {layer_name}</source>
-            <translation>{layer_name} の凡例画像を設定</translation>
+            <translation>{layer_name}の凡例画像を設定</translation>
         </message>
         <message>
             <source>Set the CRS of {layer_name} to {crs}</source>
-            <translation>{layer_name} の CRS を {crs} に設定</translation>
+            <translation>{layer_name}のCRSを{crs}に設定</translation>
         </message>
         <message>
             <source>Set the elevation of {layer_name}[, extruded by {height_from}]</source>
-            <translation>{layer_name} の標高を設定[, {height_from} で押し出し]</translation>
+            <translation>{layer_name}の標高を設定[、{height_from}で押し出し]</translation>
         </message>
         <message>
             <source>Set the map scale</source>
-            <translation>地図縮尺を設定</translation>
+            <translation>地図の縮尺を設定</translation>
         </message>
         <message>
             <source>Set the project CRS to {crs}</source>
-            <translation>プロジェクトの CRS を {crs} に設定</translation>
+            <translation>プロジェクトのCRSを{crs}に設定</translation>
         </message>
         <message>
             <source>Set the raster attribute table on {layer_name}</source>
-            <translation>{layer_name} に raster 属性テーブルを設定</translation>
+            <translation>{layer_name}にラスタ属性テーブルを設定</translation>
         </message>
         <message>
             <source>Set {property} on {layer_name}</source>
-            <translation>{layer_name} に {property} を設定</translation>
+            <translation>{layer_name}に{property}を設定</translation>
         </message>
         <message>
             <source>Show or hide {layer_name}</source>
-            <translation>{layer_name} を表示または非表示</translation>
+            <translation>{layer_name}を表示または非表示</translation>
         </message>
         <message>
             <source>Spatial statistics of {layer}[: {field}]</source>
-            <translation>{layer} の空間統計[: {field}]</translation>
+            <translation>{layer}の空間統計[：{field}]</translation>
         </message>
         <message>
             <source>Split a parcel of {layer} into lots</source>
-            <translation>{layer} の区画を小区画に分割</translation>
+            <translation>{layer}の区画を小区画に分割</translation>
         </message>
         <message>
             <source>Start a new project</source>
@@ -1663,23 +1663,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Statistics of {field} in {layer_name}</source>
-            <translation>{layer_name} の {field} の統計</translation>
+            <translation>{layer_name}の{field}の統計量</translation>
         </message>
         <message>
             <source>Statistics of {layer_name}[, band {band}]</source>
-            <translation>{layer_name} の統計[, バンド {band}]</translation>
+            <translation>{layer_name}の統計量[、バンド{band}]</translation>
         </message>
         <message>
             <source>Style raster classes on {layer_name}</source>
-            <translation>{layer_name} の raster クラスをスタイル設定</translation>
+            <translation>{layer_name}のラスタクラスのスタイルを設定</translation>
         </message>
         <message>
             <source>Style the point cloud {layer_name}</source>
-            <translation>ポイントクラウド {layer_name} をスタイル設定</translation>
+            <translation>点群{layer_name}のスタイルを設定</translation>
         </message>
         <message>
             <source>Style {layer_name}</source>
-            <translation>{layer_name} をスタイル設定</translation>
+            <translation>{layer_name}のスタイルを設定</translation>
         </message>
         <message>
             <source>Take a screenshot</source>
@@ -1687,87 +1687,87 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>The complete AI Agent guide</source>
-            <translation>完全な AI Agent ガイド</translation>
+            <translation>AI Agent完全ガイド</translation>
         </message>
         <message>
             <source>The panel from the first prompt to the finished map.</source>
-            <translation>最初の prompt から完成した地図までのパネル。</translation>
+            <translation>最初のプロンプトから完成した地図までのパネルの使い方を説明します。</translation>
         </message>
         <message>
             <source>Trim or extend a line endpoint</source>
-            <translation>ライン端点をトリムまたは延長</translation>
+            <translation>ラインの端点をトリムまたは延長</translation>
         </message>
         <message>
             <source>Turn {frames_folder} into a GIF</source>
-            <translation>{frames_folder} を GIF に変換</translation>
+            <translation>{frames_folder}をGIFに変換</translation>
         </message>
         <message>
             <source>Unique values of {field} in {layer_name}</source>
-            <translation>{layer_name} の {field} の一意値</translation>
+            <translation>{layer_name}の{field}のユニーク値</translation>
         </message>
         <message>
             <source>Update features of {layer_name}</source>
-            <translation>{layer_name} の地物を更新</translation>
+            <translation>{layer_name}の地物を更新</translation>
         </message>
         <message>
             <source>What it can do, what it asks before doing, and how to undo a run.</source>
-            <translation>できること、実行前に確認すること、実行を元に戻す方法。</translation>
+            <translation>できること、実行前に確認すること、実行を元に戻す方法を説明します。</translation>
         </message>
         <message>
             <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
-            <translation>{polygon_layer} 内の {raster_layer} のゾーン統計</translation>
+            <translation>{polygon_layer}内の{raster_layer}のゾーン統計量</translation>
         </message>
         <message>
             <source>Zonal statistics with Earth Engine</source>
-            <translation>Earth Engine によるゾーン統計</translation>
+            <translation>Earth Engineによるゾーン統計量</translation>
         </message>
         <message>
-            <source>Zone of interest[: {label}][ from {layer_name}]</source>
-            <translation>関心ゾーン[: {label}][ {layer_name} から]</translation>
+            <source>Area of interest[: {label}][ from {layer_name}]</source>
+            <translation>関心域[: {label}][ {layer_name} から]</translation>
         </message>
         <message>
             <source>Zoom to the selection[ of {layer_name}]</source>
-            <translation>選択にズーム[ {layer_name} の]</translation>
+            <translation>選択範囲にズーム[（{layer_name}）]</translation>
         </message>
         <message>
             <source>Zoom to {layer_name}</source>
-            <translation>{layer_name} にズーム</translation>
+            <translation>{layer_name}の領域にズーム</translation>
         </message>
         <message>
             <source>{count} ms</source>
-            <translation>{count} ms</translation>
+            <translation>{count}ms</translation>
         </message>
         <message>
             <source>{count} s</source>
-            <translation>{count} s</translation>
+            <translation>{count}秒</translation>
         </message>
         <message>
             <source>{minutes} min</source>
-            <translation>{minutes} min</translation>
+            <translation>{minutes}分</translation>
         </message>
         <message>
             <source>{minutes} min {seconds} s</source>
-            <translation>{minutes} min {seconds} s</translation>
+            <translation>{minutes}分{seconds}秒</translation>
         </message>
         <message>
             <source>It adds the layer to the existing GeoPackage {path}.</source>
-            <translation>既存のGeoPackage {path} にレイヤを追加します。</translation>
+            <translation>既存のGeoPackage {path}にレイヤを追加します。</translation>
         </message>
         <message>
             <source>It creates the GeoPackage {path}.</source>
-            <translation>GeoPackage {path} を作成します。</translation>
+            <translation>GeoPackage {path}を作成します。</translation>
         </message>
         <message>
             <source>It creates the file {path}.</source>
-            <translation>ファイル {path} を作成します。</translation>
+            <translation>ファイル {path}を作成します。</translation>
         </message>
         <message>
             <source>It replaces the file {path}.</source>
-            <translation>ファイル {path} を置き換えます。</translation>
+            <translation>ファイル {path}を置き換えます。</translation>
         </message>
         <message>
             <source>It replaces the layer's table in the existing GeoPackage {path}.</source>
-            <translation>既存のGeoPackage {path} 内のレイヤのテーブルを置き換えます。</translation>
+            <translation>既存のGeoPackage {path}内のレイヤのテーブルを置き換えます。</translation>
         </message>
         <message>
             <source>It writes the layer into the project's GeoPackage.</source>
@@ -1775,7 +1775,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>That file is also its input: the original is overwritten.</source>
-            <translation>そのファイルは入力でもあります: 元のファイルは上書きされます。</translation>
+            <translation>そのファイルは入力でもあるため、元のファイルは上書きされます。</translation>
         </message>
         <message>
             <source>The input is only read, not changed.</source>
@@ -1783,32 +1783,32 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>The project then uses the saved copy; the original file is not changed.</source>
-            <translation>プロジェクトは保存されたコピーを使用します; 元のファイルは変更されません。</translation>
+            <translation>プロジェクトは保存したコピーを使い、元のファイルは変更されません。</translation>
         </message>
         <message>
             <source>The result is a new temporary layer; no file is written.</source>
-            <translation>結果は新しい一時レイヤです; ファイルは書き込まれません。</translation>
+            <translation>結果は新しい一時レイヤになり、ファイルは書き込まれません。</translation>
         </message>
         <message>
             <source>This algorithm has no output of its own: it changes its input in place.</source>
-            <translation>このアルゴリズムには独自の出力がありません: 入力がその場で変更されます。</translation>
+            <translation>このアルゴリズムには独自の出力がなく、入力がその場で変更されます。</translation>
         </message>
         <message>
             <location filename="src/tools/harvest_project.py" />
             <source>Run SQL on {connection}</source>
-            <translation>{connection} で SQL を実行</translation>
+            <translation>{connection}でSQLを実行</translation>
         </message>
         <message>
             <source>%n results</source>
-            <translation>%n 件の結果</translation>
+            <translation>%n件の結果</translation>
         </message>
         <message>
             <source>1 layer won't come back: {names}</source>
-            <translation>1 レイヤは元に戻りません: {names}</translation>
+            <translation>1個のレイヤは元に戻りません：{names}</translation>
         </message>
         <message>
             <source>1 result</source>
-            <translation>1 件の結果</translation>
+            <translation>1件の結果</translation>
         </message>
         <message>
             <source>Categories</source>
@@ -1816,7 +1816,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Changes made in QGIS, outside the agent.</source>
-            <translation>エージェントの外で行われた QGIS での変更。</translation>
+            <translation>エージェントを介さずQGISで行われた変更です。</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -1824,7 +1824,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Data: {names}</source>
-            <translation>データ: {names}</translation>
+            <translation>データ：{names}</translation>
         </message>
         <message>
             <source>Go back to an earlier version of your project</source>
@@ -1832,11 +1832,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
-            <translation>戻ると、プロジェクトとバックアップされたすべてのレイヤが元に戻ります。これらのレイヤは現在のデータを保持します:</translation>
+            <translation>戻ると、プロジェクトとバックアップされたすべてのレイヤが元に戻ります。これらのレイヤは現在のデータを保持します：</translation>
         </message>
         <message>
             <source>Good to know</source>
-            <translation>参考までに</translation>
+            <translation>補足</translation>
         </message>
         <message>
             <source>Information</source>
@@ -1844,39 +1844,39 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Inspect {raster} for georeferencing</source>
-            <translation>{raster} のジオリファレンスを検査</translation>
+            <translation>{raster}のジオリファレンスを調査</translation>
         </message>
         <message>
             <source>Next</source>
-            <translation>次へ</translation>
+            <translation>次に進みます。</translation>
         </message>
         <message>
             <source>Previous</source>
-            <translation>前へ</translation>
+            <translation>前に戻ります。</translation>
         </message>
         <message>
             <source>Put back brings the project to where this request left it.</source>
-            <translation>「元に戻す」で、プロジェクトはこのリクエスト実行後の状態に戻ります。</translation>
+            <translation>「やり直す」で、プロジェクトをこの依頼の実行後の状態に戻します。</translation>
         </message>
         <message>
             <source>Put it back</source>
-            <translation>元に戻す</translation>
+            <translation>やり直す</translation>
         </message>
         <message>
             <source>Read a web page</source>
-            <translation>ウェブページを読む</translation>
+            <translation>ウェブページを読み取り</translation>
         </message>
         <message>
             <source>Read data from a web page</source>
-            <translation>ウェブページからデータを読み取る</translation>
+            <translation>ウェブページからデータを読み取り</translation>
         </message>
         <message>
             <source>Real tasks the agent runs from one sentence. Open one to see its prompt.</source>
-            <translation>エージェントが一文から実行する実際のタスク。開くとその prompt を確認できます。</translation>
+            <translation>一文の指示からエージェントが実行する実際のタスクです。開くとプロンプトを確認できます。</translation>
         </message>
         <message>
             <source>Restore puts the project back as this request left it.</source>
-            <translation>復元で、プロジェクトはこのリクエスト実行後の状態に戻ります。</translation>
+            <translation>「復元」で、プロジェクトをこの依頼の実行後の状態に戻します。</translation>
         </message>
         <message>
             <source>Sample data included</source>
@@ -1888,7 +1888,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Search examples</source>
-            <translation>例を検索</translation>
+            <translation>作例を検索</translation>
         </message>
         <message>
             <source>See all</source>
@@ -1900,47 +1900,47 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Undo puts the project back as it was before this request.</source>
-            <translation>「元に戻す」で、プロジェクトはこのリクエスト前の状態に戻ります。</translation>
+            <translation>「元に戻す」で、プロジェクトをこの依頼の前の状態に戻します。</translation>
         </message>
         <message>
             <source>Undo the agent's last request</source>
-            <translation>エージェントの最後のリクエストを元に戻す</translation>
+            <translation>エージェントの直前の依頼を元に戻す</translation>
         </message>
         <message>
             <source>Use this example</source>
-            <translation>この例を使用</translation>
+            <translation>この作例を使う</translation>
         </message>
         <message>
             <source>Write the report {title}</source>
-            <translation>レポート {title} を作成</translation>
+            <translation>レポート{title}を作成</translation>
         </message>
         <message>
             <source>{layer} ({reason})</source>
-            <translation>{layer} ({reason})</translation>
+            <translation>{layer}（{reason}）</translation>
         </message>
         <message>
             <source>{n} layers won't come back: {names}</source>
-            <translation>{n} レイヤは元に戻りません: {names}</translation>
+            <translation>{n}個のレイヤは元に戻りません：{names}</translation>
         </message>
         <message>
             <source>• {layer}: {reason}</source>
-            <translation>• {layer}: {reason}</translation>
+            <translation>• {layer}：{reason}</translation>
         </message>
         <message>
             <source>Change a label of the layout {layout_name}</source>
-            <translation>レイアウト {layout_name} のラベルを変更</translation>
+            <translation>レイアウト{layout_name}のラベルを変更</translation>
         </message>
         <message>
             <source>Change a map of the layout {layout_name}</source>
-            <translation>レイアウト {layout_name} の地図を変更</translation>
+            <translation>レイアウト{layout_name}の地図を変更</translation>
         </message>
         <message>
             <source>Change a north arrow of the layout {layout_name}</source>
-            <translation>レイアウト {layout_name} の方位矢印を変更</translation>
+            <translation>レイアウト{layout_name}の方位記号を変更</translation>
         </message>
         <message>
             <source>Change a scale bar of the layout {layout_name}</source>
-            <translation>レイアウト {layout_name} のスケールバーを変更</translation>
+            <translation>レイアウト{layout_name}のスケールバーを変更</translation>
         </message>
         <message>
             <source>Edit the last queued message</source>
@@ -1948,7 +1948,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>In an empty box</source>
-            <translation>空のボックスでは</translation>
+            <translation>入力欄が空のとき</translation>
         </message>
         <message>
             <source>Queue a message</source>
@@ -1956,7 +1956,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Remove one item from the layout {layout_name}</source>
-            <translation>レイアウト {layout_name} からアイテムを1つ削除</translation>
+            <translation>レイアウト{layout_name}からアイテムを1個削除</translation>
         </message>
         <message>
             <source>Sends when the agent finishes</source>
@@ -1964,11 +1964,258 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>AI Agent {version} is installed.</source>
-            <translation>AI Agent {version} がインストールされています。</translation>
+            <translation>AI Agent {version}がインストールされています。</translation>
         </message>
         <message>
             <source>AI Agent {version} is installed. Restart QGIS to use it.</source>
-            <translation>AI Agent {version} がインストールされています。使用するにはQGISを再起動してください。</translation>
+            <translation>AI Agent {version}がインストールされています。使用するにはQGISを再起動してください。</translation>
+        </message>
+        <message>
+            <location filename="src/tools/core_tools.py" />
+            <source>Search the processing tools[ for {search}]</source>
+            <translation>プロセシングツールを検索[：{search}]</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {feature}</source>
+            <translation>{feature}をインストール</translation>
+        </message>
+        <message>
+            <location filename="src/tools/deps_tools.py" />
+            <source>Install {package}</source>
+            <translation>{package}をインストール</translation>
+        </message>
+        <message>
+            <source>1 feature</source>
+            <translation>1 地物</translation>
+        </message>
+        <message>
+            <source>1 field</source>
+            <translation>1 フィールド</translation>
+        </message>
+        <message>
+            <source>1 file</source>
+            <translation>1 ファイル</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 レイヤ</translation>
+        </message>
+        <message>
+            <source>1 row</source>
+            <translation>1 行</translation>
+        </message>
+        <message>
+            <source>Add {name}[ from {source}]</source>
+            <translation>{name}を追加[（{source}から）]</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed.</source>
+            <translation>このリクエストで変更された内容を元に戻します。</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} around {INPUT}</source>
+            <translation>{INPUT}の周囲に{DISTANCE}のバッファ</translation>
+        </message>
+        <message>
+            <source>Buffer of {DISTANCE} on one side of {INPUT}</source>
+            <translation>{INPUT}の片側に{DISTANCE}のバッファ</translation>
+        </message>
+        <message>
+            <source>Centroids of {INPUT}</source>
+            <translation>{INPUT}の重心</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to an extent</source>
+            <translation>{INPUT}を範囲でクリップ</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {MASK}</source>
+            <translation>{INPUT}を{MASK}でクリップ</translation>
+        </message>
+        <message>
+            <source>Clip {INPUT} to {OVERLAY}</source>
+            <translation>{INPUT}を{OVERLAY}でクリップ</translation>
+        </message>
+        <message>
+            <source>Compute {FIELD_NAME} in {INPUT}</source>
+            <translation>{INPUT}の{FIELD_NAME}を計算</translation>
+        </message>
+        <message>
+            <source>Contours of {INPUT}[ every {INTERVAL}]</source>
+            <translation>{INPUT}の等高線[（{INTERVAL}ごと）]</translation>
+        </message>
+        <message>
+            <source>Copy a report of this problem, then paste it into an email to us.</source>
+            <translation>この問題のレポートをコピーして、私たち宛てのメールに貼り付けてください。</translation>
+        </message>
+        <message>
+            <source>Copy report</source>
+            <translation>レポートをコピー</translation>
+        </message>
+        <message>
+            <source>Count {POINTS} in each feature of {POLYGONS}</source>
+            <translation>{POLYGONS}の各地物内にある{POINTS}を数える</translation>
+        </message>
+        <message>
+            <source>Dissolve {INPUT}[ by {FIELD}]</source>
+            <translation>{INPUT}をディゾルブ[（{FIELD}別）]</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}</source>
+            <translation>{INPUT}の地物を抽出</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT} by location</source>
+            <translation>{INPUT}の地物を位置で抽出</translation>
+        </message>
+        <message>
+            <source>Extract features of {INPUT}[ by {FIELD}]</source>
+            <translation>{INPUT}の地物を抽出[（{FIELD}別）]</translation>
+        </message>
+        <message>
+            <source>Fix the geometries of {INPUT}</source>
+            <translation>{INPUT}のジオメトリを修正</translation>
+        </message>
+        <message>
+            <source>Get {what}</source>
+            <translation>{what}を取得</translation>
+        </message>
+        <message>
+            <source>Heatmap of {INPUT}[ with a radius of {RADIUS}]</source>
+            <translation>{INPUT}のヒートマップ[（半径{RADIUS}）]</translation>
+        </message>
+        <message>
+            <source>Hillshade of {INPUT}</source>
+            <translation>{INPUT}の陰影起伏</translation>
+        </message>
+        <message>
+            <source>Intersect {INPUT} with {OVERLAY}</source>
+            <translation>{INPUT}と{OVERLAY}の交差</translation>
+        </message>
+        <message>
+            <source>Join {INPUT_2} to {INPUT}</source>
+            <translation>{INPUT_2}を{INPUT}に結合</translation>
+        </message>
+        <message>
+            <source>Join {JOIN} to {INPUT} by location</source>
+            <translation>{JOIN}を{INPUT}に位置で結合</translation>
+        </message>
+        <message>
+            <source>Merge {LAYERS}</source>
+            <translation>{LAYERS}をマージ</translation>
+        </message>
+        <message>
+            <source>Open an email</source>
+            <translation>メールを開く</translation>
+        </message>
+        <message>
+            <source>Polygonize {INPUT}</source>
+            <translation>{INPUT}をポリゴン化</translation>
+        </message>
+        <message>
+            <source>Rasterize {INPUT}</source>
+            <translation>{INPUT}をラスタ化</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map.</source>
+            <translation>このリクエストで地図に加えた変更を取り消します。</translation>
+        </message>
+        <message>
+            <source>Remove {OVERLAY} from {INPUT}</source>
+            <translation>{INPUT}から{OVERLAY}を除去</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT} to {TARGET_CRS}</source>
+            <translation>{INPUT}を{TARGET_CRS}に再投影</translation>
+        </message>
+        <message>
+            <source>Reproject {INPUT}[ to {TARGET_CRS}]</source>
+            <translation>{INPUT}を再投影[（{TARGET_CRS}へ）]</translation>
+        </message>
+        <message>
+            <source>Run processing</source>
+            <translation>処理を実行</translation>
+        </message>
+        <message>
+            <source>Save it as a file</source>
+            <translation>ファイルとして保存</translation>
+        </message>
+        <message>
+            <source>Simplify {INPUT}[ with a tolerance of {TOLERANCE}]</source>
+            <translation>{INPUT}を簡略化[（許容値{TOLERANCE}）]</translation>
+        </message>
+        <message>
+            <source>Slope of {INPUT}</source>
+            <translation>{INPUT}の傾斜</translation>
+        </message>
+        <message>
+            <source>Smooth {INPUT}</source>
+            <translation>{INPUT}をスムージング</translation>
+        </message>
+        <message>
+            <source>Split {INPUT} into single parts</source>
+            <translation>{INPUT}を単一パートに分割</translation>
+        </message>
+        <message>
+            <source>Statistics of {INPUT_RASTER} in each feature of {INPUT}</source>
+            <translation>{INPUT}の各地物内の{INPUT_RASTER}の統計</translation>
+        </message>
+        <message>
+            <source>The agent reads it at its next step</source>
+            <translation>エージェントは次のステップでこれを読みます</translation>
+        </message>
+        <message>
+            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
+            <translation>この会話の内容：あなたのメッセージ、AIが行った各ステップと見つけたこと、QGISとプラグインに関する技術的な詳細。パスワード、サインイン情報、ファイルの中身は含まれません。</translation>
+        </message>
+        <message>
+            <source>Turn {INPUT} into lines</source>
+            <translation>{INPUT}をラインに変換</translation>
+        </message>
+        <message>
+            <source>Union of {INPUT}[ and {OVERLAY}]</source>
+            <translation>{INPUT}[と{OVERLAY}]の結合</translation>
+        </message>
+        <message>
+            <source>Voronoi polygons of {INPUT}</source>
+            <translation>{INPUT}のボロノイポリゴン</translation>
+        </message>
+        <message>
+            <source>What is included</source>
+            <translation>含まれる内容</translation>
+        </message>
+        <message>
+            <source>{algorithm} on {layer}</source>
+            <translation>{layer}に{algorithm}を実行</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} 地物</translation>
+        </message>
+        <message>
+            <source>{n} fields</source>
+            <translation>{n} フィールド</translation>
+        </message>
+        <message>
+            <source>{n} files</source>
+            <translation>{n} ファイル</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} レイヤ</translation>
+        </message>
+        <message>
+            <source>{n} results</source>
+            <translation>{n} 件の結果</translation>
+        </message>
+        <message>
+            <source>{n} rows</source>
+            <translation>{n} 行</translation>
+        </message>
+        <message>
+            <source>{tool} on {layer}</source>
+            <translation>{layer}に{tool}を実行</translation>
         </message>
     </context>
     <context>
@@ -2060,15 +2307,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>QGIS is not running</source>
-            <translation>QGIS が起動していません</translation>
+            <translation>QGISが起動していません</translation>
         </message>
         <message>
             <source>Show in QGIS</source>
-            <translation>QGIS で表示</translation>
+            <translation>QGISで表示</translation>
         </message>
         <message>
             <source>Shown in QGIS</source>
-            <translation>QGIS で表示中</translation>
+            <translation>QGISで表示中</translation>
         </message>
     </context>
     <context>
@@ -2094,12 +2341,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{kind}, 1 feature</source>
-            <translation>{kind}、1 フィーチャ</translation>
+            <translation>{kind}、地物1件</translation>
         </message>
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{kind}, {count} features</source>
-            <translation>{kind}、{count} フィーチャ</translation>
+            <translation>{kind}、地物{count}件</translation>
         </message>
     </context>
     <context>
@@ -2107,17 +2354,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/locator.py" />
             <source>Ask AI Agent</source>
-            <translation>AI Agent に質問</translation>
+            <translation>AI Agentに質問</translation>
         </message>
         <message>
             <location filename="src/ui/locator.py" />
             <source>Ask AI Agent: {text}</source>
-            <translation>AI Agent に質問: {text}</translation>
+            <translation>AI Agentに質問：{text}</translation>
         </message>
         <message>
             <location filename="src/ui/locator.py" />
             <source>Opens the panel with this question ready to send</source>
-            <translation>この質問を送信できる状態でパネルを開きます</translation>
+            <translation>この質問を送信できる状態でパネルを開きます。</translation>
         </message>
     </context>
     <context>
@@ -2135,21 +2382,21 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/options_page.py" />
             <source>AI Agent settings...</source>
-            <translation>AI Agent の設定...</translation>
+            <translation>AI Agentの設定…</translation>
         </message>
         <message>
             <location filename="src/ui/options_page.py" />
             <source>Open AI Agent</source>
-            <translation>AI Agent を開く</translation>
+            <translation>AI Agentを開く</translation>
         </message>
         <message>
             <location filename="src/ui/options_page.py" />
             <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
-            <translation>パネルは Ctrl+Alt+A で開くか、ロケータバー (Ctrl+K) に "ai" の後に質問を入力します。レイヤ、フィーチャ、地図を右クリックして質問することもできます。</translation>
+            <translation>Ctrl+Alt+Aでパネルを開くか、ロケータバー（Ctrl+K）に「ai」に続けて質問を入力します。レイヤ、地物、地図を右クリックして質問することもできます。</translation>
         </message>
         <message>
             <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
-            <translation>TerraLab の AI Agent は QGIS 内の AI エージェントです。データを読み込み、layer のスタイルを設定し、分析を実行してレイアウトを作成します。リスクのある変更の前には確認を求め、実行を元に戻すこともできます。</translation>
+            <translation>AI Agent by TerraLabは、QGIS内で使えるAIエージェントです。データの読み込み、レイヤのスタイル設定、解析の実行、レイアウトの作成を行います。リスクのある変更の前には確認し、実行を元に戻すこともできます。</translation>
         </message>
     </context>
     <context>
@@ -2157,7 +2404,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/plugin.py" />
             <source>AI Agent could not open its panel: {error}</source>
-            <translation>AI Agentのパネルを開けませんでした: {error}</translation>
+            <translation>AI Agentのパネルを開けませんでした：{error}</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
@@ -2172,7 +2419,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/plugin.py" />
             <source>QGIS could not open that layer: {error}</source>
-            <translation>QGISはそのlayerを開けませんでした: {error}</translation>
+            <translation>QGISはそのレイヤを開けませんでした：{error}</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
@@ -2182,16 +2429,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/plugin.py" />
             <source>Sign in to see your account.</source>
-            <translation>アカウントを確認するにはサインインしてください。</translation>
+            <translation>アカウントを確認するにはログインしてください。</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
             <source>This layer is no longer in the project.</source>
-            <translation>このlayerはプロジェクトにもうありません。</translation>
+            <translation>このレイヤはもうプロジェクトにありません。</translation>
         </message>
         <message>
             <source>AI Agent could not open its settings: {error}</source>
-            <translation>AI Agentの設定を開けませんでした: {error}</translation>
+            <translation>AI Agentの設定を開けませんでした：{error}</translation>
         </message>
         <message>
             <source>AI Agent was updated while QGIS was running. Restart QGIS to open its settings.</source>
@@ -2203,7 +2450,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Open the AI Agent panel: ask for anything in QGIS and it does the work.</source>
-            <translation>QGIS で何でも依頼すると作業してくれる AI Agent パネルを開きます。</translation>
+            <translation>AI Agentパネルを開きます。QGISで何でも依頼すれば、作業を代行します。</translation>
         </message>
         <message>
             <source>Show</source>
@@ -2215,7 +2462,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Your AI agent inside QGIS</source>
-            <translation>QGIS 内の AI エージェント</translation>
+            <translation>QGIS内のAIエージェント</translation>
         </message>
         <message>
             <source>The agent finished.</source>
@@ -2223,7 +2470,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>The agent is waiting for your answer.</source>
-            <translation>エージェントがあなたの回答を待っています。</translation>
+            <translation>エージェントが回答を待っています。</translation>
         </message>
         <message>
             <source>The agent stopped before finishing.</source>
@@ -2235,7 +2482,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/api/account.py" />
             <source>Cancelling sign-in</source>
-            <translation>サインインをキャンセル中</translation>
+            <translation>ログインをキャンセル中</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2245,7 +2492,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/api/account.py" />
             <source>Could not check your AI Agent account. If this lasts, sign out and sign in again.</source>
-            <translation>AI Agentアカウントを確認できませんでした。この状態が続く場合は、サインアウトしてから再度サインインしてください。</translation>
+            <translation>AI Agentのアカウントを確認できませんでした。この状態が続く場合は、ログアウトしてから再度ログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2271,48 +2518,48 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/api/account.py" />
             <source>QGIS could not open a browser. Open this address to finish signing in, then come back here. It works once:
 {}</source>
-            <translation>QGISはブラウザを開けませんでした。サインインを完了するにはこのアドレスを開いてから、ここに戻ってください。このアドレスは1回だけ有効です。
+            <translation>QGISはブラウザを開けませんでした。ログインを完了するには、次のアドレスを開いてからここに戻ってください。このアドレスは1回だけ使えます：
 {}</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>QGIS could not open a browser. The sign-in address is copied to your clipboard: paste it into a browser to finish, then come back here. It works once.</source>
-            <translation>QGISはブラウザを開けませんでした。サインインアドレスをクリップボードにコピーしました。完了するにはブラウザに貼り付けてから、ここに戻ってください。このアドレスは1回だけ有効です。</translation>
+            <translation>QGISはブラウザを開けませんでした。ログイン用のアドレスをクリップボードにコピーしました。ブラウザに貼り付けてログインを完了し、ここに戻ってください。このアドレスは1回だけ使えます。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Session expired. Sign in again to continue.</source>
-            <translation>セッションの有効期限が切れました。続行するには再度サインインしてください。</translation>
+            <translation>セッションの有効期限が切れました。続行するには再度ログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Sign in first, then you can delete your account.</source>
-            <translation>先にサインインしてから、アカウントを削除してください。</translation>
+            <translation>先にログインしてから、アカウントを削除してください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Sign in to see your account.</source>
-            <translation>アカウントを確認するにはサインインしてください。</translation>
+            <translation>アカウントを確認するにはログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Sign-in timed out. Click Sign in to try again.</source>
-            <translation>サインインがタイムアウトしました。もう一度試すには「サインイン」をクリックしてください。</translation>
+            <translation>ログインがタイムアウトしました。もう一度試すには「ログイン」をクリックしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Signed in.</source>
-            <translation>サインインしました。</translation>
+            <translation>ログインしました。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Still waiting for the sign-in page. If no browser opened, or the page shows an error, click Cancel and try again.</source>
-            <translation>サインインページをまだ待っています。ブラウザが開かなかった場合、またはページにエラーが表示された場合は、「キャンセル」をクリックしてもう一度お試しください。</translation>
+            <translation>ログインページをまだ待っています。ブラウザが開かなかった場合、またはページにエラーが表示された場合は、「キャンセル」をクリックしてもう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>That address does not match the account. Nothing was deleted.</source>
-            <translation>そのアドレスはアカウントと一致しません。何も削除されませんでした。</translation>
+            <translation>そのメールアドレスはアカウントと一致しません。何も削除されませんでした。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2322,37 +2569,37 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/api/account.py" />
             <source>This account is already scheduled for deletion. Everything is erased for good on {date}. Sign in on terra-lab.ai to cancel it.</source>
-            <translation>このアカウントは削除が予定されています。{date}にすべて完全に削除されます。キャンセルするにはterra-lab.aiでサインインしてください。</translation>
+            <translation>このアカウントはすでに削除が予定されています。{date}にすべて完全に削除されます。削除を取り消すには、terra-lab.aiでログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>This account is already scheduled for deletion. Sign in on terra-lab.ai to cancel it.</source>
-            <translation>このアカウントは削除が予定されています。キャンセルするにはterra-lab.aiでサインインしてください。</translation>
+            <translation>このアカウントはすでに削除が予定されています。削除を取り消すには、terra-lab.aiでログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>This computer is not signed in to that account. Sign in again, then delete it.</source>
-            <translation>このコンピューターはそのアカウントにサインインしていません。再度サインインしてから削除してください。</translation>
+            <translation>このコンピュータはそのアカウントにログインしていません。再度ログインしてから削除してください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>This sign-in code has expired. Click Cancel, then Sign in to get a new one.</source>
-            <translation>このサインインコードの有効期限が切れました。「キャンセル」をクリックしてから、「サインイン」をクリックして新しいコードを取得してください。</translation>
+            <translation>このログインコードの有効期限が切れました。「キャンセル」をクリックしてから「ログイン」をクリックし、新しいコードを取得してください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Too many attempts. Wait a moment, then try again.</source>
-            <translation>試行回数が多すぎます。しばらく待ってから再試行してください。</translation>
+            <translation>試行回数が多すぎます。しばらく待ってから、もう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Too many attempts. Wait {n} seconds, then try again.</source>
-            <translation>試行回数が多すぎます。{n}秒待ってから再試行してください。</translation>
+            <translation>試行回数が多すぎます。{n}秒待ってから、もう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Waiting for the sign-in page in your browser...</source>
-            <translation>ブラウザのサインインページを待っています...</translation>
+            <translation>ブラウザでログインページを待っています…</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
@@ -2363,28 +2610,28 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/api/account.py" />
             <source>You can also open this address by hand:
 {}</source>
-            <translation>このアドレスを手動で開くこともできます:
+            <translation>このアドレスを手動で開くこともできます：
 {}</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Your account is scheduled for deletion. Everything is erased for good on {date}. Until then, sign in on terra-lab.ai to cancel it.</source>
-            <translation>アカウントは削除が予定されています。{date}にすべて完全に削除されます。それまではterra-lab.aiでサインインしてキャンセルできます。</translation>
+            <translation>アカウントは削除が予定されています。{date}にすべて完全に削除されます。それまでは、terra-lab.aiでログインして削除を取り消せます。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Your account is scheduled for deletion. Until the grace period ends, sign in on terra-lab.ai to cancel it.</source>
-            <translation>アカウントは削除が予定されています。猶予期間が終了するまでは、terra-lab.aiでサインインしてキャンセルできます。</translation>
+            <translation>アカウントは削除が予定されています。猶予期間が終了するまでは、terra-lab.aiでログインして削除を取り消せます。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Your plan is already running on its maximum number of computers. Close AI Agent on one of them, then try again.</source>
-            <translation>このプランでは使用できるコンピューター数の上限に達しています。そのうち1台でAI Agentを終了してから、もう一度お試しください。</translation>
+            <translation>このプランで使えるコンピュータ数の上限に達しています。いずれか1台でAI Agentを終了してから、もう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/account.py" />
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
-            <translation>サブスクリプションが有効ではありません。TerraLabダッシュボードを開いてから再試行してください。</translation>
+            <translation>サブスクリプションが有効ではありません。TerraLabダッシュボードを開いてから、もう一度お試しください。</translation>
         </message>
         <message>
             <source>Could not load account usage.</source>
@@ -2397,7 +2644,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/api/account.py" />
             <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password. Click Sign in to enter it.</source>
-            <translation>このコンピューターではサインイン済みですが、マスターパスワードを入力するまでQGISはサインイン情報を読み取れません。入力するには「サインイン」をクリックしてください。</translation>
+            <translation>このコンピュータではログイン済みですが、マスターパスワードを入力するまでQGISはログイン情報を読み取れません。入力するには「ログイン」をクリックしてください。</translation>
         </message>
         <message>
             <source>Opening the checkout</source>
@@ -2405,15 +2652,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Signed in (from {}).</source>
-            <translation>{} からログインしています。</translation>
+            <translation>ログイン中（{}から）。</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
-            <translation>{} としてログインしています（{} から）。</translation>
+            <translation>{}でログイン中（{}から）。</translation>
         </message>
         <message>
             <source>No connection to terra-lab.ai. Still trying...</source>
-            <translation>terra-lab.ai に接続できません。引き続き試行中...</translation>
+            <translation>terra-lab.aiに接続できません。再試行を続けています…</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>TerraLabに接続できません。再試行しています。</translation>
+        </message>
+        <message>
+            <source>Link copied: paste it in your browser.</source>
+            <translation>リンクをコピーしました。ブラウザに貼り付けてください。</translation>
+        </message>
+        <message>
+            <source>Still waiting for the sign-in page. No browser? Click Open browser: it also copies the link, to paste in your browser.</source>
+            <translation>サインインページを待っています。ブラウザが開かない場合は「ブラウザを開く」をクリックしてください。リンクもコピーされるので、ブラウザに貼り付けられます。</translation>
         </message>
     </context>
     <context>
@@ -2594,7 +2853,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Account</source>
-            <translation>アカウント</translation>
+            <translation>アカウントを開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2609,7 +2868,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Did nothing open? Open the sign-in page again</source>
-            <translation>何も開きませんでしたか？サインインページをもう一度開く</translation>
+            <translation>何も開かない場合は、ログインページをもう一度開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2619,7 +2878,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Finish the sign-in in your browser, then come back here.</source>
-            <translation>ブラウザでサインインを完了してから、ここに戻ってください。</translation>
+            <translation>ブラウザでログインを完了してから、ここに戻ってください。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2629,22 +2888,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Sign in / Sign up to start</source>
-            <translation>開始するにはサインイン / サインアップ</translation>
+            <translation>ログイン／新規登録して始める</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Sign in again</source>
-            <translation>再度サインイン</translation>
+            <translation>再度ログイン</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Sign in via your browser to start using AI Agent</source>
-            <translation>AI Agentを使い始めるにはブラウザでサインイン</translation>
+            <translation>ブラウザでログインすると、AI Agentを使い始められます。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>次にAIに何でも聞いてください：データの読み込み、レイヤのスタイル設定、分析の実行、地物の編集。</translation>
+            <translation>次にAIに何でも依頼してください：データの読み込み、レイヤのスタイル設定、解析の実行、地物の編集。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2654,12 +2913,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Waiting for your browser sign-in...</source>
-            <translation>ブラウザでのサインインを待っています...</translation>
+            <translation>ブラウザでのログインを待っています…</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>You are signed in.</source>
-            <translation>サインインしています。</translation>
+            <translation>ログインしています。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -2669,15 +2928,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/dock/activation_state.py" />
             <source>Your sign-in is no longer valid on this computer.</source>
-            <translation>このコンピューターではサインインが無効になっています。</translation>
+            <translation>このコンピュータではログインが無効になっています。</translation>
         </message>
         <message>
             <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>登録は無料、ブラウザで15秒です。</translation>
+            <translation>新規登録は無料で、ブラウザから15秒ほどで完了します。</translation>
         </message>
         <message>
             <source>Your AI agent inside QGIS</source>
-            <translation>QGIS 内の AI エージェント</translation>
+            <translation>QGIS内のAIエージェント</translation>
         </message>
         <message>
             <source>The browser page should show the code {code}</source>
@@ -2689,47 +2948,47 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>1 feature</source>
-            <translation>1件のフィーチャ</translation>
+            <translation>地物1件</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>did not work</source>
-            <translation>動作しませんでした</translation>
+            <translation>失敗しました</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>{n} features</source>
-            <translation>{n}件のフィーチャ</translation>
+            <translation>地物{n}件</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>denied</source>
-            <translation>拒否</translation>
+            <translation>拒否しました</translation>
         </message>
         <message>
             <location filename="src/ui/trace_tools.py" />
             <source>stopped</source>
-            <translation>停止</translation>
+            <translation>停止しました</translation>
         </message>
         <message>
             <source>{failed} of {total} did not work</source>
-            <translation>{total} 件中 {failed} 件は実行できませんでした</translation>
+            <translation>{total}件中{failed}件が失敗</translation>
         </message>
         <message>
             <source>+{n} more</source>
-            <translation>+{n} 件</translation>
+            <translation>ほか{n}件</translation>
         </message>
         <message>
             <source>1 result</source>
-            <translation>1 件の結果</translation>
+            <translation>1件の結果</translation>
         </message>
         <message>
             <source>{n} results</source>
-            <translation>{n} 件の結果</translation>
+            <translation>{n}件の結果</translation>
         </message>
         <message>
             <source>{count} s</source>
-            <translation>{count} 秒</translation>
+            <translation>{count}秒</translation>
         </message>
     </context>
     <context>
@@ -2745,7 +3004,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Put back</source>
-            <translation>元に戻す</translation>
+            <translation>やり直す</translation>
         </message>
         <message>
             <source>Undo</source>
@@ -2753,7 +3012,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Copy</source>
-            <translation>コピー</translation>
+            <translation>コピーします。</translation>
+        </message>
+        <message>
+            <source>Also undoes the later request</source>
+            <translation>後のリクエストも取り消されます</translation>
+        </message>
+        <message>
+            <source>Also undoes the {n} later requests</source>
+            <translation>後の{n}件のリクエストも取り消されます</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>ここまで戻る</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>やり直す</translation>
         </message>
     </context>
     <context>
@@ -2796,7 +3071,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller.py" />
             <source>Connection lost. Reconnecting...</source>
-            <translation>接続が切断されました。再接続しています...</translation>
+            <translation>接続が切断されました。再接続しています…</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
@@ -2811,7 +3086,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/snapshot_report.py" />
             <source>Layer order or groups changed</source>
-            <translation>layer の順序またはグループが変更されました</translation>
+            <translation>レイヤの順序またはグループが変更されました</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -2836,17 +3111,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller.py" />
             <source>Sign-in page open, waiting for you...</source>
-            <translation>サインインページを開きました。操作を待っています...</translation>
+            <translation>ログインページを開きました。操作を待っています…</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
             <source>Sign-in timed out. Try again.</source>
-            <translation>サインインがタイムアウトしました。もう一度お試しください。</translation>
+            <translation>ログインがタイムアウトしました。もう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
             <source>Signed in to TerraLab.</source>
-            <translation>TerraLabにサインインしました。</translation>
+            <translation>TerraLabにログインしました。</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
@@ -2866,7 +3141,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller.py" />
             <source>Stopping...</source>
-            <translation>停止中...</translation>
+            <translation>停止しています…</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -2906,63 +3181,63 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller.py" />
             <source>You have used every run of this period.</source>
-            <translation>この期間の実行回数をすべて使いました。</translation>
+            <translation>この期間の実行をすべて使い切りました。</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
-            <translation>エージェントサービスに未接続です。接続復旧後に再試行してください。</translation>
+            <translation>エージェントサービスに未接続です。接続が戻ったら「再試行」を押してください。</translation>
         </message>
         <message>
             <source>Reconnected. Waiting for the agent service to resume the run...</source>
-            <translation>再接続しました。実行再開待ちです...</translation>
+            <translation>再接続しました。エージェントサービスが実行を再開するのを待っています…</translation>
         </message>
         <message>
             <source>The connection dropped and the agent service no longer has this run. You can retry it.</source>
-            <translation>接続が切れ、この実行はサービスにありません。再試行できます。</translation>
+            <translation>接続が切れ、エージェントサービスにこの実行が残っていません。再試行できます。</translation>
         </message>
         <message>
             <source>The run ended without a summary from the agent service.</source>
-            <translation>実行は要約なしに終了しました。</translation>
+            <translation>実行は、エージェントサービスからの要約なしに終了しました。</translation>
         </message>
         <message>
             <source>{name} could not be loaded. Check the file and try again.</source>
-            <translation>{name}を読み込めませんでした。ファイルを確認し再試行してください。</translation>
+            <translation>{name}を読み込めませんでした。ファイルを確認して、もう一度お試しください。</translation>
         </message>
         <message>
             <source>Deleted 1 working layer</source>
-            <translation>作業レイヤを1つ削除しました</translation>
+            <translation>作業用レイヤを1個削除しました</translation>
         </message>
         <message>
             <source>Deleted {n} working layers</source>
-            <translation>作業レイヤを{n}つ削除しました</translation>
+            <translation>作業用レイヤを{n}個削除しました</translation>
         </message>
         <message>
             <source>Kept 1 working layer</source>
-            <translation>作業レイヤを1つ保持しました</translation>
+            <translation>作業用レイヤを1個保持しました</translation>
         </message>
         <message>
             <source>Kept {n} working layers</source>
-            <translation>作業レイヤを{n}つ保持しました</translation>
+            <translation>作業用レイヤを{n}個保持しました</translation>
         </message>
         <message>
             <source>The service is updating. Resuming...</source>
-            <translation>サービスを更新中です。再開しています...</translation>
+            <translation>サービスを更新中です。再開しています…</translation>
         </message>
         <message>
             <source>Thinking...</source>
-            <translation>考えています...</translation>
+            <translation>考え中…</translation>
         </message>
         <message>
             <source>Tidied 1 working layer away</source>
-            <translation>作業レイヤを1つ片付けました</translation>
+            <translation>作業用レイヤを1個整理しました</translation>
         </message>
         <message>
             <source>Tidied {n} working layers away</source>
-            <translation>作業レイヤを{n}つ片付けました</translation>
+            <translation>作業用レイヤを{n}個整理しました</translation>
         </message>
         <message>
             <source>Working layers</source>
-            <translation>作業レイヤ</translation>
+            <translation>作業用レイヤ</translation>
         </message>
         <message>
             <source>Basemaps here are limited without QuickMapServices.</source>
@@ -2998,7 +3273,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Reconnected. Checking how the run ended...</source>
-            <translation>再接続しました。実行がどのように終了したか確認しています...</translation>
+            <translation>再接続しました。実行がどのように終了したか確認しています…</translation>
         </message>
         <message>
             <location filename="src/core/controller_frames.py" />
@@ -3018,17 +3293,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller.py" />
             <source>Stopped: QGIS closed during this run.</source>
-            <translation>停止:この実行中にQGISが終了しました。</translation>
+            <translation>停止：この実行中にQGISが終了しました。</translation>
         </message>
         <message>
             <location filename="src/core/controller_account.py" />
             <source>Stopped: signed out.</source>
-            <translation>停止:サインアウトしました。</translation>
+            <translation>停止：ログアウトしました。</translation>
         </message>
         <message>
             <location filename="src/core/controller_projects.py" />
             <source>Stopped: the project this run worked on was closed.</source>
-            <translation>停止:この実行が対象としていたプロジェクトが閉じられました。</translation>
+            <translation>停止：この実行が対象としていたプロジェクトが閉じられました。</translation>
         </message>
         <message>
             <location filename="src/core/controller_projects.py" />
@@ -3043,7 +3318,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller_runs.py" />
             <source>The message could not be sent. Retry, or reload the plugin if it keeps failing.</source>
-            <translation>メッセージを送信できませんでした。再試行するか、失敗が続く場合はプラグインを再読み込みしてください。</translation>
+            <translation>メッセージを送信できませんでした。「再試行」を押すか、失敗が続く場合はプラグインを再読み込みしてください。</translation>
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
@@ -3053,12 +3328,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
-            <translation>このポイントは、閉じられた未保存のプロジェクトに属しているため、ここでは復元できません。</translation>
+            <translation>この復元ポイントは、閉じられた未保存のプロジェクトのものであるため、ここでは復元できません。</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>This point belongs to the project {name}. Open that project to go back to it.</source>
-            <translation>このポイントはプロジェクト{name}に属しています。そのプロジェクトを開いて戻ってください。</translation>
+            <translation>この復元ポイントはプロジェクト{name}のものです。そのプロジェクトを開いてから戻ってください。</translation>
         </message>
         <message>
             <source>1 layer in the project</source>
@@ -3070,7 +3345,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Could not fully go back to {point}. {reason}</source>
-            <translation>{point} に完全には戻れませんでした。{reason}</translation>
+            <translation>{point}に完全には戻れませんでした。{reason}</translation>
         </message>
         <message>
             <source>No results</source>
@@ -3078,15 +3353,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
-            <translation>エージェントサービスに接続されていないため、何も送信されませんでした。現在再接続中です。メッセージは保持され、接続が戻ると再試行で送信されます。</translation>
+            <translation>エージェントサービスに接続されていないため、何も送信されませんでした。現在再接続中です。メッセージは保持されます。接続が戻ったら「再試行」で送信できます。</translation>
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action.</source>
-            <translation>権限モードが変更されました。次のアクションから適用されます。</translation>
+            <translation>権限モードを変更しました。次の操作から適用されます。</translation>
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
-            <translation>権限モードが変更されました。次のアクションから適用されます。開いているカードには引き続き回答が必要です。</translation>
+            <translation>権限モードを変更しました。次の操作から適用されます。開いているカードには、引き続き回答が必要です。</translation>
         </message>
         <message>
             <source>The message could not be sent: the connection to the agent service is down.</source>
@@ -3098,7 +3373,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>after “{request}”</source>
-            <translation>“{request}” の後</translation>
+            <translation>「{request}」の後</translation>
         </message>
         <message>
             <source>before request {n}</source>
@@ -3106,7 +3381,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>before “{request}”</source>
-            <translation>“{request}” の前</translation>
+            <translation>「{request}」の前</translation>
         </message>
         <message>
             <source>data put back in {files}</source>
@@ -3118,7 +3393,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>your own changes</source>
-            <translation>あなた自身の変更</translation>
+            <translation>ご自身の変更</translation>
         </message>
         <message>
             <source>{n} layers in the project</source>
@@ -3126,39 +3401,39 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Back to after “{request}”.</source>
-            <translation>“{request}” 実行後の状態に戻ります。</translation>
+            <translation>「{request}」の後の状態に戻りました。</translation>
         </message>
         <message>
             <source>Back to before “{request}”.</source>
-            <translation>“{request}” 実行前の状態に戻ります。</translation>
+            <translation>「{request}」の前の状態に戻りました。</translation>
         </message>
         <message>
             <source>Back to your own changes.</source>
-            <translation>自身の変更に戻ります。</translation>
+            <translation>ご自身の変更に戻りました。</translation>
         </message>
         <message>
             <source>Forward to after “{request}”.</source>
-            <translation>“{request}” 実行後の状態に進みます。</translation>
+            <translation>「{request}」の後の状態に進みました。</translation>
         </message>
         <message>
             <source>Forward to before “{request}”.</source>
-            <translation>“{request}” 実行前の状態に進みます。</translation>
+            <translation>「{request}」の前の状態に進みました。</translation>
         </message>
         <message>
             <source>Forward to your own changes.</source>
-            <translation>自身の変更に進みます。</translation>
+            <translation>ご自身の変更に進みました。</translation>
         </message>
         <message>
             <source>Put back</source>
-            <translation>元に戻す</translation>
+            <translation>やり直す</translation>
         </message>
         <message>
             <source>Signed in (from {}).</source>
-            <translation>{} からログインしています。</translation>
+            <translation>ログイン中（{}から）。</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
-            <translation>{} としてログインしています（{} から）。</translation>
+            <translation>{}でログイン中（{}から）。</translation>
         </message>
         <message>
             <source>Stop the current run before deleting this chat.</source>
@@ -3170,7 +3445,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Stopped. The version before this request is no longer kept, so nothing was put back.</source>
-            <translation>停止しました。このリクエスト前のバージョンはもう保持されていないため、何も元に戻されませんでした。</translation>
+            <translation>停止しました。この依頼より前のバージョンはもう保持されていないため、何も復元されませんでした。</translation>
         </message>
         <message>
             <source>This file is no longer where the run wrote it.</source>
@@ -3186,23 +3461,103 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
-            <translation>{layer} の未保存の編集を保存できなかったため、何も復元されませんでした。QGIS で保存するか破棄してから、もう一度お試しください。</translation>
+            <translation>{layer}の未保存の編集を保存できなかったため、何も復元されませんでした。QGISで保存するか破棄してから、もう一度お試しください。</translation>
         </message>
         <message>
             <source>request {n}</source>
-            <translation>リクエスト {n}</translation>
+            <translation>依頼{n}</translation>
         </message>
         <message>
             <source>{names} and {n} more</source>
-            <translation>{names} と他 {n} 件</translation>
+            <translation>{names}ほか{n}件</translation>
         </message>
         <message>
             <source>{names} didn't come back ({reason}).</source>
-            <translation>{names} は元に戻りませんでした（{reason}）。</translation>
+            <translation>{names}は元に戻りませんでした（{reason}）。</translation>
         </message>
         <message>
             <source>{names} didn't come back.</source>
-            <translation>{names} は元に戻りませんでした。</translation>
+            <translation>{names}は元に戻りませんでした。</translation>
+        </message>
+        <message>
+            <source>Brought back everything up to “{request}”.</source>
+            <translation>「{request}」までの内容をすべて元に戻しました。</translation>
+        </message>
+        <message>
+            <source>Brought back what “{request}” changed.</source>
+            <translation>「{request}」で変更された内容を元に戻しました。</translation>
+        </message>
+        <message>
+            <source>Moved 1 layer into {group}</source>
+            <translation>1 レイヤを{group}に移動しました</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} レイヤを{group}に移動しました</translation>
+        </message>
+        <message>
+            <source>No internet connection. Retrying.</source>
+            <translation>インターネットに接続されていません。再試行しています。</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
+            <translation>TerraLabに接続されていないため、何も送信されませんでした。現在再接続中です。メッセージは保持されており、接続が戻ったら「再試行」で送信できます。</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. Retry once the connection is back.</source>
+            <translation>TerraLabに接続されていません。接続が戻ったら再試行してください。</translation>
+        </message>
+        <message>
+            <source>Reconnected. Waiting for TerraLab to resume the run...</source>
+            <translation>再接続しました。TerraLabが実行を再開するのを待っています...</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Removed what came after “{request}”.</source>
+            <translation>「{request}」より後の内容を取り消しました。</translation>
+        </message>
+        <message>
+            <source>Removed what “{request}” changed.</source>
+            <translation>「{request}」で変更された内容を取り消しました。</translation>
+        </message>
+        <message>
+            <source>Stopped. The version before this request is no longer kept, so nothing was undone.</source>
+            <translation>停止しました。このリクエスト前のバージョンはもう保存されていないため、何も取り消されていません。</translation>
+        </message>
+        <message>
+            <source>TerraLab is restarting. Your task will resume.</source>
+            <translation>TerraLabを再起動しています。タスクは再開されます。</translation>
+        </message>
+        <message>
+            <source>TerraLab reported an error.</source>
+            <translation>TerraLabでエラーが発生しました。</translation>
+        </message>
+        <message>
+            <source>TerraLab stopped answering. The run was ended, you can retry it.</source>
+            <translation>TerraLabが応答しなくなりました。実行を終了しました。再試行できます。</translation>
+        </message>
+        <message>
+            <source>The connection dropped and TerraLab no longer has this run. You can retry it.</source>
+            <translation>接続が切れ、TerraLabにこの実行が残っていません。再試行できます。</translation>
+        </message>
+        <message>
+            <source>The connection to TerraLab was lost and did not come back. The run was ended, you can retry it once you are online.</source>
+            <translation>TerraLabとの接続が切れ、戻りませんでした。実行を終了しました。オンラインに戻ったら再試行できます。</translation>
+        </message>
+        <message>
+            <source>The message could not be sent: the connection to TerraLab is down.</source>
+            <translation>メッセージを送信できませんでした。TerraLabとの接続が切れています。</translation>
+        </message>
+        <message>
+            <source>The run ended without a summary from TerraLab.</source>
+            <translation>TerraLabからの要約なしで実行が終了しました。</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>印刷レイアウトを変更しました</translation>
         </message>
     </context>
     <context>
@@ -3210,27 +3565,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/session.py" />
             <source>A gateway blocked the connection (HTTP {code}). If this network shows a sign-in page, open it in your browser first.</source>
-            <translation>ゲートウェイが接続をブロックしました (HTTP {code})。このネットワークでサインインページが表示される場合は、先にブラウザで開いてください。</translation>
+            <translation>ゲートウェイが接続をブロックしました（HTTP {code}）。このネットワークでログインページが表示される場合は、先にブラウザで開いてください。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
             <source>The agent service is unavailable right now (HTTP {code}).</source>
-            <translation>エージェントサービスは現在利用できません (HTTP {code})。</translation>
+            <translation>エージェントサービスは現在利用できません（HTTP {code}）。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
             <source>The proxy asks for a login. Set the proxy user and password in QGIS (Settings &gt; Options &gt; Network).</source>
-            <translation>proxyがログインを要求しています。QGIS (Settings &gt; Options &gt; Network) でproxyのユーザー名とパスワードを設定してください。</translation>
+            <translation>プロキシが認証を要求しています。QGISの「設定」→「オプション」→「ネットワーク」でプロキシのユーザー名とパスワードを設定してください。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
             <source>The proxy refused the connection to the agent service.</source>
-            <translation>proxyがエージェントサービスへの接続を拒否しました。</translation>
+            <translation>プロキシがエージェントサービスへの接続を拒否しました。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
             <source>The proxy set in QGIS (Settings &gt; Options &gt; Network) cannot be reached.</source>
-            <translation>QGIS (Settings &gt; Options &gt; Network) で設定されたproxyに到達できません。</translation>
+            <translation>QGISの「設定」→「オプション」→「ネットワーク」で設定されたプロキシに到達できません。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -3240,12 +3595,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/session.py" />
             <source>The server certificate could not be verified. If your network inspects secure traffic, add its certificate in QGIS (Settings &gt; Options &gt; Authentication).</source>
-            <translation>サーバー証明書を確認できませんでした。ネットワークでセキュアな通信を検査している場合は、QGIS (Settings &gt; Options &gt; Authentication) にその証明書を追加してください。</translation>
+            <translation>サーバー証明書を確認できませんでした。ネットワークでセキュアな通信を検査している場合は、QGISの「設定」→「オプション」→「認証」にその証明書を追加してください。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
             <source>The server closed the connection ({code}).</source>
-            <translation>サーバーが接続を閉じました ({code})。</translation>
+            <translation>サーバーが接続を閉じました（{code}）。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -3260,19 +3615,31 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/session.py" />
             <source>The server redirected the connection (HTTP {code}). Check the server URL in the plugin settings.</source>
-            <translation>サーバーが接続をリダイレクトしました (HTTP {code})。プラグイン設定のサーバーURLを確認してください。</translation>
+            <translation>サーバーが接続をリダイレクトしました（HTTP {code}）。プラグイン設定のサーバーURLを確認してください。</translation>
         </message>
         <message>
             <source>Session expired. Sign in again to continue.</source>
-            <translation>セッション期限切れです。再サインインしてください。</translation>
+            <translation>セッションの有効期限が切れました。続行するには再度ログインしてください。</translation>
         </message>
         <message>
             <source>This version of AI Agent is no longer supported. Update the plugin to continue.</source>
-            <translation>このバージョンのAI Agentはサポートされなくなりました。続行するにはpluginを更新してください。</translation>
+            <translation>このバージョンのAI Agentはサポートされなくなりました。続行するにはプラグインを更新してください。</translation>
         </message>
         <message>
             <source>TerraLab's server is not answering. Retrying.</source>
-            <translation>TerraLab のサーバーが応答していません。再試行しています。</translation>
+            <translation>TerraLabのサーバーが応答していません。再試行しています。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>TerraLabに接続できません。再試行しています。</translation>
+        </message>
+        <message>
+            <source>TerraLab is unavailable right now (HTTP {code}).</source>
+            <translation>TerraLabは現在利用できません（HTTP {code}）。</translation>
+        </message>
+        <message>
+            <source>The proxy refused the connection to TerraLab.</source>
+            <translation>プロキシがTerraLabへの接続を拒否しました。</translation>
         </message>
     </context>
     <context>
@@ -3280,7 +3647,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/attach_card.py" />
             <source>Remove</source>
-            <translation>削除</translation>
+            <translation>削除します。</translation>
         </message>
     </context>
     <context>
@@ -3288,12 +3655,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/attach_menu.py" />
             <source>Add photos &amp; files</source>
-            <translation>写真・ファイルを追加</translation>
+            <translation>写真やファイルを追加</translation>
         </message>
         <message>
             <location filename="src/ui/attach_menu.py" />
             <source>Attach a layer of this project</source>
-            <translation>このプロジェクトのレイヤーを添付</translation>
+            <translation>このプロジェクトのレイヤを添付</translation>
+        </message>
+        <message>
+            <source>No layers in this project yet.</source>
+            <translation>このプロジェクトにはまだレイヤがありません。</translation>
         </message>
     </context>
     <context>
@@ -3301,12 +3672,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/attachments.py" />
             <source>Remove</source>
-            <translation>削除</translation>
+            <translation>削除します。</translation>
         </message>
         <message>
             <location filename="src/ui/attachments.py" />
             <source>{name}. Click to open.</source>
-            <translation>{name}。クリックして開く。</translation>
+            <translation>{name}。クリックすると開きます。</translation>
         </message>
         <message>
             <source>Data files</source>
@@ -3334,7 +3705,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{type} file</source>
-            <translation>{type} ファイル</translation>
+            <translation>{type}ファイル</translation>
         </message>
         <message>
             <source>All files</source>
@@ -3346,7 +3717,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{type} document</source>
-            <translation>{type} ドキュメント</translation>
+            <translation>{type}ドキュメント</translation>
         </message>
     </context>
     <context>
@@ -3354,12 +3725,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
-            <translation>QGISでAIエージェントにタスクを指示...</translation>
+            <translation>QGISでAIエージェントにタスクを指示…</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Conversation compacted</source>
-            <translation>会話が要約されました</translation>
+            <translation>会話を圧縮しました</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel_layout.py" />
@@ -3384,12 +3755,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Thinking</source>
-            <translation>思考中</translation>
+            <translation>考え中</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Thinking...</source>
-            <translation>考えています...</translation>
+            <translation>考え中…</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -3399,7 +3770,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Waiting for your answer...</source>
-            <translation>回答を待っています...</translation>
+            <translation>回答を待っています…</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel_runs.py" />
@@ -3414,7 +3785,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel_layout.py" />
             <source>Add a few words: what should the agent do with it?</source>
-            <translation>一言添えてください:エージェントは何をすべきですか?</translation>
+            <translation>エージェントに何をしてほしいか、一言添えてください。</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel_layout.py" />
@@ -3455,27 +3826,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>%n actions</source>
-            <translation>%n 件のアクション</translation>
+            <translation>%n件の操作</translation>
         </message>
         <message>
             <source>1 action</source>
-            <translation>1 件のアクション</translation>
+            <translation>1件の操作</translation>
         </message>
         <message>
             <source>Back to before this request</source>
-            <translation>このリクエスト前に戻る</translation>
+            <translation>この依頼の前に戻ります。</translation>
         </message>
         <message>
             <source>Back to before “{request}”</source>
-            <translation>“{request}” の前に戻る</translation>
+            <translation>「{request}」の前に戻ります。</translation>
         </message>
         <message>
             <source>Forward to after this request</source>
-            <translation>このリクエスト後に進む</translation>
+            <translation>この依頼の後に進みます。</translation>
         </message>
         <message>
             <source>Forward to after “{request}”</source>
-            <translation>“{request}” の後に進む</translation>
+            <translation>「{request}」の後に進みます。</translation>
         </message>
         <message>
             <source>Waiting for your approval</source>
@@ -3483,7 +3854,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Added to memory: {0}</source>
-            <translation>メモリに追加: {0}</translation>
+            <translation>メモリに追加しました：{0}</translation>
         </message>
         <message>
             <source>Editing your last message.</source>
@@ -3503,15 +3874,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Queued</source>
-            <translation>キュー済み</translation>
+            <translation>待機中</translation>
         </message>
         <message>
             <source>Send this message now</source>
-            <translation>このメッセージを今すぐ送信</translation>
+            <translation>このメッセージを今すぐ送信します。</translation>
         </message>
         <message>
             <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
-            <translation>エージェントは、以後、これまでのやり取りを、あなたの依頼と生成結果を保持した短い記録として読み取ります。</translation>
+            <translation>エージェントはこれまでのやり取りを、依頼と作成した内容を残した短い記録として読みます。</translation>
         </message>
         <message>
             <source>Undo what this message did</source>
@@ -3519,7 +3890,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{lead} · sent when the agent finishes</source>
-            <translation>{lead} · エージェントが完了したときに送信</translation>
+            <translation>{lead} · エージェントの完了後に送信されます</translation>
         </message>
         <message>
             <source>{lead} · the agent reads it at its next step</source>
@@ -3527,7 +3898,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{n} queued</source>
-            <translation>{n} 件キュー済み</translation>
+            <translation>{n}件が待機中</translation>
+        </message>
+        <message>
+            <source>Bring back what this request changed</source>
+            <translation>このリクエストで変更された内容を元に戻す</translation>
+        </message>
+        <message>
+            <source>Not connected to TerraLab. The message stays queued.</source>
+            <translation>TerraLabに接続されていません。メッセージは待機中のままです。</translation>
+        </message>
+        <message>
+            <source>Remove what this request changed on the map</source>
+            <translation>このリクエストで地図に加えた変更を取り消す</translation>
+        </message>
+        <message>
+            <source>Waiting for your answer</source>
+            <translation>あなたの回答を待っています</translation>
         </message>
     </context>
     <context>
@@ -3540,12 +3927,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/sidebar.py" />
             <source>Collapse the sidebar</source>
-            <translation>サイドバーを折りたたむ</translation>
+            <translation>サイドバーを折りたたみます。</translation>
         </message>
         <message>
             <location filename="src/ui/sidebar.py" />
             <source>Expand the sidebar</source>
-            <translation>サイドバーを展開する</translation>
+            <translation>サイドバーを展開します。</translation>
         </message>
         <message>
             <location filename="src/ui/sidebar.py" />
@@ -3585,7 +3972,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/sidebar.py" />
             <source>Do more with Pro</source>
-            <translation>Proでもっと活用</translation>
+            <translation>Proでさらに活用</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを入手</translation>
         </message>
     </context>
     <context>
@@ -3613,11 +4004,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Back to the project as it was before the first request</source>
-            <translation>最初のリクエスト前の状態のプロジェクトに戻す</translation>
+            <translation>最初の依頼の前の状態にプロジェクトを戻します。</translation>
         </message>
         <message>
             <source>Back to the oldest version still kept</source>
-            <translation>保持されている最も古いバージョンに戻る</translation>
+            <translation>保持されている最も古いバージョンに戻ります。</translation>
         </message>
         <message>
             <source>Going back never deletes anything.</source>
@@ -3629,7 +4020,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>In {project}</source>
-            <translation>{project} 内</translation>
+            <translation>{project}内</translation>
         </message>
         <message>
             <source>No longer kept</source>
@@ -3637,11 +4028,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Put back</source>
-            <translation>元に戻す</translation>
+            <translation>やり直す</translation>
         </message>
         <message>
             <source>Request {n}</source>
-            <translation>リクエスト {n}</translation>
+            <translation>依頼{n}</translation>
         </message>
         <message>
             <source>Restore</source>
@@ -3649,15 +4040,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Stop and go back to before this request</source>
-            <translation>停止してこのリクエスト前に戻る</translation>
+            <translation>停止してこの依頼の前に戻る</translation>
         </message>
         <message>
             <source>Stop and go back to before “{request}”</source>
-            <translation>停止して “{request}” の前に戻る</translation>
+            <translation>停止して「{request}」の前に戻る</translation>
         </message>
         <message>
             <source>Stops the run, then puts the project back as it was before this request.</source>
-            <translation>実行を停止して、このリクエストの前の状態にプロジェクトを戻します。</translation>
+            <translation>実行を停止して、この依頼の前の状態にプロジェクトを戻します。</translation>
         </message>
         <message>
             <source>Undo</source>
@@ -3673,7 +4064,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Your own changes</source>
-            <translation>自分自身の変更</translation>
+            <translation>ご自身の変更</translation>
+        </message>
+        <message>
+            <source>Also undoes 1 later request</source>
+            <translation>後の1件のリクエストも取り消されます</translation>
+        </message>
+        <message>
+            <source>Also undoes {n} later requests</source>
+            <translation>後の{n}件のリクエストも取り消されます</translation>
+        </message>
+        <message>
+            <source>Go back here</source>
+            <translation>ここまで戻る</translation>
+        </message>
+        <message>
+            <source>Redo</source>
+            <translation>やり直す</translation>
         </message>
     </context>
     <context>
@@ -3704,7 +4111,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Expand</source>
-            <translation>展開する</translation>
+            <translation>展開</translation>
         </message>
     </context>
     <context>
@@ -3712,7 +4119,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py" />
             <source>A few more words, please: what to do, and on which layer.</source>
-            <translation>もう少し詳しく教えてください：何をするのか、どのレイヤなのかを。</translation>
+            <translation>もう少し詳しく入力してください：何をするか、どのレイヤに対してか。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3722,12 +4129,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py" />
             <source>Add photos, files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
-            <translation>写真、ファイル、またはこのプロジェクトのレイヤーを追加します。レイヤーはレイヤーパネルからドラッグも可能。Ctrl+Vで画像を貼り付けます。</translation>
+            <translation>写真、ファイル、またはこのプロジェクトのレイヤを追加します。レイヤはレイヤパネルからドラッグして追加することもできます。Ctrl+Vで画像を貼り付けられます。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
             <source>Give the AI agent a task in QGIS...</source>
-            <translation>QGISでAIエージェントにタスクを指示...</translation>
+            <translation>QGISでAIエージェントにタスクを指示…</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3757,7 +4164,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py" />
             <source>Stop the run</source>
-            <translation>実行を停止</translation>
+            <translation>実行を停止します。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3788,11 +4195,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Send ({mod}+Enter). Enter for a new line.</source>
-            <translation>送信({mod}+Enter)。改行はEnter。</translation>
+            <translation>送信（{mod}+Enter）。改行はEnter。</translation>
         </message>
         <message>
             <source>could not be read: {names}</source>
-            <translation>読み取れませんでした:{names}</translation>
+            <translation>読み取れませんでした：{names}</translation>
         </message>
         <message>
             <source>not a supported file: {names}</source>
@@ -3814,7 +4221,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py" />
             <source>Pro unlocks {level} effort. Or pick Low.</source>
-            <translation>Proで{level}エフォートが解放されます。またはLowを選択してください。</translation>
+            <translation>Proで{level}の推論レベルを利用できます。または、Lowを選んでください。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3829,17 +4236,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer.py" />
             <source>This message is {n} characters long, over the {cap} one message can carry. Shorten it.</source>
-            <translation>このメッセージは{n}文字で、1件のメッセージが運べる{cap}文字を超えています。短くしてください。</translation>
+            <translation>このメッセージは{n}文字で、1回に送れる上限（{cap}文字）を超えています。短くしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
             <source>Unlock this effort level with Pro.</source>
-            <translation>このエフォートレベルはProで解放できます。</translation>
+            <translation>この推論レベルはProで利用できます。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
             <source>Unlock with Pro</source>
-            <translation>Proで解放</translation>
+            <translation>Proで利用可能</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -3860,7 +4267,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
-            <translation>エージェントサービスに接続されていません。再接続中です。入力すると送信されます。</translation>
+            <translation>エージェントサービスに接続されていません。再接続中です。入力しておくと、接続後に送信されます。</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
@@ -3872,7 +4279,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Reconnecting to the agent service. Type, it will be sent.</source>
-            <translation>エージェントサービスに再接続しています。入力すると送信されます。</translation>
+            <translation>エージェントサービスに再接続しています。入力しておくと、接続後に送信されます。</translation>
         </message>
         <message>
             <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
@@ -3884,15 +4291,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Add photos &amp; files</source>
-            <translation>写真とファイルを追加</translation>
+            <translation>写真やファイルを追加</translation>
         </message>
         <message>
             <source>a folder cannot be added, drop its files: {names}</source>
-            <translation>フォルダは追加できません。フォルダのファイルをドロップしてください: {names}</translation>
+            <translation>フォルダは追加できません（中のファイルをドロップしてください）：{names}</translation>
         </message>
         <message>
             <source>too large, {mb} MB at most: {names}</source>
-            <translation>大きすぎます。最大 {mb} MB です: {names}</translation>
+            <translation>大きすぎます（上限{mb}MB）：{names}</translation>
         </message>
         <message>
             <source>Queue</source>
@@ -3900,15 +4307,39 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Queue it: the agent reads it at its next step (Enter)</source>
-            <translation>キューに入れる: エージェントは次のステップで読み取ります (Enter)</translation>
+            <translation>キューに入れます：エージェントは次のステップで読み取ります（Enter）</translation>
         </message>
         <message>
             <source>The queue holds 5 messages. Send or remove one first.</source>
-            <translation>キューには5件のメッセージが入ります。先に送信するか削除してください。</translation>
+            <translation>キューに入るメッセージは5件までです。先に1件を送信するか、削除してください。</translation>
         </message>
         <message>
             <source>Your message stays here and goes out as soon as the connection is back.</source>
             <translation>メッセージはここに保持され、接続が復旧するとすぐに送信されます。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Press to retry now; your message is kept.</source>
+            <translation>TerraLabに接続できません。押すと今すぐ再試行します。メッセージは保持されています。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying now.</source>
+            <translation>TerraLabに接続できません。今すぐ再試行しています。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying.</source>
+            <translation>TerraLabに接続できません。再試行しています。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Retrying. Your message stays here and goes out as soon as the connection is back.</source>
+            <translation>TerraLabに接続できません。再試行しています。メッセージはここに残り、接続が戻りしだい送信されます。</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab. Your message goes out as soon as the connection is up.</source>
+            <translation>TerraLabに接続しています。接続できしだいメッセージが送信されます。</translation>
+        </message>
+        <message>
+            <source>Connecting to TerraLab...</source>
+            <translation>TerraLabに接続しています...</translation>
         </message>
     </context>
     <context>
@@ -3921,12 +4352,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/composer_input.py" />
             <source>QGIS plugins</source>
-            <translation>QGISのプラグイン</translation>
+            <translation>QGISプラグイン</translation>
         </message>
         <message>
             <location filename="src/ui/composer_input.py" />
             <source>Layers</source>
-            <translation>レイヤー</translation>
+            <translation>レイヤ</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -3958,7 +4389,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/connector_page.py" />
             <source>Attribution</source>
-            <translation>帰属表示</translation>
+            <translation>帰属</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -4008,7 +4439,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/connector_page.py" />
             <source>Coverage</source>
-            <translation>対応範囲</translation>
+            <translation>対象地域</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -4033,7 +4464,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/connector_page.py" />
             <source>Good to know</source>
-            <translation>知っておきたいこと</translation>
+            <translation>補足</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -4158,7 +4589,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/connector_page.py" />
             <source>Your own account with the provider: it will ask for a key.</source>
-            <translation>プロバイダーでの自身のアカウント: キーの入力を求められます。</translation>
+            <translation>プロバイダでのご自身のアカウント：キーの入力を求められます。</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -4180,15 +4611,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Nothing, but it is run by volunteers. Expect it to be slower or stricter about how much you can ask for.</source>
-            <translation>無料ですがボランティア運営のため低速・制限厳しめです。</translation>
+            <translation>必要なものはありません。ただしボランティアによる運営のため、動作が遅かったり、取得できる量の制限が厳しかったりすることがあります。</translation>
         </message>
         <message>
             <source>%n ready datasets</source>
-            <translation>利用可能なデータセット %n 件</translation>
+            <translation>%n件の利用可能なデータセット</translation>
         </message>
         <message>
             <source>1 ready dataset</source>
-            <translation>利用可能なデータセット 1 件</translation>
+            <translation>1件の利用可能なデータセット</translation>
         </message>
         <message>
             <source>About</source>
@@ -4204,23 +4635,31 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Examples</source>
-            <translation>例</translation>
+            <translation>作例</translation>
         </message>
         <message>
             <source>Puts @{name} in the chat box, for a question of your own.</source>
-            <translation>自分で質問するために、@{name} をチャットボックスに入れます。</translation>
+            <translation>自分で質問するために、@{name}をチャットボックスに入れます。</translation>
         </message>
         <message>
             <source>Show all %n examples</source>
-            <translation>すべての例 (%n 件) を表示</translation>
+            <translation>%n件の作例をすべて表示</translation>
         </message>
         <message>
             <source>The logo belongs to its owner, who does not endorse AI Agent.</source>
-            <translation>ロゴはその所有者に帰属し、所有者は AI Agent を推奨していません。</translation>
+            <translation>ロゴは所有者に帰属します。所有者はAI Agentを推奨していません。</translation>
         </message>
         <message>
             <source>Use in chat</source>
-            <translation>チャットで使用</translation>
+            <translation>チャットで使う</translation>
+        </message>
+        <message>
+            <source>Fewer details</source>
+            <translation>詳細を減らす</translation>
+        </message>
+        <message>
+            <source>More details</source>
+            <translation>詳細を表示</translation>
         </message>
     </context>
     <context>
@@ -4287,7 +4726,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>%n data sources</source>
-            <translation>%n データソース</translation>
+            <translation>%n件のデータソース</translation>
         </message>
         <message>
             <source>%n ready datasets</source>
@@ -4295,7 +4734,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>, {n} ready datasets</source>
-            <translation>、{n} 準備済みデータセット</translation>
+            <translation>、利用可能なデータセット{n}件</translation>
         </message>
         <message>
             <source>Install</source>
@@ -4335,12 +4774,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Applied {n} change</source>
-            <translation>{n}件の変更を適用済み</translation>
+            <translation>{n}件の変更を適用しました</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Applied {n} changes</source>
-            <translation>{n}件の変更を適用済み</translation>
+            <translation>{n}件の変更を適用しました</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -4370,7 +4809,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>applied {n}</source>
-            <translation>適用済み {n}</translation>
+            <translation>適用済み{n}件</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -4411,7 +4850,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Drop to add to the chat</source>
-            <translation>チャットに追加するにはドロップ</translation>
+            <translation>ドロップしてチャットに追加</translation>
         </message>
         <message>
             <source>Photos, files, or a layer of this project</source>
@@ -4423,27 +4862,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>難しいタスク向けに、より深い計画、調査、自律的な進行を行います。</translation>
+            <translation>より深い計画と調査を行い、難しい作業をより自律的に進めます。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>Effort</source>
-            <translation>エフォート</translation>
+            <translation>推論レベル</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>How hard the agent works on the next message</source>
-            <translation>次のメッセージにエージェントがかける労力</translation>
+            <translation>次のメッセージで、エージェントがどこまで深く作業するかを決めます。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>計画を立て、結果を確認し、アルゴリズムやドキュメントを調べるスマートエージェント。</translation>
+            <translation>作業を計画し、結果を自分で確認し、アルゴリズムやドキュメントを調べます。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
             <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>可能な限り速く作業を開始します。ちょっとした編集や質問に最適。計画や調査は行いません。</translation>
+            <translation>すぐに作業を始めます。簡単な編集や質問に向いています。計画も調査も行いません。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -4452,7 +4891,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Pro only: this message runs on Low</source>
-            <translation>Proのみ：このメッセージはLowで実行されます</translation>
+            <translation>Pro限定：このメッセージはLowで実行されます。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -4461,19 +4900,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Effort can be changed after this run ends</source>
-            <translation>この実行が終了した後に推論レベルを変更できます</translation>
+            <translation>推論レベルは、この実行の終了後に変更できます。</translation>
         </message>
         <message>
             <source>Get Pro</source>
-            <translation>Pro を取得</translation>
+            <translation>Proを始める</translation>
         </message>
         <message>
             <source>Included in Pro</source>
-            <translation>Pro に含まれます</translation>
+            <translation>Proに含まれます</translation>
         </message>
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>{level} needs Pro. Pick Low to send.</source>
+            <translation>{level}にはProが必要です。送信するにはLowを選んでください。</translation>
         </message>
     </context>
     <context>
@@ -4490,7 +4933,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Examples</source>
-            <translation>例</translation>
+            <translation>作例</translation>
         </message>
         <message>
             <source>Tutorial</source>
@@ -4498,7 +4941,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>AIシステムと会話中です。誤りあり得ます: 変更を確認してください。</translation>
+            <translation>AIシステムと会話しています。誤りが含まれることもあります。変更内容を確認してください。</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -4549,7 +4992,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Update the plugin</source>
-            <translation>pluginを更新</translation>
+            <translation>プラグインを更新</translation>
         </message>
         <message>
             <source>Undo and retry</source>
@@ -4566,37 +5009,37 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/header.py" />
             <source>Account</source>
-            <translation>アカウント</translation>
+            <translation>アカウントを開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>Chat history</source>
-            <translation>チャット履歴</translation>
+            <translation>チャット履歴を開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>Close this panel</source>
-            <translation>このパネルを閉じる</translation>
+            <translation>このパネルを閉じます。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>Dock or undock this panel</source>
-            <translation>このパネルをドックまたはドック解除</translation>
+            <translation>このパネルをドッキング、またはドッキング解除します。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>New chat</source>
-            <translation>新しいチャット</translation>
+            <translation>新しいチャットを開始します。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>Open the AI Agent page</source>
-            <translation>AI Agentページを開く</translation>
+            <translation>AI Agentのページを開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>Settings</source>
-            <translation>設定</translation>
+            <translation>設定を開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/header.py" />
@@ -4605,19 +5048,23 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Get Pro</source>
-            <translation>Proを利用する</translation>
+            <translation>Proを始める</translation>
         </message>
         <message>
             <source>See what Pro unlocks</source>
-            <translation>Proで利用できる機能を見る</translation>
+            <translation>Proでできることを確認します。</translation>
         </message>
         <message>
             <source>by TerraLab</source>
-            <translation>TerraLab 提供</translation>
+            <translation>by TerraLab</translation>
         </message>
         <message>
             <source>Go back to an earlier version ({key})</source>
-            <translation>以前のバージョンに戻る ({key})</translation>
+            <translation>以前のバージョンに戻ります（{key}）。</translation>
+        </message>
+        <message>
+            <source>Settings ({email})</source>
+            <translation>設定（{email}）</translation>
         </message>
     </context>
     <context>
@@ -4625,7 +5072,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>Delete chat</source>
-            <translation>チャットを削除する</translation>
+            <translation>チャットを削除</translation>
         </message>
         <message>
             <location filename="src/ui/history_popup.py" />
@@ -4665,7 +5112,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>Search chats...</source>
-            <translation>チャットを検索...</translation>
+            <translation>チャットを検索…</translation>
         </message>
         <message>
             <location filename="src/ui/history_popup.py" />
@@ -4690,21 +5137,33 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>{n} days ago</source>
-            <translation>{n} 日前</translation>
+            <translation>{n}日前</translation>
         </message>
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>{n} h ago</source>
-            <translation>{n} 時間前</translation>
+            <translation>{n}時間前</translation>
         </message>
         <message>
             <location filename="src/ui/history_popup.py" />
             <source>{n} min ago</source>
-            <translation>{n} 分前</translation>
+            <translation>{n}分前</translation>
         </message>
         <message>
             <source>Show older chats</source>
             <translation>古いチャットを表示</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Delete chat?</source>
+            <translation>チャットを削除しますか？</translation>
+        </message>
+        <message>
+            <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
+            <translation>「{title}」と、それに保存されたプロジェクトのバージョンを削除します。この操作は取り消せません。</translation>
         </message>
     </context>
     <context>
@@ -4712,7 +5171,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/image_preview.py" />
             <source>Close</source>
-            <translation>閉じる</translation>
+            <translation>閉じます。</translation>
         </message>
     </context>
     <context>
@@ -4740,12 +5199,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>Map extent</source>
-            <translation>マップ範囲</translation>
+            <translation>地図の領域</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
             <source>Selection</source>
-            <translation>選択</translation>
+            <translation>選択範囲</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
@@ -4753,8 +5212,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
 CRS: {crs}
 Click to show it in the Layers panel.</source>
             <translation>{name}
-CRS: {crs}
-レイヤパネルに表示するにはクリックしてください。</translation>
+CRS：{crs}
+クリックするとレイヤパネルに表示します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_card.py" />
@@ -4775,7 +5234,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <source>Remove</source>
-            <translation>削除</translation>
+            <translation>削除します。</translation>
         </message>
         <message>
             <source>{name}
@@ -4794,7 +5253,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/learn_page.py" />
             <source>Video</source>
-            <translation>動画</translation>
+            <translation>ビデオ</translation>
         </message>
     </context>
     <context>
@@ -4804,13 +5263,21 @@ Click to open its page.</source>
             <source>The tutorials arrive when the panel connects.</source>
             <translation>パネルが接続するとチュートリアルが表示されます。</translation>
         </message>
+        <message>
+            <source>Tutorials</source>
+            <translation>チュートリアル</translation>
+        </message>
+        <message>
+            <source>Videos and guides to get started. They open in your browser.</source>
+            <translation>はじめに役立つ動画とガイドです。ブラウザで開きます。</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about group {name} ({n} layers)</source>
-            <translation>グループ {name} ({n}レイヤ)についてAI Agentに質問</translation>
+            <translation>グループ{name}（レイヤ{n}個）についてAI Agentに質問</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
@@ -4820,12 +5287,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about the {n} selected features</source>
-            <translation>選択した{n}個の地物についてAI Agentに質問</translation>
+            <translation>選択した地物{n}件についてAI Agentに質問</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about these {n} layers</source>
-            <translation>これらの {n} layersについてAI Agentに質問</translation>
+            <translation>これらの{n}個のレイヤについてAI Agentに質問</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
@@ -4840,25 +5307,25 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>Ask AI Agent about this view</source>
-            <translation>このビューについてAI Agentに質問</translation>
+            <translation>このマップビューについてAI Agentに質問</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>current extent</source>
-            <translation>現在の範囲</translation>
+            <translation>現在の領域</translation>
         </message>
         <message>
             <location filename="src/ui/map_hooks.py" />
             <source>selection ({n} features)</source>
-            <translation>選択範囲（{n}地物）</translation>
+            <translation>選択範囲（地物{n}件）</translation>
         </message>
         <message>
             <source>Ask AI Agent about group {name} (1 layer)</source>
-            <translation>グループ{name}についてAI Agentに聞く（1レイヤ）</translation>
+            <translation>グループ{name}（レイヤ1個）についてAI Agentに質問</translation>
         </message>
         <message>
             <source>selection (1 feature)</source>
-            <translation>選択中（1地物）</translation>
+            <translation>選択範囲（地物1件）</translation>
         </message>
     </context>
     <context>
@@ -4866,7 +5333,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/message_list.py" />
             <source>Scroll to bottom</source>
-            <translation>最下部までスクロール</translation>
+            <translation>最下部までスクロールします。</translation>
         </message>
     </context>
     <context>
@@ -4879,27 +5346,31 @@ Click to open its page.</source>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
             <source>No connection to the sign-in service. Check your internet connection, then click Sign in to try again.</source>
-            <translation>サインインサービスに接続できません。インターネット接続を確認してから、「サインイン」をクリックしてもう一度お試しください。</translation>
+            <translation>ログインサービスに接続できません。インターネット接続を確認してから、「ログイン」をクリックしてもう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
             <source>Sign-in failed unexpectedly. Click Sign in to try again.</source>
-            <translation>予期せずサインインに失敗しました。「サインイン」をクリックしてもう一度お試しください。</translation>
+            <translation>予期しない問題でログインに失敗しました。「ログイン」をクリックしてもう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
             <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
-            <translation>ブラウザでサインインがキャンセルされました。「サインイン」をクリックしてもう一度お試しください。</translation>
+            <translation>ブラウザでログインがキャンセルされました。「ログイン」をクリックしてもう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
             <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
-            <translation>このアカウントには有効なAI Agentプランがありません。terra-lab.aiで有効化してから、もう一度「サインイン」をクリックしてください。</translation>
+            <translation>このアカウントには有効なAI Agentプランがありません。terra-lab.aiで有効化してから、「再度ログイン」をクリックしてください。</translation>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
             <source>Unexpected response from the server. Please try again.</source>
             <translation>サーバーから予期しない応答がありました。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Can't reach TerraLab. Check your internet connection, then click Sign in to try again.</source>
+            <translation>TerraLabに接続できません。インターネット接続を確認してから、「サインイン」をクリックして再試行してください。</translation>
         </message>
     </context>
     <context>
@@ -4922,12 +5393,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Hide values</source>
-            <translation>値を非表示</translation>
+            <translation>値を隠す</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Needs your approval</source>
-            <translation>あなたの承認が必要です</translation>
+            <translation>承認が必要です。</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -4937,7 +5408,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Show {n} more</source>
-            <translation>あと{n}件表示</translation>
+            <translation>さらに{n}件を表示</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -4954,7 +5425,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Denied</source>
-            <translation>拒否</translation>
+            <translation>拒否済み</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -4976,11 +5447,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Hide the address</source>
-            <translation>アドレスを非表示</translation>
+            <translation>アドレスを隠す</translation>
         </message>
         <message>
             <source>Hide the addresses</source>
-            <translation>アドレスを非表示</translation>
+            <translation>アドレスを隠す</translation>
         </message>
         <message>
             <source>Show the address</source>
@@ -4988,15 +5459,15 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Show the {n} addresses</source>
-            <translation>{n} 個のアドレスを表示</translation>
+            <translation>{n}個のアドレスを表示</translation>
         </message>
         <message>
             <source>{hosts} were not named by you or by a known catalog.</source>
-            <translation>{hosts} はあなたまたは既知のカタログによって命名されていません。</translation>
+            <translation>{hosts}は、指定されたものではなく、既知のカタログにも載っていません。</translation>
         </message>
         <message>
             <source>{host} was not named by you or by a known catalog.</source>
-            <translation>{host} はあなたまたは既知のカタログによって命名されていません。</translation>
+            <translation>{host}は、指定されたものではなく、既知のカタログにも載っていません。</translation>
         </message>
         <message>
             <source>Hide the code</source>
@@ -5004,15 +5475,15 @@ Click to open its page.</source>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
-            <translation>コードを表示 ({n} 行)</translation>
+            <translation>コードを表示（{n}行）</translation>
         </message>
         <message>
             <source>{action}, {n} times.</source>
-            <translation>{action} を {n} 回実行しました。</translation>
+            <translation>{action}（{n}回）</translation>
         </message>
         <message>
             <source>{n} actions wait for your approval.</source>
-            <translation>{n} 件のアクションがあなたの承認を待っています。</translation>
+            <translation>{n}件の操作が承認を待っています。</translation>
         </message>
         <message>
             <source>Allow for this run</source>
@@ -5021,6 +5492,26 @@ Click to open its page.</source>
         <message>
             <source>Allowed for this run</source>
             <translation>この実行では許可済み</translation>
+        </message>
+        <message>
+            <source>Your answer also counts for the next calls of this kind in this answer.</source>
+            <translation>あなたの回答は、この回答内で次に行われる同種の呼び出しにも適用されます。</translation>
+        </message>
+        <message>
+            <source>{action}, {n} times</source>
+            <translation>{action}（{n}回）</translation>
+        </message>
+        <message>
+            <source>{hosts}: sites you did not name, in no known catalog</source>
+            <translation>{hosts}：あなたが指定しておらず、既知のカタログにもないサイト</translation>
+        </message>
+        <message>
+            <source>{host}: a site you did not name, in no known catalog</source>
+            <translation>{host}：あなたが指定しておらず、既知のカタログにもないサイト</translation>
+        </message>
+        <message>
+            <source>{n} actions</source>
+            <translation>{n}件の操作</translation>
         </message>
     </context>
     <context>
@@ -5033,7 +5524,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/permission_chip.py" />
             <source>Ask first</source>
-            <translation>まず確認</translation>
+            <translation>事前に確認</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -5091,7 +5582,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>What AI Agent may do without asking</source>
-            <translation>AI Agentが確認なしにできること</translation>
+            <translation>AI Agentが確認なしで実行できる操作です。</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -5106,22 +5597,22 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/permission_chip.py" />
             <source>The next chat starts in Balanced again.</source>
-            <translation>次のチャットはBalancedに戻ります。</translation>
+            <translation>次のチャットは再びバランスで始まります。</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
             <source>Turn on Autopilot</source>
-            <translation>Autopilotをオンにする</translation>
+            <translation>オートパイロットをオンにする</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
             <source>Turn on Autopilot?</source>
-            <translation>Autopilotをオンにしますか?</translation>
+            <translation>オートパイロットをオンにしますか？</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
             <source>Undo covers the project, not every file on disk.</source>
-            <translation>取り消しの対象はプロジェクトのみで、ディスク上のすべてのファイルではありません。</translation>
+            <translation>元に戻せるのはプロジェクトで、ディスク上のすべてのファイルではありません。</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -5130,11 +5621,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Asks before deleting, overwriting, installing or reaching an unknown site.</source>
-            <translation>削除、上書き、インストール、または未知のサイトへの移動の前に確認します。</translation>
+            <translation>削除、上書き、インストール、不明なサイトへのアクセスの前に確認します。</translation>
         </message>
         <message>
             <source>Deletes layers, overwrites files and runs Python code without asking.</source>
-            <translation>確認なしでレイヤを削除し、ファイルを上書きし、Python コードを実行します。</translation>
+            <translation>確認なしでレイヤを削除し、ファイルを上書きし、Pythonコードを実行します。</translation>
         </message>
         <message>
             <source>Spending credits still asks first.</source>
@@ -5146,11 +5637,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Get Pro</source>
-            <translation>Pro を取得</translation>
+            <translation>Proを始める</translation>
         </message>
         <message>
             <source>Included in Pro</source>
-            <translation>Pro に含まれます</translation>
+            <translation>Proに含まれます</translation>
         </message>
         <message>
             <source>Pro · {price}</source>
@@ -5162,7 +5653,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Works on its own. Asks only about credits, installs, other plugins and unknown sites.</source>
-            <translation>単独で動作します。クレジット、インストール、他のプラグイン、不明なサイトについてのみ確認します。</translation>
+            <translation>自律的に作業します。クレジット、インストール、他のプラグイン、不明なサイトについてのみ確認します。</translation>
+        </message>
+        <message>
+            <source>{mode}: what AI Agent may do without asking</source>
+            <translation>{mode}：AI Agentが確認なしで実行できること</translation>
         </message>
     </context>
     <context>
@@ -5174,7 +5669,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>{done} of {total}</source>
-            <translation>{total} 中 {done}</translation>
+            <translation>{total}件中{done}件</translation>
         </message>
     </context>
     <context>
@@ -5183,6 +5678,14 @@ Click to open its page.</source>
             <location filename="src/ui/settings_pages.py" />
             <source>PRO</source>
             <translation>PRO</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを入手</translation>
+        </message>
+        <message>
+            <source>What Pro adds</source>
+            <translation>Proで追加される機能</translation>
         </message>
     </context>
     <context>
@@ -5248,7 +5751,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Copy email</source>
-            <translation>メールをコピー</translation>
+            <translation>メールアドレスをコピー</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -5263,7 +5766,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Need more this month? Write to us and we set up a custom quota.</source>
-            <translation>今月さらに必要ですか？ご連絡いただければ、カスタムクォータを設定します。</translation>
+            <translation>今月さらに必要ですか？ご連絡いただければ、カスタム利用枠を設定します。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -5273,7 +5776,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>They come back on {date}.</source>
-            <translation>実行回数は{date}に戻ります。</translation>
+            <translation>実行回数は{date}に回復します。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -5293,7 +5796,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your free runs are used up</source>
-            <translation>無料実行回数を使い切りました</translation>
+            <translation>無料の実行回数を使い切りました</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -5312,11 +5815,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>You used all {n} runs this month.</source>
-            <translation>今月は{n}回を使い切りました。</translation>
+            <translation>今月の実行{n}回をすべて使い切りました。</translation>
         </message>
         <message>
             <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>今月は{n}回を使い切りました。{date}に回復します。</translation>
+            <translation>今月の実行{n}回をすべて使い切りました。{date}に回復します。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -5335,7 +5838,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Get Pro</source>
-            <translation>Proを利用する</translation>
+            <translation>Proを始める</translation>
         </message>
         <message>
             <source>{n} runs a month and higher effort levels.</source>
@@ -5363,7 +5866,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
-            <translation>無料版は個人利用と学習用です。Pro はクライアントや雇用主向けの業務を対象としています。</translation>
+            <translation>Freeプランは個人利用と学習用です。Proプランは、クライアントや雇用主のための業務にも使えます。</translation>
         </message>
         <message>
             <source>Free runs come back at your monthly reset.</source>
@@ -5371,39 +5874,43 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Free runs come back on {date}.</source>
-            <translation>無料の実行回数は {date} に回復します。</translation>
+            <translation>無料の実行回数は{date}に回復します。</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
-            <translation>難易度の高いタスクには中・高エフォート</translation>
+            <translation>難しいタスク向けのMediumとHighの推論レベル</translation>
         </message>
         <message>
             <source>Memory and your instructions</source>
-            <translation>メモリとあなたの指示</translation>
+            <translation>メモリとAIへの指示</translation>
         </message>
         <message>
             <source>Pro: more and better</source>
-            <translation>Pro: より多く、より良く</translation>
+            <translation>Pro：より多く、より良く</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
-            <translation>今月は {n} 件のタスクを実行しました。</translation>
+            <translation>今月は{n}件のタスクを実行しました。</translation>
         </message>
         <message>
             <source>{amount}/month</source>
-            <translation>{amount}/月</translation>
+            <translation>{amount}／月</translation>
         </message>
         <message>
             <source>{amount}/month excl. VAT</source>
-            <translation>{amount}/月 (税別)</translation>
+            <translation>{amount}／月（税抜）</translation>
         </message>
         <message>
             <source>{n} runs a month</source>
-            <translation>月 {n} 回の実行</translation>
+            <translation>月{n}回の実行</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · いつでも解約できます</translation>
+        </message>
+        <message>
+            <source>What Pro includes</source>
+            <translation>Proに含まれる機能</translation>
         </message>
     </context>
     <context>
@@ -5411,7 +5918,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Paused</source>
-            <translation>一時停止</translation>
+            <translation>一時停止中</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -5429,22 +5936,22 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Accept</source>
-            <translation>承認</translation>
+            <translation>採用</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Accepted</source>
-            <translation>承認済み</translation>
+            <translation>採用済み</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Alternative</source>
-            <translation>代替案</translation>
+            <translation>代案</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Alternatives</source>
-            <translation>他の案</translation>
+            <translation>他の代案</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -5459,17 +5966,17 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>High confidence</source>
-            <translation>高信頼度</translation>
+            <translation>信頼度：高</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Low confidence</source>
-            <translation>低信頼度</translation>
+            <translation>信頼度：低</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Medium confidence</source>
-            <translation>中信頼度</translation>
+            <translation>信頼度：中</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -5479,7 +5986,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_proposal.py" />
             <source>Want me to run this?</source>
-            <translation>これを実行しますか?</translation>
+            <translation>これを実行しますか？</translation>
         </message>
         <message>
             <location filename="src/ui/cards_proposal.py" />
@@ -5533,19 +6040,19 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
-            <translation>{point} に戻りますか？ その後の編集は、いつでも戻れるバージョンとして保持されます。</translation>
+            <translation>{point}に戻りますか？その後の編集は、戻れるバージョンとして保持されます。</translation>
         </message>
         <message>
             <source>Go back? Your edits since then are kept as a version you can return to.</source>
-            <translation>戻りますか？ その後の編集は、いつでも戻れるバージョンとして保持されます。</translation>
+            <translation>戻りますか？その後の編集は、戻れるバージョンとして保持されます。</translation>
         </message>
         <message>
             <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
-            <translation>このチャットでエージェントが行ったすべての操作を、保持されている最も古いバージョンまで元に戻しますか？ 後で元に戻すこともできます。</translation>
+            <translation>このチャットでエージェントが行ったすべての操作を、保持されている最も古いバージョンまで元に戻しますか？やり直すこともできます。</translation>
         </message>
         <message>
             <source>Undo everything the agent did in this chat? You can put it back.</source>
-            <translation>このチャットでエージェントが行ったすべての操作を元に戻しますか？ 後で元に戻すこともできます。</translation>
+            <translation>このチャットでエージェントが行ったすべての操作を元に戻しますか？やり直すこともできます。</translation>
         </message>
     </context>
     <context>
@@ -5573,37 +6080,45 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Failed</source>
-            <translation>失敗</translation>
+            <translation>失敗しました</translation>
         </message>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Stopped</source>
-            <translation>停止</translation>
+            <translation>停止しました</translation>
         </message>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Thinking</source>
-            <translation>思考中</translation>
+            <translation>考え中</translation>
         </message>
         <message>
             <source>%n earlier actions</source>
-            <translation>それ以前のアクション %n 件</translation>
+            <translation>以前の操作%n件</translation>
         </message>
         <message>
             <source>Failed after {time}</source>
-            <translation>{time} 後に失敗しました</translation>
+            <translation>{time}後に失敗しました</translation>
         </message>
         <message>
             <source>Stopped after {time}</source>
-            <translation>{time} 後に停止しました</translation>
+            <translation>{time}後に停止しました</translation>
         </message>
         <message>
             <source>Thought for {time}</source>
-            <translation>{time} 間考えました</translation>
+            <translation>{time}考えました</translation>
         </message>
         <message>
             <source>QGIS closed before this finished</source>
-            <translation>この処理が完了する前に QGIS が閉じられました</translation>
+            <translation>この処理が完了する前にQGISが閉じられました</translation>
+        </message>
+        <message>
+            <source>denied</source>
+            <translation>拒否</translation>
+        </message>
+        <message>
+            <source>{step} and {n} more</source>
+            <translation>{step}ほか{n}件</translation>
         </message>
     </context>
     <context>
@@ -5626,7 +6141,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>A short summary of the changes once a task is done.</source>
-            <translation>タスク完了時の変更の簡単な概要。</translation>
+            <translation>作業が終わったら、変更点を簡単にまとめます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5641,7 +6156,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>About you</source>
-            <translation>あなたについて</translation>
+            <translation>自己紹介</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5656,7 +6171,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Added by you</source>
-            <translation>あなたが追加</translation>
+            <translation>追加したメモ</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5666,7 +6181,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Answer a question for me after</source>
-            <translation>実行後に質問に回答する</translation>
+            <translation>質問への自動回答までの時間</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5716,7 +6231,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>毎会話の開始時にAIが読むコンテキストと、会話間に保持するメモ。</translation>
+            <translation>AIが毎回の会話の開始時に読む内容と、会話をまたいで残すメモです。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5746,7 +6261,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Each step with its inputs and results, under the answer.</source>
-            <translation>回答の下に、各ステップとその入力・結果。</translation>
+            <translation>各ステップの入力と結果を、回答の下に表示します。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5766,12 +6281,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Free plan</source>
-            <translation>無料プラン</translation>
+            <translation>Freeプラン</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>GIS experience</source>
-            <translation>GIS の経験</translation>
+            <translation>GISの経験</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5781,22 +6296,22 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>動作の指定。例：常にフランス語で回答、新しいレイヤはsnake_caseで命名、確認なしにレイヤを削除しない。</translation>
+            <translation>どのように動いてほしいかを書きます。例：常にフランス語で回答する、新しいレイヤはsnake_caseで命名する、確認なしにレイヤを削除しない。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How much the AI explains.</source>
-            <translation>AIがどの程度説明するか。</translation>
+            <translation>AIが説明する量です。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How often the AI asks before acting.</source>
-            <translation>AIが行動前にどの程度確認するか。</translation>
+            <translation>AIが作業の前に確認する頻度です。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>How the AI names the layers it creates.</source>
-            <translation>AI が作成するレイヤの命名方法。</translation>
+            <translation>AIが作成するレイヤの名前の付け方です。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5811,7 +6326,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Imperial</source>
-            <translation>インペリアル</translation>
+            <translation>ヤード・ポンド法</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5841,12 +6356,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Loading account info...</source>
-            <translation>アカウント情報を読み込み中...</translation>
+            <translation>アカウント情報を読み込み中…</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Loading your plan...</source>
-            <translation>プランを読み込み中...</translation>
+            <translation>プランを読み込み中…</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5856,17 +6371,17 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Manage account in browser</source>
-            <translation>ブラウザでアカウントを管理</translation>
+            <translation>ブラウザでアカウントを管理します。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Memory</source>
-            <translation>メモリー</translation>
+            <translation>メモリ</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>メートルとヘクタール、またはフィート、マイル、エーカー。</translation>
+            <translation>メートルとヘクタール、またはフィート、マイル、エーカーで表示します。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5876,7 +6391,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>月{n}回以上の実行が必要ですか? {email}までご連絡ください。</translation>
+            <translation>月{n}回を超える実行が必要ですか？{email}までご連絡ください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5901,12 +6416,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Open terra-lab.ai</source>
-            <translation>terra-lab.aiを開く</translation>
+            <translation>terra-lab.aiを開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Open the AI Agent page</source>
-            <translation>AI Agentのページを開く</translation>
+            <translation>AI Agentのページを開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5926,7 +6441,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Plain words</source>
-            <translation>やさしい言葉</translation>
+            <translation>ふつうの言葉</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5936,7 +6451,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Pro follows your standing rules in every run: the language it answers in, how it names layers, and what it must never do without asking.</source>
-            <translation>Proではすべての実行で常用ルールが適用されます:回答言語、レイヤーの命名方法、確認なしに行ってはならないことです。</translation>
+            <translation>Proでは、回答する言語、レイヤの命名方法、確認なしに行ってはならないことなど、決めておいたルールがすべての実行に適用されます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5946,7 +6461,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Pro reads this before every run, so your job, your city and your usual CRS do not have to be typed into each prompt.</source>
-            <translation>Proでは実行前にこれを読むため、仕事内容、都市、常用CRSを毎回promptに入力する必要がありません。</translation>
+            <translation>Proでは実行のたびにこれを読むため、仕事内容や都市、よく使うCRSを毎回プロンプトに入力する必要がありません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5986,7 +6501,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Reset all settings?</source>
-            <translation>すべての設定をリセットしますか?</translation>
+            <translation>すべての設定をリセットしますか？</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5996,7 +6511,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Response language</source>
-            <translation>回答言語</translation>
+            <translation>回答の言語</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6016,7 +6531,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Saved</source>
-            <translation>保存済み</translation>
+            <translation>保存しました</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6026,7 +6541,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>短い回答、バランス、完全な推論。</translation>
+            <translation>短い回答、バランス型、推論の全過程から選びます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6041,17 +6556,17 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Sign in to see your account.</source>
-            <translation>アカウントを見るにはサインインしてください。</translation>
+            <translation>アカウントを表示するにはログインしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Sign out</source>
-            <translation>サインアウト</translation>
+            <translation>ログアウト</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Sign out of AI Agent?</source>
-            <translation>AI Agentからサインアウトしますか?</translation>
+            <translation>AI Agentからログアウトしますか？</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6076,12 +6591,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>The language the AI writes its answers in.</source>
-            <translation>AIが回答を書く言語。</translation>
+            <translation>AIが回答に使う言語です。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>The plan this copy of QGIS is signed in on.</source>
-            <translation>このQGISがサインインしているプラン。</translation>
+            <translation>このQGISでログインしているプランです。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6126,7 +6641,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Urban planner</source>
-            <translation>都市プランナー</translation>
+            <translation>都市計画担当</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6136,7 +6651,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>What the AI should call you</source>
-            <translation>AIが呼ぶあなたの名前</translation>
+            <translation>AIに呼んでほしい名前</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6156,37 +6671,37 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Who you are</source>
-            <translation>あなたの情報</translation>
+            <translation>プロフィール</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>あなたが誰で何に取り組んでいるか。例：リヨン市の都市計画担当、主にEPSG:2154で地籍とPLUのlayerを扱っています。</translation>
+            <translation>自己紹介と、取り組んでいる内容を書きます。例：リヨン市の都市計画担当。主にEPSG:2154で地籍とPLUのレイヤを扱っています。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>You can sign back in anytime from QGIS.</source>
-            <translation>QGISからいつでも再サインインできます。</translation>
+            <translation>QGISからいつでも再度ログインできます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Your first name</source>
-            <translation>名</translation>
+            <translation>下の名前</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>仕事内容を一言で。最初に参照するデータや手法が変わります。</translation>
+            <translation>仕事内容を短く書きます。AIが最初に選ぶデータや手法が変わります。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>by TerraLab</source>
-            <translation>TerraLab提供</translation>
+            <translation>by TerraLab</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>runs left of {limit} this month</source>
-            <translation>今月の残り実行回数(上限{limit}回)</translation>
+            <translation>今月の残り実行回数（全{limit}回）</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -6205,7 +6720,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Always wait for me</source>
-            <translation>常に待つ</translation>
+            <translation>常に回答を待つ</translation>
         </message>
         <message>
             <source>Compare plans</source>
@@ -6213,7 +6728,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Computer-style names</source>
-            <translation>コンピュータ式の名前</translation>
+            <translation>プログラム風の名前</translation>
         </message>
         <message>
             <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, only that you used the app and when, never what you did in it.</source>
@@ -6221,7 +6736,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
-            <translation>言語、スタイル、権限、プロファイル、メモは既定に戻ります。サインインは維持されます。</translation>
+            <translation>言語、スタイル、権限、プロファイル、メモは既定に戻ります。ログインは維持されます。</translation>
         </message>
         <message>
             <source>Lets us read a conversation only when we are fixing a wrong answer or something that broke. Turn it off any time, with no other effect.</source>
@@ -6241,7 +6756,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Payment happens on the TerraLab website, never inside QGIS. Your plan here updates on its own.</source>
-            <translation>支払いはTerraLabウェブサイトのみ、QGIS内では行いません。プランは自動更新されます。</translation>
+            <translation>お支払いはTerraLabのウェブサイトで行い、QGIS内で行うことはありません。ここに表示されるプランは自動で更新されます。</translation>
         </message>
         <message>
             <source>Plans and prices, on the TerraLab website.</source>
@@ -6269,7 +6784,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Your plan, payment method and invoices are on the TerraLab dashboard.</source>
-            <translation>プラン、支払方法、請求書はTerraLabダッシュボードにあります。</translation>
+            <translation>プラン、支払い方法、請求書はTerraLabダッシュボードにあります。</translation>
         </message>
         <message>
             <source>{left} runs left of {limit} this month</source>
@@ -6285,7 +6800,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>The view goes to each edit as it happens. Off keeps your view where you put it.</source>
-            <translation>各編集が行われるたびにビューが移動します。オフにするとビューはそのままの位置に保たれます。</translation>
+            <translation>編集が行われるたびに、マップビューがその場所へ移動します。オフにすると、マップビューは今の位置のままです。</translation>
         </message>
         <message>
             <source>Memory folder</source>
@@ -6297,12 +6812,12 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
-            <translation>このコンピューター上の Markdown ファイルとしてのメモです。そこで書き換えたり削除したりすると、次の会話に反映されます。</translation>
+            <translation>メモはこのコンピュータ上のMarkdownファイルとして保存されます。ファイルを書き換えたり削除したりすると、次の会話に反映されます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>メモを含め既定値に戻ります。サインインは維持されます。</translation>
+            <translation>メモを含め、既定値に戻ります。ログインは維持されます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6322,7 +6837,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>Do more with Pro</source>
-            <translation>Proでもっと活用</translation>
+            <translation>Proでさらに活用</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6332,7 +6847,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Errors, versions and which features you use, linked to your account. On Pro, only that you used the app and when.</source>
-            <translation>エラー、バージョン、利用機能をアカウントに紐付けます。Proでは利用有無と時刻のみです。</translation>
+            <translation>エラー、バージョン、使用した機能がアカウントに紐づけられます。Proでは、利用の有無と時刻だけです。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6347,27 +6862,27 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Never your prompts, layers, coordinates or files.</source>
-            <translation>prompt、レイヤ、座標、ファイルは送信しません。</translation>
+            <translation>プロンプト、レイヤ、座標、ファイルは送信されません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Off on your plan: chats are never read to improve it.</source>
-            <translation>お使いのプランでは既に無効です。チャットは改善のために読まれません。</translation>
+            <translation>お使いのプランではオフです。チャットが改善のために読まれることはありません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Plus memory, your instructions and higher effort.</source>
-            <translation>さらにメモリ、指示、より高いエフォートも。</translation>
+            <translation>さらに、メモリ、AIへの指示、より高い推論レベルも。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Pro: commercial use and more runs</source>
-            <translation>Pro: 商用利用とより多くの実行</translation>
+            <translation>Pro：商用利用と、より多くの実行</translation>
         </message>
         <message>
             <location filename="src/ui/settings_billing.py" />
             <source>See what Pro unlocks</source>
-            <translation>Proで解放される機能を見る</translation>
+            <translation>Proでできることを見る</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6377,17 +6892,17 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Sign in first to delete your account.</source>
-            <translation>アカウントを削除するには、先にサインインしてください。</translation>
+            <translation>アカウントを削除するには、先にログインしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Sign out, then sign in again.</source>
-            <translation>サインアウトしてから、再度サインインしてください。</translation>
+            <translation>ログアウトしてから、もう一度ログインしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>This computer is no longer signed in</source>
-            <translation>このコンピューターはサインインしていません</translation>
+            <translation>このコンピュータはログインしていません</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6407,22 +6922,22 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_personalisation.py" />
             <source>Unlock with Pro</source>
-            <translation>Proで解放</translation>
+            <translation>Proで利用可能</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Update your payment method to fix it.</source>
-            <translation>支払方法を更新してください。</translation>
+            <translation>問題を解決するには、支払い方法を更新してください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Proで何が使えるかはTerraLabウェブサイトへ。</translation>
+            <translation>Proでできることは、TerraLabのウェブサイトで確認できます。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>設定に関わらず入力は改善に読まれません。</translation>
+            <translation>このスイッチの設定にかかわらず、入力した内容が製品の改善のために読まれることはありません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6432,12 +6947,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>Your sign-in, your plan and your privacy.</source>
-            <translation>サインイン、プラン、プライバシーについて。</translation>
+            <translation>ログイン、プラン、プライバシーについて。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
             <source>{left} of {limit} runs left</source>
-            <translation>残り{left}/{limit}回の実行</translation>
+            <translation>実行：残り{left}回（全{limit}回）</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -6452,23 +6967,83 @@ Click to open its page.</source>
             <source>Upgrade</source>
             <translation>アップグレード</translation>
         </message>
+        <message>
+            <source>Commercial use and more runs with Pro</source>
+            <translation>商用利用と実行回数の追加はProで</translation>
+        </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを入手</translation>
+        </message>
+        <message>
+            <source>Manage plan</source>
+            <translation>プランを管理</translation>
+        </message>
+        <message>
+            <source>Memory between conversations</source>
+            <translation>会話をまたぐメモリ</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>その他</translation>
+        </message>
+        <message>
+            <source>Opens a window</source>
+            <translation>ウィンドウが開きます</translation>
+        </message>
+        <message>
+            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
+            <translation>Proでは、実行のたびに、あなたについての情報と常設のルールを事前に読み込みます。仕事、都市、よく使うCRS、回答の言語、レイヤの命名方法、確認なしで絶対にしてはいけないことなどです。</translation>
+        </message>
+        <message>
+            <source>Show the steps it takes</source>
+            <translation>実行したステップを表示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to see your account</source>
+            <translation>サインインしてアカウントを表示</translation>
+        </message>
+        <message>
+            <source>The list of steps above each answer.</source>
+            <translation>各回答の上に表示されるステップの一覧です。</translation>
+        </message>
+        <message>
+            <source>This computer was signed out</source>
+            <translation>このコンピュータはサインアウトされました</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on the TerraLab website. Payment never happens inside QGIS.</source>
+            <translation>プラン、お支払い方法、請求書は、TerraLabのウェブサイトで確認できます。お支払いがQGIS内で行われることはありません。</translation>
+        </message>
+        <message>
+            <source>Your plan, runs and settings appear here once you sign in.</source>
+            <translation>サインインすると、プラン、実行回数、設定がここに表示されます。</translation>
+        </message>
+        <message>
+            <source>Your profile and instructions, read before every run</source>
+            <translation>プロフィールと指示。実行のたびに事前に読み込まれます</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
         <message>
             <location filename="src/ui/source_marks.py" />
             <source>1 source</source>
-            <translation>1件のソース</translation>
+            <translation>出典1件</translation>
         </message>
         <message>
             <location filename="src/ui/source_marks.py" />
             <source>Sources of this answer</source>
-            <translation>この回答のソース</translation>
+            <translation>この回答の出典</translation>
         </message>
         <message>
             <location filename="src/ui/source_marks.py" />
             <source>{n} sources</source>
-            <translation>{n}件のソース</translation>
+            <translation>出典{n}件</translation>
         </message>
     </context>
     <context>
@@ -6476,12 +7051,60 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/source_marks.py" />
             <source>1 source</source>
-            <translation>1件のソース</translation>
+            <translation>出典1件</translation>
         </message>
         <message>
             <location filename="src/ui/source_marks.py" />
             <source>{n} sources</source>
-            <translation>{n}件のソース</translation>
+            <translation>出典{n}件</translation>
+        </message>
+        <message>
+            <source>Copied</source>
+            <translation>コピーしました</translation>
+        </message>
+        <message>
+            <source>Copy credits</source>
+            <translation>クレジットをコピー</translation>
+        </message>
+        <message>
+            <source>Copy one credit line per source, for a print layout</source>
+            <translation>印刷レイアウト用に、ソースごとにクレジット1行をコピーします</translation>
+        </message>
+        <message>
+            <source>{n} scenes, {span}</source>
+            <translation>{n}シーン、{span}</translation>
+        </message>
+        <message>
+            <source>Access</source>
+            <translation>アクセス</translation>
+        </message>
+        <message>
+            <source>Credit</source>
+            <translation>クレジット</translation>
+        </message>
+        <message>
+            <source>Date</source>
+            <translation>日付</translation>
+        </message>
+        <message>
+            <source>Dates</source>
+            <translation>日付</translation>
+        </message>
+        <message>
+            <source>Files</source>
+            <translation>ファイル</translation>
+        </message>
+        <message>
+            <source>Licence</source>
+            <translation>ライセンス</translation>
+        </message>
+        <message>
+            <source>Resolution</source>
+            <translation>解像度</translation>
+        </message>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>TerraLabが提供</translation>
         </message>
     </context>
     <context>
@@ -6489,7 +7112,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>Thinking</source>
-            <translation>思考中</translation>
+            <translation>考え中</translation>
         </message>
     </context>
     <context>
@@ -6505,7 +7128,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/api/terralab_client.py" />
             <source>Authentication failed. Please sign in again.</source>
-            <translation>認証に失敗しました。もう一度サインインしてください。</translation>
+            <translation>認証に失敗しました。もう一度ログインしてください。</translation>
         </message>
         <message>
             <location filename="src/api/terralab_client.py" />
@@ -6520,7 +7143,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/api/terralab_client.py" />
             <source>Proxy connection failed. Check QGIS proxy settings (Settings &gt; Options &gt; Network).</source>
-            <translation>プロキシ接続に失敗しました。QGISのプロキシ設定（設定 &gt; オプション &gt; ネットワーク）を確認してください。</translation>
+            <translation>プロキシ接続に失敗しました。QGISのプロキシ設定（「設定」→「オプション」→「ネットワーク」）を確認してください。</translation>
         </message>
         <message>
             <location filename="src/api/terralab_client.py" />
@@ -6545,7 +7168,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/api/terralab_client.py" />
             <source>The reply did not come from the service. If this network shows a sign-in page, open it in your browser first, then try again.</source>
-            <translation>返信はサービスからのものではありません。このネットワークにサインインページが表示される場合は、まずブラウザで開いてから、もう一度お試しください。</translation>
+            <translation>応答はサービスからのものではありません。このネットワークでログインページが表示される場合は、まずブラウザで開いてから、もう一度お試しください。</translation>
         </message>
         <message>
             <location filename="src/api/terralab_client.py" />
@@ -6563,7 +7186,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>1 feature</source>
-            <translation>1件のフィーチャ</translation>
+            <translation>地物1件</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6578,7 +7201,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>Hide the code</source>
-            <translation>コードを非表示</translation>
+            <translation>コードを隠す</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6588,7 +7211,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>did not work</source>
-            <translation>動作しませんでした</translation>
+            <translation>失敗しました</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6608,16 +7231,16 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>{n} features</source>
-            <translation>{n}件のフィーチャ</translation>
+            <translation>地物{n}件</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
             <source>{what} in the area</source>
-            <translation>範囲内の{what}</translation>
+            <translation>エリア内の{what}</translation>
         </message>
         <message>
             <source>Copy the code with the setup lines it needs, ready to paste into the console.</source>
-            <translation>必要なセットアップ行付きでコードをコピーしコンソールに貼付け可能。</translation>
+            <translation>必要なセットアップ行を付けてコードをコピーします。そのままコンソールに貼り付けられます。</translation>
         </message>
         <message>
             <location filename="src/ui/cards_tool.py" />
@@ -6646,15 +7269,23 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Open AI Edit</source>
-            <translation>AI Edit を開く</translation>
+            <translation>AI Editを開く</translation>
         </message>
         <message>
             <source>Open AI Segmentation</source>
-            <translation>AI Segmentation を開く</translation>
+            <translation>AI Segmentationを開く</translation>
         </message>
         <message>
             <source>Show that plugin's panel again. Nothing is run and nothing is spent.</source>
-            <translation>その plugin のパネルを再表示します。何も実行されず、何も消費されません。</translation>
+            <translation>そのプラグインのパネルを再表示します。何も実行されず、何も消費されません。</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>Show the whole message</source>
+            <translation>メッセージ全体を表示</translation>
         </message>
     </context>
     <context>
@@ -6667,7 +7298,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/core/executor.py" />
             <source>Question mode is read only: {tool} would modify the project.</source>
-            <translation>質問モードは読み取り専用です。{tool}はプロジェクトを変更します。</translation>
+            <translation>質問モードは読取専用です。{tool}はプロジェクトを変更します。</translation>
         </message>
         <message>
             <location filename="src/core/executor.py" />
@@ -6692,17 +7323,17 @@ Click to open its page.</source>
         <message>
             <location filename="src/core/executor.py" />
             <source>done ({n} fields)</source>
-            <translation>完了（{n}フィールド）</translation>
+            <translation>完了（{n}個のフィールド）</translation>
         </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>done ({n} items)</source>
-            <translation>完了（{n}項目）</translation>
+            <translation>完了（{n}個の項目）</translation>
         </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>done, result cut to {n} characters</source>
-            <translation>完了(結果は{n}文字に切り詰められました)</translation>
+            <translation>完了（結果は{n}文字に切り詰められました）</translation>
         </message>
         <message>
             <location filename="src/core/executor.py" />
@@ -6724,11 +7355,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Your answer covers the other {tool} calls this answer makes.</source>
-            <translation>あなたの回答は、この回答が行う他の {tool} 呼び出しをカバーします。</translation>
+            <translation>ご回答は、同じ応答内の他の{tool}呼び出しにも適用されます。</translation>
         </message>
         <message>
             <source>Question mode is read only: the snippet {what}.</source>
-            <translation>質問モードは読み取り専用です: スニペット {what}。</translation>
+            <translation>質問モードは読取専用です。このコードは{what}。</translation>
         </message>
         <message>
             <source>Run Python code</source>
@@ -6736,23 +7367,27 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Run Python code that {what}.</source>
-            <translation>{what} を行うPythonコードを実行します。</translation>
+            <translation>Pythonコードを実行します。このコードは{what}。</translation>
         </message>
         <message>
             <source>could not be saved first, so Undo could not take it back</source>
-            <translation>最初に保存できなかったため、元に戻すことができませんでした</translation>
+            <translation>事前に保存できなかったため、「元に戻す」で復元できませんでした</translation>
         </message>
         <message>
             <source>deletes features from {files}</source>
-            <translation>{files} からフィーチャを削除します</translation>
+            <translation>{files}から地物を削除します</translation>
         </message>
         <message>
             <source>saves an edit into {files}</source>
-            <translation>{files} に編集を保存します</translation>
+            <translation>{files}に編集を保存します</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>
-            <translation>未保存の編集が {layers} に開いたままだったため、何も元に戻されませんでした</translation>
+            <translation>{layers}に未保存の編集が開いたまま実行されたため、何も復元されませんでした</translation>
+        </message>
+        <message>
+            <source>Run Python code ({what}).</source>
+            <translation>Pythonコードを実行します（{what}）。</translation>
         </message>
     </context>
     <context>
@@ -6804,7 +7439,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/dock/about.py" />
             <source>Later</source>
-            <translation>後で</translation>
+            <translation>あとで</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -6831,16 +7466,16 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>You</source>
-            <translation>あなた</translation>
+            <translation>自分</translation>
         </message>
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>{name}. Click to open.</source>
-            <translation>{name}。クリックして開く。</translation>
+            <translation>{name}。クリックすると開きます。</translation>
         </message>
         <message>
             <source>Edit message</source>
-            <translation>メッセージを編集</translation>
+            <translation>メッセージを編集します。</translation>
         </message>
     </context>
     <context>
@@ -6853,22 +7488,22 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Click to open it in QGIS.</source>
-            <translation>クリックしてQGISで開く。</translation>
+            <translation>クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>CRSが変更されました。クリックしてQGISで開く。</translation>
+            <translation>CRSが変更されました。クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>ファイルがディスクに書き込まれました。クリックしてQGISで開く。</translation>
+            <translation>ファイルがディスクに書き込まれました。クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>New layer. Click to open it in QGIS.</source>
-            <translation>新しいlayer。クリックしてQGISで開く。</translation>
+            <translation>新しいレイヤです。クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -6878,7 +7513,7 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>This layer was removed from the project.</source>
-            <translation>このlayerはプロジェクトから削除されました。</translation>
+            <translation>このレイヤはプロジェクトから削除されました。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -6918,59 +7553,67 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d}地物。クリックしてQGISで開く。</translation>
+            <translation>地物{n:+d}件。クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} 地物。クリックでQGISで開きます。</translation>
+            <translation>地物{n:+d}件。クリックすると、QGISで開きます。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Click to select it in the Layers panel.</source>
-            <translation>クリックしてレイヤーパネルで選択。</translation>
+            <translation>クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Credit: {credit}</source>
-            <translation>クレジット: {credit}</translation>
+            <translation>クレジット：{credit}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
-            <translation>CRSが変更されました。クリックしてレイヤーパネルで選択。</translation>
+            <translation>CRSが変更されました。クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
-            <translation>ファイルがディスクに書き込まれました。クリックしてレイヤーパネルで選択。</translation>
+            <translation>ファイルがディスクに書き込まれました。クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>Licence: {licence}</source>
-            <translation>ライセンス: {licence}</translation>
+            <translation>ライセンス：{licence}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>New layer. Click to select it in the Layers panel.</source>
-            <translation>新しいレイヤ。クリックしてレイヤーパネルで選択。</translation>
+            <translation>新しいレイヤです。クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
-            <translation>{n:+d}件のフィーチャ。クリックしてレイヤーパネルで選択。</translation>
+            <translation>地物{n:+d}件。クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
-            <translation>{n:+d}件のフィーチャ。クリックしてレイヤーパネルで選択。</translation>
+            <translation>地物{n:+d}件。クリックすると、レイヤパネルで選択します。</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
-            <translation>このlayerはプロジェクトにもうありません。</translation>
+            <translation>このレイヤはもうプロジェクトにありません。</translation>
         </message>
         <message>
             <source>renamed</source>
             <translation>名前変更済み</translation>
+        </message>
+        <message>
+            <source>New layer, %n features. Click to select it in the Layers panel.</source>
+            <translation>新しいレイヤ、%n 地物。クリックするとレイヤパネルで選択します。</translation>
+        </message>
+        <message>
+            <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
+            <translation>新しいレイヤ、1 地物。クリックするとレイヤパネルで選択します。</translation>
         </message>
     </context>
     <context>
@@ -7010,12 +7653,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Answers itself in %n seconds</source>
-            <translation>%n秒後に自動応答</translation>
+            <translation>%n秒後に自動で回答します</translation>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Answers itself in 1 second</source>
-            <translation>1秒後に自動応答</translation>
+            <translation>1秒後に自動で回答します</translation>
         </message>
     </context>
     <context>
@@ -7049,7 +7692,7 @@ Click to open its page.</source>
         <name>NoticeBar</name>
         <message>
             <source>Dismiss</source>
-            <translation>閉じる</translation>
+            <translation>閉じます。</translation>
         </message>
         <message>
             <source>Read more</source>
@@ -7072,7 +7715,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
-            <translation>このプラグインについてQGISプラグインマネージャを開きます。</translation>
+            <translation>QGISのプラグインマネージャで、このプラグインを表示します。</translation>
         </message>
         <message>
             <source>Read the guide</source>
@@ -7080,11 +7723,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Show the plugin's panel.</source>
-            <translation>プラグインのパネルを表示。</translation>
+            <translation>プラグインのパネルを表示します。</translation>
         </message>
         <message>
             <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>文章チュートリアル、TerraLabブログにて。</translation>
+            <translation>TerraLabブログの文章版チュートリアルです。</translation>
         </message>
     </context>
     <context>
@@ -7103,17 +7746,17 @@ Click to open its page.</source>
         </message>
         <message>
             <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>QGIS 用の他の 2 つの TerraLab プラグイン。ここからインストールできます。</translation>
+            <translation>QGIS向けの、他の2つのTerraLabプラグインです。ここからインストールできます。</translation>
         </message>
         <message>
             <location filename="src/ui/siblings_page.py" />
             <source>Edit your imagery with a single sentence.</source>
-            <translation>画像を一文で編集。</translation>
+            <translation>画像を一文で編集できます。</translation>
         </message>
         <message>
             <location filename="src/ui/siblings_page.py" />
             <source>Turn buildings, trees or water into polygons.</source>
-            <translation>建物、樹木、水域をポリゴンに変換。</translation>
+            <translation>建物、樹木、水域をポリゴンに変換します。</translation>
         </message>
     </context>
     <context>
@@ -7140,7 +7783,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Update to keep using {product}. It takes one click, and the plugin reloads on its own.</source>
-            <translation>{product} を使い続けるには更新してください。ワンクリックで完了し、プラグインは自動的に再読み込みされます。</translation>
+            <translation>{product}を使い続けるには更新してください。ワンクリックで完了し、プラグインは自動的に再読み込みされます。</translation>
         </message>
         <message>
             <source>Updating…</source>
@@ -7151,7 +7794,7 @@ Click to open its page.</source>
         <name>_Body</name>
         <message>
             <source>… {n} more lines</source>
-            <translation>… あと{n}行</translation>
+            <translation>…ほか{n}行</translation>
         </message>
     </context>
     <context>
@@ -7162,55 +7805,83 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Deleted {n} working layer</source>
-            <translation>作業レイヤを{n}つ削除しました</translation>
+            <translation>作業用レイヤを{n}個削除しました</translation>
         </message>
         <message>
             <source>Deleted {n} working layers</source>
-            <translation>作業レイヤを{n}つ削除しました</translation>
+            <translation>作業用レイヤを{n}個削除しました</translation>
         </message>
         <message>
             <source>I left {n} working layer behind.</source>
-            <translation>作業レイヤを{n}つ残しました。</translation>
+            <translation>作業用レイヤを{n}個残しました。</translation>
         </message>
         <message>
             <source>I left {n} working layers behind.</source>
-            <translation>作業レイヤを{n}つ残しました。</translation>
+            <translation>作業用レイヤを{n}個残しました。</translation>
         </message>
         <message>
             <source>Keep them</source>
-            <translation>保持する</translation>
+            <translation>残す</translation>
         </message>
         <message>
             <source>Kept {n} working layer</source>
-            <translation>作業レイヤを{n}つ保持しました</translation>
+            <translation>作業用レイヤを{n}個保持しました</translation>
         </message>
         <message>
             <source>Kept {n} working layers</source>
-            <translation>作業レイヤを{n}つ保持しました</translation>
+            <translation>作業用レイヤを{n}個保持しました</translation>
         </message>
         <message>
             <source>Tidied {n} working layer away</source>
-            <translation>作業レイヤを{n}つ片付けました</translation>
+            <translation>作業用レイヤを{n}個整理しました</translation>
         </message>
         <message>
             <source>Tidied {n} working layers away</source>
-            <translation>作業レイヤを{n}つ片付けました</translation>
+            <translation>作業用レイヤを{n}個整理しました</translation>
         </message>
         <message>
             <source>Tidy up</source>
-            <translation>片付ける</translation>
+            <translation>整理</translation>
         </message>
         <message>
             <source>Working layers</source>
-            <translation>作業レイヤ</translation>
+            <translation>作業用レイヤ</translation>
         </message>
         <message>
             <source>and {n} more</source>
-            <translation>他{n}件</translation>
+            <translation>ほか{n}件</translation>
         </message>
         <message>
             <source>pending</source>
             <translation>保留中</translation>
+        </message>
+        <message>
+            <source>Group and hide</source>
+            <translation>グループ化して非表示</translation>
+        </message>
+        <message>
+            <source>Keep them where they are</source>
+            <translation>そのままにする</translation>
+        </message>
+        <message>
+            <source>Move them into a hidden, collapsed group named {group}</source>
+            <translation>{group}という非表示で折りたたまれたグループに移動します</translation>
+        </message>
+        <message>
+            <source>Moved {n} layer into {group}</source>
+            <translation>{n} レイヤを{group}に移動しました</translation>
+        </message>
+        <message>
+            <source>Moved {n} layers into {group}</source>
+            <translation>{n} レイヤを{group}に移動しました</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layer behind</source>
+            <translation>エージェントが作業用レイヤを{n}個残しました</translation>
+        </message>
+        <message>
+            <source>The agent left {n} working layers behind</source>
+            <translation>エージェントが作業用レイヤを{n}個残しました</translation>
         </message>
     </context>
     <context>
@@ -7248,7 +7919,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Out of runs</source>
-            <translation>実行回数上限</translation>
+            <translation>上限に到達</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -7260,12 +7931,12 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>Bad answer</source>
-            <translation>悪い回答</translation>
+            <translation>悪い回答として評価します。</translation>
         </message>
         <message>
             <location filename="src/ui/bubbles.py" />
             <source>Good answer</source>
-            <translation>良い回答</translation>
+            <translation>良い回答として評価します。</translation>
         </message>
     </context>
     <context>
@@ -7306,7 +7977,7 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Live, loaded {day}</source>
-            <translation>ライブ、{day} に読み込み済み</translation>
+            <translation>ライブ、{day}に読み込み済み</translation>
         </message>
         <message>
             <source>Your own file</source>
@@ -7322,34 +7993,42 @@ Click to open its page.</source>
         </message>
         <message>
             <source>extent: {box} ({crs})</source>
-            <translation>範囲: {box} ({crs})</translation>
+            <translation>領域：{box}（{crs}）</translation>
         </message>
         <message>
             <source>inputs: {names}</source>
-            <translation>入力: {names}</translation>
+            <translation>入力：{names}</translation>
         </message>
         <message>
             <source>parameters: {params}</source>
-            <translation>パラメータ: {params}</translation>
+            <translation>パラメータ：{params}</translation>
         </message>
         <message>
             <source>source: {source}</source>
-            <translation>ソース: {source}</translation>
+            <translation>ソース：{source}</translation>
         </message>
         <message>
             <source>tool: {tool}</source>
-            <translation>ツール: {tool}</translation>
+            <translation>ツール：{tool}</translation>
         </message>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC、AI Agent by TerraLab が追加</translation>
+            <translation>{day} UTC、AI Agent by TerraLabが追加</translation>
         </message>
     </context>
     <context>
         <name>_MoreChip</name>
         <message>
             <source>+{n} more</source>
-            <translation>+{n} 件追加</translation>
+            <translation>ほか{n}件</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>レイヤを1行で表示</translation>
         </message>
     </context>
     <context>
@@ -7374,7 +8053,7 @@ Click to open its page.</source>
         <name>FileOutputCard</name>
         <message>
             <source>Add to map</source>
-            <translation>マップに追加</translation>
+            <translation>地図に追加</translation>
         </message>
         <message>
             <source>File</source>
@@ -7402,11 +8081,11 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Raster data</source>
-            <translation>Raster データ</translation>
+            <translation>ラスタデータ</translation>
         </message>
         <message>
             <source>Show in folder</source>
-            <translation>フォルダに表示</translation>
+            <translation>フォルダで表示</translation>
         </message>
         <message>
             <source>Table</source>
@@ -7414,28 +8093,28 @@ Click to open its page.</source>
         </message>
         <message>
             <source>Vector data</source>
-            <translation>ベクターデータ</translation>
+            <translation>ベクタデータ</translation>
         </message>
         <message>
             <source>Web page</source>
-            <translation>Web ページ</translation>
+            <translation>Webページ</translation>
         </message>
         <message>
             <source>{path}
 This file is no longer where the run wrote it.</source>
             <translation>{path}
-このファイルは実行が書き出した場所にもうありません。</translation>
+このファイルは、実行で作成された場所にはもうありません。</translation>
         </message>
     </context>
     <context>
         <name>FilePreview</name>
         <message>
             <source>1 page</source>
-            <translation>1 ページ</translation>
+            <translation>1ページ</translation>
         </message>
         <message>
             <source>Close</source>
-            <translation>閉じる</translation>
+            <translation>閉じます。</translation>
         </message>
         <message>
             <source>No preview for this kind of file.</source>
@@ -7447,34 +8126,34 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>Show in folder</source>
-            <translation>フォルダに表示</translation>
+            <translation>フォルダで表示</translation>
         </message>
         <message>
             <source>The first {shown} of {total} pages. Open the file to read the rest.</source>
-            <translation>全 {total} ページ中、最初の {shown} ページを表示しています。残りを読むにはファイルを開いてください。</translation>
+            <translation>全{total}ページ中、最初の{shown}ページを表示しています。残りを読むにはファイルを開いてください。</translation>
         </message>
         <message>
             <source>This file is no longer at {path}.</source>
-            <translation>このファイルは {path} にもう存在しません。</translation>
+            <translation>このファイルは{path}にもう存在しません。</translation>
         </message>
         <message>
             <source>[The first 512 KB. Open the file to read the rest.]</source>
-            <translation>[最初の 512 KB です。残りを読むにはファイルを開いてください。]</translation>
+            <translation>[最初の512KBです。残りを読むにはファイルを開いてください。]</translation>
         </message>
         <message>
             <source>{count} pages</source>
-            <translation>{count} ページ</translation>
+            <translation>{count}ページ</translation>
         </message>
     </context>
     <context>
         <name>RunsLeftLine</name>
         <message>
             <source>1 free run left</source>
-            <translation>無料の実行が残り 1 回</translation>
+            <translation>無料の実行：残り1回</translation>
         </message>
         <message>
             <source>Get Pro</source>
-            <translation>Pro を入手</translation>
+            <translation>Proを始める</translation>
         </message>
         <message>
             <source>Get more runs</source>
@@ -7482,11 +8161,11 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>{left} of {limit} free runs left</source>
-            <translation>無料の実行は残り {limit} 回中 {left} 回</translation>
+            <translation>無料の実行：残り{left}回（全{limit}回）</translation>
         </message>
         <message>
             <source>{n} free runs left</source>
-            <translation>無料の実行が残り {n} 回</translation>
+            <translation>無料の実行：残り{n}回</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -7494,29 +8173,33 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>Get Pro for High effort</source>
-            <translation>高エフォートを使うには Pro を取得</translation>
+            <translation>Highの推論レベルを使うにはProにアップグレード</translation>
         </message>
         <message>
             <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro: 月 {n} 回の実行、難易度の高いタスク向けの中・高エフォート、オートパイロット</translation>
+            <translation>Proでは、月{n}回の実行、難しいタスク向けのMediumとHighの推論レベル、オートパイロットを利用できます。</translation>
+        </message>
+        <message>
+            <source>Get more runs with Pro</source>
+            <translation>Proで実行回数を増やす</translation>
         </message>
     </context>
     <context>
         <name>SourceCard</name>
         <message>
             <source>%n examples</source>
-            <translation>例 %n 件</translation>
+            <translation>%n件の作例</translation>
         </message>
         <message>
             <source>1 example</source>
-            <translation>例 1 件</translation>
+            <translation>1件の作例</translation>
         </message>
     </context>
     <context>
         <name>_MoreRow</name>
         <message>
             <source>+%n more</source>
-            <translation>+%n 件</translation>
+            <translation>ほか%n個</translation>
         </message>
     </context>
     <context>
@@ -7530,7 +8213,7 @@ This file is no longer where the run wrote it.</source>
         <name>FeedbackReason</name>
         <message>
             <source>Close</source>
-            <translation>閉じる</translation>
+            <translation>閉じます。</translation>
         </message>
         <message>
             <source>Did not do what I asked</source>
@@ -7542,7 +8225,7 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>Thanks</source>
-            <translation>ありがとう</translation>
+            <translation>ありがとうございます</translation>
         </message>
         <message>
             <source>Too slow</source>
@@ -7550,7 +8233,7 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>What went wrong? (optional)</source>
-            <translation>何が問題でしたか? (任意)</translation>
+            <translation>何が問題でしたか？（任意）</translation>
         </message>
         <message>
             <source>Wrong result</source>
@@ -7561,22 +8244,55 @@ This file is no longer where the run wrote it.</source>
         <name>QueueStrip</name>
         <message>
             <source>Show {n} more</source>
-            <translation>あと {n} 件表示</translation>
+            <translation>さらに{n}件を表示</translation>
         </message>
     </context>
     <context>
         <name>_QueueRow</name>
         <message>
             <source>Edit this message</source>
-            <translation>このメッセージを編集</translation>
+            <translation>このメッセージを編集します。</translation>
         </message>
         <message>
             <source>Remove from the queue</source>
-            <translation>キューから削除</translation>
+            <translation>キューから削除します。</translation>
         </message>
         <message>
             <source>Send this message now</source>
-            <translation>このメッセージを今すぐ送信</translation>
+            <translation>このメッセージを今すぐ送信します。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FilesMore</name>
+        <message>
+            <source>+{n} more</source>
+            <translation>ほか{n}件</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>レイヤを1行で表示</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceDetails</name>
+        <message>
+            <source>Open dataset page</source>
+            <translation>データセットのページを開く</translation>
+        </message>
+        <message>
+            <source>Open page</source>
+            <translation>ページを開く</translation>
+        </message>
+    </context>
+    <context>
+        <name>_SourceRow</name>
+        <message>
+            <source>Served by TerraLab</source>
+            <translation>TerraLabが提供</translation>
         </message>
     </context>
 </TS>

@@ -26,7 +26,7 @@ from .controller_shared import (
 )
 from .logger import log_warning
 from .profile import profile_context
-from .protocol import Approval, Mode, RunStatus
+from .protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, Approval, Mode, RunStatus
 from .security import allow_attached_paths, remember_user_text, vouched_for_thread
 from .telemetry_errors import report_exception, track_plugin_error
 from .threads import user_message_record
@@ -39,8 +39,6 @@ def tr(text: str) -> str:
 class _ControllerRuns:
     def _on_send(self, text: str, mode: str, approval: str, chips, attachments, reuse_layers: bool = False,
                  replaces: str | None = None) -> None:
-
-
 
         text = (text or "").strip()
         if not text:
@@ -65,7 +63,7 @@ class _ControllerRuns:
                 "chips": [c for c in (chips or []) if isinstance(c, dict)],
                 "attachments": [a for a in (attachments or []) if isinstance(a, dict)]})
             self._panel_call("show_error", None, "OFFLINE",
-                             tr("Not connected to the agent service, so nothing was sent. Reconnecting now: "
+                             tr("Not connected to TerraLab, so nothing was sent. Reconnecting now: "
                                 "your message is kept, and Retry sends it once the connection is back."),
                              True, "", key)
             return
@@ -79,10 +77,8 @@ class _ControllerRuns:
 
         effort = self._effort()
         example = self._example_sent(text)
-        (edited_thread, edited), self._replaces = getattr(self, "_replaces", ("", "")), ("", "")
         self._retry_after_restore = ("", "")
-        if replaces is None:
-            replaces = edited if edited and edited_thread == self._thread_id else ""
+        replaces = str(replaces or "")
 
         reuse_layers = reuse_layers or bool(replaces)
         chips = [c for c in (chips or []) if isinstance(c, dict)]
@@ -133,8 +129,6 @@ class _ControllerRuns:
             telemetry.track(ev.AGENT_RUN_STARTED, {
                 "run_id": run_id, "mode": mode, "approval": approval, "effort": effort,
                 "attachment_count": len(attachments), "chip_count": len(chips), "new_thread": new_thread})
-            if telemetry.first_run_recorded():
-                telemetry.track(ev.FIRST_RUN_MILESTONE)
             self._last_run = {"text": text, "mode": mode, "approval": approval, "chips": chips,
                               "attachments": attachments}
             self._agent_text[run_id] = ""
@@ -146,7 +140,6 @@ class _ControllerRuns:
 
             self._panel_call("set_steer_available",
                              self._session.steer_available and self._session.unsteer_available)
-            self._panel_call("set_edit_available", self._session.edit_last_available)
             began = True
             self._panel_call("append_user_message", run_id, text, chips, attachments)
             self._store.append_message(self._thread_id, record)
@@ -162,10 +155,10 @@ class _ControllerRuns:
 
             log_warning(f"Run {run_id} never left the socket ({self._session.state})")
             self._panel_call("show_error", run_id, "OFFLINE",
-                             tr("The message could not be sent: the connection to the agent service is down."),
+                             tr("The message could not be sent: the connection to TerraLab is down."),
                              True, "")
             self._finish_run(run_id, RunStatus.FAILED,
-                             tr("Not connected to the agent service. Retry once the connection is back."), {}, None)
+                             tr("Not connected to TerraLab. Retry once the connection is back."), {}, None)
         else:
             self._runs.sent(run_id)
             self._touch_watchdog()
@@ -247,22 +240,6 @@ class _ControllerRuns:
                       [dict(c) for c in asked.get("chips") or [] if isinstance(c, dict)],
                       [dict(a) for a in attachments if isinstance(a, dict)], reuse_layers=True,
                       replaces=str(replaces or ""))
-
-    def _on_edit_last(self, run_id: str) -> None:
-
-
-
-        run_id = str(run_id or "")
-        if not run_id:
-            self._replaces = ("", "")
-            return
-        asked = self._retry_input(run_id) if self._run is None else None
-        if asked is None:
-            return
-        self._replaces = (self._thread_id or "", run_id)
-        self._panel_call("begin_edit", run_id, str(asked.get("text") or ""),
-                         [dict(c) for c in asked.get("chips") or [] if isinstance(c, dict)],
-                         [dict(a) for a in asked.get("attachments") or [] if isinstance(a, dict)])
 
     def _on_undo_retry(self, run_id: str) -> None:
 
@@ -361,21 +338,34 @@ class _ControllerRuns:
             self._panel_call("steer_refused", steer_id)
 
     def _on_stop(self, run_id: str) -> None:
+        again = self._runs.cancelled()
         run = self._runs.stop(run_id)
         if run is None:
+            return
+        if again:
+
+
+            self._end_run_locally()
             return
 
         self._resend_timer.stop()
         self._lost_timer.stop()
+        heard = False
         try:
-            self._session.send_cancel(run["run_id"])
+
+
+
+            heard = self._session.send_cancel(run["run_id"], CANCEL_STOP) and self._session.is_online
             self._executor.cancel_run(run["run_id"])
             self._cancel_proposals(run["run_id"])
             self._panel_call("set_status_line", run["run_id"], tr("Stopping..."))
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "stop", module=__name__, run_id=run["run_id"])
         finally:
-            self._end_timer.start(CANCEL_GRACE_MS)
+            if heard:
+                self._end_timer.start(CANCEL_GRACE_MS)
+            else:
+                self._end_run_locally()
 
     def _end_run_locally(self) -> None:
         run = self._run
@@ -393,7 +383,7 @@ class _ControllerRuns:
 
 
             summary = (tr("Stopped before the agent answered.") if cancelled
-                       else tr("The run ended without a summary from the agent service."))
+                       else tr("The run ended without a summary from TerraLab."))
         self._finish_run(run["run_id"], status, summary, {}, None)
 
     def _resend_run(self, grace: int = RUN_SILENCE_S) -> None:
@@ -460,7 +450,7 @@ class _ControllerRuns:
         if self._runs.cancelled():
             self._end_run_locally()
             return
-        message = tr("The connection dropped and the agent service no longer has this run. You can retry it.")
+        message = tr("The connection dropped and TerraLab no longer has this run. You can retry it.")
         try:
             log_warning(f"Run {run_id[:8]}: no outcome after the refused resume, ending the run locally")
             self._panel_call("show_error", run_id, "LOST", message, True, "")
@@ -491,18 +481,18 @@ class _ControllerRuns:
             return
         if self._session.is_online:
             code = "TIMEOUT"
-            message = tr("The agent service stopped answering. The run was ended, you can retry it.")
+            message = tr("TerraLab stopped answering. The run was ended, you can retry it.")
         else:
 
 
             code = "OFFLINE"
             message = tr(
-                "The connection to the agent service was lost and did not come back. "
+                "The connection to TerraLab was lost and did not come back. "
                 "The run was ended, you can retry it once you are online."
             )
         try:
             log_warning(f"Run {run['run_id'][:8]}: nothing from the server for too long, ending it locally")
-            self._session.send_cancel(run["run_id"])
+            self._session.send_cancel(run["run_id"], CANCEL_SERVER_SILENT)
             self._panel_call("show_error", run["run_id"], code, message, True, "")
             track_plugin_error("watchdog", code, run["run_id"])
             telemetry.track(

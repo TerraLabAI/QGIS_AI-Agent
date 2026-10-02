@@ -26,12 +26,17 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import json
-import time
+import re
 
-from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from .card_base import format_duration
@@ -40,7 +45,14 @@ from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
 from .source_marks import source_host, source_mark_pixmap
 from .style import INK_2, INK_3, SPACE_TIGHT, qcolor
-from .tool_describe import call_subject, describe_tool_call, group_number, result_facts
+from .tool_describe import (
+    _with_layer_names,
+    call_subject,
+    count_text,
+    describe_tool_call,
+    is_background_job,
+    result_facts,
+)
 from .trace_rows import (
     _HINT_QSS,
     _LABEL_QSS,
@@ -65,10 +77,14 @@ _VERB_MIN_PX = 130
 _QWIDGETSIZE_MAX = (1 << 24) - 1
 _OUTCOME_MIN_PX = 90
 
+_SOURCE_MIN_PX = 56
 
 
 
-_ELAPSED_AFTER_S = 3.0
+_PERCENT_RE = re.compile(r"(\d{1,3}(?:[.,]\d)?)\s?%")
+
+
+MEASURE_HEAD_RE = re.compile(r"^.*?\d[\d.,]*(?:\u00a0\S+)?")
 
 
 SEARCH_TOOLS = frozenset({
@@ -147,8 +163,16 @@ def secondary_of(card: ToolCard) -> str:
 
 
 
+    source = card.source_text() if callable(getattr(card, "source_text", None)) else ""
+    head = card.head_text() if callable(getattr(card, "head_text", None)) else ""
+    if source:
+
+
+
+        repeated = getattr(card, "connector", None) is not None and source.lower() in head.lower()
+        return "" if repeated else source
     subject = card.subject_text() if callable(getattr(card, "subject_text", None)) else ""
-    if not subject:
+    if not subject and getattr(card, "connector", None) is not None:
         subject, _ = call_subject(card.name, card.args)
     chip = str(card.chip_text() or "")
     label = str(card.label_text() if callable(getattr(card, "label_text", None)) else "")
@@ -156,6 +180,52 @@ def secondary_of(card: ToolCard) -> str:
     if text and label and _same_subject(text, label):
         return ""
     return text
+
+
+class _RowSpinner(Spinner):
+
+
+
+
+
+
+
+
+
+    def __init__(self, diameter: int, color, parent=None):
+        super().__init__(diameter, color=color, parent=parent)
+        self._held = False
+        self._still = None
+
+    def start(self) -> None:
+        self._held = False
+        super().start()
+        self.update()
+
+    def stop(self) -> None:
+
+
+        self._held = self._held or self._wanted
+        super().stop()
+        self.update()
+
+    def finish(self) -> None:
+
+        self._held = False
+        super().stop()
+
+    def paintEvent(self, event):  # noqa: N802
+        if not self._held:
+            super().paintEvent(event)
+            return
+        try:
+            if self._still is None:
+                self._still = pixmap_for(self, "clock", GLYPH_PX, qcolor(INK_3))
+            painter = QPainter(self)
+            painter.drawPixmap(0, 0, self._still)
+            painter.end()
+        except Exception:  # noqa: BLE001
+            return
 
 
 class _ResultRow(QWidget):
@@ -197,6 +267,11 @@ class ActivityRow(QWidget):
         self._open = False
         self._opens = False
         self._results: list[tuple[str, str]] = []
+
+
+        self._job_over = False
+        self._job_percent = ""
+        self._second_is_source = False
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(0)
@@ -208,16 +283,18 @@ class ActivityRow(QWidget):
         self._icon.setFixedSize(GLYPH_SLOT_PX, GLYPH_SLOT_PX)
         self._icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         row.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._spinner = Spinner(GLYPH_PX, color=INK_3, parent=self._head)
+        self._spinner = _RowSpinner(GLYPH_PX, INK_3, self._head)
         row.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
-        self._label = ElidedLabel("", self._head)
+
+
+        self._label = ElidedLabel("", self._head, Qt.TextElideMode.ElideRight)
         self._label.setObjectName("activityLabel")
         self._label.setStyleSheet(_MEDIUM_QSS)
         self._label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
         row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._secondary = ElidedLabel("", self._head)
+        self._secondary = ElidedLabel("", self._head, Qt.TextElideMode.ElideMiddle)
         self._secondary.setObjectName("activitySubject")
         self._secondary.setStyleSheet(_HINT_QSS)
         self._secondary.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
@@ -259,11 +336,6 @@ class ActivityRow(QWidget):
         self._body_col.addWidget(self._results_host)
         self._body.hide()
         col.addWidget(self._body)
-
-        self._since = 0.0
-        self._ticker = QTimer(self)
-        self._ticker.setInterval(1000)
-        self._ticker.timeout.connect(self._sync_elapsed)
         self.add(card)
 
 
@@ -275,19 +347,14 @@ class ActivityRow(QWidget):
         card.hide()
         self._body_col.addWidget(card)
         self.cards.append(card)
-        self._since = time.monotonic()
+        self._job_over = False
+        self._job_percent = ""
         card.state_changed.connect(self.refresh)
         card.expanded_changed.connect(self._on_card_expanded)
         self.refresh()
 
     def _on_card_expanded(self, card: ToolCard, expanded: bool) -> None:
         card.setVisible(bool(expanded) and card.opens())
-        if not expanded and card.ok is None and not getattr(card, "ended", ""):
-
-
-
-            self._since = time.monotonic()
-            self._sync_elapsed()
         self._sync_open()
 
     @property
@@ -306,10 +373,37 @@ class ActivityRow(QWidget):
 
 
 
-        self._label.setMinimumWidth(min(_VERB_MIN_PX, self._label.sizeHint().width()))
+
+
+
+
+
+
+        verb_min = min(_VERB_MIN_PX, self._label.sizeHint().width())
+        measure = MEASURE_HEAD_RE.match(self._label.full_text())
+        if measure:
+            head = self._label.fontMetrics().horizontalAdvance(measure.group(0) + "\u2026")
+            verb_min = min(max(verb_min, head), self._label.sizeHint().width())
+        self._label.setMinimumWidth(verb_min)
         if not self._secondary.isVisibleTo(self):
+            self._secondary.setMinimumWidth(0)
             self._secondary.setMaximumWidth(_QWIDGETSIZE_MAX)
             return
+        if self._second_is_source:
+            verb = self._label.sizeHint().width()
+            shown = min(self._secondary.sizeHint().width(), self._secondary.maximumWidth())
+            others = self._head.sizeHint().width() - shown - verb
+            room = self._head.width() - others - min(_VERB_MIN_PX, verb)
+            whole = self._secondary.sizeHint().width()
+            keep = max(0, min(whole, room))
+            if keep < min(whole, _SOURCE_MIN_PX):
+
+
+                keep = 0
+            self._secondary.setMinimumWidth(keep)
+            self._secondary.setMaximumWidth(keep)
+            return
+        self._secondary.setMinimumWidth(0)
 
         shown = min(self._secondary.sizeHint().width(), self._secondary.maximumWidth())
         others = self._head.sizeHint().width() - shown
@@ -323,10 +417,14 @@ class ActivityRow(QWidget):
 
 
 
+
         label = self.label()
         n = self.repeats
         if n > 1:
             return f"{label} \u00d7 {n}".strip()
+        last = self.cards[-1]
+        if callable(getattr(last, "source_text", None)) and last.source_text():
+            return label
         second = self.secondary()
         if label and second and second.lower().startswith(label.lower()):
             return second
@@ -334,22 +432,49 @@ class ActivityRow(QWidget):
 
 
 
+    def job_live(self) -> bool:
+
+
+        last = self.cards[-1]
+        return not self._job_over and last.ok is True and \
+            is_background_job(last.summary, getattr(last, "detail", ""))
+
+    def set_job_status(self, text: str) -> None:
+
+        if not self.job_live():
+            return
+        found = _PERCENT_RE.findall(str(text or ""))
+        percent = f"{found[-1]}\u202f%" if found else ""
+        if percent != self._job_percent:
+            self._job_percent = percent
+            self.refresh()
+
+    def end_job(self) -> None:
+
+        if self._job_over:
+            return
+        self._job_over = True
+        if self.cards[-1].ok is True and is_background_job(
+                self.cards[-1].summary, getattr(self.cards[-1], "detail", "")):
+            self.refresh()
+
     def refresh(self) -> None:
         first = self.cards[0]
         last = self.cards[-1]
-        running = any(card.ok is None and not getattr(card, "ended", "") for card in self.cards)
+        calling = any(card.ok is None and not getattr(card, "ended", "") for card in self.cards)
+        running = calling or self.job_live()
         self._spinner.setVisible(running)
         self._icon.setVisible(not running)
         if running:
-            self._spinner.start()
-            self._ticker.start()
+            if not self._spinner._held:
+                self._spinner.start()
         else:
-            self._spinner.stop()
-            self._ticker.stop()
-        connector = getattr(first, "connector", None) or {}
-        label = str(connector.get("name") or "") or str(getattr(first, "_verb", "") or "")
-        self._label.setText(label or describe_tool_call(first.name, first.args))
+            self._spinner.finish()
+        head = first.head_text() if callable(getattr(first, "head_text", None)) else ""
+        self._label.setText(head or describe_tool_call(first.name, first.args))
         second = secondary_of(last)
+        self._second_is_source = bool(second) and callable(getattr(last, "source_text", None)) \
+            and second == last.source_text()
         self._secondary.setText(second)
         self._secondary.setVisible(bool(second))
         ended = "" if running else str(getattr(last, "ended", "") or "")
@@ -371,11 +496,11 @@ class ActivityRow(QWidget):
         n = self.repeats
         self._count.setText(f"\u00d7 {n}")
         self._count.setVisible(n > 1)
-        self._results = [] if running else self._search_results(last)
+        self._results = [] if calling else self._search_results(last)
         self._sync_results()
         self._sync_outcome(running, failed, ended, failures if failures and not failed else 0)
         self._fit_verb()
-        self._opens = not running and (bool(self._results) or any(card.opens() for card in self.cards))
+        self._opens = not calling and (bool(self._results) or any(card.opens() for card in self.cards))
         self._head.setCursor(Qt.CursorShape.PointingHandCursor if self._opens
                              else Qt.CursorShape.ArrowCursor)
         if not self._opens and self._open:
@@ -385,6 +510,9 @@ class ActivityRow(QWidget):
         lines = []
         for card in self.cards:
             text = card.line()
+            source = card.source_text() if callable(getattr(card, "source_text", None)) else ""
+            if source and source not in text:
+                text = f"{text} · {source}"
             if card.ok is not None and getattr(card, "duration_s", 0):
                 text = f"{text} \u00b7 {format_duration(card.duration_s)}"
             lines.append(text)
@@ -426,52 +554,43 @@ class ActivityRow(QWidget):
         elif ended == "stopped":
             text = self.tr("stopped")
         elif running:
-            text = self._elapsed_text()
-        elif some_failed and not running:
+            text = self._job_percent if self.job_live() else ""
+        elif some_failed:
             text = self.tr("{failed} of {total} did not work").format(
                 failed=some_failed, total=self.repeats)
-        elif not running:
-            if self._results:
-                count = len(self._results)
-                text = self.tr("1 result") if count == 1 else self.tr("{n} results").format(n=count)
-            else:
-                facts = result_facts(self.cards[-1].summary)
-                if facts["count"] is not None:
-                    count = int(facts["count"])
-                    text = (self.tr("1 feature") if count == 1
-                            else self.tr("{n} features").format(n=group_number(count)))
-                elif facts["layer"] and facts["layer"].lower() not in \
-                        f"{self._label.full_text()} {self.secondary()}".lower():
-                    text = f"\u2192 {facts['layer']}"
+        elif self._results:
+            count = len(self._results)
+            text = self.tr("1 result") if count == 1 else self.tr("{n} results").format(n=count)
+        else:
+            last = self.cards[-1]
+            facts = result_facts(last.summary)
+            if facts["count"] is not None:
+                text = count_text(last.summary, getattr(last, "detail", ""))
+            elif facts["layer"] and self._made_layer(last, facts["layer"]):
+                text = f"\u2192 {facts['layer']}"
         self._outcome.setText(text)
         self._outcome.setMinimumWidth(min(_OUTCOME_MIN_PX, self._outcome.sizeHint().width()) if text else 0)
         self._outcome.setVisible(bool(text))
 
-    def _elapsed_text(self) -> str:
+    @staticmethod
+    def _made_layer(card: ToolCard, layer: str) -> bool:
 
 
 
-        live = [card for card in self.cards if card.ok is None and not getattr(card, "ended", "")]
-        if not live or not self._since or any(card.is_expanded() for card in live):
-            return ""
-        elapsed = time.monotonic() - self._since
-        if elapsed < _ELAPSED_AFTER_S:
-            return ""
-        if elapsed < 59.5:
-            return self.tr("{count} s").format(count=int(elapsed))
-        return format_duration(elapsed)
 
-    def _sync_elapsed(self) -> None:
+        wanted = " ".join(str(layer).split()).lower()
+        args = card.args if isinstance(card.args, dict) else {}
+        args = {k: v for k, v in args.items() if k != "output_name"}
+        values = list(_with_layer_names(args).values()) + list(args.values())
+        params = args.get("parameters")
+        if isinstance(params, dict):
+            values += [v for k, v in params.items() if str(k).upper() != "OUTPUT"]
+        for value in values:
 
 
-        if not self.isVisible():
-            return
-        text = self._elapsed_text()
-        if text == self._outcome.full_text():
-            return
-        self._outcome.setText(text)
-        self._outcome.setMinimumWidth(0)
-        self._outcome.setVisible(bool(text))
+            if isinstance(value, str) and wanted and " ".join(value.split()).lower().startswith(wanted):
+                return False
+        return True
 
     def failures(self) -> int:
 
@@ -522,8 +641,7 @@ class ActivityRow(QWidget):
         return last.ok is False and getattr(last, "ended", "") not in ("denied", "stopped")
 
     def cleanup(self) -> None:
-        self._spinner.stop()
-        self._ticker.stop()
+        self._spinner.finish()
         self._chevron.cleanup()
         for card in self.cards:
 

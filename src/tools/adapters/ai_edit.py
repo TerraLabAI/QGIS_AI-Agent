@@ -632,9 +632,9 @@ class AiEditAdapter(PluginAdapter):
             client = self._client(inst) if inst else None
             return getattr(client, "base_url", None) or ""
 
-        from ..data_tools import _run_on_main_thread
+        from ...core.background import run_on_main_thread
 
-        base = _run_on_main_thread(_base_url) or os.environ.get("TERRALAB_BASE_URL") or "https://terra-lab.ai"
+        base = run_on_main_thread(_base_url) or os.environ.get("TERRALAB_BASE_URL") or "https://terra-lab.ai"
         import json
         import urllib.parse
         import urllib.request

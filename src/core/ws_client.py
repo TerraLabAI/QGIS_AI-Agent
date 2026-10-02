@@ -16,9 +16,11 @@
 from __future__ import annotations
 
 import base64
+import errno
 import os
 import queue
 import re
+import selectors
 import socket
 import ssl
 import threading
@@ -27,6 +29,7 @@ from typing import Callable
 from urllib.parse import urlsplit
 
 from .ws_protocol import (
+    DEFLATE_OFFER,
     MAX_MESSAGE_BYTES,
     OP_BINARY,
     OP_CLOSE,
@@ -34,6 +37,7 @@ from .ws_protocol import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Deflate,
     SocketReader,
     WsClosing,
     WsConnectionLost,
@@ -51,7 +55,7 @@ from .ws_protocol import (
     parse_close,
     parse_http_head,
     parse_ws_url,
-    read_frame,
+    read_frame_ext,
 )
 
 __all__ = ["WsConnection", "WsError", "WsHandshakeError", "WsConnectionLost", "WsClosing", "WsProtocolError",
@@ -76,6 +80,13 @@ MAX_QUEUED_BYTES = 32 * 1024 * 1024
 
 
 
+
+
+
+
+_NO_ROUTE_ERRNOS = frozenset(
+    {getattr(errno, n) for n in ("ENETDOWN", "ENETUNREACH", "EHOSTUNREACH") if hasattr(errno, n)}
+    | {10050, 10051, 10065})
 
 
 def _tuned(kind: str, key: str, shipped, *bounds):
@@ -111,9 +122,89 @@ def _tls_context(ca_pem: bytes | None, insecure: bool) -> ssl.SSLContext:
         return ctx
 
 
+class _SharedTls:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, sock: ssl.SSLSocket, timeout: float):
+        sock.setblocking(False)
+        self._sock = sock
+        self._timeout = timeout
+        self._lock = threading.Lock()
+
+    def _call(self, op, arg):
+        deadline = time.monotonic() + self._timeout
+        while True:
+            with self._lock:
+                try:
+                    return op(arg)
+                except ssl.SSLWantReadError:
+                    event = selectors.EVENT_READ
+                except ssl.SSLWantWriteError:
+                    event = selectors.EVENT_WRITE
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise socket.timeout("timed out")
+            try:
+                with selectors.DefaultSelector() as waiter:
+                    waiter.register(self._sock, event)
+                    waiter.select(left)
+            except (ValueError, OSError) as exc:
+                raise OSError(f"socket closed: {exc}") from exc
+
+    def recv(self, size: int) -> bytes:
+        return self._call(self._sock.recv, size)
+
+    def send(self, data) -> int:
+        return self._call(self._sock.send, data)
+
+    def shutdown(self, how: int) -> None:
+        with self._lock:
+            self._sock.shutdown(how)
+
+    def close(self) -> None:
+        with self._lock:
+            self._sock.close()
+
+
+
+
+
+
+
+def _drop_kind(exc: BaseException) -> str:
+
+    if getattr(exc, "kind", ""):
+        return str(exc.kind)
+    cause = exc.__cause__
+    if cause is None:
+        return "eof"
+    if isinstance(cause, ssl.SSLError):
+        return "ssl"
+    if isinstance(cause, ConnectionResetError):
+        return "reset"
+    if isinstance(cause, ConnectionAbortedError):
+        return "aborted"
+    if isinstance(cause, (socket.timeout, TimeoutError)):
+        return "timeout"
+    return "socket"
 
 class WsConnection:
 
@@ -123,8 +214,11 @@ class WsConnection:
     def __init__(self, url: str, headers: dict | None = None, proxy: dict | None = None,
                  insecure: bool = False, connect_timeout: float = _CONNECT_TIMEOUT_S,
                  ca_pem: bytes | None = None, idle_ping_s: float = IDLE_PING_S,
-                 dead_after_s: float = DEAD_AFTER_S, send_timeout: float = _SEND_TIMEOUT_S):
+                 dead_after_s: float = DEAD_AFTER_S, send_timeout: float = _SEND_TIMEOUT_S,
+                 compress: bool = True):
         self.url = url
+        self.compress = compress
+        self._deflate: Deflate | None = None
         self.headers = dict(headers or {})
         self.proxy = proxy
         self.insecure = insecure
@@ -147,6 +241,10 @@ class WsConnection:
         self._queued_bytes = 0
         self._closing_since: float | None = None
         self._close_sent = False
+
+
+        self.closed_by = "none"
+        self.drop_kind = ""
         self._writer_closed = False
         self._last_rx = 0.0
         self._last_tx = 0.0
@@ -172,7 +270,11 @@ class WsConnection:
         except Exception:
             self._close_socket()
             raise
-        sock.settimeout(_POLL_S)
+        if secure:
+
+            self._sock = self._reader.sock = _SharedTls(sock, _POLL_S)
+        else:
+            sock.settimeout(_POLL_S)
         self._last_rx = time.monotonic()
         self.open = True
         self._writer = threading.Thread(target=self._write_loop, name="ai-agent-ws-writer", daemon=True)
@@ -236,7 +338,10 @@ class WsConnection:
         except socket.timeout as exc:
             raise WsConnectionLost(f"timed out connecting to {host}:{port}", "timeout") from exc
         except OSError as exc:
-            raise WsConnectionLost(f"cannot reach {host}:{port}: {exc}", "unreachable") from exc
+
+
+            kind = "no_route" if getattr(exc, "errno", None) in _NO_ROUTE_ERRNOS else "unreachable"
+            raise WsConnectionLost(f"cannot reach {host}:{port}: {exc}", kind) from exc
         self._no_delay(sock)
         sock.settimeout(self.connect_timeout)
         return sock
@@ -295,12 +400,15 @@ class WsConnection:
             f"Sec-WebSocket-Key: {key}",
             "Sec-WebSocket-Version: 13",
         ]
+        if self.compress:
+            lines.append(f"Sec-WebSocket-Extensions: {DEFLATE_OFFER}")
         for name, value in self.headers.items():
             name, value = str(name), str(value)
             if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name) or any(
                     ord(c) < 32 or ord(c) == 127 for c in value):
                 raise WsHandshakeError("invalid custom HTTP header")
-            if name.lower() in {"host", "upgrade", "connection", "sec-websocket-key", "sec-websocket-version"}:
+            if name.lower() in {"host", "upgrade", "connection", "sec-websocket-key", "sec-websocket-version",
+                                "sec-websocket-extensions"}:
                 raise WsHandshakeError("custom header overrides WebSocket handshake")
             lines.append(f"{name}: {value}")
         try:
@@ -323,9 +431,15 @@ class WsConnection:
             raise WsHandshakeError("bad Sec-WebSocket-Accept")
 
 
-        for name in ("sec-websocket-extensions", "sec-websocket-protocol"):
-            if headers.get(name, "").strip():
-                raise WsHandshakeError(f"server enabled {name} that was not offered: {headers[name]}")
+
+        answer = headers.get("sec-websocket-extensions", "").strip()
+        if answer:
+            if not self.compress:
+                raise WsHandshakeError(f"server enabled sec-websocket-extensions that was not offered: {answer}")
+            self._deflate = Deflate.from_answer(answer)
+        if headers.get("sec-websocket-protocol", "").strip():
+            raise WsHandshakeError(
+                f"server enabled sec-websocket-protocol that was not offered: {headers['sec-websocket-protocol']}")
 
 
 
@@ -456,8 +570,13 @@ class WsConnection:
 
 
 
+
+        rsv = 0
+        deflate = self._deflate
+        if deflate is not None and deflate.sends_compressed and opcode in (OP_TEXT, OP_BINARY):
+            payload, rsv = deflate.compress(payload), 4
         if opcode not in (OP_TEXT, OP_BINARY) or len(payload) <= _MESSAGE_FRAGMENT:
-            self._write_frame(encode_frame(opcode, payload, mask=True))
+            self._write_frame(encode_frame(opcode, payload, mask=True, rsv=rsv))
             return
         for start in range(0, len(payload), _MESSAGE_FRAGMENT):
             self._write_controls()
@@ -465,7 +584,7 @@ class WsConnection:
                 return
             end = min(len(payload), start + _MESSAGE_FRAGMENT)
             fragment = encode_frame(opcode if start == 0 else OP_CONT, payload[start:end],
-                                    mask=True, fin=end == len(payload))
+                                    mask=True, fin=end == len(payload), rsv=rsv if start == 0 else 0)
             self._write_frame(fragment)
 
     @staticmethod
@@ -675,23 +794,28 @@ class WsConnection:
             on_pong: Callable[[bytes], None] | None = None) -> tuple[int, str]:
 
         frag_opcode = None
+        frag_compressed = False
         frag_buf = bytearray()
         code, reason = 1006, "connection lost"
+        deflate = self._deflate
         try:
             while True:
                 try:
-                    fin, opcode, payload = read_frame(self._reader, require_mask=False)
+                    fin, compressed, opcode, payload = read_frame_ext(self._reader, False, deflate is not None)
                 except WsConnectionLost as exc:
                     if self._close_sent:
                         code, reason = 1000, ""
+                        self.closed_by = "plugin"
                     else:
                         failed_send = self._settled_send_error()
                         reason = str(failed_send) if failed_send is not None else str(exc)
+                        self.drop_kind = _drop_kind(failed_send or exc)
                     break
                 self._last_rx = time.monotonic()
                 self._ping_sent_at = None
                 if opcode == OP_CLOSE:
                     code, reason = parse_close(payload)
+                    self.closed_by = "plugin" if self._close_sent else "server"
                     if not self._close_sent:
                         self._close_sent = True
                         try:
@@ -714,10 +838,12 @@ class WsConnection:
                     if frag_opcode is not None:
                         raise WsProtocolError("new data frame inside a fragmented message")
                     if fin:
+                        if compressed:
+                            payload = deflate.decompress(payload)
                         if opcode == OP_TEXT:
                             on_text(decode_text(payload))
                         continue
-                    frag_opcode, frag_buf = opcode, bytearray(payload)
+                    frag_opcode, frag_compressed, frag_buf = opcode, compressed, bytearray(payload)
                     continue
                 if frag_opcode is None:
                     raise WsProtocolError("continuation frame without a start")
@@ -725,9 +851,12 @@ class WsConnection:
                 if len(frag_buf) > MAX_MESSAGE_BYTES:
                     raise WsProtocolError("fragmented message exceeds the 16 MiB limit", 1009)
                 if fin:
+                    message = bytes(frag_buf)
+                    if frag_compressed:
+                        message = deflate.decompress(message)
                     if frag_opcode == OP_TEXT:
-                        on_text(decode_text(bytes(frag_buf)))
-                    frag_opcode, frag_buf = None, bytearray()
+                        on_text(decode_text(message))
+                    frag_opcode, frag_compressed, frag_buf = None, False, bytearray()
         except WsProtocolError as exc:
             code, reason = exc.code, str(exc)
             if not self._close_sent:
@@ -746,6 +875,11 @@ class WsConnection:
 
 
 
+def _entry_host(entry: str) -> str:
+
+    return (urlsplit(entry if "://" in entry else "//" + entry).hostname or entry).lower().rstrip(".")
+
+
 def _excluded(url: str, host: str, entries) -> bool:
 
     for entry in entries or []:
@@ -754,7 +888,7 @@ def _excluded(url: str, host: str, entries) -> bool:
             continue
         if url.startswith(entry.lower()):
             return True
-        name = (urlsplit(entry if "://" in entry else "//" + entry).hostname or entry).lower().rstrip(".")
+        name = _entry_host(entry)
         if name and (host == name or host.endswith("." + name)):
             return True
     return False
@@ -772,6 +906,10 @@ def _qt_proxy_dict(proxy) -> dict | None:
             "user": proxy.user(), "password": proxy.password()}
 
 
+def _fallback_proxy(nam):
+    return nam.fallbackProxy() if hasattr(nam, "fallbackProxy") else nam.proxy()
+
+
 def _system_proxy(url: str) -> dict | None:
     from qgis.PyQt.QtCore import QUrl
     from qgis.PyQt.QtNetwork import QNetworkProxyFactory, QNetworkProxyQuery
@@ -780,6 +918,9 @@ def _system_proxy(url: str) -> dict | None:
         if found:
             return found
     return None
+
+
+
 
 
 
@@ -811,11 +952,11 @@ def resolve_proxy(host: str, port: int = 443, secure: bool = True) -> dict | Non
 
 
 
+
+
+
+
     host = (host or "").lower()
-    return _resolved(("proxy", host, port, secure), lambda: _resolve_proxy_now(host, port, secure))
-
-
-def _resolve_proxy_now(host: str, port: int, secure: bool) -> dict | None:
     url = f"{'https' if secure else 'http'}://{host}:{port}/"
     if no_proxy_matches(host, os.environ.get("NO_PROXY") or os.environ.get("no_proxy") or ""):
         return None
@@ -829,7 +970,7 @@ def _resolve_proxy_now(host: str, port: int, secure: bool) -> dict | None:
         if _excluded(url, host, getattr(nam, "noProxyList", list)()):
             return None
         excluded = _excluded(url, host, getattr(nam, "excludeList", list)())
-        fallback = nam.fallbackProxy() if hasattr(nam, "fallbackProxy") else nam.proxy()
+        fallback = _fallback_proxy(nam)
         ptype = getattr(QNetworkProxy, "ProxyType", QNetworkProxy)
         use_system = excluded or bool(getattr(nam, "useSystemProxy", lambda: False)()) \
             or fallback.type() == ptype.DefaultProxy
@@ -838,12 +979,33 @@ def _resolve_proxy_now(host: str, port: int, secure: bool) -> dict | None:
             if found:
                 return found
         if use_system:
-            found = _system_proxy(url)
+            found = _resolved(("system", url), lambda: _system_proxy(url))
             if found:
                 return found
         return env_proxy()
     except Exception:
         return env_proxy()
+
+
+def qgis_exclusions() -> list[str]:
+
+
+
+
+
+
+
+    try:
+        from qgis.core import QgsNetworkAccessManager
+
+        nam = QgsNetworkAccessManager.instance()
+        if not _qt_proxy_dict(_fallback_proxy(nam)):
+            return []
+
+        return [_entry_host(part.strip()) for x in getattr(nam, "excludeList", list)()
+                for part in str(x or "").split("|") if part.strip()]
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def _qgis_ignores_cert_errors(manager, host: str, port: int) -> bool:
@@ -909,7 +1071,9 @@ if _QT_AVAILABLE:
     class _WsThread(QThread):
         connected = pyqtSignal()
         disconnected = pyqtSignal(int, str)
-        frame_received = pyqtSignal(str)
+
+
+        frame_received = pyqtSignal(str, float)
         failed = pyqtSignal(str, str, int)
 
         def __init__(self, conn: WsConnection):
@@ -933,12 +1097,16 @@ if _QT_AVAILABLE:
                 return
             self.connected.emit()
             try:
-                code, reason = self.conn.run(self.frame_received.emit)
+                code, reason = self.conn.run(self._received)
             except Exception as exc:
                 self.conn.abort()
                 code, reason = 1006, f"reader crashed: {exc}"
                 self.failed.emit("lost", reason, 0)
             self.disconnected.emit(code, reason)
+
+        def _received(self, text: str) -> None:
+
+            self.frame_received.emit(text, time.perf_counter())
 
     class WsClient(QObject):
 
@@ -957,6 +1125,11 @@ if _QT_AVAILABLE:
             self._retired: list = []
             self._state = "closed"
             self.proxy_label = ""
+            self.closed_by = "none"
+            self.drop_kind = ""
+
+
+            self.arrived_at = 0.0
 
         @property
         def state(self) -> str:
@@ -1001,7 +1174,7 @@ if _QT_AVAILABLE:
                 send_timeout=float(clocks.get("send_timeout_s", _SEND_TIMEOUT_S))))
             thread.connected.connect(lambda t=thread: self._on_connected(t))
             thread.disconnected.connect(lambda code, reason, t=thread: self._on_disconnected(t, code, reason))
-            thread.frame_received.connect(lambda text, t=thread: self._on_frame(t, text))
+            thread.frame_received.connect(lambda text, at, t=thread: self._on_frame(t, text, at))
             thread.failed.connect(lambda kind, message, status, t=thread: self._on_failed(t, kind, message, status))
             self._thread = thread
             self._set_state("connecting")
@@ -1074,8 +1247,9 @@ if _QT_AVAILABLE:
             self._set_state("open")
             self.connected.emit()
 
-        def _on_frame(self, thread, text: str):
+        def _on_frame(self, thread, text: str, at: float = 0.0):
             if thread is self._thread:
+                self.arrived_at = at
                 self.frame_received.emit(text)
 
         def _on_failed(self, thread, kind: str, message: str, status: int):
@@ -1092,5 +1266,7 @@ if _QT_AVAILABLE:
                     self._retired.remove(thread)
                 return
             self._thread = None
+            self.closed_by = thread.conn.closed_by
+            self.drop_kind = thread.conn.drop_kind
             self._set_state("closed")
             self.disconnected.emit(code, reason)

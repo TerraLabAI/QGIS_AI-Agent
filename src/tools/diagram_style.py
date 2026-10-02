@@ -18,6 +18,7 @@
 
 
 
+
 from __future__ import annotations
 
 import contextlib
@@ -25,13 +26,14 @@ import contextlib
 from qgis.core import QgsVectorLayer
 
 from ..core.qt_compat import enum_member
+from .colour_text import qcolor_from_text
 
 
 _PALETTE = ("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f",
             "#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02")
 _KINDS = ("pie", "bar", "stacked_bar")
 
-_SCAN = 200_000
+SCAN = 200_000
 
 
 def _quoted(name: str) -> str:
@@ -64,48 +66,12 @@ def _category_colors(layer, fields: list) -> dict:
     return found
 
 
-def _largest(layer, expression: str) -> float:
-
-    from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils, QgsFeatureRequest
-
-    parsed = QgsExpression(expression)
-    context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
-    parsed.prepare(context)
-    request = QgsFeatureRequest().setLimit(_SCAN)
-    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    if flag is not None:
-        request.setFlags(flag)
-    request.setSubsetOfAttributes(parsed.referencedColumns(), layer.fields())
-    largest = 0.0
-    features = layer.getFeatures(request)
-    try:
-        for feature in features:
-            context.setFeature(feature)
-            try:
-                value = float(parsed.evaluate(context))
-            except (TypeError, ValueError):
-                continue
-            if value > largest:
-                largest = value
-    finally:
-        with contextlib.suppress(Exception):
-            features.close()
-    return largest
+def diagram_plan(layer, args: dict) -> dict:
 
 
-def set_diagram_renderer(layer, args: dict, kept_style: str, previous_keys) -> dict:
 
-    from qgis.core import (
-        QgsDiagramLayerSettings,
-        QgsDiagramSettings,
-        QgsHistogramDiagram,
-        QgsLinearlyInterpolatedDiagramRenderer,
-        QgsPieDiagram,
-        QgsSingleCategoryDiagramRenderer,
-        QgsWkbTypes,
-    )
-    from qgis.PyQt.QtCore import QSizeF
-    from qgis.PyQt.QtGui import QColor
+
+
 
     if not isinstance(layer, QgsVectorLayer) or not layer.isSpatial():
         return {"_error": "Diagram renderers require a spatial vector layer.", "code": "INVALID_ARGS"}
@@ -131,9 +97,36 @@ def set_diagram_renderer(layer, args: dict, kept_style: str, previous_keys) -> d
     if kind not in _KINDS:
         style = str(args.get("style_type") or "").lower()
         kind = style if style in _KINDS else "pie"
-    explicit = [QColor(str(c)) for c in (args.get("colors") or [])]
+    explicit = [qcolor_from_text(str(c)) for c in (args.get("colors") or [])]
     if any(not c.isValid() for c in explicit):
         return {"_error": "colors must be colour names or hex values such as '#1b9e77'.", "code": "INVALID_ARGS"}
+    total = " + ".join(f"coalesce({_quoted(f)}, 0)" for f in fields)
+
+
+    measure = total if kind != "bar" else (
+        f"max({', '.join(f'coalesce({_quoted(f)}, 0)' for f in fields)})" if len(fields) > 1
+        else f"coalesce({_quoted(fields[0])}, 0)")
+    return {"fields": fields, "kind": kind, "explicit": explicit, "measure": measure,
+            "scaled": str(args.get("diagram_scale") or "total").lower() != "fixed"}
+
+
+def set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_style: str, previous_keys) -> dict:
+
+
+    from qgis.core import (
+        QgsDiagramLayerSettings,
+        QgsDiagramSettings,
+        QgsHistogramDiagram,
+        QgsLinearlyInterpolatedDiagramRenderer,
+        QgsPieDiagram,
+        QgsSingleCategoryDiagramRenderer,
+        QgsWkbTypes,
+    )
+    from qgis.PyQt.QtCore import QSizeF
+    from qgis.PyQt.QtGui import QColor
+
+    fields, kind, explicit, measure, scaled = (plan["fields"], plan["kind"], plan["explicit"], plan["measure"],
+                                               plan["scaled"])
     matched = _category_colors(layer, fields) if not explicit else {}
     colors, colors_from = [], "colors" if explicit else ("categorized style" if matched else "default palette")
     for i, field in enumerate(fields):
@@ -145,7 +138,8 @@ def set_diagram_renderer(layer, args: dict, kept_style: str, previous_keys) -> d
         size = float(args.get("diagram_size") or 12)
     except (TypeError, ValueError):
         size = 12.0
-    scaled = str(args.get("diagram_scale") or "total").lower() != "fixed"
+    if not scaled:
+        largest = 0.0
     try:
         settings = QgsDiagramSettings()
         settings.categoryAttributes = [_quoted(f) for f in fields]
@@ -168,13 +162,6 @@ def set_diagram_renderer(layer, args: dict, kept_style: str, previous_keys) -> d
         else:
             diagram = QgsHistogramDiagram()
             settings.barWidth = max(1.5, size / (2.0 * len(fields)))
-        total = " + ".join(f"coalesce({_quoted(f)}, 0)" for f in fields)
-
-
-        measure = total if kind != "bar" else (
-            f"max({', '.join(f'coalesce({_quoted(f)}, 0)' for f in fields)})" if len(fields) > 1
-            else f"coalesce({_quoted(fields[0])}, 0)")
-        largest = _largest(layer, measure) if scaled else 0.0
         if scaled and largest > 0:
             renderer = QgsLinearlyInterpolatedDiagramRenderer()
             renderer.setClassificationAttributeExpression(measure)

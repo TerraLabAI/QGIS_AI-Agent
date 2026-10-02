@@ -20,10 +20,13 @@ import re
 from urllib.parse import quote
 
 from qgis.core import QgsFeatureRequest, QgsProject, QgsVectorLayer
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QUrl
 
+from ..core.background import main_thread_invoker, on_main_thread, run_on_main_thread
 from ..core.host_platform import IS_WINDOWS
 from ..core.tool_registry import tool_error
+from .data_common import built_here, worker_options
 
 CSV_EXTENSIONS = (".csv", ".tsv", ".txt")
 
@@ -487,16 +490,113 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
     }
 
 
-def load_csv(path: str, name: str, crs: str | None = None) -> dict:
+def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:
+
+
+
+
+
+
 
     try:
         info = sniff(path)
-    except OSError as exc:
-        return {"_error": f"Cannot read {os.path.basename(path)}: {exc}"}
+    except OSError:
+        return None
     uri, geometry = build_uri(path, info, crs)
-    layer = QgsVectorLayer(uri, name, "delimitedtext")
+    prepared = {"info": info, "uri": uri, "geometry": geometry}
+
+    def make():
+        layer = QgsVectorLayer(uri, name, "delimitedtext", worker_options())
+        if layer.isValid():
+            prepared["geometry_note"] = _geometry_check(layer, geometry, info)
+            return layer
+
+        sip.delete(layer)
+        prepared["ogr"] = True
+        fallback = QgsVectorLayer(path, name, "ogr", worker_options())
+        if fallback.isValid():
+            prepared["geometry_note"] = _geometry_check(fallback, _geometry_kind_of(fallback), info)
+        return fallback
+
+    prepared["layer"] = built_here(make)
+    return prepared if prepared["layer"] is not None else None
+
+
+def add_csv(path: str, name: str, crs: str | None = None, timeout: float = 60) -> dict:
+
+
+
+
+
+
+
+    if on_main_thread():
+        return load_csv(path, name, crs)
+    prepared = prepare_csv(path, name, crs)
+    if prepared is None:
+        return run_on_main_thread(lambda: load_csv(path, name, crs), timeout=timeout)
+    held = [prepared]
+
+    def drop_all() -> None:
+        while held:
+            layer = held.pop().pop("layer", None)
+            if layer is not None:
+                layer.deleteLater()
+
+    try:
+        decided = run_on_main_thread(lambda: _csv_decision(path, prepared, crs), timeout=timeout)
+        if isinstance(decided, tuple) and decided[0].authid():
+            again = prepare_csv(path, name, decided[0].authid())
+            if again is not None and not again.get("ogr"):
+                again.update(decided=decided, rebuilt=True)
+                held.append(again)
+                prepared = again
+        if "decided" not in prepared:
+            prepared["decided"] = decided
+
+        def finish() -> dict:
+            chosen = held.pop()
+            try:
+                return load_csv(path, name, crs, chosen)
+            finally:
+                if chosen.get("layer") is not None and chosen["layer"].id() not in QgsProject.instance().mapLayers():
+                    chosen["layer"].deleteLater()
+                drop_all()
+
+        return run_on_main_thread(finish, timeout=timeout)
+    except BaseException:
+        main_thread_invoker().invoke(drop_all)
+        raise
+
+
+def _csv_decision(path: str, prepared: dict, crs: str | None):
+
+
+    layer = prepared["layer"]
+    if prepared.get("ogr") or not layer.isValid() or prepared["geometry"] == "none":
+        return None
+    return _projected_source(path, layer, prepared["info"], crs)
+
+
+def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None = None) -> dict:
+
+    if prepared is not None:
+        info, uri, geometry, layer = prepared["info"], prepared["uri"], prepared["geometry"], prepared["layer"]
+    else:
+        try:
+            info = sniff(path)
+        except OSError as exc:
+            return {"_error": f"Cannot read {os.path.basename(path)}: {exc}"}
+        uri, geometry = build_uri(path, info, crs)
+        layer = QgsVectorLayer(uri, name, "delimitedtext")
+    checked = prepared.get("layer") if prepared is not None else None
     crs_note = ""
-    if not layer.isValid():
+    if prepared is not None and prepared.get("ogr"):
+
+        if not layer.isValid():
+            return {"_error": f"Failed to load the table from: {path}"}
+        geometry = _geometry_kind_of(layer)
+    elif not layer.isValid():
         layer = QgsVectorLayer(path, name, "ogr")
         if not layer.isValid():
             return {"_error": f"Failed to load the table from: {path}"}
@@ -505,12 +605,14 @@ def load_csv(path: str, name: str, crs: str | None = None) -> dict:
 
         geometry = _geometry_kind_of(layer)
     elif geometry != "none":
-        decided = _projected_source(path, layer, info, crs)
+
+        decided = (prepared["decided"] if prepared is not None and "decided" in prepared
+                   else _projected_source(path, layer, info, crs))
         if isinstance(decided, dict):
             return decided
         if decided is not None:
             source_crs, crs_note = decided
-            if source_crs.authid():
+            if source_crs.authid() and not (prepared is not None and prepared.get("rebuilt")):
                 uri, geometry = build_uri(path, info, source_crs.authid())
                 layer = QgsVectorLayer(uri, name, "delimitedtext")
             else:
@@ -541,7 +643,8 @@ def load_csv(path: str, name: str, crs: str | None = None) -> dict:
                         "without geometry. A layer join or address geocode adds geometry.")
     if crs_note:
         out["_note"] = f"{crs_note} {out['_note']}" if out.get("_note") else crs_note
-    geometry_note = _geometry_check(layer, geometry, info)
+    geometry_note = (prepared.get("geometry_note") if checked is not None and layer is checked
+                     else _geometry_check(layer, geometry, info))
     if geometry_note:
         out["_note"] = f"{out['_note']} {geometry_note}" if out.get("_note") else geometry_note
     return out

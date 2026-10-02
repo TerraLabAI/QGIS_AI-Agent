@@ -20,7 +20,7 @@ from .file_card import FileCardStack
 from .file_links import is_safe_to_open, path_from_url, reveal_target
 from .layer_links import RunChangesRow, layer_id_from_url, linkify_layers
 from .plan_card import PlanCard
-from .trace import RunFootnote, RunTrace
+from .trace import RunTrace
 
 
 class _ChatPanelRuns:
@@ -57,14 +57,23 @@ class _ChatPanelRuns:
             if run.trace is not None and last is run.trace:
                 run.trace.close()
             run.bubble = AgentBubble()
+            run.bubble.run_id = run_id
             run.bubble.link_activated.connect(self._on_bubble_link)
             self._add(run.bubble)
+            if self._status is None and run_id == self._current_run:
+
+
+
+                self._status = StatusLine(self.tr("Thinking"), started=run.started,
+                                          reduced_motion=self._reduced_motion)
+                self.message_list.add_widget(self._status)
         return run.bubble
 
     def answer_row(self, run_id: str, animate: bool = True) -> AgentBubble:
 
 
         bubble = AgentBubble()
+        bubble.run_id = run_id
         bubble.link_activated.connect(self._on_bubble_link)
         bubble.set_wordless(True)
         self._wire_answer(bubble, run_id)
@@ -83,13 +92,21 @@ class _ChatPanelRuns:
 
 
 
+
+
+
         waiting = {id(card) for card in run.permissions}
         last = next((w for w in reversed(self.message_list.widgets())
-                     if w is not self._status and id(w) not in waiting), None)
+                     if w is not self._status and id(w) not in waiting
+                     and (w is run.trace or not w.isHidden())), None)
         if run.trace is None or last is not run.trace:
             self._drop_status()
             if run.trace is not None:
                 run.trace.close()
+            if run.bubble is not None and last is run.bubble:
+
+
+                run.bubble.end_text()
             run.trace = RunTrace(run_id, started=time.monotonic(),
                                  reduced_motion=self._reduced_motion)
             self.message_list.register_trace(run_id, run.trace)
@@ -140,9 +157,6 @@ class _ChatPanelRuns:
         self.composer.set_running(True)
 
 
-        self.composer.end_edit()
-
-
 
         self._changed_count = 0
 
@@ -163,59 +177,6 @@ class _ChatPanelRuns:
         self._show_thread_surface()
 
         QTimer.singleShot(0, self.message_list.scroll_to_bottom)
-
-    def set_edit_available(self, available: bool) -> None:
-
-
-        self._edit_available = bool(available)
-        self._sync_edit()
-
-    def _set_last_user(self, bubble) -> None:
-        previous, self._last_user_bubble = self._last_user_bubble, bubble
-        if previous is not None and previous is not bubble:
-            try:
-                previous.set_editable(False)
-            except RuntimeError:
-                pass
-        self._sync_edit()
-
-    def _sync_edit(self) -> None:
-
-        bubble = self._last_user_bubble
-        if bubble is None:
-            return
-        try:
-            bubble.set_editable(self._edit_available and self._current_run is None and bool(bubble.run_id))
-        except RuntimeError:
-            self._last_user_bubble = None
-
-    def _on_edit_bubble(self, bubble) -> None:
-        if bubble is self._last_user_bubble and self._current_run is None and bubble.run_id:
-            self.edit_requested.emit(bubble.run_id)
-
-    def begin_edit(self, run_id: str, text: str, chips, attachments=()) -> None:
-
-
-
-
-        c = self.composer
-        c.end_edit()
-        c.clear_chips()
-        c.clear_attachments()
-        c.set_text(str(text or ""))
-        for chip in chips or []:
-            if isinstance(chip, dict):
-                c.add_chip(dict(chip))
-        missing = c.restore_attachments(list(attachments or []))
-        line = self.tr("Editing your last message.")
-        if missing:
-            line += " " + missing[:1].upper() + missing[1:] + "."
-        point = self._answer_points().get(str(run_id or ""))
-        link = None
-        if point and point[0] == "undo" and point[1]:
-            link = (self.tr("Undo what this message did"), "restore:" + point[1])
-        c.show_edit_line(line, link)
-        c.focus_input()
 
     def drop_turn(self, run_id: str) -> None:
 
@@ -242,8 +203,6 @@ class _ChatPanelRuns:
             self.message_list.remove_widget(widget)
         for registry in (self._runs, self._run_requests, self._error_cards, self._cleanup_cards):
             registry.pop(run_id, None)
-        if self._last_user_bubble in doomed:
-            self._last_user_bubble = None
 
     def reset_answer(self, run_id: str) -> None:
 
@@ -300,9 +259,9 @@ class _ChatPanelRuns:
         if run is None:
             return
         block = run.trace if run is not None else None
-        if (block is not None and block.is_live()
-                and self.message_list.last_widget(ignore=self._status) is block):
+        if block is not None and block.is_live() and self._block_is_tail(block):
             block.set_activity(text)
+            self._drop_status()
             return
         if self._status is None:
 
@@ -311,6 +270,42 @@ class _ChatPanelRuns:
             self.message_list.add_widget(self._status)
         else:
             self._status.set_text(text)
+
+    def set_link_notice(self, run_id: str, text: str) -> None:
+
+
+
+        run = self._live_run(run_id)
+        if run is None:
+            return
+        text = str(text or "").strip()[:300]
+        held = getattr(self, "_link_prev", None)
+        if text:
+            if not held or held[0] != run_id:
+                block = run.trace
+                self._link_prev = (run_id, self._status.text() if self._status is not None
+                                   else block.running_title() if block is not None else "")
+            self.set_status_line(run_id, text)
+        else:
+            self._link_prev = None
+            if held and held[0] == run_id and held[1]:
+                self.set_status_line(run_id, held[1])
+        hide = bool(text)
+        for widget in (self._status, run.trace):
+            if widget is not None:
+                widget.hide_clock(hide)
+
+    def _block_is_tail(self, block) -> bool:
+
+
+
+        for w in reversed(self.message_list.widgets()):
+            if w is block:
+                return True
+            if w is self._status or w.isHidden() or getattr(w, "decision", None) is not None:
+                continue
+            return False
+        return False
 
     def set_plan(self, run_id: str, steps) -> None:
         if self._live_run(run_id) is None:
@@ -431,10 +426,23 @@ class _ChatPanelRuns:
 
 
         repeat = bool(said) and (said == (summary or "").strip() or not (summary or lines))
-        if not repeat and (status != "done" or (self._explain_runs and (summary or lines))):
+
+
+
+
+        bare = not (summary or lines) and (status == "cancelled" or any(not block.is_empty() for block in blocks))
+        if not repeat and not bare and (status != "done" or (self._explain_runs and (summary or lines))):
             self._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
                                      duration_s=seconds))
-        if run is not None and run.bubble is None and status != "done":
+        last = self.message_list.last_widget(ignore=self._status)
+        if run.bubble is not None and status != "done" and last is not run.bubble \
+                and last in blocks:
+
+
+
+            run.bubble.end_text()
+            run.bubble = None
+        if run.bubble is None and status != "done":
 
 
 
@@ -443,14 +451,6 @@ class _ChatPanelRuns:
         if run is not None and run.bubble is not None:
             run.bubble.finish_streaming()
         self._add_layer_links(run_id)
-        footnote = self._run_footnote(blocks, usage)
-        if run is not None and run.bubble is not None:
-            run.bubble.set_footnote(footnote)
-        elif footnote:
-            note = RunFootnote()
-            note.setText(footnote)
-            note.show()
-            self._add(note)
         self._mark_compaction(usage)
         self._drop_status()
         if self._current_run == run_id or self._current_run is None:
@@ -499,8 +499,6 @@ class _ChatPanelRuns:
         if bubble.property("wired"):
             return
         bubble.setProperty("wired", True)
-        bubble.feedback.connect(lambda up: self.feedback.emit(run_id, bool(up)))
-        bubble.feedback_reason.connect(lambda code, text: self.feedback_reason.emit(run_id, str(code), str(text)))
         bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
 
     def set_sources(self, run_id: str, items) -> None:
@@ -541,10 +539,14 @@ class _ChatPanelRuns:
             return
         run = self._runs.get(run_id)
         bubble = run.bubble if run is not None else None
-        if bubble is not None and row.layers():
-            linked = linkify_layers(bubble.text(), row.layers())
-            if linked != bubble.text():
-                bubble.set_text(linked)
+        if row.layers():
+
+
+            for said in self.message_list.widgets():
+                if isinstance(said, AgentBubble) and (said is bubble or (run_id and said.run_id == run_id)):
+                    linked = linkify_layers(said.text(), row.layers())
+                    if linked != said.text():
+                        said.set_linked_text(linked)
         row.layer_action_requested.connect(self.layer_action_requested.emit)
         stack.action_requested.connect(self._on_file_action)
         for widget, empty in ((stack, stack.is_empty()), (row, row.is_empty())):
@@ -571,25 +573,6 @@ class _ChatPanelRuns:
             return
         target = reveal_target(path) if action == "reveal" else path
         open_local_path(target, self)
-
-    def _run_footnote(self, blocks, usage: dict) -> str:
-
-
-
-
-
-        parts = []
-        try:
-            steps = int(usage.get("steps")) if usage.get("steps") is not None else None
-        except (TypeError, ValueError):
-            steps = None
-        if steps is None:
-            steps = sum(block.step_count() for block in blocks)
-        if steps > 0:
-
-
-            parts.append(self.tr("%n actions", "", steps) if steps != 1 else self.tr("1 action"))
-        return " · ".join(part for part in parts if part)
 
     def set_run_changes(self, changed_layers: int, restore_available: bool,
                         layers: list | None = None, changes: dict | None = None) -> None:

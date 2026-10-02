@@ -36,6 +36,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from ..core.logger import log_warning
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from .colour_text import hex_from_qcolor, qcolor_from_text
 from .style_tools import _color_error
 
 TOOL = "set_canvas_decoration"
@@ -109,10 +110,15 @@ def register_decoration_tools(registry: ToolRegistry) -> None:
                 "margin_unit": {"type": "string", "enum": list(_MARGIN_UNITS)},
             },
             "additionalProperties": False,
+
+
+
+            "x-colour-alpha-last": True,
         },
         handler=_set_canvas_decoration,
 
-        reads_when=lambda args: bool(args.get("read") or not args.get("decoration")),
+
+        reads_when=lambda args: args.get("read") is True or not args.get("decoration"),
     ))
 
 
@@ -181,8 +187,7 @@ def _color_utils():
 
 def _hex(color: QColor) -> str:
 
-    rgb = f"{color.red():02x}{color.green():02x}{color.blue():02x}"
-    return f"#{rgb}" if color.alpha() == 255 else f"#{color.alpha():02x}{rgb}"
+    return hex_from_qcolor(color)
 
 
 def _context() -> QgsReadWriteContext:
@@ -397,7 +402,7 @@ def _label_format(scope: str, key: str, args: dict, default_size: float | None =
     if args.get("font_size") is not None:
         fmt.setSize(float(args["font_size"]))
     if args.get("color"):
-        fmt.setColor(QColor(str(args["color"])))
+        fmt.setColor(qcolor_from_text(str(args["color"])))
     return fmt
 
 
@@ -416,13 +421,13 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
         _write_text_format(scope, "/Font", _label_format(scope, "/Font", args, 16.0 if decoration == "title" else None))
         if decoration == "title":
             background = args.get("background_color")
-            _write(scope, "/BackgroundColor", _color_to_string(QColor(str(background))) if background
+            _write(scope, "/BackgroundColor", _color_to_string(qcolor_from_text(str(background))) if background
                    else _read_str(scope, "/BackgroundColor", "0,0,0,99"))
     elif decoration == "north_arrow":
         _write_margins(scope, decoration, args, current)
         _write(scope, "/Size", float(args["size"] if args.get("size") is not None else current["size"]))
         for key, entry in (("color", "/Color"), ("outline_color", "/OutlineColor")):
-            _write(scope, entry, _color_to_string(QColor(str(args.get(key) or current[key]))))
+            _write(scope, entry, _color_to_string(qcolor_from_text(str(args.get(key) or current[key]))))
         if args.get("rotation") is not None:
             _write(scope, "/Rotation", int(round(float(args["rotation"]))) % 360)
             _write(scope, "/Automatic", False)
@@ -435,7 +440,7 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
                                                           else current["size"]))))
         _write(scope, "/Snapping", bool(args["snap"]) if args.get("snap") is not None else current["snap"])
         for key, entry in (("color", "/Color"), ("outline_color", "/OutlineColor")):
-            _write(scope, entry, _color_to_string(QColor(str(args.get(key) or current[key]))))
+            _write(scope, entry, _color_to_string(qcolor_from_text(str(args.get(key) or current[key]))))
         _write_text_format(scope, "/TextFormat", _label_format(scope, "/TextFormat", args))
     elif decoration == "grid":
         return _write_grid(scope, args, current)
@@ -505,13 +510,13 @@ def _write_grid(scope: str, args: dict, current: dict) -> dict | None:
     color = args.get("color")
     if color:
         line = _read_symbol(scope, "/LineSymbol", QgsSymbolLayerUtils.loadSymbol) or QgsLineSymbol()
-        line.setColor(QColor(str(color)))
+        line.setColor(qcolor_from_text(str(color)))
         _write_symbol(scope, "/LineSymbol", "line symbol", line)
         marker = _read_symbol(scope, "/MarkerSymbol", QgsSymbolLayerUtils.loadSymbol) or QgsMarkerSymbol(
 
 
             [QgsSimpleMarkerSymbolLayer(enum_member(Qgis, "MarkerShape", "Cross", 9), 3, 0)])
-        marker.setColor(QColor(str(color)))
+        marker.setColor(qcolor_from_text(str(color)))
         _write_symbol(scope, "/MarkerSymbol", "marker symbol", marker)
     return None
 

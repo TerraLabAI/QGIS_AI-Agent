@@ -33,6 +33,13 @@
 
 
 
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import re
@@ -78,19 +85,9 @@ _TRAILING_PX = 10
 _ROW_GAP_PX = SPACE_CARD
 _LINE_GAP_PX = SPACE_TIGHT
 
-_FOLDED_LINES = 3
+_FOLDED_LINES = 1
 
-
-
-_CHIP_NAME_CHARS = 28
-
-def _short_name(name: str) -> str:
-
-    if len(name) <= _CHIP_NAME_CHARS:
-        return name
-    keep = _CHIP_NAME_CHARS - 1
-    head = max(6, keep // 2 - 1)
-    return name[:head] + "…" + name[-(keep - head):]
+_MIN_FIRST_PX = 72
 
 
 def _counts(item: dict) -> tuple[int, int, int]:
@@ -288,7 +285,19 @@ class _Chip(QWidget):
                 pixmap = pixmap_for(self, self.glyph, _GLYPH_PX, qcolor(ink))
                 painter.drawPixmap(QPoint(int(x), (self.height() - _GLYPH_PX) // 2), pixmap)
                 x += _GLYPH_PX + _PART_GAP_PX
-            for (text, ink, font), width in zip(self._parts, self._widths()):
+            widths = self._widths()
+
+
+            over = self.sizeHint().width() - self.width()
+            parts = list(self._parts)
+            if over > 0 and parts:
+                from qgis.PyQt.QtGui import QFontMetrics
+
+                text, ink, font = parts[0]
+                widths[0] = max(0, widths[0] - over)
+                parts[0] = (QFontMetrics(font).elidedText(text, Qt.TextElideMode.ElideMiddle, widths[0]),
+                            ink, font)
+            for (text, ink, font), width in zip(parts, widths):
                 painter.setFont(font)
 
 
@@ -323,6 +332,9 @@ class _LayerChip(_Chip):
         self.layer_name = str(item.get("name") or self.layer_id or "?")
         self.what = str(item.get("what") or "")
         self.item_visible = bool(item.get("visible", True))
+        features = item.get("features")
+        self.features = (features if isinstance(features, int) and not isinstance(features, bool)
+                         and self.glyph != "raster" else None)
         self.added, self.removed, self.changed = _counts(item)
         self.delta = self.added - self.removed
         self.in_project = False
@@ -349,14 +361,23 @@ class _LayerChip(_Chip):
 
     def _build_parts(self) -> list:
 
-        parts = [(_short_name(self.layer_name), INK, self._font)]
+        parts = [(self.layer_name, INK, self._font)]
         if self.added:
             parts.append((f"+{self.added}", GREEN, self._count_font))
         if self.removed:
             parts.append((f"-{self.removed}", RED, self._count_font))
         if self.changed and not self.added and not self.removed:
             parts.append((f"~{self.changed}", INK_2, self._count_font))
-        if len(parts) == 1:
+        if len(parts) == 1 and self.what == "added":
+
+            if self.in_project:
+                if self.features is not None:
+                    from qgis.PyQt.QtCore import QLocale
+
+                    parts.append((QLocale().toString(int(self.features)), INK_3, self._count_font))
+                else:
+                    parts.append((self.tr("new"), INK_3, self._font))
+        elif len(parts) == 1:
             word = self._what_word()
             if word:
                 parts.append((word, INK_3, self._font))
@@ -364,7 +385,6 @@ class _LayerChip(_Chip):
 
     def _what_word(self) -> str:
         return {
-            "added": self.tr("new"),
             "removed": self.tr("removed"),
             "crs": self.tr("CRS"),
             "file": self.tr("saved"),
@@ -402,6 +422,11 @@ class _LayerChip(_Chip):
         if not self.in_project:
             return self.tr("This layer is no longer in the project.")
         if self.what == "added":
+            if self.features == 1:
+                return self.tr("New layer, 1 feature. Click to select it in the Layers panel.")
+            if self.features is not None:
+                return self.tr("New layer, %n features. Click to select it in the Layers panel.", "",
+                               int(self.features))
             return self.tr("New layer. Click to select it in the Layers panel.")
         if self.added or self.removed:
             if abs(self.delta) == 1:
@@ -479,6 +504,9 @@ class _LayerChip(_Chip):
 class _MoreChip(_Chip):
 
 
+
+
+
     def __init__(self, parent=None):
         super().__init__("", INK_3, parent)
         self._font = _name_font()
@@ -487,12 +515,13 @@ class _MoreChip(_Chip):
         self._refresh_cursor()
 
     def _label(self, count: int) -> str:
-        return self.tr("+{n} more").format(n=int(count))
+        return self.tr("+{n} more").format(n=int(count)) if count else self.tr("Show less")
 
     def set_count(self, count: int) -> None:
         if int(count) != self.count:
             self.count = int(count)
             self.set_parts([(self._label(self.count), INK_3, self._font)])
+            self.setToolTip("" if self.count else self.tr("Show one line of layers"))
 
     def width_for(self, count: int) -> int:
 
@@ -534,7 +563,7 @@ class RunChangesRow(QWidget):
         self._more = _MoreChip(self) if len(self._chips) > 1 else None
         if self._more is not None:
             self._more.hide()
-            self._more.clicked.connect(self.show_all)
+            self._more.clicked.connect(self._toggle)
         self._all = False
         policy = self.sizePolicy()
         policy.setHorizontalPolicy(QSizePolicy.Policy.Expanding)
@@ -557,6 +586,11 @@ class RunChangesRow(QWidget):
     def show_all(self) -> None:
 
         self._all = True
+        self._relayout()
+
+    def _toggle(self) -> None:
+
+        self._all = not self._all
         self._relayout()
 
     def follow_project(self, gone=frozenset()) -> None:
@@ -583,9 +617,19 @@ class RunChangesRow(QWidget):
         if not self._all and self._more is not None:
             shown = folded_count(widths, min(available, self._more.width_for(len(chips))), available)
         hidden = len(chips) - shown
+        if hidden and shown == 1:
+
+
+            room = available - self._more.width_for(hidden) - _ROW_GAP_PX
+            widths[0] = min(widths[0], max(_MIN_FIRST_PX, room))
+
+
+        folds = self._more is not None and (bool(hidden) or (
+            self._all and folded_count(widths, min(available, self._more.width_for(len(chips))),
+                                       available) < len(chips)))
         items = list(chips[:shown])
         item_widths = list(widths[:shown])
-        if hidden and self._more is not None:
+        if folds:
             items.append(self._more)
             item_widths.append(min(available, self._more.width_for(hidden)))
         placed = wrap_lines(item_widths, available)
@@ -596,7 +640,7 @@ class RunChangesRow(QWidget):
                 chip.setVisible(False)
             if self._more is not None:
                 self._more.set_count(hidden)
-                self._more.setVisible(bool(hidden))
+                self._more.setVisible(folds)
             for item, (x, line), item_width in zip(items, placed, item_widths):
                 item.setGeometry(1 + x, line * (_CHIP_PX + _LINE_GAP_PX), item_width, _CHIP_PX)
                 item.setVisible(True)

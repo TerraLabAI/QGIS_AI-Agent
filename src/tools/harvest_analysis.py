@@ -22,7 +22,6 @@ from qgis.core import (
     QgsFeatureRequest,
     QgsField,
     QgsGeometry,
-    QgsNetworkAccessManager,
     QgsPointXY,
     QgsProject,
     QgsRasterDataProvider,
@@ -32,9 +31,10 @@ from qgis.core import (
     QgsVectorLayerFeatureSource,
 )
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QEvent, QThread, QTimer
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QThread, QTimer
 
 from ..core import background, limits, net
+from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.invariants import metres_per_map_unit
@@ -46,7 +46,6 @@ from . import guards, kml_description, vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
 from ._layers import layer_not_found, resolve_layer
 from .danger import sql_mutates
-from .data_tools import _run_on_main_thread
 
 _SQL_ROW_CAP = 1000
 
@@ -160,7 +159,7 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
         handler=_get_unique_values,
 
 
-        background=_unique_values_is_remote,
+        background=_unique_values_off_main,
     ))
 
     registry.register(Tool(
@@ -271,7 +270,7 @@ def _raster(name: str):
 
 
 def _field_error(layer, field_name: str) -> dict:
-    from .core_tools import _field_not_found_error
+    from .layer_lookup import _field_not_found_error
 
     return _field_not_found_error(layer, field_name)
 
@@ -555,21 +554,21 @@ def _field_calculator(args: dict) -> dict:
 
 
 
-    state = _run_on_main_thread(_calc_open, args, timeout=60)
+    state = run_on_main_thread(_calc_open, args, timeout=60)
     if state.get("_error"):
         return state
     slices = 0
     finished = False
     try:
         while True:
-            if _stopped():
+            if net.is_cancelled():
                 return tool_error("The run was stopped. Nothing was written and the layer is unchanged.",
                                   "CANCELLED", "The user stopped the run.")
-            if _run_on_main_thread(_calc_step, state, timeout=120):
+            if run_on_main_thread(_calc_step, state, timeout=120):
                 break
             slices += 1
             background.breathe(slices, every=1)
-        out = _run_on_main_thread(_calc_finish, state, timeout=120)
+        out = run_on_main_thread(_calc_finish, state, timeout=120)
         finished = True
         return out
     finally:
@@ -578,14 +577,6 @@ def _field_calculator(args: dict) -> dict:
 
             layer = state["layer"]
             background.main_thread_invoker().invoke(lambda: _calc_close(layer))
-
-
-def _stopped() -> bool:
-    cancelled = net.current_cancel_check()
-    try:
-        return callable(cancelled) and bool(cancelled())
-    except Exception:  # noqa: BLE001
-        return False
 
 
 def _calc_close(layer) -> None:
@@ -828,7 +819,7 @@ def _unique_limit(args: dict) -> tuple[int, dict | None]:
     return (ceiling if asked <= 0 else min(asked, ceiling)), None
 
 
-def _unique_values_is_remote(args: dict) -> bool:
+def _unique_values_off_main(args: dict) -> bool:
 
 
 
@@ -836,13 +827,41 @@ def _unique_values_is_remote(args: dict) -> bool:
 
 
 
-    layer = resolve_layer(str((args or {}).get("layer_name") or ""))
-    return is_vector(layer) and is_remote_vector(layer)
+
+
+
+    args = args or {}
+    layer = resolve_layer(str(args.get("layer_name") or ""))
+    return is_vector(layer) and (is_remote_vector(layer) or bool(args.get("with_counts")))
+
+
+def _invalid_layer_error(layer) -> dict | None:
+
+
+
+
+
+    if layer.isValid():
+        return None
+    return tool_error(
+        f"Layer {layer.name()!r} is not valid: its data source could not be opened.",
+        "LAYER_INVALID",
+        "The database, service or file behind it is unreachable (VPN, network or a moved file). "
+        "list_layers shows which layers are valid.")
+
+
+def _count_key(value):
+
+
+    return None if py_value(value) is None else (type(value).__name__, str(value))
 
 
 def _unique_values_plan(args: dict) -> dict:
 
     layer, error = _vector(args["layer_name"])
+    if error:
+        return error
+    error = _invalid_layer_error(layer)
     if error:
         return error
     field = args["field"]
@@ -864,7 +883,7 @@ def _unique_values_off_thread(args: dict) -> dict:
 
 
     cancelled = net.current_cancel_check()
-    plan = _run_on_main_thread(_unique_values_plan, args, timeout=60)
+    plan = run_on_main_thread(_unique_values_plan, args, timeout=60)
     if "source" not in plan:
         return plan
     with_counts = bool(args.get("with_counts"))
@@ -881,7 +900,7 @@ def _unique_values_off_thread(args: dict) -> dict:
                         if halted.is_set():
                             return
                         value = feature[plan["index"]]
-                        entry = seen.setdefault(str(value), [value, 0])
+                        entry = seen.setdefault(_count_key(value), [value, 0])
                         entry[1] += 1
                         state["scanned"] += 1
                         if state["scanned"] >= plan["scan_cap"] or (not with_counts and len(seen) > plan["limit"]):
@@ -892,13 +911,11 @@ def _unique_values_off_thread(args: dict) -> dict:
         finally:
             over.set()
 
-    thread = threading.Thread(target=reader, name="get_unique_values read",
-                              args=(plan.pop("source"), plan["request"]))
-    thread.start()
+    background.start_kept_thread(reader, plan.pop("source"), plan["request"], name="get_unique_values read")
     while not over.wait(_STOP_POLL_S):
         if callable(cancelled) and cancelled():
             halted.set()
-            return tool_error("Stopped while the values were read from the service.", "CANCELLED",
+            return tool_error("Stopped while the values were read.", "CANCELLED",
                               "Nothing was changed.")
     if failure:
         raise failure[0]
@@ -910,7 +927,7 @@ def _unique_values_off_thread(args: dict) -> dict:
     if omitted:
         out["omitted"] = omitted
     if not state["complete"]:
-        out["read_note"] = f"read the first {state['scanned']} features of the service"
+        out["read_note"] = f"read the first {state['scanned']} features of the layer"
     if with_counts:
         ranked = sorted(seen.values(), key=lambda entry: (-entry[1], str(entry[0])))
         out["counts"] = [{"value": py_value(value), "count": count}
@@ -920,11 +937,43 @@ def _unique_values_off_thread(args: dict) -> dict:
     return out
 
 
+def _value_frequencies(layer, index: int, scan_cap: int) -> tuple[dict, int]:
+
+
+
+
+
+
+
+
+    request = QgsFeatureRequest().setSubsetOfAttributes([index])
+    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
+    if flag is not None:
+        request.setFlags(flag)
+    counts: dict = {}
+    scanned = 0
+    features = layer.getFeatures(request)
+    try:
+        for feature in features:
+            value = feature[index]
+            counts.setdefault(_count_key(value), [value, 0])[1] += 1
+            scanned += 1
+            if scanned >= scan_cap:
+                break
+    finally:
+        with contextlib.suppress(Exception):
+            features.close()
+    return counts, scanned
+
+
 def _get_unique_values(args: dict) -> dict:
     if not background.on_main_thread():
 
         return _unique_values_off_thread(args)
     layer, error = _vector(args["layer_name"])
+    if error:
+        return error
+    error = _invalid_layer_error(layer)
     if error:
         return error
     field = args["field"]
@@ -953,15 +1002,11 @@ def _get_unique_values(args: dict) -> dict:
 
 
 
-        from .style_tools import _value_frequencies
         counts, scanned = _value_frequencies(layer, idx, limits.current("MAX_FEATURES_MATERIALISED"))
-        ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        ranked = sorted(counts.values(), key=lambda entry: (-entry[1], str(entry[0])))
 
 
-
-
-        typed = {str(value): py_value(value) for value in raw}
-        out["counts"] = [{"value": typed.get(value, value), "count": count}
+        out["counts"] = [{"value": py_value(value), "count": count}
                          for value, count in ranked[:_COUNTED_VALUES_MAX]]
         out["counts_order"] = "most frequent first"
         out["counted_features"] = scanned
@@ -999,14 +1044,30 @@ def _search_area(layer, project, point_crs, x: float, y: float, tolerance: float
 def _features_at(layer, project, point_crs, x: float, y: float, tolerance: float, most: int):
 
 
+    search = _search(layer, project, point_crs, x, y, tolerance, most)
+    if isinstance(search, str):
+        return search
+    return _matching(layer.getFeatures(search["request"]), search)
+
+
+def _search(layer, project, point_crs, x: float, y: float, tolerance: float, most: int):
+
+
     try:
         here, box, reach = _search_area(layer, project, point_crs, x, y, tolerance)
     except Exception as exc:
         return f"CRS transform failed: {exc}"
-    target = QgsGeometry.fromPointXY(here)
-    names = [field.name() for field in layer.fields()]
+    return {"request": QgsFeatureRequest().setFilterRect(box), "target": QgsGeometry.fromPointXY(here),
+            "reach": reach, "names": [field.name() for field in layer.fields()], "most": most}
+
+
+def _matching(features, search: dict, stopped=lambda: False) -> list:
+
+    target, reach, names = search["target"], search["reach"], search["names"]
     found: list = []
-    for feature in layer.getFeatures(QgsFeatureRequest().setFilterRect(box)):
+    for feature in features:
+        if stopped():
+            break
         shape = feature.geometry()
         if shape is None or shape.isEmpty():
             continue
@@ -1016,7 +1077,7 @@ def _features_at(layer, project, point_crs, x: float, y: float, tolerance: float
         row = {name: py_value(feature[name]) for name in names}
         row["_fid"] = feature.id()
         found.append(row)
-        if len(found) >= most:
+        if len(found) >= search["most"]:
             break
     return found
 
@@ -1040,8 +1101,14 @@ def _identify_asks_services(args: dict) -> bool:
 
 
 
+
+
     targets, _error = _identify_targets(args or {})
-    return any(_click_formats(layer) for layer in targets or ())
+    return any(_click_formats(layer) or _rows_from_network(layer) for layer in targets or ())
+
+
+def _rows_from_network(layer) -> bool:
+    return is_vector(layer) and is_remote_vector(layer)
 
 
 def _click_formats(layer) -> list:
@@ -1068,11 +1135,10 @@ def _identify_features(args: dict) -> dict:
     if not background.on_main_thread():
 
         return _identify_off_thread(args)
-    return _identify_here(args, None)[0]
+    return _identify_here(args, False)[0]
 
 
-def _identify_here(args: dict, worker):
-
+def _identify_here(args: dict, ask_services: bool):
 
 
 
@@ -1095,6 +1161,20 @@ def _identify_here(args: dict, worker):
     results, skipped, asks = [], [], []
     searched = 0
     for layer in targets:
+        if not layer.isValid():
+            skipped.append({"layer_id": layer.id(), "name": layer.name(),
+                            "kind": "layer not valid: its data source could not be opened "
+                                    "(database or service unreachable, or the file is gone)"})
+            continue
+        if is_vector(layer) and ask_services and _rows_from_network(layer):
+            searched += 1
+            search = _search(layer, project, point_crs, x, y, tolerance, limit)
+            if isinstance(search, str):
+                results.append({"layer_id": layer.id(), "name": layer.name(), "error": search})
+            else:
+                asks.append(_ServiceAsk({**search, "layer_id": layer.id(), "name": layer.name(),
+                                         "source": QgsVectorLayerFeatureSource(layer)}))
+            continue
         if is_vector(layer):
             searched += 1
             found = _features_at(layer, project, point_crs, x, y, tolerance, limit)
@@ -1105,9 +1185,9 @@ def _identify_here(args: dict, worker):
                                 "count": len(found)})
             continue
         formats = _click_formats(layer)
-        if formats and worker is not None:
+        if formats and ask_services:
             searched += 1
-            ask = _service_ask(layer, project, point_crs, x, y, formats, limit, worker)
+            ask = _service_ask(layer, project, point_crs, x, y, formats, limit)
             if isinstance(ask, str):
                 results.append({"layer_id": layer.id(), "name": layer.name(), "error": ask})
             else:
@@ -1160,7 +1240,7 @@ def _unread_kind(layer, answers_clicks: bool) -> str:
     return ""
 
 
-def _service_ask(layer, project, point_crs, x: float, y: float, formats: list, limit: int, worker):
+def _service_ask(layer, project, point_crs, x: float, y: float, formats: list, limit: int):
 
 
 
@@ -1176,11 +1256,51 @@ def _service_ask(layer, project, point_crs, x: float, y: float, formats: list, l
         except Exception as exc:
             return f"CRS transform failed: {exc}"
     half = _CLICK_PX / 2 * _CLICK_PIXEL_M / (metres_per_map_unit(layer.crs(), degrees=True) or 1.0)
-    provider = layer.dataProvider().clone()
-    provider.moveToThread(worker)
-    return {"layer_id": layer.id(), "name": layer.name(), "provider": provider, "point": point, "limit": limit,
-            "box": QgsRectangle(point.x() - half, point.y() - half, point.x() + half, point.y() + half),
-            "formats": formats}
+    return _ServiceAsk({
+        "layer_id": layer.id(), "name": layer.name(), "provider": layer.dataProvider().clone(),
+        "point": point, "limit": limit, "formats": formats,
+        "box": QgsRectangle(point.x() - half, point.y() - half, point.x() + half, point.y() + half)})
+
+
+class _ServiceAsk(QThread):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, ask: dict):
+        super().__init__()
+        self.ask = ask
+        if "provider" in ask:
+            ask["provider"].moveToThread(self)
+        self.cancelled = None
+        self.row = None
+
+    def run(self):
+        if "source" in self.ask:
+            self.row = _read_source_rows(self.ask, self)
+            return
+        provider = self.ask.pop("provider")
+        try:
+            self.row = _ask_service(self.ask, provider, self)
+        except Exception as exc:  # noqa: BLE001
+            self.row = {"layer_id": self.ask["layer_id"], "name": self.ask["name"], "read": "GetFeatureInfo",
+                        "error": f"GetFeatureInfo failed: {exc}"[:500]}
+        finally:
+            sip.delete(provider)
 
 
 def _identify_off_thread(args: dict) -> dict:
@@ -1188,36 +1308,33 @@ def _identify_off_thread(args: dict) -> dict:
 
 
     cancelled = net.current_cancel_check()
-    out, asks = _run_on_main_thread(_identify_here, args, QThread.currentThread(), timeout=60)
+    out, asks = run_on_main_thread(_identify_here, args, True, timeout=60)
     try:
         for ask in asks:
-            row = _ask_service(ask, cancelled)
-            if row is None:
-                return tool_error("Stopped while a web service was asked what lies at the point.", "CANCELLED",
-                                  "Nothing was changed.")
-            if row.get("error") or row.get("features") or row.get("text"):
-                out["results"].append(row)
-                out["count"] += row.get("count", 0)
-        return out
+            ask.cancelled = cancelled
+            ask.start()
     finally:
         for ask in asks:
+            ask.wait()
+    if any(ask.row is None for ask in asks):
+        return tool_error("Stopped while a web service was asked what lies at the point.", "CANCELLED",
+                          "Nothing was changed.")
+    for ask in asks:
+        if ask.row.get("error") or ask.row.get("features") or ask.row.get("text"):
+            out["results"].append(ask.row)
+            out["count"] += ask.row.get("count", 0)
+    return out
 
 
-            sip.delete(ask.pop("provider"))
-        deferred = enum_member(QEvent, "Type", "DeferredDelete")
-        QCoreApplication.sendPostedEvents(None, int(getattr(deferred, "value", deferred)))
-
-
-def _ask_service(ask: dict, cancelled):
+def _ask_service(ask: dict, provider, thread: _ServiceAsk):
 
 
 
-    provider = ask["provider"]
     row = {"layer_id": ask["layer_id"], "name": ask["name"], "read": "GetFeatureInfo"}
     failure = ""
     for fmt in ask["formats"]:
         before = provider.lastError()
-        answer, state = _ask_once(ask, fmt, cancelled)
+        answer, state = _ask_once(ask, provider, fmt, thread)
         if state["stopped"]:
             return None
         if state["late"]:
@@ -1235,30 +1352,60 @@ def _ask_service(ask: dict, cancelled):
     return {**row, "error": f"GetFeatureInfo failed: {failure}"[:500]}
 
 
-def _ask_once(ask: dict, fmt, cancelled):
+def _ask_once(ask: dict, provider, fmt, thread: _ServiceAsk):
 
 
 
+    with _watched(thread) as state:
+        return provider.identify(ask["point"], fmt, ask["box"], _CLICK_PX, _CLICK_PX), state
 
-    from qgis.PyQt.QtNetwork import QNetworkReply
 
-    manager = QgsNetworkAccessManager.instance()
+def _read_source_rows(ask: dict, thread: _ServiceAsk):
+
+
+    source = ask.pop("source")
+    row = {"layer_id": ask["layer_id"], "name": ask["name"]}
+    state = {"stopped": False, "late": False}
+    try:
+        with _watched(thread) as state:
+            features = source.getFeatures(ask["request"])
+            try:
+                found = _matching(features, ask, lambda: state["stopped"] or state["late"])
+            finally:
+                features.close()
+    except Exception as exc:  # noqa: BLE001
+        found = None
+        row["error"] = f"reading the layer failed: {exc}"[:500]
+    finally:
+        source = None
+    if state["stopped"]:
+        return None
+    if state["late"]:
+        return {**row, "error": f"the service did not answer within {_SERVICE_WAIT_S:.0f} s"}
+    return {**row, "features": found, "count": len(found)} if found else row
+
+
+@contextlib.contextmanager
+def _watched(thread: _ServiceAsk):
+
+
+
     deadline = time.monotonic() + _SERVICE_WAIT_S
     state = {"stopped": False, "late": False}
+    timer = QTimer()
 
     def watch():
-        state["stopped"] = callable(cancelled) and bool(cancelled())
+        state["stopped"] = callable(thread.cancelled) and bool(thread.cancelled())
         state["late"] = time.monotonic() > deadline
         if state["stopped"] or state["late"]:
-            for reply in manager.findChildren(QNetworkReply):
-                reply.abort()
+            timer.stop()
+            thread.exit()
 
-    timer = QTimer()
     timer.setInterval(int(_STOP_POLL_S * 1000))
     timer.timeout.connect(watch)
     timer.start()
     try:
-        return ask["provider"].identify(ask["point"], fmt, ask["box"], _CLICK_PX, _CLICK_PX), state
+        yield state
     finally:
         timer.stop()
 

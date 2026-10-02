@@ -484,11 +484,14 @@ def _provider_hint(algorithm_id: str) -> dict:
 
 
 
+
+
+
     elsewhere = sorted({other for other in every_id
                         if other.split(":", 1)[-1].casefold() == name.casefold() and other != text})
     if elsewhere:
         return {"suggestion": f"There is no {text}, but the same algorithm name is registered as "
-                              + ", ".join(elsewhere) + ", with the same parameters.",
+                              + ", ".join(elsewhere) + ".",
                 "closest_algorithms": elsewhere}
     import difflib
     pool = [a for a in every_id if a.startswith(prefix + ":")]

@@ -132,29 +132,6 @@ _MSG_TINTS = {
 }
 
 
-_PREMIUM_STAR = "★"
-
-
-
-
-_MSG_GLYPHS = {
-    "neutral": "",
-    "info": "💡",
-    "armed": "✎",
-    "success": "✓",
-    "warning": "⚠︎",
-    "error": "✕",
-    "error_transient": "✕",
-    "premium": _PREMIUM_STAR,
-}
-
-
-def _msg_text(kind: str, text: str) -> str:
-
-    glyph = _MSG_GLYPHS.get(kind, "")
-    return f"{glyph}  {text}" if glyph else text
-
-
 def _msg_label_qss(kind: str) -> str:
 
     fill, border = _MSG_TINTS[kind]
@@ -179,74 +156,6 @@ def _msg_card_qss(name: str, kind: str) -> str:
         _CARD_QSS.format(name=name)
         + "QLabel { background: transparent; border: none; color: palette(text); }"
     )
-
-
-def _micro_header(text: str, gloss: str | None = None):
-
-
-
-
-
-    from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QWidget
-
-    w = QWidget()
-    row = QHBoxLayout(w)
-    row.setContentsMargins(0, 0, 0, 0)
-    row.setSpacing(6)
-    lbl = QLabel(text)
-    lbl.setStyleSheet(_scale_qss_font_px(
-        "font-size: 10px; font-weight: bold;"
-        " color: palette(text); background: transparent; border: none;"))
-    row.addWidget(lbl)
-    if gloss:
-        gl = QLabel(gloss)
-        gl.setStyleSheet(_scale_qss_font_px(
-            f"font-size: 10px; color: {MUTED_TEXT};"
-            " background: transparent; border: none;"))
-        row.addWidget(gl)
-        w.gloss_label = gl
-    row.addStretch(1)
-    w.header_label = lbl
-    return w
-
-
-def _card_divider():
-
-    from qgis.PyQt.QtWidgets import QFrame
-
-    line = QFrame()
-    line.setFrameShape(QFrame.Shape.NoFrame)
-    line.setFixedHeight(1)
-    line.setStyleSheet("background: rgba(128, 128, 128, 0.16); border: none;")
-    return line
-
-
-def _step_dial(num: int, state: str = "todo"):
-
-
-    from qgis.PyQt.QtCore import Qt
-    from qgis.PyQt.QtWidgets import QLabel
-
-    from .font_scale import scale_px_length
-
-    lbl = QLabel("✓" if state == "done" else str(num))
-    side = scale_px_length(20)
-    radius = side // 2
-    lbl.setFixedSize(side, side)
-    lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    if state == "active":
-        qss = (f"background: {BRAND_BLUE}; color: #000000; border: none;"
-               f" border-radius: {radius}px; font-size: 11px; font-weight: 700;")
-    elif state == "done":
-        qss = (f"background: transparent; color: {BRAND_GREEN};"
-               " border: 1px solid rgba(67, 160, 71, 0.75);"
-               f" border-radius: {radius}px; font-size: 11px; font-weight: 700;")
-    else:
-        qss = (f"background: transparent; color: {MUTED_TEXT};"
-               " border: 1px solid rgba(128, 128, 128, 0.45);"
-               f" border-radius: {radius}px; font-size: 11px; font-weight: 600;")
-    lbl.setStyleSheet(_scale_qss_font_px(qss))
-    return lbl
 
 
 
@@ -455,49 +364,6 @@ _BTN_CHIP = (
     "QPushButton:disabled { color: rgba(128, 128, 128, 0.40);"
     " background: transparent; border-color: rgba(128, 128, 128, 0.20); }"
 )
-
-
-def _btn_toggle_qss(rgb: tuple[int, int, int], text: str, armed_text: str,
-                    weight: int = 700, quiet: bool = False,
-                    filled: bool = False) -> str:
-
-
-
-    r, g, b = rgb
-    solid = f"rgb({r}, {g}, {b})"
-    dark = f"rgb({int(r * 0.8)}, {int(g * 0.8)}, {int(b * 0.8)})"
-    if quiet:
-        rest = (
-            "QPushButton { background: transparent; color: palette(text);"
-            " border: 1px solid rgba(128, 128, 128, 0.40); border-radius: 6px;"
-            " padding: 6px 12px; font-size: 12px; }"
-            f"QPushButton:hover {{ background: rgba({r}, {g}, {b}, 0.14);"
-            f" border-color: rgba({r}, {g}, {b}, 0.55); }}"
-        )
-    elif filled:
-        rest = (
-            f"QPushButton {{ background: {solid}; color: #000000;"
-            f" border: none; border-radius: 6px; padding: 9px 16px;"
-            f" font-size: 12px; font-weight: {weight}; }}"
-            f"QPushButton:hover {{ background: {dark}; }}"
-        )
-    else:
-        rest = (
-            f"QPushButton {{ background: rgba({r}, {g}, {b}, 0.12); color: {text};"
-            f" border: 1px solid rgba({r}, {g}, {b}, 0.55); border-radius: 6px;"
-            f" padding: 9px 16px; font-size: 12px; font-weight: {weight}; }}"
-            f"QPushButton:hover {{ background: rgba({r}, {g}, {b}, 0.22); }}"
-        )
-    combined = rest
-    if filled:
-        combined += (f'QPushButton[armed="true"] {{ background: {dark};'
-                     f" color: #000000; border: none; }}")
-    else:
-        combined += (f'QPushButton[armed="true"] {{ background: {solid};'
-                     f" color: {armed_text}; border: 1px solid {solid}; }}")
-    combined += "QPushButton:disabled { background: transparent;"
-    combined += " color: rgba(128, 128, 128, 0.5); border-color: rgba(128, 128, 128, 0.3); }"
-    return _scale_qss_font_px(combined)
 
 
 _BTN_GRAY = (

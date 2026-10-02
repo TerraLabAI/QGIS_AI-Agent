@@ -274,22 +274,6 @@ _BTN_SEND = (
 
 
 
-def _vote_qss(tint: str) -> str:
-    return (
-        "QToolButton { background: transparent; border: none; padding: 3px;"
-        f" border-radius: {RADIUS_CONTROL}px; }}"
-        f"QToolButton:hover, QToolButton:pressed {{ background: {tint}; }}"
-        f'QToolButton[active="true"] {{ background: {tint}; }}'
-        "QToolButton:disabled { background: transparent; }"
-    )
-
-
-_BTN_VOTE_UP = _vote_qss(GREEN_TINT)
-_BTN_VOTE_DOWN = _vote_qss(RED_TINT)
-
-
-
-
 _BTN_MODE = (
     f"QToolButton {{ background: transparent; border: 1px solid {LINE};"
     f" border-radius: {RADIUS_CONTROL}px; padding: 3px 8px; font-size: {FONT_BODY}px;"
@@ -523,13 +507,9 @@ def panel_qss() -> str:
         f'QLabel#fileName[gone="true"] {{ color: {INK_3}; }}'
         f"QLabel#fileKind {{ font-size: {FONT_BASE}px; color: {INK_2};"
         " background: transparent; border: none; }"
-        f"QLabel#fileMore {{ font-size: {FONT_BASE}px; color: {INK_2};"
-        " background: transparent; border: none; }"
 
         f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; }}"
-        f"QLabel#footerText {{ font-size: {FONT_HINT}px; color: {INK_3};"
-        " background: transparent; border: none; }"
 
         f"QLabel#cardTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; border: none; }}"
@@ -539,15 +519,8 @@ def panel_qss() -> str:
         " background: transparent; border: none; }"
         f"QLabel#micro {{ font-size: {FONT_MICRO}px; font-weight: 500; color: {INK_3};"
         " background: transparent; border: none; }"
-        f"QLabel#errorText {{ font-size: {FONT_BODY}px; color: {RED};"
-        " background: transparent; border: none; }"
         f"QLabel#mono {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px;"
         f" color: {INK_2}; background: transparent; border: none; }}"
-
-
-        f"QLabel#monoChip {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px;"
-        f" color: {INK_2}; background: {FIELD}; border: none;"
-        f" border-radius: {RADIUS_CHIP}px; padding: 0 6px; }}"
 
 
         f"QLabel#planStep {{ font-size: {FONT_BODY}px; color: {INK_2};"
@@ -557,12 +530,7 @@ def panel_qss() -> str:
         f"QLabel#toolLine {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
         " background: transparent; border: none; }"
         f'QLabel#toolLine[failed="true"] {{ color: {INK_2}; }}'
-        f"QLabel#toolDuration {{ font-family: {MONO_FAMILY}; font-size: {FONT_MICRO}px; color: {INK_3};"
-        " background: transparent; border: none; }"
         f"QLabel#traceHead {{ font-size: {FONT_BASE}px; color: {INK_2};"
-        " background: transparent; border: none; }"
-
-        f"QLabel#answerNote {{ font-size: {FONT_BODY}px; color: {INK_2};"
         " background: transparent; border: none; }"
 
         f"QFrame#turnDivider {{ background: {LINE_SOFT}; border: none; }}"
@@ -933,8 +901,6 @@ __all__ = [
     "_BTN_SCROLL_PILL",
     "_BTN_SEND",
     "_BTN_THUMB_CLOSE",
-    "_BTN_VOTE_DOWN",
-    "_BTN_VOTE_UP",
     "_CARD_QSS",
     "_COMPLETER_POPUP_QSS",
     "_HEADER_QSS",

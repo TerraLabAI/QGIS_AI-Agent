@@ -7,13 +7,17 @@ from __future__ import annotations
 import contextlib
 import time
 
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsProject, QgsVectorLayer
 from qgis.utils import iface
 
-from ..core import layer_order, limits
+from ..core import background, layer_order, limits, net
+from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.tool_registry import tool_error
+from . import style_rows
 from ._compat import QVAR_DOUBLE, QVAR_INT, QVAR_LONGLONG, QVAR_STRING
+from .colour_text import qcolor_from_text
 from .layer_lookup import _field_not_found_error, _find_layer, _layer_not_found_error
 
 
@@ -91,25 +95,15 @@ def _set_layer_legend_image(layer, args: dict) -> dict:
             "A layout image item or the service's native legend URL; no layer property was changed."}
 
 
-def _set_diagram_renderer(layer, args: dict, kept_style: str = "") -> dict:
+def _set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_style: str = "") -> dict:
     from .diagram_style import set_diagram_renderer
 
-    return set_diagram_renderer(layer, args, kept_style, _previous_style_keys)
+    return set_diagram_renderer(layer, args, plan, largest, kept_style, _previous_style_keys)
 
 
-def _set_layer_style(args: dict) -> dict:
-    from qgis.core import (
-        QgsCategorizedSymbolRenderer,
-        QgsGraduatedSymbolRenderer,
-        QgsProperty,
-        QgsRenderContext,
-        QgsRendererCategory,
-        QgsSingleSymbolRenderer,
-        QgsStyle,
-        QgsSymbol,
-        QgsWkbTypes,
-    )
-    from qgis.PyQt.QtGui import QColor
+def _legacy_names(args: dict) -> None:
+
+
 
 
 
@@ -120,6 +114,89 @@ def _set_layer_style(args: dict) -> dict:
     for theirs, ours in (("layer", "layer_name"), ("fill_color", "color"), ("symbol_size", "size")):
         if args.get(ours) in (None, "") and args.get(theirs) not in (None, ""):
             args[ours] = args[theirs]
+
+
+def _style_reads_rows(args: dict) -> bool:
+
+
+
+
+
+
+
+    args = args if isinstance(args, dict) else {}
+    _legacy_names(args)
+    if args.get("legend_image") is not None or not args.get("layer_name"):
+        return False
+    layer = _find_layer(args.get("layer_name"))
+    if not isinstance(layer, QgsVectorLayer):
+        return False
+    style_type = str(args.get("style_type") or "").strip()
+    if not (style_type in ("categorized", "graduated", "pie", "bar", "diagram")
+            or (args.get("size_field") and style_type != "cluster")
+            or _style_for_geometry(layer, style_type, args)[0] == "categorized"):
+        return False
+    if layer_order.is_remote_vector(layer):
+        return True
+    count = layer_order.feature_count_of(layer)
+    return count is None or count > limits.current("SYNC_FEATURE_LOOP_MAX")
+
+
+def _set_layer_style(args: dict) -> dict:
+
+
+
+
+
+
+
+
+
+
+    plan = run_on_main_thread(_style_plan, args, timeout=60)
+    if "_rows" not in plan:
+        return plan
+    facts = style_rows.read(plan.pop("_rows"))
+    if "_error" in facts:
+        return facts
+    facts.update(_style_decide(plan, facts))
+    if net.is_cancelled():
+        return tool_error("Stopped before the style was applied.", "CANCELLED",
+                          "Nothing was changed: the layer keeps its style.")
+    return run_on_main_thread(_style_apply, plan, facts, timeout=60)
+
+
+
+_MODE_NAMES = {"equal_interval": "EqualInterval", "quantile": "Quantile", "jenks": "Jenks", "pretty": "Pretty"}
+
+
+_JENKS_VALUES = 3000
+
+
+def _jenks_sample(values: list) -> list:
+
+
+
+
+
+
+
+
+
+
+
+    ordered = sorted(values)
+    count, steps = len(ordered), _JENKS_VALUES - 2
+    return [ordered[0], ordered[-1]] + [ordered[max(1, -(-step * (count - 2) // steps))] for step in range(steps)]
+
+
+def _style_plan(args: dict) -> dict:
+
+
+
+    from qgis.core import QgsWkbTypes
+
+    _legacy_names(args)
     target = args.get("layer_name")
     if not target:
         return {"_error": "layer_name is required.", "code": "INVALID_ARGS",
@@ -176,54 +253,351 @@ def _set_layer_style(args: dict) -> dict:
 
 
 
-    color_ramp_name = args.get("color_ramp")
-
-
-    invert_ramp = args.get("invert_ramp") is True
-    if isinstance(color_ramp_name, str) and color_ramp_name.lower().endswith("_r"):
-        color_ramp_name, invert_ramp = color_ramp_name[:-2], not invert_ramp
-    ramp = None
-    if color_ramp_name and style_type in ("categorized", "graduated"):
-        default_style = QgsStyle.defaultStyle()
-        ramp = default_style.colorRamp(color_ramp_name)
-        if ramp is None:
-
-
-            same = [n for n in default_style.colorRampNames() if n.lower() == color_ramp_name.lower()]
-            if same:
-                ramp = default_style.colorRamp(same[0])
-            else:
-                try:
-                    from qgis.core import QgsColorBrewerColorRamp
-                    scheme = next((s for s in QgsColorBrewerColorRamp.listSchemeNames()
-                                   if s.lower() == color_ramp_name.lower()), None)
-                    ramp = QgsColorBrewerColorRamp(scheme, 9) if scheme else None
-                except Exception:  # nosec B110
-                    ramp = None
-        if ramp is None:
-            from .elevation_style import elevation_ramp, is_elevation_alias
-
-            if is_elevation_alias(color_ramp_name):
 
 
 
 
-                ramp = elevation_ramp()
-            else:
-                return {
-                    "_error": f"Unknown color ramp: {color_ramp_name!r}.",
-                    "available_ramps": default_style.colorRampNames(),
-                }
-    if style_type == "graduated" and ramp is None:
-        color_ramp_name = "Viridis"
-        ramp = QgsStyle.defaultStyle().colorRamp("Viridis") or QgsStyle.defaultStyle().colorRamp("Blues")
-    if ramp is not None and invert_ramp:
-        ramp = ramp.clone()
-        ramp.invert()
+    ramp, color_ramp_name = None, ""
+    if style_type == "graduated" or (style_type == "categorized"
+                                     and (args.get("color_ramp") or args.get("color_stops"))):
+        from .harvest_layers import _raster_ramp
 
+        ramp, color_ramp_name, ramp_error = _raster_ramp(args)
+        if ramp_error:
+            return ramp_error
+    invert_ramp = color_ramp_name.endswith(" reversed")
+    if invert_ramp:
+        color_ramp_name = color_ramp_name[:-len(" reversed")]
 
+    plan = {"args": args, "layer_id": layer.id(), "style_type": style_type, "kind": style_type,
+            "coerced_note": coerced_note, "ramp": ramp, "color_ramp_name": color_ramp_name,
+            "invert_ramp": invert_ramp, "proportional": proportional}
+    rows = style_rows.Read(layer)
+    if proportional:
+        rows.add("size_range", style_rows.MinMax(rows.field(proportional["index"])))
     if style_type in ("pie", "bar", "diagram"):
-        return _set_diagram_renderer(layer, args, kept_style=_style_to_put_back(layer))
+
+        from .diagram_style import SCAN, diagram_plan
+
+        diagram = diagram_plan(layer, args)
+        if "_error" in diagram:
+            return diagram
+        plan["diagram"] = diagram
+        if diagram["scaled"]:
+            rows.add("largest", style_rows.Largest(rows.expression(diagram["measure"]), SCAN))
+    elif style_type == "categorized":
+        refused = _plan_categorized(layer, args, plan, rows)
+        if refused:
+            return refused
+    elif style_type == "graduated":
+        refused = _plan_graduated(layer, args, plan, rows)
+        if refused:
+            return refused
+    elif style_type not in ("single", "cluster"):
+        return {"_error": f"Unknown style type: {style_type}"}
+    if not rows:
+        return _style_apply(plan, {})
+    plan["started"] = time.monotonic()
+    plan["_rows"] = rows.spec()
+    return plan
+
+
+def _plan_categorized(layer, args: dict, plan: dict, rows) -> dict | None:
+
+    from qgis.core import QgsExpression
+
+    from .style_defaults import touching_classes
+
+    fields = layer.fields()
+    cap = limits.current("MAX_FEATURES_MATERIALISED")
+    plan.update(cap=cap, total=layer_order.feature_count_of(layer))
+    if _relabels_only(layer, args):
+
+
+
+        plan["kind"] = "relabel"
+        attribute = layer.renderer().classAttribute()
+    elif args.get("color_field") or args.get("keep_colors") is True:
+
+
+        refused = _plan_coloured(layer, args, plan, rows)
+        if refused:
+            return refused
+        attribute = plan["field"]
+    else:
+
+        expression = str(args.get("value_expression") or "").strip()
+        field = expression or args.get("field")
+        if not field:
+            return {"_error": "Field (or value_expression) is required for categorized style"}
+        idx = -1 if expression else fields.indexOf(field)
+        if idx < 0 and not expression:
+            return _field_not_found_error(layer, field)
+
+        plan.update(kind="categorized", field=field, expression=expression,
+                    numeric=not expression and fields.at(idx).isNumeric())
+        if expression:
+
+
+            rows.add("expression_values", style_rows.Values(rows.expression(expression), cap))
+        else:
+
+
+            key = rows.field(idx)
+            rows.add("distinct", style_rows.Distinct(key, _MAX_CATEGORIES, cap))
+            rows.add("frequencies", style_rows.Frequencies(key, cap))
+        _plan_nulls(layer, field, plan, rows)
+        attribute = field
+    if _lists_no_value(args):
+        _plan_nulls(layer, attribute, plan, rows, always=True)
+    label_field = str(args.get("label_field") or "").strip()
+    if label_field and fields.indexOf(attribute) >= 0 and fields.indexOf(label_field) >= 0:
+        rows.add("labels", style_rows.LabelVotes(rows.field(fields.indexOf(attribute)),
+                                                 rows.field(fields.indexOf(label_field)), cap))
+    if touching_classes(layer, layer_order.is_remote_vector(layer)):
+
+        rows.add("touching", style_rows.Touching(rows.expression(
+            QgsExpression.quotedColumnRef(attribute) if fields.indexOf(attribute) >= 0 else attribute)))
+        rows.needs(geometry=True)
+    return None
+
+
+def _plan_graduated(layer, args: dict, plan: dict, rows) -> dict | None:
+
+    from qgis.core import QgsApplication, QgsExpression
+
+    from .style_defaults import FIELD_SAMPLE, _number
+
+    fields = layer.fields()
+
+    expression = str(args.get("value_expression") or "").strip()
+    field = expression or args.get("field")
+    if not field:
+        return {"_error": "Field (or value_expression) is required for graduated style"}
+
+    idx = -1 if expression else fields.indexOf(field)
+    if idx < 0 and not expression:
+        return _field_not_found_error(layer, field)
+
+    field_note: dict = {}
+
+
+
+    if not expression and not fields.at(idx).isNumeric():
+        type_name = fields.at(idx).typeName() or "text"
+        field = 'to_real("{}")'.format(str(field).replace('"', '""'))
+        field_note["field_note"] = (f"{args['field']} is {type_name}: its values were read as numbers with "
+                                    "to_real, and a value that is not a number counts as no value")
+
+    breaks = _class_limits(args.get("breaks"))
+    if isinstance(breaks, dict):
+        return breaks
+    explicit = str(args.get("classification_mode") or "").strip().lower()
+
+    auto = not args.get("classification_mode") and not breaks
+    registry = QgsApplication.classificationMethodRegistry()
+    plan.update(kind="graduated", field=field, expression=expression, field_note=field_note, breaks=breaks,
+                auto=auto, classes=int(args.get("classes", 5) or 5), total=layer_order.feature_count_of(layer),
+                field_name=fields.at(idx).name() if idx >= 0 else "",
+                methods={name: registry.method(name) for name in _MODE_NAMES.values()})
+    if auto or (explicit and not breaks):
+
+
+
+        rows.add("sample", style_rows.Values(rows.expression(expression), FIELD_SAMPLE) if expression
+                 else style_rows.Numbers(rows.field(idx), FIELD_SAMPLE, _number))
+    if not breaks:
+
+
+
+        at = fields.indexFromName(field)
+        plan["by_expression"] = at < 0
+        mode = None if auto else _MODE_NAMES.get(args.get("classification_mode"), "EqualInterval")
+        values = at < 0 or mode is None or plan["methods"][mode].valuesRequired()
+        if at >= 0:
+            rows.add("doubles", style_rows.Doubles(rows.field(at), values, True, _null_reads_zero(fields.at(at))))
+        else:
+
+
+            parsed = QgsExpression(field)
+            ref = fields.lookupField(next(iter(parsed.referencedColumns()), "")) if parsed.isField() else -1
+            rows.add("doubles", style_rows.Doubles(rows.expression(field), True, False,
+                                                   ref >= 0 and _null_reads_zero(fields.at(ref))))
+    _plan_nulls(layer, field, plan, rows)
+    return None
+
+
+def _null_reads_zero(field) -> bool:
+
+    return field.isNumeric() or style_rows.type_code(field.type()) == 1
+
+
+def _plan_nulls(layer, attribute: str, plan: dict, rows, always: bool = False) -> None:
+
+
+
+
+    if "nulls" in rows.jobs or not (always or plan["total"]):
+        return
+    index = layer.fields().indexOf(attribute)
+    rows.add("nulls", style_rows.Nulls(rows.field(index), False) if index >= 0
+             else style_rows.Nulls(rows.expression(f"({attribute}) IS NULL"), True))
+
+
+def _lists_no_value(args: dict) -> bool:
+
+    return any(isinstance(entry, dict) and _category_key(entry.get("value"), False) is None
+               for entry in args.get("categories") or [])
+
+
+def _style_decide(plan: dict, facts: dict) -> dict:
+
+
+
+    if plan["kind"] == "categorized":
+        return _decide_categories(plan, facts)
+    if plan["kind"] == "graduated":
+        return _decide_classes(plan, facts)
+    return {}
+
+
+def _decide_categories(plan: dict, facts: dict) -> dict:
+
+    args, expression = plan["args"], plan["expression"]
+    expression_counts: dict = {}
+    if expression:
+        values, expression_scanned = facts["expression_values"]["values"], facts["expression_values"]["scanned"]
+        by_text: dict = {}
+        for value in values:
+            key = str(value)
+            expression_counts[key] = expression_counts.get(key, 0) + 1
+            by_text.setdefault(key, value)
+        unique_values = list(by_text.values())
+    else:
+        unique_values = facts["distinct"]
+
+
+
+
+    unique_values = [value for value in unique_values
+                     if value is not None and not (hasattr(value, "isNull") and value.isNull())]
+    n = len(unique_values)
+
+
+
+    overflow = n > _MAX_CATEGORIES
+
+
+
+
+
+    with contextlib.suppress(TypeError):
+        unique_values = sorted(unique_values, key=lambda v: (str(type(v)), v))
+
+
+
+
+
+    max_classes = _requested_classes(args) or _READABLE_CATEGORIES
+    folded, scanned = [], 0
+
+    other_catch_all = False
+    numeric = plan["numeric"]
+    listed = {_category_key(entry.get("value"), numeric) for entry in args.get("categories") or []
+              if isinstance(entry, dict)} - {None}
+    if n > max_classes:
+        if expression:
+            counts, scanned = expression_counts, expression_scanned
+        else:
+            counts, scanned = facts["frequencies"]["counts"], facts["frequencies"]["scanned"]
+        if overflow:
+            n = len(counts)
+            by_text = {str(v): v for v in unique_values}
+            ranked = sorted((text for text in counts if text != "NULL"), key=lambda text: (-counts[text], text))
+            unique_values = [by_text.get(text, text) for text in ranked[:max_classes]] + [
+                by_text.get(text, text) for text in ranked[max_classes:]
+                if _category_key(by_text.get(text, text), numeric) in listed]
+            folded = None
+            other_catch_all = True
+        else:
+            ranked = sorted(unique_values, key=lambda v: (-counts.get(str(v), 0), str(v)))
+            kept = {str(v) for v in ranked[:max_classes]} | {
+                str(v) for v in unique_values if _category_key(v, numeric) in listed}
+            folded = [v for v in unique_values if str(v) not in kept]
+            unique_values = [v for v in unique_values if str(v) in kept]
+    return {"categories": {"values": unique_values, "folded": folded, "n": n, "scanned": scanned,
+                           "other_catch_all": other_catch_all}}
+
+
+def _decide_classes(plan: dict, facts: dict) -> dict:
+
+
+    from .style_defaults import _number, class_counts, graduated_choice
+
+    args = plan["args"]
+    auto_choice: dict = {}
+    asked_mode = args.get("classification_mode")
+    if plan["auto"]:
+        auto_choice = (_expression_choice(plan["expression"], facts["sample"]["values"]) if plan["expression"]
+                       else graduated_choice(plan["field_name"], facts["sample"]))
+        asked_mode = auto_choice.get("mode") or "equal_interval"
+    mode_name = _MODE_NAMES.get(asked_mode, "EqualInterval")
+    out = {"auto_choice": auto_choice, "mode_name": mode_name, "ranges": []}
+    if plan["breaks"]:
+        return out
+    method, doubles = plan["methods"][mode_name], facts["doubles"]
+    count = max(1, plan["classes"])
+    if plan["by_expression"] or method.valuesRequired():
+        values = doubles["values"]
+        if mode_name == "Jenks" and len(values) > _JENKS_VALUES:
+            out["classes_from"] = (f"{_JENKS_VALUES:,} of {len(values):,} values: the smallest, the largest and "
+                                   "the values at evenly spaced ranks between them")
+            values = _jenks_sample(values)
+        found = method.classes(values, count) if values else []
+    else:
+        found = method.classes(doubles["min"], doubles["max"], count)
+    out["ranges"] = [(r.label(), r.lowerBound(), r.upperBound()) for r in found]
+    if str(args.get("classification_mode") or "").strip():
+        sample = facts["sample"]
+        if plan["expression"]:
+            sample = [number for number in map(_number, sample["values"]) if number is not None]
+        out["class_counts"] = class_counts(sample, [(float(low), float(high)) for _label, low, high in out["ranges"]])
+    return out
+
+
+def _style_apply(plan: dict, facts: dict) -> dict:
+
+    from qgis.core import (
+        QgsCategorizedSymbolRenderer,
+        QgsProperty,
+        QgsRenderContext,
+        QgsRendererCategory,
+        QgsSingleSymbolRenderer,
+        QgsSymbol,
+        QgsWkbTypes,
+    )
+    from qgis.PyQt.QtGui import QColor
+
+    args = plan["args"]
+    layer = QgsProject.instance().mapLayer(plan["layer_id"])
+    if not isinstance(layer, QgsVectorLayer):
+        return tool_error(f"{args.get('layer_name')} left the project before it was styled.", "EXECUTION_FAILED",
+                          "The layer left the project; load it again first.")
+    if not background.still_awaited():
+        return tool_error("Stopped before the style was applied.", "CANCELLED",
+                          "Nothing was changed: the layer keeps its style.")
+    style_type, kind, ramp = plan["style_type"], plan["kind"], plan["ramp"]
+    color_ramp_name, invert_ramp, coerced_note = plan["color_ramp_name"], plan["invert_ramp"], plan["coerced_note"]
+    proportional = plan["proportional"]
+    if proportional:
+        low, high = facts["size_range"]
+        if low is None:
+            return {"_error": f"size_field {proportional['field']!r} has no values to size by.", "code": "INVALID_ARGS"}
+        proportional = dict(proportional, low=low, high=high if high > low else low + 1.0)
+
+    if "diagram" in plan:
+        return _set_diagram_renderer(layer, args, plan["diagram"], facts.get("largest", 0.0),
+                                     kept_style=_style_to_put_back(layer))
 
 
 
@@ -231,107 +605,37 @@ def _set_layer_style(args: dict) -> dict:
 
     fold_note: dict = {}
 
-    auto_choice: dict = {}
+    other_catch_all = False
 
-    built_classes = style_type in ("categorized", "graduated")
+    auto_choice: dict = facts.get("auto_choice") or {}
+
+    built_classes = kind in ("categorized", "graduated")
     if style_type == "single":
         color = args.get("color", "#3388ff")
         symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-        symbol.setColor(QColor(color))
+        symbol.setColor(qcolor_from_text(color))
         renderer = QgsSingleSymbolRenderer(symbol)
         layer.setRenderer(renderer)
 
-    elif style_type == "categorized" and _relabels_only(layer, args):
-
-
-
+    elif kind == "relabel":
         renderer = layer.renderer().clone()
         ramp = None
-        built_classes = False
         layer.setRenderer(renderer)
 
-    elif style_type == "categorized" and (args.get("color_field") or args.get("keep_colors") is True):
-
-
-        built = _coloured_categories(layer, args)
+    elif kind == "coloured":
+        built = _coloured_categories(layer, plan, facts["colours"])
         if "_error" in built:
             return built
         renderer = built.pop("renderer")
         fold_note = built
         ramp = None
-
-        built_classes = False
         layer.setRenderer(renderer)
 
-    elif style_type == "categorized":
-
-        expression = str(args.get("value_expression") or "").strip()
-        field = expression or args.get("field")
-        if not field:
-            return {"_error": "Field (or value_expression) is required for categorized style"}
-
-        idx = -1 if expression else layer.fields().indexOf(field)
-        if idx < 0 and not expression:
-            return _field_not_found_error(layer, field)
-
-        expression_counts: dict = {}
-        if expression:
-
-
-            values, expression_scanned = _expression_values(
-                layer, expression, limits.current("MAX_FEATURES_MATERIALISED"))
-            by_text: dict = {}
-            for value in values:
-                key = str(value)
-                expression_counts[key] = expression_counts.get(key, 0) + 1
-                by_text.setdefault(key, value)
-            unique_values = list(by_text.values())
-        else:
-
-
-
-
-            unique_values = list(layer.uniqueValues(idx, _MAX_CATEGORIES + 1))
-
-
-        unique_values = [value for value in unique_values if value is not None]
-        n = len(unique_values)
-
-
-
-
-        overflow = n > _MAX_CATEGORIES
-
-
-
-
-
-        with contextlib.suppress(TypeError):
-            unique_values = sorted(unique_values, key=lambda v: (str(type(v)), v))
-
-
-
-
-
-        max_classes = _requested_classes(args) or _READABLE_CATEGORIES
-        folded, scanned = [], 0
-        if n > max_classes:
-            if expression:
-                counts, scanned = expression_counts, expression_scanned
-            else:
-                counts, scanned = _value_frequencies(layer, idx, limits.current("MAX_FEATURES_MATERIALISED"))
-            if overflow:
-                n = len(counts)
-                by_text = {str(v): v for v in unique_values}
-                ranked = sorted(counts, key=lambda text: (-counts[text], text))
-                unique_values = [by_text.get(text, text) for text in ranked[:max_classes]]
-                folded = None
-            else:
-                ranked = sorted(unique_values, key=lambda v: (-counts.get(str(v), 0), str(v)))
-                kept = {str(v) for v in ranked[:max_classes]}
-                folded = [v for v in unique_values if str(v) not in kept]
-                unique_values = [v for v in unique_values if str(v) in kept]
-
+    elif kind == "categorized":
+        field = plan["field"]
+        decided = facts["categories"]
+        unique_values, folded, n, scanned = decided["values"], decided["folded"], decided["n"], decided["scanned"]
+        other_catch_all = decided["other_catch_all"]
         shown = len(unique_values)
         categories = []
         for i, value in enumerate(unique_values):
@@ -366,7 +670,7 @@ def _set_layer_style(args: dict) -> dict:
 
 
 
-            total = layer_order.feature_count_of(layer)
+            total = plan["total"]
             if scanned and (total is None or scanned < total):
                 fold_note["warning"] += f" (frequencies measured on the first {scanned} features)"
 
@@ -387,76 +691,22 @@ def _set_layer_style(args: dict) -> dict:
         renderer = QgsCategorizedSymbolRenderer(field, categories)
         layer.setRenderer(renderer)
 
-    elif style_type == "graduated":
-
-        expression = str(args.get("value_expression") or "").strip()
-        field = expression or args.get("field")
-        if not field:
-            return {"_error": "Field (or value_expression) is required for graduated style"}
-
-        idx = -1 if expression else layer.fields().indexOf(field)
-        if idx < 0 and not expression:
-            return _field_not_found_error(layer, field)
-
-
-
-
-        if not expression and not layer.fields().at(idx).isNumeric():
-            type_name = layer.fields().at(idx).typeName() or "text"
-            field = 'to_real("{}")'.format(str(field).replace('"', '""'))
-            fold_note["field_note"] = (f"{args['field']} is {type_name}: its values were read as numbers with "
-                                       "to_real, and a value that is not a number counts as no value")
-
-        mode_names = {
-            "equal_interval": "EqualInterval",
-            "quantile": "Quantile",
-            "jenks": "Jenks",
-            "pretty": "Pretty",
-        }
-        breaks = _class_limits(args.get("breaks"))
-        if isinstance(breaks, dict):
-            return breaks
-        asked_mode = args.get("classification_mode")
-        if not asked_mode and not breaks:
-
-
-
-            from .style_defaults import graduated_choice
-
-            auto_choice = _expression_choice(layer, expression) if expression else graduated_choice(layer, idx)
-            asked_mode = auto_choice.get("mode") or "equal_interval"
-        mode_name = mode_names.get(asked_mode, "EqualInterval")
-        classes = int(args.get("classes", 5) or 5)
+    elif kind == "graduated":
+        field = plan["field"]
+        fold_note.update(plan["field_note"])
+        mode_name = facts["mode_name"]
+        classes = plan["classes"]
         base_symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+        breaks = plan["breaks"]
         if breaks:
 
 
             renderer = _fixed_ranges(field, breaks, base_symbol, ramp)
             fold_note["breaks"] = breaks
         else:
-            try:
-
-
-                from qgis.core import QgsApplication
-                method = QgsApplication.classificationMethodRegistry().method(mode_name)
-                renderer = QgsGraduatedSymbolRenderer(field, [])
-                renderer.setSourceSymbol(base_symbol)
-                renderer.setClassificationMethod(method)
-                if ramp is not None:
-                    renderer.setSourceColorRamp(ramp.clone())
-                renderer.updateClasses(layer, classes)
-            except Exception:
-                try:
-                    fallback = enum_member(QgsGraduatedSymbolRenderer, "Mode", "EqualInterval")
-                    mode = getattr(QgsGraduatedSymbolRenderer, mode_name, fallback)
-                    renderer = QgsGraduatedSymbolRenderer.createRenderer(
-                        layer, field, classes, mode, base_symbol, ramp.clone() if ramp is not None else None
-                    )
-                except Exception as exc:
-                    return {
-                        "_error": f"Graduated renderer is not available on this QGIS version: {exc}",
-                        "code": "EXECUTION_FAILED",
-                    }
+            renderer = _classified(field, base_symbol, ramp, mode_name, facts["ranges"])
+            if isinstance(renderer, dict):
+                return renderer
         if len(renderer.ranges()) == 0:
             return {
                 "_error": f"Field {field!r} has no values to classify.",
@@ -466,31 +716,45 @@ def _set_layer_style(args: dict) -> dict:
         _readable_range_labels(renderer, args.get("units"))
         layer.setRenderer(renderer)
 
-    elif style_type == "cluster":
+    else:
         renderer = _cluster_renderer(layer, args)
         if isinstance(renderer, dict):
             return renderer
         layer.setRenderer(renderer)
 
-    else:
-        return {"_error": f"Unknown style type: {style_type}"}
-
 
 
     bounds = ([(float(r.lowerValue()), float(r.upperValue())) for r in renderer.ranges()]
               if style_type == "graduated" else [])
+
+
+    class_colors = ([r.symbol().color().name() for r in renderer.ranges() if r.symbol() is not None]
+                    if style_type == "graduated" else [])
     no_value: dict = {}
     if built_classes:
         classed = renderer
-        renderer, no_value = _no_value_class(layer, renderer, args)
+        renderer, no_value = _no_value_class(layer, renderer, args, _missing(plan, facts))
         if renderer is not classed:
             layer.setRenderer(renderer)
 
     labelled: dict = {}
     if style_type == "categorized" and str(args.get("label_field") or "").strip():
-        labelled = _labels_from_field(layer, renderer, str(args["label_field"]).strip())
+        labelled = _labels_from_field(layer, renderer, str(args["label_field"]).strip(), facts.get("labels"),
+                                      plan["cap"], plan["total"])
 
-    applied = _apply_symbol_tweaks(renderer, args) if style_type != "cluster" else {"stroke_color"}
+
+
+
+    classed_lines = (style_type in ("categorized", "graduated")
+                     and layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "LineGeometry"))
+    applied = _apply_symbol_tweaks(renderer, args, classed_lines) if style_type != "cluster" else {"stroke_color"}
+    if style_type == "categorized" and args.get("categories"):
+
+        labelled.update(_listed_categories(layer, renderer, args["categories"], other_catch_all,
+                                           bool(facts.get("nulls"))))
+        if labelled.get("null_class"):
+
+            no_value.pop("no_value_note", None)
 
     if args.get("size_expression") and style_type != "cluster":
         for symbol in renderer.symbols(QgsRenderContext()):
@@ -547,11 +811,21 @@ def _set_layer_style(args: dict) -> dict:
             not_applied.append(key)
     if not_applied:
         result["not_applied"] = not_applied
-        result["not_applied_note"] = ("these arguments have no place on this layer's symbols and changed nothing: "
-                                      "size sizes point markers, fill is a polygon's inside, stroke_width and "
-                                      "stroke_color are a line or an outline")
+        note = ("these arguments have no place on this layer's symbols and changed nothing: "
+                "size sizes point markers, fill is a polygon's inside, stroke_width and "
+                "stroke_color are a line or an outline")
+        if classed_lines and "stroke_color" in not_applied:
+            rest = [key for key in not_applied if key != "stroke_color"]
+            note = ("stroke_color changed nothing: a line's colour is its class's, so one stroke_color would "
+                    "draw every class the same and the classes keep their own colours"
+                    + (f"; {', '.join(rest)} has no place on this layer's symbols" if rest else ""))
+        result["not_applied_note"] = note
     if style_type == "graduated":
         result["classes"] = len(bounds)
+        if class_colors:
+            result["class_colors"] = class_colors
+        if facts.get("classes_from"):
+            result["classes_from"] = facts["classes_from"]
         result.update(fold_note)
         explicit_mode = str(args.get("classification_mode") or "").strip().lower()
         if explicit_mode and not fold_note.get("breaks"):
@@ -559,9 +833,9 @@ def _set_layer_style(args: dict) -> dict:
 
 
 
-            from .style_defaults import class_counts, dominant_class_note
+            from .style_defaults import dominant_class_note
 
-            counts = class_counts(layer, idx, bounds)
+            counts = facts.get("class_counts")
             if counts:
                 result["class_counts"] = counts
                 warning = dominant_class_note(counts, field, mode_name)
@@ -582,7 +856,7 @@ def _set_layer_style(args: dict) -> dict:
             from .style_defaults import closest_class_colours
 
             with contextlib.suppress(Exception):
-                result.update(closest_class_colours(layer, renderer, layer_order.is_remote_vector(layer)))
+                result.update(closest_class_colours(renderer, facts.get("touching")))
         result.update(fold_note)
         result.update(labelled)
     if style_type == "cluster":
@@ -599,6 +873,33 @@ def _set_layer_style(args: dict) -> dict:
     elif proportional and args.get("size_expression"):
         result["size_field_note"] = "size_expression was given as well and sizes the symbols; size_field was not used"
     return result
+
+
+def _classified(attribute: str, base_symbol, ramp, mode_name: str, ranges: list):
+
+
+
+    from qgis.core import QgsApplication, QgsClassificationRange, QgsGraduatedSymbolRenderer, QgsRendererRange
+
+    method = QgsApplication.classificationMethodRegistry().method(mode_name)
+    if method is None:
+        return {"_error": f"Graduated renderer is not available on this QGIS version: no {mode_name} method.",
+                "code": "EXECUTION_FAILED"}
+    renderer = QgsGraduatedSymbolRenderer(attribute, [])
+    renderer.setSourceSymbol(base_symbol)
+    renderer.setClassificationMethod(method)
+    if ramp is not None:
+        renderer.setSourceColorRamp(ramp.clone())
+    for label, lower, upper in ranges:
+        renderer.addClassRange(QgsRendererRange(QgsClassificationRange(label, lower, upper),
+                                                renderer.sourceSymbol().clone()))
+    renderer.updateColorRamp(None)
+    return renderer
+
+
+def _missing(plan: dict, facts: dict):
+
+    return facts.get("nulls") if plan.get("total") else None
 
 
 def _class_limits(breaks):
@@ -631,7 +932,7 @@ def _fixed_ranges(attribute: str, limits: list, base_symbol, ramp):
     return renderer
 
 
-def _no_value_class(layer, renderer, args: dict) -> tuple:
+def _no_value_class(layer, renderer, args: dict, missing) -> tuple:
 
 
 
@@ -640,34 +941,30 @@ def _no_value_class(layer, renderer, args: dict) -> tuple:
 
 
 
-    from qgis.core import Qgis, QgsAggregateCalculator, QgsRendererCategory, QgsRuleBasedRenderer, QgsSymbol
-    from qgis.PyQt.QtGui import QColor
+
+
+
+    from qgis.core import QgsRendererCategory, QgsRuleBasedRenderer, QgsSymbol
 
     attribute = renderer.classAttribute()
-    missing = None
-    total = layer_order.feature_count_of(layer)
-    count = enum_member(Qgis, "Aggregate", "Count", None) or enum_member(QgsAggregateCalculator, "Aggregate", "Count")
-    if total:
-        try:
-            counted, ok = layer.aggregate(count, attribute)
-            if ok and counted is not None:
-                missing = max(0, int(total) - int(counted))
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"set_layer_style: no-value count of {attribute!r} not read: {exc}")
     note: dict = {"features_without_value": missing} if missing else {}
     colour = str(args.get("null_class_color") or "").strip()
     label = str(args.get("null_class_label") or "").strip() or "No data"
+    catch_all = renderer.type() == "categorizedSymbol" and any(
+        not isinstance(c.value(), list) and (c.value() is None or str(c.value()) in ("", "NULL"))
+        for c in renderer.categories())
     if not (colour or args.get("null_class_label")) or missing == 0:
-        if missing:
+        if missing and catch_all:
+            note["no_value_note"] = f"{missing} features have no value in {attribute}; the catch-all class draws them"
+        elif missing:
             note["no_value_note"] = (f"{missing} features have no value in {attribute} and are not drawn; "
                                      "null_class_color draws them in a class of their own")
         return renderer, note
     symbol = QgsSymbol.defaultSymbol(layer.geometryType())
-    symbol.setColor(QColor(colour or "#bdbdbd"))
+    symbol.setColor(qcolor_from_text(colour or "#bdbdbd"))
     note["null_class"] = {"label": label, "color": symbol.color().name()}
     if renderer.type() == "categorizedSymbol":
-        if any(not isinstance(c.value(), list) and (c.value() is None or str(c.value()) in ("", "NULL"))
-               for c in renderer.categories()):
+        if catch_all:
             note["null_class"]["note"] = "the features with no value are drawn in the existing catch-all class"
             return renderer, note
         renderer.addCategory(QgsRendererCategory("", symbol, label))
@@ -681,6 +978,7 @@ def _no_value_class(layer, renderer, args: dict) -> tuple:
 
 
 def _proportional_request(layer, args: dict) -> dict:
+
 
     from qgis.core import QgsWkbTypes
 
@@ -699,10 +997,6 @@ def _proportional_request(layer, args: dict) -> dict:
                 "suggestion": ("native:centroids (run_processing) makes points to size for proportional "
                                "symbols; a graduated style also works.")}
     markers = geometry == enum_member(QgsWkbTypes, "GeometryType", "PointGeometry")
-    try:
-        low, high = float(layer.minimumValue(index)), float(layer.maximumValue(index))
-    except (TypeError, ValueError):
-        return {"_error": f"size_field {field!r} has no values to size by.", "code": "INVALID_ARGS"}
     default_min, default_max = (2.0, 10.0) if markers else (0.3, 3.0)
     try:
         min_size = float(args.get("min_size") if args.get("min_size") is not None else default_min)
@@ -711,8 +1005,7 @@ def _proportional_request(layer, args: dict) -> dict:
         min_size, max_size = default_min, default_max
     if not max_size > min_size:
         min_size, max_size = default_min, default_max
-    return {"field": field, "low": low, "high": high if high > low else low + 1.0,
-            "min_size": min_size, "max_size": max_size, "markers": markers}
+    return {"field": field, "index": index, "min_size": min_size, "max_size": max_size, "markers": markers}
 
 
 
@@ -882,37 +1175,6 @@ def _requested_classes(args: dict) -> int:
     return 0
 
 
-def _value_frequencies(layer, index: int, scan_cap: int) -> tuple[dict, int]:
-
-
-
-
-
-
-
-
-    from qgis.core import QgsFeatureRequest
-
-    request = QgsFeatureRequest().setSubsetOfAttributes([index])
-    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    if flag is not None:
-        request.setFlags(flag)
-    counts: dict = {}
-    scanned = 0
-    features = layer.getFeatures(request)
-    try:
-        for feature in features:
-            key = str(feature[index])
-            counts[key] = counts.get(key, 0) + 1
-            scanned += 1
-            if scanned >= scan_cap:
-                break
-    finally:
-        with contextlib.suppress(Exception):
-            features.close()
-    return counts, scanned
-
-
 def _colour_name(value, memo: dict) -> str | None:
 
 
@@ -943,6 +1205,92 @@ def _colour_name(value, memo: dict) -> str | None:
     return name
 
 
+def _numeric_class(layer, attribute) -> bool:
+
+    index = layer.fields().indexOf(attribute) if attribute else -1
+    return index >= 0 and layer.fields().at(index).isNumeric()
+
+
+def _category_key(value, numeric: bool):
+
+
+    if value is None or str(value) == "NULL":
+        return None
+    if numeric:
+        with contextlib.suppress(TypeError, ValueError):
+            return float(value)
+    return str(value).strip()
+
+
+def _listed_categories(layer, renderer, entries: list, other_catch_all: bool = False,
+                       holds_no_value: bool = False) -> dict:
+
+
+
+
+
+
+
+    from qgis.core import QgsRendererCategory, QgsSymbol
+
+    numeric = _numeric_class(layer, renderer.classAttribute())
+    index: dict = {}
+    for i, category in enumerate(renderer.categories()):
+        value = category.value()
+        if isinstance(value, list):
+            continue
+
+
+        if value in (None, "") and other_catch_all:
+            continue
+        index.setdefault(None if value in (None, "") else _category_key(value, numeric), i)
+    applied, unmatched, in_other, null_class = 0, [], [], None
+    for entry in entries:
+        value = entry.get("value")
+        key = _category_key(value, numeric)
+        i = index.get(key)
+        if key is None:
+            if not holds_no_value:
+                unmatched.append(value)
+                continue
+            if other_catch_all:
+                in_other.append(value)
+                continue
+            if i is None:
+                renderer.addCategory(QgsRendererCategory("", QgsSymbol.defaultSymbol(layer.geometryType()),
+                                                         "No data"))
+                i = index[None] = len(renderer.categories()) - 1
+        if i is None:
+            unmatched.append(value)
+            continue
+
+        category = renderer.categories()[i]
+        symbol = category.symbol().clone()
+        if entry.get("color") not in (None, ""):
+            symbol.setColor(qcolor_from_text(str(entry["color"])))
+        if entry.get("size") is not None and hasattr(symbol, "setSize"):
+            symbol.setSize(float(entry["size"]))
+        if entry.get("width") is not None and hasattr(symbol, "setWidth"):
+            symbol.setWidth(float(entry["width"]))
+        renderer.updateCategorySymbol(i, symbol)
+        if str(entry.get("label") or "").strip():
+            renderer.updateCategoryLabel(i, str(entry["label"]).strip())
+        if key is None:
+            null_class = {"label": renderer.categories()[i].label(), "color": symbol.color().name()}
+        applied += 1
+    out = {"categories_applied": applied}
+    if null_class:
+        out["null_class"] = null_class
+    if unmatched:
+        out["categories_unmatched"] = unmatched
+        out["categories_unmatched_note"] = "no feature holds these listed values, so they have no class"
+    if in_other:
+        out["categories_in_other"] = in_other
+        out["categories_in_other_note"] = ("past the class cap the features with no value are drawn in the Other "
+                                           "class, with every value that has no class of its own")
+    return out
+
+
 def _relabels_only(layer, args: dict) -> bool:
 
 
@@ -960,34 +1308,17 @@ def _relabels_only(layer, args: dict) -> bool:
     return field == current.classAttribute()
 
 
-def _labels_from_field(layer, renderer, label_field: str) -> dict:
+def _labels_from_field(layer, renderer, label_field: str, read: dict | None, cap: int, total) -> dict:
 
 
-    from qgis.core import QgsFeatureRequest
 
     fields = layer.fields()
     attribute = renderer.classAttribute() if hasattr(renderer, "classAttribute") else ""
     idx, lidx = fields.indexOf(attribute), fields.indexOf(label_field)
-    if idx < 0 or lidx < 0:
+    if idx < 0 or lidx < 0 or read is None:
         return {"label_field_note": (f"the classes read {attribute!r}, an expression rather than a field, so "
                                      "their labels were left as they were")}
-    request = QgsFeatureRequest()
-    request.setSubsetOfAttributes([idx, lidx])
-    no_geometry = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    if no_geometry is not None:
-        request.setFlags(no_geometry)
-    cap = limits.current("MAX_FEATURES_MATERIALISED")
-    votes: dict = {}
-    scanned = 0
-    for feature in layer.getFeatures(request):
-        scanned += 1
-        label = feature[lidx]
-        if label is not None and str(label) != "NULL" and str(label).strip():
-            bucket = votes.setdefault(str(feature[idx]), {})
-            text = str(label).strip()
-            bucket[text] = bucket.get(text, 0) + 1
-        if scanned >= cap:
-            break
+    votes, scanned = read["votes"], read["scanned"]
     relabelled, several = 0, []
     for index, category in enumerate(renderer.categories()):
         value = category.value()
@@ -1006,13 +1337,12 @@ def _labels_from_field(layer, renderer, label_field: str) -> dict:
         out["classes_with_several_labels"] = len(several)
         out["several_labels_examples"] = several[:5]
         out["several_labels_note"] = "these classes held several labels; each took the one most of its features have"
-    total = layer_order.feature_count_of(layer)
     if scanned >= cap and (total is None or scanned < total):
         out["label_warning"] = f"labels read on the first {scanned} features"
     return out
 
 
-def _coloured_categories(layer, args: dict) -> dict:
+def _plan_coloured(layer, args: dict, plan: dict, rows) -> dict | None:
 
 
 
@@ -1023,20 +1353,6 @@ def _coloured_categories(layer, args: dict) -> dict:
 
 
 
-
-    from qgis.core import (
-        QgsCategorizedSymbolRenderer,
-        QgsExpressionContext,
-        QgsExpressionContextUtils,
-        QgsFeatureRequest,
-        QgsProperty,
-        QgsRenderContext,
-        QgsRendererCategory,
-        QgsSingleSymbolRenderer,
-        QgsSymbol,
-        QgsWkbTypes,
-    )
-    from qgis.PyQt.QtGui import QColor
 
     field = str(args.get("field") or "").strip()
     if not field:
@@ -1057,41 +1373,36 @@ def _coloured_categories(layer, args: dict) -> dict:
                 "code": "INVALID_ARGS",
                 "suggestion": "A GeoPackage copy from export_layer styles fast; color_ramp needs no read."}
 
-    request = QgsFeatureRequest()
-    no_geometry = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    memo: dict = {}
-    symbols: dict = {}
-    current = context = None
-    source = ""
     if color_field:
         cidx = fields.indexOf(color_field)
         if cidx < 0:
             return _field_not_found_error(layer, color_field)
-        request.setSubsetOfAttributes([idx, cidx])
-        if no_geometry is not None:
-            request.setFlags(no_geometry)
-        source = f"field {color_field}"
+        colour_key, memo = rows.field(cidx), {}
 
-        def colour_of(feature):
-            return _colour_name(feature[cidx], memo)
+        def colour_of(row):
+            return _colour_name(row.value(colour_key), memo)
+
+        job = style_rows.ColourVotes(rows.field(idx), plan["cap"], colour_of)
+        plan.update(memo=memo, source=f"field {color_field}")
     else:
         if layer.renderer() is None:
             return {"_error": f"{layer.name()!r} has no style to keep colours from.", "code": "INVALID_ARGS",
                     "suggestion": "color_field or color_ramp is needed."}
-        current = layer.renderer().clone()
-        context = QgsRenderContext()
-        context.setExpressionContext(QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer)))
-        current.startRender(context, fields)
-        request.setSubsetOfAttributes(sorted(set(current.usedAttributes(context)) | {field}), fields)
+
+
+        probe, probe_context = _render_clone(layer)
+        probe.startRender(probe_context, fields)
+        used = {str(name) for name in probe.usedAttributes(probe_context)}
+        probe.stopRender(probe_context)
+        current, context = _render_clone(layer)
 
         attribute = current.classAttribute() if hasattr(current, "classAttribute") else ""
-        if attribute and fields.indexOf(attribute) >= 0 and no_geometry is not None:
-            request.setFlags(no_geometry)
-        source = f"the layer's own style ({current.type()}{' on ' + attribute if attribute else ''})"
+        rows.needs(used | {field}, geometry=not (attribute and fields.indexOf(attribute) >= 0))
+        symbols: dict = {}
 
-        def colour_of(feature):
-            context.expressionContext().setFeature(feature)
-            symbol = current.originalSymbolForFeature(feature, context)
+        def colour_of(row):
+            context.expressionContext().setFeature(row.feature)
+            symbol = current.originalSymbolForFeature(row.feature, context)
             if symbol is None:
                 return None
             name = symbol.color().name()
@@ -1099,49 +1410,50 @@ def _coloured_categories(layer, args: dict) -> dict:
                 symbols[name] = symbol.clone()
             return name
 
-    started = time.monotonic()
-    scan_cap = limits.current("MAX_FEATURES_MATERIALISED")
-    votes: dict = {}
-    values: dict = {}
-    blank: dict = {}
-    scanned = no_value = unreadable = 0
-    features = layer.getFeatures(request)
-    try:
-        for feature in features:
-            scanned += 1
-            value = feature[idx]
-            colour = colour_of(feature)
-            if value is None or str(value) == "NULL":
-                no_value += 1
-                bucket = blank
-            else:
-                key = str(value)
-                bucket = votes.get(key)
-                if bucket is None:
-                    bucket = votes[key] = {}
-                    values[key] = value
-            if colour is None:
-                unreadable += 1
-            else:
-                bucket[colour] = bucket.get(colour, 0) + 1
-            if scanned >= scan_cap:
-                break
-    finally:
-        if current is not None:
-            with contextlib.suppress(Exception):
-                current.stopRender(context)
-        with contextlib.suppress(Exception):
-            features.close()
+        job = style_rows.ColourVotes(rows.field(idx), plan["cap"], colour_of, current, context, fields)
+        plan.update(symbols=symbols,
+                    source=f"the layer's own style ({current.type()}{' on ' + attribute if attribute else ''})")
+    rows.add("colours", job)
+    plan.update(kind="coloured", field=field, color_field=color_field)
+    return None
 
-    total = layer_order.feature_count_of(layer)
-    partial = scanned >= scan_cap and (total is None or scanned < total)
+
+def _render_clone(layer) -> tuple:
+
+    from qgis.core import QgsExpressionContext, QgsExpressionContextUtils, QgsRenderContext
+
+    context = QgsRenderContext()
+    context.setExpressionContext(QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer)))
+    return layer.renderer().clone(), context
+
+
+def _coloured_categories(layer, plan: dict, read: dict) -> dict:
+
+
+    from qgis.core import (
+        QgsCategorizedSymbolRenderer,
+        QgsProperty,
+        QgsRenderContext,
+        QgsRendererCategory,
+        QgsSingleSymbolRenderer,
+        QgsSymbol,
+        QgsWkbTypes,
+    )
+    from qgis.PyQt.QtGui import QColor
+
+    field, color_field = plan["field"], plan["color_field"]
+    memo, symbols = plan.get("memo") or {}, plan.get("symbols") or {}
+    votes, values, blank = read["votes"], read["values"], read["blank"]
+    scanned, no_value, unreadable = read["scanned"], read["no_value"], read["unreadable"]
+    total = plan["total"]
+    partial = scanned >= plan["cap"] and (total is None or scanned < total)
     n = len(values)
     if not n:
         return {"_error": f"Field {field!r} has no values to classify.", "code": "INVALID_ARGS",
                 "suggestion": "A field with a value on at least one feature is needed."}
     geometry = layer.geometryType()
     line = geometry == enum_member(QgsWkbTypes, "GeometryType", "LineGeometry")
-    note: dict = {"color_source": source, "features_read": scanned}
+    note: dict = {"color_source": plan["source"], "features_read": scanned}
 
 
     base = QgsSymbol.defaultSymbol(geometry)
@@ -1171,7 +1483,7 @@ def _coloured_categories(layer, args: dict) -> dict:
                          f"symbol whose colour reads {color_field} on every feature, so the map shows each "
                          "feature's own colour and the legend holds one entry"),
             "color_expression": expression,
-            "seconds": round(time.monotonic() - started, 2),
+            "seconds": round(time.monotonic() - plan["started"], 2),
         })
         return note
 
@@ -1224,7 +1536,7 @@ def _coloured_categories(layer, args: dict) -> dict:
     if partial:
         note["warning"] = (f"colours read on the first {scanned} of {total if total is not None else 'all'} "
                            "features; values past them fall in the last class")
-    note["seconds"] = round(time.monotonic() - started, 2)
+    note["seconds"] = round(time.monotonic() - plan["started"], 2)
     return note
 
 
@@ -1323,7 +1635,7 @@ def _cluster_renderer(layer, args: dict):
         QgsSymbol,
         QgsWkbTypes,
     )
-    from qgis.PyQt.QtGui import QColor, QFont
+    from qgis.PyQt.QtGui import QFont
 
 
 
@@ -1333,9 +1645,9 @@ def _cluster_renderer(layer, args: dict):
         return {"_error": f"Layer {layer.name()!r} is not a point layer.",
                 "suggestion": "Clusters group points. Single, categorized or graduated fit here."}
 
-    color = QColor(str(args.get("color") or "#2b83ba"))
-    label_color = QColor(str(args.get("label_color") or "#ffffff"))
-    stroke = QColor(str(args.get("stroke_color") or "#ffffff"))
+    color = qcolor_from_text(str(args.get("color") or "#2b83ba"))
+    label_color = qcolor_from_text(str(args.get("label_color") or "#ffffff"))
+    stroke = qcolor_from_text(str(args.get("stroke_color") or "#ffffff"))
     try:
         distance = float(args.get("cluster_distance", 12) or 12)
     except (TypeError, ValueError):
@@ -1399,7 +1711,8 @@ def _cluster_renderer(layer, args: dict):
     return renderer
 
 
-def _apply_symbol_tweaks(renderer, args: dict) -> set:
+def _apply_symbol_tweaks(renderer, args: dict, classed_lines: bool = False) -> set:
+
 
 
 
@@ -1409,9 +1722,8 @@ def _apply_symbol_tweaks(renderer, args: dict) -> set:
 
 
     from qgis.core import QgsLineSymbolLayer
-    from qgis.PyQt.QtGui import QColor
 
-    stroke_color = args.get("stroke_color")
+    stroke_color = None if classed_lines else args.get("stroke_color")
     stroke_width = args.get("stroke_width")
     size = args.get("size")
     fill = args.get("fill")
@@ -1450,10 +1762,10 @@ def _apply_symbol_tweaks(renderer, args: dict) -> set:
                 applied.add("fill")
             if stroke_color is not None:
                 if line_layer:
-                    sl.setColor(QColor(stroke_color))
+                    sl.setColor(qcolor_from_text(stroke_color))
                     applied.add("stroke_color")
                 elif hasattr(sl, "setStrokeColor"):
-                    sl.setStrokeColor(QColor(stroke_color))
+                    sl.setStrokeColor(qcolor_from_text(stroke_color))
                     applied.add("stroke_color")
             if stroke_width is not None:
                 try:
@@ -1706,6 +2018,18 @@ def _style_args_error(layer, args: dict) -> dict | None:
             return {"_error": (f"{layer.name()!r} is a web service layer: reading each feature's label holds QGIS "
                                "while the service sends every row. Nothing was changed."), "code": "INVALID_ARGS",
                     "suggestion": "export_layer copies it to a GeoPackage to style there."}
+    categories = args.get("categories")
+    if categories:
+        if str(args.get("style_type") or "").strip() != "categorized":
+            return {"_error": "categories gives the classes of a categorized style.", "code": "INVALID_ARGS",
+                    "suggestion": "style_type categorized with field takes categories."}
+        for entry in categories:
+            if not isinstance(entry, dict) or "value" not in entry:
+                return {"_error": "Each entry of categories is an object with a value.", "code": "INVALID_ARGS",
+                        "suggestion": 'For example {"value": "forest", "label": "Forest", "color": "#2e7d32"}.'}
+            bad = _color_error(entry.get("color"), "categories color")
+            if bad:
+                return bad
     expression = args.get("size_expression")
     if expression:
         bad = _expression_error(layer, str(expression), "size_expression")
@@ -1727,47 +2051,13 @@ def _style_args_error(layer, args: dict) -> dict | None:
     return None
 
 
-def _expression_values(layer, text: str, cap: int) -> tuple[list, int]:
+def _expression_choice(text: str, values: list) -> dict:
 
-
-
-
-    from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils, QgsFeatureRequest
-
-    expression = QgsExpression(text)
-    context = QgsExpressionContext()
-    context.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
-    expression.prepare(context)
-    request = QgsFeatureRequest()
-    request.setLimit(int(cap))
-    columns = expression.referencedColumns()
-    if QgsFeatureRequest.ALL_ATTRIBUTES not in columns:
-        request.setSubsetOfAttributes(sorted(str(c) for c in columns), layer.fields())
-    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
-    if flag is not None and not expression.needsGeometry():
-        request.setFlags(flag)
-    values, scanned = [], 0
-    features = layer.getFeatures(request)
-    try:
-        for feature in features:
-            scanned += 1
-            context.setFeature(feature)
-            value = expression.evaluate(context)
-            if value is None or (hasattr(value, "isNull") and value.isNull()) or str(value) == "NULL":
-                continue
-            values.append(value)
-    finally:
-        with contextlib.suppress(Exception):
-            features.close()
-    return values, scanned
-
-
-def _expression_choice(layer, text: str) -> dict:
 
     from .style_defaults import skewness
 
     numbers = []
-    for value in _expression_values(layer, text, 20_000)[0]:
+    for value in values:
         try:
             number = float(value)
         except (TypeError, ValueError):
@@ -1788,7 +2078,7 @@ def _expression_choice(layer, text: str) -> dict:
 
 def _set_layer_labels(args: dict) -> dict:
     from qgis.core import Qgis, QgsPalLayerSettings, QgsTextFormat, QgsVectorLayerSimpleLabeling, QgsWkbTypes
-    from qgis.PyQt.QtGui import QColor, QFont
+    from qgis.PyQt.QtGui import QFont
 
     layer = _find_layer(args["layer_name"])
     if not layer:
@@ -1908,7 +2198,7 @@ def _set_layer_labels(args: dict) -> dict:
         if rule_size is not None:
             text_format.setSize(float(rule_size))
         if rule_color is not None:
-            text_format.setColor(QColor(rule_color))
+            text_format.setColor(qcolor_from_text(rule_color))
         styled = _label_text_look(text_format, spec, args)
         if styled:
             return styled
@@ -1918,11 +2208,11 @@ def _set_layer_labels(args: dict) -> dict:
         if buffer_size:
             halo.setEnabled(True)
             halo.setSize(float(buffer_size))
-            halo.setColor(QColor(buffer_color or "#ffffff"))
+            halo.setColor(qcolor_from_text(buffer_color or "#ffffff"))
         elif buffer_size is not None and not fresh:
             halo.setEnabled(False)
         elif buffer_color and not fresh:
-            halo.setColor(QColor(buffer_color))
+            halo.setColor(qcolor_from_text(buffer_color))
         text_format.setBuffer(halo)
         settings.setFormat(text_format)
         avoid_overlaps = spec.get("avoid_overlaps", args.get("avoid_overlaps", True if fresh else None))

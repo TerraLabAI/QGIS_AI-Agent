@@ -15,14 +15,14 @@ import urllib.request
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
 from ..core import catalog, limits, net, security
-from ..core.background import on_main_thread
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.context import quickmapservices_started
 from ..core.follow import view_kept
-from ..core.layer_order import COVERAGE_PROPERTY, cover_report, place_basemap
+from ..core.layer_order import COVERAGE_PROPERTY, cover_report, feature_count_of, place_basemap
 from ..core.logger import log_warning
 from ..core.provider_uri import encode_uri_url
 from ..core.tool_registry import ServedValueMissing
-from .data_common import _canvas_viewbox_4326, _http_get, _run_on_main_thread, _viewbox_bounds
+from .data_common import _canvas_viewbox_4326, _http_get, _viewbox_bounds, built_here, worker_options
 
 
 
@@ -210,8 +210,17 @@ def _stacked(layer) -> dict:
 
 
 
+
+
+
+
+
+
     try:
         place_basemap(layer)
+        node = QgsProject.instance().layerTreeRoot().findLayer(layer.id())
+        if node is not None:
+            node.setExpanded(False)
         return cover_report(layer)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Basemap not placed on top of the basemap block: {exc}")
@@ -325,7 +334,7 @@ def _tile_check(url: str, zmin: int, zmax: int, bbox=None) -> dict | None:
 
     import math
 
-    view = _viewbox_bounds(_run_on_main_thread(_canvas_viewbox_4326))
+    view = _viewbox_bounds(run_on_main_thread(_canvas_viewbox_4326))
     area = _viewbox_bounds(_coverage_text(bbox)) if bbox else None
     box = view or area
     if box is None:
@@ -403,7 +412,7 @@ def _add_preset_chain(preset: dict, name, source) -> dict:
         else:
             raster = current
             why = _raster_unreachable(raster) if raster.get("fallback") else ""
-            out = {"_error": why} if why else _run_on_main_thread(
+            out = {"_error": why} if why else run_on_main_thread(
                 lambda raster=raster, label=label: _build_raw_xyz(
                     raster["url"], label, raster["max_zoom"], 0, source, attribution=raster.get("attribution", "")),
                 timeout=60)
@@ -439,7 +448,7 @@ def _add_xyz_layer(args: dict) -> dict:
         zmin, zmax = _raw_zmin(args.get("zmin")), _raw_zmax(source, args.get("zmax"))
 
         checked = None if on_main_thread() else _tile_check(source, zmin, zmax, args.get("bbox"))
-        out = _run_on_main_thread(
+        out = run_on_main_thread(
             lambda: _build_raw_xyz(source, name or "XYZ Tiles", zmax, zmin, source, bbox=args.get("bbox")),
             timeout=60)
         if checked and isinstance(out, dict) and not out.get("_error"):
@@ -743,6 +752,8 @@ def _add_oapif_layer(args: dict) -> dict:
 
 
 
+
+
     url = args.get("url") or ""
     collection = _oapif_collection(url)
     if not collection:
@@ -754,8 +765,10 @@ def _add_oapif_layer(args: dict) -> dict:
     if local is not None and local.get("cancelled"):
         return {"_error": "The run was stopped while the collection was being read.", "code": "CANCELLED"}
     if local is not None:
+        built = built_here(lambda: QgsVectorLayer(local["path"], name, "ogr", worker_options()))
+
         def _create_local():
-            layer = QgsVectorLayer(local["path"], name, "ogr")
+            layer = built if built is not None else QgsVectorLayer(local["path"], name, "ogr")
             if not layer.isValid():
                 return {"_invalid": True}
             QgsProject.instance().addMapLayer(layer)
@@ -763,20 +776,29 @@ def _add_oapif_layer(args: dict) -> dict:
                     "feature_count": local["feature_count"], "url": collection,
                     "provider": "OGC API - Features, local copy"}
 
-        out = _run_on_main_thread(_create_local, timeout=60)
+        out = run_on_main_thread(_create_local, timeout=60)
         if not out.get("_invalid"):
             return out
 
+
+
+
+
+    built = built_here(lambda: QgsVectorLayer(f"OAPIF:{collection}", name, "ogr", worker_options()),
+                       read_extent=False)
+
     def _create():
-        layer = QgsVectorLayer(f"OAPIF:{collection}", name, "ogr")
+        layer = built if built is not None else QgsVectorLayer(f"OAPIF:{collection}", name, "ogr")
         if not layer.isValid():
             return {"_invalid": True}
         QgsProject.instance().addMapLayer(layer)
+
+
         return {"layer_name": layer.name(), "layer_id": layer.id(),
-                "feature_count": layer.featureCount(), "url": collection,
+                "feature_count": feature_count_of(layer), "url": collection,
                 "provider": "OGC API - Features"}
 
-    out = _run_on_main_thread(_create, timeout=60)
+    out = run_on_main_thread(_create, timeout=60)
     if out.get("_invalid"):
         return {"_error": f"The OGC API - Features collection at {collection} would not load.",
                 "code": "EXECUTION_FAILED",
@@ -890,7 +912,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
         out.update(_stacked(layer))
         return out
 
-    return _run_on_main_thread(_create, timeout=60)
+    return run_on_main_thread(_create, timeout=60)
 
 
 def _zoom_range(args: dict) -> tuple[int, int]:

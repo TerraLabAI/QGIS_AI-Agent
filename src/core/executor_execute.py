@@ -120,7 +120,7 @@ class _ExecutorExecute:
         if task is None:
             snapshot.run_pending_copies()
             return False
-        self._background[tool_call_id] = (run_id, task)
+        self._background[tool_call_id] = (run_id, task, call)
         self._inflight[tool_call_id] = (run_id, name, time.monotonic(), True)
         stalls.mark(f"backup off-thread before {name}")
         return True
@@ -153,27 +153,37 @@ class _ExecutorExecute:
         def done(finish, error_text: str):
             self._background.pop(tool_call_id, None)
             self._inflight.pop(tool_call_id, None)
-            if self._closed or tool_call_id in self._answered:
-                return
-            if error_text:
-                log_warning(f"{name}: preparation failed, running without it: {error_text.splitlines()[0]}")
-            elif callable(finish):
-                try:
-                    note = finish()
-                    if note:
-                        call["prepared"] = note
-                except Exception as exc:  # noqa: BLE001
-                    log_warning(f"{name}: preparation not applied: {exc}")
             try:
-                self._execute_now(call)
-            except Exception as exc:  # noqa: BLE001
-                self._fail_unanswered(call, exc)
+                if self._closed or tool_call_id in self._answered:
+                    return
+                if error_text:
+                    log_warning(f"{name}: preparation failed, running without it: {error_text.splitlines()[0]}")
+                elif callable(finish):
+                    try:
+                        note = finish()
+                        if note:
+                            call["prepared"] = note
+                    except Exception as exc:  # noqa: BLE001
+                        log_warning(f"{name}: preparation not applied: {exc}")
+                try:
+                    self._execute_now(call)
+                except Exception as exc:  # noqa: BLE001
+                    self._fail_unanswered(call, exc)
+            finally:
+
+
+                release = getattr(finish, "release", None)
+                if callable(release):
+                    try:
+                        release()
+                    except Exception as exc:  # noqa: BLE001
+                        log_warning(f"{name}: preparation not released: {exc}")
 
         task = background.run_off_thread(f"AI Agent: prepare {name}", work, done)
         if task is None:
             self._execute_now(call)
             return
-        self._background[tool_call_id] = (run_id, task)
+        self._background[tool_call_id] = (run_id, task, call)
         self._inflight[tool_call_id] = (run_id, name, time.monotonic(), True)
         stalls.mark(f"prepare off-thread before {name}")
 
@@ -272,7 +282,7 @@ class _ExecutorExecute:
         task = background.run_off_thread(f"AI Agent: {name}", work, done)
         if task is None:
             return False
-        self._background[tool_call_id] = (str(call.get("run_id") or ""), task)
+        self._background[tool_call_id] = (str(call.get("run_id") or ""), task, call)
 
 
         self._inflight[tool_call_id] = (str(call.get("run_id") or ""), name, started, True)

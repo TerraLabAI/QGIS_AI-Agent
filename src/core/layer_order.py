@@ -32,7 +32,6 @@ from contextlib import contextmanager
 
 
 
-
 WEB_SERVICE_PROVIDERS = frozenset({"wfs", "oapif", "arcgisfeatureserver"})
 
 
@@ -41,6 +40,34 @@ WEB_SERVICE_PROVIDERS = frozenset({"wfs", "oapif", "arcgisfeatureserver"})
 
 
 _REMOTE_VECTOR_PROVIDERS = WEB_SERVICE_PROVIDERS | frozenset({"postgres", "postgresraster"})
+
+
+def _gdal_service_source(source: str) -> bool:
+
+
+
+
+
+
+
+
+
+    driver, colon, rest = source.partition(":")
+    return bool(colon) and driver.isalnum() and rest.startswith(("http://", "https://"))
+
+
+def is_web_service(layer) -> bool:
+
+
+
+
+
+
+
+    provider = str(layer.providerType() or "").casefold()
+    if provider in WEB_SERVICE_PROVIDERS:
+        return True
+    return provider == "ogr" and _gdal_service_source(str(layer.source() or "").strip().casefold())
 
 
 def is_remote_vector(layer) -> bool:
@@ -53,7 +80,7 @@ def is_remote_vector(layer) -> bool:
     source = str(layer.source() or "").strip().casefold()
     remote_source = source.startswith(("http://", "https://", "/vsicurl", "/vsis3", "/vsigs", "/vsiaz"))
     remote_source = remote_source or "host=" in source or " dbname=" in f" {source}"
-    return provider in _REMOTE_VECTOR_PROVIDERS or remote_source
+    return provider in _REMOTE_VECTOR_PROVIDERS or remote_source or is_web_service(layer)
 
 
 
@@ -631,7 +658,7 @@ def feature_count_of(layer) -> int | None:
         except (TypeError, ValueError):
             pass
     try:
-        if str(layer.providerType() or "").lower() in WEB_SERVICE_PROVIDERS:
+        if is_web_service(layer):
 
 
             return None

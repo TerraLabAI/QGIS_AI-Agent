@@ -59,7 +59,6 @@ class _ChatPanelLayout:
         h.thread_selected.connect(self.thread_selected.emit)
         h.thread_delete_requested.connect(self.thread_delete_requested.emit)
         h.new_thread_requested.connect(self.new_thread_requested.emit)
-        h.account_clicked.connect(self.open_settings_requested.emit)
         h.settings_clicked.connect(self.open_settings_requested.emit)
         h.pro_pill_clicked.connect(self._on_pro_pill)
 
@@ -93,8 +92,6 @@ class _ChatPanelLayout:
         c.send_clicked.connect(self._on_send)
         c.stop_clicked.connect(self._on_stop)
         c.notice_link_activated.connect(self._on_notice_link)
-
-        c.edit_dropped.connect(lambda: self.edit_requested.emit(""))
         c.files_dropped.connect(lambda paths: self.files_dropped.emit(list(paths)))
         c.attachments_changed.connect(self._on_attachments_changed)
         c.context_add_requested.connect(self.context_add_requested.emit)
@@ -418,7 +415,9 @@ class _ChatPanelLayout:
         self._quota_host.hide()
         self.runs_line.set_balance(left, limit)
         self._runs_host.show()
-        self._note_upsell(self.runs_line.where)
+
+        if self.runs_line.where == "warning":
+            self._note_upsell("warning")
         low = left <= WARN_AT_RUNS_LEFT
         if low and not self._low_balance_visible:
             self.low_balance_shown.emit(left)
@@ -469,8 +468,6 @@ class _ChatPanelLayout:
 
 
         bubble.source_clicked.connect(self._on_bubble_source)
-        bubble.edit_requested.connect(lambda b=bubble: self._on_edit_bubble(b))
-        self._set_last_user(bubble)
         self._add(bubble)
 
     def _on_bubble_source(self, connector: str) -> None:

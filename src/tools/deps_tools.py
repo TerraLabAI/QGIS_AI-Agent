@@ -341,6 +341,13 @@ def shutdown() -> None:
 
 
 
+def _install_label(args: dict) -> str:
+
+    if not args.get("feature") and args.get("package"):
+        return QT_TRANSLATE_NOOP("AIAgent", "Install {package}")
+    return ""
+
+
 def register_deps_tools(registry: ToolRegistry):
     _ensure_deps_on_path()
     registry.register(Tool(
@@ -358,7 +365,8 @@ def register_deps_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="install_dependency",
         danger="destructive",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Install {name}"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Install {feature}"),
+        label_for=_install_label,
         input_schema={
             "type": "object",
             "properties": {

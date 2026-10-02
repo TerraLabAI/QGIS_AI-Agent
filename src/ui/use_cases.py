@@ -53,11 +53,6 @@ from .shared import tr
 
 
 
-GROUP_KEYS = ("explore", "map", "analyse", "terrain", "share")
-
-
-
-
 
 _MAX_CASES = 300
 _MAX_GROUPS = 24
@@ -155,22 +150,6 @@ def _group_rows() -> list:
 def use_case_groups() -> list:
 
     return [(row["key"], row["label"]) for row in _group_rows()]
-
-
-def group_glyph(key: str) -> str:
-
-    for row in _group_rows():
-        if row["key"] == key:
-            return row["glyph"]
-    return ""
-
-
-def group_accent(key: str) -> str:
-
-    for row in _group_rows():
-        if row["key"] == key:
-            return row["accent"]
-    return ""
 
 
 def haystack(case: UseCase) -> str:

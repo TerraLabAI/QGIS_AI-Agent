@@ -10,11 +10,12 @@ import os
 from qgis.core import QgsProject, QgsTask, QgsVectorLayer
 
 from ..core import limits, net
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from . import volume_guard
-from .data_common import _USER_AGENT, _bbox_km2, _footprint_box, _run_on_main_thread
+from .data_common import _USER_AGENT, _bbox_km2, _footprint_box
 from .data_inspect import _VSICURL_TIMEOUT_S, _human_bytes, _safe_extract_stem, _tune_gdal_for_range_reads
 from .data_osm_geometry import _LIFTED_CHECK_EVERY, _LIFTED_FAMILIES, _beyond_bbox
 from .data_overture import (
@@ -106,6 +107,7 @@ _LIFTED_CLOCK_SHARE = 0.8
 
 
 _LIFTED_OUTLINE_VERTICES = 4000
+_OUTLINE_PRECISION_DEG = 0.002
 
 
 def _lifted_deadline() -> float:
@@ -170,7 +172,7 @@ def _outline_shape(outline: dict):
     if shape is None:
         return None
     if sum(len(ring) for polygon in coordinates for ring in polygon) > _LIFTED_OUTLINE_VERTICES:
-        shape = shape.SimplifyPreserveTopology(0.002)
+        shape = shape.SimplifyPreserveTopology(_OUTLINE_PRECISION_DEG)
     if not shape.IsValid():
         shape = shape.Buffer(0)
     return shape
@@ -202,11 +204,30 @@ def _outline_test(outline: dict, cut: bool = False):
 
 
 
+
+
     shape = _outline_shape(outline)
     if shape is None:
         return None
     min_x, max_x, min_y, max_y = shape.GetEnvelope()
     core = shape.PointOnSurface()
+    inner: list = []
+
+    def deep_inside(geometry) -> bool:
+
+
+
+
+
+
+
+
+        if not inner:
+            inner.append(shape.Buffer(-_OUTLINE_PRECISION_DEG))
+        if inner[0] is None or inner[0].IsEmpty() or not geometry.Intersects(inner[0]):
+            return False
+        shrunk = geometry.Buffer(-_OUTLINE_PRECISION_DEG)
+        return shrunk is not None and not shrunk.IsEmpty() and shrunk.Intersects(inner[0])
 
     def keep(geometry):
         low_x, high_x, low_y, high_y = geometry.GetEnvelope()
@@ -221,7 +242,9 @@ def _outline_test(outline: dict, cut: bool = False):
             probe = geometry.PointOnSurface()
             if probe is not None and not probe.IsEmpty() and _outline_contains(probe.GetX(), probe.GetY(), outline):
                 return geometry
-            return geometry if core is not None and geometry.Contains(core) else None
+            if core is not None and geometry.Contains(core):
+                return geometry
+            return geometry if deep_inside(geometry) else None
         if family == "lines":
             return geometry if geometry.Intersects(shape) and not geometry.Touches(shape) else None
         return geometry if shape.Intersects(geometry) else None
@@ -231,8 +254,6 @@ def _outline_test(outline: dict, cut: bool = False):
 
 def _cut(geometry, shape, family: str):
 
-    from osgeo import ogr
-
     if not family:
         return None
     if family == "points":
@@ -241,7 +262,13 @@ def _cut(geometry, shape, family: str):
         geometry = geometry.Buffer(0)
     if geometry.Within(shape):
         return geometry
-    part = geometry.Intersection(shape)
+    return _own_kind(geometry.Intersection(shape), family)
+
+
+def _own_kind(part, family: str):
+
+    from osgeo import ogr
+
     if part is None or part.IsEmpty():
         return None
     if _lifted_family(part.GetGeometryType()) == family:
@@ -259,8 +286,96 @@ def _cut(geometry, shape, family: str):
             pieces.AddGeometry(piece)
     if pieces.IsEmpty():
         return None
-    kind = ogr.wkbMultiLineString if family == "lines" else ogr.wkbMultiPolygon
-    return ogr.ForceTo(pieces, kind)
+    return ogr.ForceTo(pieces, _multi_kind(family))
+
+
+def _multi_kind(family: str) -> int:
+    from osgeo import ogr
+
+    return {"points": ogr.wkbMultiPoint, "lines": ogr.wkbMultiLineString}.get(family, ogr.wkbMultiPolygon)
+
+
+def _made_valid(geometry, family: str):
+
+
+    if geometry.IsValid():
+        return geometry
+    try:
+        made = geometry.MakeValid()
+    except Exception:  # noqa: BLE001
+        made = geometry.Buffer(0) if family == "polygons" else None
+    return _own_kind(made, family) if made is not None else None
+
+
+def _union_pieces(pieces: list):
+
+
+
+
+
+
+    from osgeo import ogr
+
+    families = {_lifted_family(piece.GetGeometryType()) for piece in pieces if piece is not None}
+    if len(families) != 1 or "" in families or any(piece is None or piece.IsEmpty() for piece in pieces):
+        return None
+    family = families.pop()
+    shapes = [_made_valid(piece, family) for piece in pieces]
+
+
+    while len(shapes) > 1:
+        if any(shape is None for shape in shapes):
+            return None
+        paired = [shapes[index].Union(shapes[index + 1]) for index in range(0, len(shapes) - 1, 2)]
+        shapes = paired + shapes[len(paired) * 2:]
+    merged = shapes[0]
+    merged = _made_valid(merged, family) if merged is not None and not merged.IsEmpty() else None
+    return ogr.ForceTo(merged, _multi_kind(family)) if merged is not None else None
+
+
+def _osm_piece_key(get) -> tuple | None:
+
+    osm_id = get("osm_id")
+    return None if osm_id in (None, "") else (get("osm_type") or "", osm_id)
+
+
+def _merge_pieces(features: list, stopped=None) -> list:
+
+
+
+
+
+
+
+    from osgeo import ogr
+
+    places: dict = {}
+    for index, feature in enumerate(features):
+        properties = feature.get("properties") if isinstance(feature, dict) else None
+        key = _osm_piece_key(properties.get) if isinstance(properties, dict) else None
+        if key is not None:
+            places.setdefault(key, []).append(index)
+    merged: dict = {}
+    for number, indexes in enumerate(group for group in places.values() if len(group) > 1):
+        if number % _CLIP_CHECK_EVERY == 0:
+            _stop_if_cancelled(stopped)
+        shapes = [features[index].get("geometry") for index in indexes]
+        if not all(isinstance(shape, dict) for shape in shapes):
+            continue
+        union = _union_pieces([ogr.CreateGeometryFromJson(json.dumps(shape)) for shape in shapes])
+        if union is None:
+            continue
+        merged.update(dict.fromkeys(indexes[1:]))
+        merged[indexes[0]] = {**features[indexes[0]], "geometry": json.loads(union.ExportToJson())}
+    if not merged:
+        return features
+    kept = []
+    for index, feature in enumerate(features):
+        if index not in merged:
+            kept.append(feature)
+        elif merged[index] is not None:
+            kept.append(merged[index])
+    return kept
 
 
 
@@ -307,9 +422,9 @@ class _ClassCounter:
         self.osm_fields = _osm_class_fields(theme) if theme in _osm_themes() else ()
         self.counts: dict = {}
 
-    def add(self, get) -> None:
+    def add(self, get, count: int = 1) -> None:
         label = _class_of(get, self.theme, self.osm_fields)
-        self.counts[label] = self.counts.get(label, 0) + 1
+        self.counts[label] = self.counts.get(label, 0) + count
 
     def result(self) -> dict:
         ranked = sorted(self.counts.items(), key=lambda pair: -pair[1])
@@ -450,6 +565,14 @@ class _ExtractRead:
         self.missing: list = []
         self.finished: list = []
         self.counts = dict.fromkeys(_LIFTED_FAMILIES, 0)
+        self.outside = 0
+
+
+
+
+
+        self.edge: dict = {}
+        self.left_out: dict = {}
         self.classes = _ClassCounter(theme)
         self.tables: dict = {}
         self.layer_ids: dict = {}
@@ -478,7 +601,7 @@ class _ExtractRead:
                 return "clock"
             if room is not None and not room():
                 self.queue.insert(0, (label, url))
-                return "disk"
+                return self._merge(target, cancelled) or "disk"
             gdal.ErrorReset()
             local = ""
             try:
@@ -522,6 +645,8 @@ class _ExtractRead:
             file_ids = self.pending.setdefault(label, set())
             bounds = _tile_bounds(label)
             skip = self.skip.get(label, 0)
+
+            read_outside = 0
             gdal.ErrorReset()
             for number, feature in enumerate(_features_until_failure(layer_in, failed), start=1):
                 if number % _LIFTED_CHECK_EVERY == 0:
@@ -543,10 +668,20 @@ class _ExtractRead:
                 if self.in_python is not None and not _overture_matches(
                         {"properties": {field: feature.GetField(field) for field in field_names}}, self.in_python):
                     continue
+                piece = None
+                if (not self.dedupe and "osm_id" in field_set
+                        and (bounds is None or not _strictly_inside(geometry, bounds))):
+                    piece = _osm_piece_key(lambda field, row=feature, names=field_set:
+                                           row.GetField(field) if field in names else None)
                 if self.inside is not None:
-                    geometry = self.inside(geometry)
-                    if geometry is None:
+                    kept = self.inside(geometry)
+                    if kept is None:
+                        self.outside += 1
+                        read_outside += 1
+                        if piece is not None and self.theme in _SELECTED_WHOLE_THEMES:
+                            self.left_out.setdefault(piece, []).append(bytes(geometry.ExportToWkb()))
                         continue
+                    geometry = kept
                 if self.dedupe:
                     identity = feature.GetField("id") if "id" in field_names else None
                     if identity:
@@ -570,6 +705,8 @@ class _ExtractRead:
                 written.SetFrom(feature, 1)
                 written.SetGeometry(ogr.ForceTo(geometry.Clone(), kinds[family]))
                 out.CreateFeature(written)
+                if piece is not None:
+                    self.edge.setdefault((family, *piece), []).append(written.GetFID())
                 self.counts[family] += 1
                 self.classes.add(lambda field, row=feature, names=field_set:
                                  row.GetField(field) if field in names else None)
@@ -594,6 +731,8 @@ class _ExtractRead:
 
                 if self.dedupe and label not in self.retried and time.monotonic() < deadline:
                     self.retried.add(label)
+
+                    self.outside -= read_outside
                     clear = getattr(gdal, "VSICurlPartialClearCache", None)
                     if clear is not None:
                         clear(f"/vsicurl/{url}")
@@ -605,7 +744,55 @@ class _ExtractRead:
             self.pending.pop(label, None)
             self.skip.pop(label, None)
             self.finished.append(label)
-        return ""
+        return self._merge(target, cancelled)
+
+    def _merge(self, target, cancelled=None) -> str:
+
+
+
+
+
+
+
+        from osgeo import ogr
+
+        groups = [(key, fids) for key, fids in self.edge.items() if len(fids) > 1 or key[1:] in self.left_out]
+        if not groups:
+            return ""
+        stopped = ""
+        target.StartTransaction()
+        try:
+            for number, (key, fids) in enumerate(groups):
+                if number % _LIFTED_CHECK_EVERY == 0 and cancelled is not None and cancelled():
+                    stopped = "cancelled"
+                    break
+                family = key[0]
+                out = target.GetLayerByName(self.tables[family])
+                rows = [out.GetFeature(fid) for fid in fids]
+                if any(row is None or row.GetGeometryRef() is None for row in rows):
+                    continue
+                left = [ogr.CreateGeometryFromWkb(wkb) for wkb in self.left_out.get(key[1:], ())]
+                left = [shape for shape in left
+                        if shape is not None and _lifted_family(shape.GetGeometryType()) == family]
+                union = _union_pieces([row.GetGeometryRef() for row in rows] + left)
+                if union is None:
+                    continue
+                first = rows[0]
+                first.SetGeometry(union)
+                out.SetFeature(first)
+                for fid in fids[1:]:
+                    out.DeleteFeature(fid)
+                self.edge[key] = fids[:1]
+                self.counts[family] -= len(fids) - 1
+                names = {first.GetFieldDefnRef(i).GetName() for i in range(first.GetFieldCount())}
+                self.classes.add(lambda field, row=first, names=names: row.GetField(field) if field in names else None,
+                                 1 - len(fids))
+                if left:
+                    self.outside -= len(left)
+                    self.left_out.pop(key[1:], None)
+        finally:
+            target.CommitTransaction()
+        return stopped
 
     def _downloaded(self, label: str, url: str, deadline: float, cancelled, why: str):
 
@@ -776,7 +963,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
                 empty["suggestion"] = _filter_miss_suggestion(empty) or empty["suggestion"]
         remove_tree(directory)
         return empty
-    added = _run_on_main_thread(reader.add_layers, timeout=_VSICURL_TIMEOUT_S) if total else []
+    added = run_on_main_thread(reader.add_layers, timeout=_VSICURL_TIMEOUT_S) if total else []
     if total and not added:
         return {"_error": f"QGIS could not read the GeoPackage written for {name}.", "code": "EXECUTION_FAILED",
                 "path": path}
@@ -798,6 +985,8 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         made["clipped_to"] = outline["label"]
         made["outline_source"] = outline["outline_source"]
         made["cut_at_outline"] = inside is not None and theme not in _SELECTED_WHOLE_THEMES
+        if inside is not None:
+            made["dropped_outside"] = reader.outside
     made["_note"] = (f"Loaded in full, as the user asked: {total:,} features, {_human_bytes(size)} on disk in a "
                      f"GeoPackage, read from the published files in {wall:.0f} s. Tell the user the size.")
     if continuing:
@@ -967,6 +1156,8 @@ class ExtractContinuation(QgsTask):
             unread += reader.unread()
             reader.made.update({"feature_count": sum(reader.counts.values()), "files_read": len(reader.finished),
                                 "files_left": len(reader.queue), "by_class": reader.classes.result()})
+            if "dropped_outside" in reader.made:
+                reader.made["dropped_outside"] = reader.outside
         report = {"layers": layers, "feature_count": sum(sum(r.counts.values()) for r in self.readers),
                   "themes": sorted({reader.theme for reader in self.readers}),
                   "licence": ", ".join(sorted({_OVERTURE_LICENCES.get(r.theme, "") for r in self.readers} - {""})),
@@ -993,10 +1184,9 @@ class ExtractContinuation(QgsTask):
 
 def continue_in_background(readers: list, made: dict) -> dict:
 
-    from .processing_tools import register_task
+    from .processing_run import register_task
 
     names = ", ".join(sorted({reader.name for reader in readers}))
-    files = sum(len(reader.queue) for reader in readers)
     label = f"AI Agent: rest of {names}"
 
     def start():
@@ -1008,11 +1198,11 @@ def continue_in_background(readers: list, made: dict) -> dict:
         task_id, _entry = register_task(task, "fetch_overture (full extent, rest of the files)", connect=connect)
         return task_id
 
-    task_id = _run_on_main_thread(start)
+    task_id = run_on_main_thread(start)
     made.update({
         "task_id": task_id, "status": "running",
         "poll": {"tool": "get_task_status", "args": {"task_id": task_id}, "interval_s": _CONTINUE_POLL_S,
-                 "timeout_s": _CONTINUE_POLL_TIMEOUT_S, "label": f"Reading the last {files} files of {names}"},
+                 "timeout_s": _CONTINUE_POLL_TIMEOUT_S, "label": _tr("Reading {names}").format(names=names)},
     })
     made["_note"] = (str(made.get("_note") or "") + " It continues as a QGIS background task (QGIS stays "
                      "responsive); get_task_status answers when it completes, and Stop cancels it.").strip()
@@ -1156,7 +1346,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
 
         if max(east - west, north - south) > max_span:
-            return {"_error": f"Each side of the box must stay under {max_span:.0f} degree." + volume_guard.LIFT_HINT,
+            return {"_error": f"Each side of the box must stay under {max_span:.0f} degree.",
+                    "routes": volume_guard.LIFT_HINT.strip(),
 
 
 
@@ -1172,7 +1363,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         if area_km2 > max_km2 * volume_guard.NEAR_MISS:
             return {"_error": f"This box is {area_km2:.0f} km2 and the Overture service takes at most "
-                    f"{max_km2:.0f} km2." + volume_guard.LIFT_HINT,
+                    f"{max_km2:.0f} km2.",
+                    "routes": volume_guard.LIFT_HINT.strip(),
                     "code": "INVALID_ARGS",
                     "box_km2": round(area_km2, 1),
                     "suggestion": ('Whole zone: clip_to the place name splits its outline into clips of that '
@@ -1195,7 +1387,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         return {} if _split_box(box, max_km2, max_span) else _clip_split_refusal(theme, box, max_km2)
     features, payload, failed, missed = None, None, None, []
     for subtype in subtypes:
-        got, meta = _overture_boxes(theme, box, max_km2, max_span, args, subtype=subtype)
+        got, meta = _overture_boxes(theme, box, max_km2, max_span, args, subtype=subtype, outline=outline)
         if got is None:
             failed = failed or meta
             if len(subtypes) > 1:
@@ -1215,6 +1407,10 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     served = features
     if isinstance(wanted, (dict, list)) and wanted:
         features = [f for f in features if _overture_matches(f, wanted)]
+    if theme in _osm_themes():
+
+
+        features = _merge_pieces(features, stopped)
     served_in_box = len(features)
     dropped_outside = 0
     cut = theme not in _SELECTED_WHOLE_THEMES

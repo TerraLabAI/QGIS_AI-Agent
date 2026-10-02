@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import base64
+import math
 import os
 import random
 import time
@@ -58,9 +59,23 @@ HELLO_TIMEOUT_MS = 20_000
 
 
 
-HELLO_UPLOAD_CAP_S = 60.0
+
+
+
+
+HELLO_UPLOAD_CAP_S = 120.0
 HELLO_UPLOAD_RECHECK_MS = 5_000
+
+
+
+_CALL_CLOCKS_KEPT = 256
 MAX_MISSED_PONGS = 2
+
+
+
+
+
+LINK_SILENT_S = 15.0
 BACKOFF_S = (1, 2, 4, 8, 16, 30)
 
 
@@ -72,13 +87,19 @@ RESTART_CODES = frozenset({1012, 1013})
 
 
 
-CAUSE_AFTER_FAILURES = 7
+
+
+CAUSE_AFTER_S = 30.0
 
 
 
 
 USER_SIDE_FAILURES = frozenset({"dns", "proxy_auth", "proxy_refused", "proxy_unreachable", "tls",
                                 "redirect", "url"})
+
+
+
+INTERNET_DOWN_FAILURES = frozenset({"dns", "no_route"})
 RESTART_QUICK_TRIES = 3
 RESTART_JITTER_S = 0.3
 
@@ -209,6 +230,9 @@ class AgentSession(QObject):
         self._session_id: str | None = None
 
 
+        self._call_clocks: dict[str, tuple[float, float]] = {}
+
+
 
         self._crash_note: dict | None = None
         self._hello_sent_at = 0.0
@@ -225,13 +249,26 @@ class AgentSession(QObject):
         self._resume_asked = False
         self._resume_refused = False
         self._last_manifest_hash = ""
+
+
+        self._catalog_tag = ""
         self._model_label = ""
         self._last_failure: tuple[str, str, int] | None = None
         self._reached_session = False
+
+
+        self._last_drop: dict | None = None
+        self._dropped_at = 0.0
         self._failed_streak = 0
+        self._failing_since = 0.0
+
+
+        self._link_cause = "server"
 
 
         self._pending_cancels: dict[str, int] = {}
+
+        self._cancel_reasons: dict[str, str] = {}
         self._bad_frames: dict[str, int] = {}
 
 
@@ -258,6 +295,11 @@ class AgentSession(QObject):
 
         return self._model_label
 
+    @property
+    def closed_on_purpose(self) -> bool:
+
+        return self._user_closed
+
     def connect_to_server(self) -> None:
         if not self._session_id:
             self._claim_saved_session()
@@ -283,6 +325,7 @@ class AgentSession(QObject):
         if wait:
             self._save_session()
         self._pending_cancels.clear()
+        self._cancel_reasons.clear()
         self._ws.close(1000, "client closing", wait_ms=1500 if wait else 0)
         self._set_state("offline", "")
 
@@ -464,18 +507,26 @@ class AgentSession(QObject):
         return out
 
     def send_tool_result(self, tool_call_id: str, run_id: str, result, code_class: str = "") -> bool:
-        return self._send(protocol.tool_result(tool_call_id, run_id, result, code_class))
+        return self._send(protocol.tool_result(tool_call_id, run_id, result, code_class),
+                          self._answer_clock(tool_call_id))
 
     def send_tool_error(self, tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
-                        code_class: str = "") -> bool:
-        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion, code_class))
+                        code_class: str = "", detail: str = "") -> bool:
+        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion, code_class, detail),
+                          self._answer_clock(tool_call_id))
+
+    def _answer_clock(self, tool_call_id: str) -> tuple | None:
+
+        clock = self._call_clocks.pop(str(tool_call_id or ""), None)
+        return (*clock, time.perf_counter()) if clock is not None else None
 
     def send_permission_response(self, tool_call_id: str, run_id: str, decision: str) -> bool:
         return self._send(protocol.permission_response(tool_call_id, run_id, decision))
 
-    def send_busy(self, seconds: float, where: str, calls: str) -> bool:
+    def send_busy(self, seconds: float, where: str, calls: str, ended: bool = False) -> bool:
 
-        return self._send(protocol.busy(seconds, where, calls))
+
+        return self._send(protocol.busy(seconds, where, calls, ended))
 
     @property
     def steer_available(self) -> bool:
@@ -498,13 +549,9 @@ class AgentSession(QObject):
     def send_steer(self, run_id: str, steer_id: str, text: str) -> bool:
         return self._send(protocol.steer(run_id, steer_id, text))
 
-    def send_feedback(self, run_id: str, up: bool, reason_code: str = "", reason: str = "") -> bool:
+    def send_cancel(self, run_id: str, reason: str = "") -> bool:
 
 
-
-        return self._send(protocol.feedback(run_id, bool(up), reason_code, reason))
-
-    def send_cancel(self, run_id: str) -> bool:
 
 
 
@@ -516,9 +563,13 @@ class AgentSession(QObject):
 
         if run_id:
             self._pending_cancels[run_id] = CANCEL_RESENDS
+            if reason:
+                self._cancel_reasons[run_id] = reason
             while len(self._pending_cancels) > MAX_PENDING_CANCELS:
-                self._pending_cancels.pop(next(iter(self._pending_cancels)))
-        return self._send(protocol.cancel(run_id))
+                oldest = next(iter(self._pending_cancels))
+                self._pending_cancels.pop(oldest)
+                self._cancel_reasons.pop(oldest, None)
+        return self._send(protocol.cancel(run_id, reason))
 
 
 
@@ -560,24 +611,35 @@ class AgentSession(QObject):
             log_warning("Frame dropped, socket not open: upload")
         return bool(sent)
 
-    def _send(self, frame: dict) -> bool:
+    def _send(self, frame: dict, clock: tuple | None = None) -> bool:
+
+
 
 
 
         if not isinstance(frame, dict) or not isinstance(frame.get("type"), str):
             log_warning(f"Frame not encodable ({protocol.describe(frame) if isinstance(frame, dict) else frame})")
             return False
+        if clock is not None:
+            arrived, started, answered = clock
+
+            def produce() -> str:
+                return protocol.encode(dict(frame, timing=protocol.call_timing(
+                    arrived, started, answered, time.perf_counter())))
+        else:
+            def produce() -> str:
+                return protocol.encode(frame)
         sender = getattr(self._ws, "send_lazy", None)
         if sender is None:
 
             try:
-                text = protocol.encode(frame)
+                text = produce()
             except (ProtocolError, TypeError, ValueError) as exc:
                 log_warning(f"Frame not encodable ({protocol.describe(frame)}): {exc}")
                 return False
             sent = self._ws.send_text(text)
         else:
-            sent = sender(lambda: protocol.encode(frame))
+            sent = sender(produce)
         if not sent:
             log_warning(f"Frame dropped, socket not open: {protocol.describe(frame)}")
             return False
@@ -622,6 +684,8 @@ class AgentSession(QObject):
                 python_version=str(identity.get("python_version", "")),
                 libraries=list(identity.get("libraries") or ()),
                 crash=self._crash_note or None,
+                catalog_tag=self._catalog_tag,
+                last_drop=self._drop_report() if self._session_id else None,
             )
         except Exception as exc:  # noqa: BLE001
             log_warning(f"hello could not be built: {exc}")
@@ -672,13 +736,14 @@ class AgentSession(QObject):
             return False
         since, self._hello_checked_at = self._hello_checked_at, now
         try:
-            _received, writing = probe(since)
+            received, writing = probe(since)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Socket activity unreadable: {exc}")
             return False
-        if writing:
-            log(f"Hello still uploading after {now - self._hello_sent_at:.0f} s, waiting for it")
-        return bool(writing)
+        if writing or received:
+            log(f"Hello still {'uploading' if writing else 'answered'} after {now - self._hello_sent_at:.0f} s, "
+                "waiting for it")
+        return bool(writing or received)
 
     def _on_ws_disconnected(self, code: int, reason: str) -> None:
         self._heartbeat.stop()
@@ -700,7 +765,24 @@ class AgentSession(QObject):
                             or tr("Session expired. Sign in again to continue."))
             return
         log(f"WebSocket closed ({code}): {reason}")
+        self._note_drop(code, reason)
         self._schedule_reconnect(code, reason)
+
+    def _note_drop(self, code: int, reason: str) -> None:
+
+        if not self._reached_session or self._last_drop is not None:
+            return
+        by = str(getattr(self._ws, "closed_by", "none") or "none")
+        kind = str(getattr(self._ws, "drop_kind", "") or "")
+        if reason == "heartbeat lost":
+            kind = "heartbeat_lost"
+        self._last_drop = {"code": int(code) if by != "none" else None, "by": by, "kind": kind[:32]}
+        self._dropped_at = time.monotonic()
+
+    def _drop_report(self) -> dict | None:
+        if self._last_drop is None:
+            return None
+        return {**self._last_drop, "offline_s": round(max(0.0, time.monotonic() - self._dropped_at), 1)}
 
     def _on_ws_error(self, message: str) -> None:
 
@@ -743,13 +825,23 @@ class AgentSession(QObject):
 
 
             self._failed_streak += 1
+            if self._failed_streak == 1:
+                self._failing_since = time.monotonic()
             if self._failed_streak in (1, 5):
                 self._report_failure(code)
         self._attempt += 1
-        said = self._panel_cause(code, reason) if self._failed_streak >= CAUSE_AFTER_FAILURES else ""
+        failing_for = time.monotonic() - self._failing_since if self._failed_streak else 0.0
+        said = self._panel_cause(code, reason) if failing_for >= CAUSE_AFTER_S else ""
+        kind = (self._last_failure or ("",))[0]
+        self._link_cause = "internet" if kind in INTERNET_DOWN_FAILURES else "server"
         self._log_failure(code, reason)
         self._set_state("offline", said)
         self._reconnect.start(int(delay * 1000))
+
+    def link_cause(self) -> str:
+
+
+        return self._link_cause
 
     def _panel_cause(self, code: int, reason: str) -> str:
 
@@ -759,7 +851,7 @@ class AgentSession(QObject):
         kind, _message, status = self._last_failure or ("", "", 0)
         user_side = kind in USER_SIDE_FAILURES or (kind == "http_status" and int(status or 0) not in (502, 503, 504))
         cause = self._failure_text(code, reason) if user_side else ""
-        return cause or tr("TerraLab's server is not answering. Retrying.")
+        return cause or tr("Can't reach TerraLab. Retrying.")
 
     def failure_facts(self, code: int = 0) -> dict:
 
@@ -817,7 +909,7 @@ class AgentSession(QObject):
             return tr("The proxy asks for a login. Set the proxy user and password in QGIS "
                       "(Settings > Options > Network).")
         if kind == "proxy_refused":
-            return tr("The proxy refused the connection to the agent service.")
+            return tr("The proxy refused the connection to TerraLab.")
         if kind == "proxy_unreachable":
             return tr("The proxy set in QGIS (Settings > Options > Network) cannot be reached.")
         if kind == "tls":
@@ -830,7 +922,7 @@ class AgentSession(QObject):
             return tr("The server URL in the plugin settings is not valid.")
         if kind == "http_status":
             if status in (502, 503, 504):
-                return tr("The agent service is unavailable right now (HTTP {code}).").format(code=status)
+                return tr("TerraLab is unavailable right now (HTTP {code}).").format(code=status)
             return tr("A gateway blocked the connection (HTTP {code}). If this network shows a sign-in "
                       "page, open it in your browser first.").format(code=status)
         if code in (1008, 1011) or 4000 <= code < 5000:
@@ -864,8 +956,9 @@ class AgentSession(QObject):
             self._awaiting_pongs = 0
             if writing:
                 return
-        if self._awaiting_pongs >= MAX_MISSED_PONGS:
-            log_warning("Two pongs missed, closing the socket to reconnect")
+        tick_s = max(0.001, self._heartbeat.interval() / 1000.0)
+        if self._awaiting_pongs >= max(MAX_MISSED_PONGS, math.ceil(LINK_SILENT_S / tick_s)):
+            log_warning(f"{self._awaiting_pongs} pongs missed, closing the socket to reconnect")
             self._heartbeat.stop()
 
 
@@ -982,6 +1075,7 @@ class AgentSession(QObject):
             self._ws.close(1000, "resend manifest")
             return
         self._manifest_retry = False
+        self._last_drop = None
         self._awaiting_pongs = 0
         self._last_failure = None
         self._beat_at = time.monotonic()
@@ -995,15 +1089,19 @@ class AgentSession(QObject):
         self._edit_last = frame.get("edit_last") is True
         self._set_state("online", self._model_label)
         for run_id in sorted(self._pending_cancels):
-            self._send(protocol.cancel(run_id))
+            self._send(protocol.cancel(run_id, self._cancel_reasons.get(run_id, "")))
             left = self._pending_cancels.get(run_id, 0) - 1
             if left > 0:
                 self._pending_cancels[run_id] = left
             else:
                 self._pending_cancels.pop(run_id, None)
+                self._cancel_reasons.pop(run_id, None)
         if self._resume_refused:
             frame = dict(frame, resumed=False)
             self._resume_refused = False
+
+
+        self._catalog_tag = str(frame.get("catalog_tag") or "")
         self.session_started.emit(frame)
 
     def _on_policy(self, frame: dict) -> None:
@@ -1028,11 +1126,22 @@ class AgentSession(QObject):
                               str(frame.get("state") or ""))
 
     def _on_tool_call(self, frame: dict) -> None:
+        tool_call_id = str(frame.get("tool_call_id") or "")
+        if tool_call_id:
+            started = time.perf_counter()
+
+
+            arrived = getattr(self._ws, "arrived_at", 0.0) or started
+            self._call_clocks.pop(tool_call_id, None)
+            self._call_clocks[tool_call_id] = (min(arrived, started), started)
+            while len(self._call_clocks) > _CALL_CLOCKS_KEPT:
+                self._call_clocks.pop(next(iter(self._call_clocks)))
         self.tool_call.emit(frame)
 
     def _on_run_end(self, frame: dict) -> None:
 
         self._pending_cancels.pop(str(frame.get("run_id") or ""), None)
+        self._cancel_reasons.pop(str(frame.get("run_id") or ""), None)
         usage = frame.get("usage") if isinstance(frame.get("usage"), dict) else {}
         verification = frame.get("verification") if isinstance(frame.get("verification"), dict) else None
         self.run_end.emit(str(frame.get("run_id") or ""), str(frame.get("status") or "done"),

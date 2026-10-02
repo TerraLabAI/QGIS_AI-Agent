@@ -123,7 +123,9 @@ def _take_qgis_window_screenshot(args: dict) -> dict:
 
 
 
-    max_width = min(max(int(args.get("max_width", 1600) or 1600), 200), limits.current("MAX_RENDER_WIDTH_PX"))
+
+
+    max_width = min(max(int(args.get("max_width", 1280) or 1280), 200), limits.current("MAX_RENDER_WIDTH_PX"))
     main_window = iface.mainWindow()
     if main_window is None:
         return {"_error": "QGIS main window not available"}

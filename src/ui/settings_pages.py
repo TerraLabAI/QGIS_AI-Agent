@@ -10,18 +10,18 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QIcon, QPainter, QPalette
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -32,9 +32,7 @@ from .style import (
     ACCENT,
     ACCENT_DARK,
     FIELD,
-    GREEN,
     HOVER_ON,
-    INK,
     INK_2,
     INK_3,
     LINE,
@@ -128,6 +126,20 @@ DANGER_GHOST_BTN_QSS = (
     f"QPushButton {{ background: transparent; color: {RED}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 14px; font-size: 12px; }"
     f"QPushButton:hover {{ background: {RED_TINT}; border-color: {RED}; }}"
+
+    f"QPushButton:disabled {{ color: {INK_3}; border-color: {HAIRLINE}; background: transparent; }}"
+)
+
+
+GET_PRO_BTN_QSS = (
+    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
+    " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
+    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
+)
+DISCLOSURE_QSS = (
+    f"QToolButton {{ background: transparent; border: none; color: {MUTED};"
+    " font-size: 11px; padding: 2px 0; }"
+    "QToolButton:hover { color: palette(text); }"
 )
 COMBO_QSS = (
     f"QComboBox {{ color: palette(text); background: palette(base); border: 1px solid {HAIRLINE};"
@@ -503,10 +515,6 @@ PRO_CARD_QSS = (
     "QFrame#proCard QLabel { background: transparent; border: none; }"
 )
 PRO_CARD_TITLE_QSS = "font-size: 12px; font-weight: 600; color: palette(text); background: transparent;"
-PRO_BADGE_QSS = (
-    f"QLabel#proBadge {{ font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: {MUTED};"
-    f" background: {TINT}; border: 1px solid {HAIRLINE}; border-radius: 7px; padding: 1px 7px; }}"
-)
 
 
 
@@ -548,54 +556,89 @@ def set_section_locked(*widgets, locked: bool = True) -> None:
             continue
 
 
+class Disclosure(QWidget):
+
+
+
+
+
+
+    toggled = pyqtSignal(bool)
+
+    def __init__(self, label: str, body: QWidget, parent=None, expanded: bool = False):
+        super().__init__(parent)
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(6)
+        self.button = QToolButton(self)
+        self.button.setText(label)
+        self.button.setCheckable(True)
+        self.button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.button.setStyleSheet(DISCLOSURE_QSS)
+        self.button.setAutoRaise(True)
+        self.button.toggled.connect(self.set_expanded)
+        col.addWidget(self.button, 0, Qt.AlignmentFlag.AlignLeft)
+        self.body = body
+        body.setParent(self)
+        col.addWidget(body)
+        self.set_expanded(expanded)
+
+    def set_expanded(self, on: bool) -> None:
+        on = bool(on)
+        if self.button.isChecked() != on:
+            self.button.blockSignals(True)
+            self.button.setChecked(on)
+            self.button.blockSignals(False)
+        self.button.setIcon(QIcon(pixmap_for(self, "chevron_down" if on else "chevron_right", 10)))
+        self.body.setVisible(on)
+        self.toggled.emit(on)
+
+    def is_expanded(self) -> bool:
+        return self.button.isChecked()
+
+
 class ProCard(QFrame):
+
+
+
+
+
+
 
 
     upgrade_requested = pyqtSignal()
 
-    def __init__(self, title: str, note: str, action: str, parent=None):
+    def __init__(self, title: str, note: str = "", parent=None):
         super().__init__(parent)
         self.setObjectName("proCard")
         self.setStyleSheet(PRO_CARD_QSS)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        row = QHBoxLayout(self)
-        row.setContentsMargins(14, 12, 14, 12)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(14, 10, 14, 10)
+        outer.setSpacing(4)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(12)
-
-        gem = QLabel(self)
-        gem.setPixmap(pixmap_for(self, "gem", 15))
-        gem.setFixedWidth(18)
-        row.addWidget(gem, 0, Qt.AlignmentFlag.AlignTop)
-
-        words = QVBoxLayout()
-        words.setContentsMargins(0, 0, 0, 0)
-        words.setSpacing(3)
-        head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 0, 0)
-        head.setSpacing(8)
         name = QLabel(title, self)
         name.setStyleSheet(PRO_CARD_TITLE_QSS)
         name.setWordWrap(True)
-        head.addWidget(name, 0)
-        badge = QLabel(self.tr("PRO"), self)
-        badge.setObjectName("proBadge")
-        badge.setStyleSheet(PRO_BADGE_QSS)
-        head.addWidget(badge, 0, Qt.AlignmentFlag.AlignVCenter)
-        head.addStretch(1)
-        words.addLayout(head)
-        body = QLabel(note, self)
-        body.setStyleSheet(ROW_NOTE_QSS)
-        body.setWordWrap(True)
-        words.addWidget(body)
-        row.addLayout(words, 1)
-
-        button = QPushButton(action, self)
-        button.setStyleSheet(PRIMARY_BTN_QSS)
+        row.addWidget(name, 1, Qt.AlignmentFlag.AlignVCenter)
+        button = QPushButton(self.tr("Get Pro"), self)
+        button.setStyleSheet(GET_PRO_BTN_QSS)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.clicked.connect(self.upgrade_requested.emit)
         row.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
+        outer.addLayout(row)
         self.button = button
+        self.details = None
+        if note:
+            body = QLabel(note)
+            body.setStyleSheet(ROW_NOTE_QSS)
+            body.setWordWrap(True)
+            self.details = Disclosure(self.tr("What Pro adds"), body, self)
+            outer.addWidget(self.details)
 
 
 class Page(QWidget):
@@ -646,12 +689,6 @@ class Page(QWidget):
 
 
 
-
-
-
-
-
-
 USAGE_KEYS = ("runs_used", "runs_limit", "period_end", "reset_date", "is_subscriber", "is_free_tier")
 PROGRESS_QSS = (
     "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 3px;"
@@ -659,182 +696,3 @@ PROGRESS_QSS = (
     "QProgressBar::chunk { background: palette(text); border-radius: 3px; }"
 )
 
-BILLING_CARD_QSS = (
-    f"QFrame#billingCard {{ background: {SURFACE}; border: 1px solid {LINE};"
-    f" border-radius: {RADIUS_CARD}px; }}"
-    "QFrame#billingCard QLabel { background: transparent; border: none; }"
-)
-BILLING_NAME_QSS = (f"font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;"
-                    f" color: {INK_3}; background: transparent;")
-BILLING_STATUS_QSS = f"font-size: 12px; color: {INK_2}; background: transparent;"
-BILLING_PRICE_QSS = f"font-size: 26px; font-weight: 600; color: {INK}; background: transparent;"
-
-
-
-BILLING_STAT_QSS = f"font-size: 26px; font-weight: 600; color: {INK}; background: transparent;"
-BILLING_SUBTITLE_QSS = f"font-size: 12px; color: {INK_2}; background: transparent;"
-BILLING_POINT_QSS = f"font-size: 12px; color: {INK}; background: transparent;"
-BILLING_FOOT_QSS = f"font-size: 11px; color: {INK_3}; background: transparent;"
-BILLING_PRIMARY_QSS = (
-    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
-    " border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; }"
-    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
-)
-
-
-
-BILLING_POINT_H = 28
-BILLING_CHECK_PX = 14
-
-
-
-
-
-BILLING_STACK_W = 720
-_BILLING_CARD_MIN_W = 240
-
-
-class BillingCard(QFrame):
-
-
-    def __init__(self, title: str, parent=None):
-        super().__init__(parent)
-        self.setObjectName("billingCard")
-        self.setStyleSheet(BILLING_CARD_QSS)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.setMinimumWidth(_BILLING_CARD_MIN_W)
-        self.column = QVBoxLayout(self)
-        self.column.setContentsMargins(16, 14, 16, 14)
-        self.column.setSpacing(6)
-
-        head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 0, 0)
-        head.setSpacing(8)
-        self.title_label = QLabel(title, self)
-        self.title_label.setStyleSheet(BILLING_NAME_QSS)
-        self.title_label.setWordWrap(True)
-        head.addWidget(self.title_label, 0)
-        head.addStretch(1)
-        self.head = head
-        self.column.addLayout(head)
-
-
-
-
-        self.column.addStretch(1)
-
-    def add(self, widget: QWidget) -> QWidget:
-        self.column.insertWidget(self.column.count() - 1, widget)
-        return widget
-
-    def add_layout(self, layout) -> None:
-        self.column.insertLayout(self.column.count() - 1, layout)
-
-    def add_stat(self, value: str, caption: str = "") -> QLabel:
-
-        label = QLabel(value, self)
-        label.setStyleSheet(BILLING_STAT_QSS)
-        label.setWordWrap(True)
-        self.add(label)
-        if caption:
-            self.add_status(caption)
-        return label
-
-    def add_note(self, text: str) -> QLabel:
-
-        label = QLabel(text, self)
-        label.setStyleSheet(BILLING_FOOT_QSS)
-        label.setWordWrap(True)
-        return self.add(label)
-
-    def add_status(self, text: str) -> QLabel:
-
-        label = QLabel(text, self)
-        label.setStyleSheet(BILLING_STATUS_QSS)
-        label.setWordWrap(True)
-        return self.add(label)
-
-    def add_price(self, price: str) -> QLabel:
-        label = QLabel(price, self)
-        label.setStyleSheet(BILLING_PRICE_QSS)
-        label.setWordWrap(True)
-        return self.add(label)
-
-    def add_subtitle(self, text: str) -> QLabel:
-        label = QLabel(text, self)
-        label.setStyleSheet(BILLING_SUBTITLE_QSS)
-        label.setWordWrap(True)
-        return self.add(label)
-
-    def add_point(self, text: str) -> QWidget:
-
-        row = QWidget(self)
-        row.setMinimumHeight(BILLING_POINT_H)
-        line = QHBoxLayout(row)
-        line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(8)
-        tick = QLabel(row)
-        tick.setPixmap(pixmap_for(row, "check", BILLING_CHECK_PX, QColor(GREEN)))
-        tick.setFixedWidth(BILLING_CHECK_PX + 2)
-        line.addWidget(tick, 0, Qt.AlignmentFlag.AlignVCenter)
-        label = QLabel(text, row)
-        label.setStyleSheet(BILLING_POINT_QSS)
-        label.setWordWrap(True)
-        line.addWidget(label, 1)
-        return self.add(row)
-
-    def add_action(self, button: QPushButton) -> QPushButton:
-
-        button.setStyleSheet(BILLING_PRIMARY_QSS)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setAutoDefault(False)
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 8, 0, 0)
-        row.addWidget(button, 1)
-        self.add_layout(row)
-        return button
-
-
-class BillingCardRow(QWidget):
-
-
-
-
-
-
-
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._grid = QGridLayout(self)
-        self._grid.setContentsMargins(0, 0, 0, 0)
-        self._grid.setHorizontalSpacing(12)
-        self._grid.setVerticalSpacing(12)
-        self._cards: list = []
-        self._stacked = False
-
-    def add_card(self, card: QWidget) -> QWidget:
-        self._cards.append(card)
-        card.setParent(self)
-        self._place()
-        return card
-
-    def resizeEvent(self, event):  # noqa: N802
-        super().resizeEvent(event)
-        window = self.window()
-        width = window.width() if window is not None else self.width()
-        stacked = int(width) < BILLING_STACK_W
-        if stacked != self._stacked:
-            self._stacked = stacked
-            self._place()
-
-    def _place(self) -> None:
-        for index, card in enumerate(self._cards):
-            self._grid.removeWidget(card)
-            if self._stacked:
-                self._grid.addWidget(card, index, 0)
-            else:
-                self._grid.addWidget(card, 0, index)
-        columns = 1 if self._stacked else max(len(self._cards), 1)
-        for column in range(max(len(self._cards), 1)):
-            self._grid.setColumnStretch(column, 1 if column < columns else 0)

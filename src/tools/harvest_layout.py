@@ -31,8 +31,8 @@ from ..core import limits
 from ..core.security import expand_path, validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
-from .core_tools import _find_layer, _layer_not_found_error
 from .data_tools import _safe_filename
+from .layer_lookup import _find_layer, _layer_not_found_error
 from .layout_elevation import camera_facts, snapshot_3d_view
 from .layout_pixel_units import PixelSizeHold
 from .layout_tools import _first_map_item, _mm_point, _mm_size, _resolve_layout, _with_new_item, place_item
@@ -135,6 +135,7 @@ def register_harvest_layout_tools(registry: ToolRegistry):
             "required": ["layout_name", "output_path"],
         },
         handler=_export_atlas,
+        prepare=_prepare_atlas,
     ))
 
     registry.register(Tool(
@@ -550,7 +551,66 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
     return dpi, facts
 
 
+def _atlas_dpi(args: dict) -> tuple:
+
+
+
+
+
+
+
+    max_dpi = int(limits.current("MAX_RENDER_DPI"))
+    requested = int(args.get("dpi") or min(300, max_dpi))
+    return max(10, min(requested, max_dpi)), requested, max_dpi
+
+
+def atlas_view(args: dict):
+
+
+
+
+
+
+
+    from . import layout_ready
+    from .advanced_layouts import export_flags
+
+    layout = QgsProject.instance().layoutManager().layoutByName(str(args.get("layout_name") or ""))
+    atlas = layout.atlas() if layout is not None and hasattr(layout, "atlas") else None
+    if (atlas is None or not atlas.enabled() or atlas.coverageLayer() is None
+            or args.get("meters_per_pixel") is not None):
+        return None
+    fmt = (args.get("format") or "pdf").lower()
+    dpi = _atlas_dpi(args)[0]
+    wanted = args.get("scale")
+
+    def scale_setter(target):
+        _apply_atlas_scale(target, wanted, target.name())
+
+    return layout_ready.paint_dpi(fmt, dpi), export_flags(fmt), (scale_setter if wanted is not None else None)
+
+
+def _prepare_atlas(args: dict):
+    from . import layout_ready
+
+    return layout_ready.prepare_atlas(args)
+
+
 def _export_atlas(args: dict) -> dict:
+    from . import layout_ready
+
+
+
+    ready = layout_ready.take("atlas:" + str(args.get("layout_name") or ""))
+    try:
+        return _export_atlas_with(args, ready)
+    finally:
+        layout_ready.discard(ready)
+
+
+def _export_atlas_with(args: dict, ready) -> dict:
+    from . import layout_ready
+
     layout, error = _layout_or_error(args["layout_name"])
     if error:
         return error
@@ -560,14 +620,7 @@ def _export_atlas(args: dict) -> dict:
 
     output_path = expand_path(args["output_path"])
     fmt = (args.get("format") or "pdf").lower()
-
-
-
-
-
-    max_dpi = int(limits.current("MAX_RENDER_DPI"))
-    requested = int(args.get("dpi") or min(300, max_dpi))
-    dpi = max(10, min(requested, max_dpi))
+    dpi, requested, max_dpi = _atlas_dpi(args)
 
 
     at_ceiling = ({"dpi_note": f"Exported at {dpi} dpi, this computer's ceiling at the moment, rather "
@@ -603,8 +656,22 @@ def _export_atlas(args: dict) -> dict:
             return planned
         dpi, ground = planned
 
+    if (ready is not None and (ready["stopped"] or ready["unfinished"])
+            and ready["dpi"] == layout_ready.paint_dpi(fmt, dpi)):
+
+
+        _restore_atlas_scale(scale_changed)
+        if ready["stopped"]:
+            return {"_error": "The atlas export was stopped while its maps were being drawn; no file was "
+                              "written.", "code": "CANCELLED"}
+        late = ready["unfinished"]
+        return {"_error": (f"The maps of the atlas of '{layout.name()}' did not finish drawing in the time a "
+                           f"call has, so nothing was exported. Still drawing: {', '.join(late[:6])}."),
+                "_code": "TIMEOUT", "slow_layers": late,
+                "_suggestion": "A lower dpi, fewer pages (filter_expression), or hiding a layer drawn over the "
+                               "network, draws less."}
     job = {"layout": layout, "atlas": atlas, "path": output_path, "fmt": fmt, "dpi": dpi,
-           "scale": wanted_scale, "at_ceiling": at_ceiling, "ground": ground}
+           "scale": wanted_scale, "at_ceiling": at_ceiling, "ground": ground, "ready": ready}
     if fmt == "pdf" and args.get("single_file") is not False:
         outcome = _atlas_to_one_pdf(job)
     else:
@@ -642,7 +709,7 @@ def _atlas_to_one_pdf(job: dict) -> dict:
     pdf = QgsLayoutExporter.PdfExportSettings()
     pdf.dpi = dpi
     (code, message), pixel_units = _held_export(
-        job["layout"], dpi, lambda: QgsLayoutExporter.exportToPdf(job["atlas"], target, pdf))
+        job, lambda: QgsLayoutExporter.exportToPdf(job["atlas"], target, pdf))
     if _export_failed(code):
         return tool_error(f"Atlas export failed: {message or code}")
     if not os.path.exists(target):
@@ -679,7 +746,7 @@ def _atlas_to_folder(job: dict) -> dict:
     already_there = set(os.listdir(folder))
 
     base = os.path.join(folder, _safe_filename(job["layout"].name(), "layout"))
-    (code, message), pixel_units = _held_export(job["layout"], job["dpi"], _atlas_writer(job, base))
+    (code, message), pixel_units = _held_export(job, _atlas_writer(job, base))
     if _export_failed(code):
         return tool_error(f"Atlas export failed: {message or code}")
 
@@ -707,11 +774,15 @@ def _atlas_to_folder(job: dict) -> dict:
     return written
 
 
-def _held_export(layout, dpi: int, run):
+def _held_export(job: dict, run):
 
+
+    from . import layout_ready
+
+    layout, dpi = job["layout"], job["dpi"]
     held = PixelSizeHold(layout, dpi)
     try:
-        answer = run()
+        answer = layout_ready.drawn(layout, job.get("ready"), run, layout_ready.paint_dpi(job["fmt"], dpi))
     finally:
         held.restore()
     return answer, held.report()

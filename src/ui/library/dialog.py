@@ -31,15 +31,16 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 
 from ..connector_page import ConnectorPage
-from ..connectors_page import ConnectorsPage, cases_of
+from ..connectors_page import ConnectorsPage, cases_of, sources_by_id
 from ..font_scale import apply_font_scale_to_tree
-from ..shared import get_connectors, size_within_screen, tr
+from ..shared import size_within_screen, tr
 from ..use_cases import use_case_groups, use_cases
 from . import common as C
 from .detail import ExampleDetail
@@ -59,7 +60,7 @@ class ExamplesDialog(QDialog):
     prompt_chosen = pyqtSignal(str, object)
     example_chosen = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, opened_from: str = "composer"):
         super().__init__(parent)
         self.setObjectName("AIAgentExamplesDialog")
         self.setWindowTitle(tr("Examples"))
@@ -67,7 +68,7 @@ class ExamplesDialog(QDialog):
             from ...core import telemetry
             from ...core import telemetry_events as ev
 
-            telemetry.track(ev.LIBRARY_OPENED, {"source": "composer"})
+            telemetry.track(ev.LIBRARY_OPENED, {"source": str(opened_from or "composer")})
         except Exception:  # nosec B110
             pass
         self.setModal(True)
@@ -81,7 +82,7 @@ class ExamplesDialog(QDialog):
 
         self._history: list = []
         self._state = (_GRID_PAGE, None)
-        self._connectors = {str(r.get("id")): r for r in get_connectors() if r.get("id")}
+        self._connectors = sources_by_id()
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -89,7 +90,7 @@ class ExamplesDialog(QDialog):
 
         self._rail = LibraryRail([(HOME_KEY, "image", tr("Examples")),
                                   (SOURCES_KEY, "globe", tr("Data sources"))],
-                                 tr("Categories"), self._group_rows, self)
+                                 self._group_rows, self)
         self._rail.selected.connect(self._on_rail)
         root.addWidget(self._rail)
 

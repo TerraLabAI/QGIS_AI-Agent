@@ -12,15 +12,15 @@ try:
 except ImportError:  # pragma: no cover
     QgsRasterAttributeTable = None
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QMetaType
-from qgis.PyQt.QtGui import QColor
 
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from .colour_text import qcolor_from_text
 from .layer_lookup import _find_layer
 from .style_tools import _previous_style_keys, _style_to_put_back
 
 
 def _color(value):
-    color = QColor(str(value or ""))
+    color = qcolor_from_text(str(value or ""))
     return color if color.isValid() else None
 
 

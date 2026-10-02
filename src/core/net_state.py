@@ -21,7 +21,8 @@ def current_cancel_check():
     return getattr(_LOCAL, "cancel", None)
 
 
-def _cancelled(cancel) -> bool:
+def is_cancelled(cancel=None) -> bool:
+
     check = cancel or current_cancel_check()
     if check is None:
         return False

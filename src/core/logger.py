@@ -149,10 +149,5 @@ def log_warning(message):
     log(message, level=qgis.MessageLevel.Warning if qgis else None)
 
 
-def log_error(message):
-    qgis, _ = _qgis()
-    log(message, level=qgis.MessageLevel.Critical if qgis else None)
-
-
 def log_debug(message):
     log(message)

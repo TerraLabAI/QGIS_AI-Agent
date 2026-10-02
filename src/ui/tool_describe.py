@@ -22,6 +22,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import os
@@ -42,7 +55,6 @@ def tr(text: str, disambiguation: str | None = None, n: int = -1) -> str:
     return QCoreApplication.translate(TR_CONTEXT, text, disambiguation, n)
 
 
-_LAYER_KEYS = ("layer_name", "layer", "name", "target_layer", "polygon_layer", "input")
 _MAX_VALUE = 48
 
 
@@ -68,18 +80,6 @@ _SERVER_TEMPLATES = {
     "find_statistic": QT_TRANSLATE_NOOP("AIAgent", "Search statistics[ on {topic}]"),
 }
 
-
-
-_PROCESSING_PARAMS = (
-    ("DISTANCE", "{v}"),
-    ("FIELD", "by {v}"),
-    ("OVERLAY", "with {v}"),
-    ("INTERSECT", "with {v}"),
-    ("JOIN", "with {v}"),
-    ("TOLERANCE", "tolerance {v}"),
-    ("TARGET_CRS", "to {v}"),
-)
-
 _OPTIONAL_RE = re.compile(r"\[([^\[\]]*)\]")
 _KEY_RE = re.compile(r"\{([a-z_]+)\}")
 
@@ -89,13 +89,78 @@ def _short(value, limit: int = _MAX_VALUE) -> str:
     return text if len(text) <= limit else text[:limit - 1] + "…"
 
 
+def _site(host: str) -> str:
+    host = host.lower().strip(".")
+    return host[4:] if host.startswith("www.") else host
+
+
 def _host(value) -> str:
 
 
+
+
+
+
+
+
+
+    from qgis.PyQt.QtCore import QUrl
+
+    from .source_marks import source_host
+
     text = str(value or "")
-    host = text.split("://", 1)[1].split("/")[0].split("?")[0]
-    host = host.rsplit("@", 1)[-1].split(":")[0]
-    return host[4:] if host.startswith("www.") else host
+    host = _site(source_host(text))
+    if not host:
+        return ""
+    segments = {part.lower().replace("-", "").replace("_", "")
+                for part in QUrl(text).path().split("/") if part}
+    try:
+        from .shared import get_connectors
+
+        connectors = get_connectors()
+    except Exception:  # nosec B110
+        return ""
+    for connector in connectors:
+        page = _site(source_host(str(connector.get("url") or "")))
+        if page and (host == page or host.endswith("." + page)) and connector.get("name"):
+            return str(connector["name"])
+    for connector in connectors:
+        key = str(connector.get("id") or "").lower().replace("-", "").replace("_", "")
+        if key and key in segments and connector.get("name"):
+            return str(connector["name"])
+    return ""
+
+
+
+
+
+_QUERY_KEYS = frozenset({"query", "q", "search", "topic", "keywords", "question"})
+_QUERY_NOISE_RE = re.compile(r"""(?x)
+    (?:^|\s)-?[A-Za-z]+:\S+      # an operator, site:ign.fr, filetype:pdf
+  | (?:^|\s)-\S+                 # an excluded term
+  | \b\w+_\w+\b                  # an identifier, fetch_osm_data
+  | (?:^|\s)(?:OR|AND|NOT)(?=\s|$)
+  | ["'`]
+""")
+
+
+def _query_words(value) -> str:
+
+    if isinstance(value, (list, tuple)):
+        value = ", ".join(str(v) for v in value if v)
+    text = _QUERY_NOISE_RE.sub(" ", str(value or ""))
+    return _short(" ".join(text.split()).strip(" ,;:"))
+
+
+def _value_word(key: str, args: dict) -> str:
+
+
+    value = args.get(key)
+    if key in _QUERY_KEYS:
+        return "" if _is_raw(value) else _query_words(value)
+    if key in ("algorithm_id", "algorithm") and value:
+        return _short(_algorithm_name({"algorithm_id": value}))
+    return _word(value)
 
 
 def _word(value) -> str:
@@ -121,7 +186,7 @@ def _word(value) -> str:
         return _short(text.split("|layername=", 1)[1].split("|")[0])
     if "/" in text or "\\" in text:
         if "://" in text:
-            return _short(_host(text)) or _short(text.split("://", 1)[0])
+            return _short(_host(text))
         base = os.path.basename(text.rstrip("/\\"))
         if base:
             return _short(base)
@@ -134,13 +199,25 @@ def _fill(template: str, args: dict) -> str:
     def clause(match) -> str:
         inner = match.group(1)
         for key in _KEY_RE.findall(inner):
-            if not _word(args.get(key)):
+            if not _value_word(key, args):
                 return ""
         return inner
 
     text = _OPTIONAL_RE.sub(clause, template)
-    text = _KEY_RE.sub(lambda m: _word(args.get(m.group(1))), text)
-    return " ".join(text.split()).strip(" :,")
+    if any(not _value_word(key, args) for key in _KEY_RE.findall(text)):
+
+
+        return ""
+    text = _KEY_RE.sub(lambda m: _value_word(m.group(1), args), text)
+    return _tidy(text)
+
+
+def _tidy(text: str) -> str:
+
+
+    text = re.sub(r"\s+([,;:.])", r"\1", " ".join(text.split()))
+    text = re.sub(r"([,;:])(?:\s*[,;:])+", r"\1", text)
+    return text.strip(" :,;")
 
 
 def _algorithm_name(args: dict) -> str:
@@ -160,23 +237,234 @@ def _algorithm_name(args: dict) -> str:
     return humanise_tool_name(verb) if verb else ""
 
 
-def _processing_line(args: dict) -> str:
-    verb = _algorithm_name(args) or "Run processing"
-    params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-    upper = {str(k).upper(): v for k, v in params.items()}
-    parts = [verb]
-    for key, shape in _PROCESSING_PARAMS:
-        word = _word(upper.get(key))
+
+
+
+
+
+_PROCESSING_SENTENCES = {
+    "native:buffer": QT_TRANSLATE_NOOP("AIAgent", "Buffer of {DISTANCE} around {INPUT}"),
+    "native:singlesidedbuffer": QT_TRANSLATE_NOOP("AIAgent", "Buffer of {DISTANCE} on one side of {INPUT}"),
+    "native:simplifygeometries": QT_TRANSLATE_NOOP(
+        "AIAgent", "Simplify {INPUT}[ with a tolerance of {TOLERANCE}]"),
+    "native:smoothgeometry": QT_TRANSLATE_NOOP("AIAgent", "Smooth {INPUT}"),
+    "native:dissolve": QT_TRANSLATE_NOOP("AIAgent", "Dissolve {INPUT}[ by {FIELD}]"),
+    "native:fixgeometries": QT_TRANSLATE_NOOP("AIAgent", "Fix the geometries of {INPUT}"),
+    "native:clip": QT_TRANSLATE_NOOP("AIAgent", "Clip {INPUT} to {OVERLAY}"),
+    "native:intersection": QT_TRANSLATE_NOOP("AIAgent", "Intersect {INPUT} with {OVERLAY}"),
+    "native:difference": QT_TRANSLATE_NOOP("AIAgent", "Remove {OVERLAY} from {INPUT}"),
+    "native:union": QT_TRANSLATE_NOOP("AIAgent", "Union of {INPUT}[ and {OVERLAY}]"),
+    "native:reprojectlayer": QT_TRANSLATE_NOOP("AIAgent", "Reproject {INPUT} to {TARGET_CRS}"),
+    "native:centroids": QT_TRANSLATE_NOOP("AIAgent", "Centroids of {INPUT}"),
+    "native:mergevectorlayers": QT_TRANSLATE_NOOP("AIAgent", "Merge {LAYERS}"),
+    "native:joinattributesbylocation": QT_TRANSLATE_NOOP(
+        "AIAgent", "Join {JOIN} to {INPUT} by location"),
+    "native:joinattributestable": QT_TRANSLATE_NOOP("AIAgent", "Join {INPUT_2} to {INPUT}"),
+    "native:extractbyexpression": QT_TRANSLATE_NOOP("AIAgent", "Extract features of {INPUT}"),
+    "native:extractbyattribute": QT_TRANSLATE_NOOP("AIAgent", "Extract features of {INPUT}[ by {FIELD}]"),
+    "native:extractbylocation": QT_TRANSLATE_NOOP("AIAgent", "Extract features of {INPUT} by location"),
+    "native:fieldcalculator": QT_TRANSLATE_NOOP("AIAgent", "Compute {FIELD_NAME} in {INPUT}"),
+    "native:zonalstatisticsfb": QT_TRANSLATE_NOOP(
+        "AIAgent", "Statistics of {INPUT_RASTER} in each feature of {INPUT}"),
+    "native:countpointsinpolygon": QT_TRANSLATE_NOOP("AIAgent", "Count {POINTS} in each feature of {POLYGONS}"),
+    "native:multiparttosingleparts": QT_TRANSLATE_NOOP("AIAgent", "Split {INPUT} into single parts"),
+    "native:polygonstolines": QT_TRANSLATE_NOOP("AIAgent", "Turn {INPUT} into lines"),
+    "native:voronoipolygons": QT_TRANSLATE_NOOP("AIAgent", "Voronoi polygons of {INPUT}"),
+    "native:heatmapkerneldensityestimation": QT_TRANSLATE_NOOP(
+        "AIAgent", "Heatmap of {INPUT}[ with a radius of {RADIUS}]"),
+    "gdal:cliprasterbymasklayer": QT_TRANSLATE_NOOP("AIAgent", "Clip {INPUT} to {MASK}"),
+    "gdal:cliprasterbyextent": QT_TRANSLATE_NOOP("AIAgent", "Clip {INPUT} to an extent"),
+    "gdal:warpreproject": QT_TRANSLATE_NOOP("AIAgent", "Reproject {INPUT}[ to {TARGET_CRS}]"),
+    "gdal:hillshade": QT_TRANSLATE_NOOP("AIAgent", "Hillshade of {INPUT}"),
+    "gdal:slope": QT_TRANSLATE_NOOP("AIAgent", "Slope of {INPUT}"),
+    "gdal:contour": QT_TRANSLATE_NOOP("AIAgent", "Contours of {INPUT}[ every {INTERVAL}]"),
+    "gdal:rasterize": QT_TRANSLATE_NOOP("AIAgent", "Rasterize {INPUT}"),
+    "gdal:polygonize": QT_TRANSLATE_NOOP("AIAgent", "Polygonize {INPUT}"),
+}
+_PARAM_RE = re.compile(r"\{([A-Z][A-Z0-9_]*)\}")
+
+_INPUT_KEYS = ("INPUT", "LAYERS", "INPUT_LAYER", "INPUT_RASTER", "LAYER")
+
+
+def _algorithm(args: dict):
+
+    algorithm = str(args.get("algorithm_id") or args.get("algorithm") or "")
+    if not algorithm:
+        return None
+    try:
+        from qgis.core import QgsApplication
+        return QgsApplication.processingRegistry().algorithmById(algorithm)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _project_layer(value):
+
+
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        from qgis.core import QgsProject
+        project = QgsProject.instance()
+        layer = project.mapLayer(value)
+        if layer is not None:
+            return layer
+        named = project.mapLayersByName(value)
+        if named:
+            return named[0]
+
+
+        def same(path: str) -> str:
+            return os.path.normcase(os.path.normpath(path.split("|")[0]))
+
+        if "/" in value or "\\" in value:
+            wanted = same(value)
+            for layer in project.mapLayers().values():
+                source = layer.source()
+                if source and same(source) == wanted:
+                    return layer
+    except Exception:  # noqa: BLE001
+        return None
+    return None
+
+
+
+
+_LAYER_ID_SUFFIX = re.compile(r"_(?:[0-9a-f]{8}[_-][0-9a-f]{4}[_-][0-9a-f]{4}[_-][0-9a-f]{4}[_-][0-9a-f]{12}|\d{17})$",
+                              re.IGNORECASE)
+
+
+def _id_base(text: str) -> str:
+
+
+    if not isinstance(text, str):
+        return text
+    base = _LAYER_ID_SUFFIX.sub("", text)
+    return base.replace("_", " ").strip() if base != text and base.strip("_ ") else text
+
+
+def _layer_word(value) -> str:
+
+    if isinstance(value, (list, tuple)) and len(value) != 1:
+        return _word(value)
+    if isinstance(value, (list, tuple)):
+        value = value[0]
+    layer = _project_layer(value)
+
+    if layer is not None:
+        return layer.name()
+    text = str(value) if value is not None else ""
+    if ("/" in text or "\\" in text) and "://" not in text and "|layername=" not in text:
+
+        base = os.path.splitext(os.path.basename(text.rstrip("/\\")))[0]
+        if base:
+            return _short(base)
+    if isinstance(value, str):
+        value = _id_base(value)
+    return _word(value)
+
+
+def _unit_of(definition, params: dict) -> str:
+
+
+
+    try:
+        from qgis.core import QgsUnitTypes
+        kind = definition.type()
+        if kind not in ("distance", "duration", "area", "volume"):
+            return ""
+        unit = None
+        if kind == "distance":
+            parent = definition.parentParameterName() if hasattr(definition, "parentParameterName") else ""
+            layer = _project_layer(params.get(parent)) if parent else None
+            if layer is not None and layer.crs().isValid():
+                unit = layer.crs().mapUnits()
+        if unit is None:
+            unit = definition.defaultUnit()
+        if "Unknown" in str(unit):
+
+            return ""
+        return QgsUnitTypes.toAbbreviatedString(unit)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _crs_word(value) -> str:
+    try:
+        from qgis.core import QgsCoordinateReferenceSystem
+        crs = value if hasattr(value, "authid") else QgsCoordinateReferenceSystem(str(value))
+        if crs.isValid():
+            return _short(crs.description() or crs.authid())
+    except Exception:  # noqa: BLE001
+        return _word(value)
+    return _word(value)
+
+
+def _param_word(key: str, params: dict, found) -> str:
+
+
+    value = params.get(key)
+    if value is None or value == "":
+        return ""
+    definition = found.parameterDefinition(key) if found is not None else None
+    kind = definition.type() if definition is not None else ""
+    if kind in ("source", "vector", "raster", "layer", "multilayer", "mesh", "pointcloud") \
+            or key in _INPUT_KEYS or (definition is None and isinstance(value, str)
+                                      and _project_layer(value) is not None):
+        return _layer_word(value)
+    if kind == "crs" or key.endswith("CRS"):
+        return _crs_word(value)
+    word = _word(value)
+    unit = _unit_of(definition, params) if definition is not None and word else ""
+    return f"{word}\u00a0{unit}" if unit else word
+
+
+def _first_measure(found, params: dict) -> str:
+
+
+    if found is None:
+        return ""
+    for definition in found.parameterDefinitions():
+        if definition.type() not in ("distance", "number", "field", "crs"):
+            continue
+        word = _param_word(definition.name(), params, found)
         if word:
-            parts.append(shape.format(v=word))
-            break
-    source = _word(upper.get("INPUT") or upper.get("LAYERS") or upper.get("INPUT_LAYER"))
-    if source:
-        parts.append(f"on {source}")
-    output = _word(args.get("output_name"))
-    if output:
-        parts.append(f"as {output}")
-    return " ".join(parts)
+            return f"{definition.description()} {word}"
+    return ""
+
+
+def processing_parts(args: dict) -> tuple[str, str]:
+
+
+
+
+    found = _algorithm(args)
+    name = _algorithm_name(args)
+    raw = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
+    params = {str(k).upper(): v for k, v in raw.items()}
+    algorithm = str(args.get("algorithm_id") or args.get("algorithm") or "")
+    template = _PROCESSING_SENTENCES.get(algorithm)
+    if template:
+        text = tr(template)
+
+        def clause(match) -> str:
+            inner = match.group(1)
+            return inner if all(_param_word(k, params, found) for k in _PARAM_RE.findall(inner)) else ""
+
+        text = _OPTIONAL_RE.sub(clause, text)
+        if all(_param_word(k, params, found) for k in _PARAM_RE.findall(text)):
+            return _tidy(_PARAM_RE.sub(lambda m: _param_word(m.group(1), params, found), text)), name
+    source = next((_param_word(k, params, found) for k in _INPUT_KEYS if params.get(k)), "")
+    head = name or tr("Run processing")
+    sentence = tr("{algorithm} on {layer}").format(algorithm=head, layer=source) if source else head
+    measure = _first_measure(found, params)
+    if measure:
+        sentence = f"{sentence}, {measure}"
+    return sentence, name
+
+
+def _processing_line(args: dict) -> str:
+    return processing_parts(args)[0]
 
 
 _LAYER_KEYS = ("layer_name", "layer_id", "layer", "input", "target_layer", "polygon_layer",
@@ -205,6 +493,10 @@ def _with_layer_names(args: dict) -> dict:
                 out = dict(args)
             out[key] = layers[value].name()
             out.setdefault("layer_name", out[key])
+        elif isinstance(value, str) and _id_base(value) != value:
+            if out is args:
+                out = dict(args)
+            out[key] = _id_base(value)
     return out
 
 
@@ -239,6 +531,11 @@ def _card(name: str) -> str:
 _PROCESSING_CARDS = ("algorithm", "model")
 
 
+def is_processing_call(name: str) -> bool:
+
+    return _card(name) in _PROCESSING_CARDS
+
+
 def _english_template(name: str, args: dict) -> str | None:
     declared = spec(name)
     chosen = declared.label_for(args) if declared is not None and declared.label_for is not None else ""
@@ -266,7 +563,8 @@ def describe_tool_call(name: str, args, resolved: dict | None = None) -> str:
     for key in _LAYER_KEYS:
         word = _word(args.get(key))
         if word:
-            return f"{head} on {word}" if key != "name" else f"{head} {word}"
+            return tr("{tool} on {layer}").format(tool=head, layer=word) if key != "name" \
+                else f"{head} {word}"
     return head
 
 
@@ -364,10 +662,6 @@ def _gpkg_effect(name: str, args: dict) -> str:
 
 
 
-_CHIP_PREP_RE = r"(?:\s+(?:of|in|on|to|at|from|for|as|with|onto|by|the)\s+|\s*)"
-
-
-
 
 
 
@@ -389,40 +683,41 @@ def _chip_key(template: str, args: dict) -> tuple[str, bool]:
 
     required = _template_keys(_OPTIONAL_RE.sub("", template))
     for key in _LAYER_KEYS:
-        if key in required and _word(args.get(key)):
+        if key in required and _value_word(key, args):
             return key, False
     for key in required:
-        if _word(args.get(key)):
+        if _value_word(key, args):
             return key, False
     for clause in _OPTIONAL_RE.findall(template):
         for key in _template_keys(clause):
-            if _word(args.get(key)):
+            if _value_word(key, args):
                 return key, True
     return "", False
 
 
-def _verb_without(template: str, key: str, optional: bool) -> str:
+def _verb_and_chip(template: str, key: str, optional: bool, args: dict) -> tuple[str, str]:
+
+
+
+
+
 
     if not key:
-        return template
+        return _fill(template, args), ""
     if optional:
-        return _OPTIONAL_RE.sub(lambda m: "" if key in _template_keys(m.group(1)) else m.group(0),
-                                template)
-    return re.sub(_CHIP_PREP_RE + r"\{" + key + r"\}", " ", template, count=1)
+        verb = _OPTIONAL_RE.sub(lambda m: "" if key in _template_keys(m.group(1)) else m.group(0), template)
+        return _fill(verb, args), _value_word(key, args)
+    head, _, tail = template.partition("{" + key + "}")
+    if _OPTIONAL_RE.sub(lambda m: m.group(0) if _fill(m.group(0), args) else "", tail).strip(" ,;:"):
+        return _fill(template, args), ""
+    if not _fill(tail, args).strip() and head.strip():
+        return _fill(head, args), _value_word(key, args)
+    return _fill(template, args), ""
 
 
 def _processing_parts(args: dict) -> tuple[str, str]:
-    algorithm = str(args.get("algorithm_id") or args.get("algorithm") or "")
-    verb = _algorithm_name(args) or "Run processing"
-    params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-    upper = {str(k).upper(): v for k, v in params.items()}
-    for key, shape in _PROCESSING_PARAMS:
-        word = _word(upper.get(key))
-        if word:
-            verb = f"{verb} {shape.format(v=word)}"
-            break
-    chip = _word(upper.get("INPUT") or upper.get("LAYERS") or upper.get("INPUT_LAYER"))
-    return verb, chip or algorithm or "run_processing"
+    sentence, name = processing_parts(args)
+    return sentence, name
 
 
 def _chip_fallback(name: str, args: dict) -> str:
@@ -451,8 +746,9 @@ def describe_tool_parts(name: str, args, resolved: dict | None = None) -> tuple[
     template = _template_for(name, args)
     if template:
         key, optional = _chip_key(template, args)
-        verb = _fill(_verb_without(template, key, optional), args)
-        chip = _word(args.get(key)) if key else _chip_fallback(name, args)
+        verb, chip = _verb_and_chip(template, key, optional, args)
+        if not key:
+            chip = _chip_fallback(name, args)
         return (verb or _tool_head(name)), chip
     head = _tool_head(name)
     for key in _LAYER_KEYS:
@@ -460,6 +756,33 @@ def describe_tool_parts(name: str, args, resolved: dict | None = None) -> tuple[
         if word:
             return head, word
     return head, _chip_fallback(name, args)
+
+
+def call_title(name: str, args) -> str:
+
+
+
+    line = describe_tool_call(name, args)
+    if is_processing_call(name) and isinstance(args, dict):
+        tool = processing_parts(_with_layer_names(args))[1]
+        if tool:
+            return f"{line} \u00b7 {tool}"
+    return line
+
+
+def connector_line(name: str, args, what: str = "") -> str:
+
+
+
+
+
+
+    args = _with_layer_names(args) if isinstance(args, dict) else {}
+    template = _template_for(name, args) or ""
+    asks = any(key in _QUERY_KEYS or key in ("address", "place") for key in _template_keys(template))
+    if what and not asks:
+        return tr("Get {what}").format(what=what)
+    return describe_tool_call(name, args, args)
 
 
 
@@ -470,11 +793,6 @@ FAMILY_QGIS = "qgis"
 COLOUR_CONNECTOR = "accent_ink"
 COLOUR_PLUGIN = "orange"
 COLOUR_QGIS = "ink_2"
-FAMILY_GLYPHS = {FAMILY_CONNECTOR: "lu.globe", FAMILY_PLUGIN: "lu.puzzle", FAMILY_QGIS: "lu.cog"}
-FAMILY_COLOUR_TOKENS = {FAMILY_CONNECTOR: COLOUR_CONNECTOR, FAMILY_PLUGIN: COLOUR_PLUGIN,
-                        FAMILY_QGIS: COLOUR_QGIS}
-FAMILY_ORDER = (FAMILY_CONNECTOR, FAMILY_PLUGIN, FAMILY_QGIS)
-
 
 
 _PLUGIN_TOOL_NAMES = frozenset({
@@ -637,6 +955,15 @@ def call_subject(name: str, args) -> tuple[str, bool]:
         subject = tags.strip()
     if not subject:
         subject = osm_subject(args.get("query") or args.get("data") or "")
+    if subject:
+
+
+        named = args.get("layer_name")
+        if isinstance(named, str) and named.strip() and not _is_raw(named):
+            subject = " ".join(named.split())
+        else:
+            key, _sep, value = subject.partition("=")
+            subject = (value or key).split(":")[-1].replace("_", " ").strip("\"' ")
     if not subject:
         for key in _SUBJECT_KEYS:
             value = args.get(key)
@@ -645,7 +972,10 @@ def call_subject(name: str, args) -> tuple[str, bool]:
             if isinstance(value, (str, int, float)) and str(value).strip():
                 if _is_raw(value):
                     continue
-                subject = _short(" ".join(str(value).split()), 40)
+                words = _query_words(value) if key in _QUERY_KEYS else " ".join(str(value).split())
+                if not words:
+                    continue
+                subject = _short(words, 40)
                 break
     over_area = bool(subject) and any(args.get(key) for key in _AREA_KEYS)
     return subject, over_area
@@ -683,6 +1013,87 @@ def result_facts(summary) -> dict:
             layer = facts[key]
             break
     return {"count": count, "layer": layer, "facts": facts}
+
+
+
+_FEATURE_KEYS = ("feature_count", "features", "n_features")
+_RESULT_KEYS = ("results", "items", "matched", "granules", "hits")
+_ROW_KEYS = ("rows", "records")
+_LIST_NOUNS = {
+    "layers": QT_TRANSLATE_NOOP("AIAgent", "{n} layers"),
+    "features": QT_TRANSLATE_NOOP("AIAgent", "{n} features"),
+    "fields": QT_TRANSLATE_NOOP("AIAgent", "{n} fields"),
+    "files": QT_TRANSLATE_NOOP("AIAgent", "{n} files"),
+    "rows": QT_TRANSLATE_NOOP("AIAgent", "{n} rows"),
+    "results": QT_TRANSLATE_NOOP("AIAgent", "{n} results"),
+}
+_LIST_NOUN_ONE = {
+    "layers": QT_TRANSLATE_NOOP("AIAgent", "1 layer"),
+    "features": QT_TRANSLATE_NOOP("AIAgent", "1 feature"),
+    "fields": QT_TRANSLATE_NOOP("AIAgent", "1 field"),
+    "files": QT_TRANSLATE_NOOP("AIAgent", "1 file"),
+    "rows": QT_TRANSLATE_NOOP("AIAgent", "1 row"),
+    "results": QT_TRANSLATE_NOOP("AIAgent", "1 result"),
+}
+
+
+def _counted_list(detail, count: int) -> str:
+
+    import json
+
+    text = str(detail or "").strip()
+    if not text.startswith("{"):
+        return ""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return ""
+    for key, value in data.items() if isinstance(data, dict) else ():
+        if isinstance(value, list) and len(value) == count:
+            return str(key).lower()
+    return ""
+
+
+def count_text(summary, detail="") -> str:
+
+
+
+
+    facts = result_facts(summary)
+    if facts["count"] is None:
+        return ""
+    count = int(facts["count"])
+    keys = facts["facts"]
+    if any(key in keys for key in _FEATURE_KEYS):
+        noun = "features"
+    elif any(key in keys for key in _RESULT_KEYS):
+        noun = "results"
+    elif any(key in keys for key in _ROW_KEYS):
+        noun = "rows"
+    else:
+        noun = _counted_list(detail, count)
+    if count == 1 and noun in _LIST_NOUN_ONE:
+        return tr(_LIST_NOUN_ONE[noun])
+    template = _LIST_NOUNS.get(noun)
+    if not template:
+        return ""
+    return tr(template).format(n=group_number(count))
+
+
+
+
+_JOB_RE = re.compile(r'"status"\s*:\s*"(?:running|queued|pending|in_progress)"')
+
+
+def is_background_job(summary, detail="") -> bool:
+
+
+    text = str(detail or "")
+    if '"task_id"' in text and _JOB_RE.search(text):
+        return True
+    started = QCoreApplication.translate("ToolExecutor", "running in the background (task {id})")
+    head = started.split("{", 1)[0].strip()
+    return bool(head) and str(summary or "").startswith(head)
 
 
 
@@ -754,25 +1165,14 @@ def _processing_sentence(args: dict) -> str:
 
     params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
     upper = {str(k).upper(): v for k, v in params.items()}
-    algorithm = _algorithm_name(args)
-    source = _word(upper.get("INPUT") or upper.get("LAYERS") or upper.get("INPUT_LAYER"))
-    if algorithm and source:
-        parts = [tr("Ran the {algorithm} algorithm on {layer}").format(
-            algorithm=algorithm, layer=source)]
-    elif algorithm:
-        parts = [tr("Ran the {algorithm} algorithm").format(algorithm=algorithm)]
-    else:
-        parts = [tr("Ran a processing algorithm")]
-    for key, shape in _PROCESSING_PARAMS:
-        word = _word(upper.get(key))
-        if word:
-            parts.append(shape.format(v=word))
-            break
+    sentence, name = processing_parts(args)
+    if name and name.lower() not in sentence.lower():
+        sentence = f"{sentence} ({name})"
     output = _word(args.get("output_name"))
     if not output and str(upper.get("OUTPUT") or "").strip().upper() not in _SCRATCH_OUTPUTS:
-        output = _word(upper.get("OUTPUT"))
-    parts.append(tr("into {layer}").format(layer=output) if output else tr("into a new layer"))
-    return ", ".join(parts)
+        output = _layer_word(upper.get("OUTPUT"))
+    tail = tr("into {layer}").format(layer=output) if output else tr("into a new layer")
+    return f"{sentence}, {tail}"
 
 
 def call_sentence(name: str, args, source: str = "") -> str:
@@ -822,6 +1222,12 @@ def _plain_note(summary) -> str:
 
 _FAILURE_CODE_RE = re.compile(r"^\s*[A-Z][A-Z0-9_]{2,}\s*:\s*")
 _MAX_FAILURE = 240
+_MAX_FIRST_SENTENCE = 160
+
+
+_URL_RE = re.compile(r"\b(?:https?|s3|gs|ftp)://[^\s,;)\]]+")
+_IDENTIFIER_RE = re.compile(r"`?\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b`?")
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?。])\s+")
 
 
 def failure_reason(summary) -> str:
@@ -832,6 +1238,36 @@ def failure_reason(summary) -> str:
     if not text or EMPTY_SUMMARY_RE.match(text):
         return ""
     return _short(text, _MAX_FAILURE)
+
+
+def _tool_words(name: str) -> str:
+
+    template = _english_template(name, {})
+    words = _fill(tr(template), {}) if template else ""
+    words = words or _tool_head(name)
+    return words[:1].lower() + words[1:] if words else name
+
+
+def failure_short(summary) -> str:
+
+
+
+
+    text = failure_reason(summary)
+    if not text:
+        return ""
+    first = _SENTENCE_END_RE.split(text, 1)[0]
+    from .source_marks import readable_host
+
+
+    first = _URL_RE.sub(lambda m: _host(m.group(0)) or readable_host(m.group(0)) or m.group(0), first)
+
+    def words(match) -> str:
+        name = match.group(1)
+        known = spec(name) is not None or name in _SERVER_TEMPLATES
+        return _tool_words(name) if known else match.group(0)
+
+    return _short(_IDENTIFIER_RE.sub(words, first), _MAX_FIRST_SENTENCE)
 
 
 def outcome_sentence(ok, summary, duration: str = "", context: str = "") -> str:
@@ -850,7 +1286,7 @@ def outcome_sentence(ok, summary, duration: str = "", context: str = "") -> str:
         head = tr("did not work")
         if duration:
             head = f"{head}, {duration}"
-        reason = failure_reason(summary)
+        reason = failure_short(summary)
         return f"{head}. {reason}" if reason else head
     else:
         facts = result_facts(summary)

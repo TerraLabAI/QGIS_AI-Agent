@@ -335,7 +335,7 @@ def _stopped_output():
 
 
     try:
-        from ..tools.processing_tools import canceled_output
+        from ..tools.processing_run import canceled_output
     except Exception:  # noqa: BLE001
         return lambda _path: False
     return canceled_output

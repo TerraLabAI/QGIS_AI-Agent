@@ -230,8 +230,27 @@ def project_state(project) -> dict:
     return {lid: _signature(layer) for lid, layer in project.mapLayers().items()}
 
 
+def _settle_tree_removals(project) -> None:
+
+
+
+
+
+
+
+    try:
+        from qgis.PyQt.QtCore import QCoreApplication, QEvent
+
+        bridge = project.layerTreeRegistryBridge()
+        if bridge is not None:
+            QCoreApplication.sendPostedEvents(bridge, QEvent.Type.MetaCall)
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+
+
 def changed(before: dict, project) -> dict:
 
+    _settle_tree_removals(project)
     after = project_state(project)
     out: dict[str, list] = {}
     added = [lid for lid in after if lid not in before]

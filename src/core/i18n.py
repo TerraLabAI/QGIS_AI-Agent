@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import os
+import re
 import struct
 import tempfile
 import xml.etree.ElementTree as ET  # nosec B405
@@ -34,7 +35,7 @@ except ImportError:
     _safe_parse = ET.parse
 
 from qgis.core import QgsSettings
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator
+from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator
 
 
 
@@ -128,6 +129,37 @@ def current_locale() -> str:
     return _user_locale
 
 
+def words_locale() -> QLocale:
+
+
+
+
+
+
+    name = current_locale()
+    return QLocale(name) if name else QLocale()
+
+
+def day_pattern(year: bool = True, short_month: bool = False) -> str:
+
+
+
+
+
+
+    locale = words_locale()
+    pattern = locale.dateFormat(QLocale.FormatType.LongFormat)
+    pattern = re.sub(r"[,\s]*dddd[,\s]*", " ", pattern).strip()
+    if not year:
+        pattern = re.sub(r"[,\s]*(?:'[^']*'\s*)?y+年?", "", pattern).strip()
+    pattern = re.sub(r"(?<!d)dd(?!d)", "d", pattern)
+    if short_month:
+        pattern = pattern.replace("MMMM", "MMM")
+    if "d" not in pattern or "M" not in pattern:
+        return ("d MMM" if short_month else "d MMMM") + (" yyyy" if year else "")
+    return pattern
+
+
 def reset_locale_cache() -> None:
 
 
@@ -140,20 +172,6 @@ def reset_locale_cache() -> None:
     _user_locale = None
     _loaded = False
     _translations.clear()
-
-
-def resolve_language(supported) -> str | None:
-
-
-
-
-    try:
-        for variant in locale_variants(current_locale()):
-            if variant in supported:
-                return variant
-    except Exception:  # noqa: BLE001  # nosec B110
-        return None
-    return None
 
 
 def _load_translations() -> None:

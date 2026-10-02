@@ -25,7 +25,6 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
-from qgis.PyQt.QtGui import QColor
 
 try:
     from qgis.core import Qgis
@@ -35,6 +34,7 @@ except ImportError:
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
 from ._layers import layer_not_found, resolve_layer
+from .colour_text import qcolor_from_text, qgis_colour_text
 from .layer_lookup import _field_not_found_error
 from .style_tools import _color_error, _expression_error
 
@@ -337,10 +337,10 @@ def _conditional_style_from(rule: dict) -> QgsConditionalStyle:
         style.setName(name)
     background = str(rule.get("background") or "").strip()
     if background:
-        style.setBackgroundColor(QColor(background))
+        style.setBackgroundColor(qcolor_from_text(background))
     text_color = str(rule.get("text_color") or "").strip()
     if text_color:
-        style.setTextColor(QColor(text_color))
+        style.setTextColor(qcolor_from_text(text_color))
     if rule.get("bold") or rule.get("italic"):
         font = style.font()
         font.setBold(bool(rule.get("bold")))
@@ -348,7 +348,7 @@ def _conditional_style_from(rule: dict) -> QgsConditionalStyle:
         style.setFont(font)
     icon_color = str(rule.get("icon_color") or "").strip()
     if icon_color:
-        style.setSymbol(QgsMarkerSymbol.createSimple({"color": icon_color, "size": "3"}))
+        style.setSymbol(QgsMarkerSymbol.createSimple({"color": qgis_colour_text(icon_color), "size": "3"}))
     return style
 
 

@@ -393,6 +393,7 @@ def connector_for_call(name: str, args) -> dict | None:
 
 
 
+
     values = []
     if isinstance(args, dict):
         for key in _CONNECTOR_ARG_KEYS:
@@ -413,26 +414,48 @@ def connector_for_call(name: str, args) -> dict | None:
     return dict(found) if found is not None else None
 
 
-def _match_connector(connectors, tool: str, values: list) -> dict | None:
+def _host_and_path(url: str) -> tuple:
+
     from urllib.parse import urlsplit
 
+    try:
+        parts = urlsplit(url if "//" in url else "//" + url)
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        return "", ""
+    if host.startswith("www."):
+        host = host[4:]
+    return host, parts.path.rstrip("/").lower()
+
+
+def _url_within(value: str, host: str, path: str) -> bool:
+
+
+
+
+
+
+
+    if "/" not in value and "." not in value:
+        return False
+    got_host, got_path = _host_and_path(value)
+    if not got_host or not (got_host == host or got_host.endswith("." + host)):
+        return False
+    return not path or got_path == path or got_path.startswith(path + "/")
+
+
+def _match_connector(connectors, tool: str, values: list) -> dict | None:
     for connector in connectors:
         if tool and tool in _tools_of(connector):
             return dict(connector)
     for connector in connectors:
         cid = str(connector.get("id") or "").strip().lower()
         cname = str(connector.get("name") or "").strip().lower()
-        host = ""
-        try:
-            host = (urlsplit(str(connector.get("url") or "")).hostname or "").lower()
-        except ValueError:
-            host = ""
-        if host.startswith("www."):
-            host = host[4:]
+        host, path = _host_and_path(str(connector.get("url") or ""))
         if cid and len(cid) >= 4 and cid in tool:
             return dict(connector)
         for value in values:
-            if host and host in value:
+            if host and _url_within(value, host, path):
                 return dict(connector)
             if cid and (value == cid or value.startswith(cid + ":") or value.startswith(cid + "/")):
                 return dict(connector)
@@ -599,18 +622,6 @@ def set_tool_names(names) -> None:
         store.known_tool_names = _tool_names
     except Exception as exc:  # noqa: BLE001
         _connector_warning(f"Tool names not cached: {exc}")
-
-
-def get_tool_names() -> list:
-    global _tool_names
-    if not _tool_names:
-        store = _connector_store()
-        if store is not None:
-            try:
-                _tool_names = [str(n) for n in (store.known_tool_names or [])]
-            except Exception as exc:  # noqa: BLE001
-                _connector_warning(f"Tool names not read: {exc}")
-    return list(_tool_names)
 
 
 def server_config() -> dict:
@@ -1139,6 +1150,10 @@ def format_reset_date(period_end_iso: str) -> str:
 
 
 
+
+
+
+
     from qgis.PyQt.QtCore import QDate, QDateTime, QLocale, Qt
 
     if not period_end_iso:
@@ -1150,7 +1165,14 @@ def format_reset_date(period_end_iso: str) -> str:
         date = stamp.toLocalTime().date()
     if not date.isValid():
         return ""
-    return QLocale().toString(date, QLocale.FormatType.ShortFormat)
+    from ..core.i18n import day_pattern, words_locale
+
+    locale = words_locale()
+    pattern = day_pattern(year=date.year() != QDate.currentDate().year())
+
+    if date.day() == 1 and locale.language() == QLocale.Language.French:
+        pattern = pattern.replace("d ", "d'er' ", 1)
+    return locale.toString(date, pattern)
 
 
 

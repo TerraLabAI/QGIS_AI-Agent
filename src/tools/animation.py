@@ -54,9 +54,9 @@ import uuid
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import background, limits, net, output_paths, security
+from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_quietly, retry_file_op
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _run_on_main_thread
 
 TOOL = "make_animation"
 
@@ -198,7 +198,7 @@ def _frame_sizes(gdal, frames: list[str], cancelled) -> list[tuple[int, int]] | 
 
     sizes = []
     for index, path in enumerate(frames, 1):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             return _stopped()
         dataset = _gdal_open(gdal, path)
         if dataset is None:
@@ -237,7 +237,7 @@ def _build_palette(gdal, frames: list[str], sizes: list[tuple[int, int]], cancel
     sample = list(range(0, len(frames), step))[:_SAMPLE_FRAMES]
     mosaic = gdal.GetDriverByName("MEM").Create("", _MOSAIC_TILE_W * len(sample), _MOSAIC_TILE_H, 3, gdal.GDT_Byte)
     for tile, frame_index in enumerate(sample):
-        if _is_cancelled(cancelled):
+        if net.is_cancelled(cancelled):
             return _stopped()
         width, height = sizes[frame_index]
         tile_ds = _as_rgb_mem(gdal, frames[frame_index], min(width, _MOSAIC_TILE_W), min(height, _MOSAIC_TILE_H))
@@ -366,7 +366,7 @@ def _write_gif(part_path: str, frame_blocks: list, table: bytes, canvas_w: int, 
                  + bytes([0x03, 0x01, 0x00, 0x00, 0x00]))
         total = len(frame_blocks)
         for index, (width, height, block) in enumerate(frame_blocks):
-            if index % _STOP_POLL_EVERY == 0 and _is_cancelled(cancelled):
+            if index % _STOP_POLL_EVERY == 0 and net.is_cancelled(cancelled):
                 failure = _stopped()
                 break
             delay = delay_cs + (hold_last_cs if index == total - 1 else 0)
@@ -548,13 +548,6 @@ def _stopped() -> dict:
     return tool_error("Stopped before the animation was written.", "CANCELLED", "No file was written.")
 
 
-def _is_cancelled(check) -> bool:
-    try:
-        return callable(check) and bool(check())
-    except Exception:  # noqa: BLE001
-        return False
-
-
 
 
 def _make_animation(args: dict) -> dict:
@@ -576,7 +569,7 @@ def _make_animation(args: dict) -> dict:
 
     fps = args.get("fps")
     if fps is None:
-        fps = _run_on_main_thread(_default_fps, timeout=10) or 2.0
+        fps = run_on_main_thread(_default_fps, timeout=10) or 2.0
     fps = max(0.1, float(fps))
     loop = args.get("loop", True) is not False
     hold_last_s = float(args.get("hold_last_s") or 0.0)
@@ -621,7 +614,7 @@ def _make_animation(args: dict) -> dict:
             canvas_w = max(w for w, h in target_sizes)
             canvas_h = max(h for w, h in target_sizes)
             for index, path in enumerate(frames):
-                if _is_cancelled(cancelled):
+                if net.is_cancelled(cancelled):
                     return _stopped()
                 width, height = target_sizes[index]
                 data = _dither_frame_to_gif_bytes(gdal, path, width, height, colours, f"{uuid.uuid4().hex[:8]}_"

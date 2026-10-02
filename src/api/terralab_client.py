@@ -30,18 +30,23 @@ from urllib.parse import quote, urlencode, urlsplit
 
 from qgis.core import Qgis, QgsMessageLog, QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QByteArray, QCoreApplication, QUrl
-from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkProxy, QNetworkProxyQuery, QNetworkReply, QNetworkRequest
 
 from ..core.host_platform import os_info
 from ..core.log_scrub import scrub_secrets
+from ..core.net_hosts import retry_after_seconds
 
 PRODUCT_ID = "ai-agent"
 TERRALAB_BASE_URL_DEFAULT = "https://terra-lab.ai"
 _LOG_TAG = "AI Agent"
 
 _TIMEOUT_API = 30_000
-_TIMEOUT_INTERACTIVE = 10_000
-_TIMEOUT_CHECKOUT_LINK = 4_000
+
+
+_TIMEOUT_INTERACTIVE = 20_000
+
+
+_TIMEOUT_CHECKOUT_LINK = 15_000
 
 
 
@@ -66,6 +71,8 @@ _PROXY_ERRORS = set(filter(None, [
         "ProxyConnectionRefusedError", "ProxyConnectionClosedError", "ProxyNotFoundError",
         "ProxyTimeoutError", "ProxyAuthenticationRequiredError", "UnknownProxyError")
 ]))
+_ProxyType = getattr(QNetworkProxy, "ProxyType", QNetworkProxy)
+_NOT_A_PROXY = (_ProxyType.NoProxy, _ProxyType.DefaultProxy)
 _Attr = getattr(QNetworkRequest, "Attribute", QNetworkRequest)
 _HTTP_STATUS_ATTR = getattr(_Attr, "HttpStatusCodeAttribute", None)
 _REDIRECT_ATTR = getattr(_Attr, "RedirectPolicyAttribute", None)
@@ -246,22 +253,12 @@ def _http_status_of(reply) -> int | None:
         return None
 
 
-def _parse_retry_after_header(raw: str) -> float | None:
-    raw = (raw or "").strip()
-    if not raw:
-        return None
-    try:
-        return max(0.0, float(raw))
-    except ValueError:
-        return None
-
-
 def _retry_after_s(reply) -> float:
     try:
         raw = bytes(reply.rawHeader(b"Retry-After")).decode("ascii", "replace")
     except Exception:
         raw = ""
-    value = _parse_retry_after_header(raw)
+    value = retry_after_seconds(raw)
     if value is None:
         return 0.0
     return min(value, _RETRY_AFTER_MAX_S)
@@ -280,7 +277,8 @@ def _worth_asking_again(answer, http_status: int | None) -> bool:
 
 
 def _classify_qt_error(qt_error, error_string: str, http_status: int | None,
-                       service_reachable: bool = False) -> tuple[str, str]:
+                       service_reachable: bool = False, through_proxy: bool = False) -> tuple[str, str]:
+
 
 
     qt_error_num = getattr(qt_error, "value", qt_error)
@@ -298,7 +296,11 @@ def _classify_qt_error(qt_error, error_string: str, http_status: int | None,
         return "TIMEOUT", tr("Request timed out. Check your connection or try again.")
     if qt_error == _SslFailed:
         return "SSL_ERROR", tr("SSL certificate error. Your network may be blocking secure connections.")
-    if qt_error in _PROXY_ERRORS:
+
+
+
+
+    if qt_error in _PROXY_ERRORS or (through_proxy and qt_error == _UnknownNetwork and http_status is None):
         return "PROXY_ERROR", tr("Proxy connection failed. Check QGIS proxy settings (Settings > Options > Network).")
     if qt_error in (_ContentDenied, _AuthRequired) and http_status == 401:
         return "AUTH_ERROR", tr("Authentication failed. Please sign in again.")
@@ -312,6 +314,21 @@ def _classify_qt_error(qt_error, error_string: str, http_status: int | None,
     return "SERVER_ERROR", tr("The connection to the server was interrupted. Please try again.")
 
 
+def _went_through_proxy(reply) -> bool:
+
+
+    try:
+        nam = QgsNetworkAccessManager.instance()
+        factory = nam.proxyFactory()
+        if factory is None:
+            proxies = [nam.fallbackProxy()]
+        else:
+            proxies = factory.queryProxy(QNetworkProxyQuery(reply.request().url()))
+        return any(p.type() not in _NOT_A_PROXY for p in proxies or [])
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _classify_network_error(reply, detail: str = "") -> tuple[str, str]:
 
     try:
@@ -319,8 +336,11 @@ def _classify_network_error(reply, detail: str = "") -> tuple[str, str]:
         detail = detail or reply.errorString()
     except (AttributeError, RuntimeError):
         qt_error = _UnknownNetwork
-    return _classify_qt_error(qt_error, detail, _http_status_of(reply),
-                              service_reachable=server_reached_recently())
+    http_status = _http_status_of(reply)
+    through_proxy = (reply is not None and qt_error == _UnknownNetwork and http_status is None
+                     and _went_through_proxy(reply))
+    return _classify_qt_error(qt_error, detail, http_status,
+                              service_reachable=server_reached_recently(), through_proxy=through_proxy)
 
 
 
@@ -366,9 +386,10 @@ class TerraLabClient:
         return self._request("GET", "/api/plugin/usage", auth=auth,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def get_account(self, auth: dict) -> dict:
-        return self._request("GET", "/api/plugin/account", auth=auth,
-                             timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
+    def get_account(self, auth: dict, include_usage: bool = False) -> dict:
+
+        path = "/api/plugin/account?include=usage" if include_usage else "/api/plugin/account"
+        return self._request("GET", path, auth=auth, timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
     def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None) -> dict:
 
@@ -447,6 +468,7 @@ class TerraLabClient:
     def _make_qnetwork_request(self, auth: dict | None, timeout_ms: int, path: str) -> QNetworkRequest:
         req = QNetworkRequest(QUrl(self._resolve_url(path)))
         req.setRawHeader(b"Content-Type", b"application/json")
+        req.setRawHeader(b"X-Plugin-Version", plugin_version().encode("ascii", "replace"))
         if hasattr(req, "setTransferTimeout"):
             req.setTransferTimeout(max(1_000, min(int(timeout_ms), 120_000)))
         _apply_redirect_policy(req, bool(auth))

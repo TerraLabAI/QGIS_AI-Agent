@@ -197,30 +197,17 @@ class _ControllerOffers:
             sentence = (tr("Deleted 1 working layer") if len(gone) == 1
                         else tr("Deleted {n} working layers").format(n=len(gone)))
         elif decision == "group":
-            moved = group_scratch(ids, tr("Working layers"))
-            sentence = (tr("Tidied 1 working layer away") if moved == 1
-                        else tr("Tidied {n} working layers away").format(n=moved))
+
+
+            group = tr("Working layers")
+            moved = group_scratch(ids, group)
+            sentence = (tr("Moved 1 layer into {group}").format(group=group) if moved == 1
+                        else tr("Moved {n} layers into {group}").format(n=moved, group=group))
         else:
             sentence = (tr("Kept 1 working layer") if len(ids) == 1
                         else tr("Kept {n} working layers").format(n=len(ids)))
         log(f"Cleanup {decision} on {len(ids)} layers of run {run_id[:8]}")
         self._panel_optional("finish_cleanup", run_id, sentence)
-
-    def _on_feedback(self, run_id: str, up: bool) -> None:
-
-        run_id = str(run_id or "")
-        if not run_id:
-            return
-        self._session.send_feedback(run_id, bool(up))
-        log(f"Feedback {run_id[:8]}: {'up' if up else 'down'}")
-
-    def _on_feedback_reason(self, run_id: str, code: str, text: str) -> None:
-
-        run_id = str(run_id or "")
-        if not run_id or not (code or text):
-            return
-        self._session.send_feedback(run_id, False, str(code or ""), str(text or ""))
-        log(f"Feedback reason {run_id[:8]}: {code or 'text only'}")
 
     def _on_memory_note(self, text: str, kind: str, scope: str, run_id: str = "", replaces: str = "") -> None:
 

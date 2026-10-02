@@ -480,10 +480,10 @@ def _layer_folders() -> list[str]:
 
 def _read_layer_folders() -> list[str]:
     from qgis.core import QgsProject, QgsProviderRegistry
-    from qgis.PyQt.QtCore import QCoreApplication, QThread
 
-    app = QCoreApplication.instance()
-    if app is not None and QThread.currentThread() is not app.thread():
+    from .background import on_main_thread
+
+    if not on_main_thread():
         return list(_LAYER_ROOTS["roots"])
     project = QgsProject.instance()
     key = (id(project), project.fileName(), project.count())
@@ -1158,6 +1158,9 @@ _DNS_TTL_S = 30.0
 _DNS_TIMEOUT_S = 2.0
 _DNS_CACHE_MAX = 256
 _dns_cache: dict[str, tuple[float, tuple[str, ...]]] = {}
+
+
+_dns_lookups: dict[str, tuple[threading.Event, float]] = {}
 _dns_lock = threading.Lock()
 
 
@@ -1167,6 +1170,48 @@ def _getaddrinfo(host: str) -> tuple[str, ...]:
     except (OSError, UnicodeError, ValueError):
         return ()
     return tuple(sorted({info[4][0].split("%")[0] for info in infos if info[4]}))
+
+
+def _look_up(host: str, answered: threading.Event) -> None:
+    addresses = _getaddrinfo(host)
+    with _dns_lock:
+        if len(_dns_cache) >= _DNS_CACHE_MAX:
+            _dns_cache.clear()
+        _dns_cache[host] = (time.monotonic() + _DNS_TTL_S, addresses)
+        _dns_lookups.pop(host, None)
+    answered.set()
+
+
+def start_lookup(host: str) -> tuple[threading.Event, float] | None:
+
+
+
+
+
+
+    now = time.monotonic()
+    with _dns_lock:
+        entry = _dns_cache.get(host)
+        if entry is not None and entry[0] > now:
+            return None
+        lookup = _dns_lookups.get(host)
+        if lookup is not None:
+            return lookup
+        lookup = (threading.Event(), now + _DNS_TIMEOUT_S)
+        _dns_lookups[host] = lookup
+    try:
+        threading.Thread(target=_look_up, args=(host, lookup[0]), name="ai-agent-dns", daemon=True).start()
+    except RuntimeError:
+        with _dns_lock:
+            _dns_lookups.pop(host, None)
+        lookup[0].set()
+    return lookup
+
+
+def look_up_ahead(host: str) -> bool:
+
+    lookup = start_lookup(host)
+    return lookup is not None and not lookup[0].is_set() and lookup[1] > time.monotonic()
 
 
 def resolve_host(host: str) -> tuple[str, ...]:
@@ -1180,32 +1225,25 @@ def resolve_host(host: str) -> tuple[str, ...]:
 
 
 
-    now = time.monotonic()
+
+
+
+
+    lookup = start_lookup(host)
+    if lookup is not None:
+        lookup[0].wait(max(0.0, lookup[1] - time.monotonic()))
     with _dns_lock:
         entry = _dns_cache.get(host)
-        if entry is not None and entry[0] > now:
-            return entry[1]
-    answer: list[tuple[str, ...]] = []
-    worker = threading.Thread(target=lambda: answer.append(_getaddrinfo(host)),
-                              name="ai-agent-dns", daemon=True)
-    worker.start()
-    worker.join(_DNS_TIMEOUT_S)
-    if not answer:
-
-
+    if entry is None or entry[0] <= time.monotonic():
         return ()
-    addresses = answer[0]
-    with _dns_lock:
-        if len(_dns_cache) >= _DNS_CACHE_MAX:
-            _dns_cache.clear()
-        _dns_cache[host] = (now + _DNS_TTL_S, addresses)
-    return addresses
+    return entry[1]
 
 
 def forget_resolved_hosts() -> None:
 
     with _dns_lock:
         _dns_cache.clear()
+        _dns_lookups.clear()
 
 
 _LEGACY_IPV4_PART_RE = re.compile(r"^(?:0[xX][0-9a-fA-F]+|0[0-7]*|[1-9][0-9]*)$")
@@ -1290,6 +1328,22 @@ def _address_is_private(address) -> bool:
     if _address_is_local(address):
         return False
     return bool(address.is_private or (address.version == 4 and address in _CGNAT))
+
+
+def name_to_resolve(url: str) -> str:
+
+
+
+
+
+    try:
+        host = _host_of(url)
+    except ValueError:
+        return ""
+    if (not host or host in _LOCAL_HOSTS or host.endswith(".localhost") or host in _METADATA_NAMES
+            or _as_address(host) is not None):
+        return ""
+    return host
 
 
 def is_local_url(url: str, resolve: bool = True) -> bool:
@@ -1483,76 +1537,11 @@ def validate_url(url: str) -> str | None:
     return None
 
 
-def qgis_proxy_address() -> str | None:
+def _proxy_url(found: dict | None) -> str | None:
 
 
 
 
-
-
-
-
-
-
-
-    try:
-        from qgis.core import QgsSettings
-
-        from .proxy_credentials import qgis_proxy_credentials
-
-        settings = QgsSettings()
-        if not settings.value("proxy/proxyEnabled", False, type=bool):
-            return None
-        kind = str(settings.value("proxy/proxyType", "DefaultProxy", type=str) or "")
-        host = str(settings.value("proxy/proxyHost", "", type=str) or "").strip()
-        port = str(settings.value("proxy/proxyPort", "", type=str) or "").strip()
-
-
-
-
-
-        user, password = qgis_proxy_credentials()
-        excluded = settings.value("proxy/proxyExcludedUrls", "", type=str) or ""
-    except Exception:  # noqa: BLE001
-        return None
-    if kind not in ("HttpProxy", "HttpCachingProxy") or not host:
-        return None
-
-
-
-
-    if excluded and not os.environ.get("no_proxy"):
-        os.environ["no_proxy"] = ",".join(x.strip() for x in str(excluded).split("|") if x.strip())
-    auth = f"{urllib.parse.quote(user, safe='')}:{urllib.parse.quote(password, safe='')}@" if user else ""
-    return f"http://{auth}{host}{':' + port if port else ''}"
-
-
-def _system_proxy_address() -> str | None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    try:
-        from .ws_client import resolve_proxy
-
-        found = resolve_proxy("example.com", 443, True)
-    except Exception:  # noqa: BLE001
-        return None
     if not found or not found.get("host"):
         return None
     user = str(found.get("user") or "")
@@ -1560,6 +1549,29 @@ def _system_proxy_address() -> str | None:
     auth = f"{urllib.parse.quote(user, safe='')}:{urllib.parse.quote(password, safe='')}@" if user else ""
     port = found.get("port") or 0
     return f"http://{auth}{found['host']}{':' + str(port) if port else ''}"
+
+
+_exported_no_proxy: str | None = None
+
+
+def _share_exclusions(excluded: list[str]) -> None:
+
+
+
+
+
+
+    global _exported_no_proxy
+    current = os.environ.get("no_proxy")
+    if current and current != _exported_no_proxy:
+        return
+    value = ",".join(excluded)
+    if value:
+        os.environ["no_proxy"] = value
+        _exported_no_proxy = value
+    elif current:
+        del os.environ["no_proxy"]
+        _exported_no_proxy = None
 
 
 def apply_qgis_proxy() -> bool:
@@ -1580,9 +1592,28 @@ def apply_qgis_proxy() -> bool:
 
 
 
-    from . import net
 
-    net.set_proxy(qgis_proxy_address() or _system_proxy_address())
+
+
+
+
+
+
+
+
+
+
+
+    from . import net
+    from .ws_client import qgis_exclusions, resolve_proxy
+
+    try:
+        found = resolve_proxy("example.com", 443, True)
+        excluded = qgis_exclusions()
+    except Exception:  # noqa: BLE001
+        found, excluded = None, []
+    _share_exclusions(excluded)
+    net.set_proxy(_proxy_url(found))
     _apply_qgis_trust(net)
     return net.proxy_in_use() is not None
 

@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import re
+
 
 def QT_TRANSLATE_NOOP(context: str, text: str) -> str:  # noqa: N802
 
@@ -46,6 +48,8 @@ def describe_diff(diff: dict) -> list:
             lines.append(f"Project CRS {c.get('before')} to {c.get('after')}")
         elif c.get("what") == "layer_tree":
             lines.append(QT_TRANSLATE_NOOP("AgentController", "Layer order or groups changed"))
+        elif c.get("what") == "layouts":
+            lines.append(QT_TRANSLATE_NOOP("AgentController", "Print layouts changed"))
     orphans = diff.get("orphan_temporary_layers") or []
     if orphans:
         lines.append(f"Temporary layer{'s' if len(orphans) > 1 else ''} left outside the layer tree: {names(orphans)}")
@@ -113,7 +117,15 @@ def _whole(value) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
-def run_change_items(report, touched=None) -> dict:
+def run_change_items(report, touched=None, answer: str = "") -> dict:
+
+
+
+
+
+
+
+
 
 
 
@@ -142,12 +154,33 @@ def run_change_items(report, touched=None) -> dict:
     try:
         return _run_change_items(report if isinstance(report, dict) else {},
                                  [x for x in touched if isinstance(x, dict)]
-                                 if isinstance(touched, (list, tuple)) else [])
+                                 if isinstance(touched, (list, tuple)) else [],
+                                 answer if isinstance(answer, str) else "")
     except Exception:  # noqa: BLE001
         return {}
 
 
-def _run_change_items(report: dict, touched: list) -> dict:
+def _named_in(answer: str, name: str) -> bool:
+
+    return len(name) > 2 and re.search(rf"(?<![\w`]){re.escape(name)}(?![\w`])", answer) is not None
+
+
+def _rank(item: dict, answer: str, working: set) -> int:
+
+
+    what = item.get("what")
+    if answer and _named_in(answer, str(item.get("name") or "")):
+        return 0
+    if what == "added" and item.get("id") in working:
+        return 4
+    if what == "added":
+        return 1
+    if what == "removed" or (what == "visibility" and not item.get("visible")):
+        return 3
+    return 2
+
+
+def _run_change_items(report: dict, touched: list, answer: str = "") -> dict:
     def listed(key: str) -> list:
         value = report.get(key)
         return [x for x in value if isinstance(x, dict)] if isinstance(value, list) else []
@@ -191,7 +224,9 @@ def _run_change_items(report: dict, touched: list) -> dict:
         add(entry, what, **extra)
 
     out: dict = {}
+    working = {str(x.get("id") or "") for x in listed("working_copies")} - {""}
     layers = [item for what in _CHIP_ORDER for item in buckets[what]]
+    layers.sort(key=lambda item: _rank(item, answer, working))
     if layers:
         out["layers"] = layers
     files = [_made_file(entry) for entry in listed("files_made")]

@@ -83,27 +83,16 @@ _MARK_PX = 20
 _CARD_TEXT_H = 70
 
 
-def connector_note(row: dict, tr) -> str:
-
-
-
-
-
-    tagline = str(row.get("tagline") or "").strip()
-    if tagline:
-        return tagline
-    count = int(row.get("datasets") or 0)
-    bits = []
-    if count:
-        bits.append(tr("1 ready source") if count == 1 else tr("%n ready sources", "", count))
-    licence = str(row.get("licence") or "").strip()
-    if licence:
-        bits.append(licence)
-    return " · ".join(bits)
-
-
 def accent_of(category: str) -> str:
     return CATEGORY_ACCENTS.get(str(category or ""), _DEFAULT_ACCENT)
+
+
+def sources_by_id() -> dict:
+
+
+    from .shared import get_connectors
+
+    return {str(r.get("id")): r for r in get_connectors() if r.get("id")}
 
 
 def cases_of(key: str, cases) -> list:
@@ -267,8 +256,10 @@ class ConnectorsPage(QWidget):
 
     connector_opened = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, title: str = ""):
         super().__init__(parent)
+
+        self._title = title or self.tr("Data sources")
         self._sources: list = []
         self._cases: list = []
         self._filter = ""
@@ -288,9 +279,10 @@ class ConnectorsPage(QWidget):
         self._body = body
         self._page = QVBoxLayout(body)
         self._page.setSpacing(0)
-        self._search = search_pill(body, "connectorSearch", self.tr("Search data sources"))
+        self._search = search_pill(body, "connectorSearch", self.tr("Search connectors") if title
+                                   else self.tr("Search data sources"))
         self._search.textChanged.connect(self._on_search)
-        self._header = PageHeader(body, self.tr("Data sources"), "", self._search)
+        self._header = PageHeader(body, self._title, "", self._search)
         self._page.addWidget(self._header)
         self._page.addSpacing(C.px(C.SPACE_3))
 
@@ -323,7 +315,7 @@ class ConnectorsPage(QWidget):
         self._sources = [dict(r) for r in list(sources or [])[:500]
                          if isinstance(r, dict) and r.get("id")]
         self._cases = list(cases or [])
-        self._header.set_text(self.tr("Data sources"), self._tally())
+        self._header.set_text(self._title, self._tally())
         self._paint_tabs()
         self._paint()
 

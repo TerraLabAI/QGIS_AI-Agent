@@ -34,7 +34,7 @@ from qgis.core import QgsProject, QgsVectorLayer
 
 from . import designer_guard, tuning
 from .host_platform import release_pooled_handles
-from .layer_order import WEB_SERVICE_PROVIDERS, read_back
+from .layer_order import is_web_service, read_back
 from .logger import log, log_warning
 from .snapshot_features import (
     MAX_CAPTURE_SECONDS,
@@ -309,6 +309,12 @@ def forget_styles() -> None:
 
 
 
+def _layout_digests(rows) -> dict[str, str]:
+
+    return {str(row[0]): str(row[1] or "") for row in rows or []
+            if isinstance(row, (list, tuple)) and len(row) == 2}
+
+
 class RunSnapshot:
     def __init__(self, run_id: str):
         self.run_id = run_id
@@ -350,6 +356,11 @@ class RunSnapshot:
 
         self._sweep_jobs: dict[int, str] = {}
         self._not_copyable: set[str] = set()
+
+
+        self._settled_source: dict[str, str] = {}
+
+        self._real_paths: dict[str, str] = {}
         self.memory_features: dict[str, list] = {}
 
 
@@ -598,7 +609,7 @@ class RunSnapshot:
 
 
 
-                if str(layer.providerType() or "").lower() not in WEB_SERVICE_PROVIDERS:
+                if not is_web_service(layer):
                     n = layer.featureCount()
                     record["feature_count"] = int(n) if n is not None and n >= 0 else None
             except Exception:  # nosec B110
@@ -922,12 +933,16 @@ class RunSnapshot:
         count = 0
         for layer in list(QgsProject.instance().mapLayers().values()):
             try:
+                lid = layer.id()
+                source = layer.source()
+                if lid in self._not_copyable and lid not in self.backups:
+                    if self._settled_source.get(lid) == source:
+                        continue
+                    self._not_copyable.discard(lid)
+                self._settled_source[lid] = source
                 if not layer_file_path(layer):
                     continue
-                lid = layer.id()
             except Exception:  # noqa: BLE001  # nosec B112
-                continue
-            if lid in self._not_copyable and lid not in self.backups:
                 continue
             queued = len(self.pending_copies)
             try:
@@ -940,7 +955,29 @@ class RunSnapshot:
                 self._sweep_jobs[id(copies)] = lid
             if backed:
                 count += 1
+            elif lid in self.unbacked:
+
+
+
+                self._not_copyable.add(lid)
         return count
+
+    def real_path(self, path: str) -> str:
+
+
+
+
+
+
+        real = self._real_paths.get(path)
+        if real is None:
+            real = self._real_paths[path] = os.path.realpath(path)
+        return real
+
+    def copied_files(self) -> set[str]:
+
+        return {*self.file_backups,
+                *(self.real_path(src) for copies in self.backups.values() for src, _dst in copies)}
 
     def _not_copied(self, lid: str, name: str, reason: str) -> None:
         self.backups.pop(lid, None)
@@ -1059,6 +1096,15 @@ class RunSnapshot:
         order_then = [lid for lid in before_tree if lid in after_tree]
         if order_then != common or any(before_tree[lid][1] != after_tree[lid][1] for lid in common):
             project.append({"what": "layer_tree"})
+
+        if "layouts" in then and "layouts" in now:
+            marks_then, marks_now = _layout_digests(then["layouts"]), _layout_digests(now["layouts"])
+            added = [name for name in marks_now if name not in marks_then]
+            removed = [name for name in marks_then if name not in marks_now]
+            changed = [name for name, digest in marks_now.items()
+                       if digest and marks_then.get(name) and marks_then[name] != digest]
+            if added or removed or changed:
+                project.append({"what": "layouts", "added": added, "removed": removed, "changed": changed})
         return visibility, project
 
 
@@ -1182,6 +1228,73 @@ class RunSnapshot:
         self.run_pending_copies()
         return count
 
+    def _groups_to_put_back(self, extra_copies=()) -> list[list]:
+
+
+
+
+
+
+
+        groups: list[list] = []
+        for path, record in self.file_backups.items():
+            if _is_project_file(path):
+
+                continue
+            copies = record["copies"]
+            if os.path.isfile(path) and _unchanged(path, record) and (
+                    len(copies) < 2 or _copies_unchanged(copies)):
+                continue
+            groups.append(list(copies))
+        for lid, copies in self.backups.items():
+            record = self.layers.get(lid) or {}
+            path = record.get("path")
+            if path and os.path.isfile(path) and _unchanged(path, record) and (
+                    len(copies) < 2 or _copies_unchanged(copies)):
+                continue
+            groups.append(list(copies))
+
+
+        by_stem: dict[str, list] = {}
+        for src, dst in extra_copies or ():
+            by_stem.setdefault(os.path.splitext(self._path_key(src))[0], []).append((src, dst))
+        groups.extend(by_stem.values())
+        return groups
+
+    def unchanged_since_capture(self) -> bool:
+
+
+
+
+
+
+
+
+
+
+        if not self.captured or self.was_dirty:
+            return False
+        project = QgsProject.instance()
+        try:
+            if project.isDirty():
+                return False
+            layers = project.mapLayers()
+            if set(layers) != self.layer_ids or set(self.layers) != self.layer_ids:
+                return False
+            for lid, layer in layers.items():
+                if layer.providerType() == "memory" or (isinstance(layer, QgsVectorLayer) and layer.isEditable()):
+                    return False
+                before, now = self.layers[lid], self._record(layer, with_hash=True)
+                if before.get("style") is None or any(before.get(key) != now.get(key) for key in (
+                        "name", "source", "provider", "crs", "feature_count", "stamp", "style", "subset")):
+                    return False
+            if _project_state(project) != self.project_state:
+                return False
+            return not self._groups_to_put_back()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Snapshot cannot tell whether the project changed: {exc}")
+            return False
+
     def _restore_now(self, file_name: str | None = None, extra_copies=()) -> dict:
         project = QgsProject.instance()
         for layer in list(project.mapLayers().values()):
@@ -1215,33 +1328,7 @@ class RunSnapshot:
 
         files_put_back = []
         file_restore_errors = []
-        groups: list[list] = []
-        for path, record in self.file_backups.items():
-            if _is_project_file(path):
-
-                continue
-
-
-
-
-            copies = record["copies"]
-            if os.path.isfile(path) and _unchanged(path, record) and (
-                    len(copies) < 2 or _copies_unchanged(copies)):
-                continue
-            groups.append(list(copies))
-        for lid, copies in self.backups.items():
-            record = self.layers.get(lid) or {}
-            path = record.get("path")
-            if path and os.path.isfile(path) and _unchanged(path, record) and (
-                    len(copies) < 2 or _copies_unchanged(copies)):
-                continue
-            groups.append(list(copies))
-
-
-        by_stem: dict[str, list] = {}
-        for src, dst in extra_copies or ():
-            by_stem.setdefault(os.path.splitext(self._path_key(src))[0], []).append((src, dst))
-        groups.extend(by_stem.values())
+        groups = self._groups_to_put_back(extra_copies)
         names = {self._path_key(record["path"]): str(record.get("name") or "")
                  for record in self.layers.values() if isinstance(record, dict) and record.get("path")}
         tried: set[str] = set()

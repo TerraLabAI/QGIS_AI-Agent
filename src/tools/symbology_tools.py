@@ -53,6 +53,7 @@ from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import CONTRAST_NONE, CONTRAST_STRETCH_MINMAX
+from .colour_text import qcolor_from_text
 from .layer_lookup import _find_layer, _layer_not_found_error
 from .style_tools import _expression_error, _previous_style_keys, _style_to_put_back, _wider_than_the_selection
 
@@ -115,7 +116,6 @@ _VALUE_RANGES = {
 
 _ENCODED_COLOUR = re.compile(r"^\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,.*)?$")
 _NUMBERS = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?$")
-_HEX8 = re.compile(r"^#([0-9a-fA-F]{8})$")
 _UNIT_WORDS = {
     "mm": "MM", "millimeter": "MM", "millimeters": "MM", "millimetre": "MM", "millimetres": "MM",
     "pt": "Point", "pts": "Point", "point": "Point", "points": "Point",
@@ -208,17 +208,15 @@ def register_symbology_tools(registry: ToolRegistry):
 
 def _qcolor(value):
 
+
+
+
     from qgis.core import QgsSymbolLayerUtils
     from qgis.PyQt.QtGui import QColor
 
     text = str(value or "").strip()
     if not text:
         return None
-    match = _HEX8.match(text)
-    if match:
-
-        digits = match.group(1)
-        return QColor(int(digits[0:2], 16), int(digits[2:4], 16), int(digits[4:6], 16), int(digits[6:8], 16))
     match = _NUMBERS.match(text)
     if match:
         r, g, b, a = match.groups()
@@ -234,7 +232,7 @@ def _qcolor(value):
     if _ENCODED_COLOUR.match(text):
         colour = QgsSymbolLayerUtils.decodeColor(text)
         return colour if colour.isValid() else None
-    colour = QColor(text)
+    colour = qcolor_from_text(text)
     return colour if colour.isValid() else None
 
 

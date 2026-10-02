@@ -15,6 +15,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from urllib.parse import urlsplit
@@ -42,6 +44,7 @@ from .card_base import (
 )
 from .card_controls import (
     _ASK_CARD_QSS,
+    _ASK_DONE_LINE_QSS,
     _ASK_DONE_QSS,
     _ASK_INPUT_QSS,
     _ASK_LABEL_QSS,
@@ -59,7 +62,6 @@ from .card_controls import (
 )
 from .code_block import CodeBlock
 from .font_scale import scale_px_length, scale_qss_font_px
-from .icons import pixmap_for
 from .shared import tr
 from .style import (
     FONT_BASE,
@@ -67,16 +69,13 @@ from .style import (
     FONT_HINT,
     INK,
     INK_2,
-    INK_3,
     INSET,
     LINE,
     RADIUS_CONTROL,
-    RED,
     SPACE_CARD,
     SPACE_OUTER,
-    qcolor,
 )
-from .tool_describe import card_effect, describe_tool_call, source_text
+from .tool_describe import call_title, card_effect, source_text
 from .transcript import fence
 from .widgets import ChatLabel, ElidedLabel
 
@@ -101,6 +100,7 @@ __all__ = [
     "_pill",
     "editable_fields",
     "plain_sentence",
+    "title_and_reasons",
 ]
 
 _done_row = done_row
@@ -175,7 +175,44 @@ def _is_scalar(value) -> bool:
     return isinstance(value, str) and len(value) <= _EDIT_MAX_LEN
 
 
+
+
+
+
+_ALGORITHM_KEYS = ("algorithm_id", "algorithm")
+_NOT_A_VALUE = ("TEMPORARY_OUTPUT",)
+
+
+def _algorithm_inputs(algorithm_id: str) -> dict | None:
+
+
+    if not algorithm_id:
+        return None
+    try:
+        from qgis.core import QgsApplication
+
+        alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
+        if alg is None:
+            return None
+        return {d.name(): (d.description() or d.name()) for d in alg.parameterDefinitions()
+                if not getattr(d, "isDestination", lambda: False)()}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _is_input_value(value) -> bool:
+    if not _is_scalar(value):
+        return False
+    if isinstance(value, str):
+        text = value.strip()
+        if text.startswith(_NOT_A_VALUE) or "://" in text:
+            return False
+    return True
+
+
 def editable_fields(args, sentence: str = "") -> list:
+
+
 
 
 
@@ -184,15 +221,26 @@ def editable_fields(args, sentence: str = "") -> list:
 
     if not isinstance(args, dict):
         return []
+    algorithm = next((str(args.get(k) or "") for k in _ALGORITHM_KEYS if args.get(k)), "")
+    inputs = _algorithm_inputs(algorithm) if algorithm else None
     found = []
     for key in args:
         value = args[key]
-        if _is_scalar(value):
+        if key in _ALGORITHM_KEYS and algorithm:
+            continue
+        if _is_input_value(value):
             found.append(((str(key),), humanise_tool_name(str(key)), value))
         elif isinstance(value, dict):
             for sub in value:
-                if _is_scalar(value[sub]):
-                    found.append(((str(key), str(sub)), humanise_tool_name(str(sub)), value[sub]))
+                if not _is_input_value(value[sub]):
+                    continue
+                if inputs is not None and key == "parameters":
+                    if sub not in inputs:
+                        continue
+                    label = inputs[sub]
+                else:
+                    label = humanise_tool_name(str(sub))
+                found.append(((str(key), str(sub)), label, value[sub]))
     lowered = (sentence or "").lower()
     found.sort(key=lambda row: (row[1].lower() not in lowered,))
     return found
@@ -278,6 +326,8 @@ class PermissionCard(_Card, FoldMixin):
 
     decided = pyqtSignal(str, str, object)
 
+    quiet = False
+
     _DECISION_TEXT = {
         "allow": QT_TRANSLATE_NOOP("PermissionCard", "Allowed"),
 
@@ -317,8 +367,14 @@ class PermissionCard(_Card, FoldMixin):
         self._body = self._build_body()
         self._col.addWidget(self._body)
 
-        self._decision_row = done_row(self, "check", qcolor(INK_3), "")
-        self._decision_line = self._decision_row.line_label
+
+        self._decision_row = QWidget(self)
+        line = QHBoxLayout(self._decision_row)
+        line.setContentsMargins(2, 0, 2, 0)
+        self._decision_line = ElidedLabel("", self._decision_row, mode=Qt.TextElideMode.ElideMiddle)
+        self._decision_line.setObjectName("decisionLine")
+        self._decision_line.setStyleSheet(_ASK_DONE_LINE_QSS)
+        line.addWidget(self._decision_line, 1)
         self._decision_row.hide()
         self._col.addWidget(self._decision_row)
 
@@ -446,9 +502,21 @@ class PermissionCard(_Card, FoldMixin):
         body = QVBoxLayout(self._body)
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(SPACE_OUTER)
-        head = ask_head(self._body, self.sentence)
+
+
+        title, reasons = title_and_reasons(self.sentence)
+        head = ask_head(self._body, title)
         self._sentence = head.text_label
         body.addWidget(head)
+        notes = [reasons] if reasons else []
+        offers = str(self._grant or "").split()
+        if "answer" in offers:
+            notes.append(self.tr("Your answer also counts for the next calls of this kind in this answer."))
+        for note in notes:
+            line = ChatLabel(note, self._body, wrap=True, selectable=True)
+            line.setObjectName("permissionReason")
+            line.setStyleSheet(_REASON_QSS)
+            body.addWidget(line)
         if grouped and len({c["sentence"] for c in self._calls}) > 1:
 
             for call in self._calls:
@@ -487,7 +555,6 @@ class PermissionCard(_Card, FoldMixin):
             body.addWidget(self._form)
 
         footer = AnswerFooter(self._body)
-        offers = str(self._grant or "").split()
         if "file_writes" in offers and not grouped:
 
 
@@ -538,9 +605,9 @@ class PermissionCard(_Card, FoldMixin):
             if name not in hosts:
                 hosts.append(name)
         if len(hosts) == 1:
-            reason = self.tr("{host} was not named by you or by a known catalog.").format(host=hosts[0])
+            reason = self.tr("{host}: a site you did not name, in no known catalog").format(host=hosts[0])
         else:
-            reason = self.tr("{hosts} were not named by you or by a known catalog.").format(
+            reason = self.tr("{hosts}: sites you did not name, in no known catalog").format(
                 hosts=", ".join(hosts))
         line = ChatLabel(reason, host, wrap=True, selectable=True)
         line.setObjectName("permissionReason")
@@ -755,17 +822,24 @@ class PermissionCard(_Card, FoldMixin):
 
     def collapse(self, decision: str) -> None:
 
+
         self.decision = decision
-        denied = decision == "deny"
-        self._decision_row.icon_label.setPixmap(
-            pixmap_for(self, "close" if denied else "check", 11,
-                       qcolor(RED) if denied else qcolor(INK_3)))
-        self._decision_line.setText(f"{self.decision_text()} · {self.sentence}")
+        titles = [title_and_reasons(call["sentence"])[0] for call in self._calls] or [self.sentence]
+        if len(titles) == 1:
+            title = titles[0]
+        elif len(set(titles)) == 1:
+            title = self.tr("{action}, {n} times").format(action=titles[0], n=len(titles))
+        else:
+            title = self.tr("{n} actions").format(n=len(titles))
+        self._decision_line.setText(f"{self.decision_text()} · {title}")
         self._body.setEnabled(False)
         self.fold_body(self._body, self._show_decision)
 
     def _show_decision(self) -> None:
         self._body.hide()
+        if self.decision != "deny" or self.quiet:
+            self.hide()
+            return
         self._decision_row.show()
         self.set_frame(_ASK_DONE_QSS)
         self.set_margins(0, 0, 0, 0)
@@ -790,6 +864,25 @@ class PermissionCard(_Card, FoldMixin):
 _SERVER_SAYS_IT_BETTER = ("execute_code",)
 
 
+def title_and_reasons(sentence: str) -> tuple:
+
+
+
+
+
+
+    text = " ".join(str(sentence or "").split())
+    reasons = ""
+    head, dot, rest = text.partition(". ")
+    if dot and rest:
+        text, reasons = head, rest
+    text = text.rstrip(". ")
+    if text.endswith(")") and " (" in text:
+        text, _, inner = text[:-1].partition(" (")
+        reasons = f"{inner[:1].upper()}{inner[1:]}" + (f". {reasons}" if reasons else "")
+    return text, reasons
+
+
 def plain_sentence(sentence: str, args=None, name: str = "") -> str:
 
 
@@ -810,7 +903,7 @@ def plain_sentence(sentence: str, args=None, name: str = "") -> str:
 
     keep = name in _SERVER_SAYS_IT_BETTER or "credits" in sentence
     if name and (raw or not keep):
-        sentence = describe_tool_call(name, args) or sentence
+        sentence = call_title(name, args) or sentence
     if sentence and not sentence.endswith((".", "?", "!")):
         sentence += "."
     effect = card_effect(name, args)

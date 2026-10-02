@@ -38,7 +38,8 @@ from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _find_layer_note, _layer_not_found_error
+from ._layers import resolve_layer_note
+from .layer_lookup import _layer_not_found_error
 
 ZONE_ACTIONS = ("set", "get", "clear")
 
@@ -63,7 +64,7 @@ def register_zone_tools(registry: ToolRegistry):
         name="zone",
         danger="write",
         visible=14,
-        label=QT_TRANSLATE_NOOP("AIAgent", "Zone of interest[: {label}][ from {layer_name}]"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Area of interest[: {label}][ from {layer_name}]"),
         input_schema={
             "type": "object",
             "properties": {
@@ -172,7 +173,7 @@ def _zone_set(args: dict) -> dict:
         return tool_error("The zone of interest layer could not be created.", "EXECUTION_FAILED",
                           "zone action set tries again once the project accepts new layers.")
     keep_place(layer)
-    log(f"Zone of interest set from {source} ({zoi.area_km2(geom, crs):.2f} km2)")
+    log(f"Area of interest set from {source} ({zoi.area_km2(geom, crs):.2f} km2)")
 
     if args.get("zoom", True):
         _zoom_to(layer)
@@ -231,7 +232,7 @@ def _geometry_from_args(args: dict):
 
 
 def _from_layer(named: str, expression: str, use_selection: bool):
-    layer, note = _find_layer_note(named)
+    layer, note = resolve_layer_note(named)
     if layer is None:
         return _layer_not_found_error(named)
     if expression:
@@ -445,7 +446,7 @@ def _zone_result(held: zoi.Zone, source: str) -> dict:
         "crs": held.crs.authid() or held.crs.description(),
         "bbox": [box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()],
         "layer_id": held.layer_id,
-        "layer_name": zoi.ZONE_LAYER_NAME,
+        "layer_name": zoi.zone_layer_name(),
     }
     if held.label:
         out["label"] = held.label

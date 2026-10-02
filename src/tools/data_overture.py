@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import http.client
 import json
 import math
@@ -15,6 +16,8 @@ import urllib.request
 from qgis.core import QgsProject
 
 from ..core import catalog, limits, net, tuning
+from ..core.background import run_on_main_thread
+from ..core.net_state import set_cancel_check
 from ..core.tool_registry import ServedValueMissing
 from . import volume_guard
 from .data_common import (
@@ -23,10 +26,11 @@ from .data_common import (
     _USER_AGENT,
     _bbox_km2,
     _is_number,
+    _json_object,
     _layer_from_source,
-    _run_on_main_thread,
     _service,
     _vector_source_from_features,
+    _worker_layer,
 )
 from .data_inspect import _add_vector_over_range_requests, _tune_gdal_for_range_reads
 
@@ -399,7 +403,9 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
         return {"_error": f"Could not reach the Overture service: {error}",
                 **volume_guard.coded(hint="hosted_unreachable")}
     try:
-        payload = json.loads(answer.body)
+
+
+        payload = _json_object(answer.body.decode("utf-8"), "features")
     except (ValueError, UnicodeDecodeError):
         return {"_error": "The Overture service did not answer with JSON.",
                 **_overture_trace(getattr(answer, "headers", None))}
@@ -509,9 +515,10 @@ def _named_sentence(asked: list, names: list, named: list) -> str:
 def _overture_layer(features: list, name: str, args: dict) -> dict:
 
     uri = _vector_source_from_features(features, name, "overture")
+    built = _worker_layer(uri, name)
 
     def _create():
-        layer = _layer_from_source(uri, name)
+        layer = _layer_from_source(uri, name, built)
         if not layer.isValid():
             return {"_error": f"Could not build a layer from the Overture answer for {name}."}
         QgsProject.instance().addMapLayer(layer)
@@ -520,7 +527,7 @@ def _overture_layer(features: list, name: str, args: dict) -> dict:
 
         return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount()}
 
-    return _run_on_main_thread(_create, timeout=45)
+    return run_on_main_thread(_create, timeout=45)
 
 
 
@@ -1089,6 +1096,8 @@ def _overture_feature_key(feature: dict):
 
 
 
+
+
     props = feature.get("properties") if isinstance(feature, dict) else None
     if isinstance(props, dict):
         for field in ("id", "division_id", "osm_id", "gers_id"):
@@ -1122,7 +1131,38 @@ def _clip_split_refusal(theme: str, box, max_km2: float) -> dict:
 _QUARTER_DEPTH = 3
 
 
-def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict, subtype: str | None = None):
+def _boxes_meeting_outline(pieces: list, outline: dict) -> list:
+
+    from osgeo import ogr
+
+    from .data_overture_extract import _outline_shape
+
+    try:
+        shape = _outline_shape(outline)
+    except Exception:  # noqa: BLE001
+        shape = None
+    if shape is None:
+        return [True] * len(pieces)
+    meets = []
+    for west, south, east, north in pieces:
+        ring = ogr.Geometry(ogr.wkbLinearRing)
+        for x, y in ((west, south), (east, south), (east, north), (west, north), (west, south)):
+            ring.AddPoint_2D(x, y)
+        square = ogr.Geometry(ogr.wkbPolygon)
+        square.AddGeometry(ring)
+        meets.append(bool(shape.Intersects(square)))
+    return meets
+
+
+
+
+
+_PIECES_AT_ONCE = 3
+
+
+def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict, subtype: str | None = None,
+                    outline: dict | None = None):
+
 
 
 
@@ -1147,47 +1187,83 @@ def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict
 
 
     queue = [(piece, 0) for piece in pieces]
+    if outline is not None and len(pieces) > 1:
+
+        inside = _boxes_meeting_outline(pieces, outline)
+        queue = [(piece, 0) for piece, meets in zip(pieces, inside) if meets] or queue[:1]
+        if len(queue) < len(pieces):
+            meta["boxes_outside_outline"] = len(pieces) - len(queue)
     answered = 0
-    while queue:
-        piece, depth = queue.pop(0)
+    payload: dict = {}
+    parent_cancel = net.current_cancel_check()
+
+    def ask(piece, still_wanted):
 
 
-        payload = _overture_call(theme, piece, subtype=subtype,
-                                 limit=max(1, _overture_limit() - len(features)), where=where)
-        if payload.get("too_large") and depth < _QUARTER_DEPTH:
-            west, south, east, north = piece
-            middle_x, middle_y = (west + east) / 2, (south + north) / 2
-            queue[:0] = [((west, south, middle_x, middle_y), depth + 1), ((middle_x, south, east, middle_y), depth + 1),
-                         ((west, middle_y, middle_x, north), depth + 1), ((middle_x, middle_y, east, north), depth + 1)]
-            continue
-        if payload.get("_error"):
-            if len(pieces) == 1 and depth == 0:
-                return None, payload
+        previous = net.current_cancel_check()
+        set_cancel_check(parent_cancel)
+        try:
+            return _overture_call(theme, piece, subtype=subtype, limit=still_wanted, where=where)
+        finally:
+            set_cancel_check(previous)
+
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=_PIECES_AT_ONCE) if len(queue) > 1 else None
+    answers: list = []
+    try:
+        while queue or answers:
+            if not answers:
 
 
-            meta.setdefault("missing_boxes", []).append(
-                {"bbox": [round(value, 5) for value in piece], "reason": payload["_error"][:120]})
-            continue
-        answered += 1
-        truncated = truncated or bool(payload.get("truncated"))
-        for key in ("release", "licence", "attribution"):
-            if payload.get(key) and not meta.get(key):
-                meta[key] = payload[key]
-        if not meta.get("_trace") and payload.get("_trace"):
-            meta["_trace"] = payload["_trace"]
-        for feature in payload.get("features") or []:
-            identity = _overture_feature_key(feature)
-            if identity is not None:
-                if identity in seen:
-                    continue
-                seen.add(identity)
-            features.append(feature)
-        if len(features) >= _overture_limit():
-            del features[_overture_limit():]
-            truncated = True
-            if queue:
-                meta["unread_boxes"] = len(queue)
-            break
+
+
+                wave, queue = queue[:_PIECES_AT_ONCE], queue[_PIECES_AT_ONCE:]
+                still_wanted = max(1, _overture_limit() - len(features))
+                if pool is None or len(wave) == 1:
+                    answers = [(item, ask(item[0], still_wanted)) for item in wave]
+                else:
+                    answers = [(item, pool.submit(ask, item[0], still_wanted)) for item in wave]
+            (piece, depth), pending = answers.pop(0)
+            payload = pending.result() if isinstance(pending, concurrent.futures.Future) else pending
+            if payload.get("too_large") and depth < _QUARTER_DEPTH:
+                west, south, east, north = piece
+                middle_x, middle_y = (west + east) / 2, (south + north) / 2
+                queue[:0] = [((west, south, middle_x, middle_y), depth + 1),
+                             ((middle_x, south, east, middle_y), depth + 1),
+                             ((west, middle_y, middle_x, north), depth + 1),
+                             ((middle_x, middle_y, east, north), depth + 1)]
+                continue
+            if payload.get("_error"):
+                if len(pieces) == 1 and depth == 0:
+                    return None, payload
+
+
+                meta.setdefault("missing_boxes", []).append(
+                    {"bbox": [round(value, 5) for value in piece], "reason": payload["_error"][:120]})
+                continue
+            answered += 1
+            truncated = truncated or bool(payload.get("truncated"))
+            for key in ("release", "licence", "attribution"):
+                if payload.get(key) and not meta.get(key):
+                    meta[key] = payload[key]
+            if not meta.get("_trace") and payload.get("_trace"):
+                meta["_trace"] = payload["_trace"]
+            for feature in payload.get("features") or []:
+                identity = _overture_feature_key(feature)
+                if identity is not None:
+                    if identity in seen:
+                        continue
+                    seen.add(identity)
+                features.append(feature)
+            if len(features) >= _overture_limit():
+                del features[_overture_limit():]
+                truncated = True
+                if queue or answers:
+                    meta["unread_boxes"] = len(queue) + len(answers)
+                break
+    finally:
+        if pool is not None:
+
+            pool.shutdown(wait=False, cancel_futures=True)
     if not answered and meta.get("missing_boxes"):
         if len(meta["missing_boxes"]) == 1:
             return None, payload
@@ -1241,7 +1317,6 @@ __all__ = [
     "_overture_tiles",
     "_polys_bbox",
     "_rings_of",
-    "_run_on_main_thread",
     "_split_box",
     "_stop_if_cancelled",
     "_stream_refusal",

@@ -51,13 +51,13 @@ from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
 from ..core import limits, net, security
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .csv_loader import _ansi_encoding, detect_encoding
 from .data_common import _download_timeout, _safe_filename
-from .data_tools import _run_on_main_thread
 
 
 def _tr(text: str) -> str:
@@ -963,7 +963,7 @@ def _load_gtfs(args: dict) -> dict:
         if not gtfs.has("calendar.txt") and not gtfs.has("calendar_dates.txt"):
             return tool_error("This feed has neither calendar.txt nor calendar_dates.txt.", "INVALID_ARGS",
                               "Without one of them no date can say which trips run.")
-        if _is_cancelled(cancel):
+        if net.is_cancelled(cancel):
             return _stopped()
 
         stop_rows = list(gtfs.rows("stops.txt"))
@@ -986,7 +986,7 @@ def _load_gtfs(args: dict) -> dict:
                 f"({why}).", "INVALID_ARGS",
                 "another date or weekday inside the feed's service dates.")
 
-        if _is_cancelled(cancel):
+        if net.is_cancelled(cancel):
             return _stopped()
 
 
@@ -1009,7 +1009,7 @@ def _load_gtfs(args: dict) -> dict:
         freq_windows_by_trip = _frequency_windows(freq_rows, active_trip_route)
         freq_trip_ids = set(freq_windows_by_trip)
 
-        if _is_cancelled(cancel):
+        if net.is_cancelled(cancel):
             return _stopped()
         max_rows = limits.current("GTFS_STOP_TIMES_MAX_ROWS")
         stream = _stream_stop_times(gtfs, active_trip_route, want_sequence_for, freq_trip_ids, cancel, max_rows)
@@ -1031,7 +1031,7 @@ def _load_gtfs(args: dict) -> dict:
         routes, routes_without_geometry = _route_lines(route_rows, trip_rows, shape_points, stop_coords,
                                                         stream, per_route_trips)
 
-        if _is_cancelled(cancel):
+        if net.is_cancelled(cancel):
             return _stopped()
 
         stem = _safe_filename(str(args.get("layer_name") or "").strip() or "gtfs_feed", "gtfs_feed")
@@ -1043,7 +1043,7 @@ def _load_gtfs(args: dict) -> dict:
             remove_tree(folder)
             return tool_error(f"The GeoPackage could not be written: {exc}", "EXECUTION_FAILED",
                               "A retry may help; disk space may also be the cause.")
-        if _is_cancelled(cancel):
+        if net.is_cancelled(cancel):
             remove_tree(folder)
             return _stopped()
     except _GtfsEncodingError as exc:
@@ -1074,7 +1074,7 @@ def _load_gtfs(args: dict) -> dict:
         return {"stops_layer_id": stop_layer.id(), "stops_layer_name": stop_layer.name(),
                "routes_layer_id": route_layer.id(), "routes_layer_name": route_layer.name()}
 
-    added = _run_on_main_thread(_create, timeout=60)
+    added = run_on_main_thread(_create, timeout=60)
     if isinstance(added, dict) and added.get("_error") is not None:
         remove_tree(folder)
         return added
@@ -1124,10 +1124,3 @@ def _is_number(text) -> bool:
     except (TypeError, ValueError):
         return False
     return True
-
-
-def _is_cancelled(check) -> bool:
-    try:
-        return callable(check) and bool(check())
-    except Exception:  # noqa: BLE001
-        return False

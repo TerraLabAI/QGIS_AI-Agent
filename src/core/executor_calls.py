@@ -8,14 +8,15 @@
 from __future__ import annotations
 
 import copy
+import threading
 import time
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from . import background, code_guard, security, stalls
 from .executor_guards import CODE_TOOL
-from .log_scrub import scrub_result, scrub_secrets
+from .log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
 from .logger import log, log_warning
 from .plan import autopilot_allowed
 from .protocol import Approval, Danger, Decision, Mode, recommended_index
@@ -34,10 +35,20 @@ try:
 except ImportError:
     pin_layer_names = None
 
+
+_HOSTS_AHEAD = 32
+
+
+
+
+
+TURN_WAIT_S = 15.0
+
+
 def _coded(refusal: dict) -> str:
 
 
-    return error_details({k: v for k, v in refusal.items() if k in ("hint", "variant")})
+    return error_details({k: v for k, v in refusal.items() if k in ("hint", "variant", "routes")})
 
 
 def tr(text: str) -> str:
@@ -57,7 +68,7 @@ def _shown_value(value):
 class _ExecutorCalls:
 
 
-    def handle_tool_call(self, call: dict) -> None:
+    def handle_tool_call(self, call: dict, looked_up: bool = False, in_turn: bool = False) -> None:
         if self._closed or not isinstance(call, dict):
             return
         self._wake_watchdog()
@@ -90,7 +101,8 @@ class _ExecutorCalls:
 
             self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
             return
-        if tool_call_id in self._executing:
+        if (tool_call_id in self._executing or tool_call_id in self._resolving
+                or any(tool_call_id in queue for queue in self._queued.values())):
             return
         args = call.get("args") if isinstance(call.get("args"), dict) else {}
         call = dict(call, args=args)
@@ -111,6 +123,10 @@ class _ExecutorCalls:
         if self._registry.get_tool(name) is None:
             self._fail(call, Err.TOOL_NOT_FOUND, f"Unknown tool: {name}",
                        "search_tools finds a tool by description; call_tool then takes the exact name.")
+            return
+        if not (looked_up or in_turn) and self._waits_its_turn(call, name, args):
+            return
+        if not looked_up and self._look_up_hosts_first(call, args):
             return
         declared = spec(name)
         if getattr(declared, "waits_on_user", False):
@@ -224,6 +240,8 @@ class _ExecutorCalls:
 
             costly = {}
         if costly:
+            if self._refused_before_card(call):
+                return
             if not self._preflight_before_card(call, costly):
                 self._costly_card(call, costly)
             return
@@ -273,6 +291,8 @@ class _ExecutorCalls:
                 self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW_PROJECT)
                 self._execute(call)
                 return
+            if self._refused_before_card(call):
+                return
             call["always"] = always
             self._pending[tool_call_id] = call
             sentence = str(call.get("sentence") or tr("Run {tool}").format(tool=name))
@@ -282,15 +302,81 @@ class _ExecutorCalls:
 
 
 
-
-            if per_answer:
-                sentence = sentence.rstrip() + " " + tr(
-                    "Your answer covers the other {tool} calls this answer makes.").format(tool=name)
-                call["sentence"] = sentence
+            call["per_answer"] = per_answer
             self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
             self.permission_needed.emit(tool_call_id, run_id, sentence, args)
             return
         self._execute(call)
+
+
+
+    def _waits_its_turn(self, call: dict, name: str, args: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+
+
+        run_id = str(call.get("run_id") or "")
+        if call.get("poll") is True or not (self._queued.get(run_id) or self._behind_changes(call, name, args)):
+            return False
+        tool_call_id = str(call.get("tool_call_id"))
+        self._queued.setdefault(run_id, {})[tool_call_id] = (call, time.monotonic())
+        log(f"WAIT {name} until the run's earlier calls have changed the project")
+        return True
+
+    def _behind_changes(self, call: dict, name: str, args: dict) -> bool:
+
+
+
+        run_id = str(call.get("run_id") or "")
+        earlier = [entry[2] for entry in self._background.values() if entry[0] == run_id]
+        earlier += [c for c in self._resolving.values() if str(c.get("run_id") or "") == run_id]
+        if not any(c.get("danger", Danger.READ) != Danger.READ for c in earlier):
+            return False
+        return call.get("danger", Danger.READ) == Danger.READ or not self._background_ok(name, args)
+
+    def _turn_over(self, *_answer) -> None:
+
+        if self._queued and not self._closed:
+            QTimer.singleShot(0, self._take_turns)
+
+    def _take_turns(self, now: float | None = None) -> None:
+
+
+
+
+
+        now = time.monotonic() if now is None else float(now)
+        for run_id in list(self._queued):
+            queue = self._queued.get(run_id) or {}
+            while queue and not self._closed:
+                tool_call_id, (call, arrived) = next(iter(queue.items()))
+                name, args = str(call.get("name") or ""), call.get("args") or {}
+                if now - arrived < TURN_WAIT_S and self._behind_changes(call, name, args):
+                    break
+                queue.pop(tool_call_id, None)
+                self.handle_tool_call(call, in_turn=True)
+            if not queue:
+                self._queued.pop(run_id, None)
+
+    def _drop_queued(self, run_id: str) -> None:
+
+        for call, _arrived in (self._queued.pop(run_id, None) or {}).values():
+            self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."), "The user stopped the run.")
+
+    def covers_answer(self, tool_call_id: str) -> bool:
+
+
+        call = self._pending.get(str(tool_call_id or "")) or {}
+        return bool(call.get("per_answer"))
 
     def unvouched_for(self, tool_call_id: str) -> list[str]:
 
@@ -325,6 +411,21 @@ class _ExecutorCalls:
         self._pending[tool_call_id] = call
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
         self.permission_needed.emit(tool_call_id, run_id, costly["sentence"], call.get("args") or {})
+
+    def _refused_before_card(self, call: dict) -> bool:
+
+
+
+
+
+
+        error = self._registry.check_arguments(str(call.get("name") or ""), call.get("args") or {})
+        refused = self._error_of(error)
+        if refused is None:
+            return False
+        log(f"REFUSED BEFORE CARD {call.get('name')}: {refused[1][:120]}")
+        self._fail(call, *refused, details=error_details(error))
+        return True
 
     def _preflight_before_card(self, call: dict, costly: dict) -> bool:
 
@@ -379,7 +480,7 @@ class _ExecutorCalls:
             done(result, error_text)
             return True
 
-        self._background[tool_call_id] = (run_id, task)
+        self._background[tool_call_id] = (run_id, task, call)
         self._inflight[tool_call_id] = (run_id, name, time.monotonic(), True)
         return True
 
@@ -578,6 +679,48 @@ class _ExecutorCalls:
             return (Err.LAYER_NOT_FOUND, loose["_error"], loose["suggestion"])
         return None
 
+    def _look_up_hosts_first(self, call: dict, args: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+        if guards is None:
+            return False
+        try:
+            hosts = [host for host in guards.url_hosts(args)[:_HOSTS_AHEAD] if security.look_up_ahead(host)]
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Host names not looked up ahead: {exc}")
+            return False
+        if not hosts:
+            return False
+        tool_call_id = str(call.get("tool_call_id"))
+        invoker = background.main_thread_invoker()
+
+        def wait() -> None:
+            for host in hosts:
+                security.resolve_host(host)
+            invoker.invoke(lambda: self._take_back(tool_call_id))
+
+        self._resolving[tool_call_id] = call
+        try:
+            threading.Thread(target=wait, name="ai-agent-dns-wait", daemon=True).start()
+        except RuntimeError:
+            self._resolving.pop(tool_call_id, None)
+            return False
+        return True
+
+    def _take_back(self, tool_call_id: str) -> None:
+
+        call = self._resolving.pop(tool_call_id, None)
+        if call is not None and not self._closed:
+            self.handle_tool_call(call, looked_up=True)
+
     def _apply_edits(self, call: dict, edits: dict | None) -> tuple[str, str, str] | None:
 
 
@@ -643,7 +786,11 @@ class _ExecutorCalls:
         if costly.get("error"):
             return (str(costly.get("code") or Err.EXECUTION_FAILED), str(costly["error"]),
                     str(costly.get("suggestion") or "The guards refuse this value."))
-        if costly and (not call.get("costly") or costly.get("sentence") != call.get("sentence")):
+        if (costly and (not call.get("costly") or costly.get("sentence") != call.get("sentence"))
+                and self._registry.check_arguments(name, args) is None):
+
+
+
 
 
             call["recard"] = costly
@@ -726,6 +873,12 @@ class _ExecutorCalls:
         wire = f"{message}{DETAILS_MARKER}{scrub_secrets(details)}" if details else message
         self._table.put(tool_call_id, "error", {"code": code, "message": wire, "suggestion": suggestion})
         self._executing.discard(tool_call_id)
-        self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
+        if detail:
+
+
+            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call),
+                                          detail=strip_paths(detail, DETAIL_CHARS))
+        else:
+            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
         log_warning(f"{code} {call.get('name')}: {message[:200]}")
         self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion, None)

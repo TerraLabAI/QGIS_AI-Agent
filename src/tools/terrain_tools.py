@@ -67,13 +67,13 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.PyQt.QtGui import QColor
 
 from ..core import limits, net
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import field_type
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import CONTRAST_STRETCH_MINMAX, GRAY_BLACK_TO_WHITE, GRAY_WHITE_TO_BLACK, SHADER_INTERPOLATED
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 PRODUCTS = ("lrm", "svf", "openness_positive", "openness_negative", "multi_hillshade", "slope")
@@ -731,7 +731,7 @@ def _terrain_visualisation(args: dict) -> dict:
     directions = int(args.get("directions") or _DEFAULT_DIRECTIONS)
     cancelled = net.current_cancel_check()
 
-    facts = _run_on_main_thread(_raster_facts, str(args["dem"]), args.get("extent"))
+    facts = run_on_main_thread(_raster_facts, str(args["dem"]), args.get("extent"))
     if "_error" in facts or facts.get("isError"):
         return facts
     grid, error = _grid(facts, gdal, osr)
@@ -823,7 +823,7 @@ def _terrain_visualisation(args: dict) -> dict:
         entry.setdefault("range", [entry.get("lo"), entry.get("hi")])
         entries.append(entry)
     try:
-        added = _run_on_main_thread(_add_products, entries, timeout=60)
+        added = run_on_main_thread(_add_products, entries, timeout=60)
     except InterruptedError:
         remove_tree(folder)
         return tool_error("Stopped before the relief images were added.", "CANCELLED",
@@ -1014,7 +1014,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
     lrm_radius_m = float(args.get("lrm_radius_m") or _DEFAULT_LRM_RADIUS_M)
     cancelled = net.current_cancel_check()
 
-    facts = _run_on_main_thread(_raster_facts, str(source_name), args.get("extent"))
+    facts = run_on_main_thread(_raster_facts, str(source_name), args.get("extent"))
     if "_error" in facts or facts.get("isError"):
         return facts
     grid, error = _grid(facts, gdal, osr)
@@ -1152,7 +1152,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
         ys = sorted((gy, gy + grid["height"] * grid["dy"]))
         window = (xs[0] - reach, ys[0] - reach, xs[1] + reach, ys[1] + reach)
         try:
-            references = _run_on_main_thread(_reference_geometries, list(args["reference_layers"]), grid["wkt"],
+            references = run_on_main_thread(_reference_geometries, list(args["reference_layers"]), grid["wkt"],
                                              int(limits.current("MAX_FEATURES_MATERIALISED")), window, timeout=30)
         except InterruptedError:
             return tool_error("Stopped before the candidates were finished.", "CANCELLED", "Nothing was added.")
@@ -1220,7 +1220,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             "caution_hint": _CAUTION_FACT["hint"],
         }
     name = str(args.get("name") or f"{facts['name']} relief anomalies").strip()
-    added = _run_on_main_thread(_add_candidates, grid["wkt"], name,
+    added = run_on_main_thread(_add_candidates, grid["wkt"], name,
                                 [{k: v for k, v in row.items() if k != "_centre"} for row in rows], timeout=60)
     by_type = {}
     for row in rows:

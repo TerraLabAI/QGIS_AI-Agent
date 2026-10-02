@@ -22,6 +22,8 @@ from .cards import (
     QuotaPauseCard,
     RestoreWarningCard,
 )
+from .loader import ElapsedClock, ShimmerLabel
+from .widgets import Spinner
 
 
 class _ChatPanelPrompts:
@@ -61,13 +63,18 @@ class _ChatPanelPrompts:
                            tool_call_id, sentence, dict(args or {}), name=name, addresses=addresses,
                            group=group)), None)
         if joined is not None:
+            joined.quiet = joined.quiet and tool is not None
             self.message_list.register_permission_card(tool_call_id, joined)
+
+            self._wait_on_user(run_id, self.tr("Waiting for your approval"))
             QTimer.singleShot(0, self._show_pending_card)
             return
         card = PermissionCard(tool_call_id, sentence, dict(args or {}), name=name, addresses=addresses,
                               grant=grant, group=group)
+
+        card.quiet = tool is not None
         card.decided.connect(self.permission_decided.emit)
-        self.set_status_line(run_id, self.tr("Waiting for your approval"))
+        self._wait_on_user(run_id, self.tr("Waiting for your approval"))
         run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
@@ -76,6 +83,89 @@ class _ChatPanelPrompts:
 
 
         QTimer.singleShot(0, self._show_pending_card)
+
+    def show_call_running(self, run_id: str, tool_call_id: str) -> None:
+
+
+
+        tool = self.message_list.tool_card(tool_call_id)
+        if tool is not None and self._live_run(run_id) is not None:
+            self.set_status_line(run_id, tool.line())
+
+    def _wait_on_user(self, run_id: str, text: str) -> None:
+
+
+
+
+
+
+
+
+        self.set_status_line(run_id, text)
+        if self._status is not None:
+            self._status.stop()
+            for clock in self._status.findChildren(ElapsedClock):
+                clock.hide()
+        run = self._live_run(run_id)
+        if run is not None and run.trace is not None and run.trace.is_live():
+            self._hold_motion(run.trace)
+
+    def _hold_motion(self, block) -> None:
+
+
+
+
+        held = self.__dict__.setdefault("_held_motion", [])
+        for kind in (Spinner, ShimmerLabel):
+            for part in block.findChildren(kind):
+
+                if not part.isHidden() and not any(part is h for h in held):
+                    part.stop()
+                    held.append(part)
+        for clock in block.findChildren(ElapsedClock):
+            if not clock.isHidden():
+                clock.stop()
+                clock.hide()
+                held.append(clock)
+
+    def _release_motion(self) -> None:
+        for part in self.__dict__.pop("_held_motion", []):
+            try:
+                if isinstance(part, ElapsedClock):
+                    part.show()
+                elif not part.isHidden():
+                    part.start()
+            except RuntimeError:
+                pass
+
+    def _resume_line(self, run_id: str, tool_call_id: str = "") -> None:
+
+
+
+
+
+
+
+        run = self._live_run(run_id) if run_id else None
+        if run is None or run_id != self._current_run:
+            self._release_motion()
+            return
+        if any(callable(getattr(c, "is_open", None)) and c.is_open() for c in run.permissions):
+            return
+        self._release_motion()
+        tool = self.message_list.tool_card(tool_call_id) if tool_call_id else None
+        line = ""
+        if tool is not None and getattr(tool, "ok", True) is None:
+            line = tool.line()
+        text = line or self.tr("Thinking...")
+        self._drop_status()
+        if run.trace is not None and run.trace.is_live():
+
+
+            run.trace.set_activity(text)
+            if not self._block_is_tail(run.trace):
+                return
+        self.set_status_line(run_id, text)
 
     def _show_pending_card(self) -> None:
         try:
@@ -118,7 +208,7 @@ class _ChatPanelPrompts:
                             multiple=multiple)
         card.answered.connect(self.question_answered.emit)
         card.auto_answered.connect(self.question_auto_answered.emit)
-        self.set_status_line(run_id, self.tr("Waiting for your answer..."))
+        self._wait_on_user(run_id, self.tr("Waiting for your answer"))
         run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
@@ -173,7 +263,7 @@ class _ChatPanelPrompts:
         card = RecommendationCard(tool_call_id, run_id, title, proposal, entity, value,
                                   confidence, list(alternatives or []))
         card.decided.connect(self._on_recommendation_decided)
-        self.set_status_line(run_id, self.tr("Waiting for your answer..."))
+        self._wait_on_user(run_id, self.tr("Waiting for your answer"))
         run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
@@ -187,13 +277,15 @@ class _ChatPanelPrompts:
 
 
         card = self.message_list.permission_card(tool_call_id)
+        run_id = ""
         for run in self._runs.values():
-            if card is not None and card in run.permissions and run.wait_started:
-                run.waited += time.monotonic() - run.wait_started
-                run.wait_started = 0.0
+            if card is not None and card in run.permissions:
+                run_id = run.run_id
+                if run.wait_started:
+                    run.waited += time.monotonic() - run.wait_started
+                    run.wait_started = 0.0
                 break
-        if self._status is not None and self._current_run:
-            self._status.set_text(self.tr("Thinking..."))
+        self._resume_line(run_id or self._current_run)
 
     def show_diff_table(self, run_id: str, title: str, columns, rows) -> None:
 
@@ -230,13 +322,15 @@ class _ChatPanelPrompts:
                 return
         elif getattr(card, "answer", None) is None:
             card.collapse(answer)
-        if self._status is not None and self._current_run:
-            self._status.set_text(self.tr("Thinking..."))
+        run_id = ""
         for run in self._runs.values():
-            if card in run.permissions and run.wait_started:
-                run.waited += time.monotonic() - run.wait_started
-                run.wait_started = 0.0
+            if card in run.permissions:
+                run_id = run.run_id
+                if run.wait_started:
+                    run.waited += time.monotonic() - run.wait_started
+                    run.wait_started = 0.0
                 break
+        self._resume_line(run_id or self._current_run)
 
     def resolve_permission(self, tool_call_id: str, decision: str, reason: str = "denied") -> None:
         self._restore_tool_card(tool_call_id)
@@ -250,12 +344,6 @@ class _ChatPanelPrompts:
             self.message_list.permission_cards.pop(tool_call_id, None)
             self._resolved_one_of_many(card, tool_call_id, decision, reason, said)
             return
-        if card.decision is None:
-            card.collapse(decision)
-        if self._status is not None and self._current_run:
-            self._status.set_text(self.tr("Thinking..."))
-
-
         run_id = ""
         for run in self._runs.values():
             if card in run.permissions:
@@ -264,6 +352,24 @@ class _ChatPanelPrompts:
                     run.waited += time.monotonic() - run.wait_started
                     run.wait_started = 0.0
                 break
+        if reason == "denied":
+
+
+
+            if card.decision is None:
+                card.collapse(decision)
+            if run_id:
+                for run in self._runs.values():
+                    if card in run.permissions:
+                        run.permissions.remove(card)
+                self._mark_denied(run_id, tool_call_id, decision, reason, said, card)
+                self._resume_line(run_id, tool_call_id if decision != "deny" else "")
+            return
+
+
+        if card.decision is None and not run_id:
+            card.collapse(decision)
+        self._release_motion()
         if run_id:
 
 

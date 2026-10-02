@@ -20,8 +20,8 @@ import re
 
 from qgis.core import QgsTask
 
-from ..core import layer_order, tuning
-from ..core.host_platform import remove_quietly
+from ..core import layer_order, net, tuning
+from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
@@ -35,6 +35,9 @@ MERGE_EXTENSIONS = (".kml", ".kmz", ".shp", ".geojson", ".json", ".gml", ".gpx",
 LIST_AT_MOST = 10
 
 _FILES_PER_COMMIT = 200
+
+
+_FEATURES_PER_CHECK = 100
 
 
 _MAX_DEPTH = 4
@@ -53,6 +56,10 @@ _SAMPLE = 20
 
 
 _RESERVED = frozenset({"fid", "geom"})
+
+
+class _Stopped(Exception):
+    pass
 
 
 def _ogr():
@@ -259,19 +266,21 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
     unreadable: list[str] = []
     read = 0
     out.StartTransaction()
+    stopped = False
     for number, (path, wanted) in enumerate(sources, 1):
-        if is_canceled():
-            out.CommitTransaction()
-            out = None
-            remove_quietly(stage)
-            return {"canceled": True}
         relative = os.path.relpath(path, root) if root else os.path.basename(path)
         state["written"] = []
         try:
+            if is_canceled():
+                raise _Stopped
 
 
-            _read_file(ogr, osr, out, path, wanted, relative, state)
+            _read_file(ogr, osr, out, path, wanted, relative, state, is_canceled)
             read += 1
+        except _Stopped:
+
+
+            stopped = True
         except Exception:  # noqa: BLE001
 
             for family, fid in state["written"]:
@@ -281,10 +290,20 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
                 except Exception:  # noqa: BLE001  # nosec B110
                     pass
             unreadable.append(path)
+        if stopped:
+            break
         if number % _FILES_PER_COMMIT == 0:
             out.CommitTransaction()
             out.StartTransaction()
         progress(number * 90.0 / max(1, len(sources)))
+    if stopped:
+        out.RollbackTransaction()
+
+        out = family = None
+        families.clear()
+        state["written"] = []
+        remove_quietly(stage)
+        return {"canceled": True}
     out.CommitTransaction()
     tables = [(name, families[name]) for name in _FAMILIES if name in families and families[name].count]
     out = None
@@ -293,9 +312,11 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
         return {"layers": [], "files": len(sources), "read": read, "unreadable": unreadable,
                 "no_geometry": state["no_geometry"], "description_fields": [],
                 "type_conflicts": sorted(state["conflicts"])}
-    added = _finalise(gdal, ogr, stage, gpkg, tables)
+    added = _finalise(gdal, ogr, stage, gpkg, tables, is_canceled)
     remove_quietly(stage)
     if isinstance(added, dict):
+        if added.get("canceled"):
+            remove_quietly(gpkg)
         return added
     progress(100.0)
     description_fields = []
@@ -309,7 +330,8 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
             "type_conflicts": sorted(state["conflicts"])}
 
 
-def _read_file(ogr, osr, out, path: str, wanted, relative: str, state: dict) -> None:
+def _read_file(ogr, osr, out, path: str, wanted, relative: str, state: dict, is_canceled) -> None:
+
 
     families = state["families"]
     kml = path.lower().endswith((".kml", ".kmz"))
@@ -337,7 +359,9 @@ def _read_file(ogr, osr, out, path: str, wanted, relative: str, state: dict) -> 
         names = [definition.GetFieldDefn(i) for i in range(definition.GetFieldCount())]
         description = next((i for i, f in enumerate(names) if f.GetName().lower() == _DESCRIPTION), None)
         layer.ResetReading()
-        for feature in layer:
+        for number, feature in enumerate(layer, 1):
+            if number % _FEATURES_PER_CHECK == 0 and is_canceled():
+                raise _Stopped
             geometry = feature.GetGeometryRef()
             if geometry is None or geometry.IsEmpty():
                 state["no_geometry"] += 1
@@ -425,7 +449,12 @@ def _write_feature(ogr, family, family_name, geometry, feature, names, descripti
     family.count += 1
 
 
-def _finalise(gdal, ogr, stage: str, gpkg: str, tables: list):
+def _finalise(gdal, ogr, stage: str, gpkg: str, tables: list, is_canceled):
+
+
+
+    def going_on(_done, _message, _data):
+        return 0 if is_canceled() else 1
 
     added = []
     for position, (family_name, family) in enumerate(tables):
@@ -452,12 +481,18 @@ def _finalise(gdal, ogr, stage: str, gpkg: str, tables: list):
         try:
             options = gdal.VectorTranslateOptions(
                 format="GPKG", SQLStatement=sql, SQLDialect="SQLITE", layerName=table,
-                geometryType=geometry_type, dim=dimension, accessMode="update" if position else None)
+                geometryType=geometry_type, dim=dimension, accessMode="update" if position else None,
+                callback=going_on)
             written = gdal.VectorTranslate(gpkg, stage, options=options)
         except Exception as exc:  # noqa: BLE001
-            return {"_error": f"Could not write {os.path.basename(gpkg)}: {exc}"}
+            written, failure = None, str(exc)
+        else:
+            failure = gdal.GetLastErrorMsg()
+        if is_canceled():
+            written = None
+            return {"canceled": True}
         if written is None:
-            return {"_error": f"Could not write {os.path.basename(gpkg)}: {gdal.GetLastErrorMsg()}"}
+            return {"_error": f"Could not write {os.path.basename(gpkg)}: {failure}"}
         written = None
         added.append({"family": family_name, "table": table, "count": family.count})
     return added
@@ -514,7 +549,7 @@ class FolderMergeTask(QgsTask):
 
 def merge_report(outcome: dict, gpkg: str, name: str, folder: str) -> dict:
 
-    from .processing_tools import _process_outputs
+    from .processing_run import _process_outputs
 
     layers = outcome.get("layers") or []
     if not layers:
@@ -547,7 +582,7 @@ def merge_report(outcome: dict, gpkg: str, name: str, folder: str) -> dict:
 
 
 def start_folder_merge(folder: str, paths: list, name: str) -> dict:
-    from .processing_tools import register_task
+    from .processing_run import register_task
 
     task = FolderMergeTask(folder, paths, name)
 
@@ -575,6 +610,10 @@ def split_description(path: str, sublayer: str | None, name: str) -> dict | None
 
 
 
+
+
+
+    cancel = net.current_cancel_check()
     _gdal, ogr, _osr = _ogr()
     try:
         source = ogr.Open(path)
@@ -598,12 +637,16 @@ def split_description(path: str, sublayer: str | None, name: str) -> dict | None
     layer = source = None
     if not probe.worth_it():
         return None
-    gpkg = os.path.join(create_managed_temp_dir("kml"), _safe_stem(name) + ".gpkg")
-    outcome = write([(path, table)], gpkg, provenance=False)
+    folder = create_managed_temp_dir("kml")
+    gpkg = os.path.join(folder, _safe_stem(name) + ".gpkg")
+    outcome = write([(path, table)], gpkg, provenance=False, is_canceled=lambda: net.is_cancelled(cancel))
+    if outcome.get("canceled"):
+        remove_tree(folder)
+        raise InterruptedError("Stopped while the KML's description table was turned into fields")
     if (outcome.get("_error") or outcome.get("unreadable") or outcome.get("read") != 1
             or len(outcome.get("layers") or []) != 1 or not outcome["layers"][0]["count"]
             or not outcome.get("description_fields")):
-        remove_quietly(gpkg)
+        remove_tree(folder)
         return None
     return {"uri": f"{gpkg}|layername={outcome['layers'][0]['table']}", "gpkg": gpkg,
             "description_fields": outcome["description_fields"],

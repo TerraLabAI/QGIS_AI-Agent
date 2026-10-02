@@ -20,15 +20,19 @@
 
 from __future__ import annotations
 
+import collections
+import concurrent.futures
 import contextlib
 import gc
 import queue
+import sys
 import threading
 import time
 import traceback
+import types
 from typing import Any, Callable
 
-from qgis.PyQt.QtCore import QCoreApplication, QObject, QThread, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
 from . import net
 from .logger import log_warning
@@ -147,9 +151,185 @@ def main_thread_invoker():
         return _INVOKER
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+_MAIN_THREAD_ID = threading.main_thread().ident
+try:
+    _APP = QCoreApplication.instance()
+    _MAIN_QTHREAD = _APP.thread() if _APP is not None else None
+except Exception:  # noqa: BLE001
+    _APP = _MAIN_QTHREAD = None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def keep_worker_threads() -> None:
+    try:
+        from qgis.core import QgsApplication
+        from qgis.PyQt.QtCore import QThreadPool
+
+        manager = QgsApplication.taskManager()
+        pools = [QThreadPool.globalInstance()]
+        if manager is not None and hasattr(manager, "threadPool"):
+            pools.append(manager.threadPool())
+        for pool in pools:
+            if pool is not None and pool.expiryTimeout() >= 0:
+                pool.setExpiryTimeout(-1)
+    except Exception:  # noqa: BLE001
+        return
+
+
+keep_worker_threads()
+
+
+
+
+
+
+
+
+
+
+
+_KEPT_MODULE = "_terralab_ai_agent_kept_threads"
+
+
+def _kept_state():
+    state = sys.modules.get(_KEPT_MODULE)
+    if state is None:
+        state = types.ModuleType(_KEPT_MODULE)
+        state.jobs = queue.SimpleQueue()
+        state.lock = threading.Lock()
+        state.idle = 0
+        state.started = 0
+        sys.modules[_KEPT_MODULE] = state
+    return state
+
+
+_KEPT = _kept_state()
+
+
+def _kept_loop(state) -> None:
+    while True:
+        job = state.jobs.get()
+        try:
+            job()
+        except BaseException:  # noqa: BLE001
+            pass
+        job = None
+        with state.lock:
+            state.idle += 1
+
+
+def start_kept_thread(target: Callable[..., Any], *args, name: str = "ai-agent-worker") -> None:
+
+
+    def job():
+        me = threading.current_thread()
+        me.name = name
+        try:
+            target(*args)
+        except Exception:  # noqa: BLE001
+            log_warning(f"{name} failed:\n{traceback.format_exc()}")
+        finally:
+            me.name = "ai-agent-kept"
+
+    state = _KEPT
+    with state.lock:
+        spawn = state.idle == 0
+        if spawn:
+            state.started += 1
+        else:
+            state.idle -= 1
+    if spawn:
+        threading.Thread(target=_kept_loop, args=(state,), name="ai-agent-kept", daemon=True).start()
+    state.jobs.put(job)
+
+
+class KeptThreadPool(concurrent.futures.Executor):
+
+
+
+    def __init__(self, max_workers: int, name: str = "ai-agent-pool"):
+        self._max = max(1, int(max_workers))
+        self._name = name
+        self._lock = threading.Lock()
+        self._waiting: collections.deque = collections.deque()
+        self._futures: list = []
+        self._running = 0
+        self._closed = False
+
+    def submit(self, fn, *args, **kwargs):
+        future = concurrent.futures.Future()
+        item = (future, fn, args, kwargs)
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("cannot schedule new futures after shutdown")
+            self._futures.append(future)
+            start = self._running < self._max
+            if start:
+                self._running += 1
+            else:
+                self._waiting.append(item)
+        if start:
+            start_kept_thread(self._drain, item, name=self._name)
+        return future
+
+    def _drain(self, item) -> None:
+        while item is not None:
+            future, fn, args, kwargs = item
+            item = None
+            if future.set_running_or_notify_cancel():
+                try:
+                    future.set_result(fn(*args, **kwargs))
+                except BaseException as exc:  # noqa: BLE001
+                    future.set_exception(exc)
+            future = fn = args = kwargs = None
+            with self._lock:
+                if self._waiting:
+                    item = self._waiting.popleft()
+                else:
+                    self._running -= 1
+
+    def shutdown(self, wait: bool = True, *, cancel_futures: bool = False) -> None:
+        with self._lock:
+            self._closed = True
+            if cancel_futures:
+                while self._waiting:
+                    self._waiting.popleft()[0].cancel()
+            futures = list(self._futures)
+        if wait:
+            concurrent.futures.wait(futures)
+
+
 def _app():
 
 
+    if _APP is not None:
+        return _APP
     try:
         return QCoreApplication.instance()
     except Exception:  # noqa: BLE001
@@ -157,13 +337,17 @@ def _app():
 
 
 def on_main_thread() -> bool:
+    if _app() is None:
+        return True
+    return threading.get_ident() == _MAIN_THREAD_ID
+
+
+def main_qthread():
+
+    if _MAIN_QTHREAD is not None:
+        return _MAIN_QTHREAD
     app = _app()
-    if app is None:
-        return True
-    try:
-        return QThread.currentThread() is app.thread()
-    except Exception:  # noqa: BLE001
-        return True
+    return app.thread() if app is not None else None
 
 
 
@@ -212,6 +396,23 @@ def calling(tool_call_id: str):
         _CALL.tool_call_id = previous
 
 
+def _without_locals(exc: BaseException) -> BaseException:
+
+
+
+
+
+
+
+    seen = set()
+    link = exc
+    while link is not None and id(link) not in seen:
+        seen.add(id(link))
+        traceback.clear_frames(link.__traceback__)
+        link = link.__cause__ or link.__context__
+    return exc
+
+
 def run_on_main_thread(fn, *args, timeout=10):
 
 
@@ -245,7 +446,7 @@ def run_on_main_thread(fn, *args, timeout=10):
             with calling(caller):
                 result_queue.put(("ok", fn(*args)))
         except Exception as exc:  # noqa: BLE001
-            result_queue.put(("err", exc))
+            result_queue.put(("err", _without_locals(exc)))
         finally:
             _WAITS.pop()
             spent = time.perf_counter() - started

@@ -237,6 +237,25 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Data key not installed: {exc}")
         try:
+
+
+            from .core import layer_egress
+
+            layer_egress.install()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Layer address check not installed: {exc}")
+        try:
+
+
+
+            from qgis.core import QgsProject
+
+            QgsProject.instance().writeProject.connect(self._on_project_write_zone)
+            QgsProject.instance().readProject.connect(self._on_project_read_zone)
+            self._on_project_read_zone()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Shared zone hooks not installed: {exc}")
+        try:
             from .ui.locator import register as register_locator
 
             self.locator_filter = register_locator(self.iface, self._show_dock, self._prefill_composer)
@@ -719,7 +738,7 @@ class AIAgentPlugin:
 
 
 
-        module = sys.modules.get(__package__ + ".tools.processing_tools")
+        module = sys.modules.get(__package__ + ".tools.processing_run")
         if module is None:
             return
         asked = module.shutdown()
@@ -840,6 +859,8 @@ class AIAgentPlugin:
 
         for label, step in (
             ("i18n", i18n.uninstall),
+            ("layer address check", self._remove_layer_egress),
+            ("shared zone hooks", self._remove_zone_hooks),
             ("map hooks", self._remove_map_hooks),
             ("locator", self._remove_locator),
             ("options page", self._remove_options_page),
@@ -911,6 +932,41 @@ class AIAgentPlugin:
         self.action = None
         self._drop_package_modules()
 
+    @staticmethod
+    def _remove_layer_egress() -> None:
+        from .core import layer_egress
+
+        layer_egress.uninstall()
+
+    @staticmethod
+    def _on_project_read_zone(*_args) -> None:
+
+        try:
+            from .core import zone_of_interest
+
+            zone_of_interest.restore_zone_layer()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Shared zone not restored: {exc}")
+
+    @staticmethod
+    def _on_project_write_zone(*_args) -> None:
+
+        try:
+            from .core import zone_of_interest
+
+            zone_of_interest.store_project_zone_shapes()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Shared zone not stored: {exc}")
+
+    def _remove_zone_hooks(self) -> None:
+        from qgis.core import QgsProject
+
+        project = QgsProject.instance()
+        for signal, slot in ((project.writeProject, self._on_project_write_zone),
+                             (project.readProject, self._on_project_read_zone)):
+            with contextlib.suppress(TypeError, RuntimeError):
+                signal.disconnect(slot)
+
     def _remove_map_hooks(self) -> None:
         hooks, self.map_hooks = self.map_hooks, None
         if hooks is not None:
@@ -958,6 +1014,21 @@ class AIAgentPlugin:
         else:
             composer.set_text(text)
         composer.focus_input()
+
+    def _take_settings_prompt(self, text: str, chip=None) -> None:
+
+
+        self._show_dock()
+        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
+        composer = getattr(panel, "composer", None)
+        if composer is not None and hasattr(composer, "take_example_prompt"):
+            composer.take_example_prompt(text, chip)
+
+    def _settings_example_chosen(self, slug: str) -> None:
+        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
+        composer = getattr(panel, "composer", None)
+        if composer is not None:
+            composer.example_chosen.emit(slug)
 
     def _pin_chip(self, chip: dict):
         panel = getattr(self.dock, "panel", None) if self.dock is not None else None
@@ -1310,12 +1381,20 @@ class AIAgentPlugin:
 
 
 
+
+        dialog.prompt_chosen.connect(self._take_settings_prompt)
+        dialog.example_chosen.connect(self._settings_example_chosen)
+
+
+
         session = getattr(self.controller, "session", None) if self.controller is not None else None
         connected_repaint = None
         if session is not None:
             def repaint_connectors(_frame=None):
                 try:
                     dialog.apply_plan()
+
+                    dialog.set_connectors()
                 except RuntimeError:
                     pass
             try:
@@ -1330,6 +1409,9 @@ class AIAgentPlugin:
                 lambda message, code: dialog.set_account_info({"error": message, "error_code": code}))
             dialog.refresh_requested.connect(account.fetch_account_async)
             dialog.sign_out_requested.connect(account.sign_out)
+
+
+            dialog.sign_in_requested.connect(self.controller._on_sign_in)
             dialog.delete_account_requested.connect(account.delete_account_async)
             if account.has_activation_key:
                 account.fetch_account_async()

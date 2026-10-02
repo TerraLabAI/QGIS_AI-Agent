@@ -14,24 +14,29 @@ import urllib.request
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsCoordinateTransformContext,
     QgsDataSourceUri,
+    QgsExpression,
+    QgsOgcUtils,
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
-    QgsVectorLayer,
 )
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
 from ..core import limits, links, net, tuning
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.follow import view_kept
-from ..core.layer_order import mark_truncated_count
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import crs_problem, encode_uri_url
-from ..core.quiet_credentials import no_login_prompt
+from ..core.qt_compat import enum_member
+from ..core.quiet_credentials import hold_from_worker, no_login_prompt, release_from_worker
 from ..core.tool_registry import tool_error
 from . import elevation_style, ogc_inspect, volume_guard
 from .data_basemaps import _stacked
-from .data_common import _CACHE_CATALOG_S, _USER_AGENT, _avoid_reserved_name, _run_on_main_thread
+from .data_common import _CACHE_CATALOG_S, _USER_AGENT, _avoid_reserved_name, built_here, worker_options
 
 
 
@@ -130,10 +135,10 @@ def _wmts_uri(url: str, layer: str, described: dict) -> tuple[str, dict] | None:
     img_format = next((f for f in row["formats"] if f.endswith("png")), (row["formats"] or ["image/png"])[0])
     style = (row["styles"] or ["default"])[0]
     uri = (f"url={encode_uri_url(_wmts_capabilities_url(url))}"
-           f"&layers={urllib.parse.quote(layer)}"
-           f"&styles={urllib.parse.quote(style)}"
-           f"&format={urllib.parse.quote(img_format)}"
-           f"&tileMatrixSet={urllib.parse.quote(chosen)}"
+           f"&layers={encode_uri_url(layer)}"
+           f"&styles={encode_uri_url(style)}"
+           f"&format={encode_uri_url(img_format)}"
+           f"&tileMatrixSet={encode_uri_url(chosen)}"
            f"&crs={crs}")
     return uri, {"tile_matrix_set": chosen, "crs": crs, "format": img_format, "style": style}
 
@@ -144,6 +149,62 @@ def _is_wmts(url: str) -> bool:
     query = urllib.parse.parse_qs(parts.query)
     service = next((v[0] for k, v in query.items() if k.lower() == "service"), "")
     return service.upper() == "WMTS" or "wmts" in parts.path.lower()
+
+
+def _wms_built_here(uri: str, name: str) -> list:
+
+
+
+
+
+
+
+
+
+
+    if on_main_thread():
+        return []
+    try:
+        held = hold_from_worker()
+    except TimeoutError:
+        return []
+    if not held:
+        return []
+
+    def make():
+        layer = QgsRasterLayer(uri, name, "wms", worker_options(QgsRasterLayer))
+
+
+
+
+        return layer if layer.isValid() else None
+
+    try:
+        layer = built_here(make)
+    finally:
+        release_from_worker()
+
+        deferred = enum_member(QEvent, "Type", "DeferredDelete")
+        QCoreApplication.sendPostedEvents(None, int(getattr(deferred, "value", deferred)))
+    return [layer] if layer is not None else []
+
+
+def _wms_layer(ready: list, uri: str, name: str):
+
+
+    if ready:
+        return ready.pop()
+    with no_login_prompt():
+        return QgsRasterLayer(uri, name, "wms")
+
+
+def _drop_unused(ready: list) -> None:
+
+
+    if ready:
+        layer = ready.pop()
+        sip.transferto(layer, None)
+        layer.deleteLater()
 
 
 def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
@@ -176,10 +237,10 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
                 "code": "EXECUTION_FAILED",
                 "suggestion": ("A tile matrix set in an EPSG code works, or the service loads as a "
                                "WMS with add_wms_layer.")}
+    ready = _wms_built_here(uri, name)
 
     def _create():
-        with no_login_prompt():
-            made = QgsRasterLayer(uri, name, "wms")
+        made = _wms_layer(ready, uri, name)
         if not made.isValid():
             return {"_invalid": True}
         view = _canvas_scale()
@@ -192,7 +253,10 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
             out["_canvas_scale"] = view
         return out
 
-    out = _run_on_main_thread(_create, timeout=30)
+    try:
+        out = run_on_main_thread(_create, timeout=30)
+    finally:
+        _drop_unused(ready)
     if out.get("_invalid"):
         return {"_error": f"The WMTS layer {layer!r} would not load from {url}.",
                 "code": "EXECUTION_FAILED",
@@ -232,7 +296,7 @@ def _add_wcs_layer(args: dict) -> dict:
     def _create():
         errors = []
         for candidate in _wcs_names(coverage):
-            uri = (f"url={encode_uri_url(base)}&identifier={urllib.parse.quote(candidate)}"
+            uri = (f"url={encode_uri_url(base)}&identifier={encode_uri_url(candidate)}"
                    + (f"&crs={crs}" if crs else ""))
             layer = QgsRasterLayer(uri, name, "wcs")
             if layer.isValid():
@@ -242,7 +306,7 @@ def _add_wcs_layer(args: dict) -> dict:
             return {"_invalid": errors[0] if errors else "no answer"}
         return {"layer": layer, "candidate": candidate, "window": _wcs_sample_window(layer)}
 
-    made = _run_on_main_thread(_create, timeout=60)
+    made = run_on_main_thread(_create, timeout=60)
     if "_invalid" in made:
         return {"_error": f"The WCS coverage {coverage!r} would not load from {base}: {made['_invalid']}",
                 "_code": "EXECUTION_FAILED",
@@ -268,7 +332,7 @@ def _add_wcs_layer(args: dict) -> dict:
                           "read is a request. For slope, contours, hillshade or statistics add the same coverage "
                           "again with bbox, which writes that box to a local GeoTIFF.")}
 
-    return _run_on_main_thread(_add, timeout=30)
+    return run_on_main_thread(_add, timeout=30)
 
 
 
@@ -471,7 +535,7 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
                 "_note": ("The box was downloaded from the WCS as a GeoTIFF of the real values and is read from "
                           "this machine: slope, contours, hillshade and zonal statistics run on it directly.")}
 
-    return _run_on_main_thread(_create, timeout=60)
+    return run_on_main_thread(_create, timeout=60)
 
 
 
@@ -584,12 +648,16 @@ def _add_wms_layer(args: dict) -> dict:
 
 
 
+
+
+
+
     names = [part.strip() for part in str(layers).split(",") if part.strip()] or [str(layers)]
     uri = (
         f"url={encode_uri_url(url)}"
-        + "".join(f"&layers={urllib.parse.quote(part)}&styles=" for part in names)
+        + "".join(f"&layers={encode_uri_url(part)}&styles=" for part in names)
         + f"&crs={crs}"
-        f"&format={urllib.parse.quote(img_format)}"
+        f"&format={encode_uri_url(img_format)}"
     )
 
 
@@ -603,10 +671,10 @@ def _add_wms_layer(args: dict) -> dict:
     if not answered:
         return tool_error(f"The WMS at {url} did not load: {silent_why}.",
                           code=net.NETWORK_ERROR, suggestion=net.NETWORK_SUGGESTION)
+    ready = _wms_built_here(uri, name)
 
     def _create():
-        with no_login_prompt():
-            layer = QgsRasterLayer(uri, name, "wms")
+        layer = _wms_layer(ready, uri, name)
         if not layer.isValid():
 
 
@@ -624,7 +692,10 @@ def _add_wms_layer(args: dict) -> dict:
             out["_canvas_scale"] = view
         return out
 
-    made = _run_on_main_thread(_create, timeout=30)
+    try:
+        made = run_on_main_thread(_create, timeout=30)
+    finally:
+        _drop_unused(ready)
     if isinstance(made, dict) and made.get("_wms_invalid"):
         return _wms_failure(url, names, made.get("qgis_message") or "")
     if isinstance(made, dict) and not made.get("_error"):
@@ -850,58 +921,7 @@ def _wfs_restrict_to_view(hits: int, max_features: int | None = None) -> bool:
 
 
 
-
     return hits > WFS_WARN_FEATURES or (max_features is not None and hits > max_features)
-
-
-def _misses_the_view(layer) -> str:
-
-
-
-
-
-
-
-
-
-    try:
-        from qgis.utils import iface as qgis_iface
-
-        canvas = qgis_iface.mapCanvas() if qgis_iface is not None else None
-        if canvas is None:
-            return ""
-        view = canvas.extent()
-        if view.isEmpty():
-            return ""
-        extent = layer.extent()
-        if extent.isEmpty():
-            return "The layer reports an empty extent, so nothing will draw."
-        target = canvas.mapSettings().destinationCrs()
-        if layer.crs().isValid() and target.isValid() and layer.crs() != target:
-            extent = QgsCoordinateTransform(layer.crs(), target,
-                                            QgsProject.instance()).transformBoundingBox(extent)
-        if extent.intersects(view):
-            return ""
-        return ("The layer's own extent does not reach the current view, so the map will look "
-                "empty. Either the service published a wrong bounding box, or the data is "
-                "somewhere else: zoom_to_layer shows where it says it is.")
-    except Exception:  # noqa: BLE001
-        return ""
-
-
-def _gpkg_misses_the_view(layer_id) -> str:
-
-    layer = QgsProject.instance().mapLayer(layer_id) if layer_id else None
-    return _misses_the_view(layer) if layer is not None else ""
-
-
-def _mark_wfs_truncated(layer_id: str, count) -> None:
-
-    if not isinstance(count, int):
-        return
-    layer = QgsProject.instance().mapLayer(layer_id)
-    if layer is not None:
-        mark_truncated_count(layer, count)
 
 
 def _bbox_ring_filter(west: float, south: float, east: float, north: float) -> str:
@@ -949,7 +969,9 @@ def _wfs_area(bbox, crs="EPSG:4326"):
     wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
     if dst.isValid() and dst != wgs84:
         try:
-            box = QgsCoordinateTransform(wgs84, dst, QgsProject.instance()).transformBoundingBox(
+
+
+            box = QgsCoordinateTransform(wgs84, dst, QgsCoordinateTransformContext()).transformBoundingBox(
                 QgsRectangle(west, south, east, north))
         except Exception as exc:  # noqa: BLE001
             return {"_error": f"bbox cannot be expressed in {crs}: {exc}", "code": "INVALID_ARGS",
@@ -958,11 +980,39 @@ def _wfs_area(bbox, crs="EPSG:4326"):
     return _bbox_ring_filter(west, south, east, north)
 
 
+def _wfs_where(where) -> str | dict:
+
+
+
+
+
+
+
+
+
+
+    from qgis.PyQt.QtXml import QDomDocument
+
+    text = str(where or "").strip()
+    if not text:
+        return ""
+    expression = QgsExpression(text)
+    if expression.hasParserError():
+        return tool_error(f"where is not an expression QGIS can read: {expression.parserErrorString().strip()}",
+                          "INVALID_ARGS",
+                          "where is a QGIS expression on the type's own fields, field names in double quotes "
+                          "and text in single quotes: \"height\" > 30 AND \"use\" = 'industrial'.")
+    if QgsOgcUtils.expressionToOgcFilter(expression, QDomDocument()).isNull():
+        return tool_error("QGIS has no OGC filter for this where, so the service cannot be asked it; nothing was "
+                          "loaded.", "INVALID_ARGS",
+                          "=, <>, <, >, AND, OR, NOT, IN, LIKE, ILIKE, IS NULL and + - * / on the type's fields "
+                          "have an OGC form, and other functions go to the service by name; BETWEEN, NOT LIKE, "
+                          "CASE, $area, $length and the other $ values, and the %, ^, //, || and ~ operators "
+                          "have none.")
+    return text
+
+
 def _canvas_extent_in(crs: str) -> list[float] | None:
-
-
-
-
 
 
 
@@ -1006,8 +1056,12 @@ def _add_wfs_layer(args: dict) -> dict:
     area = _wfs_area(args.get("bbox"), crs)
     if isinstance(area, dict):
         return area
+    where = _wfs_where(args.get("where"))
+    if isinstance(where, dict):
+        return where
 
 
+    lifted = volume_guard.lifted(args)
     default_cap = 1000
     try:
 
@@ -1027,38 +1081,14 @@ def _add_wfs_layer(args: dict) -> dict:
         return {"_error": problem, "_code": "INVALID_ARGS",
                 "_suggestion": "The CRS goes on its own, without any other provider parameter."}
 
+
+    net.check_url(url)
     hits = _wfs_hits(url, typename, crs)
     whole = hits
-    if volume_guard.lifted(args):
-
-
-
-        from .data_wfs_extract import extract
-
-        net.check_url(url)
-        whole_source = QgsDataSourceUri()
-        for key, value in (("url", url), ("typename", typename), ("srsname", crs), ("version", "2.0.0")):
-            whole_source.setParam(key, value)
-        if area:
-            whole_source.setParam("filter", area)
-        made = extract(url, typename, name, whole_source.uri(False), None if area else hits)
-        if made.get("_invalid"):
-            return {"_error": _wfs_failure(url, typename, crs, made.get("_qgis_message") or "", hits)}
-        if not made.get("_error"):
-            if area:
-                made["bbox"] = args.get("bbox")
-                if whole is not None:
-                    made["features_in_type"] = whole
-            missed = _run_on_main_thread(_gpkg_misses_the_view, made.get("layer_id"), timeout=10)
-            if missed:
-                made["_note"] = missed
-        return made
-    if area:
+    if area or where:
 
 
         hits = None
-    restrict = _wfs_restrict_to_view(hits, max_features) if hits is not None else False
-    warning = suggestion = ""
 
 
 
@@ -1068,8 +1098,8 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
     view_filter = ""
-    if restrict and not area:
-        canvas_box = _run_on_main_thread(_canvas_extent_in, crs, timeout=10)
+    if not lifted and not area and (where or (whole is not None and _wfs_restrict_to_view(whole, max_features))):
+        canvas_box = run_on_main_thread(_canvas_extent_in, crs, timeout=10)
         if isinstance(canvas_box, list):
             west, south, east, north = canvas_box
             if west < east and south < north:
@@ -1086,80 +1116,120 @@ def _add_wfs_layer(args: dict) -> dict:
     source.setParam("typename", typename)
     source.setParam("srsname", crs)
     source.setParam("version", "2.0.0")
-    source.setParam("maxNumFeatures", str(max_features))
-    if restrict:
+    if not lifted:
+        source.setParam("maxNumFeatures", str(max_features))
 
 
 
-        source.setParam("restrictToRequestBBOX", "1")
-    if area or view_filter:
+    narrowing = area or ("" if where else view_filter)
+    parts = [part for part in (narrowing, where) if part]
+    if parts:
+        source.setParam("filter", parts[0] if len(parts) == 1 else " AND ".join(f"({part})" for part in parts))
 
 
-        source.setParam("filter", area or view_filter)
-    uri = source.uri(False)
 
-    def _create():
-        with no_login_prompt():
-            layer = QgsVectorLayer(uri, name, "WFS")
-        if not layer.isValid():
+    from .data_wfs_extract import extract
 
-
-            try:
-                said = layer.error().summary()
-            except Exception:  # noqa: BLE001
-                said = ""
-            return {"_invalid": True, "_qgis_message": said}
-        QgsProject.instance().addMapLayer(layer)
-        out = {
-            "layer_name": layer.name(),
-            "layer_id": layer.id(),
-            "feature_count": layer.featureCount(),
-            "url": url,
-            "typename": typename,
-        }
-        missed = _misses_the_view(layer)
-        if missed:
-            out["_note"] = missed
-        return out
-
-    out = _run_on_main_thread(_create, timeout=30)
+    out = extract(url, typename, name, source.uri(False),
+                  count_at=max_features if hits is None and not lifted else None,
+                  view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None)
     if out.get("_invalid"):
         return {"_error": _wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits)}
+    fields = out.pop("_fields", None)
     if out.get("_error"):
+        if where and fields:
+
+            out["suggestion"] = f"The request's where was: {where}. {typename}'s fields: {', '.join(fields)}."
         return out
+    out.update({"url": url, "typename": typename, "provider": "WFS written to a GeoPackage"})
+    if where:
+        out["where"] = where
     if area:
         out["bbox"] = [round(v, 6) for v in args["bbox"]] if isinstance(args.get("bbox"), (list, tuple)) \
             else args.get("bbox")
-        if whole is not None:
-            out["features_in_type"] = whole
-    if hits is not None:
+    if (area or where) and whole is not None:
+        out["features_in_type"] = whole
+    count = out.get("feature_count")
+    matched = out.pop("_matched", None)
+    ended_by = out.pop("_ended_by", "")
+    broken = out.pop("_service_error", "")
+    counted, in_view = out.pop("_where_count", None), out.pop("_in_view", False)
+    if where and view_filter:
+
+
+        view_filter = view_filter if in_view else ""
+        hits = counted if isinstance(counted, int) and counted > 0 else None
+    warning = suggestion = ""
+    if not lifted and hits is not None:
         out["features_available"] = hits
         out["estimated_bytes"] = hits * WFS_WIRE_BYTES_PER_FEATURE
-
-
-
+    if not lifted and (hits is not None or view_filter):
         out["restricted_to_view"] = bool(view_filter)
+    if hits is None and not view_filter and isinstance(matched, int) and isinstance(count, int) and matched > count:
+
+
+
+        hits = out["features_available"] = matched
+    if ended_by:
+        out["coverage"] = "partial"
+        why = ("the clock ran out" if ended_by == "clock"
+               else "the disk cap or the free space was reached")
+        warning = (f"Only {count:,} features were written before {why}, "
+                   "the first ones in the service's own order, which can all lie in one part of the area.")
+        suggestion = ("A smaller bbox per call, with the same full_extent, reads the rest." if lifted
+                      else "A smaller bbox per call reads the rest.")
+    elif broken:
+        out["coverage"] = "partial"
+        warning = f"The service broke the download off after {count:,} features. QGIS said: {broken}"
+    elif lifted:
+        if isinstance(hits, int) and hits > 0 and isinstance(count, int) and count < hits:
+            out["features_available"] = hits
+            out["coverage"] = "partial"
+            warning = (f"{count:,} of the {hits:,} features the service counts came back: "
+                       "it stops a request there and does not page past it.")
+            suggestion = "Smaller boxes with bbox read the rest of the type."
+    else:
+        warning, suggestion = _capped_words(out, url, typename, crs, count, hits, max_features, ceiling,
+                                            view_filter, where)
+    if where and count == 0 and not warning:
+        place = " inside the box" if area else (" under the map view" if view_filter else "")
+        warning = f"The service returned no feature of {typename} matching the where{place}; the layer is empty."
+    if warning:
+        out["warning"] = warning
+    if suggestion:
+        out["suggestion"] = suggestion
+    return out
+
+
+_WHERE_WORDS = (" add_data with where, an attribute filter the service applies, reads only the matching "
+                "features, and max_features counts those.")
+
+
+def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max_features: int,
+                  ceiling: int, view_filter: str, where: str = "") -> tuple[str, str]:
+
+
+
+
+    warning = suggestion = ""
     if view_filter:
 
 
 
-
-
-
-        warning = (f"Only the features under the map view are fetched, up to {max_features:,}: this "
-                   f"type name has {hits:,} of them. An expression filter, get_features or a Processing "
-                   "run sees nothing outside the current view, however right the field name is.")
-        suggestion = ("set_layer_filter sends the expression to the service, so the layer "
-                      "holds that subset wherever the map is; a zoom to the area fetches the "
-                      "view's features.")
-    count = out.get("feature_count")
-    if isinstance(count, int) and count > max_features:
-
-
-
-        if hits is None:
-            hits = out["features_available"] = count
-        count = out["feature_count"] = max_features
+        if where:
+            matches = (f"{hits:,} features of this type name match it" if hits
+                       else "the service gave no count of its matches")
+            warning = (f"Only the features matching the where under the map view are fetched, up to "
+                       f"{max_features:,}: {matches}. An expression filter, get_features or a Processing run "
+                       "sees nothing outside the current view.")
+        else:
+            warning = (f"Only the features under the map view are fetched, up to {max_features:,}: this "
+                       f"type name has {hits:,} of them. An expression filter, get_features or a Processing "
+                       "run sees nothing outside the current view, however right the field name is.")
+        suggestion = ("The layer is a local copy of that view: a zoom or a pan fetches nothing more, and "
+                      "set_layer_filter filters the features it holds and asks the service nothing. "
+                      "add_data with bbox [west, south, east, north] reads another area from the service.")
+        suggestion += "" if where else _WHERE_WORDS
 
 
 
@@ -1176,15 +1246,6 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
         out["truncated"] = True
-
-
-
-
-
-
-        layer_id = out.get("layer_id")
-        if layer_id:
-            _run_on_main_thread(_mark_wfs_truncated, layer_id, count)
         if hits is not None:
             warning = (f"Only {count:,} of the {hits:,} features were loaded, the first {count:,} in the "
                        "service's own order, which can all lie in one part of its coverage: a filter, a "
@@ -1196,10 +1257,11 @@ def _add_wfs_layer(args: dict) -> dict:
         else:
             warning = (f"Exactly {count:,} features came back, which is the request cap: the layer "
                        "is probably truncated.")
-        suggestion = (f"add_data with bbox [west, south, east, north] around the area needed, which the "
-                      f"service answers alone, or set_layer_filter, which sends the "
-                      f"expression to the service. Either answers up to {ceiling:,} features for one layer; "
-                      f"more than that needs a smaller box or a narrower filter, not a larger number.")
+        suggestion = (f"add_data with bbox [west, south, east, north] around the area needed reads that box "
+                      f"from the service, which answers it alone, up to {ceiling:,} features for one layer; "
+                      "more than that needs a smaller box, not a larger number. The layer is a local copy: "
+                      "set_layer_filter filters the features it holds and asks the service nothing.")
+        suggestion += "" if where else _WHERE_WORDS
     if view_filter and count == 0 and hits:
 
 
@@ -1220,12 +1282,11 @@ def _add_wfs_layer(args: dict) -> dict:
         out["empty_in_view"] = True
         warning = (f"The layer loaded and holds nothing: the service returned no feature under the "
                    f"map view, although this type name has {hits:,} in total.")
+        if where:
+            warning = (f"The layer loaded and holds nothing: the service returned no feature matching the "
+                       f"where under the map view, although {hits:,} features of this type name match it.")
         suggestion = (f"Either the view is over ground this type does not cover, or the service "
                       f"disagrees about a bbox in {crs}. A view over an area it covers, or "
                       f"the CRS the service uses natively, answers"
                       + (f": it also offers {', '.join(offered[:_WFS_CRS_SHOWN])}." if offered else "."))
-    if warning:
-        out["warning"] = warning
-    if suggestion:
-        out["suggestion"] = suggestion
-    return out
+    return warning, suggestion

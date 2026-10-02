@@ -198,7 +198,7 @@ class PairingPollTask(QgsTask):
         if offline_streak >= self.OFFLINE_STREAK:
 
             self._failure = (
-                tr("No connection to the sign-in service. Check your internet "
+                tr("Can't reach TerraLab. Check your internet "
                    "connection, then click Sign in to try again."),
                 "NO_INTERNET")
             return False

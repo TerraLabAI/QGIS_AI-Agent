@@ -7,8 +7,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import os
@@ -17,36 +15,17 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.tool_registry import NAMED_LAYER, Tool, ToolRegistry
 from . import guards
-from .layer_io_tools import (  # noqa: F401
+from .layer_io_tools import (
     _add_field,
-    _add_point_cloud_layer,
-    _add_raster_layer,
     _add_vector_layer,
-    _add_vector_layer_is_remote,
     _export_layer,
-    _sublayer_names,
-    describe_sublayers,
 )
-from .layer_lookup import (  # noqa: F401
-    _field_not_found_error,
-    _find_layer,
-    _jsonable_value,
-    _layer_not_found_error,
-)
+from .layer_lookup import _find_layer
 from .model_export import FORMATS as MODEL_FORMATS
 from .model_export import MAX_CELLS_CEILING as MODEL_MAX_CELLS
 from .model_export import _export_3d_model
-from .processing_tools import (  # noqa: F401
-    _PROCESSING_TASKS,
-    _cancel_task,
-    _get_algorithm_help,
-    _get_task_status,
-    _list_algorithms,
-    _list_tasks,
-    _process_outputs,
-    _run_processing,
-    _sweep_consumed_tasks,
-)
+from .processing_help import _get_algorithm_help, _list_algorithms
+from .processing_run import _cancel_task, _get_task_status, _list_tasks, _run_processing, prepare_inputs
 from .project_tools import (
     _get_layer_info,
     _get_project_context,
@@ -71,6 +50,7 @@ from .style_tools import (
     _set_layer_labels,
     _set_layer_legend_image,
     _set_layer_style,
+    _style_reads_rows,
 )
 
 
@@ -132,6 +112,9 @@ def register_core_tools(registry: ToolRegistry):
         label=QT_TRANSLATE_NOOP("AIAgent", "List the layers"),
         input_schema={
             "type": "object",
+
+
+            "x-verbose-extent": True,
             "properties": {
                 "verbose": {
                     "type": "boolean",
@@ -186,8 +169,7 @@ def register_core_tools(registry: ToolRegistry):
         handler=_add_vector_layer,
 
 
-
-        background=_add_vector_layer_is_remote,
+        background=True,
     ))
 
 
@@ -299,6 +281,9 @@ def register_core_tools(registry: ToolRegistry):
             "required": ["algorithm_id", "parameters"],
         },
         handler=_run_processing,
+
+
+        prepare=prepare_inputs,
         always_confirm=_runs_a_script,
         argument_check=guards.paid_algorithm_refusal,
         processing=_processing_plan,
@@ -374,8 +359,13 @@ def register_core_tools(registry: ToolRegistry):
             "properties": {
                 "layer_name": {"type": "string"},
                 "field": {"type": "string"},
+                "group_by": {"type": "string"},
+                "filter": {"type": "string"},
             },
             "required": ["layer_name", "field"],
+
+
+            "x-field-expression": True,
         },
         handler=_get_field_statistics,
 
@@ -430,10 +420,13 @@ def register_core_tools(registry: ToolRegistry):
                 "layer_name": {"type": "string"},
                 "band": {"type": "integer", "minimum": 1, "maximum": 65535},
                 "class_counts": {"type": "boolean"},
+                "ranges": {"type": "array", "items": {"type": "array", "items": {"type": ["number", "null"]},
+                                                      "minItems": 2, "maxItems": 2}, "maxItems": 50},
             },
             "required": ["layer_name"],
         },
         handler=_get_raster_band_stats,
+
 
 
 
@@ -533,12 +526,21 @@ def register_core_tools(registry: ToolRegistry):
 
                 "breaks": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 101},
                 "invert_ramp": {"type": "boolean"},
+                "color_stops": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 8},
                 "null_class_label": {"type": "string"},
                 "value_expression": {"type": "string"},
+                "categories": {"type": "array", "items": {
+                    "type": "object", "required": ["value"], "properties": {
+                        "value": {"type": ["string", "number", "boolean", "null"]}, "label": {"type": "string"},
+                        "color": {"type": "string"}, "size": {"type": "number"}, "width": {"type": "number"}}}},
             },
             "required": ["layer_name", "style_type"],
         },
         handler=_set_layer_style,
+
+
+
+        background=_style_reads_rows,
     ))
 
     registry.register(Tool(
@@ -559,7 +561,7 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="list_algorithms",
         danger="read",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Search the processing tools[ for {query}]"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Search the processing tools[ for {search}]"),
         input_schema={
             "type": "object",
             "properties": {
@@ -772,20 +774,3 @@ def register_core_tools(registry: ToolRegistry):
         },
         handler=_flash_features,
     ))
-
-
-
-
-__all__ = [
-    "register_core_tools",
-    "_PROCESSING_TASKS",
-    "_add_point_cloud_layer",
-    "_field_not_found_error",
-    "_find_layer",
-    "_jsonable_value",
-    "_layer_not_found_error",
-    "_process_outputs",
-    "_sublayer_names",
-    "_sweep_consumed_tasks",
-    "describe_sublayers",
-]

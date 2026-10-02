@@ -12,11 +12,12 @@ import urllib.request
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
 
 from ..core import net
+from ..core.background import run_on_main_thread
 from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
-from .data_common import _canvas_viewbox_4326, _fold, _is_number, _run_on_main_thread, _viewbox_bounds
+from .data_common import _canvas_viewbox_4326, _fold, _is_number, _viewbox_bounds
 from .data_geocoding import (
     _PLACE_AREA_LAYERS,
     _arrondissement_key,
@@ -148,7 +149,7 @@ def _outline_of_layer(name: str):
         return {"polys": polys, "label": layer.name(), "outline_source": f"layer {layer.name()}",
                 "selected_only": bool(selected)}
 
-    return _run_on_main_thread(_read, timeout=30)
+    return run_on_main_thread(_read, timeout=30)
 
 
 def _place_tier(hit: dict) -> int:
@@ -249,7 +250,7 @@ def _place_hit(name: str, hits: list) -> dict:
         if same:
             return min(same, key=lambda hit: _box_area(_hit_box(hit) or (0, 0, 360, 180)))
     tier = _place_tier(first)
-    viewbox = _run_on_main_thread(_canvas_viewbox_4326)
+    viewbox = run_on_main_thread(_canvas_viewbox_4326)
     if tier >= 2 or _in_near_view(first, viewbox):
         return first
     larger = next((hit for hit in hits[1:] if _place_tier(hit) >= 2), None)

@@ -31,6 +31,7 @@ from ..core import layer_order, limits
 from ..core.crs_ref import crs_ref
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import raster_overviews
 from ._compat import (
     CONTRAST_CLIP_MINMAX,
     CONTRAST_NONE,
@@ -49,6 +50,7 @@ from ._compat import (
     is_vector,
 )
 from ._layers import layer_not_found, resolve_layer
+from .colour_text import qcolor_from_text
 from .processing_guards import crs_plausibility
 
 RASTER_STYLES = ("singleband_pseudocolor", "singleband_gray", "multiband_color", "hillshade", "paletted")
@@ -126,6 +128,9 @@ def register_harvest_layers_tools(registry: ToolRegistry):
             "required": ["layer_name", "style_type"],
         },
         handler=_set_raster_style,
+
+
+        prepare=raster_overviews.prepare_raster_style,
     ))
 
     registry.register(Tool(
@@ -381,7 +386,7 @@ def _raster(name: str):
 
 
 def _field_error(layer, field_name: str) -> dict:
-    from .core_tools import _field_not_found_error
+    from .layer_lookup import _field_not_found_error
 
     return _field_not_found_error(layer, field_name)
 
@@ -426,14 +431,13 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
 
 
     from qgis.core import QgsColorBrewerColorRamp, QgsGradientColorRamp, QgsGradientStop
-    from qgis.PyQt.QtGui import QColor
 
     invert = args.get("invert_ramp") is True
     stops = args.get("color_stops") or []
     if stops:
         colours = []
         for value in stops:
-            colour = QColor(str(value))
+            colour = qcolor_from_text(str(value))
             if not colour.isValid():
                 return None, "", tool_error(f"color_stops: {value!r} is not a colour.", "INVALID_ARGS",
                                             "Hex colours such as ['#ffffff', '#add8e6'], lowest value first.")
@@ -485,9 +489,15 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
 def _band_span(provider, band: int, low, high) -> tuple:
 
     if low is None or high is None:
-        stats = provider.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
-        low = stats.minimumValue if low is None else low
-        high = stats.maximumValue if high is None else high
+        from .raster_overviews import read_ahead
+
+        def measure() -> tuple:
+            stats = provider.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
+            return stats.minimumValue, stats.maximumValue
+
+        found_low, found_high = read_ahead(("stats", int(band)), measure)
+        low = found_low if low is None else low
+        high = found_high if high is None else high
     return float(low), float(high)
 
 
@@ -601,6 +611,12 @@ def _set_raster_style(args: dict) -> dict:
     layer, error = _raster(args["layer_name"])
     if error:
         return error
+
+    with raster_overviews.answers_for(layer):
+        return _style_raster(layer, args)
+
+
+def _style_raster(layer, args: dict) -> dict:
     provider = layer.dataProvider()
     band_count = provider.bandCount()
     style_type = args["style_type"]
@@ -809,9 +825,21 @@ def _build_hillshade(job: dict) -> tuple:
         return None, None, error
     light = {"azimuth": float(args.get("azimuth", 315.0)), "altitude": float(args.get("altitude", 45.0))}
     z_factor = float(args.get("z_factor", 1.0))
+    applied = {"band": band, **light, "z_factor": z_factor}
+
+
+    from .elevation_style import degrees_z_factor
+
+    metres = degrees_z_factor(job["layer"])
+    if metres:
+        z_factor *= metres
+        applied.update({"z_factor": z_factor, "z_factor_exaggeration": applied["z_factor"],
+                        "z_factor_note": ("the DEM's cells are degrees and its heights metres: z_factor is the "
+                                          "exaggeration times 1 / (111320 * cos(latitude)), the metres per degree "
+                                          "at this layer's latitude")})
     renderer = QgsHillshadeRenderer(job["provider"], band, light["azimuth"], light["altitude"])
     renderer.setZFactor(z_factor)
-    return renderer, {"band": band, **light, "z_factor": z_factor}, None
+    return renderer, applied, None
 
 
 def _build_paletted(job: dict) -> tuple:
@@ -835,9 +863,17 @@ def _build_paletted(job: dict) -> tuple:
         if error:
             return None, None, error
     renderer = paletted_renderer(layer, band, codes, ramp)
+    try:
+        colours = [entry.color.name() for entry in renderer.classes()][:30]
+    except Exception:  # noqa: BLE001
+        colours = []
+
+
     return renderer, {"band": band, "classes": len(codes), "codes": codes[:30],
-                      "note": "codes read from QGIS's histogram of the band (250 000 pixel sample); name each "
-                              "class with set_raster_class_style labels"}, None
+                      **({"colours": colours} if colours else {}),
+                      "note": "codes read from QGIS's histogram of the band (250 000 pixel sample); the colours "
+                              "run through color_stops or color_ramp in code order, a default ramp without them; "
+                              "set_raster_class_style sets each code's own colour and label"}, None
 
 
 _RASTER_BUILDERS = {
@@ -1389,8 +1425,7 @@ _ISO_WITH_MS = enum_member(Qt, "DateFormat", "ISODateWithMs")
 
 def _is_remote_vector(layer) -> bool:
 
-    provider = layer.dataProvider()
-    return provider is not None and provider.name().lower() in layer_order.WEB_SERVICE_PROVIDERS
+    return layer_order.is_web_service(layer)
 
 
 def _join_key(value):

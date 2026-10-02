@@ -258,11 +258,17 @@ class _Document:
         self._expand_object_streams()
 
     def _scan(self, data: bytes) -> None:
-        for match in _OBJ.finditer(data):
-            if len(self.objects) >= _MAX_OBJECTS:
+
+
+
+        position = 0
+        while len(self.objects) < _MAX_OBJECTS:
+            match = _OBJ.search(data, position)
+            if match is None:
                 return
             number = int(match.group(1))
             end = data.find(b"endobj", match.end())
+            position = end + len(b"endobj") if end >= 0 else match.end()
             body = data[match.end():end if end >= 0 else len(data)]
             stream = b""
             cut = body.find(b"stream")

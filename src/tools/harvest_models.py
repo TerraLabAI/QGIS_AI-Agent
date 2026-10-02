@@ -52,8 +52,14 @@ from ..core.logger import log, log_warning
 from ..core.security import expand_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
-from .core_tools import _process_outputs, _run_processing
 from .data_tools import _avoid_reserved_name
+from .processing_run import (
+    _process_outputs,
+    _run_processing,
+    offered_inputs,
+    prepare_remote_rasters,
+    take_prepared_inputs,
+)
 
 
 
@@ -71,6 +77,22 @@ def _batch_plan(args: dict) -> tuple[str, list]:
 
 def _model_plan(args: dict) -> tuple[str, list]:
     return str(args.get("model") or ""), [args.get("parameters")]
+
+
+def _prepare_batch(args: dict):
+
+    try:
+        alg = QgsApplication.processingRegistry().algorithmById(_resolve_algorithm_id(args["algorithm"]))
+    except (_SpecError, KeyError):
+        return None
+    return prepare_remote_rasters(alg, list(args.get("parameters_list") or []))
+
+
+def _prepare_model(args: dict):
+
+    model = str(args.get("model") or "").strip()
+    alg = _model_from_file(model)[0] if model.lower().endswith(".model3") else _registered_model(model)[0]
+    return prepare_remote_rasters(alg, [args.get("parameters")])
 
 
 def register_harvest_models_tools(registry: ToolRegistry):
@@ -101,6 +123,8 @@ def register_harvest_models_tools(registry: ToolRegistry):
             "required": ["algorithm", "parameters_list"],
         },
         handler=_execute_processing_batch,
+
+        prepare=_prepare_batch,
         processing=_batch_plan,
     ))
 
@@ -145,6 +169,7 @@ def register_harvest_models_tools(registry: ToolRegistry):
             "required": ["model"],
         },
         handler=_run_model,
+        prepare=_prepare_model,
         processing=_model_plan,
     ))
 
@@ -795,7 +820,8 @@ def _processing_capability_audit(focus: str) -> dict:
     }
 
 
-def _main_thread_entry(algorithm_id: str, index: int, parameters, layer_name, ends_at: float, budget: float) -> dict:
+def _main_thread_entry(algorithm_id: str, index: int, parameters, layer_name, ends_at: float, budget: float,
+                       prepared=None) -> dict:
 
     if not isinstance(parameters, dict):
         return {"index": index, "status": "error", "message": "each parameters_list entry must be an object"}
@@ -803,7 +829,8 @@ def _main_thread_entry(algorithm_id: str, index: int, parameters, layer_name, en
         return {"index": index, "status": "skipped",
                 "message": f"Batch budget of {budget:g}s exhausted before this run started"}
     began = time.monotonic()
-    outcome = _run_processing({"algorithm_id": algorithm_id, "parameters": parameters, "output_name": layer_name})
+    with offered_inputs(prepared or {}):
+        outcome = _run_processing({"algorithm_id": algorithm_id, "parameters": parameters, "output_name": layer_name})
     line = {"index": index, "seconds": round(time.monotonic() - began, 2)}
     failure = outcome.get("_error") if isinstance(outcome, dict) else None
     background = outcome.get("task_id") if isinstance(outcome, dict) else None
@@ -823,23 +850,25 @@ def _main_thread_entry(algorithm_id: str, index: int, parameters, layer_name, en
 
 
 def _execute_processing_batch(args: dict) -> dict:
+
+    prepared = take_prepared_inputs()
     try:
         algorithm_id = _resolve_algorithm_id(args["algorithm"])
     except _SpecError as e:
         return tool_error(str(e), "INVALID_ARGS", "list_algorithms finds the exact id.")
     parameters_list = args["parameters_list"]
-    from .processing_tools import _threadable
+    from .processing_decisions import _threadable
 
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
     names = _output_names_for(args.get("output_name"), algorithm_id, parameters_list)
     if _threadable(alg):
-        return _BatchRun(alg, algorithm_id, parameters_list, args.get("timeout"), names).start()
+        return _BatchRun(alg, algorithm_id, parameters_list, args.get("timeout"), names, prepared).start()
 
 
     ceiling = limits.current("CALL_MAX_SECONDS_MAIN")
     budget = min(float(args.get("timeout") or ceiling), ceiling)
     ends_at = time.monotonic() + budget
-    results = [_main_thread_entry(algorithm_id, index, parameters, names[index], ends_at, budget)
+    results = [_main_thread_entry(algorithm_id, index, parameters, names[index], ends_at, budget, prepared)
                for index, parameters in enumerate(parameters_list)]
 
     running = [r["task_id"] for r in results if r["status"] == "running"]
@@ -880,7 +909,7 @@ def _input_name(parameters: dict) -> str:
         value = value.get("source")
     if not isinstance(value, str) or not value.strip():
         return "layer"
-    from .processing_tools import _find_layer
+    from .layer_lookup import _find_layer
 
     is_path = "/" in value or "\\" in value or "|" in value
     layer = None if is_path else _find_layer(value)
@@ -965,10 +994,12 @@ class _BatchRun:
 
 
 
-    def __init__(self, alg, algorithm_id: str, parameters_list: list, timeout=None, names=None):
-        from .processing_tools import _destination_names
+    def __init__(self, alg, algorithm_id: str, parameters_list: list, timeout=None, names=None, prepared=None):
+        from .processing_destinations import _destination_names
 
         self.alg = alg
+
+        self.prepared = prepared or {}
 
         self.names = list(names) if names else [None] * len(parameters_list)
         self.outputs = _destination_names(alg)
@@ -981,6 +1012,7 @@ class _BatchRun:
         self.width = max(1, int(limits.current("PROCESSING_BATCH_PARALLEL")))
         self._advancing = False
         self._again = False
+        self.stopped = False
         self.timed_out = False
 
 
@@ -994,7 +1026,7 @@ class _BatchRun:
                       "started_at": time.strftime("%H:%M:%S"), "sequence": self}
 
     def start(self) -> dict:
-        from .processing_tools import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
+        from .processing_run import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
 
         _sweep_consumed_tasks()
         _PROCESSING_TASKS[self.task_id] = self.entry
@@ -1022,7 +1054,7 @@ class _BatchRun:
 
     def advance(self) -> None:
 
-        from .processing_tools import _PROCESSING_TASKS
+        from .processing_run import _PROCESSING_TASKS
 
         if self._advancing:
 
@@ -1036,7 +1068,8 @@ class _BatchRun:
                 self._again = False
                 moved = self._settle() + self._fill()
                 if not self.pending and not self.running:
-                    self.entry.update(status="complete", progress=100)
+                    self.entry.update(status="canceled" if self.stopped else "complete", progress=100)
+                    self.prepared.clear()
                     return
                 if not moved and not self._again:
                     settled = len(self.results) + sum(
@@ -1048,7 +1081,7 @@ class _BatchRun:
 
     def _settle(self) -> int:
 
-        from .processing_tools import _PROCESSING_TASKS, _sync_with_qgis
+        from .processing_run import _PROCESSING_TASKS, _sync_with_qgis
 
         settled = 0
         for task_id in list(self.running):
@@ -1090,7 +1123,8 @@ class _BatchRun:
 
     def _files(self, parameters) -> tuple[set, set]:
 
-        from .processing_tools import _find_layer, _gpkg_table_target, _output_names
+        from .layer_lookup import _find_layer
+        from .processing_destinations import _gpkg_table_target, _output_names
 
         writes: set = set()
         reads: set = set()
@@ -1121,20 +1155,40 @@ class _BatchRun:
 
     def cancel(self) -> None:
 
-        from .processing_tools import _cancel_task
 
+
+
+
+
+        from .processing_run import _PROCESSING_TASKS, _cancel_task
+
+        self.stopped = True
         running, self.running = self.running, {}
-        for task_id, (index, started, _writes, _reads) in running.items():
-            _cancel_task({"task_id": task_id})
-            self.results.append({"index": index, "seconds": round(time.monotonic() - started, 2),
-                                 "status": "canceled", "message": "Stopped while running; nothing was added."})
+        for task_id, (index, started, writes, reads) in running.items():
+            answer = _cancel_task({"task_id": task_id})
+            child = _PROCESSING_TASKS.get(task_id) or {}
+            seconds = round(time.monotonic() - started, 2)
+            if answer.get("status") == "canceled":
+                self.results.append({"index": index, "seconds": seconds, "status": "canceled",
+                                     "message": "Stopped while running; nothing was added."})
+            elif "_error" in answer:
+                self.results.append({"index": index, "seconds": seconds, "status": "error",
+                                     "message": str(answer["_error"])})
+            elif child.get("status") == "running":
+                self.running[task_id] = (index, started, writes, reads)
+            else:
+                child.update(_consumed=True, _consumed_at=time.time())
+                self.results.append(self._line(index, started, child))
+        self.prepared.clear()
         pending, self.pending = self.pending, []
         self.results.extend({"index": index, "status": "skipped", "message": "Stopped before this run started."}
                             for index, _parameters in pending)
+        if self.running and _PROCESSING_TASKS.get(self.task_id) is self.entry:
+            self.entry["status"] = "running"
 
     def _start(self, index: int, parameters, writes=frozenset(), reads=frozenset()) -> bool:
 
-        from .processing_tools import _PROCESSING_TASKS, _cancel_task
+        from .processing_run import _PROCESSING_TASKS, _cancel_task
 
         if not isinstance(parameters, dict):
             self.results.append({"index": index, "status": "error",
@@ -1147,8 +1201,9 @@ class _BatchRun:
             return False
         started = time.monotonic()
         try:
-            outcome = _run_processing({"algorithm_id": self.algorithm_id, "parameters": parameters,
-                                       "output_name": self.names[index] if index < len(self.names) else None})
+            with offered_inputs(self.prepared):
+                outcome = _run_processing({"algorithm_id": self.algorithm_id, "parameters": parameters,
+                                           "output_name": self.names[index] if index < len(self.names) else None})
         except Exception as exc:  # noqa: BLE001
             log_warning(f"execute_processing_batch: run {index} raised {exc}")
             outcome = {"_error": f"{exc.__class__.__name__}: {exc}"}
@@ -1416,7 +1471,7 @@ def _run_model(args: dict) -> dict:
 
 
 
-    from .processing_tools import _destination_names, _output_names
+    from .processing_destinations import _destination_names, _output_names
 
     parameters, renamed, misnamed = _output_names(alg, parameters, model)
     if misnamed:
@@ -1467,7 +1522,8 @@ def _run_model(args: dict) -> dict:
 
 
 
-    from .processing_tools import _heavy_inputs, _threadable
+    from .processing_decisions import _threadable
+    from .processing_run import _heavy_inputs
 
     if _threadable(file_alg):
         outcome = _named(_run_processing({"algorithm_id": model, "parameters": parameters}, algorithm=file_alg))

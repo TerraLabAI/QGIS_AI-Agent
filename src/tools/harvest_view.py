@@ -39,9 +39,9 @@ from ..core.logger import log
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import core_tools as _core
 from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
 from .data_tools import _avoid_reserved_name
+from .processing_run import _PROCESSING_TASKS, _sweep_consumed_tasks
 
 _REMOTE_PREFIXES = ("/vsicurl/", "http://", "https://", "/vsis3/", "/vsiaz/", "/vsigs/")
 
@@ -358,6 +358,22 @@ def _style_hillshade(layer, opacity: float):
     layer.triggerRepaint()
 
 
+def _hillshade_built_here(path: str, name: str):
+
+
+
+    from ..core.postcondition import read_ahead
+    from .data_common import built_here, worker_options
+
+    def make():
+        layer = QgsRasterLayer(path, name, "gdal", worker_options(QgsRasterLayer))
+        if layer.isValid():
+            read_ahead(layer)
+        return layer
+
+    return built_here(make)
+
+
 class _HillshadeTask(QgsTask):
 
 
@@ -369,6 +385,7 @@ class _HillshadeTask(QgsTask):
         self.layer_name = layer_name
         self.options = options
         self.error = ""
+        self.built = None
         self.dem_id = ""
 
         self.run_token = layer_order.current_run()
@@ -394,6 +411,8 @@ class _HillshadeTask(QgsTask):
                     gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", None)
                 except Exception:  # nosec B110
                     pass
+        if not self.error and not self.isCanceled():
+            self.built = _hillshade_built_here(self.output_path, self.layer_name)
         return not self.error
 
     def _shade(self, gdal) -> str:
@@ -430,7 +449,7 @@ class _HillshadeTask(QgsTask):
         )
 
     def finished(self, result: bool):
-        entry = _core._PROCESSING_TASKS.get(self.task_id)
+        entry = _PROCESSING_TASKS.get(self.task_id)
         if entry is None:
             return
         try:
@@ -446,9 +465,12 @@ class _HillshadeTask(QgsTask):
             entry["status"] = "error"
             entry["error"] = f"Output handling failed: {e}"
         entry.pop("task", None)
+        self.built = None
 
     def _add_layer(self, entry: dict):
-        layer = QgsRasterLayer(self.output_path, self.layer_name, "gdal")
+        layer, self.built = self.built, None
+        if layer is None:
+            layer = QgsRasterLayer(self.output_path, self.layer_name, "gdal")
         if not layer.isValid():
             entry["status"] = "error"
             entry["error"] = f"GDAL wrote {self.output_path} but QGIS cannot open it as a raster."
@@ -603,11 +625,11 @@ def _create_hillshade(args: dict) -> dict:
         safe = _avoid_reserved_name(safe)
         output_path = os.path.join(create_managed_temp_dir("hillshade"), f"{safe}.tif")
 
-    _core._sweep_consumed_tasks()
+    _sweep_consumed_tasks()
     task_id = "hill-" + uuid.uuid4().hex[:12]
     task = _HillshadeTask(task_id, source, output_path, name, values)
     task.dem_id = layer.id()
-    _core._PROCESSING_TASKS[task_id] = {
+    _PROCESSING_TASKS[task_id] = {
         "status": "running",
         "progress": 0,
         "algorithm": "gdal hillshade (create_hillshade)",

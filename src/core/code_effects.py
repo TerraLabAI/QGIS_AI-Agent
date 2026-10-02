@@ -42,6 +42,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -262,6 +263,14 @@ class Verdict:
         return DANGER[self.cls]
 
 
+
+def _words(name: str) -> str:
+
+
+    name = name[3:] if name.startswith("Qgs") else name
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name.strip("_.")).replace("_", " ").lower()
+
+
 def _callee(node: ast.Call) -> tuple[str, str]:
 
     func = node.func
@@ -380,11 +389,11 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
     text = str(code or "").strip()
     if not text:
-        return Verdict(ASK, ["the snippet is empty"])
+        return Verdict(ASK, ["the code is empty"])
     try:
         tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError, MemoryError):
-        return Verdict(ASK, ["the snippet does not parse"])
+        return Verdict(ASK, ["the code has a syntax error"])
     level = R
     found: list[tuple[str, str]] = []
     unknown: list[str] = []
@@ -414,7 +423,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             if cls is None:
                 unknown.append(f"tools.{name}")
             else:
-                reach(cls, f"runs the tool {name}")
+                reach(cls, "runs another agent tool")
         elif root in t["unprovable"] or name in t["deferred_attrs"]:
             if not handed_on:
                 unknown.append(f"{root + '.' if root else ''}{name}")
@@ -422,25 +431,25 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
 
             if name in t["fp_attrs"]:
-                reach(FP, f"writes a file ({name})")
+                reach(FP, "writes a file")
         elif name in t["d_attrs"]:
-            reach(D, f"deletes ({name})")
+            reach(D, "deletes data")
         elif name in t["fw_attrs"]:
-            reach(FW, f"writes over a file ({name})")
+            reach(FW, "writes over a file")
         elif name == "commitChanges":
             commits = True
         elif name in t["r_attrs"] or name in locals_:
             pass
         elif name in t["p_attrs"]:
-            reach(P, f"calls {name}")
+            reach(P, _words(name))
             deletes = deletes or name in t["row_deletes"]
         elif handed_on:
             if name in t["fp_attrs"]:
-                reach(FP, f"writes a file ({name})")
+                reach(FP, "writes a file")
         elif name.startswith("Qgs"):
-            reach(P, f"builds {name}")
+            reach(P, f"creates a {_words(name)}")
         elif name in t["fp_attrs"]:
-            reach(FP, f"writes a file ({name})")
+            reach(FP, "writes a file")
         else:
             unknown.append(name)
 
@@ -481,17 +490,17 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                 elif callee in t["r_names"] or callee in locals_:
                     pass
                 elif callee in t["p_names"]:
-                    reach(P, f"builds {callee}")
+                    reach(P, _words(callee))
                 elif callee in t["fp_names"]:
-                    reach(FP, f"writes a file ({callee})")
+                    reach(FP, "writes a file")
                 elif callee in libraries:
 
 
                     if callee in t["fp_attrs"]:
-                        reach(FP, f"writes a file ({callee})")
+                        reach(FP, "writes a file")
                 elif callee.startswith("Qgs"):
 
-                    reach(P, f"builds {callee}")
+                    reach(P, f"creates a {_words(callee)}")
                 else:
                     unknown.append(callee)
             elif not callee.startswith("__"):
@@ -519,7 +528,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             targets = node.targets if isinstance(node, (ast.Assign, ast.Delete)) else [node.target]
             for target in _flatten(targets):
                 if isinstance(target, ast.Attribute):
-                    reach(P, f"sets .{target.attr}")
+                    reach(P, f"sets {_words(target.attr)}")
         elif isinstance(node, (ast.Await, ast.AsyncFunctionDef, ast.AsyncFor, ast.AsyncWith,
                                ast.Global, ast.Nonlocal)):
             unknown.append(type(node).__name__.lower())
@@ -535,7 +544,8 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
         for item in unknown:
             if item not in seen:
                 seen.append(item)
-        return Verdict(ASK, [f"uses {', '.join(seen[:4])}, which the plugin cannot check before it runs"], seen)
+
+        return Verdict(ASK, ["may change things the plugin cannot preview"], seen)
 
     return Verdict(level, [reason for cls, reason in found if cls == level])
 
@@ -552,6 +562,3 @@ def _flatten(targets) -> list:
     return out
 
 
-def is_read_only(code: object) -> bool:
-
-    return classify(code).cls == R

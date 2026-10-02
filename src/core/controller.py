@@ -38,7 +38,7 @@ from .executor import ToolExecutor
 from .host_platform import os_label
 from .logger import log, log_warning
 from .plan import autopilot_allowed, effort_allowed
-from .protocol import Approval, Effort, RunStatus
+from .protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
 from .run_state import RunMachine
 from .session import AgentSession
 from .settings import DEFAULT_SERVER_URL, Settings
@@ -95,9 +95,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         self._steers: dict[str, dict] = {}
 
-
-        self._replaces: tuple[str, str] = ("", "")
-
         self._retry_after_restore: tuple[str, str] = ("", "")
 
 
@@ -116,6 +113,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._call_names: dict[str, tuple] = {}
         self._missing_slots: set[str] = set()
         self._failed_slots: set[str] = set()
+
+
+        self._panel_queue: list[tuple] = []
 
         self._proposals: dict[str, dict] = {}
 
@@ -149,6 +149,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._conn_lost_timer.setSingleShot(True)
         self._conn_lost_timer.setInterval(15000)
         self._conn_lost_timer.timeout.connect(self._say_connection_lost)
+        self._link_notice = ""
         self._diff_timer = QTimer(self)
         self._diff_timer.setSingleShot(True)
         self._diff_timer.setInterval(_DIFF_SETTLE_MS)
@@ -164,6 +165,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def start(self) -> None:
         self._panel_call("set_mention_provider", mention_candidates)
         self._panel_call("set_permission_mode", self._approval())
+
+
+        self._panel_call("set_paid_plan", self._settings.last_paid)
         self._panel_call("set_effort", self._settings.effort)
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
         self._watch_project()
@@ -179,7 +183,11 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         if self._account.state in (Account.ACTIVATED, Account.LOCKED):
             self._panel_call("set_connection_state", "connecting", "")
             self._session.connect_to_server()
-            self._account.refresh_activation_async()
+
+
+
+            if self._account.state == Account.LOCKED:
+                self._account.refresh_activation_async()
         else:
             self._panel_call("set_connection_state", "signed_out", "")
 
@@ -217,6 +225,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
                       self._conn_lost_timer):
             timer.stop()
 
+        self._panel_queue.clear()
+
 
 
 
@@ -236,7 +246,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
             try:
-                self._session.send_cancel(run["run_id"])
+                self._session.send_cancel(run["run_id"], CANCEL_QGIS_CLOSED)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Run {run['run_id'][:8]}: no cancel sent on unload: {exc}")
 
@@ -304,6 +314,31 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         signal.connect(slot)
 
     def _panel_call(self, name: str, *args) -> None:
+        if self._panel_queue:
+
+            self._drain_panel()
+        self._panel_now(name, *args)
+
+    def _panel_later(self, name: str, *args) -> None:
+
+
+
+
+
+
+
+
+
+        if not self._panel_queue:
+            QTimer.singleShot(0, self._drain_panel)
+        self._panel_queue.append((name, args))
+
+    def _drain_panel(self) -> None:
+        queued, self._panel_queue = self._panel_queue, []
+        for name, args in queued:
+            self._panel_now(name, *args)
+
+    def _panel_now(self, name: str, *args) -> None:
         method = getattr(self._panel, name, None)
         if method is None:
             if name not in self._missing_slots:
@@ -336,7 +371,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect_optional("steer_requested", self._on_steer)
         self._connect_optional("unsteer_requested", self._on_unsteer)
         self._connect_optional("queue_send_requested", self._on_queue_send)
-        self._connect_optional("edit_requested", self._on_edit_last)
         self._connect_optional("undo_retry_requested", self._on_undo_retry)
         self._connect("permission_decided", self._on_permission_decided)
         self._connect("question_answered", self._on_question_answered)
@@ -385,8 +419,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         self._connect_optional("recommendation_decided", self._on_recommendation_decided)
         self._connect_optional("diff_applied", self._on_diff_applied)
-        self._connect_optional("feedback", self._on_feedback)
-        self._connect_optional("feedback_reason", self._on_feedback_reason)
 
     def _wire_session(self) -> None:
         s = self._session
@@ -420,7 +452,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         e.question_needed.connect(self._on_question_needed)
         e.question_resolved.connect(lambda cid, answer: self._panel_call("resolve_question", cid, answer))
         e.project_changed.connect(self._on_project_changed)
-        e.run_blocked.connect(self._on_run_blocked)
 
     def _wire_account(self) -> None:
         a = self._account
@@ -430,11 +461,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
 
-        a.pairing_started.connect(lambda url: self._panel_call(
-            "set_pairing_state", True, a.pairing_match_code(), url))
+        a.pairing_started.connect(lambda url: self._panel_call("set_pairing_state", True, "", url))
         a.pairing_browser_seen.connect(lambda: self._panel_call(
             "set_pairing_status", tr("Sign-in page open, waiting for you...")))
-        a.pairing_address.connect(lambda message: self._panel_call("set_pairing_note", message, "warning"))
+        a.pairing_address.connect(lambda message, tone: self._panel_call("set_pairing_note", message, tone))
         a.pairing_stalled.connect(
             lambda _reason, message: self._panel_call("set_pairing_note", message, "info"))
 

@@ -70,12 +70,12 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QLineF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QImage, QPainter, QPen
 
 from ..core import limits, net, output_paths, security, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._images import image_to_base64
 from .data_common import _DOWNLOAD_TOTAL_TIMEOUT, _MAX_DOWNLOAD_SIZE, _download_timeout, _safe_filename
-from .data_tools import _run_on_main_thread
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 PREVIEW_LONG_SIDE = 1200
@@ -1125,7 +1125,7 @@ def _inspect_georeference(args: dict) -> dict:
     if page is not None and (not isinstance(page, int) or isinstance(page, bool) or page < 1):
         return tool_error("page must be a page number, 1 or more.", "INVALID_ARGS", "page 1 is the first page.")
     cancelled = net.current_cancel_check()
-    found = _run_on_main_thread(_resolve, args.get("raster"))
+    found = run_on_main_thread(_resolve, args.get("raster"))
     if "_error" in found:
         return found
     url = found.get("url")

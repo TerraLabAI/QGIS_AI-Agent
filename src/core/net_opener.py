@@ -234,7 +234,9 @@ def set_trust(ca_pem: bytes | None) -> bool:
 
 
 
-DEFAULT_CONNECT_TIMEOUT_S = 5.0
+
+
+DEFAULT_CONNECT_TIMEOUT_S = 10.0
 _CONNECT_LOCAL = threading.local()
 
 
