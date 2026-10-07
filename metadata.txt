@@ -1,0 +1,70 @@
+[general]
+name=AI Agent by TerraLab
+qgisMinimumVersion=3.28
+supportsQt6=True
+qgisMaximumVersion=4.99
+description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 285+ tools and 60 open data connectors.
+about=
+    It works on your own layers, in the project you already have open, and shows each step as it goes.
+
+    • 285+ tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
+
+    • 60 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 53 more
+
+    • A catalog of 530+ ready datasets, from national sources in 97 countries and from EU-wide and global ones, each with its licence
+
+    • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
+
+    • Fits your habits: one conversation per project, and attach files, layers, selections or the map view to a message
+
+    • Works with AI Edit and AI Segmentation when those TerraLab plugins are installed
+
+    • 12 languages: English, French, Spanish, Portuguese, German, Italian, Dutch, Polish, Indonesian, Japanese, Chinese (simplified and traditional)
+
+    • Answers come from an AI model. It can be wrong; review what it changes
+
+    • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
+version=1.5.7
+author=TerraLab
+email=yvann.barbot@terra-lab.ai
+homepage=https://terra-lab.ai/ai-agent
+repository=https://github.com/TerraLabAI/QGIS_AI-Agent
+tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
+license=GPL-2.0-or-later
+changelog=
+    1.5.7
+    - Settings: choose how long your run history stays on our servers, from no copies to one year
+    - QGIS no longer freezes while the agent saves or puts back the project around its code
+    - Files a run writes show as compact rows; its working files fold under them
+    - 3D views keep the 2D colours and heights; the effort level can change during a run
+
+    1.5.6
+    - Undo changes and Redo changes under each answer, with a Map history sheet of the versions kept
+    - The memory note at the end of a run is a card you add or decline; Settings lists saved notes
+    - Example library with category badges and a foldable rail; our open data reads as TerraLab Open Data
+    - QGIS no longer freezes at the start of a run or while a large Overture or OSM building layer loads
+
+    1.5.5
+    - Maps render about twice as fast; loading files, layers and layouts no longer freezes QGIS
+    - Load only a box of a remote raster (COG, STAC); cut downloads resume where they stopped
+    - A plainer chat: short cards, sources with licence and credits, Billing folded into Account
+    - Print layouts take frame, background and font colours; all 11 languages read naturally
+
+    1.5.3
+    - Updates install in one click from the chat, with no QGIS restart and no empty dependency window
+    - Code cards in Balanced mode offer "Allow for this run"; deleting data still asks
+    - When the server cannot be reached, the panel says why after about a minute
+    - HTML reports load nothing from unknown sites; Autopilot asks before sending to one
+
+    1.5.0
+    - Type while the agent works: a message waits in a queue or reaches the run at its next step
+    - Edit your last message, or Undo and retry a failed run; a stopped run keeps its Undo
+    - Each layer the agent adds keeps its source, licence and the step that made it in its metadata
+    - QGIS calls you back when a run ends or waits for you; a QGIS 3.44 crash and several freezes fixed
+
+tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
+icon=icons/icon.png
+experimental=False
+deprecated=False
+hasProcessingProvider=no
+server=False
