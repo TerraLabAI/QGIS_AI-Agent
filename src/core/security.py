@@ -43,6 +43,7 @@ from typing import Any
 
 from .host_platform import IS_WINDOWS
 from .policy import AGENT_CACHE_DIR, AGENT_EXPORT_DIR, AGENT_HOME, AGENT_ROOT, AGENT_TMP_DIR
+from .serialization import CodedText
 
 
 STRICT_WRITE_ROOTS = False
@@ -195,6 +196,19 @@ _AGENT_DIR_NAME = os.path.basename(os.path.normpath(AGENT_ROOT)).replace("-", "_
 def _is_agent_dir_name(part: str) -> bool:
 
     return bool(_AGENT_DIR_NAME) and part.replace("-", "_").lower() == _AGENT_DIR_NAME
+
+
+def _in_agent_spelling(path: str) -> str:
+
+
+    root = os.path.normpath(AGENT_ROOT)
+    parent, real_name = os.path.dirname(root), os.path.basename(root)
+    if not _under(path, parent) or _norm(path) == _norm(parent):
+        return ""
+    first, _, rest = path[len(parent.rstrip(os.sep)) + 1:].partition(os.sep)
+    if first == real_name or not _is_agent_dir_name(first):
+        return ""
+    return os.path.join(parent, real_name, rest)
 
 
 
@@ -680,6 +694,11 @@ def _scope_problem(expanded: str, real: str) -> str | None:
     roots = read_roots()
     if any(_under(c, root) for c in candidates for root in roots):
         return None
+    if os.path.lexists(expanded) and any(
+            _under(_in_agent_spelling(c), work) for c in candidates for work in _AGENT_WORK_DIRS):
+
+
+        return None
     if not os.path.lexists(expanded) and not any(ch in os.path.basename(expanded) for ch in "*?["):
 
 
@@ -688,12 +707,13 @@ def _scope_problem(expanded: str, real: str) -> str | None:
         parts = rest.replace("\\", "/").split("/")
         typo = next((part for part in parts if _is_agent_dir_name(part)
                      and part != os.path.basename(os.path.normpath(AGENT_ROOT))), "")
-        hint = (f"; the agent's own folder is spelled {os.path.basename(os.path.normpath(AGENT_ROOT))}, "
-                f"not {typo}") if typo else ""
-        return f"No such file or folder: {expanded}{hint}."
-    return (f"{expanded} is outside the project, its layers' folders and the files the user gave; the agent "
-            "does not read or list other folders of this computer. Attaching the file in the chat, or "
-            "typing its full path, reaches it.")
+        if typo:
+            return CodedText(f"No such file or folder: {expanded}.", "agent_folder_misspelled", path=expanded,
+                             agent_folder=os.path.basename(os.path.normpath(AGENT_ROOT)), typo=typo)
+        return f"No such file or folder: {expanded}."
+    return CodedText(f"{expanded} is outside the project, its layers' folders and the files the user gave; the "
+                     "agent does not read or list other folders of this computer.",
+                     "read_outside_scope", path=expanded)
 
 
 def _hidden_component(path: str, roots: list[str]) -> str | None:
@@ -924,7 +944,7 @@ def _windows_path_problem(path: str) -> str | None:
 
     drive, tail = ntpath.splitdrive(path)
     if drive and not tail.startswith(("/", "\\")):
-        return "C:/data/file.gpkg is an absolute Windows path; a drive-relative one does not work."
+        return CodedText(f"{path} is a drive-relative Windows path.", "windows_path_drive_relative", path=path)
     for part in re.split(r"[\\/]", tail):
         if not part or part in (".", ".."):
             continue
@@ -934,7 +954,7 @@ def _windows_path_problem(path: str) -> str | None:
             return "Windows path components must not end with a space or a dot."
         stem = part.split(".", 1)[0].rstrip(" ").upper()
         if re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³]", stem):
-            return "The Windows path names a reserved device; choose an ordinary file name."
+            return CodedText("The Windows path names a reserved device.", "windows_reserved_device", name=part)
     return None
 
 
@@ -973,7 +993,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
         if kind == "refused":
             return "The agent does not read from or write to the standard streams."
         if kind == "unknown":
-            return "The agent does not open this GDAL virtual path; name the file or its URL directly."
+            return CodedText("The agent does not open this GDAL virtual path.", "gdal_virtual_path_refused", path=path)
         if kind in ("remote", "memory"):
             return None
 
@@ -985,13 +1005,13 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-        return ("A path on another machine (\\\\host\\share) is not written or read by the agent; "
-                "use a local folder.")
+        return CodedText("A path on another machine (\\\\host\\share) is not written or read by the agent.",
+                         "network_share_refused")
     expanded = expand_path(path)
 
 
     if refused_share(expanded):
-        return "The expanded path is a network share; use a local folder."
+        return CodedText("The expanded path is a network share.", "network_share_refused")
     if IS_WINDOWS:
         reason = _windows_path_problem(path) or _windows_path_problem(expanded)
         if reason:
@@ -1006,8 +1026,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
         if write and len(expanded) >= _MAX_PATH and not _long_paths_ok():
-            return (f"The path is {len(expanded)} characters and Windows stops this process at "
-                    f"{_MAX_PATH}; choose a shorter folder or file name.")
+            return CodedText(f"The path is {len(expanded)} characters and Windows stops this process at "
+                             f"{_MAX_PATH}.", "windows_path_too_long", length=len(expanded), limit=_MAX_PATH)
     try:
         real = os.path.realpath(expanded)
     except Exception:
@@ -1042,15 +1062,14 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-                return (f"{expanded} is under {root}, a system or application folder; write under the project, "
-                        "home or temp folder.")
+                return CodedText(f"{expanded} is under {root}, a system or application folder.",
+                                 "write_system_folder", path=expanded, root=root)
     if not _write_root_ok(real, roots):
-        return ("Writes are limited to the project folder, the temp folder, attached files' folders and your "
-                "home folder or mounted volumes.")
+        return CodedText(f"{expanded} is outside the folders the agent writes to.", "write_scope", path=expanded)
     if overwrite is False and os.path.isfile(real):
-        remedy = overwrite_remedy or ("overwrite=true replaces the file; that is the user's call. "
-                                       "A new file name avoids it.")
-        return f"{expanded} already exists. {remedy}"
+        if not overwrite_remedy:
+            return CodedText(f"{expanded} already exists.", "file_exists", path=expanded)
+        return f"{expanded} already exists. {overwrite_remedy}"
     return None
 
 
@@ -1508,8 +1527,8 @@ def local_url_refusal(url: str) -> str:
             local.append(text)
     if not local:
         return base
-    return (f"{host} resolves to {', '.join(local)} on this computer, a local address, so it is not fetched; "
-            "a public name answered so usually means a DNS filter, hosts file or proxy on this network.")
+    return CodedText(f"{host} resolves to {', '.join(local)} on this computer, a local address, so it is not "
+                     "fetched.", "host_resolves_local", host=host, addresses=local)
 
 
 def is_private_url(url: str, resolve: bool = True) -> bool:
@@ -1687,8 +1706,8 @@ def validate_url(url: str) -> str | None:
 
 
         if host not in _user_hosts and not _routed_public_host(host):
-            return (f"{host} is a private network address the user did not name; fetching it needs the "
-                    "user naming it first.")
+            return CodedText(f"{host} is a private network address the user did not name.",
+                             "private_host_unnamed", host=host)
     return None
 
 

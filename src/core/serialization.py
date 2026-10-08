@@ -18,6 +18,43 @@ from typing import Any
 from . import tuning
 
 
+class CodedText(str):
+
+
+
+
+
+
+
+
+    hint: str
+    facts: dict
+
+    def __new__(cls, text: str, hint: str, **facts):
+        obj = super().__new__(cls, text)
+        obj.hint = hint
+        obj.facts = facts
+        return obj
+
+    def __getnewargs_ex__(self):
+        return (str(self), self.hint), dict(self.facts)
+
+
+def coded_like(text: str, source) -> str:
+
+
+
+    return CodedText(text, source.hint, **source.facts) if isinstance(source, CodedText) else text
+
+
+def carried_code(exc: BaseException) -> CodedText | None:
+
+    for item in (getattr(exc, "reason", None), *getattr(exc, "args", ())[:1]):
+        if isinstance(item, CodedText):
+            return item
+    return None
+
+
 
 
 
@@ -248,14 +285,17 @@ NARROWING_ARGS = (
 _NARROWING_NAMED = 4
 
 
-def narrowing_note(available=None) -> str:
+def narrowing_note(available=None) -> dict:
+
+
+
+
 
     available = set(available or ())
     names = [a for a in NARROWING_ARGS if a in available][:_NARROWING_NAMED]
     if not names:
-        return ("Result cut by the client. This tool takes no argument that makes its answer "
-                "smaller; a narrower thing or a subset of the data would fit.")
-    return "Result cut by the client. " + ", ".join(names) + " narrows the answer to fit."
+        return {"note_hint": "result_cut", "variant": "none"}
+    return {"note_hint": "result_cut", "narrowing_args": names}
 
 
 
@@ -286,8 +326,7 @@ def _over_transport(kept: dict) -> dict:
     limit_mb = MAX_UNCAPPED_BYTES // (1024 * 1024)
     dropped: dict = {}
     for key, size in sorted(sizes.items(), key=lambda kv: -kv[1]):
-        dropped[key] = (f"[{size:,} bytes not sent: this result is over the {limit_mb} MB the connection "
-                        f"carries. A smaller render, a lower resolution or a file fits.]")
+        dropped[key] = {"hint": "field_not_sent", "bytes": size, "limit_mb": limit_mb}
         total -= size
         if total <= MAX_UNCAPPED_BYTES:
             break
@@ -341,7 +380,7 @@ def bound_result(result: Any, cap: int | None = None, narrow_with=None) -> tuple
     tail = cap - head
     truncated = {"_truncated": True, "total_chars": len(text), "cut_chars": len(text) - cap,
                  "head": text[:head], "tail": text[-tail:] if tail else "",
-                 "note": narrowing_note(narrow_with)}
+                 **narrowing_note(narrow_with)}
     truncated.update(kept)
     return truncated, detail, None
 

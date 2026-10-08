@@ -218,12 +218,8 @@ def _vector_layer(name_or_id: str):
         return None, _layer_not_found_error(name_or_id)
     if not isinstance(layer, QgsVectorLayer):
         kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "other"
-        return None, {
-            "_error": (f"Layer {layer.name()!r} is a {kind} layer, and this tool works on vector features."),
-            "code": "INVALID_ARGS",
-            "suggestion": ("A vector layer is needed. get_raster_band_stats and the raster tools read "
-                           "and write pixels for a raster."),
-        }
+        return None, tool_error(f"Layer {layer.name()!r} is a {kind} layer, and this tool works on vector features.",
+                                "INVALID_ARGS", hint="feature_tool_layer_not_vector", layer=layer.name(), kind=kind)
     return layer, None
 
 
@@ -255,12 +251,9 @@ def _add_features(args: dict) -> dict:
     if not features_data:
         return {"_error": "No features provided"}
     if len(features_data) > _MAX_FEATURE_BATCH:
-        return {
-            "_error": f"{len(features_data)} features given, above the {_MAX_FEATURE_BATCH} this tool "
-                      "builds in one call.",
-            "_code": "INVALID_ARGS",
-            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
-        }
+        return tool_error(f"{len(features_data)} features given, above the {_MAX_FEATURE_BATCH} this tool "
+                          "builds in one call.", "INVALID_ARGS", hint="feature_batch_ceiling",
+                          max_batch=_MAX_FEATURE_BATCH)
 
 
 
@@ -339,10 +332,8 @@ def _add_features(args: dict) -> dict:
             "added": len(new_features),
             "fids": new_fids if one_per_feature else None,
             "committed": False,
-            "note": (
-                "added to the open edit session, not committed; qgis_edit_commit or a discard "
-                "decides it. fids are the edit buffer's temporary ids and change once committed"
-            ),
+            "note": "added to the open edit session, not committed.",
+            "note_hint": "features_added_uncommitted",
         }
         if truncations:
             result["truncated_values"] = truncations[:20]
@@ -384,8 +375,8 @@ def _add_features(args: dict) -> dict:
 
     result = {"added": len(new_features), "committed": True, "fids": None,
               "fids_unresolved": True,
-              "note": ("this provider did not report the ids it assigned; get_features reads them "
-                       "back if needed")}
+              "note": "this provider did not report the ids it assigned",
+              "note_hint": "feature_ids_not_reported"}
     if truncations:
         result["truncated_values"] = truncations[:20]
     return result
@@ -412,6 +403,7 @@ def _write_refused(layer, action: str, count: int) -> dict:
 
 
 
+        error.pop("suggestion", None)
         error.update(coded_fact(hint="write_refused_no_reason", layer=name, action=action, count=count))
     else:
         error["_error"] = f"{head} {error.get('_error', '')}"
@@ -429,11 +421,8 @@ def _update_features(args: dict) -> dict:
     if len(updates) > _MAX_FEATURE_BATCH:
 
 
-        return {
-            "_error": f"{len(updates)} updates given, above the {_MAX_FEATURE_BATCH} this tool writes in one call.",
-            "_code": "INVALID_ARGS",
-            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
-        }
+        return tool_error(f"{len(updates)} updates given, above the {_MAX_FEATURE_BATCH} this tool writes in one call.",
+                          "INVALID_ARGS", hint="feature_batch_ceiling", max_batch=_MAX_FEATURE_BATCH)
 
 
 
@@ -521,7 +510,7 @@ def _update_features(args: dict) -> dict:
         if not updated and not partial:
             result["_error"] = "None of the requested feature IDs exist in this layer"
             result["code"] = "INVALID_ARGS"
-            result["suggestion"] = "Feature ids come from the _fid field of get_features."
+            result["hint"] = "feature_ids_not_found"
             return result
     if unknown_fields:
         result["unknown_fields"] = sorted(unknown_fields)
@@ -530,7 +519,7 @@ def _update_features(args: dict) -> dict:
             result["_error"] = (f"The layer {layer.name()!r} has none of the fields "
                                 f"{sorted(unknown_fields)}, so nothing was written.")
             result["code"] = "INVALID_ARGS"
-            result["suggestion"] = "'fields' lists the names; add_field adds one."
+            result.update(coded_fact(hint="unknown_fields", unknown=sorted(unknown_fields), layer=layer.name()))
             return result
     if refused:
         result["refused"] = refused[:20]
@@ -538,8 +527,7 @@ def _update_features(args: dict) -> dict:
             result["_error"] = (f"The provider of {layer.name()!r} refused every attribute write "
                                 f"({len(refused)} of them); the layer reported no error.")
             result["code"] = "INVALID_ARGS"
-            result["suggestion"] = ("The source is probably read-only or the value does not fit the field. "
-                                    "export_layer to GeoPackage gives an editable copy.")
+            result["hint"] = "field_refused"
     return result
 
 
@@ -550,14 +538,11 @@ def _delete_features(args: dict) -> dict:
 
     fids = args.get("fids", [])
     if not fids:
-        return {"_error": "No feature IDs provided", "code": "INVALID_ARGS",
-                "suggestion": "Feature ids come from the _fid field of get_features."}
+        return tool_error("No feature IDs provided", "INVALID_ARGS", hint="feature_ids_not_found")
     if len(fids) > _MAX_FEATURE_BATCH:
-        return {
-            "_error": f"{len(fids)} feature ids given, above the {_MAX_FEATURE_BATCH} this tool deletes in one call.",
-            "_code": "INVALID_ARGS",
-            "suggestion": f"Batches of {_MAX_FEATURE_BATCH} or fewer work.",
-        }
+        return tool_error(f"{len(fids)} feature ids given, above the {_MAX_FEATURE_BATCH} this tool deletes in "
+                          "one call.",
+                          "INVALID_ARGS", hint="feature_batch_ceiling", max_batch=_MAX_FEATURE_BATCH)
 
 
 
@@ -582,8 +567,7 @@ def _delete_features(args: dict) -> dict:
             "not_found": not_found,
             "_error": "None of the requested feature IDs exist in this layer",
             "code": "INVALID_ARGS",
-            "suggestion": ("Feature ids come from the _fid field of get_features; a commit renumbers "
-                           "the ids an open edit session handed out."),
+            "hint": "feature_ids_not_found", "variant": "delete",
         }
 
     started, error = vector_write.open_edit(layer, "delete features")
@@ -628,9 +612,7 @@ def _select_behavior(args: dict):
     if member is None:
         return None, None, tool_error(
             f"behavior {behavior!r} is not one of {', '.join(_SELECT_BEHAVIORS)}. Nothing was selected.",
-            "INVALID_ARGS",
-            "replace selects only the matches, add adds them to the current selection, remove takes "
-            "them out of it, filter keeps the selected features that also match.")
+            "INVALID_ARGS", hint="select_behavior_unknown", behavior=str(behavior))
     if behavior == "replace":
 
         return behavior, None, None
@@ -836,9 +818,7 @@ def _select_by_attribute(args: dict) -> dict:
     if expr.hasParserError():
         return {"_error": f"The expression built from these arguments does not parse "
                           f"({expr_str}): {expr.parserErrorString()}",
-                "code": "INVALID_ARGS",
-                "suggestion": "field_name, operator or value may be the cause; evaluate_expression tests "
-                              "one without changing the selection."}
+                "code": "INVALID_ARGS", "hint": "select_expression_unparsable", "expression": expr_str}
 
     previously = layer.selectedFeatureCount()
     _select_expression(layer, expr_str, behavior)
@@ -878,9 +858,7 @@ def _select_by_geometry(args: dict) -> dict:
 
 
             return {"_error": f"{mode!r} ranks features by area or length, and a point layer has neither.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": ("select_by_attribute ranks by a field; an extent-based mode with a "
-                                   "reference layer is another.")}
+                    "code": "INVALID_ARGS", "hint": "rank_mode_on_points", "mode": mode}
         best_fid = None
         best_size = None
         polygons = geom_type == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
@@ -955,9 +933,7 @@ def _select_by_geometry(args: dict) -> dict:
             return tool_error(
                 f"Reference layer {ref_name!r} is too detailed to select against on this machine: "
                 f"{_too_many_vertices(too_big, budget)}. Nothing was selected.",
-                "INVALID_ARGS",
-                "native:simplifygeometries or native:dissolve through run_processing with async true "
-                "simplifies it first; native:extractbylocation runs in the background.")
+                "INVALID_ARGS", hint="reference_layer_too_detailed", layer=ref_name)
         ref_geoms.append(geom)
     if not ref_geoms:
         return {"_error": "Reference layer has no valid geometries"}
@@ -1022,9 +998,7 @@ def _select_by_geometry(args: dict) -> dict:
             return tool_error(
                 f"select_by_geometry stopped after {len(selected_ids)} matches to keep QGIS responsive "
                 f"({budget.stop_reason(stopped)} reached). Nothing was selected.",
-                "INVALID_ARGS",
-                "native:extractbylocation or native:selectbylocation through run_processing with async "
-                "true does the same test in the background.")
+                "INVALID_ARGS", hint="select_geometry_stopped", matches=len(selected_ids))
         geom = feat.geometry()
         if geom.isNull():
             continue

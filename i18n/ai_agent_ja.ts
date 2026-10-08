@@ -38,34 +38,14 @@
             <translation>1. 診断情報をコピー</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>バッファ帯と、その内側にあるものを集計したものです。</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agentとデータ</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>キャンバスが空の場合にベースマップを追加します</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>タイトル、凡例、スケールバー、方位記号、クレジットを追加します</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Allow / Skip</source>
             <translation>許可 / スキップ</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>タイトル、凡例、スケールバー、方位記号付きのA4シートです。</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -108,29 +88,9 @@
             <translation>直前に送信したメッセージを呼び出す</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>メートル単位のCRSでラインレイヤを100mバッファし、各バッファ内に入るポイントの数を数えて、多い順に上位10件を読みやすい表で示してください。プロジェクトにラインとポイントのレイヤがある場合はそれを使い、ない場合は選んだ地区の道路と店舗をダウンロードして、どの地区を選んだか教えてください。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffers the lines by 100 m</source>
-            <translation>ラインを100mバッファします</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bug, question, feature request?</source>
             <translation>バグ、質問、機能リクエスト？</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build a print map and export it</source>
-            <translation>印刷地図を作成してエクスポート</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>現在の表示範囲でA4横向きのレイアウトを作成し、タイトル、凡例、メートル単位のスケールバー、方位記号、データソース名を記載したクレジット行を付けて、300dpiのPDFにエクスポートしてください。キャンバスが空の場合は、先に場所を選んでベースマップを追加し、シートに地図が載るようにしてください。</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -198,21 +158,6 @@
             <translation>下のサポートアドレスをコピーして、メールアプリに貼り付けてください。</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Count what falls within a distance</source>
-            <translation>距離内に入るものを数える</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Counts the points inside each buffer</source>
-            <translation>各バッファ内のポイントを数えます</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>地図枠を持つA4横レイアウトを作成します</translation>
-        </message>
-        <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
             <translation>アカウントを削除</translation>
@@ -226,11 +171,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Done</source>
             <translation>完了</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>OpenStreetMapから、1つの地区にある学校、公園、バス停をすべてダウンロードしてください。キャンバスが表示している場所で作業するか、地図整備の進んだ都市の地区を選び、どの地区か教えてください。3つのレイヤに分け、公園はポリゴンにし、それぞれ見分けがつくようにスタイルを設定して、各レイヤの地物の数を教えてください。3つのクエリは1つずつ実行してください。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -251,11 +191,6 @@
             <location filename="src/ui/use_cases.py" />
             <source>Explore</source>
             <translation>探索</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>シートを300dpiのPDFにエクスポートします</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -283,19 +218,9 @@
             <translation>このチャット内</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>公園はポリゴン、ほかはポイントで保持します</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Keyboard shortcuts</source>
             <translation>キーボードショートカット</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Loads each answer as its own layer</source>
-            <translation>各回答を個別のレイヤとして読み込みます</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -378,11 +303,6 @@
             <translation>プロジェクトが変更されました</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Pull OpenStreetMap data for an area</source>
-            <translation>エリアのOpenStreetMapデータを取得</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a browser.</source>
             <translation>QGISはブラウザを開けませんでした。</translation>
@@ -428,29 +348,9 @@
             <translation>レポートと共有</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reports the feature count of the three</source>
-            <translation>3つのレイヤの地物数を報告します</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reprojects to a metric CRS before measuring</source>
-            <translation>計測の前に、メートル単位のCRSに再投影します</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Returns the ten highest as a readable table</source>
-            <translation>上位10件を読みやすい表で返します</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>欧州で実行され、フランスに保存されます。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>1地区の学校、公園、停留所を3つのレイヤで取得します。</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -461,11 +361,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Send the message</source>
             <translation>メッセージを送信</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>3件のOverpassクエリを順に送信します：学校、公園、停留所</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -486,11 +381,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>実行を停止</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Takes the area from the canvas, or picks one</source>
-            <translation>キャンバスからエリアを取得するか、1つ選びます</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -546,11 +436,6 @@
             <location filename="src/ui/library/detail.py" />
             <source>Use this prompt</source>
             <translation>この prompt を使用</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Uses my lines and points, or downloads both</source>
-            <translation>手持ちのラインとポイントを使うか、両方をダウンロードします</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -2361,6 +2246,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This link opens a page on {host}.</source>
             <translation>このリンクは{host}のページを開きます。</translation>
         </message>
+        <message>
+            <source>Close</source>
+            <translation>閉じる</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開く</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3090,6 +2983,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The browser page should show the code {code}</source>
             <translation>ブラウザのページにコード {code} が表示されるはずです。</translation>
+        </message>
+        <message>
+            <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
+            <translation>terra-lab.ai に表示されたコードだけを、この QGIS から開いたページで入力してください。</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Type the code shown in your browser:</source>
+            <translation>ブラウザに表示されたコードを入力してください:</translation>
         </message>
     </context>
     <context>
@@ -6332,6 +6237,10 @@ Click to open its page.</source>
             <source>The run is paused.</source>
             <translation>実行は一時停止中です。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro を取得</translation>
+        </message>
     </context>
     <context>
         <name>RecommendationCard</name>
@@ -7456,6 +7365,10 @@ Click to open its page.</source>
         <message>
             <source>e.g. I work in EPSG:2154</source>
             <translation>例: EPSG:2154 で作業しています</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>データソース</translation>
         </message>
     </context>
     <context>
@@ -8825,6 +8738,18 @@ This file is no longer where the run wrote it.</source>
             <source>{n} working files</source>
             <translation>作業ファイル{n}件</translation>
         </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>他 {n} 件</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>簡易表示</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>レイヤを 1 行で表示</translation>
+        </message>
     </context>
     <context>
         <name>RetentionRow</name>
@@ -8923,6 +8848,10 @@ This file is no longer where the run wrote it.</source>
             <source>{n} days</source>
             <translation>{n}日</translation>
         </message>
+        <message>
+            <source>Continue</source>
+            <translation>続ける</translation>
+        </message>
     </context>
     <context>
         <name>FileCardStack</name>
@@ -8930,6 +8859,45 @@ This file is no longer where the run wrote it.</source>
             <location filename="src/ui/file_card.py" />
             <source>Working files</source>
             <translation>作業ファイル</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingV2</name>
+        <message>
+            <source>Can't reach TerraLab. Try again.</source>
+            <translation>TerraLab に接続できません。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Click Connect in your browser first, then type the code.</source>
+            <translation>先にブラウザで「接続」をクリックしてから、コードを入力してください。</translation>
+        </message>
+        <message>
+            <source>Connecting AI Agent</source>
+            <translation>AI Agent に接続しています</translation>
+        </message>
+        <message>
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>ブラウザでサインインがキャンセルされました。「サインイン」をクリックして、もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>このアカウントには有効な AI Agent プランがありません。terra-lab.ai で有効にしてから、もう一度「サインイン」をクリックしてください。</translation>
+        </message>
+        <message>
+            <source>This sign-in has ended. Click Sign in to start again.</source>
+            <translation>このサインインは終了しました。「サインイン」をクリックして、最初からやり直してください。</translation>
+        </message>
+        <message>
+            <source>Too many wrong codes: this sign-in is closed. Click Sign in to start again.</source>
+            <translation>コードの入力ミスが多すぎるため、このサインインは閉じられました。「サインイン」をクリックして、最初からやり直してください。</translation>
+        </message>
+        <message>
+            <source>Type the 6 characters shown in your browser, like K7P-4QX.</source>
+            <translation>ブラウザに表示された 6 文字を入力してください(例: K7P-4QX)。</translation>
+        </message>
+        <message>
+            <source>Wrong code. Check it and try again.</source>
+            <translation>コードが正しくありません。確認して、もう一度お試しください。</translation>
         </message>
     </context>
 </TS>

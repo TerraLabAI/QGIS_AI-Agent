@@ -294,8 +294,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
 
     def refused(sentence: str) -> dict:
         return {"_error": sentence + " Nothing was added.", "code": limits.CEILING_CODE,
-                "suggestion": ("The ways with out geom, instead of (._;>;);out body, give each way its own "
-                               "points; a smaller area also helps.")}
+                "suggestion": "", "hint": "osm_node_index_ceiling"}
 
     def way_coords(el) -> list:
         if isinstance(el.get("geometry"), list) or nodes is None:
@@ -335,7 +334,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
                 return {"_error": (f"The answer's relations are made of more than {ceiling:,} ways, over what this "
                                    "computer keeps in memory for one load. Nothing was added."),
                         "code": limits.CEILING_CODE,
-                        "suggestion": "A smaller area, or the relations' own tags without their members, fits."}
+                        "suggestion": "", "hint": "osm_relations_ceiling", "ceiling": ceiling}
     if not elements:
         return {"elements": 0}
 
@@ -885,8 +884,8 @@ def _reach_past(bounds, box: tuple) -> dict | None:
     return {
         "times_wider": round(times, 1),
         "extent": [round(value, 6) for value in bounds],
-        "note": ("A feature crossing the box arrives whole, so one long line stretches the layer past "
-                 "it. The features are the right ones; clip before measuring, buffering or counting."),
+        "note": "A feature crossing the box arrives whole, so the layer reaches past it.",
+        "note_hint": "overpass_whole_features",
     }
 
 

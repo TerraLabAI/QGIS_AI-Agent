@@ -41,7 +41,7 @@ from ..core.invariants import metres_per_map_unit
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import guards, kml_description, vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
 from ._layers import layer_not_found, resolve_layer
@@ -251,7 +251,7 @@ def _vector(name: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a vector layer.",
             "INVALID_ARGS",
-            "list_layers shows each layer's type; vector layers only.",
+            hint="layer_not_vector", layer=layer.name(),
         )
     return layer, None
 
@@ -264,7 +264,7 @@ def _raster(name: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a raster layer.",
             "INVALID_ARGS",
-            "list_layers shows each layer's type; raster layers only.",
+            hint="layer_not_raster", layer=layer.name(),
         )
     return layer, None
 
@@ -419,8 +419,7 @@ def _execute_sql(args: dict) -> dict:
             return tool_error(
                 "No vector layers to query.",
                 "INVALID_ARGS",
-                "add_data loads a vector layer; layers takes names, or [] for a query "
-                "with no table (a literal SELECT).",
+                hint="sql_no_vector_layers",
             )
 
     definition = QgsVirtualLayerDefinition()
@@ -479,9 +478,7 @@ def _execute_sql(args: dict) -> dict:
         return tool_error(
             f"Invalid SQL or virtual layer for query: {query}" + (f" ({detail})" if detail else ""),
             _classify_sql_error(detail),
-            f"Table names available in FROM/JOIN: {sorted(tables)}. Double-quote names with spaces. "
-            "get_layer_info lists a layer's columns. This is SQLite/SpatiaLite, not PostgreSQL: no "
-            "width_bucket or other Postgres-only window/aggregate functions.",
+            hint="sql_invalid", tables=sorted(tables),
         )
 
     if qgs_crs is not None and not sources:
@@ -601,7 +598,7 @@ def _calc_open(args: dict) -> dict:
         return tool_error(
             f"Expression parse error: {expr.parserErrorString()}",
             "INVALID_ARGS",
-            "validate_expression shows the parse error and the referenced columns.",
+            hint="expression_parse_error",
         )
 
 
@@ -610,7 +607,7 @@ def _calc_open(args: dict) -> dict:
         return tool_error(
             f"{layer.name()!r} has unsaved edits open.",
             "EDIT_FAILED",
-            "qgis_edit_commit keeps them and qgis_edit_rollback discards them.",
+            hint="layer_has_open_edits", layer=layer.name(),
         )
 
     on_error = str(args.get("on_error") or "abort").lower()
@@ -625,7 +622,7 @@ def _calc_open(args: dict) -> dict:
         return tool_error(
             f"{layer.name()!r} is read from a web service, so this tool does not calculate it in place.",
             "INVALID_ARGS",
-            "A GeoPackage copy from export_layer takes the calculation.",
+            hint="web_layer_not_calculated", layer=layer.name(),
         )
 
     idx = layer.fields().indexOf(field_name)
@@ -684,7 +681,7 @@ def _calc_open(args: dict) -> dict:
             return tool_error(
                 f"The provider refused to add field {field_name!r}.",
                 "INVALID_ARGS",
-                "A GeoPackage copy from export_layer takes the calculation.",
+                hint="field_refused", field_name=field_name,
             )
         layer.updateFields()
         idx = layer.fields().indexOf(field_name)
@@ -761,7 +758,7 @@ def _calc_commit(state: dict) -> dict:
             f"The expression failed on feature {state['failed']}: {state['first_error']}. "
             f"Nothing was written and the layer is unchanged.",
             "INVALID_ARGS",
-            "on_error='skip' writes the rows that do evaluate.",
+            hint="calc_expression_failed", feature=state["failed"],
         )
     if not background.still_awaited():
 
@@ -869,8 +866,7 @@ def _invalid_layer_error(layer) -> dict | None:
     return tool_error(
         f"Layer {layer.name()!r} is not valid: its data source could not be opened.",
         "LAYER_INVALID",
-        "The database, service or file behind it is unreachable (VPN, network or a moved file). "
-        "list_layers shows which layers are valid.")
+        hint="layer_invalid", layer=layer.name())
 
 
 def _count_key(value):
@@ -1505,7 +1501,7 @@ def _validate_expression(args: dict) -> dict:
             report[key] = sorted(reader())
     if broken:
         report["error"] = parsed.parserErrorString()
-        report["suggestion"] = "Field names take double quotes, strings take single quotes."
+        report.update(coded_fact(hint="expression_quoting"))
     if not args.get("layer_name"):
         return report
     layer, error = _vector(args["layer_name"])

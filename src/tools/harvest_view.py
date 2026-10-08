@@ -38,7 +38,7 @@ from ..core.follow import hold_view
 from ..core.logger import log, log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
 from .data_tools import _avoid_reserved_name
 from .processing_run import _PROCESSING_TASKS, _readers_of, _sweep_consumed_tasks, remove_layers
@@ -144,7 +144,7 @@ def _vector_layer_or_error(name_or_id: str):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a vector layer.",
             "INVALID_ARGS",
-            "list_layers gives the vector layers.",
+            hint="layer_not_vector", layer=layer.name(),
         )
     return layer, None
 
@@ -191,8 +191,7 @@ def _set_layer_filter(args: dict) -> dict:
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session; QGIS refuses a filter change while editing.",
             "INVALID_ARGS",
-            "qgis_edit_commit or qgis_edit_rollback ends the edit session; set_layer_filter "
-            "runs after that.",
+            hint="filter_edit_session_open", layer=layer.name(),
         )
     previous = layer.subsetString() or ""
     lifted = None
@@ -206,9 +205,7 @@ def _set_layer_filter(args: dict) -> dict:
         return tool_error(
             f"The provider rejected the filter {expression!r} on {layer.name()!r}.",
             "INVALID_ARGS",
-            "get_layer_info gives the field names. OGR, GeoPackage and PostgreSQL layers take SQL "
-            "WHERE syntax (double quotes around field names, single quotes around text); memory layers "
-            "take a QGIS expression. validate_expression checks the expression.",
+            hint="filter_rejected", layer=layer.name(), filter=expression, provider=layer.providerType(),
         )
     layer.triggerRepaint()
     count = _feature_count(layer)
@@ -234,7 +231,7 @@ def _set_layer_filter(args: dict) -> dict:
             out["truncated"] = True
             out["warning"] = (f"The service holds {count:,} features under this filter and the layer loads "
                               f"{cap:,} of them, the first in the service's own order.")
-            out["suggestion"] = "a narrower filter, or one part at a time, loads the rest."
+            out.update(coded_fact(hint="filter_wfs_capped", features_available=count, loaded=cap))
     if expression and count == 0:
         out["_note"] = "The filter matches no feature: the layer shows nothing until the filter changes."
     return out
@@ -459,19 +456,19 @@ def _zoom_to_selected(args: dict) -> dict:
     else:
         layer = iface.activeLayer()
         if layer is None:
-            return tool_error("No active layer.", "INVALID_ARGS", "layer_name or set_active_layer names it.")
+            return tool_error("No active layer.", "INVALID_ARGS", hint="no_active_layer")
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(
                 f"The active layer {layer.name()!r} is not a vector layer.",
                 "INVALID_ARGS",
-                "layer_name must be a vector layer with a selection.",
+                hint="active_layer_not_vector", layer=layer.name(),
             )
     selected = layer.selectedFeatureCount()
     if selected == 0:
         return tool_error(
             f"Layer {layer.name()!r} has no selected features.",
             "INVALID_ARGS",
-            "select_by_attribute, select_by_geometry or select_features selects some.",
+            hint="no_selection", layer=layer.name(),
         )
     canvas = iface.mapCanvas()
     canvas.zoomToSelected(layer)
@@ -501,7 +498,7 @@ def _open_attribute_table(args: dict) -> dict:
         return tool_error(
             f"QGIS did not open the attribute table of {layer.name()!r}.",
             "ATTRIBUTE_TABLE_FAILED",
-            "get_layer_info may show the layer invalid; accessibility_snapshot shows what is on screen.",
+            hint="attribute_table_failed", layer=layer.name(),
         )
     out = {
         "layer_id": layer.id(),
@@ -652,7 +649,9 @@ class _HillshadeTask(QgsTask):
                     self._add_layer(entry)
             else:
                 entry["status"] = "error"
-                entry["error"] = self.error or "The hillshade task failed; get_message_log has the GDAL output."
+                entry["error"] = self.error or "The hillshade task failed."
+                if not self.error:
+                    entry.update(coded_fact(hint="hillshade_failed"))
         except Exception as e:
             entry["status"] = "error"
             entry["error"] = f"Output handling failed: {e}"
@@ -699,18 +698,18 @@ def _hillshade_source(args: dict):
     else:
         layer = iface.activeLayer()
         if layer is None:
-            return None, tool_error("No active layer.", "INVALID_ARGS", "layer_name names the DEM raster layer.")
+            return None, tool_error("No active layer.", "INVALID_ARGS", hint="no_active_layer", variant="dem")
     if not isinstance(layer, QgsRasterLayer):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a raster layer.",
             "INVALID_ARGS",
-            "layer_name must be a DEM raster (list_layers shows the rasters).",
+            hint="layer_not_raster_dem", layer=layer.name(),
         )
     if layer.providerType() != "gdal":
         return None, tool_error(
             f"Layer {layer.name()!r} uses the {layer.providerType()} provider; the hillshade needs a GDAL raster.",
             "INVALID_ARGS",
-            "a GeoTIFF or COG (add_cog_layer) is needed, not a WMS or XYZ layer.",
+            hint="hillshade_provider", layer=layer.name(), provider=layer.providerType(),
         )
     return layer, None
 
@@ -782,7 +781,7 @@ def _create_hillshade(args: dict) -> dict:
         return tool_error(
             f"band must be between 1 and {layer.bandCount()} for {layer.name()!r}.",
             "INVALID_ARGS",
-            "band is the DEM band, usually 1.",
+            hint="hillshade_band", layer=layer.name(), band=band, bands=layer.bandCount(),
         )
     values["band"] = band
     values["multidirectional"] = bool(args.get("multidirectional"))
@@ -801,9 +800,8 @@ def _create_hillshade(args: dict) -> dict:
         problem = security.validate_path(output_path, write=True,
                                          overwrite=bool(args.get("overwrite")))
         if problem:
-            return tool_error(problem, "PERMISSION_DENIED",
-                              "output_path must sit in the project folder or the user's home; overwrite "
-                              "true replaces an existing file.")
+            return tool_error(problem, "PERMISSION_DENIED", hint="output_path_refused",
+                              output_path=output_path, overwrite=bool(args.get("overwrite")))
         parent = os.path.dirname(output_path)
         if parent:
             os.makedirs(parent, exist_ok=True)
@@ -841,6 +839,6 @@ def _create_hillshade(args: dict) -> dict:
         "layer_name": name,
         "output_path": output_path,
         "parameters": values,
-        "note": "Running in the background, QGIS stays responsive. Poll get_task_status(task_id); "
-                "the hillshade layer is added and styled when status is complete.",
+        "note": "Running in the background.",
+        **coded_fact(hint="hillshade_background", layer_name=name),
     }

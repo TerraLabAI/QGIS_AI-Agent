@@ -1499,7 +1499,7 @@ class _ProjectCrsProbe:
         return QgsCoordinateTransform(source, self._crs, QgsProject.instance()).transformBoundingBox(extent)
 
 
-def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict | None:
+def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[dict | None, str]:
 
 
 
@@ -1508,8 +1508,13 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
 
 
 
-    if confirmed:
-        return None
+
+
+
+
+
+
+    notes: list[str] = []
     for definition in alg.parameterDefinitions():
         name = definition.name()
         if (str(alg.id() or "").casefold(), name.upper()) in _PERCENTAGE_PARAMETERS:
@@ -1549,33 +1554,12 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
             scale = ground.layer_metres_per_unit(layer)
             if scale is None or abs(scale - 1.0) <= ground.TOLERANCE:
                 continue
-            real = float(value) * scale
-            suggested = _suggest_metric_crs(layer)
-            return {
-                "_error": (
-                    f"GEOGRAPHIC_DISTANCE: {name} {value:g} on layer '{layer.name()}' in {crs.authid()} covers "
-                    f"{real:.4g} m on the ground, not {value:g} m: one {crs.authid()} unit is {scale:.4g} m "
-                    f"where this layer sits."
-                ),
-                "code": "CRS_GUARD",
-                "layer_crs": crs.authid(),
-                "ground_metres_per_unit": round(scale, 5),
-                "suggested_crs": suggested,
-
-
-
-
-
-
-                "suggestion": (
-                    f"Changing {name} cannot clear this: the refusal is about the CRS, so every value in "
-                    f"{crs.authid()} is refused the same way while one of its units is {scale:.4g} m here. "
-                    f"Two ways out: native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in "
-                    f"metres, or, when the layer spans too much of the world for any projection to fit it, "
-                    f"confirm_large true keeps {crs.authid()} with the distance off by "
-                    f"{abs(scale - 1.0) * 100:.0f} % where the layer sits."
-                ),
-            }
+            notes.append(f"{name} {value:g} on layer '{layer.name()}' in {crs.authid()} covers "
+                         f"{float(value) * scale:.4g} m on the ground: one {crs.authid()} unit is {scale:.4g} m "
+                         "where this layer sits.")
+            continue
+        if confirmed:
+            continue
         suggested = _suggest_metric_crs(layer)
         return {
             "_error": (
@@ -1592,8 +1576,8 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> dict |
                 f"native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in metres. "
                 "confirm_large true keeps degrees when a value in degrees is really intended."
             ),
-        }
-    return None
+        }, ""
+    return None, " ".join(notes)
 
 
 
@@ -1624,7 +1608,7 @@ def _nodata_sentinel(rast, band: int) -> float | None:
     return None
 
 
-_ZONAL_ALGORITHMS = frozenset({"native:zonalstatisticsfb", "native:zonalstatistics", "qgis:zonalstatistics"})
+_ZONAL_ALGORITHMS = frozenset()
 
 
 def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
@@ -1662,11 +1646,7 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
 
 
 
-_TERRAIN_BY_CELL = frozenset({
-    "gdal:slope", "gdal:aspect", "gdal:hillshade", "gdal:roughness", "gdal:triterrainruggednessindex",
-    "gdal:tpitopographicpositionindex", "native:slope", "native:aspect", "native:hillshade",
-    "native:ruggednessindex", "qgis:slope", "qgis:aspect", "qgis:hillshade", "qgis:ruggednessindex",
-})
+_TERRAIN_BY_CELL = frozenset()
 
 
 def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | None:

@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QIcon, QKeySequence
 from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget, QMenu
 
+from . import LOADED_AT
 from .core import i18n, improve, policy, telemetry, tuning
 from .core import telemetry_events as ev
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
@@ -116,6 +117,11 @@ class AIAgentPlugin:
         self._dock_wired = False
         self._telemetry_started = False
         self._early_account = None
+
+
+        self._load_ms = None
+        self._open_began = 0.0
+        self._open_facts: dict = {}
 
     def _register_shortcut(self, sequence: str) -> bool:
 
@@ -246,6 +252,9 @@ class AIAgentPlugin:
         QTimer.singleShot(_RELEASE_READ_DELAY_MS, self._read_released)
         QTimer.singleShot(_RELEASE_READ_DELAY_MS, self._tidy_folders)
 
+
+        self._load_ms = int((time.monotonic() - LOADED_AT) * 1000)
+
     def _tidy_folders(self) -> None:
 
         if self._unloading:
@@ -344,6 +353,7 @@ class AIAgentPlugin:
         if self.dock is None and not (self._settings or Settings()).dock_visible:
             self._start_hidden()
             return
+        self._mark_open("startup")
         if not registry_turn_done and self.registry is None and self.dock is None:
 
 
@@ -378,6 +388,7 @@ class AIAgentPlugin:
 
 
 
+        began = time.monotonic()
         self._settings = self._settings or Settings()
         self._install_map_hooks()
         try:
@@ -388,8 +399,12 @@ class AIAgentPlugin:
             telemetry.new_session()
             telemetry.start_flush_timer()
             self._telemetry_started = True
-            telemetry.track(ev.PLUGIN_OPENED, {"signed_in": account.has_activation_key,
-                                               "panel_visible": False})
+
+
+            signed_in = account.has_activation_key
+            telemetry.track(ev.PLUGIN_OPENED, {"signed_in": signed_in, "panel_visible": False,
+                                               "load_ms": self._load_ms,
+                                               "start_ms": int((time.monotonic() - began) * 1000)})
             self._early_account = account
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Session telemetry not started: {exc}")
@@ -1096,8 +1111,16 @@ class AIAgentPlugin:
 
 
 
+    def _mark_open(self, how: str) -> None:
+
+
+        if self.dock is None and not self._open_began:
+            self._open_began = time.monotonic()
+            self._open_facts["opened_by"] = how
+
     def _show_dock(self):
 
+        self._mark_open("show")
         self._ensure_dock()
         if self.dock is None:
             return
@@ -1146,6 +1169,7 @@ class AIAgentPlugin:
 
     def toggle_dock(self):
         created = self.dock is None
+        self._mark_open("click")
         self._ensure_dock()
         if self.dock is None:
             return
@@ -1158,6 +1182,7 @@ class AIAgentPlugin:
         self._wire_dock()
 
     def _build_registry(self):
+        began = time.monotonic()
         from .tools import build_registry
 
 
@@ -1168,6 +1193,7 @@ class AIAgentPlugin:
         include_debug = os.environ.get("AI_AGENT_DEBUG_TOOLS", "1") != "0"
         include_dev = os.environ.get("AI_AGENT_DEBUG_TOOLS") == "1"
         registry = build_registry(include_debug=include_debug, include_dev=include_dev)
+        self._open_facts["registry_ms"] = int((time.monotonic() - began) * 1000)
         log(f"Tool registry built: {len(registry.visible_names())} visible tools, "
             f"debug={include_debug}, dev={include_dev}")
 
@@ -1186,15 +1212,19 @@ class AIAgentPlugin:
             return
         dock = None
         try:
-            from .core.controller import AgentController
-            from .ui.dock import AIAgentDock
-
             if self.registry is None:
                 self.registry = self._build_registry()
+            began = time.monotonic()
+            from .ui.dock import AIAgentDock
+
             try:
                 dock = AIAgentDock(self.iface.mainWindow())
             except TypeError:
                 dock = AIAgentDock()
+            self._open_facts["dock_ms"] = int((time.monotonic() - began) * 1000)
+            began = time.monotonic()
+            from .core.controller import AgentController
+
             self._settings = Settings()
             self.controller = AgentController(self.iface, dock.panel, self.registry, self._settings)
             self.controller.layer_action_requested.connect(self._on_layer_action)
@@ -1214,6 +1244,9 @@ class AIAgentPlugin:
 
             self._started = True
             self.controller.start()
+            self._open_facts["controller_ms"] = int((time.monotonic() - began) * 1000)
+
+            self.controller.open_stamps(dict(self._open_facts, load_ms=self._load_ms), self._open_began)
             self._early_account = None
         except Exception as exc:  # noqa: BLE001
             log_warning(f"AI Agent could not open its panel: {exc}")
@@ -1500,6 +1533,7 @@ class AIAgentPlugin:
         if self.dock is None:
 
 
+            self._mark_open("settings")
             self._ensure_dock()
             if self.dock is not None:
                 self.dock.setVisible(False)

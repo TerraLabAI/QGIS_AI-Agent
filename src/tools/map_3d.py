@@ -152,27 +152,25 @@ def _configure_3d_map_view(args: dict) -> dict:
         dem = _find_layer(str(args["dem_layer"]))
         if dem is None:
             return tool_error(f"DEM layer {args.get('dem_layer')!r} was not found.", "LAYER_NOT_FOUND",
-                              "dem_layer names a loaded raster DEM; unset, the terrain is flat.")
+                              hint="map3d_dem_not_found", dem_layer=str(args["dem_layer"]))
         if not isinstance(dem, QgsRasterLayer):
             return tool_error(f"{dem.name()!r} is not a raster DEM layer.", "INVALID_ARGS",
-                              "dem_layer names a raster elevation layer (DEM, DTM, LiDAR); unset, the terrain is flat.")
+                              hint="map3d_dem_not_raster", dem_layer=dem.name())
 
     views = open_3d_views()
     if views is None:
         return tool_error("QGIS could not enumerate its 3D map views.", "EXECUTION_FAILED",
-                          "This QGIS build may not have 3D support enabled.")
+                          hint="map3d_views_unavailable")
     created = "view_index" not in args
     if created:
         refused = _opengl_refusal()
         if refused:
-            return tool_error(refused, "UNSUPPORTED_QGIS_VERSION",
-                              "QGIS draws its 3D views with OpenGL 3.3 shaders; a graphics driver update or "
-                              "a session on the machine itself (not a remote desktop) gives them.")
+            return tool_error(refused, "UNSUPPORTED_QGIS_VERSION", hint="map3d_opengl_refused")
         full = iface.mapCanvas().projectExtent()
         if full.isEmpty() or not full.isFinite():
 
             return tool_error("The project extent is empty, so QGIS opens no 3D map view.", "EXECUTION_FAILED",
-                              "A 3D view frames the project's visible layers; add or show a layer first.")
+                              hint="map3d_extent_empty")
         title = str(args.get("title") or "AI Agent 3D Map")
         try:
             canvas = create(title)
@@ -184,16 +182,18 @@ def _configure_3d_map_view(args: dict) -> dict:
                 canvas = create(f"{title} {number}")
         except Exception as exc:  # noqa: BLE001
             return tool_error(f"QGIS could not open a 3D map view: {exc}", "EXECUTION_FAILED",
-                              "OpenGL support may be missing.")
+                              hint="map3d_open_failed")
         if canvas is None:
+            if views:
+                return tool_error("QGIS did not create a 3D map view.", "EXECUTION_FAILED",
+                                  hint="map3d_views_open", open_views=len(views))
             return tool_error("QGIS did not create a 3D map view.", "EXECUTION_FAILED",
-                              f"{len(views)} 3D views are open; view_index configures one of them."
-                              if views else "OpenGL support may be missing.")
+                              hint="map3d_open_failed")
     else:
         index = int(args["view_index"])
         if index >= len(views):
             return tool_error(f"view_index {index} out of range (open 3D views: {len(views)}).", "INVALID_ARGS",
-                              "A 3D view whose window was closed is deleted; without view_index a new view opens.")
+                              hint="map3d_view_index_out_of_range", view_index=index, open_views=len(views))
         canvas = views[index]
 
     settings = canvas.mapSettings()

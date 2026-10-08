@@ -15,6 +15,7 @@ import urllib.request
 from .logger import log_warning
 from .net_failure import LocalUrlRefused, _transient
 from .security import _as_address, refused_addresses, validate_url, vetted_addresses
+from .serialization import coded_like
 
 
 
@@ -70,7 +71,7 @@ def check_url(url: str) -> None:
 
     problem = validate_url(url)
     if problem:
-        raise LocalUrlRefused(f"{problem} ({url[:120]})")
+        raise LocalUrlRefused(coded_like(f"{problem} ({url[:120]})", problem))
     _pin(url)
 
 
@@ -125,6 +126,10 @@ class _NoLocalRedirect(urllib.request.HTTPRedirectHandler):
                     "the server redirected a signed HTTPS request to plain HTTP, which would put "
                     f"its credentials in the clear ({newurl[:120]})")
         new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and req.get_method() == "HEAD":
+
+
+            new.method = "HEAD"
         if new is None or _same_origin(req.full_url, newurl):
             return new
         dropped = _identity_names(new)
@@ -436,37 +441,20 @@ def proxy_in_use() -> str | None:
 WITHDRAWN_HOSTS = {
     "gisco-services.ec.europa.eu":
         "Eurostat GISCO grants its boundary files on condition that the data is not used for "
-        "commercial purposes, so this product does not serve them. osm_planet_boundaries, "
-        "overture_divisions and the national row serve boundaries.",
+        "commercial purposes, so this product does not serve them.",
     ".open-meteo.com":
-        "Open-Meteo's free tier is for non-commercial use only and commercial use needs a paid "
-        "key. metno_forecast serves the forecast and nasa_power_daily the daily record.",
-    "basemaps.cartocdn.com":
-        "CARTO has no keyless basemap left: the free tiles carry a watermark; openfreemap, "
-        "osm_standard, a national basemap do not.",
-    ".basemaps.cartocdn.com":
-        "CARTO has no keyless basemap left: the free tiles carry a watermark; openfreemap, "
-        "osm_standard, a national basemap do not.",
-    "cartodb-basemaps-a.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
-    "cartodb-basemaps-b.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
-    "cartodb-basemaps-c.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
-    "cartodb-basemaps-d.global.ssl.fastly.net":
-        "CARTO has no keyless basemap left; openfreemap, osm_standard, a national basemap do.",
-    "api.inaturalist.org":
-        "iNaturalist observations are CC BY-NC per record. The gbif row asks for the "
-        "CC0 and CC BY records only.",
-    ".opensky-network.org":
-        "OpenSky's terms are non-commercial. There is no keyless commercial replacement for live "
-        "flight positions in this catalog.",
-    ".nrsc.gov.in":
-        "Bhuvan is free to view and not to reuse. The global rows, OpenStreetMap "
-        "and the Overture themes serve India.",
+        "Open-Meteo's free tier is for non-commercial use only and commercial use needs a paid key.",
+    "basemaps.cartocdn.com": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    ".basemaps.cartocdn.com": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    "cartodb-basemaps-a.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    "cartodb-basemaps-b.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    "cartodb-basemaps-c.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    "cartodb-basemaps-d.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
+    "api.inaturalist.org": "iNaturalist observations are CC BY-NC per record.",
+    ".opensky-network.org": "OpenSky's terms are non-commercial.",
+    ".nrsc.gov.in": "Bhuvan is free to view and not to reuse.",
     "cartoweb.wms.ngi.be":
-        "The Belgian NGI's CartoWeb is CC BY-NC and commercial use needs a paid subscription. "
-        "Regional orthophotos and OpenStreetMap serve Belgium.",
+        "The Belgian NGI's CartoWeb is CC BY-NC and commercial use needs a paid subscription.",
 }
 
 
@@ -515,7 +503,10 @@ def _explain_url_error(exc: urllib.error.URLError) -> urllib.error.URLError:
         return exc
     reason = str(getattr(exc, "reason", exc) or exc)
     lowered = reason.lower()
-    if "certificate" in lowered or "ssl" in lowered or "tls" in lowered:
+
+
+    timed_out = "timed out" in lowered or isinstance(getattr(exc, "reason", None), TimeoutError)
+    if not timed_out and ("certificate" in lowered or "ssl" in lowered or "tls" in lowered):
         return urllib.error.URLError(
             f"{reason}. The server's TLS certificate was not accepted. If this host uses a private "
             "or company certificate authority, add it in QGIS Settings > Options > Authentication.")

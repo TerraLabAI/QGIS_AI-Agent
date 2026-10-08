@@ -39,7 +39,7 @@ def _dem_facts(dem_name: str) -> dict:
         return _layer_not_found_error(dem_name)
     if not isinstance(layer, QgsRasterLayer):
         return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
-                          "dem is the elevation raster: find_datasets 'elevation' lists the DEMs, add_data loads one.")
+                          hint="hydrology_dem_not_raster", layer=layer.name())
     crs = layer.crs()
     renderer = layer.renderer()
     return {
@@ -112,8 +112,7 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
     if kind.casefold() != "unknown" and not kind.startswith(("Point", "MultiPoint")):
         return tool_error(
             f"{layer.name()} is a {kind} layer, not outlet points.", "INVALID_ARGS",
-            "outlet needs a point layer of downstream outlets. A stream line's first vertex need not "
-            "be downstream; outlet endpoints follow drainage direction.")
+            hint="hydrology_outlet_not_points", layer=layer.name(), geometry=kind)
     how = ""
     if feature_id is not None:
         try:
@@ -126,7 +125,7 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
         feature = layer.getFeature(fid)
         if not feature.isValid():
             return tool_error(f"{layer.name()} has no feature {fid}.", "INVALID_ARGS",
-                              f"get_features on {layer.name()} lists its ids for feature_id.")
+                              hint="hydrology_outlet_no_feature", layer=layer.name(), feature_id=fid)
         how = f"feature {fid}"
     else:
         selected = list(layer.selectedFeatureIds())
@@ -135,17 +134,15 @@ def _outlet_from_layer(name: str, feature_id) -> dict:
             how = f"the selected feature {selected[0]}"
         elif len(selected) > 1:
             return tool_error(f"{len(selected)} features of {layer.name()} are selected, and an outlet is one point.",
-                              "INVALID_ARGS",
-                              f'outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}, '
-                              "or select one point.")
+                              "INVALID_ARGS", hint="hydrology_outlet_many_selected", layer=layer.name(),
+                              selected=len(selected))
         else:
             found = list(layer.getFeatures(QgsFeatureRequest().setLimit(2)))
             if not found:
                 return _outlet_error(f"{layer.name()} holds no feature to use as the outlet.")
             if len(found) > 1:
                 return tool_error(f"{layer.name()} holds several points; the outlet is one of them.", "INVALID_ARGS",
-                                  f'outlet {{"layer_name": "{layer.name()}", "feature_id": <id>}}: '
-                                  "get_features lists the ids, or select one point.")
+                                  hint="hydrology_outlet_many_points", layer=layer.name())
             feature = found[0]
             how = f"its only feature {feature.id()}"
     point = _single_point(feature.geometry())
@@ -191,7 +188,7 @@ def _resolve_outlet(outlet, dem_crs_wkt: str) -> dict:
         return _outlet_error("The outlet coordinates came without a crs and the project has none.")
     dem_crs = QgsCoordinateReferenceSystem.fromWkt(dem_crs_wkt)
     if not dem_crs.isValid():
-        return _outlet_error("The DEM has no valid CRS; assign its known CRS before locating the outlet.")
+        return tool_error("The DEM has no valid CRS.", "INVALID_ARGS", hint="hydrology_dem_no_crs")
     context = QgsProject.instance().transformContext()
     try:
         in_dem = QgsCoordinateTransform(crs, dem_crs, context).transform(picked["point"])
@@ -201,7 +198,8 @@ def _resolve_outlet(outlet, dem_crs_wkt: str) -> dict:
         return _outlet_error(f"The outlet cannot be placed in the DEM's CRS: {exc}")
     if (not all(math.isfinite(value) for value in (in_dem.x(), in_dem.y(), in_degrees.x(), in_degrees.y()))
             or not -180 <= in_degrees.x() <= 180 or not -90 <= in_degrees.y() <= 90):
-        return _outlet_error("The outlet transforms outside valid coordinates; check the source CRS and point.")
+        return tool_error("The outlet transforms outside valid coordinates.", "INVALID_ARGS",
+                          hint="hydrology_outlet_out_of_range", crs=crs.authid() or crs.description())
     out = {"x": in_dem.x(), "y": in_dem.y(), "lon": in_degrees.x(), "lat": in_degrees.y(),
            "from": picked["from"], "crs": crs.authid() or crs.description()}
     if picked["assumed"]:
@@ -209,14 +207,14 @@ def _resolve_outlet(outlet, dem_crs_wkt: str) -> dict:
     return out
 
 
-def _mask_geometry(name: str, dem_crs_wkt: str) -> dict:
+def _mask_geometry(name: str, dem_crs_wkt: str, argument: str = "mask_layer") -> dict:
 
     layer = _find_layer(name)
     if layer is None:
         return _layer_not_found_error(name)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a polygon layer.", "INVALID_ARGS",
-                          "mask_layer takes a polygon layer: the watershed delineate_watershed added, or an area.")
+                          hint="hydrology_mask_not_polygon", layer=layer.name(), argument=argument)
     selected = list(layer.selectedFeatureIds())
     request = QgsFeatureRequest().setFilterFids(selected) if selected else QgsFeatureRequest()
     cap = int(limits.current("SYNC_FEATURE_LOOP_MAX"))
@@ -227,8 +225,7 @@ def _mask_geometry(name: str, dem_crs_wkt: str) -> dict:
     for count, feature in enumerate(layer.getFeatures(request)):
         if count >= cap:
             return tool_error(f"{layer.name()} holds more than {cap:,} polygons.", "INVALID_ARGS",
-                              f"mask_layer reads one polygon: the selection in {layer.name()}, "
-                              "or the layer dissolved to one.")
+                              hint="hydrology_mask_too_many", layer=layer.name(), cap=cap, argument=argument)
         geometry = QgsGeometry(feature.geometry())
         kind = QgsWkbTypes.displayString(geometry.wkbType()) or ""
         if geometry.isNull() or geometry.isEmpty() or not ("Polygon" in kind or "Surface" in kind):
@@ -237,14 +234,14 @@ def _mask_geometry(name: str, dem_crs_wkt: str) -> dict:
             geometry.transform(transform)
         except Exception as exc:  # noqa: BLE001
             return tool_error(f"{layer.name()} cannot be placed in the DEM's CRS: {exc}", "INVALID_ARGS",
-                              "get_layer_info gives the mask layer's CRS.")
+                              hint="hydrology_mask_crs", layer=layer.name(), argument=argument)
         box = geometry.boundingBox()
         xmin, ymin = min(xmin, box.xMinimum()), min(ymin, box.yMinimum())
         xmax, ymax = max(xmax, box.xMaximum()), max(ymax, box.yMaximum())
         wkbs.append(bytes(geometry.asWkb()))
     if not wkbs:
         return tool_error(f"{layer.name()} holds no polygon to use as the area.", "INVALID_ARGS",
-                          "mask_layer takes a polygon layer: the watershed delineate_watershed added, or an area.")
+                          hint="hydrology_mask_not_polygon", layer=layer.name(), argument=argument)
     return {"wkbs": wkbs, "extent": (xmin, ymin, xmax, ymax), "name": layer.name(),
             "features": len(wkbs), "selected": bool(selected)}
 
@@ -422,7 +419,7 @@ def _add_ramp_raster(path: str, name: str, low: float, high: float, what: str) -
     layer = QgsRasterLayer(path, name, "gdal")
     if not layer.isValid():
         return tool_error(f"QGIS could not open the {what} it wrote ({path}).", "EXECUTION_FAILED",
-                          "Such failures are usually brief.")
+                          hint="ramp_raster_open_failed", what=what, path=path)
     styled = apply_ramp_style(layer, 1, "Blues", 0, "", low, high)
     QgsProject.instance().addMapLayer(layer)
     layer.triggerRepaint()

@@ -22,6 +22,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import security
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer
 
@@ -47,7 +48,8 @@ def _read_source(source: str) -> tuple[str, str] | dict:
         return str(source or "").strip(), ""
     error = security.validate_path(path)
     if error:
-        return tool_error(error, "PERMISSION_DENIED", "A .prj file must sit in the project or home folder.")
+        return tool_error(error, "PERMISSION_DENIED",
+                          "" if isinstance(error, CodedText) else "A .prj file must sit in the project or home folder.")
     try:
         with open(path, encoding="utf-8") as handle:
             return path, handle.read().strip()

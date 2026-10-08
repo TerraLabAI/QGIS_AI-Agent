@@ -38,34 +38,14 @@
             <translation>1. Kopiuj diagnostykę</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>Pas bufora i zliczenie tego, co jest w środku.</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent i twoje dane</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>Dodaje podkład mapowy, gdy mapa jest pusta</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>Dodaje tytuł, legendę, podziałkę, strzałkę północy i atrybucję</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Allow / Skip</source>
             <translation>Zezwól / Pomiń</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>Arkusz A4 z tytułem, legendą, podziałką i strzałką północy.</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -108,29 +88,9 @@
             <translation>Przywróć ostatnią wysłaną wiadomość</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>Zbuforuj warstwę liniową o 100 m w metrycznym układzie współrzędnych, policz, ile punktów leży w każdym buforze, i podaj dziesięć buforów z największą liczbą punktów w czytelnej tabeli. Użyj moich warstw, jeśli projekt ma warstwę liniową i punktową; w przeciwnym razie pobierz drogi i sklepy wybranej dzielnicy i napisz, którą.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffers the lines by 100 m</source>
-            <translation>Buforuje linie o 100 m</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bug, question, feature request?</source>
             <translation>Błąd, pytanie, prośba o funkcję?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build a print map and export it</source>
-            <translation>Zbuduj mapę do druku i wyeksportuj ją</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>Zbuduj poziomy układ wydruku A4 z bieżącego widoku mapy, z tytułem, legendą, podziałką w metrach, strzałką północy i wierszem atrybucji z nazwami źródeł danych, a następnie wyeksportuj go do PDF w 300 dpi. Jeśli mapa jest pusta, najpierw dodaj podkład mapowy dla wybranego miejsca, aby arkusz zawierał mapę.</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -198,21 +158,6 @@
             <translation>Skopiuj poniższy adres pomocy technicznej do aplikacji e-mail.</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Count what falls within a distance</source>
-            <translation>Policz, co leży w zadanej odległości</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Counts the points inside each buffer</source>
-            <translation>Liczy punkty w każdym buforze</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>Tworzy poziomy układ wydruku A4 z ramką mapy</translation>
-        </message>
-        <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
             <translation>Usuń moje konto</translation>
@@ -226,11 +171,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Done</source>
             <translation>Gotowe</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>Pobierz z OpenStreetMap wszystkie szkoły, parki i przystanki autobusowe jednej dzielnicy. Pracuj na obszarze widocznym na mojej mapie albo wybierz dzielnicę dobrze zmapowanego miasta i napisz, którą. Umieść je w trzech warstwach, parki jako poligony, nadaj każdej warstwie inny styl i podaj liczbę obiektów w każdej. Wykonaj te trzy zapytania po kolei.</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -251,11 +191,6 @@
             <location filename="src/ui/use_cases.py" />
             <source>Explore</source>
             <translation>Eksploracja</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>Eksportuje arkusz do PDF w 300 dpi</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -283,19 +218,9 @@
             <translation>W tym czacie</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>Zachowuje parki jako poligony, resztę jako punkty</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Keyboard shortcuts</source>
             <translation>Skróty klawiszowe</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Loads each answer as its own layer</source>
-            <translation>Wczytuje każdą odpowiedź jako osobną warstwę</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -378,11 +303,6 @@
             <translation>Projekt zmieniony</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Pull OpenStreetMap data for an area</source>
-            <translation>Pobierz dane OpenStreetMap dla obszaru</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a browser.</source>
             <translation>QGIS nie może otworzyć przeglądarki.</translation>
@@ -428,29 +348,9 @@
             <translation>Raport, udostępnianie</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reports the feature count of the three</source>
-            <translation>Podaje liczbę obiektów w każdej z trzech warstw</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reprojects to a metric CRS before measuring</source>
-            <translation>Przelicza do metrycznego układu współrzędnych przed pomiarem</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Returns the ten highest as a readable table</source>
-            <translation>Zwraca dziesięć najwyższych w czytelnej tabeli</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>Działa w Europie, dane są przechowywane we Francji.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>Szkoły, parki i przystanki jednej dzielnicy jako trzy warstwy.</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -461,11 +361,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Send the message</source>
             <translation>Wyślij wiadomość</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>Wysyła kolejno trzy zapytania Overpass: szkoły, parki, przystanki</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -486,11 +381,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>Zatrzymaj uruchomienie</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Takes the area from the canvas, or picks one</source>
-            <translation>Przyjmuje obszar widoczny na mapie albo wybiera go sam</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -546,11 +436,6 @@
             <location filename="src/ui/library/detail.py" />
             <source>Use this prompt</source>
             <translation>Użyj tego prompt</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Uses my lines and points, or downloads both</source>
-            <translation>Używa moich linii i punktów albo pobiera obie warstwy</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -2361,6 +2246,14 @@ Usunięcie jest ostateczne po zakończeniu okresu karencji. Do tego czasu możes
             <source>This link opens a page on {host}.</source>
             <translation>Ten link otwiera stronę na {host}.</translation>
         </message>
+        <message>
+            <source>Close</source>
+            <translation>Zamknij</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Otwórz</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3090,6 +2983,18 @@ Usunięcie jest ostateczne po zakończeniu okresu karencji. Do tego czasu możes
         <message>
             <source>The browser page should show the code {code}</source>
             <translation>Strona przeglądarki powinna pokazywać kod {code}</translation>
+        </message>
+        <message>
+            <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
+            <translation>Wpisz tylko kod widoczny na terra-lab.ai, na stronie otwartej z tego QGIS-a.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Zaloguj się</translation>
+        </message>
+        <message>
+            <source>Type the code shown in your browser:</source>
+            <translation>Wpisz kod pokazany w przeglądarce:</translation>
         </message>
     </context>
     <context>
@@ -6332,6 +6237,10 @@ Kliknij, aby otworzyć jego stronę.</translation>
             <source>The run is paused.</source>
             <translation>Uruchomienie jest wstrzymane.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Przejdź na Pro</translation>
+        </message>
     </context>
     <context>
         <name>RecommendationCard</name>
@@ -7456,6 +7365,10 @@ Kliknij, aby otworzyć jego stronę.</translation>
         <message>
             <source>e.g. I work in EPSG:2154</source>
             <translation>np. Pracuję w EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Źródła danych</translation>
         </message>
     </context>
     <context>
@@ -8837,6 +8750,18 @@ Ten plik nie znajduje się już tam, gdzie zapisano go podczas uruchomienia.</tr
             <source>{n} working files</source>
             <translation>Pliki robocze: {n}</translation>
         </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} więcej</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Pokaż mniej</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Pokaż jedną linię warstw</translation>
+        </message>
     </context>
     <context>
         <name>RetentionRow</name>
@@ -8935,6 +8860,10 @@ Ten plik nie znajduje się już tam, gdzie zapisano go podczas uruchomienia.</tr
             <source>{n} days</source>
             <translation>Dni: {n}</translation>
         </message>
+        <message>
+            <source>Continue</source>
+            <translation>Dalej</translation>
+        </message>
     </context>
     <context>
         <name>FileCardStack</name>
@@ -8942,6 +8871,45 @@ Ten plik nie znajduje się już tam, gdzie zapisano go podczas uruchomienia.</tr
             <location filename="src/ui/file_card.py" />
             <source>Working files</source>
             <translation>Pliki robocze</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingV2</name>
+        <message>
+            <source>Can't reach TerraLab. Try again.</source>
+            <translation>Nie można połączyć się z TerraLab. Spróbuj ponownie.</translation>
+        </message>
+        <message>
+            <source>Click Connect in your browser first, then type the code.</source>
+            <translation>Najpierw kliknij Połącz w przeglądarce, potem wpisz kod.</translation>
+        </message>
+        <message>
+            <source>Connecting AI Agent</source>
+            <translation>Łączenie z AI Agent</translation>
+        </message>
+        <message>
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>Logowanie zostało anulowane w przeglądarce. Kliknij Zaloguj się, aby spróbować ponownie.</translation>
+        </message>
+        <message>
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>To konto nie ma aktywnego planu AI Agent. Aktywuj go na terra-lab.ai, a potem kliknij Zaloguj się ponownie.</translation>
+        </message>
+        <message>
+            <source>This sign-in has ended. Click Sign in to start again.</source>
+            <translation>To logowanie się zakończyło. Kliknij Zaloguj się, aby zacząć od nowa.</translation>
+        </message>
+        <message>
+            <source>Too many wrong codes: this sign-in is closed. Click Sign in to start again.</source>
+            <translation>Zbyt wiele błędnych kodów: to logowanie zostało zamknięte. Kliknij Zaloguj się, aby zacząć od nowa.</translation>
+        </message>
+        <message>
+            <source>Type the 6 characters shown in your browser, like K7P-4QX.</source>
+            <translation>Wpisz 6 znaków pokazanych w przeglądarce, na przykład K7P-4QX.</translation>
+        </message>
+        <message>
+            <source>Wrong code. Check it and try again.</source>
+            <translation>Błędny kod. Sprawdź go i spróbuj ponownie.</translation>
         </message>
     </context>
 </TS>

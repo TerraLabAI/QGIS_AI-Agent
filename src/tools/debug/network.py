@@ -42,7 +42,7 @@ from collections import deque
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ...core.tool_registry import Tool, ToolRegistry
+from ...core.tool_registry import Tool, ToolRegistry, coded_fact
 from .widgets import redact_secrets
 
 
@@ -372,7 +372,6 @@ def _shape(entry: dict, include_headers: bool, include_bodies: bool, max_body_ch
         if isinstance(body, str) and max_body_chars and len(body) > max_body_chars:
             out[key] = body[:max_body_chars]
             out[f"{side}_body_shown_chars"] = max_body_chars
-            out[f"{side}_body_more"] = "raise max_body_chars (0 = all) to see the rest"
     return out
 
 
@@ -397,12 +396,16 @@ def _get_network_log(args: dict) -> dict:
         and (not only_errors or is_error(e))
         and (not unfinished_only or not e.get("finished"))
     ]
-    return {
-        "requests": [_shape(e, include_headers, include_bodies, max_body_chars) for e in filtered[:limit]],
+    shaped = [_shape(e, include_headers, include_bodies, max_body_chars) for e in filtered[:limit]]
+    out = {
+        "requests": shaped,
         "count": len(filtered),
         "captured_total": len(events),
         "ring_size": _RING,
     }
+    if any(key.endswith("_body_shown_chars") for entry in shaped for key in entry):
+        out.update(coded_fact(hint="network_body_cut", max_body_chars=max_body_chars))
+    return out
 
 
 def _clear_network_log(args: dict) -> dict:

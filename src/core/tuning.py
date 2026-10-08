@@ -376,7 +376,9 @@ _MAX_TOKEN_CHARS = 40
 
 
 
-_SERVICE_HOSTS = frozenset({"earthdata_hosts", "earthdata_suffixes"})
+
+
+_SERVICE_HOSTS = frozenset({"earthdata_hosts", "earthdata_suffixes", "open_data_hosts"})
 _MAX_HOSTS = 40
 
 
@@ -993,6 +995,16 @@ def _read_services(raw: Any) -> dict:
         if clean is not None:
             out[key] = clean
     return out
+
+
+
+
+
+
+
+
+
+
 
 
 

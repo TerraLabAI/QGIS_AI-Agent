@@ -1050,6 +1050,8 @@ class Settings:
 
     @property
     def known_manifest_hash(self) -> str:
+
+
         return self._get("known_manifest_hash", "")
 
     @known_manifest_hash.setter

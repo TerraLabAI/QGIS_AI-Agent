@@ -539,7 +539,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
             if _oapif_collection(source) is not None:
-                return _add_oapif_layer({"url": source, "name": name})
+                return _add_oapif_layer({"url": source, "name": name, "bbox": bbox})
             return _data._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
                                                "layer_name": name, "layer": layer, "bbox": bbox, "crs": crs,
                                                "full_extent": args.get("full_extent")})
@@ -550,6 +550,11 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                 return _add_arcgis_rest_layer({"url": source, "name": name, "crs": crs, "kind": "map",
                                                "where": where, "full_extent": args.get("full_extent")})
             address = source.replace("/vsicurl/", "", 1)
+            if urllib.parse.urlsplit(address).path.lower().endswith(".zip"):
+
+
+                return _data._add_vector_from_url({"url": address, "layer_name": name, "layer": layer,
+                                                   "crs": crs})
             streamed = _stac._add_cog_layer({"url": address, "name": name, "bbox": bbox})
 
 
@@ -644,7 +649,8 @@ def _describe_layer(layer, kind: str, known_count=None) -> dict:
     out = {
         "layer_id": layer.id(),
         "name": layer.name(),
-        "kind": kind,
+
+        "kind": "raster" if kind == "vector" and isinstance(layer, QgsRasterLayer) else kind,
         "crs": crs_ref(layer.crs()),
         "extent": {
             "xmin": extent.xMinimum(),
@@ -715,11 +721,25 @@ def _add_data_off_main(args: dict) -> bool:
     return bool(source) and deduce_kind(source, args.get("kind")) in _LOCAL_FILE_KINDS
 
 
+
+
+
+_REMOTE_ZIP_MEMBER = re.compile(r"(?i)^/vsizip/\{?/vsicurl(?:_streaming)?/(https?://[^{}]+?\.zip)\}?(?:/(.*))?$")
+
+
+def _remote_zip_member(source: str) -> tuple[str, str] | None:
+
+    found = _REMOTE_ZIP_MEMBER.match(source.strip())
+    return (found.group(1), (found.group(2) or "").strip("/")) if found else None
+
+
 def _add_data_is_remote(args: dict) -> bool:
 
     source = str(args.get("source") or "").strip()
     if not source:
         return False
+    if _remote_zip_member(source):
+        return True
     kind = deduce_kind(source, args.get("kind"))
     if kind in _REMOTE_KINDS:
         return True
@@ -737,14 +757,12 @@ def _merge_crs_check(described: dict, found: dict) -> None:
 
 
 
+
     described["crs_check"] = found["crs_check"]
     earlier = described.get("warning") or ""
     if earlier == NO_CRS_WARNING:
         earlier = ""
     described["warning"] = " ".join(filter(None, (earlier, found["warning"])))
-    advice = described.get("suggestion") or ""
-    described["suggestion"] = " ".join(filter(None, (advice if advice != found["suggestion"] else "",
-                                                     found["suggestion"])))
 
 
 def _add_data(args: dict) -> dict:
@@ -752,6 +770,10 @@ def _add_data(args: dict) -> dict:
     if not source:
         return tool_error("source is empty.", "INVALID_ARGS", "a path, URL, service endpoint or basemap name.")
     args = dict(args, source=source)
+    archive = _remote_zip_member(source)
+    if archive:
+        source = archive[0]
+        args = dict(args, source=source, layer=args.get("layer") or archive[1] or None)
 
 
 
@@ -849,8 +871,7 @@ def _add_data(args: dict) -> dict:
 
 
         if kind in _CRS_CHECKED_KINDS and not source.lower().split("?", 1)[0].endswith(CSV_EXTENSIONS):
-            found = check_loaded(layer, crs_assigned=bool(result.get("crs_assigned")),
-                                 cad=source.lower().endswith((".dxf", ".dwg")))
+            found = check_loaded(layer, crs_assigned=bool(result.get("crs_assigned")))
             if found:
                 _merge_crs_check(described, found)
         return described

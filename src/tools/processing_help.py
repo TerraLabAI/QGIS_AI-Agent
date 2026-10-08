@@ -122,14 +122,6 @@ def _get_algorithm_help(args: dict) -> dict:
         arguments["output_name"] = "<the layer name for the user>"
     out["example_call"] = {"tool": "run_processing", "arguments": arguments}
 
-
-
-    from .plugin_tools import skill_for_algorithm
-
-    folder, skill = skill_for_algorithm(alg.id())
-    if skill:
-        out["plugin"] = folder
-        out["how_to_use"] = skill
     from .processing_decisions import main_thread_facts
 
     out.update(main_thread_facts(alg))

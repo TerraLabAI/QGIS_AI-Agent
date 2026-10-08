@@ -10,6 +10,7 @@ import os
 import posixpath
 import re
 import shutil
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -18,11 +19,12 @@ import zlib
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer, QgsWkbTypes
 
-from ..core import http_headers, limits, links, net, security, vsi
+from ..core import http_headers, limits, links, net, security, tuning, vsi
 from ..core.background import delete_here, run_on_main_thread, take
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, remove_tree
 from ..core.policy import create_managed_temp_dir
+from ..core.tool_registry import coded_fact, tool_error
 from . import ogc_inspect, volume_guard
 from .csv_loader import CSV_EXTENSIONS
 from .data_common import (
@@ -44,6 +46,7 @@ from .data_common import (
     worker_options,
 )
 from .data_portals import (
+    _MAX_DISTRIBUTIONS,
     _build_direct_import_result,
     _downloads_as_vector,
     _inspect_json_payload,
@@ -133,17 +136,28 @@ def _range_readable(url: str) -> bool:
     return path.endswith(RANGE_READABLE_EXTENSIONS)
 
 
+class _NoSuchLayer(Exception):
+    pass
+
+
 def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
+
+
 
     from osgeo import ogr, osr
 
     west, south, east, north = bbox
     dataset = layer = None
     try:
-        dataset = ogr.Open(source)
-        layer = (dataset.GetLayerByName(str(sublayer)) if sublayer else dataset.GetLayer(0)) if dataset else None
+        try:
+            dataset = ogr.Open(source)
+        except RuntimeError as exc:
+            raise OSError(str(exc)) from exc
+        if dataset is None:
+            raise OSError("GDAL could not open it")
+        layer = dataset.GetLayerByName(str(sublayer)) if sublayer else dataset.GetLayer(0)
         if layer is None:
-            return None
+            raise _NoSuchLayer([dataset.GetLayer(i).GetName() for i in range(dataset.GetLayerCount())])
         box = (west, south, east, north)
         layer_srs = layer.GetSpatialRef()
         if layer_srs is not None:
@@ -158,11 +172,21 @@ def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
                        max(c[0] for c in corners), max(c[1] for c in corners))
         layer.SetSpatialFilterRect(*box)
         return int(layer.GetFeatureCount(1))
+    except (OSError, _NoSuchLayer):
+        raise
     except Exception:  # noqa: BLE001
         return None
     finally:
         del layer
         del dataset
+
+
+
+
+
+
+
+_EXTRACT_FEATURES_PER_S = 1_000
 
 
 def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | None, bbox: list,
@@ -185,12 +209,31 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
 
     gdal.UseExceptions()
     west, south, east, north = bbox
-    count = _features_in_box(source, sublayer, bbox)
+    file_name = posixpath.basename(urllib.parse.urlparse(url).path)
+    started = time.monotonic()
+    try:
+        count = _features_in_box(source, sublayer, bbox)
+    except _NoSuchLayer as exc:
+        layers = list(exc.args[0])
+        return tool_error(f"{file_name} holds no layer named {sublayer!r}; its layers: {', '.join(layers)}.",
+                          "INVALID_ARGS", hint="layer_not_in_file", layers=layers)
+    except OSError as exc:
+
+
+        try:
+            net.fetch(urllib.request.Request(url, headers={"Range": "bytes=0-0"}), timeout=15,
+                      max_bytes=_RANGE_PROBE_BYTES, total_timeout=20)
+        except Exception as refusal:  # noqa: BLE001
+            refused = _http_refusal(url, refusal)
+            if refused:
+                return refused
+        return tool_error(f"GDAL could not open {file_name} over HTTP: {exc}", "EXECUTION_FAILED",
+                          hint="gdal_open_failed")
     if count is None:
         area = _bbox_km2(south, west, north, east)
         ceiling = limits.current("MAX_FETCH_KM2")
         if area > ceiling and not volume_guard.lifted(args or {}):
-            return {"_error": (f"The box is {area:,.0f} km2 and {posixpath.basename(urllib.parse.urlparse(url).path)} "
+            return {"_error": (f"The box is {area:,.0f} km2 and {file_name} "
                                f"could not say how many features it holds, so the {ceiling:,.0f} km2 limit for one "
                                "extract applies."),
                     "code": limits.CEILING_CODE,
@@ -198,7 +241,23 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     elif count == 0:
 
         return {"loaded": False, "feature_count": 0,
-                "note": f"{posixpath.basename(urllib.parse.urlparse(url).path)} holds no feature in this box."}
+                "note": f"{file_name} holds no feature in this box."}
+    elif not volume_guard.lifted(args or {}):
+
+
+        left = max(0.0, limits.current("CALL_MAX_SECONDS_BACKGROUND") - (time.monotonic() - started))
+        fits = int(left * tuning.threshold("extract_features_per_s", _EXTRACT_FEATURES_PER_S, 200, 20_000))
+        if count > fits:
+            area = _bbox_km2(south, west, north, east)
+            smaller = limits.shrink_bbox((south, west, north, east), area * fits / count) if fits else None
+            out = {"_error": (f"The box holds {count:,} features of {file_name}; the {left:.0f} s this call has "
+                              f"left copies about {fits:,}, so nothing was loaded."),
+                   **volume_guard.coded(hint="feature_ceiling", variant="cap"),
+                   "code": limits.CEILING_CODE, "feature_count": count, "suggestion": ""}
+            if smaller:
+                out["bbox_that_fits"] = [smaller[1], smaller[0], smaller[3], smaller[2]]
+                out["variant"] = "cap_box"
+            return out
     directory = create_managed_temp_dir("extract")
     path = os.path.join(directory, f"{_safe_extract_stem(name)}.gpkg")
     kwargs = {"format": "GPKG", "spatFilter": [west, south, east, north],
@@ -217,15 +276,11 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     try:
         written = gdal.VectorTranslate(path, source, **kwargs)
     except RuntimeError as exc:
-        return {"_error": f"The extract from {url} failed: {exc}",
-                "code": "EXECUTION_FAILED",
-                "suggestion": "A smaller box, or the source added without bbox, works at its own scale."}
+        return tool_error(f"The extract from {url} failed: {exc}", "EXECUTION_FAILED", hint="extract_failed")
     finally:
         setter("OGR2OGR_USE_ARROW_API", previous)
     if written is None:
-        return {"_error": f"The extract from {url} produced nothing.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": "The file may hold nothing here; a larger box may."}
+        return tool_error(f"The extract from {url} produced nothing.", "EXECUTION_FAILED", hint="extract_empty")
     out_layer = written.GetLayer(0)
     count = int(out_layer.GetFeatureCount()) if out_layer is not None else 0
     layer_in_file = out_layer.GetName() if out_layer is not None else None
@@ -269,9 +324,8 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
 
 
         if "|" in str(sublayer):
-            return {"_error": f"'{sublayer}' is not a layer name: the | character separates provider options.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "The layer name alone works; inspect_data_source lists them."}
+            return tool_error(f"'{sublayer}' is not a layer name: the | character separates provider options.",
+                              "INVALID_ARGS", hint="layer_name_has_pipe")
         source = f"{source}|layername={sublayer}"
 
     if bbox:
@@ -291,7 +345,7 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
             if not layer.isValid():
                 return {"_error": f"QGIS could not read the extract cut from {url}.",
                         "_code": "EXECUTION_FAILED",
-                        "_suggestion": "Without bbox the source loads whole, at its own scale."}
+                        **coded_fact(hint="extract_unreadable")}
             QgsProject.instance().addMapLayer(layer)
             return {
                 "layer_name": layer.name(),
@@ -331,8 +385,7 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
         if not layer.isValid():
             return {"_error": f"QGIS could not read {url} over HTTP range requests.",
                     "_code": "INVALID_ARGS",
-                    "_suggestion": "The server may not support range requests; a direct download link to a "
-                                   "GeoJSON or GeoPackage extract may work."}
+                    **coded_fact(hint="range_requests_unsupported")}
         QgsProject.instance().addMapLayer(layer)
         out = {
             "layer_name": layer.name(),
@@ -341,9 +394,8 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
             "provider": "ogr over /vsicurl/",
             "crs": crs_ref(layer.crs()),
             "fields": [f.name() for f in layer.fields()],
-            "_note": "Read in place over HTTP range requests: the whole file is not copied, but the header, "
-                     "the spatial index and every block the view touches are fetched, and how much that is "
-                     "depends on the format's index, not on the extent alone.",
+            "_note": "Read in place over HTTP range requests: the whole file is not copied.",
+            "read_note": coded_fact(hint="vsicurl_read_in_place"),
         }
         if size:
             out["size_bytes"] = size
@@ -355,18 +407,15 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
 
 
 
-                out["_note"] += (f" At {_human_bytes(size)} this file is only usable zoomed in. add_data again "
-                                 f"with bbox=[west, south, east, north] for the area of interest cuts a local "
-                                 f"extract through the file's own index, unless the user wants it whole. "
-                                 f"Filtering or listing features on this layer as it stands walks the file "
-                                 f"over the network, without a box.")
+                out["large_note"] = coded_fact(hint="vsicurl_large_file", size=_human_bytes(size))
         if sublayer:
             out["layer"] = sublayer
         else:
             others = facts["others"] if "others" in facts else _sublayers_of(layer)
             if len(others) > 1:
                 out["layers_available"] = others
-                out["_note"] += f" This source holds {len(others)} layers; layer=<name> picks another."
+                out["_note"] += f" This source holds {len(others)} layers."
+                out["layers_note"] = coded_fact(hint="source_layers_pick", count=len(others))
 
 
         if size and size < _WARN_REMOTE_BYTES:
@@ -414,6 +463,8 @@ def _sublayers_of(layer) -> list:
 
 
 _ARCHIVE_VECTOR_EXTENSIONS = (".shp", ".gpkg", ".geojson", ".csv")
+
+_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc")
 
 
 def _archive_entries(root: str) -> list:
@@ -557,19 +608,17 @@ def _add_vector_from_url(args: dict) -> dict:
         return link["error"]
     kind = link["kind"]
     if kind == "unreachable":
-        return {"_error": link["note"], "code": "INVALID_ARGS",
-                "suggestion": "The file itself, shared with anyone who has the link, is needed."}
+        return tool_error(link["note"], "INVALID_ARGS", hint="link_unreachable")
     if kind == "inline":
         return _add_inline_geojson(link, args.get("layer_name"))
     url = link["url"]
     if kind == "listing":
         data = _link_data_files(link)
         if len(data) != 1:
-            return {"_error": f"{link['note']} It holds {len(data)} data files, so none was picked.",
-                    "code": "INVALID_ARGS",
-                    "files": [{"name": f["name"], "url": f["url"]} for f in data[:15]]
-                    or [{"name": f["name"], "url": f["url"]} for f in (link.get("files") or [])[:15]],
-                    "suggestion": "add_data with url from files loads the wanted file."}
+            return tool_error(f"{link['note']} It holds {len(data)} data files, so none was picked.",
+                              "INVALID_ARGS", hint="link_listing_pick",
+                              files=[{"name": f["name"], "url": f["url"]} for f in data[:15]]
+                              or [{"name": f["name"], "url": f["url"]} for f in (link.get("files") or [])[:15]])
         if not _downloads_as_vector(data[0]):
 
             return {"_error": f"{link['note']} It is read with {data[0]['add']['tool']}, not downloaded.",
@@ -588,8 +637,8 @@ def _add_inline_geojson(link: dict, layer_name) -> dict:
     try:
         json.loads(text)
     except ValueError:
-        return {"_error": "The link carries data inside it, and it is not valid GeoJSON.", "code": "INVALID_ARGS",
-                "suggestion": "geojson.io can export the data as a file."}
+        return tool_error("The link carries data inside it, and it is not valid GeoJSON.", "INVALID_ARGS",
+                          hint="geojson_io_link_invalid")
     name = layer_name or "geojson.io"
 
     def _create():
@@ -632,13 +681,12 @@ def _gunzip_download(filepath: str, cap: int = _MAX_EXTRACTED_SIZE):
                     break
                 written += len(chunk)
                 if written > cap:
-                    return {"_error": f"The gzipped file unpacks to more than {_human_bytes(cap)}.",
-                            "suggestion": "A smaller extract of the area may fit."}
+                    return tool_error(f"The gzipped file unpacks to more than {_human_bytes(cap)}.",
+                                      hint="gzip_too_large", limit=_human_bytes(cap))
                 sink.write(chunk)
     except (OSError, EOFError, zlib.error) as exc:
 
-        return {"_error": f"The .gz download could not be unpacked: {exc}", "code": "INVALID_ARGS",
-                "suggestion": "inspect_data_source says what the URL really serves."}
+        return tool_error(f"The .gz download could not be unpacked: {exc}", "INVALID_ARGS", hint="gz_unpack_failed")
     return target
 
 
@@ -676,9 +724,9 @@ def _share_page(shared: bool, head: bytes) -> dict | None:
     if shared and head[:512].lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
 
 
-        return {"_error": "The share link answered a web page, not the file: it is not shared with anyone "
-                          "who has the link, or the link is incomplete.", "code": "INVALID_ARGS",
-                "suggestion": "Sharing the file with anyone who has the link, then pasting that link, works."}
+        return tool_error("The share link answered a web page, not the file: it is not shared with anyone "
+                          "who has the link, or the link is incomplete.", "INVALID_ARGS",
+                          hint="share_page_not_file")
     return None
 
 
@@ -693,14 +741,12 @@ def _download_to_disk(args: dict, url: str, layer_name, shared: bool) -> dict:
                                      max_bytes=limits.current("MAX_STREAM_BYTES"),
                                      total_timeout=min(_DOWNLOAD_TOTAL_TIMEOUT, clock))
     except net.FetchTooLarge as e:
-        return _discard_download(tmp_dir, {
-            "_error": f"The file is larger than this disk can take for one load: {e}",
-            "code": limits.CEILING_CODE,
-            "suggestion": "Freeing disk space or the service's own subset for the area fits."})
+        return _discard_download(tmp_dir, tool_error(
+            f"The file is larger than this disk can take for one load: {e}", limits.CEILING_CODE,
+            hint="download_too_large"))
     except net.FetchDeadline as e:
-        return _discard_download(tmp_dir, {
-            "_error": f"The download did not finish in time: {e}",
-            "suggestion": "A smaller extract, or a direct link to a lighter format, may load."})
+        return _discard_download(tmp_dir, tool_error(f"The download did not finish in time: {e}",
+                                                     hint="download_late"))
     except net.FetchCancelled:
         return _discard_download(tmp_dir, {"_error": "The run was stopped.", "code": "CANCELLED",
                                            "suggestion": "The user stopped the run."})
@@ -743,6 +789,24 @@ def _download_name(url: str, headers, head: bytes) -> tuple[str, str]:
     return filename, ext
 
 
+def _load_unpacked_raster(tmp_dir: str, url: str, paths: list, layer_name) -> dict:
+
+
+    if len(paths) > 1:
+        return {"url": url, "layers": _archive_names(paths, tmp_dir), "local_paths": paths[:_ARCHIVE_LIST_MAX],
+                "folder": tmp_dir,
+                "_note": f"The archive holds {len(paths)} rasters, none added yet.",
+                "load_note": coded_fact(hint="archive_rasters_load")}
+    from .layer_io_tools import _add_raster_layer
+
+    loaded = _add_raster_layer({"path": paths[0], "name": layer_name or None})
+    if isinstance(loaded, dict) and loaded.get("_error") is not None:
+        return _discard_download(tmp_dir, loaded)
+    if isinstance(loaded, dict):
+        loaded["url"] = url
+    return loaded
+
+
 def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str, ext: str,
                    extracted_cap: int) -> dict:
 
@@ -751,12 +815,11 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
             with zipfile.ZipFile(filepath, "r") as zf:
                 members = zf.infolist()
                 if len(members) > _MAX_ARCHIVE_ENTRIES:
-                    return _discard_download(tmp_dir, {
-                        "_error": f"The archive holds {len(members)} entries, over the "
+                    return _discard_download(tmp_dir, tool_error(
+                        f"The archive holds {len(members)} entries, over the "
                         f"{_MAX_ARCHIVE_ENTRIES} this tool unpacks in one call.",
-                        "code": "INVALID_ARGS",
-                        "suggestion": "The provider's single layer, rather than the bulk archive, may fit.",
-                    })
+                        "INVALID_ARGS", hint="archive_too_many_entries", entries=len(members),
+                        max_entries=_MAX_ARCHIVE_ENTRIES))
                 extracted = 0
                 for member in members:
                     target_path = os.path.realpath(os.path.join(tmp_dir, member.filename))
@@ -774,12 +837,11 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
 
                 if extracted > extracted_cap:
-                    return _discard_download(tmp_dir, {
-                        "_error": f"The archive unpacks to {_human_bytes(extracted)}, over the "
+                    return _discard_download(tmp_dir, tool_error(
+                        f"The archive unpacks to {_human_bytes(extracted)}, over the "
                         f"{_human_bytes(extracted_cap)} limit for one download.",
-                        "suggestion": "The provider's service for the area of interest, a WFS with a bbox "
-                                      "or a regional extract, beats the whole archive.",
-                    })
+                        hint="archive_too_big", unpacked=_human_bytes(extracted),
+                        limit=_human_bytes(extracted_cap)))
 
 
 
@@ -804,7 +866,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                         + found[".gpkg"] + found[".geojson"])
 
 
-            from .layer_io_tools import MERGE_OFFER, _add_vector_layer, gdb_folders, members_matching
+            from .layer_io_tools import _add_vector_layer, gdb_folders, members_matching
 
 
             entries = [os.path.relpath(f, tmp_dir).replace(os.sep, "/") for f in _archive_entries(tmp_dir)
@@ -820,6 +882,18 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
             candidates = {os.path.relpath(f, tmp_dir).replace(os.sep, "/"): f
                           for f in readable + gdbs + (tables if args.get("layer") else [])}
             wanted = str(args.get("layer") or "").strip()
+
+
+
+
+            rasters = {os.path.relpath(f, tmp_dir).replace(os.sep, "/"): f
+                       for f in sorted(_archive_entries(tmp_dir), key=lambda f: (f.count(os.sep), f.lower()))
+                       if f != filepath and f.lower().endswith(_ARCHIVE_RASTER_EXTENSIONS)}
+            named_raster = members_matching(list(rasters), wanted) if wanted and rasters else []
+            if named_raster and not members_matching(list(candidates), wanted):
+                return _load_unpacked_raster(tmp_dir, url, [rasters[name] for name in named_raster], layer_name)
+            if rasters and not readable and not gdbs and not wanted:
+                return _load_unpacked_raster(tmp_dir, url, list(rasters.values()), layer_name)
             if gdbs and not readable and len(gdbs) == 1:
 
 
@@ -835,10 +909,9 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
                 picked = members_matching(list(candidates), wanted)
                 if not picked:
-                    return _discard_download(tmp_dir, {
-                        "_error": f"No vector file named {wanted!r} in the archive.", "code": "INVALID_ARGS",
-                        "layers": list(candidates)[:_ARCHIVE_LIST_MAX],
-                        "suggestion": "layer set to one of the listed files loads it. " + MERGE_OFFER})
+                    return _discard_download(tmp_dir, tool_error(
+                        f"No vector file named {wanted!r} in the archive.", "INVALID_ARGS",
+                        hint="archive_member_not_found", layers=list(candidates)[:_ARCHIVE_LIST_MAX]))
                 if len(picked) > 1:
 
 
@@ -863,33 +936,25 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                     "layers": _archive_names(listed, tmp_dir),
                     "local_paths": listed[:_ARCHIVE_LIST_MAX],
                     "folder": tmp_dir,
-                    "_note": (f"The archive holds {len(listed)} vector sources, none added yet. add_data "
-                              "with source=<its local_paths entry> for each one (already unpacked, "
-                              "nothing downloads again), or with source=<folder>: " + MERGE_OFFER
-                              + " Or answer from this list."),
+                    "_note": f"The archive holds {len(listed)} vector sources, none added yet.",
+                    "load_note": coded_fact(hint="archive_vectors_load", count=len(listed)),
                 }
             if readable:
                 filepath = readable[0]
             else:
-                return _discard_download(tmp_dir, {
-                    "_error": "The ZIP archive holds no .shp, .gpkg, .geojson or .csv file.",
-                    "code": "INVALID_ARGS", "files": entries[:_ARCHIVE_LIST_MAX], "file_count": len(entries),
-                    "suggestion": "files lists what the archive holds; a shapefile, GeoPackage, GeoJSON or CSV "
-                                  "export from the provider loads.",
-                })
+                return _discard_download(tmp_dir, tool_error(
+                    "The ZIP archive holds no .shp, .gpkg, .geojson or .csv file.", "INVALID_ARGS",
+                    hint="archive_no_vector", files=entries[:_ARCHIVE_LIST_MAX], file_count=len(entries)))
         except zipfile.BadZipFile:
-            return _discard_download(tmp_dir, {
-                "_error": f"{url} did not download a valid ZIP archive.", "code": "INVALID_ARGS",
-                "suggestion": "The URL may serve a download page or an error page instead of the "
-                              "file; inspect_data_source says what it really serves."})
+            return _discard_download(tmp_dir, tool_error(
+                f"{url} did not download a valid ZIP archive.", "INVALID_ARGS", hint="zip_invalid"))
         except (NotImplementedError, RuntimeError, OSError, EOFError, zlib.error) as exc:
 
 
 
-            return _discard_download(tmp_dir, {
-                "_error": f"The ZIP archive could not be unpacked: {type(exc).__name__}: {exc}",
-                "code": "INVALID_ARGS",
-                "suggestion": "A plain ZIP (Deflate, no password), or another format, may unpack."})
+            return _discard_download(tmp_dir, tool_error(
+                f"The ZIP archive could not be unpacked: {type(exc).__name__}: {exc}", "INVALID_ARGS",
+                hint="zip_unpack_failed"))
 
     if filepath.lower().endswith(".gz") and ext != ".zip":
 
@@ -992,11 +1057,9 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
             sibling = take(handle) if handle is not None else None
             siblings.append(sibling if sibling is not None else QgsVectorLayer(uri, label, "ogr"))
         if not layer.isValid():
-            return {"_error": f"QGIS could not open {os.path.basename(final_filepath)} as a vector layer: "
-                    f"{layer.error().summary() or 'the format is unsupported or the file is empty'}.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "inspect_data_source says what the URL really serves; add_data with "
-                                  "kind='raster' loads an image instead."}
+            return tool_error(f"QGIS could not open {os.path.basename(final_filepath)} as a vector layer: "
+                              f"{layer.error().summary() or 'the format is unsupported or the file is empty'}.",
+                              "INVALID_ARGS", hint="vector_open_failed")
         QgsProject.instance().addMapLayer(layer)
         added = [layer]
         for sibling in siblings:
@@ -1034,9 +1097,8 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
 
 
-            result["warning"] = ("The layer loaded but holds no features: the download opened correctly, "
-                                 "so the source itself is empty, already filtered down to nothing, or this "
-                                 "read the wrong sublayer. inspect_data_source shows what else is in it.")
+            result["warning"] = "The layer loaded but holds no features."
+            result["empty_note"] = coded_fact(hint="download_layer_empty")
         return result
 
     out = run_on_main_thread(_create, timeout=30)
@@ -1079,10 +1141,8 @@ def _csv_crs_candidates(box) -> dict:
     found = crs_landing.candidates(extent, crs_landing.anchors())
     if found:
         out["crs_candidates"] = found[:3]
-        out["crs_sentence"] = (f" Read against the project's layers, {crs_landing.sentence(found)}: load with "
-                               f"crs={found[0]['crs']} when the user expects the points there, unless the "
-                               f"source names another CRS. The project's own CRS is no evidence: a world CRS "
-                               f"such as EPSG:3857 holds any numbers.")
+        out["crs_sentence"] = f" Read against the project's layers, {crs_landing.sentence(found)}."
+        out["crs_note"] = coded_fact(hint="csv_crs_read_against_layers", best=found[0]["crs"])
     return out
 
 
@@ -1110,15 +1170,14 @@ def _inspect_local_file(path: str) -> dict:
                               "decimal comma and coordinate columns are handled for you.")
             if info.get("projected"):
                 out["projected_coordinates"] = True
-                out["message"] += (" The coordinates are projected (past the longitude/latitude range); "
-                                   "crs=<EPSG code> sets the CRS the source or the user names. Without it the "
-                                   "loader takes a .prj next to the file, or the one projected CRS of the "
-                                   "project whose area holds them, else refuses.")
+                out["message"] += " The coordinates are projected (past the longitude/latitude range)."
+                out["projected_note"] = coded_fact(hint="csv_projected_crs")
                 found = _csv_crs_candidates(info.get("box"))
                 out["message"] += found.pop("crs_sentence", "")
                 out.update(found)
         else:
-            out["message"] = "No coordinate column: loads as an attribute table; a join or geocode adds geometry."
+            out["message"] = "No coordinate column."
+            out["table_note"] = coded_fact(hint="csv_no_coordinates")
         return out
     if ext in _LOCAL_VECTOR:
         out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
@@ -1128,8 +1187,8 @@ def _inspect_local_file(path: str) -> dict:
             names = _sublayer_names(path)
             if len(names) > 1:
                 out["layers"] = describe_sublayers(path, names)
-                out["message"] = (f"Holds {len(names)} layers; add_data with layer=<name> loads one, and "
-                                  "the list above already gives geometry, count and CRS.")
+                out["message"] = f"Holds {len(names)} layers."
+                out["layers_note"] = coded_fact(hint="local_file_layers_pick", count=len(names))
         return out
     if ext in _LOCAL_RASTER:
         out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
@@ -1141,8 +1200,7 @@ def _inspect_local_file(path: str) -> dict:
         out.update({"import_method": "add_data",
                     "import_arguments": {"source": path, "name": name, "kind": "pointcloud"},
                     "provider": provider,
-                    "message": ("A point cloud. It loads as a point cloud layer, not a vector one, and the "
-                                "pdal: algorithms build a DEM or a canopy height model from it.")})
+                    "message": "A point cloud.", "load_note": coded_fact(hint="point_cloud_file")})
         return out
     georeferenced = _geopdf(path) if ext == ".pdf" else None
     if georeferenced:
@@ -1150,20 +1208,19 @@ def _inspect_local_file(path: str) -> dict:
 
         out.update(georeferenced)
         out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
-                    "message": ("A georeferenced PDF: GDAL reads it as a raster with a CRS, "
-                                "so it loads as a map layer.")})
+                    "message": "A georeferenced PDF.", "load_note": coded_fact(hint="georeferenced_pdf_file")})
         return out
     if ext in {".txt", ".md", ".pdf", ".docx"}:
-        out.update({"message": "A document, not a dataset; read_text reads its content."})
+        out.update({"message": "A document, not a dataset.", "load_note": coded_fact(hint="document_file")})
         return out
     if ext in {".qgs", ".qgz"}:
 
 
         out.update({"import_method": "load_project", "import_arguments": {"path": path},
-                    "message": ("A QGIS project, not a dataset. load_project opens it in place of the current "
-                                "project, with its own layers, styles and layouts.")})
+                    "message": "A QGIS project, not a dataset.", "load_note": coded_fact(hint="qgis_project_file")})
         return out
-    out["message"] = "Unknown extension; add_vector_layer or add_raster_layer might."
+    out["message"] = "Unknown extension."
+    out["load_note"] = coded_fact(hint="unknown_extension_file")
     return out
 
 
@@ -1214,8 +1271,7 @@ def _inspect_local_folder(folder: str) -> dict:
                 else:
                     others.append(entry.name)
     except OSError as exc:
-        return {"_error": f"Could not list the folder {folder}: {exc}", "code": "EXECUTION_FAILED",
-                "suggestion": "The folder may need checking, or one file named in it."}
+        return tool_error(f"Could not list the folder {folder}: {exc}", "EXECUTION_FAILED", hint="folder_list_failed")
 
     data = [item for item in data if security.validate_read(item["path"]) is None]
     folders = [dict(item, add={"tool": "inspect_data_source", "args": {"url": item["path"]}})
@@ -1245,10 +1301,8 @@ def _inspect_local_folder(folder: str) -> dict:
     out = {"source_family": "local_folder", "path": folder, "file_count": len(data),
            "layers": [dict(item, add={"tool": "inspect_data_source", "args": {"url": item["path"]}})
                       for item in data[:_FOLDER_SHOWN]], **around}
-    out["message"] = ("A folder, not a file. layers lists the data files in it, what draws on a map first, each "
-                      "with the call that reads it." if data else
-                      "A folder with no data file QGIS opens in it; folders lists its subfolders and other_files "
-                      "the rest.")
+    out["message"] = "A folder, not a file." if data else "A folder with no data file QGIS opens in it."
+    out["folder_note"] = coded_fact(hint="folder_layers" if data else "folder_no_data")
     if scanned >= _FOLDER_SCANNED:
         out["message"] += f" Only its first {_FOLDER_SCANNED} entries were read."
     return out
@@ -1346,32 +1400,19 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
 
 
 
-_INSPECT_HTTP_ADVICE: dict[int, tuple[str, str, str]] = {
-    400: ("INVALID_ARGS", "the server rejected the request itself",
-          "A query string this service does not accept; its capabilities document, or the "
-          "base URL without parameters, may work."),
-    401: ("EXECUTION_FAILED", "the service wants credentials",
-          "This source is not open; find_datasets may find an open mirror."),
-    403: ("EXECUTION_FAILED", "the service refused us",
-          "Either the source needs an account or the host blocks unknown clients; the same URL "
-          "gives the same refusal."),
-    404: ("INVALID_ARGS", "there is nothing at this address",
-          "The path is wrong, not the service; the parent directory or the service root "
-          "lists the real link."),
-    405: ("INVALID_ARGS", "the service refuses this method",
-          "Usually a service endpoint asked for as a file; the service's own query "
-          "(WFS GetCapabilities, an API's collections path) beats the bare URL."),
+
+_INSPECT_HTTP_ADVICE: dict[int, tuple[str, str, dict]] = {
+    400: ("INVALID_ARGS", "the server rejected the request itself", coded_fact(hint="inspect_http_400")),
+    401: ("EXECUTION_FAILED", "the service wants credentials", coded_fact(hint="inspect_http_401")),
+    403: ("EXECUTION_FAILED", "the service refused us", coded_fact(hint="inspect_http_403")),
+    404: ("INVALID_ARGS", "there is nothing at this address", coded_fact(hint="inspect_http_404")),
+    405: ("INVALID_ARGS", "the service refuses this method", coded_fact(hint="inspect_http_405")),
     409: ("INVALID_ARGS", "the request conflicts with what the service holds",
-          "Two parameters disagree, most often a format or a version the collection does not "
-          "publish; its capabilities list what it offers."),
-    410: ("INVALID_ARGS", "this address is gone for good",
-          "The dataset moved or was withdrawn; retrying cannot work, its current home may."),
-    429: ("EXECUTION_FAILED", "the host is rate limiting us",
-          "This host is rate limiting; another request now repeats the same refusal."),
+          coded_fact(hint="inspect_http_409")),
+    410: ("INVALID_ARGS", "this address is gone for good", coded_fact(hint="inspect_http_410")),
+    429: ("EXECUTION_FAILED", "the host is rate limiting us", coded_fact(hint="inspect_http_429")),
 }
-_INSPECT_SERVER_ERROR = ("EXECUTION_FAILED", "the service failed on its side",
-                         "The address looks right and the server broke; such failures are usually "
-                         "brief; another source helps if it stays broken.")
+_INSPECT_SERVER_ERROR = ("EXECUTION_FAILED", "the service failed on its side", coded_fact(hint="inspect_http_5xx"))
 
 
 
@@ -1436,15 +1477,17 @@ def _http_refusal(url: str, exc: Exception) -> dict | None:
     status = getattr(exc, "code", None)
     if not isinstance(status, int):
         return None
-    code, what, suggestion = _INSPECT_HTTP_ADVICE.get(
+    code, what, fact = _INSPECT_HTTP_ADVICE.get(
         status, _INSPECT_SERVER_ERROR if status >= 500 else
-        ("EXECUTION_FAILED", "the service refused the request", "The status says why."))
-    out = {"_error": f"HTTP {status} from {url}: {what}.", "code": code, "status": status,
-           "suggestion": suggestion}
+        ("EXECUTION_FAILED", "the service refused the request", {}))
+    message = f"HTTP {status} from {url}: {what}."
     reason = _service_reason(exc)
     if reason:
+        message += f" The service says: {reason}"
+    out = tool_error(message, code, suggestion="" if fact else "The status says why.", **fact)
+    out["status"] = status
+    if reason:
         out["service_says"] = reason
-        out["suggestion"] = "service_says is the service's own reason. " + suggestion
     return out
 
 
@@ -1454,15 +1497,17 @@ def _inspect_failure(url: str, exc: Exception) -> dict:
     if refused:
         return refused
     if isinstance(exc, (net.FetchDeadline, TimeoutError)):
-        return {"_error": f"The probe of {url} ran past its deadline.", "code": "EXECUTION_FAILED",
-                "suggestion": "The host is slow rather than wrong; a smaller extract, or a "
-                              "source that answers, may work."}
+        return tool_error(f"The probe of {url} ran past its deadline.", "EXECUTION_FAILED", hint="probe_late")
     if isinstance(exc, net.FetchTooLarge):
-        return {"_error": f"{url} serves more than this probe reads.", "code": "EXECUTION_FAILED",
+
+
+        size = _remote_size(url)
+        return {"source_family": "remote_file", "final_url": url,
                 "import_method": "add_data", "import_arguments": {"source": url},
-                "suggestion": "It is a bulk file, not a service description; add_data reads it directly."}
-    return {"_error": f"Failed to inspect source: {exc}", "code": "EXECUTION_FAILED",
-            "suggestion": "The host did not answer at all; the domain, or another source, may."}
+                **({"size_bytes": size} if size else {}),
+                "message": ("A bulk file" + (f" of {_human_bytes(size)}" if size else "")
+                            + ", not a service description: add_data downloads it.")}
+    return tool_error(f"Failed to inspect source: {exc}", "EXECUTION_FAILED", hint="probe_no_answer")
 
 
 def _unquoted_path(raw: str) -> str:
@@ -1571,11 +1616,8 @@ def expand_link(url: str) -> dict:
 
             return {"url": pasted, "kind": "unchanged", "note": ""}
         status = getattr(exc, "code", None)
-        out["error"] = {"_error": f"Could not list the files behind {pasted}: {exc}", "code": "EXECUTION_FAILED",
-                        "suggestion": ("The listing service refused, or the address is private; the direct "
-                                       "link of the one file wanted is needed." if status != 403 else
-                                       "GitHub allows 60 listings an hour without an account; the file's own "
-                                       "link, or an hour's wait, gets past it.")}
+        out["error"] = tool_error(f"Could not list the files behind {pasted}: {exc}", "EXECUTION_FAILED",
+                                  hint="link_listing_refused", **({"variant": "rate_limit"} if status == 403 else {}))
         return out
     files = sorted(links.listing_files(resolved.listing, resolved.url, payload), key=links.rank)
     out["files"] = [dict(entry, add=_link_file_call(entry)) for entry in files]
@@ -1606,16 +1648,16 @@ def _link_inspect_answer(link: dict) -> dict | None:
         return {"source_family": "inline_geojson", "resolved_from": link["resolved_from"],
                 **({"feature_count": count} if count else {}), "geojson": link["inline"][:2000],
                 "import_method": "add_vector_from_url", "import_arguments": {"url": link["resolved_from"]},
-                "message": link["note"] + " add_vector_from_url on the same link builds the layer from it."}
+                "message": link["note"], "load_note": coded_fact(hint="inline_geojson_load")}
     if kind != "listing":
         return None
     files = link.get("files") or []
     out = {"source_family": "file_listing", "resolved_from": link["resolved_from"], "listing_url": link["url"],
            "file_count": len(files), "layers": files,
            **{k: link[k] for k in ("licence", "publisher") if link.get(k)},
-           "message": (link["note"] + " Each entry in layers carries the call that opens it, the files that "
-                       "draw on a map first." if files else
-                       link["note"] + " The listing is empty: nothing public is attached there.")}
+           "message": link["note"] + ("" if files else " The listing is empty: nothing public is attached there.")}
+    if files:
+        out["layers_note"] = coded_fact(hint="file_listing_layers")
     data = _link_data_files(link)
     if len(data) == 1:
         out["import_method"] = data[0]["add"]["tool"]
@@ -1634,19 +1676,20 @@ def _inspect_remote_url(url: str) -> dict:
         return {"source_family": "tile_template", "final_url": url,
                 "import_method": "add_data", "import_arguments": {"source": url, "kind": "vectortile" if vector
                                                                   else "xyz"},
-                "message": ("A tile URL template: it loads as a " + ("vector tile" if vector else "tile")
-                            + " layer as it is, {z}/{x}/{y} in any order.")}
+                "message": "A tile URL template.",
+                "load_note": coded_fact(hint="tile_template_load", tile_kind="vector tile" if vector else "tile")}
     if streamed in _STREAMED_EXTS:
         kind = _STREAMED_EXTS[streamed]
         return {"source_family": "remote_file", "final_url": url, "format": streamed.lstrip("."),
                 "import_method": "add_data", "import_arguments": {"source": url, "name": name, "kind": kind},
-                "message": ("A file add_data reads in place over range requests: nothing to download first."
-                            if kind != "raster" else "A NetCDF file: add_data reads it as a raster; a global "
-                            "one is large, so name the variable and the area.")}
+                "message": "A remote file." if kind != "raster" else "A NetCDF file.",
+                "load_note": (coded_fact(hint="remote_file_range_read") if kind != "raster"
+                              else coded_fact(hint="remote_netcdf_file"))}
     if lowered.split("?", 1)[0].endswith(_DOWNLOAD_EXTS):
         result = _build_direct_import_result(url, os.path.basename(path) or "dataset", "vector_file",
                                              os.path.basename(path).split(".", 1)[-1])
-        result["message"] = "A file add_vector_from_url downloads and opens: KMZ, GPX, XLSX and gzipped files included."
+        result["message"] = "A downloadable file."
+        result["load_note"] = coded_fact(hint="remote_download_file")
         return result
 
 
@@ -1723,7 +1766,8 @@ def _inspect_follow(url: str, result: dict) -> dict:
     followed, _ = _inspect_fetched(follow, _INSPECT_TIMEOUT)
     if followed.get("_error"):
         return {"source_family": "ogc_api_landing", "final_url": url, "collections_url": follow,
-                "message": "An OGC API landing page. Its collections did not answer: inspect collections_url."}
+                "message": "An OGC API landing page. Its collections did not answer.",
+                "follow_note": coded_fact(hint="ogc_api_collections_unanswered")}
     return followed
 
 
@@ -1795,8 +1839,8 @@ def _inspect_fetched(url: str, timeout: int) -> tuple[dict, bool]:
         if found:
             out = {"source_family": "dataset_page", "final_url": final_url, "content_type": content_type or "text/html",
                    "distributions": found, "layers": found,
-                   "message": ("A web page that links to data files: distributions lists up to 10, what draws on "
-                               "a map first, each with the call that loads it.")}
+                   "message": "A web page that links to data files.",
+                   "distributions_note": coded_fact(hint="dataset_page_distributions", limit=_MAX_DISTRIBUTIONS)}
             if len(found) == 1 or links.rank(found[0]) < links.rank(found[1]):
                 out["import_method"] = found[0]["add"]["tool"]
                 out["import_arguments"] = found[0]["add"]["args"]
@@ -1805,5 +1849,6 @@ def _inspect_fetched(url: str, timeout: int) -> tuple[dict, bool]:
         "source_family": "unknown",
         "final_url": final_url,
         "content_type": content_type or "unknown",
-        "message": "Could not classify this source; a direct download URL or a service capabilities endpoint may.",
+        "message": "Could not classify this source.",
+        "classify_note": coded_fact(hint="source_unclassified"),
     }, "html" in content_type

@@ -292,6 +292,10 @@ def register_data_tools(registry: ToolRegistry):
 
 
             "x-stream-filter-local": True,
+
+
+
+            "x-server-subtype": True,
         },
 
 

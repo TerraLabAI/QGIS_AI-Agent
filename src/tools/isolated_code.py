@@ -851,8 +851,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                             "_error": f"execute_code stopped after {int(timeout_s)} s.",
                             "_code": "EXEC_TIMEOUT",
                             "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
-                            "suggestion": "Less work (fewer features, one layer) fits; run_processing "
-                                          "with async=true has no such limit.",
+                            "hint": "exec_timeout",
+                            "timeout_s": int(timeout_s),
                             "isolated": True,
                         }
                     time.sleep(poll_s)
@@ -947,8 +947,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                           f"{process.returncode} before it finished. QGIS itself was not affected.",
                 "_code": "EXEC_CRASHED",
                 "stdout": _cap(stdout),
-                "suggestion": "The same unchanged code crashes again. Bound the work with a "
-                              "QgsFeatureRequest or a dedicated tool.",
+                "hint": "exec_crashed",
+                "exit_code": process.returncode,
                 "isolated": True,
             }
         detail = str(status.get("setup_error") or _tail(log_path) or f"exit code {process.returncode}")
@@ -965,7 +965,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                           f"read back: {detail}",
                 "_code": "EXEC_RUNTIME_ERROR",
                 "stdout": _cap(stdout),
-                "suggestion": "Its lines already ran; resending repeats them. result needs plain text.",
+                "hint": "exec_answer_unreadable",
                 "isolated": True,
             }
         return {"_fallback": "setup", "detail": detail}
@@ -992,7 +992,7 @@ def _tripped(status: dict, stdout: str) -> dict:
                       "permission. Nothing after that call ran.",
             "needs_permission": {"class": str(need.get("class") or ce.D), "reason": str(need.get("reason") or "")},
             "stdout": _cap(stdout),
-            "suggestion": "The plugin asks the user and runs the snippet again on a yes.",
+            "hint": "exec_needs_permission",
         }
     else:
         out = {
@@ -1001,7 +1001,8 @@ def _tripped(status: dict, stdout: str) -> dict:
             "_code": "PERMISSION_DENIED",
             "_error": f"execute_code stopped: the snippet {status.get('refused')}. Nothing after that call ran.",
             "stdout": _cap(stdout),
-            "suggestion": "add_data or the fetch tools load remote data; execute_code continues from there.",
+            "hint": "snippet_call_refused",
+            "refused": str(status.get("refused") or ""),
         }
     if written:
         out["files_written"] = written
@@ -1117,9 +1118,14 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
 
 
     planned["granted"] = code_runtime.current().granted if code_tripwire.enabled() else ce.D
+
+
+
+
+
+    timeout_s = min(limits.current("EXECUTE_CODE_MAX_SECONDS"), float(code_runtime.current().timeout_s))
     try:
-        outcome = run_child(code, planned, python_for_child(), cancel_check,
-                            limits.current("EXECUTE_CODE_MAX_SECONDS"))
+        outcome = run_child(code, planned, python_for_child(), cancel_check, timeout_s)
     except Exception as exc:  # noqa: BLE001
         outcome = {"_fallback": "setup", "detail": f"{type(exc).__name__}: {exc}"}
     fallback = outcome.pop("_fallback", "")
@@ -1168,8 +1174,8 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
                       f"before it ran (a file they wrote is written) and the project was not changed.",
             "_code": "EXEC_RUNTIME_ERROR",
             "stdout": outcome.get("stdout", ""),
-            "suggestion": "The lines before it already ran; the project change alone runs as a "
-                          "new execute_code call.",
+            "hint": "exec_stopped_at_project_change",
+            "stopped_at": str(trapped),
         }
     if fallback == "setup":
         detail = outcome.get("detail") or "no detail"

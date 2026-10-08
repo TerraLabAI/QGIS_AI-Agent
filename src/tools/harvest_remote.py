@@ -337,7 +337,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         return tool_error(
             "The URL is not an ArcGIS REST service URL.",
             "INVALID_ARGS",
-            "url ends in /FeatureServer/<id>, /MapServer/<id>, /MapServer or /ImageServer.",
+            hint="arcgis_url_shape",
+            url=str(args.get("url") or ""),
         )
     root, service, layer_id, url = parsed
     url_where, url_token, url_envelope = _arcgis_query_params(str(args.get("url") or ""))
@@ -377,8 +378,10 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         return tool_error(
             "A feature layer needs the layer id at the end of the URL.",
             "INVALID_ARGS",
-            f"/<id> names the layer. Layers on this service: {listing}" if listing
-            else "/<id> names the layer; <url>?f=json lists the ids.",
+            hint="arcgis_layer_id_missing",
+            variant="listed" if listing else "",
+            layers=listing,
+            url=url,
         )
 
     info = _arcgis_describe(url, token)
@@ -391,8 +394,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         code = err.get("code")
         detail = "; ".join(str(d) for d in (err.get("details") or []) if d)
         message = f"The service answered {code}: {err.get('message')}" + (f" ({detail})" if detail else "")
-        suggestion = "a valid token" if code in (498, 499) else "?f=json on the URL shows the service."
-        return tool_error(message, "ARCGIS_REFUSED", suggestion)
+        return tool_error(message, "ARCGIS_REFUSED", hint="arcgis_refused",
+                          variant="token" if code in (498, 499) else "", service_code=code, url=url)
 
     name = _arcgis_name(args, info, root, layer_id)
     crs = str(args.get("crs") or "").strip()
@@ -466,8 +469,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             return tool_error(
                 f"QGIS could not open the {kind} layer at {url}." + (f" Provider: {reason}" if reason else ""),
                 "INVALID_ARGS",
-                "?f=json on the URL shows the service; a secured one needs token; feature needs "
-                "a layer URL with /<id>, map the MapServer service URL.",
+                hint="arcgis_layer_not_opened", variant=kind, kind=kind, url=url, provider_reason=reason,
             )
         if kind == "map" and layer.extent().isEmpty():
 
@@ -475,8 +477,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             return tool_error(
                 f"The map service at {url} did not describe itself (no extent), so the layer would draw "
                 "nothing; it was not added.", "EXECUTION_FAILED",
-                "?f=json on the URL shows whether the service answers." + ("" if info else
-                " This call's own ?f=json request got no answer either."))
+                hint="arcgis_map_no_extent", variant="" if info else "silent", url=url)
         what = "The ArcGIS service answer"
         if kind == "feature" and (box is not None or where):
             what = ("The ArcGIS layer" + (" inside the box" if box is not None else "")
@@ -500,9 +501,11 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         if out.get("feature_count") == 0 and (box is not None or where):
             out["warning"] = "The layer loaded and holds nothing %s." % (
                 "inside the box" if box is not None else "under that where clause")
-            out["suggestion"] = "the layer's extent (?f=json) or the where clause's field names may not match the box."
+            out["suggestion_hint"] = "arcgis_layer_empty"
     elif box is not None:
-        out["note"] = "A map layer draws the whole service as images; the bbox selects nothing there."
+        out["note"] = "The bbox was not applied: this is a map layer."
+        out["note_hint"] = "arcgis_map_bbox_unused"
+        out["bbox"] = [round(part, 6) for part in box]
     if layer_id is not None:
         out["service_layer_id"] = int(layer_id)
     if info:
@@ -572,7 +575,7 @@ def _get_stac_item_assets(args: dict) -> dict:
                 "item_url, or collection + item_id, is needed (plus stac_url off Planetary "
                 "Computer).",
                 "INVALID_ARGS",
-                "search_stac_items returns item ids and URLs to use here.",
+                hint="stac_item_args_missing",
             )
         item_url = (
             f"{_stac._stac_root(args)}/collections/{urllib.parse.quote(collection)}"
@@ -588,7 +591,8 @@ def _get_stac_item_assets(args: dict) -> dict:
         return tool_error(
             f"Failed to fetch the STAC item: {e}",
             "STAC_FETCH_FAILED",
-            "search_stac_items gives working ids for item_url (or stac_url, collection and item_id).",
+            hint="stac_item_fetch_failed",
+            item_url=item_url,
         )
     if not isinstance(item, dict) or not isinstance(item.get("assets"), dict):
         return tool_error(
@@ -611,9 +615,10 @@ def _get_stac_item_assets(args: dict) -> dict:
         "count": len(rows),
         "cog_keys": [r["key"] for r in rows if r.get("is_cog")],
         "assets": rows,
-        "next": "add_data(source=item_url, kind='stac', layer=<asset key>) loads one asset; "
-                "add_cog_layer(url=<href>) loads any COG href.",
+        "next": "Assets are listed.",
+        "next_hint": "stac_item_next",
     }
     if any(r.get("needs_signing") for r in rows):
-        out["_note"] = "Planetary Computer hrefs need a SAS signature; add_data and add_cog_layer sign them on load."
+        out["_note"] = "Some asset hrefs need a SAS signature."
+        out["_note_hint"] = "stac_sas_signing"
     return out

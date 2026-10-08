@@ -132,10 +132,11 @@ def _count_matching(layer, expression: str) -> tuple:
 
 
 
-        if "*" not in columns:
-            request.setSubsetOfAttributes(columns, layer.fields())
+
         if not expr.needsGeometry():
             request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
+        if "*" not in columns:
+            request.setSubsetOfAttributes(columns, layer.fields())
     except Exception as exc:  # noqa: BLE001
         log_debug(f"_count_matching: narrowing the request failed: {exc}")
     deadline = time.monotonic() + _COUNT_BUDGET_S
@@ -198,8 +199,8 @@ def _spatial_criterion(layer, expression: str, expr, exact: bool) -> dict:
                 other_fact = _PREDICATE_HINT.get(other, {})
                 if other_fact.get("hint"):
                     criterion["under_" + other + "_hint"] = other_fact["hint"]
-    criterion["note"] = ("A spatial count is only a number once the rule is named. The figure and the rule "
-                         "name go together; the other number can differ.")
+
+    criterion["note_hint"] = "spatial_count_rule"
     return {"criterion": criterion}
 
 
@@ -260,13 +261,10 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     streamed = streamed_size(layer) if expression and streamed_in_place(layer) else None
     if expression and streamed_in_place(layer) and (streamed is None or streamed > _SCAN_WHOLE_BYTES):
         size = f" ({streamed / 1048576:.1f} MB)" if streamed else ""
-        return {
-            "_error": (f"'{layer.name()}' is read over HTTP where it is published{size}, so filtering it "
-                       "scans the whole file across the network instead of reading its index."),
-            "_code": "INVALID_ARGS",
-            "_suggestion": ("A local clip of the area filters fast; reading a page without an "
-                            "expression stays fast."),
-        }
+        return tool_error(
+            f"'{layer.name()}' is read over HTTP where it is published{size}, so filtering it "
+            "scans the whole file across the network instead of reading its index.",
+            "INVALID_ARGS", hint="streamed_filter_scan", layer=layer.name())
     if expression:
         from qgis.core import QgsExpressionContext, QgsExpressionContextUtils
         expr = QgsExpression(expression)
@@ -326,10 +324,11 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
         columns = list(order_expr.referencedColumns())
         needed = None if needed is None or "*" in columns else needed + columns
         needs_geometry = needs_geometry or order_expr.needsGeometry()
-    if needed is not None:
-        request.setSubsetOfAttributes(sorted(set(needed)), layer.fields())
+
     if not needs_geometry:
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    if needed is not None:
+        request.setSubsetOfAttributes(sorted(set(needed)), layer.fields())
     feedback = QgsFeedback()
     if hasattr(request, "setFeedback"):
         request.setFeedback(feedback)
@@ -344,10 +343,11 @@ def _count_request(layer, expression: str, context, expr):
     request.setFilterExpression(expression)
     request.setExpressionContext(context)
     columns = list(expr.referencedColumns())
-    if "*" not in columns:
-        request.setSubsetOfAttributes(columns, layer.fields())
+
     if not expr.needsGeometry():
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    if "*" not in columns:
+        request.setSubsetOfAttributes(columns, layer.fields())
     request.setLimit(_COUNT_SCAN_MAX)
     return request
 
@@ -414,10 +414,8 @@ def _features_result(plan: dict, collected: list, over_budget: bool, total, coun
         result["next_offset"] = offset + len(features)
         result["more_available"] = True
     if over_budget:
-        result["page_limited_by"] = (
-            f"{MAX_LIST_CHARS} characters. Fewer fields, a filter or "
-            "the next page with offset fit."
-        )
+        result["page_limited_by"] = f"{MAX_LIST_CHARS} characters."
+        result["page_limited_by_hint"] = "page_limited"
     return result
 
 
@@ -599,9 +597,8 @@ def _evaluate_expression(args: dict) -> dict:
                         **measurement}
             first = first_feature(layer, feature_request(attributes=[], geometry=False, limit=1))
             hint = f"; ids start at {first.id()}" if first is not None and first.isValid() else ""
-            return {"_error": f"No feature with id {feature_id} in '{layer.name()}'{hint}", "_code": "INVALID_ARGS",
-                    "_suggestion": "Without feature_id it aggregates over the layer; get_features gives "
-                                   "the ids."}
+            return tool_error(f"No feature with id {feature_id} in '{layer.name()}'{hint}", "INVALID_ARGS",
+                              hint="expression_feature_missing", layer=layer.name())
         ctx.setFeature(feat)
         value = expr.evaluate(ctx)
         if expr.hasEvalError():
@@ -633,8 +630,8 @@ def _evaluate_expression(args: dict) -> dict:
             "feature_count": layer.featureCount(),
             "results": results,
             **measurement,
-            "_note": "Expression references geometry/fields, so it is evaluated per feature. feature_id "
-            "picks one feature; an aggregate (sum/mean/count) gives one layer-wide value.",
+            "_note": "Expression references geometry/fields, so it is evaluated per feature.",
+            "_note_hint": "expression_per_feature",
         }
 
 
@@ -643,10 +640,8 @@ def _evaluate_expression(args: dict) -> dict:
         return {"_error": f"Expression evaluation error: {expr.evalErrorString()}", "_code": "INVALID_ARGS"}
     out = {"expression": expression, "result": _jsonable_value(value), **measurement}
     if value is None and needs_feature and not is_vector:
-        out["_note"] = (
-            "Result is null: the expression needs a feature but no vector layer_name was given. "
-            "layer_name (and feature_id) supplies one."
-        )
+        out["_note"] = "Result is null: the expression needs a feature but no vector layer_name was given."
+        out["_note_hint"] = "expression_needs_feature"
     return out
 
 
@@ -737,10 +732,8 @@ def _get_field_statistics(args: dict) -> dict:
 
 
     if not _SCAN_PERMITS.acquire(timeout=_SCAN_WAIT_S):
-        return {"_error": ("Another field is still being scanned; this one waited "
-                           f"{_SCAN_WAIT_S:.0f} seconds for its turn."),
-                "_code": "INVALID_ARGS",
-                "_suggestion": "One field at a time fits; get_features reads the column."}
+        return tool_error("Another field is still being scanned; this one waited "
+                          f"{_SCAN_WAIT_S:.0f} seconds for its turn.", "INVALID_ARGS", hint="field_scan_busy")
     try:
         return _scan_field(args)
     finally:
@@ -798,20 +791,12 @@ def _not_a_vector_error(layer, field: str = "") -> dict:
     name = layer.name()
     if isinstance(layer, QgsRasterLayer):
         band = _band_number(field)
-        return {
-            "_error": (f"Layer {name!r} is a raster, and this tool reads attribute columns of a vector layer. "
-                       "A raster has no attribute table, it has bands."),
-            "code": "INVALID_ARGS",
-            "suggestion": (f"get_raster_band_stats with layer_name={name!r} and band={band} gives the min, "
-                           "max, mean and standard deviation of its pixels."),
-            "band": band,
-        }
+        return tool_error(f"Layer {name!r} is a raster, and this tool reads attribute columns of a vector layer. "
+                          "A raster has no attribute table, it has bands.",
+                          "INVALID_ARGS", hint="stats_layer_is_raster", layer=name, band=band)
     kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "other"
-    return {
-        "_error": f"Layer {name!r} is a {kind} layer, and this tool reads the attribute columns of a vector layer.",
-        "code": "INVALID_ARGS",
-        "suggestion": "list_layers shows which layers in this project are vector.",
-    }
+    return tool_error(f"Layer {name!r} is a {kind} layer, and this tool reads the attribute columns of a vector layer.",
+                      "INVALID_ARGS", hint="stats_layer_not_vector", layer=name, kind=kind)
 
 
 def _stats_expression(layer, text: str, what: str):
@@ -868,10 +853,18 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
         extra.update(measured)
     group_by = str(args.get("group_by") or "").strip()
     group_index = -1
+    group_expr = None
     if group_by:
         group_index = fields.lookupField(group_by)
-        if group_index < 0:
+        if group_index < 0 and group_by.isidentifier():
             return _field_not_found_error(layer, group_by)
+        if group_index < 0:
+
+
+            group_expr, measured, error = _stats_expression(layer, group_by, "group_by")
+            if error:
+                return error
+            extra.update(measured)
     row_filter = str(args.get("filter") or "").strip()
     keep = None
     context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
@@ -885,22 +878,22 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
             keep = None
             request_filter = row_filter
     request = QgsFeatureRequest()
-    if expr is None and not row_filter:
+    if expr is None and group_expr is None and not row_filter:
         request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
         request.setSubsetOfAttributes([i for i in (index, group_index) if i >= 0])
     else:
         if row_filter and keep is None:
             request.setFilterExpression(request_filter)
             request.setExpressionContext(QgsExpressionContext(context))
-        if not any(e is not None and e.needsGeometry() for e in (expr, keep, QgsExpression(row_filter))):
+        if not any(e is not None and e.needsGeometry() for e in (expr, keep, group_expr, QgsExpression(row_filter))):
             request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
-    for prepared in (expr, keep):
+    for prepared in (expr, keep, group_expr):
         if prepared is not None:
             prepared.prepare(context)
     state = {"layer_name": layer.name(), "field": field, "index": index, "numbers": [], "others": [],
              "total": 0, "missing": 0, "numeric_only": True, "filter_facts": filter_facts(layer),
              "expr": expr, "keep": keep, "context": context, "group_index": group_index, "group_by": group_by,
-             "groups": {} if group_by else None, "extra": extra}
+             "group_expr": group_expr, "groups": {} if group_by else None, "extra": extra}
     if _is_remote_vector(layer):
 
         state.update(source=QgsVectorLayerFeatureSource(layer), request=request)
@@ -918,9 +911,9 @@ def _stats_read(state: dict) -> bool:
 
     numbers, others, index = state["numbers"], state["others"], state["index"]
     expr, context, groups, group_index = state["expr"], state["context"], state["groups"], state["group_index"]
-    keep = state["keep"]
+    keep, group_expr = state["keep"], state["group_expr"]
     for read, feature in enumerate(state["features"], start=1):
-        if expr is not None or keep is not None:
+        if expr is not None or keep is not None or group_expr is not None:
             context.setFeature(feature)
         if keep is not None and not keep.evaluate(context):
             if read >= STATS_CHUNK:
@@ -941,7 +934,7 @@ def _stats_read(state: dict) -> bool:
             state["numeric_only"] = False
             others.append(value)
         if groups is not None:
-            key = _jsonable_value(feature[group_index])
+            key = _jsonable_value(feature[group_index] if group_expr is None else group_expr.evaluate(context))
             if not isinstance(key, (str, int, float, bool, type(None))):
                 key = str(key)
             row = groups.get(key)
@@ -1093,10 +1086,7 @@ def _fragment_note(split: dict, field: str) -> str:
             f"{split['smallest']} of them together carry {split['smallest_share_of_sum_pct']}% of the sum "
             f"of {field!r} (none above {split['smallest_largest_value']:.4g}), and the other "
             f"{split['rest']} carry "
-            f"{split['rest_share_of_sum_pct']}%. If this layer came out of a clip, an intersection or an "
-            f"overlay, those small rows are boundary fragments of features that are mostly outside it. "
-            f"The count depends on the rule: touching the area, lying entirely inside it, or having its "
-            f"centroid inside it are three different numbers.")
+            f"{split['rest_share_of_sum_pct']}%.")
 
 
 def _stat_text(value) -> str:
@@ -1128,6 +1118,7 @@ def _statistics_result(layer_name: str, field: str, stats: dict, split: dict = N
     if split:
         out["count_breakdown"] = split
         out["count_note"] = _fragment_note(split, field)
+        out["count_note_hint"] = "count_rows_are_fragments"
     return out
 
 
@@ -1214,10 +1205,8 @@ def _get_renderer_info(args: dict) -> dict:
         elif rtype == "embeddedSymbol":
             info["default_symbol"] = _symbol_info(renderer.defaultSymbol(), budget)
             info["feature_symbols"] = "provider_defined_not_inspected"
-            info["copy_note"] = (
-                "The default symbol is only a fallback. This renderer can draw a different embedded symbol "
-                "for each source feature. Copying the renderer or this fallback alone does not guarantee "
-                "the same appearance on another provider or layer.")
+            info["copy_note"] = "The default symbol is only a fallback."
+            info["copy_note_hint"] = "embedded_renderer_fallback"
         elif rtype == "RuleRenderer":
             stack = [(renderer.rootRule(), None)]
             rules = []
@@ -1233,9 +1222,8 @@ def _get_renderer_info(args: dict) -> dict:
             if stack:
                 info["rules_truncated"] = True
         else:
-            info["inspection_note"] = (
-                "This renderer has no complete property inspector here; save_style_qml gives its native "
-                "style, which type and opacity alone do not reconstruct.")
+            info["inspection_note"] = "This renderer has no complete property inspector here."
+            info["inspection_note_hint"] = "renderer_not_inspectable"
     except Exception as e:
         info["_warning"] = f"Partial renderer introspection: {e}"
     return {"layer": layer.name(), "renderer": info}
@@ -1490,11 +1478,11 @@ def _coverage_note(out: dict, counted: int, mean: float, coverage, provider: str
 
     if counted == 0 and provider in _PICTURE_PROVIDERS:
         out["note"] = ("No pixel values to count: this layer is a map service that serves a picture, not the "
-                       "values behind it. That says nothing about its content: the layer is not empty, keep it. "
-                       "For values, find the service's data download or its WCS / feature layer.")
+                       "values behind it.")
+        out["note_hint"] = "band_picture_service"
     elif counted == 0:
-        out["note"] = ("No valid pixel: every cell of this band is nodata. The raster was written empty "
-                       "(wrong extent or CRS at creation); only recreating it fixes that.")
+        out["note"] = "No valid pixel: every cell of this band is nodata."
+        out["note_hint"] = "band_all_nodata"
     elif not math.isfinite(mean):
 
 
@@ -1504,14 +1492,15 @@ def _coverage_note(out: dict, counted: int, mean: float, coverage, provider: str
                 out.pop(key)
         out["note"] = (f"{counted:,} cells carry a value, but some hold NaN that the band does not declare as "
                        "nodata, so the mean could not be computed here; min, max and the count stand and the "
-                       "raster is not empty. native:zonalstatisticsfb over the area gives the mean of the valid cells.")
+                       "raster is not empty.")
+        out["note_hint"] = "band_mean_nan"
     elif coverage is not None and coverage < COVERAGE_FULL_PCT:
-        out["note"] = (f"{coverage}% of the cells carry a value; the rest is nodata, from a clip, a cloud "
-                       "mask, or the edge of the source. Every number above describes those cells only. "
-                       "Two rasters of the same area whose coverage differs were not measured on the same "
-                       "pixels; the difference is not necessarily change on the ground.")
+        out["note"] = (f"{coverage}% of the cells carry a value; the rest is nodata. Every number above "
+                       "describes those cells only.")
+        out["note_hint"] = "band_partial_coverage"
     else:
         out.pop("note", None)
+        out.pop("note_hint", None)
 
 
 def _exact_band_stats(source: str, band: int, cancelled) -> dict | None:
@@ -1643,8 +1632,8 @@ def _band_quantiles(read: dict, cancelled) -> dict:
                                + (f", read decimated by {step:.1f} in each direction" if step > 1.0 else "")
                                + ("; estimates of the full distribution, which can contain unsampled values "
                                   "and classes" if step > 1.0 else "")
-                               + ". Equal-count class breaks: 4 classes p25 p50 p75, 5 classes p20 p40 p60 p80, "
-                                 "10 classes every p10; use them as the breaks, no code needed.")}
+                               + "."),
+            "quantiles_note_hint": "class_breaks_from_quantiles"}
 
 
 _NO_VALID_PIXEL = "no valid pixel in the cells read: every one is nodata"
@@ -1707,14 +1696,15 @@ def _range_counts(np, values, read: dict, factor: float, areas=None) -> dict:
                 "low included, high excluded")
     else:
         note = "every valid pixel read; low included, high excluded"
+    advice: dict = {}
     if getattr(areas, "shape", None):
         note += "; approximate areas on the WGS84 authalic sphere, using each row's latitude"
     elif not read.get("geographic"):
-        note += ("; no ground area: projected pixel areas can vary across the raster. "
-                 "Measure the range-region geometries on an ellipsoid or use an appropriate equal-area grid")
+        note += "; no ground area: projected pixel areas can vary across the raster"
+        advice = {"ranges_note_hint": "projected_no_ground_area"}
     elif areas is None:
         note += "; no area: the pixel's ground size is unknown here"
-    return {"ranges": rows, "ranges_note": note,
+    return {"ranges": rows, "ranges_note": note, **advice,
             **({"range_counts_are_sample": True} if factor > 1.0 else {})}
 
 
@@ -1749,7 +1739,8 @@ def _get_raster_band_stats(args: dict) -> dict:
     if exact is None:
         return out
     out.update(exact)
-    for key in ("sum_is_sample", "sum_note", "extremes_are_sample", "extremes_note"):
+    for key in ("sum_is_sample", "sum_note", "sum_note_hint", "extremes_are_sample", "extremes_note",
+                "measured_hint"):
         out.pop(key, None)
     out["measured"] = "every pixel"
     _coverage_note(out, exact["pixels_counted"], exact["mean"], exact["coverage_pct"])
@@ -1804,16 +1795,16 @@ def _sampled_band_stats(read: dict, cancelled) -> dict | None:
     full = int(read.get("full") or 0)
     out = {"pixels_counted": counted, "coverage_pct": coverage,
            "measured": (f"approximate: a sample of {sampled:,} cells read at 1/{step:.0f} of the raster's "
-                        "resolution; native:zonalstatisticsfb over the area reads every pixel")}
+                        "resolution"),
+           "measured_hint": "zonal_reads_every_pixel"}
     if counted:
         lo, hi, mean = float(values.min()), float(values.max()), float(values.mean())
         out.update({"min": lo, "max": hi, "mean": mean, "stddev": float(values.std()), "range": hi - lo,
                     "sum": float(values.sum())})
         found = np.percentile(values, _PERCENTILES)
         out["quantiles"] = {f"p{p}": round(float(v), 4) for p, v in zip(_PERCENTILES, found)}
-        out["quantiles_note"] = (f"Percentiles of the {counted:,} valid cells of the same sample. Equal-count class "
-                                 "breaks: 4 classes p25 p50 p75, 5 classes p20 p40 p60 p80, 10 classes every p10; "
-                                 "use them as the breaks, no code needed.")
+        out["quantiles_note"] = f"Percentiles of the {counted:,} valid cells of the same sample."
+        out["quantiles_note_hint"] = "class_breaks_from_quantiles"
         if sampled < width * height:
             out["quantiles_are_sample"] = True
             out["quantiles_note"] += (" These estimate the full distribution, which can contain unsampled "
@@ -1823,8 +1814,8 @@ def _sampled_band_stats(read: dict, cancelled) -> dict | None:
         out.update({"min": None, "max": None, "mean": None, "stddev": None, "range": None, "sum": None})
     if full > sampled:
         out["sum_is_sample"] = True
-        out["sum_note"] = (f"Read on {sampled:,} of the raster's {full:,} pixels: sum is not its total. "
-                           "native:zonalstatisticsfb over the area reads every pixel.")
+        out["sum_note"] = f"Read on {sampled:,} of the raster's {full:,} pixels: sum is not its total."
+        out["sum_note_hint"] = "zonal_reads_every_pixel"
         out["extremes_are_sample"] = True
         out["extremes_note"] = (f"min and max are those of the {sampled:,} cells read, not the raster's: its "
                                 "highest and lowest cells can lie between them.")
@@ -1860,8 +1851,8 @@ def _sample_plan(args: dict, layer, provider, band: int, window, why: str) -> di
         if not full_extent.isNull() and full_extent.width() > 0 and full_extent.height() > 0:
             out["measured_over"]["share_of_raster_pct"] = round(
                 100.0 * (window.width() * window.height()) / (full_extent.width() * full_extent.height()), 2)
-        out["window_note"] = (f"{why}. Every number above describes that window only, not the whole raster; "
-                              "gdal:cliprasterbyextent over the area gives a clip that measures the whole raster.")
+        out["window_note"] = f"{why}. Every number above describes that window only, not the whole raster."
+        out["window_note_hint"] = "clip_measures_whole_raster"
     grid = ground.pixel_facts(layer)
     if grid:
         out["grid"] = grid
@@ -1945,8 +1936,8 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
 
 
         out["sum_is_sample"] = True
-        out["sum_note"] = (f"Read on {read:,} of the raster's {full:,} pixels: sum is not its total. "
-                           "native:zonalstatisticsfb over the area reads every pixel.")
+        out["sum_note"] = f"Read on {read:,} of the raster's {full:,} pixels: sum is not its total."
+        out["sum_note_hint"] = "zonal_reads_every_pixel"
 
 
 
@@ -1966,8 +1957,8 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
         if not full_extent.isNull() and full_extent.width() > 0 and full_extent.height() > 0:
             out["measured_over"]["share_of_raster_pct"] = round(
                 100.0 * (window.width() * window.height()) / (full_extent.width() * full_extent.height()), 2)
-        out["window_note"] = (f"{why}. Every number above describes that window only, not the whole raster; "
-                              "gdal:cliprasterbyextent over the area gives a clip that measures the whole raster.")
+        out["window_note"] = f"{why}. Every number above describes that window only, not the whole raster."
+        out["window_note_hint"] = "clip_measures_whole_raster"
     elif read <= 0:
 
 
@@ -2043,8 +2034,8 @@ def _class_counts(np, valid_values, sampled: int, cells: int, window=None) -> di
             f"nearest-neighbour sample, decimated by {scale:.1f} in each direction; pixel counts extrapolated, "
             "shares and nodata_share_pct describe sampled cells. Unsampled classes can be absent")
     if len(values) > _CLASS_COUNT_MAX_CLASSES:
-        out["class_counts_note"] = (f"continuous band: {len(values)} distinct values in the sample, no class table; "
-                                    "threshold it first (raster_calculator) and count the classes of the result")
+        out["class_counts_note"] = f"continuous band: {len(values)} distinct values in the sample, no class table"
+        out["class_counts_note_hint"] = "continuous_band_no_classes"
         return out
     total = int(counts.sum()) or 1
     classes = []
@@ -2055,9 +2046,8 @@ def _class_counts(np, valid_values, sampled: int, cells: int, window=None) -> di
     out["classes"] = classes
     out["class_counts_note"] = (out.get("class_counts_note", "")
                                 + ("; " if out.get("class_counts_note") else "")
-                                + "Counts and shares describe grid cells, without an inferred ground area. "
-                                  "Measure the class-region geometries on an ellipsoid or use an "
-                                  "appropriate equal-area grid.")
+                                + "Counts and shares describe grid cells, without an inferred ground area.")
+    out["class_counts_note_hint"] = "class_counts_no_ground_area"
     out["classes_order"] = ("largest share first; share_pct is of the valid "
                             + ("sampled cells" if scale > 1.0 else "pixels")
                             + (" inside measured_over, not of the whole raster" if window is not None else ""))
@@ -2130,9 +2120,8 @@ def _check_geometry_validity(args: dict) -> dict:
         from qgis.utils import iface
         active = iface.activeLayer() if iface else None
         if not isinstance(active, QgsVectorLayer):
-            return {"_error": "No layer named and no vector layer is active.",
-                    "_code": "INVALID_ARGS",
-                    "suggestion": "list_layers shows the names for layer_name."}
+            return tool_error("No layer named and no vector layer is active.", "INVALID_ARGS",
+                              hint="no_layer_named")
         layer, name = active, active.name()
     else:
         layer = _find_layer(name)
@@ -2208,17 +2197,16 @@ def _check_geometry_validity(args: dict) -> dict:
         out["unchecked_large_count"] = len(too_large)
         out["note"] = (
             f"{len(too_large)} geometr{'y' if len(too_large) == 1 else 'ies'} over {max_vertices:,} "
-            f"vertices were counted but not checked: validating one of that size holds QGIS for minutes. "
-            f"native:checkvalidity (run_processing, async) checks them in the background; "
-            f"native:fixgeometries fixes them."
+            f"vertices were counted but not checked: validating one of that size holds QGIS for minutes."
         )
+        out["note_hint"] = "large_geometries_unchecked"
     if stopped:
         out["stopped"] = stopped
         out["suggestion"] = (
             f"The check stopped after {checked} of {total} features to keep QGIS responsive "
-            f"({budget.stop_reason(stopped)} reached). native:checkvalidity through "
-            f"run_processing with async true checks the whole layer."
+            f"({budget.stop_reason(stopped)} reached)."
         )
+        out["suggestion_hint"] = "validity_check_stopped"
     return out
 
 

@@ -147,19 +147,19 @@ def _target(args: dict, project) -> tuple[str, dict | None]:
             path = os.path.join(path, f"{output_paths.safe_file_name(stem, 'layers')}_data.gpkg")
         elif os.path.splitext(path)[1].lower() != ".gpkg":
             return "", tool_error(f"{os.path.basename(path)} is not a GeoPackage name.", "INVALID_ARGS",
-                                  "gpkg_path ends in .gpkg, or is left out for <project>_data.gpkg beside the project.")
+                                  hint="persist_gpkg_name", name=os.path.basename(path))
     else:
         path = _default_gpkg_path("layers" if not project.fileName() else "")
     if _source_key(path).startswith(_source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"):
         return "", tool_error("gpkg_path is inside the agent's scratch folder, which is pruned.", "INVALID_ARGS",
-                              "gpkg_path can be left out, or named beside the project or user folders.")
+                              hint="persist_gpkg_in_scratch")
     error = security.validate_path(path, write=True)
     if error:
         return "", tool_error(error, "PERMISSION_DENIED",
                               "The project folder or the user's home folder takes a GeoPackage.")
     if not security.fits_path(path, len("-journal")):
         return "", tool_error(f"{path} is longer than Windows opens.", "INVALID_ARGS",
-                              "A shorter gpkg_path fits.")
+                              hint="persist_path_too_long")
     return path, None
 
 
@@ -260,8 +260,8 @@ def _vector(layer, was: str, gpkg: str, taken: set[str]) -> dict:
         else:
             layer.setSubsetString("")
             entry["filter_not_restored"] = subset
-            entry["note"] = ("Every feature was kept, but the filter does not read on the GeoPackage, so the layer "
-                             "now shows all of them; set_layer_filter in SQL sets it again.")
+            entry["note"] = "Every feature was kept, but the filter does not read on the GeoPackage."
+            entry["note_hint"] = "persist_filter_not_restored"
     entry["style_in_gpkg"] = _save_style_inside(layer)
     return entry
 
@@ -353,7 +353,7 @@ def _make_layers_permanent(args: dict) -> dict:
         fresh = _fresh_gpkg(gpkg)
         if not fresh:
             return tool_error(f"The tables of {gpkg} cannot be read, so nothing was written into it.",
-                              "INVALID_ARGS", "Closing the program holding it, or a new gpkg_path, frees a name.")
+                              "INVALID_ARGS", hint="persist_gpkg_unreadable", path=gpkg)
         moved_from, gpkg, taken = gpkg, fresh, set()
     files_taken: set[str] = set()
     moved: list[dict] = []

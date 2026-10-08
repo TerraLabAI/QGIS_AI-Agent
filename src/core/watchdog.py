@@ -30,6 +30,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import os
@@ -38,6 +41,7 @@ import threading
 import time
 
 from . import limits, tuning
+from .freeze_stack import FreezeStack, main_thread_frames_in
 from .logger import log_warning
 
 
@@ -96,7 +100,9 @@ class MainThreadWatchdog:
 
         self._on_thaw = on_thaw
 
+
         self._reported_for: float | None = None
+        self._reported_where = ""
         self._main_ident: int | None = None
         self._helper: threading.Thread | None = None
         self._helper_stop = threading.Event()
@@ -112,6 +118,9 @@ class MainThreadWatchdog:
         self._blocked_given = blocked_s
         self._timer = None
         self._last = time.monotonic()
+
+
+        self._stack = FreezeStack() if on_stall is not None else None
 
         self.blocked_for: float = 0.0
         self.blocked_by: str = ""
@@ -160,6 +169,21 @@ class MainThreadWatchdog:
             self._helper.start()
         return True
 
+    @staticmethod
+    def _stall_report_s() -> float:
+        return tuning.ceiling("watchdog_stall_report_s", STALL_REPORT_S, 6.0)
+
+    def _held_in(self, gap: float) -> tuple[bool, str]:
+
+
+        if self._stack is None:
+            return False, ""
+        dump = self._stack.take()
+        if not dump or gap < self._stall_report_s():
+            return False, ""
+        limit = tuning.threshold("watchdog_stall_frames", STALL_FRAMES, 1, 10)
+        return True, main_thread_frames_in(dump, self._main_ident, limit)
+
     def _watch(self, stop: threading.Event) -> None:
 
         reported_for = None
@@ -167,21 +191,26 @@ class MainThreadWatchdog:
         while not stop.wait(1.0):
             last = self._last
             held = time.monotonic() - last
-            if held < tuning.ceiling("watchdog_stall_report_s", STALL_REPORT_S, 6.0):
+            if held < self._stall_report_s():
                 continue
             if reported_for == last and held - reported_at < tuning.ceiling(
                     "watchdog_stall_repeat_s", STALL_REPEAT_S, 10.0):
                 continue
             reported_for, reported_at = last, held
+            where = main_thread_frames(self._main_ident)
+            self._reported_where = where
             self._reported_for = last
             try:
-                self._on_stall(held, main_thread_frames(self._main_ident))
+                self._on_stall(held, where)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Stall report failed: {exc}")
 
     def stop(self) -> None:
         self._helper_stop.set()
         self._helper = None
+        if self._stack is not None:
+
+            self._stack.close()
         timer, self._timer = self._timer, None
         if timer is None:
             return
@@ -205,7 +234,23 @@ class MainThreadWatchdog:
         previous = self._last
         gap = now - previous
         self._last = now
-        if self._reported_for is not None and self._reported_for == previous:
+
+
+        dumped, held_in = self._held_in(gap)
+        if self._stack is not None and self._timer is not None:
+            self._stack.arm(self._stall_report_s())
+        reported = self._reported_for is not None and self._reported_for == previous
+        if dumped and (not reported or (held_in and held_in != self._reported_where)) and self._on_stall is not None:
+
+
+
+
+            try:
+                self._on_stall(gap, held_in)
+                reported = True
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Stall report failed: {exc}")
+        if reported:
 
             self._reported_for = None
             if self._on_thaw is not None:
@@ -239,6 +284,7 @@ class MainThreadWatchdog:
 
 
         log_warning(f"Main thread blocked for {gap:.1f}s"
+                    + (f" in {held_in}" if held_in else (" in native code" if dumped else ""))
                     + (f" during {who}. QGIS answered nothing for that long; the next tool call of "
                        "this run is refused." if who
                        else " with no tool call in flight. QGIS answered nothing for that long; "

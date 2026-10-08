@@ -71,6 +71,7 @@ class _ChatPanelLayout:
         a.sign_in_requested.connect(self.sign_in_requested.emit)
         a.pairing_reopen_requested.connect(self.pairing_reopen_requested.emit)
         a.pairing_cancel_requested.connect(self.pairing_cancel_requested.emit)
+        a.pairing_code_submitted.connect(self.pairing_code_submitted.emit)
         a.account_clicked.connect(self.open_settings_requested.emit)
 
         self.empty_state.examples_requested.connect(self.open_examples)
@@ -722,6 +723,10 @@ class _ChatPanelLayout:
             self.activation.show_pairing_waiting(code, url)
         else:
             self.activation.show_signed_out()
+
+    def show_pairing_code_input(self) -> None:
+
+        self.activation.show_pairing_code_input()
 
     def set_pairing_status(self, text: str) -> None:
 

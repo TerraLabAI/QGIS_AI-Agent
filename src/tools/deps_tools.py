@@ -30,7 +30,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QThread
 
 from ..core.logger import log
 from ..core.policy import AGENT_HOME
-from ..core.tool_registry import Tool, ToolRegistry, coded_fact
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 
 
 
@@ -45,10 +45,6 @@ OPTIONAL_DEPENDENCIES = {
             "initialize_earth_engine). search_gee_catalog is answered by the server and needs "
             "no install."
         ),
-        "post_install": (
-            "`earthengine authenticate` runs once in a terminal; the Earth Engine tools register "
-            "after a plugin reload (QGIS plugin manager)."
-        ),
     },
 
 
@@ -60,7 +56,6 @@ OPTIONAL_DEPENDENCIES = {
             "Reading, splitting, merging, rotating and stamping PDF pages in execute_code "
             "(pypdf). Exporting a layout to PDF needs nothing extra."
         ),
-        "post_install": "Nothing else to do: import pypdf in execute_code.",
     },
 
 
@@ -72,7 +67,6 @@ OPTIONAL_DEPENDENCIES = {
             "Reading and editing PNG and JPEG files in execute_code (PIL). Qt's QImage and "
             "QPainter draw without it, and this QGIS may already ship it."
         ),
-        "post_install": "Nothing else to do: import PIL in execute_code.",
     },
 }
 
@@ -175,15 +169,12 @@ def _resolve_feature(args: dict):
         for key, spec in OPTIONAL_DEPENDENCIES.items():
             if spec["package"] == package:
                 return key, spec
-        return None, {
-            "_error": f"Package '{package}' is not whitelisted. Allowed features: {allowed}",
-            "code": "INVALID_ARGS",
-            "suggestion": "'feature' names a package in that table; the agent installs only those.",
-        }
+        return None, tool_error(f"Package '{package}' is not whitelisted. Allowed features: {allowed}",
+                                "INVALID_ARGS", hint="dependency_package_not_whitelisted",
+                                package=package, allowed=allowed)
 
-    return None, {"_error": f"Needs 'feature' (one of {allowed}) or a whitelisted 'package'.",
-                  "code": "INVALID_ARGS",
-                  "suggestion": f"check_optional_dependencies lists what is installed; features are {allowed}."}
+    return None, tool_error(f"Needs 'feature' (one of {allowed}) or a whitelisted 'package'.",
+                            "INVALID_ARGS", hint="dependency_args_missing", allowed=allowed)
 
 
 def _pip_failure_message(rc: int, log_tail: str) -> tuple[str, dict]:
@@ -206,8 +197,7 @@ def _pip_failure_message(rc: int, log_tail: str) -> tuple[str, dict]:
             or "used by another process" in log_tail.lower())
     if held:
         return ("This package is already partly installed and QGIS is holding one of its "
-                "files open, so pip could not replace it. A QGIS restart frees the file "
-                "for the install."), coded_fact(hint="pip_file_held")
+                "files open, so pip could not replace it."), coded_fact(hint="pip_file_held")
     return f"pip exited with code {rc}.", {}
 
 
@@ -467,7 +457,8 @@ def _check(args: dict) -> dict:
             "package": spec["package"],
             "installed": installed,
             "unlocks": spec["unlocks"],
-            "post_install": spec["post_install"],
+            **coded_fact(hint="dependency_post_install", variant=feature, package=spec["package"],
+                         import_name=spec["import_name"]),
         })
 
     total = len(OPTIONAL_DEPENDENCIES)
@@ -486,9 +477,7 @@ def _check(args: dict) -> dict:
         )
     missing = [d["feature"] for d in deps if not d["installed"]]
     if missing:
-        out["_next"] = (
-            f"install_dependency {{feature:'{missing[0]}'}} adds it; the plugin needs a reload."
-        )
+        out.update(coded_fact(hint="dependency_install_next", feature=missing[0]))
     return out
 
 
@@ -514,10 +503,8 @@ class _InstallWorker(QThread):
                 from pip._internal.cli.main import main as _pip_main
             except Exception as e:
                 t["status"] = "error"
-                t["error"] = (
-                    f"In-process pip unavailable ({e}). A manual install: "
-                    f"python -m pip install --user {self._package}"
-                )
+                t["error"] = f"In-process pip unavailable ({e})."
+                t["hint"] = "pip_unavailable"
                 self._record("failed: pip unavailable")
                 return
 
@@ -611,20 +598,14 @@ def _install(args: dict) -> dict:
     try:
         os.makedirs(deps_dir(), exist_ok=True)
     except OSError as exc:
-        return {
-            "_error": f"Cannot create the folder optional packages install into: {exc}",
-            "suggestion": "An install into this interpreter's environment by hand, then a plugin "
-                          f"reload, works: pip install {package}",
-        }
+        return tool_error(f"Cannot create the folder optional packages install into: {exc}",
+                          hint="dependency_folder_unwritable", package=package)
 
     orphan = _inflight_package()
     if orphan:
-        return {
-            "_error": f"An install of {orphan} started before the plugin was reloaded is still "
-                      "running in this QGIS session.",
-            "suggestion": "Two pip runs writing the same site-packages at once leave a half-installed "
-                          "package; a plugin reload after it finishes registers it.",
-        }
+        return tool_error(f"An install of {orphan} started before the plugin was reloaded is still "
+                          "running in this QGIS session.",
+                          hint="dependency_install_in_flight", package=orphan)
 
     _sweep_finished_tasks()
     now = time.monotonic()
@@ -658,7 +639,7 @@ def _install(args: dict) -> dict:
         "task_id": task_id,
         "status": "running",
         "package": package,
-        "hint": "Poll install_dependency_status {task_id}. Then reload the plugin so the new tools register.",
+        **coded_fact(hint="dependency_install_started", task_id=task_id),
     }
 
 
@@ -683,11 +664,9 @@ def _install_status(args: dict) -> dict:
         out["error"] = t["error"]
 
 
-
         if t.get("hint"):
             out["hint"] = t["hint"]
     if t["status"] == "complete":
-        spec = OPTIONAL_DEPENDENCIES.get(t["feature"], {})
-        out["post_install"] = spec.get("post_install", "")
-        out["_next"] = "The new tools register after a plugin reload."
+        out.update(coded_fact(hint="dependency_post_install", variant=t["feature"], package=t["package"],
+                              import_name=t["import_name"]))
     return out

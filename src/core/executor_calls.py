@@ -24,8 +24,8 @@ from .plan import autopilot_allowed
 from .protocol import Approval, Danger, Decision, Mode, recommended_index
 from .protocol import ClientErrorCode as Err
 from .run_report import VERIFY_RUN, build_report
-from .serialization import DETAILS_MARKER, cut_string, dump_json, error_details
-from .tool_registry import spec
+from .serialization import DETAILS_MARKER, CodedText, cut_string, dump_json, error_details
+from .tool_registry import coded_fact, spec
 
 try:
     from ..tools import guards
@@ -47,10 +47,26 @@ _HOSTS_AHEAD = 32
 TURN_WAIT_S = 15.0
 
 
+
+
+_NOT_FACTS = frozenset({"error", "suggestion", "code", "isError", "destructive", "overwrites", "creates",
+                        "sentence", "slow_only", "inputs"})
+
+
+def _refusal_facts(refusal: dict) -> dict:
+
+
+    facts = {k: v for k, v in refusal.items() if k not in _NOT_FACTS}
+    error = refusal.get("error")
+    if isinstance(error, CodedText) and not facts.get("hint") and not refusal.get("suggestion"):
+        facts = {**error.facts, **facts, "hint": error.hint}
+    return facts
+
+
 def _coded(refusal: dict) -> str:
 
 
-    return error_details({k: v for k, v in refusal.items() if k in ("hint", "variant", "routes")})
+    return error_details(_refusal_facts(refusal))
 
 
 def tr(text: str) -> str:
@@ -160,7 +176,8 @@ class _ExecutorCalls:
             danger = Danger.WRITE
         verdict = self._guard_check(name, args, own_files)
         if verdict.get("error"):
-            self._fail(call, verdict.get("code") or Err.INVALID_ARGS, verdict["error"], verdict.get("suggestion", ""))
+            self._fail(call, verdict.get("code") or Err.INVALID_ARGS, verdict["error"], verdict.get("suggestion", ""),
+                       details=_coded(verdict))
             return
         if verdict.get("destructive"):
             danger = Danger.DESTRUCTIVE
@@ -177,8 +194,8 @@ class _ExecutorCalls:
         approval = self._approval_now()
         if mode == Mode.ASK and danger != Danger.READ:
             self._fail(call, Err.READ_ONLY_MODE,
-                       tr("Question mode is read only: {tool} would modify the project.").format(tool=name),
-                       "Nothing changes in Question mode unless the user says yes.")
+                       tr("Question mode is read only: {tool} would modify the project.").format(tool=name), "",
+                       details=error_details(coded_fact(hint="question_mode_read_only")))
             return
         budget = self._budgets.get(run_id)
         over = budget.charge(poll=bool(call.get("poll"))) if budget is not None else None
@@ -192,9 +209,8 @@ class _ExecutorCalls:
 
 
 
-            self._fail(call, Err.RUN_BUDGET, held + " This call did not run and nothing changed.",
-                       "The hold is spent; the same call runs now. A smaller step (one layer, a smaller "
-                       "area) avoids it again. QGIS was busy.")
+            self._fail(call, Err.RUN_BUDGET, held + " This call did not run and nothing changed.", "",
+                       details=error_details(coded_fact(hint="spent_hold_retry", hold_spent=True)))
             return
         if name == CODE_TOOL:
 
@@ -234,9 +250,8 @@ class _ExecutorCalls:
             return
         if costly and self._call_key(name, args) in self._refused_costly.get(run_id, ()):
             self._fail(call, Err.PERMISSION_DENIED,
-                       f"The user already refused this exact {costly['label']} run in this answer.",
-                       "The same arguments get the same refusal; a smaller zone or another object "
-                       "class costs less.")
+                       f"The user already refused this exact {costly['label']} run in this answer.", "",
+                       details=error_details(coded_fact(hint="costly_run_refused_again", label=costly["label"])))
             return
         if costly and approval == Approval.AUTO and costly.get("slow_only") and not unvouched:
 
@@ -555,7 +570,9 @@ class _ExecutorCalls:
                                                    str(call.get("run_id") or ""), Decision.DENY)
             self._fail(call, current.get("code") or Err.EXECUTION_FAILED,
                        current.get("error") or "The prepared inputs could not be checked, so the call was not run.",
-                       current.get("suggestion") or "Review the native panel and prepare the operation again.")
+                       current.get("suggestion") or "",
+                       details="" if current.get("suggestion")
+                       else error_details(coded_fact(hint="prepared_inputs_unchecked")))
             return True
         if current["inputs"] == call["_costly_inputs"] and current.get("sentence") == call.get("sentence"):
             return False
@@ -649,8 +666,8 @@ class _ExecutorCalls:
         tool_call_id, run_id, args = str(call.get("tool_call_id")), str(call.get("run_id") or ""), call["args"]
         question = str(args.get("question") or "").strip()
         if not question:
-            self._fail(call, Err.INVALID_ARGS, "ask_user needs a question.",
-                       "One sentence works, with 2 to 4 options when there are natural choices.")
+            self._fail(call, Err.INVALID_ARGS, "ask_user needs a question.", "",
+                       details=error_details(coded_fact(hint="ask_user_question_missing", missing="question")))
             return
         raw = args.get("options") if isinstance(args.get("options"), list) else []
         options = [str(o).strip() for o in raw if str(o).strip()][:4]
@@ -783,6 +800,7 @@ class _ExecutorCalls:
             self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
 
             edited = {"edited_by_user": {"values": call["user_edits"]}} if call.get("user_edits") else {}
+            edited.update(call.pop("refusal_facts", None) or {})
             self._fail(call, problem[0], problem[1], problem[2], 0.0, details=error_details(edited))
             return
         if self._hold_changed_costly_inputs(call):
@@ -824,6 +842,11 @@ class _ExecutorCalls:
                                    else Decision.ALLOW)
             decision = Decision.ALLOW
         self._session.send_permission_response(tool_call_id, run_id, decision)
+
+
+
+
+        call.pop("clock_from", None)
         self._execute(call)
 
     def _pin_loose_names(self, call: dict, danger: str) -> tuple[str, str, str] | None:
@@ -930,8 +953,11 @@ class _ExecutorCalls:
             return loose
         verdict = self._guard_check(name, args, self._own_files_of(str(call.get("run_id") or "")))
         if verdict.get("error"):
+
+            call["refusal_facts"] = _refusal_facts(verdict)
             return (str(verdict.get("code") or Err.INVALID_ARGS), str(verdict["error"]),
-                    str(verdict.get("suggestion") or "The guards refuse this value."))
+                    str(verdict.get("suggestion") or ("" if call["refusal_facts"].get("hint")
+                                                      else "The guards refuse this value.")))
 
 
 
@@ -943,6 +969,7 @@ class _ExecutorCalls:
             call["danger"] = Danger.DESTRUCTIVE
         crs = self._crs_guard(name, args)
         if crs:
+            call["refusal_facts"] = crs[2]
             return (Err.CRS_GUARD, crs[0], crs[1])
 
 
@@ -954,8 +981,11 @@ class _ExecutorCalls:
         if costly.get("error") and "confirm_area_km2" in known:
             costly = self._confirmed_by_card(name, args) or costly
         if costly.get("error"):
+
+            call["refusal_facts"] = _refusal_facts(costly)
             return (str(costly.get("code") or Err.EXECUTION_FAILED), str(costly["error"]),
-                    str(costly.get("suggestion") or "The guards refuse this value."))
+                    str(costly.get("suggestion") or ("" if call["refusal_facts"].get("hint")
+                                                     else "The guards refuse this value.")))
         if (costly and (not call.get("costly") or costly.get("sentence") != call.get("sentence"))
                 and self._registry.check_arguments(name, args) is None):
 

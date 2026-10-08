@@ -233,6 +233,37 @@ def _crs(layer) -> str:
         return ""
 
 
+def _placement(layer, project, view) -> dict:
+
+
+
+    from .run_report import _in_view, _switched_on
+
+    out = {}
+    try:
+        node = project.layerTreeRoot().findLayer(layer.id()) if project is not None else None
+    except Exception:  # noqa: BLE001
+        node = None
+    shown = _switched_on(node) if node is not None else None
+    if shown is not None:
+        out["visible"] = shown
+    if view is not None:
+        try:
+            extent = layer.extent()
+        except Exception:  # noqa: BLE001
+            extent = None
+        seen = _in_view(layer, extent, view)
+        if seen is not None:
+            out["in_view"] = seen
+    return out
+
+
+def _canvas_view():
+    from .run_report import _view
+
+    return _view()
+
+
 def _extent(layer) -> list[float] | None:
     try:
         rect = layer.extent()
@@ -531,7 +562,8 @@ def _one_layer(result: dict) -> bool:
     return all(_entry_id(entry) in ("", own) for entry in _listed(result))
 
 
-def describe(result) -> None:
+def describe(result, placed: bool = True) -> None:
+
 
 
 
@@ -541,6 +573,7 @@ def describe(result) -> None:
     try:
         project = _project()
         own = _text(result.get("layer_id")) if isinstance(result.get("verified"), dict) else ""
+        view = _canvas_view() if placed else None
         for entry in _listed(result):
             lid = _entry_id(entry)
             if not lid or lid == own or project is None:
@@ -548,6 +581,9 @@ def describe(result) -> None:
             layer = project.mapLayer(lid)
             if layer is None:
                 continue
+            if placed:
+                for key, value in _placement(layer, project, view).items():
+                    entry.setdefault(key, value)
             facts = _schema(layer) or _band_range(layer)
             if not facts:
                 continue
@@ -611,6 +647,7 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
         out["extent"] = extent
     if shape == "arrives" and "fields" not in result and _one_layer(result):
         out.update(_schema(layer))
+    out.update(_placement(layer, _project(), _canvas_view()))
     warning = ""
     if count == 0:
         warning = f"{layer.name()!r} is in the project with 0 features."

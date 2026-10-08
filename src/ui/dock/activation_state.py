@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QToolButton,
     QVBoxLayout,
@@ -69,6 +70,8 @@ class ActivationCard(QWidget):
     sign_in_requested = pyqtSignal()
     pairing_reopen_requested = pyqtSignal()
     pairing_cancel_requested = pyqtSignal()
+
+    pairing_code_submitted = pyqtSignal(str)
     account_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -197,6 +200,42 @@ class ActivationCard(QWidget):
         self._cancel_btn.clicked.connect(self._on_cancel)
         btn_row.addWidget(self._cancel_btn)
         wait_col.addLayout(btn_row)
+
+
+        self._code_section = QWidget(self._wait_section)
+        code_col = QVBoxLayout(self._code_section)
+        code_col.setContentsMargins(0, 0, 0, 0)
+        code_col.setSpacing(6)
+        code_label = QLabel(self.tr("Type the code shown in your browser:"), self._code_section)
+        code_label.setWordWrap(True)
+        code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        code_label.setStyleSheet("font-size: 12px; color: palette(text);")
+        code_col.addWidget(code_label)
+        code_row = QHBoxLayout()
+        code_row.setSpacing(SPACE_CARD)
+        self._code_input = QLineEdit(self._code_section)
+        self._code_input.setMaxLength(9)
+        self._code_input.setPlaceholderText("K7P-4QX")
+        self._code_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._code_input.setFixedHeight(BTN_PILL_PX)
+        self._code_input.returnPressed.connect(self._submit_code)
+        code_row.addWidget(self._code_input, 1)
+        self._code_btn = QPushButton(self.tr("Sign in"), self._code_section)
+        self._code_btn.setFixedHeight(BTN_PILL_PX)
+        self._code_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._code_btn.setStyleSheet(_BTN_GHOST)
+        self._code_btn.setAutoDefault(False)
+        self._code_btn.clicked.connect(self._submit_code)
+        code_row.addWidget(self._code_btn)
+        code_col.addLayout(code_row)
+        code_hint = QLabel(self.tr("Only type a code you see on terra-lab.ai, on a page you opened "
+                                   "from this QGIS."), self._code_section)
+        code_hint.setWordWrap(True)
+        code_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        code_hint.setStyleSheet(_HINT_QSS)
+        code_col.addWidget(code_hint)
+        self._code_section.hide()
+        wait_col.addWidget(self._code_section)
         self._wait_section.hide()
         col.addWidget(self._wait_section)
 
@@ -261,6 +300,7 @@ class ActivationCard(QWidget):
         self.pairing_code = ""
         self._spinner.stop()
         self._wait_section.hide()
+        self._hide_code_input()
         self._account_section.hide()
         self._connect_section.show()
         self._set_subtitle("")
@@ -272,15 +312,34 @@ class ActivationCard(QWidget):
                                   else self.tr("Sign in / Sign up to start"))
 
     def show_pairing_waiting(self, code: str = "", url: str = "") -> None:
-        self.state = "pairing"
         self.pairing_code = code or ""
         self.pairing_url = url or ""
+        if self.state != "pairing" or not url:
+            self._hide_code_input()
+        self.state = "pairing"
         self._connect_section.hide()
         self._account_section.hide()
         self._message.hide()
         self._wait_section.show()
         self._spinner.start()
         self._set_subtitle(self.tr("Finish the sign-in in your browser, then come back here."))
+
+    def show_pairing_code_input(self) -> None:
+
+        if self.state != "pairing":
+            return
+        self._code_input.clear()
+        self._code_section.show()
+        self._code_input.setFocus()
+
+    def _hide_code_input(self) -> None:
+        self._code_input.clear()
+        self._code_section.hide()
+
+    def _submit_code(self) -> None:
+        text = self._code_input.text().strip()
+        if text:
+            self.pairing_code_submitted.emit(text)
 
     def set_pairing_status(self, text: str) -> None:
 

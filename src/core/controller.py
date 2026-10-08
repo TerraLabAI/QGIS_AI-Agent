@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import sys
+import time
 
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
@@ -193,14 +194,28 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         self._account.try_sibling_sign_in()
 
+    def open_stamps(self, facts: dict, began: float) -> None:
+
+
+        self._open_facts = dict(facts or {})
+        self._open_began = float(began or 0.0)
+
     def _track_opened(self) -> None:
         try:
             main_window = self._iface.mainWindow()
             panel_visible = bool(self._panel.isVisibleTo(main_window)) if main_window is not None else None
         except (AttributeError, RuntimeError, TypeError):
             panel_visible = None
-        telemetry.track(ev.PLUGIN_OPENED, {"signed_in": self._account.has_activation_key,
-                                           "panel_visible": panel_visible})
+        props = {"signed_in": self._account.has_activation_key, "panel_visible": panel_visible}
+        facts = getattr(self, "_open_facts", None) or {}
+        props.update({key: facts[key] for key in ("opened_by", "load_ms", "registry_ms", "dock_ms", "controller_ms")
+                      if key in facts})
+        began = getattr(self, "_open_began", 0.0)
+        if began:
+
+
+            props["open_to_typeable_ms"] = int((time.monotonic() - began) * 1000)
+        telemetry.track(ev.PLUGIN_OPENED, props)
 
     def _on_thread_index_ready(self) -> None:
 
@@ -396,6 +411,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("welcome_dismissed", self._on_welcome_dismissed)
         self._connect("pairing_reopen_requested", self._account.reopen_pairing_page)
         self._connect("pairing_cancel_requested", self._account.cancel_pairing)
+        self._connect("pairing_code_submitted", self._account.submit_pairing_code)
         self._connect("thread_exported", lambda path: log(f"Thread exported to {path}"))
         self._connect("update_dismissed", self._on_update_dismissed)
         self._connect("low_balance_shown", self._on_low_balance_shown)
@@ -469,6 +485,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             lambda _reason, message: self._panel_call("set_pairing_note", message, "info"))
 
         a.pairing_link_back.connect(lambda: self._panel_call("set_pairing_note", "", "info"))
+        a.pairing_code_needed.connect(lambda: self._panel_call("show_pairing_code_input"))
         a.pairing_failed.connect(self._on_pairing_failed)
         a.pairing_timeout.connect(lambda: self._on_pairing_failed(tr("Sign-in timed out. Try again."), "TIMEOUT"))
         a.notice.connect(self.notice)

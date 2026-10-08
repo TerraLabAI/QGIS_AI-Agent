@@ -47,7 +47,7 @@ from ..core.host_platform import retry_file_op
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import fits_path, validate_path
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import csv_loader
 from .layer_lookup import _find_layer, _layer_not_found_error
 from .processing_guards import _utm_authid
@@ -77,11 +77,6 @@ _TOPOLOGY_DEFAULTS = {
     "polygon": ("overlaps", "gaps", "duplicates", "multipart", "validity"),
     "line": ("dangles", "duplicates", "multipart", "validity"),
     "point": ("duplicates", "multipart", "validity"),
-}
-_TOPOLOGY_MEANING = {
-    "overlaps": "overlaps are area shared by two polygons",
-    "gaps": "gaps are holes in a polygon coverage",
-    "dangles": "dangles are line ends that touch nothing",
 }
 
 _REPAIR_MAX_FOLDERS = 20_000
@@ -471,7 +466,7 @@ def _package_project_snapshot(args: dict) -> dict:
         return tool_error(
             "Not saved; packaging needs a save.",
             "INVALID_ARGS",
-            "save_project comes before package_project.",
+            hint="package_project_not_saved",
         )
     output = os.path.abspath(os.path.expanduser(args["output_path"]))
     if not output.lower().endswith(".zip") and (os.path.isdir(output) or not os.path.splitext(output)[1]):
@@ -631,7 +626,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             "Project packaging was cancelled.",
             "CANCELLED",
-            "package_project still makes the archive on a new call.",
+            hint="package_cancelled",
         )
     if "_error" in snapshot:
         return snapshot
@@ -651,7 +646,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             f"The path is too long for this system to write beside: {output}",
             "INVALID_ARGS",
-            "A shorter folder or file name would fit.",
+            hint="package_path_too_long", path=output,
         )
     os.makedirs(folder, exist_ok=True)
     cancelled = net.current_cancel_check()
@@ -695,7 +690,7 @@ def _package_project(args: dict) -> dict:
         return tool_error(
             "Project packaging was cancelled.",
             "CANCELLED",
-            "package_project still makes the archive on a new call.",
+            hint="package_cancelled",
         )
     finally:
         if not completed:
@@ -857,11 +852,10 @@ def _get_isochrone(args: dict) -> dict:
             return _layer_not_found_error(road_layer_name)
         return tool_error(
             "No road line layer is loaded for a service area.", "EXECUTION_FAILED",
-            "fetch_overture theme roads (or fetch_osm_data way[highway]) over a box a little larger than the "
-            "reach loads them; get_isochrone then runs, naming road_layer if several line layers are loaded.")
+            hint="isochrone_no_roads")
     if not _is_line_layer(roads):
         return tool_error(f"{roads.name()} is not a line layer.", "INVALID_ARGS",
-                          "road_layer is the road network: a line layer such as fetch_overture theme roads.")
+                          hint="isochrone_not_line_layer", layer=roads.name())
 
 
 
@@ -871,8 +865,7 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{roads.name()} is a remote or database-backed road layer; the road graph needs a local layer.",
             "INVALID_ARGS",
-            "fetch_overture theme roads, mode clip, over a bbox a little larger than the reach (confirm_large "
-            "true if it says so) fetches a local layer; get_isochrone runs with it.")
+            hint="isochrone_remote_roads", layer=roads.name(), source_kind=kind)
 
 
     asked = args["minutes"]
@@ -884,9 +877,8 @@ def _get_isochrone(args: dict) -> dict:
     points = list(args["points"])
     if len(points) > _ISOCHRONE_MAX_STARTS:
         return tool_error(
-            f"{len(points)} start points; get_isochrone takes {_ISOCHRONE_MAX_STARTS} per call, because every "
-            "start is a full search of the road graph on the main thread.", "INVALID_ARGS",
-            f"{_ISOCHRONE_MAX_STARTS} points that matter fit, or split across calls.")
+            f"{len(points)} start points; get_isochrone takes {_ISOCHRONE_MAX_STARTS} per call.", "INVALID_ARGS",
+            hint="isochrone_too_many_starts", points=len(points), max_starts=_ISOCHRONE_MAX_STARTS)
     starts = QgsVectorLayer("Point?crs=EPSG:4326&field=start:integer", "isochrone_starts", "memory")
     features = []
     for index, point in enumerate(points):
@@ -921,9 +913,8 @@ def _get_isochrone(args: dict) -> dict:
         return tool_error(
             f"{roads.name()} does not reach {minutes:.0f} minutes from every start, so the polygon would be "
             "the shape of the download box.", "INVALID_ARGS",
-            f"bbox {needed.xMinimum():.4f},{needed.yMinimum():.4f},"
-            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} (EPSG:4326) reaches further; get_isochrone "
-            "runs again.")
+            hint="isochrone_roads_short", crs="EPSG:4326",
+            bbox=f"{needed.xMinimum():.4f},{needed.yMinimum():.4f},{needed.xMaximum():.4f},{needed.yMaximum():.4f}")
     network = roads
     if window is not None and not window.contains(roads.extent()):
         try:
@@ -946,16 +937,15 @@ def _get_isochrone(args: dict) -> dict:
             return tool_error(
                 f"{roads.name()} holds no {mode} road near the starts: none of its {lines_in_window:,} lines "
                 f"there has {class_field} {', '.join(kept)}.", "INVALID_ARGS",
-                "fetch_overture theme roads (or fetch_osm_data way[highway]) over the reach loads them.")
+                hint="isochrone_no_mode_roads", layer=roads.name(), mode=mode)
     road_count = network.featureCount()
     max_roads = int(limits.current("ISOCHRONE_MAX_ROADS"))
     if road_count > max_roads:
         return tool_error(
             f"{roads.name()} has {road_count:,} road features, over the {max_roads:,} graph limit.",
             "INVALID_ARGS",
-            f"The reach window ({needed.xMinimum():.4f},{needed.yMinimum():.4f},"
-            f"{needed.xMaximum():.4f},{needed.yMaximum():.4f} EPSG:4326) clips or fetches it; "
-            "get_isochrone runs again.")
+            hint="isochrone_graph_too_big", crs="EPSG:4326", road_count=road_count, max_roads=max_roads,
+            window=f"{needed.xMinimum():.4f},{needed.yMinimum():.4f},{needed.xMaximum():.4f},{needed.yMaximum():.4f}")
 
 
 
@@ -975,11 +965,10 @@ def _get_isochrone(args: dict) -> dict:
         graph = builder.graph()
     except Exception as exc:
         return tool_error(f"Building the road graph failed: {exc}", "EXECUTION_FAILED",
-                          "The roads must be one line layer that the start points lie within a few hundred metres "
-                          "of; fetch_overture theme roads over a box a little larger than the reach.")
+                          hint="isochrone_graph_failed", layer=roads.name())
     if graph.vertexCount() == 0:
         return tool_error("The road layer built an empty graph.", "EXECUTION_FAILED",
-                          "The layer may hold no lines near the start points (get_layer_info extent).")
+                          hint="isochrone_empty_graph", layer=roads.name())
     areas = QgsVectorLayer(
         f"Polygon?crs={metric.authid()}&field=start:integer&field=minutes:double&field=mode:string"
         "&field=reached_vertices:integer", args.get("output_name") or f"{minutes:g} min {mode} area", "memory")
@@ -1022,8 +1011,7 @@ def _get_isochrone(args: dict) -> dict:
         starts_reached += int(reached_any)
     if not polygons:
         return tool_error("No road is reachable from the start points within the travel time.", "EXECUTION_FAILED",
-                          "The starts are probably off the network, past the road layer's extent; a larger "
-                          "box may reach them.")
+                          hint="isochrone_unreachable", layer=roads.name())
     areas.dataProvider().addFeatures(polygons)
     areas.updateExtents()
     QgsProject.instance().addMapLayer(areas)
@@ -1235,10 +1223,9 @@ def _topology_checks(requested, kind: str, name: str):
     wrong = [c for c in requested if c not in applies]
     if wrong:
         return None, tool_error(
-            f"{' and '.join(wrong)} mean nothing on {name!r}, which holds {kind}s: "
-            + "; ".join(_TOPOLOGY_MEANING[c] for c in wrong) + ". Nothing was checked.",
+            f"{' and '.join(wrong)} mean nothing on {name!r}, which holds {kind}s. Nothing was checked.",
             "INVALID_ARGS",
-            f"For {kind}s the checks are {', '.join(applies)}; without checks all of them run.")
+            hint="topology_check_not_for_kind", wrong=list(wrong), kind=kind, applies=list(applies))
     return [c for c in TOPOLOGY_CHECKS if c in requested], None
 
 
@@ -1269,9 +1256,7 @@ def _check_topology(args: dict) -> dict:
             f"{layer.name()!r} holds {count:,} {kind}s, past the {MAX_TOPOLOGY_FEATURES:,} this check "
             "compares in one call. Nothing was checked.",
             "INVALID_ARGS",
-            "A filter, a clip to the area of interest, or native:extractbyexpression narrows it; "
-            "check_topology then runs on the extract. Every feature is compared with its neighbours "
-            "here, so a layer this size freezes QGIS for minutes.")
+            hint="topology_too_many_features", count=count, cap=MAX_TOPOLOGY_FEATURES, kind=kind)
     limit = max(1, min(int(args.get("limit", 20) or 20), 100))
 
 
@@ -1288,8 +1273,7 @@ def _check_topology(args: dict) -> dict:
                    else f"more than {budget.total:,} vertices in total")
                 + ". Nothing was checked.",
                 "INVALID_ARGS",
-                "native:simplifygeometries through run_processing with async true simplifies it first, or "
-                "native:checkvalidity and native:dissolve in the background read their outputs.")
+                hint="topology_too_detailed", vertices=too_big or budget.total)
         features.append(feature)
     out = {"layer": layer.name(), "checked_features": len(features)}
     try:
@@ -1337,8 +1321,7 @@ def _check_topology(args: dict) -> dict:
             f"check_topology stopped during {stop.rule} to keep QGIS responsive "
             f"({budget.stop_reason(stop.why)} reached). Nothing is reported.",
             "INVALID_ARGS",
-            "A smaller extract or fewer checks helps; native:checkvalidity and native:union via "
-            "run_processing async true is another route.")
+            hint="topology_stopped", rule=stop.rule, reason=budget.stop_reason(stop.why))
     out["checks_run"] = checks
     return out
 
@@ -1528,8 +1511,7 @@ def _topology_validity(features, limit: int, budget) -> dict:
     return {
         "invalid_count": count,
         "invalid": invalid,
-        "note": "Validity is per feature (a self-intersection, a ring that does not close); topology is "
-                "between features. native:fixgeometries repairs invalid geometries.",
+        "note_hint": coded_fact(hint="topology_validity_note")["hint"],
     }
 
 
@@ -1843,8 +1825,10 @@ class _GeocodeLayerTask(QgsTask):
 
             state["skipped"] = self.skipped
             state["note"] = (f"{matched_addresses} of {len(self.results)} addresses were geocoded: the geocoding "
-                             f"service was unreachable and the fallback carried {self.skipped} fewer rows. "
-                             "A retry of geocode_layer on the empty rows, in a few minutes, fills them.")
+                             f"service was unreachable and the fallback carried {self.skipped} fewer rows.")
+            state["addresses_matched"] = matched_addresses
+            state["addresses_total"] = len(self.results)
+            state["note_hint"] = coded_fact(hint="geocode_partial")["hint"]
 
 
 def _geocode_layer(args: dict) -> dict:
@@ -1854,7 +1838,8 @@ def _geocode_layer(args: dict) -> dict:
     field = args["address_field"]
     index = layer.fields().indexOf(field)
     if index < 0:
-        return tool_error(f"Field not found: {field}", "INVALID_ARGS", "get_layer_info lists the fields.")
+        return tool_error(f"Field not found: {field}", "INVALID_ARGS", hint="field_not_found", field=field,
+                          layer=layer.name())
 
     seen, rows_by_address, over_cap = _read_geocode_rows(layer, index)
     encoding_fixed = None
@@ -1888,9 +1873,8 @@ def _geocode_layer(args: dict) -> dict:
                     f"{garbled['count']} of the values in {field} look garbled ({kind}), for example {samples}. "
                     f"{layer.name()} looks like it was read in the wrong encoding.",
                     "INVALID_ARGS",
-                    "The file's real encoding (the source's ANSI code page for a shapefile with no .cpg, or "
-                    "a CSV with no marker, or UTF-8 when accents already show as mojibake) reloaded fixes "
-                    "it; geocode_layer reruns.")
+                    hint="geocode_garbled_encoding", layer=layer.name(), field=field, count=garbled["count"],
+                    kind=garbled["kind"])
             encoding_warning = {"kind": garbled["kind"], "count": garbled["count"], "samples": garbled["samples"]}
 
     addresses = list(seen)
@@ -1902,7 +1886,7 @@ def _geocode_layer(args: dict) -> dict:
             f"{len(addresses)} distinct addresses is past the {MAX_GEOCODE_ADDRESSES} this tool geocodes "
             "in one call.",
             "INVALID_ARGS",
-            "A filtered selection, or the layer split and geocode_layer run once per part, fits.")
+            hint="geocode_too_many_addresses", addresses=len(addresses), cap=MAX_GEOCODE_ADDRESSES)
     task_id = "geocode-" + uuid.uuid4().hex[:12]
     _GEOCODE_LAYER_TASKS[task_id] = {
         "status": "running",
@@ -1920,7 +1904,7 @@ def _geocode_layer(args: dict) -> dict:
         _GEOCODE_LAYER_ALIVE.pop(task_id, None)
         _GEOCODE_LAYER_TASKS.pop(task_id, None)
         return tool_error("The task manager refused the geocoding task.", "QGIS_ERROR",
-                          "The other tasks finishing first lets it through.")
+                          hint="task_manager_refused")
     running = {
         "status": "running",
         "task_id": task_id,

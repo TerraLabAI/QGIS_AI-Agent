@@ -52,6 +52,7 @@ from ..core import background, limits, net, output_paths, security
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.qt_compat import enum_member
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 
@@ -121,9 +122,7 @@ def _check_args(args: dict) -> dict | None:
     kind = str(args.get("kind") or "")
     if kind not in KINDS:
         return tool_error(
-            f"kind {kind!r} is not a chart this tool draws.", "INVALID_ARGS",
-            "kind is histogram (one numeric field), bar (a category field, numeric y_field to sum or average), "
-            "scatter (two numeric fields) or line (numeric y_field over a date, time or number x_field).")
+            f"kind {kind!r} is not a chart this tool draws.", "INVALID_ARGS", hint="chart_kind_unknown", kind=kind)
     x_field = str(args.get("x_field") or "").strip()
     y_field = str(args.get("y_field") or "").strip()
     aggregate = str(args.get("aggregate") or "").strip()
@@ -135,22 +134,22 @@ def _check_args(args: dict) -> dict | None:
     if kind == "histogram" and y_field:
         return tool_error(
             "A histogram counts the values of one field, so it takes no y_field.", "INVALID_ARGS",
-            f"A histogram ignores y_field; kind scatter plots {x_field!r} against {y_field!r}.")
+            hint="chart_histogram_y_field", x_field=x_field, y_field=y_field)
 
 
     if kind in ("histogram", "scatter") and aggregate in ("sum", "mean"):
         return tool_error(f"A {kind} takes no aggregate {aggregate}.", "INVALID_ARGS",
-                          "This chart ignores aggregate; kind bar sums or averages y_field per category.")
+                          hint="chart_aggregate_ignored", kind=kind, aggregate=aggregate)
     if kind == "scatter" and not y_field:
         return tool_error("A scatter plots one numeric field against another, and y_field is missing.",
-                          "INVALID_ARGS", "y_field needed, or kind histogram for one field.")
+                          "INVALID_ARGS", hint="chart_scatter_needs_y", x_field=x_field)
     if kind == "line" and not y_field and aggregate != "count":
         return tool_error(
             "A line draws y_field over x_field, and y_field is missing.", "INVALID_ARGS",
-            "A line needs numeric y_field, or aggregate count for how many features share each x.")
+            hint="chart_line_needs_y", x_field=x_field)
     if aggregate in ("sum", "mean") and not y_field:
         return tool_error(f"aggregate {aggregate} needs the numeric y_field it adds up.", "INVALID_ARGS",
-                          "Needs y_field, or count instead.")
+                          hint="chart_aggregate_needs_y", aggregate=aggregate)
     return None
 
 
@@ -173,14 +172,13 @@ def _not_numeric(layer, field: dict, kind: str, axis: str) -> dict:
     numeric = [f.name() for f in layer.fields() if f.isNumeric()]
     listed = f"Numeric fields of {layer.name()}: {', '.join(numeric[:12])}." if numeric else \
         f"{layer.name()} has no numeric field."
-    other = ""
-    if kind == "histogram" and field["kind"] == "text":
-        other = f" To count the features per value of {field['name']!r}, pass kind bar."
-    elif kind == "histogram":
-        other = f" To count the features per {_KIND_WORDS[field['kind']]}, pass kind line with aggregate count."
-    return tool_error(
-        f"{field['name']!r} holds {_KIND_WORDS[field['kind']]} values, and the {axis} axis of a {kind} needs "
-        "numbers.", "INVALID_ARGS", listed + other)
+    message = (f"{field['name']!r} holds {_KIND_WORDS[field['kind']]} values, and the {axis} axis of a {kind} "
+               "needs numbers.")
+    if kind != "histogram":
+        return tool_error(message, "INVALID_ARGS", listed)
+    return tool_error(f"{message} {listed}", "INVALID_ARGS", hint="chart_not_numeric", field=field["name"],
+                      field_kind=_KIND_WORDS[field["kind"]],
+                      **({"variant": "text"} if field["kind"] == "text" else {}))
 
 
 def _plan(args: dict) -> dict:
@@ -192,8 +190,7 @@ def _plan(args: dict) -> dict:
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(
             f"{layer.name()} is not a vector layer, and a chart draws the values of a layer's fields.",
-            "INVALID_ARGS", "Charts read a vector layer's attribute table; a raster's values come from "
-            "get_raster_band_stats.")
+            "INVALID_ARGS", hint="chart_not_vector", layer=layer.name())
     kind = str(args["kind"])
     fields = layer.fields()
     aggregate = str(args.get("aggregate") or "").strip()
@@ -209,7 +206,7 @@ def _plan(args: dict) -> dict:
     if kind == "bar":
         aggregate = aggregate or ("sum" if plan.get("y") else "count")
         if not args.get("aggregate") and plan.get("y"):
-            plan["notes"].append("aggregate sum was assumed; pass mean for an average.")
+            plan["aggregate_assumed"] = "sum"
     if aggregate == "count" and plan.get("y"):
         plan["notes"].append(f"A count reads no y_field, so {plan['y']['name']!r} was left out.")
         plan.pop("y")
@@ -221,8 +218,7 @@ def _plan(args: dict) -> dict:
     if kind == "line" and plan["x"]["kind"] == "text":
         return tool_error(
             f"{plan['x']['name']!r} is text, and a line needs x values in an order: a number, a date or a time.",
-            "INVALID_ARGS", "kind bar compares its values as categories; a date field suits a line "
-            "(field_calculator with to_date() makes one from text).")
+            "INVALID_ARGS", hint="chart_line_text_x", field=plan["x"]["name"])
     if args.get("bins") is not None and kind != "histogram":
         plan["notes"].append("bins only shapes a histogram, so it was not used.")
 
@@ -308,12 +304,10 @@ def _output_target(args: dict, plan: dict):
                                     "output_path ends in .png: a PNG is written.")
         error = security.validate_path(target, write=True)
         if error:
-            return None, tool_error(error, "PERMISSION_DENIED",
-                                    "Paths sit under the project folder, your home folder or the temp folder.")
+            return None, tool_error(error, "PERMISSION_DENIED", hint="chart_output_path_refused")
         if os.path.exists(target) and args.get("overwrite") is not True:
-            return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                    "The file exists; overwrite true replaces it, or a new file name "
-                                    "keeps it, the user's call.")
+            return None, tool_error(f"{target} already exists.", "INVALID_ARGS", hint="chart_file_exists",
+                                    path=target)
         return target, None
 
     words = [plan["layer"], plan["kind"], plan["x"]["name"]] + ([plan["y"]["name"]] if plan.get("y") else [])
@@ -324,10 +318,11 @@ def _output_target(args: dict, plan: dict):
         if not os.path.exists(candidate):
             error = security.validate_path(candidate, write=True)
             if error:
-                return None, tool_error(error, "PERMISSION_DENIED", "output_path sits under your home folder.")
+                hint = "" if isinstance(error, CodedText) else "output_path sits under your home folder."
+                return None, tool_error(error, "PERMISSION_DENIED", hint)
             return candidate, None
     return None, tool_error(f"{folder} already holds 999 charts named {stem}.", "INVALID_ARGS",
-                            "output_path needs a new name.")
+                            hint="chart_name_space_full", folder=folder, stem=stem)
 
 
 
@@ -337,7 +332,7 @@ def _open(plan: dict, state: dict) -> dict | None:
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{plan['layer']} left the project before it was read.", "EXECUTION_FAILED",
-                          "The layer left the project; load it again first.")
+                          hint="chart_layer_gone", layer=plan["layer"])
     request = QgsFeatureRequest()
     columns: list | None = [plan["x"]["index"]] + ([plan["y"]["index"]] if plan.get("y") else [])
     if plan.get("filter"):
@@ -501,8 +496,7 @@ class _Values:
                     self.refusal = tool_error(
                         f"{name!r} has more than {self.distinct_cap:,} distinct values in the first "
                         f"features read, so a bar per value cannot be read.", "INVALID_ARGS",
-                        "For a numeric field pass kind histogram; otherwise pass a filter that keeps the "
-                        "categories that matter, or chart a coarser field.")
+                        hint="chart_too_many_categories", field=name, distinct_cap=self.distinct_cap)
                     return
                 group = self.groups[x] = [0, 0.0, 0]
             group[0] += 1
@@ -559,8 +553,7 @@ def _no_values(plan: dict) -> dict:
     where = " that match the filter" if plan.get("filter") else ""
     fields = plan["x"]["name"] + (f" and {plan['y']['name']}" if plan.get("y") else "")
     return tool_error(f"No feature of {plan['layer']}{where} has a value in {fields}, so nothing was charted.",
-                      "INVALID_ARGS", "The filter or field names may be wrong; get_field_statistics counts "
-                      "values and empty ones.")
+                      "INVALID_ARGS", hint="chart_no_values", layer=plan["layer"], fields=fields)
 
 
 def _edge(value: float) -> float:
@@ -1024,7 +1017,7 @@ def _create_chart(args: dict) -> dict:
         if not image.save(part, "PNG"):
             _remove(part)
             return tool_error(f"The chart could not be written in {folder}.", "EXECUTION_FAILED",
-                              "No such folder, or no room; another output_path may work.")
+                              hint="chart_write_failed", folder=folder)
         if net.is_cancelled(cancelled):
             _remove(part)
             return _stopped()
@@ -1035,11 +1028,11 @@ def _create_chart(args: dict) -> dict:
             _remove(part)
             return tool_error(f"The chart was drawn but could not replace {target}: another program holds that "
                               f"file open ({exc.strerror or exc}).", "EXECUTION_FAILED",
-                              "Another program may hold the file open; another output_path avoids it.")
+                              hint="chart_replace_failed", path=target)
     except OSError as exc:
         _remove(part)
         return tool_error(f"The chart could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "No such folder, or no room; another output_path may work.")
+                          hint="chart_write_failed", folder=folder)
 
     result = {"output_path": target, "layer": plan["layer"], "kind": plan["kind"], "x_field": plan["x"]["name"]}
     if plan.get("y"):
@@ -1053,10 +1046,13 @@ def _create_chart(args: dict) -> dict:
     result.update(chart["result"])
     cuts = list(chart["cuts"])
     if state["cut"]:
-        cuts.insert(0, f"Only the first {plan['max_features']:,} features were read (CHART_MAX_FEATURES), so the "
-                       "chart and the table cover those, not the whole layer; a filter charts the part that matters.")
+        result["features_cut_hint"] = "chart_read_cut"
+        result["max_features"] = plan["max_features"]
     if cuts:
         result["cut"] = cuts
+    if plan.get("aggregate_assumed"):
+        result["aggregate_assumed_hint"] = "chart_aggregate_assumed"
+        result["aggregate_assumed"] = plan["aggregate_assumed"]
     if plan["notes"]:
         result["note"] = " ".join(plan["notes"])
     result.update({"size_px": [WIDTH, HEIGHT], "seconds": round(time.monotonic() - started, 1)})

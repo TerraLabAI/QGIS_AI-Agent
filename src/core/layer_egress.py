@@ -47,6 +47,7 @@ import urllib.parse
 
 from . import security
 from .logger import log_warning
+from .serialization import coded_like
 
 _REFUSALS_MAX = 8
 _SOURCE_CHARS = 4000
@@ -163,8 +164,9 @@ def _judge_later(layer_id: str, name: str, urls: list) -> None:
 
 
 def _refuse(layer_id: str, name: str, problem: str, run_id: str, deferred: bool) -> None:
-    sentence = (f"The web layer '{name}' a tool call added was removed before QGIS drew it: {problem} "
-                "Ask the user if they meant it.")
+
+    sentence = coded_like(f"The web layer '{name}' a tool call added was removed before QGIS drew it: {problem} "
+                          "Ask the user if they meant it.", problem)
     with _lock:
         if run_id:
             queue = _refusals.setdefault(run_id, [])

@@ -451,7 +451,10 @@ class _Arm:
         for base, name, judge, static in (_traps() if traps is None else traps):
             if base is None or not hasattr(base, name):
                 continue
-            for owner in _with_overrides(base, name):
+
+
+            owners = [base] if name == "__init__" else _with_overrides(base, name)
+            for owner in owners:
                 self._patch_one(owner, name, judge, static)
 
     def _patch_one(self, owner, name, judge, static) -> None:
@@ -689,6 +692,26 @@ def _add_layers(arm, project, value=None, *args, **kwargs):
             arm.refuse(f"adds a layer from outside the read scope: {reason}")
 
 
+
+_SOURCE_KEYWORDS = ("path", "uri", "dataSource", "source")
+
+
+def _builds_remote(index: int):
+
+
+
+
+
+
+
+    def judge(arm, *args, **kwargs):
+        source = args[index] if len(args) > index else next(
+            (kwargs[key] for key in _SOURCE_KEYWORDS if key in kwargs), "")
+        if isinstance(source, str) and _remote(source):
+            arm.refuse("builds a layer read from the network; add_data carries the address card")
+    return judge
+
+
 def _add_by_uri(arm, iface, uri=None, *args, **kwargs):
     if _remote(uri):
         arm.refuse("adds a layer read from the network; add_data carries the address card")
@@ -865,6 +888,12 @@ def _child_write_traps() -> list:
                                ("writeAsVectorFormatV3", 1), ("create", 0))]
     out.append((get("QgsVectorFileWriter"), "deleteShapeFile", _deletes("deletes a shapefile"), True))
     out.append((get("QgsRasterFileWriter"), "writeRaster", _raster_write, False))
+
+    for cls in ("QgsVectorLayer", "QgsRasterLayer", "QgsMeshLayer", "QgsVectorTileLayer", "QgsPointCloudLayer",
+                "QgsTiledSceneLayer"):
+        out.append((get(cls), "__init__", _builds_remote(1), False))
+    out.append((get("QgsMapLayer"), "setDataSource", _builds_remote(1), False))
+    out.append((get("QgsProviderRegistry"), "createProvider", _builds_remote(2), False))
     for cls in ("QgsNetworkAccessManager", "QgsBlockingNetworkRequest"):
         for name in ("get", "post", "put", "head", "deleteResource", "sendCustomRequest", "blockingGet",
                      "blockingPost"):

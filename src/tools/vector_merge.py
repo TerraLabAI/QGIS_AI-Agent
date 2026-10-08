@@ -25,6 +25,7 @@ from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from ..core.tool_registry import coded_fact, tool_error
 from . import kml_description
 
 
@@ -537,7 +538,7 @@ class FolderMergeTask(QgsTask):
             return
         if self.outcome.get("_error"):
             entry.update({"status": "error", "error": self.outcome["_error"], "code": "EXECUTION_FAILED",
-                          "suggestion": "add_data on one file of the folder shows why it does not read."})
+                          "hint": "folder_merge_unreadable", "folder": self.folder})
             return
         try:
             with layer_order.adopted(self.run_token):
@@ -594,8 +595,7 @@ def start_folder_merge(folder: str, paths: list, name: str) -> dict:
         "task_id": task_id,
         "status": "running",
         "algorithm": "add_data (folder merge)",
-        "note": (f"Merging {len(paths)} files into one GeoPackage in the background, one layer per geometry "
-                 "type; QGIS stays responsive. Poll get_task_status(task_id)."),
+        "note": f"Merging {len(paths)} files into one GeoPackage in the background, one layer per geometry type.",
         "poll": {"tool": "get_task_status", "args": {"task_id": task_id}, "interval_s": 2.0,
                  "label": f"Merging {len(paths)} files"},
     }
@@ -669,26 +669,26 @@ def folder_plan(folder: str, wanted: str) -> tuple[str, object]:
     counts = {ext.lstrip("."): len(paths) for ext, paths in sorted(found.items(), key=lambda kv: -len(kv[1]))}
     wanted = str(wanted or "").strip()
     if wanted:
-        ext = "." + wanted.lower().lstrip("*.")
-        if ext in found:
-            paths = found[ext]
-            return ("load", paths[0]) if len(paths) == 1 else ("merge", paths)
-        every = [path for paths in found.values() for path in paths]
+        from .layer_io_tools import members_matching
 
-        named = [path for path in every
-                 if wanted.casefold() in (os.path.relpath(path, folder).casefold(), os.path.basename(path).casefold(),
-                                          os.path.splitext(os.path.basename(path))[0].casefold())]
-        if named:
+
+
+
+        by_name = {os.path.relpath(path, folder).replace(os.sep, "/"): path
+                   for paths in found.values() for path in paths}
+        named = [by_name[name] for name in members_matching(list(by_name), wanted.replace("\\", "/"))]
+        if len(named) == 1:
             return "load", named[0]
-        return "answer", {"_error": f"Nothing in {os.path.basename(folder)} matches layer={wanted!r}.",
-                          "code": "INVALID_ARGS", "formats": counts,
-                          "suggestion": "layer=<extension> merges that format; a file name loads one."}
+        if named:
+            return "merge", named
+        return "answer", tool_error(f"Nothing in {os.path.basename(folder)} matches layer={wanted!r}.",
+                                    "INVALID_ARGS", hint="folder_layer_no_match", formats=counts,
+                                    folder=os.path.basename(folder), layer=wanted)
     if total == 0:
-        return "answer", {"_error": (f"{os.path.basename(folder) or folder} holds no vector file add_data reads "
-                                     f"({seen} files looked at, {_max_depth()} folder levels deep)."),
-                          "code": "INVALID_ARGS",
-                          "suggestion": ("A GeoPackage, a CAD drawing or a raster in it loads by its own path; "
-                                         "find_local_data searches by name.")}
+        return "answer", tool_error(f"{os.path.basename(folder) or folder} holds no vector file add_data reads "
+                                    f"({seen} files looked at, {_max_depth()} folder levels deep).",
+                                    "INVALID_ARGS", hint="folder_no_vector", folder=os.path.basename(folder) or folder,
+                                    files_seen=seen, depth=_max_depth())
     if total == 1:
         return "load", next(iter(found.values()))[0]
     if len(found) == 1 and total > LIST_AT_MOST:
@@ -696,7 +696,6 @@ def folder_plan(folder: str, wanted: str) -> tuple[str, object]:
     listed = [os.path.relpath(path, folder) for paths in found.values() for path in paths][:50]
     return "answer", {
         "path": folder, "formats": counts, "files": listed,
-        "_note": (f"{os.path.basename(folder) or folder} holds {total} vector files, none added yet. add_data "
-                  "with layer=<file> loads one; layer=<extension> (for example layer='kml') merges every file "
-                  "of that format into one layer, each row keeping the file it came from."),
+        "_note": f"{os.path.basename(folder) or folder} holds {total} vector files, none added yet.",
+        **coded_fact(hint="folder_choice", folder=os.path.basename(folder) or folder, total=total),
     }

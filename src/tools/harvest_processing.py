@@ -176,6 +176,10 @@ def register_harvest_processing_tools(registry: ToolRegistry):
                 "refresh": {"type": "boolean"},
             },
             "required": ["query"],
+
+
+
+            "x-server-vocabulary": True,
         },
         handler=_find_processing_algorithm,
     ))
@@ -640,10 +644,15 @@ class _RasterGridCalculator(QgsProcessingAlgorithm):
 
 
 
+
+
+
+
+
     def __init__(self, template, cols: int, rows: int):
         super().__init__()
         self.template, self.cols, self.rows = template, cols, rows
-        self.layers = []
+        self.inputs = []
 
     def name(self):
         return "rastercalc_grid"
@@ -666,37 +675,50 @@ class _RasterGridCalculator(QgsProcessingAlgorithm):
                 self.addParameter(parameter.clone())
 
     def prepareAlgorithm(self, parameters, context, feedback):
-        try:
-            for layer in self.parameterAsLayerList(parameters, "LAYERS", context):
-                clone = layer.clone()
-                self.layers.append(clone)
-                clone.moveToThread(None)
-        except Exception as exc:
+        from qgis.core import QgsCoordinateReferenceSystem
+        from qgis.PyQt.QtCore import QFileInfo
+
+        project = context.project()
+        values = parameters.get("LAYERS") or []
+        self.inputs = []
+        for value in values if isinstance(values, (list, tuple)) else [values]:
+            layer = value if isinstance(value, QgsRasterLayer) else (
+                project.mapLayer(value) if project is not None and isinstance(value, str) else None)
+            if isinstance(layer, QgsRasterLayer):
+                self.inputs.append((layer.source(), layer.name(), layer.providerType(),
+                                    QgsCoordinateReferenceSystem(layer.crs())))
+            elif isinstance(value, str) and value:
 
 
-            for clone in self.layers:
-                sip.delete(clone)
-            self.layers.clear()
-            raise QgsProcessingException(f"Could not prepare raster inputs: {exc}") from exc
-        if not self.layers:
+                self.inputs.append((value, QFileInfo(value).completeBaseName(), "gdal", None))
+        if not self.inputs:
             feedback.reportError("No raster layers selected.")
             return False
         return True
 
     def processAlgorithm(self, parameters, context, feedback):
         from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
-        from qgis.PyQt.QtCore import QThread
+
+        from .data_common import worker_options
 
         calc = None
         entries = []
+        layers = []
         try:
-            for layer in self.layers:
-                layer.moveToThread(QThread.currentThread())
+            for source, name, provider, crs in self.inputs:
+                options = worker_options(QgsRasterLayer)
+                options.transformContext = context.transformContext()
+                layer = QgsRasterLayer(source, name, provider, options)
+                layers.append(layer)
+                if not layer.isValid():
+                    raise QgsProcessingException(f"Could not open raster input {name}: {layer.error().summary()}")
+                if crs is not None and crs.isValid():
+                    layer.setCrs(crs)
             crs = self.parameterAsCrs(parameters, "CRS", context)
             extent = self.parameterAsExtent(parameters, "EXTENT", context, crs)
             output = self.parameterAsOutputLayer(parameters, "OUTPUT", context)
             expression = self.parameterAsString(parameters, "EXPRESSION", context)
-            entries, _, _ = _band_references(self.layers, QgsRasterCalculatorEntry)
+            entries, _, _ = _band_references(layers, QgsRasterCalculatorEntry)
             calc = QgsRasterCalculator(expression, output, "GTiff", extent, crs, self.cols, self.rows,
                                        entries, context.transformContext())
             options = self.parameterAsString(parameters, "CREATION_OPTIONS", context).strip()
@@ -712,9 +734,9 @@ class _RasterGridCalculator(QgsProcessingAlgorithm):
 
             calc = None
             entries.clear()
-            for layer in self.layers:
+            for layer in layers:
                 sip.delete(layer)
-            self.layers.clear()
+            layers.clear()
 
 
 def _raster_calculator(args: dict) -> dict:
@@ -836,7 +858,14 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    if pixels > _ASYNC_PIXELS:
+
+
+    from .query_tools import _remote_raster
+
+
+    read = list({refs[r].id(): refs[r] for r in referenced}.values()) or [ref_layer]
+    streamed = sorted({layer.name() for layer in read if _remote_raster(layer)})
+    if pixels > _ASYNC_PIXELS or streamed:
         blocked = _remote_input_too_large(referenced, refs, pixels, ref_layer, extent if windowed else None)
         if blocked:
             return blocked
@@ -849,7 +878,7 @@ def _raster_calculator(args: dict) -> dict:
             alg.initAlgorithm()
             crs = ref_layer.crs()
             params = {
-                "LAYERS": [warped.get(layer.id(), layer.id()) for layer in rasters],
+                "LAYERS": [warped.get(layer.id(), layer.id()) for layer in read],
                 "EXPRESSION": expression,
                 "EXTENT": QgsReferencedRectangle(extent, crs),
                 "CRS": crs,
@@ -861,7 +890,10 @@ def _raster_calculator(args: dict) -> dict:
                                               destination_paths=_new_file(output_path))
             started["note"] = (
                 f"{'The bbox window of ' if windowed else ''}{ref_layer.name()} is {cols:,} by {rows:,} pixels "
-                f"({pixels / 1e6:,.0f} million), too many for the interface thread, so the calculation runs in the "
+                f"({pixels / 1e6:,.0f} million), "
+                + (f"{', '.join(streamed)} read over the network" if pixels <= _ASYNC_PIXELS
+                   else "too many for the interface thread")
+                + ", so the calculation runs in the "
                 "background with the reference grid; poll get_task_status. "
                 + ("That window" if windowed else "The whole grid")
                 + " is computed at full resolution, nothing is sampled, "
@@ -1024,57 +1056,6 @@ _STOPWORDS = frozenset([
     "with",
 ])
 
-
-
-
-
-_TASK_VOCABULARY = {
-
-    "merge": "merge union dissolve",
-    "combine": "union merge dissolve",
-    "join": "join union",
-    "intersect": "intersection clip overlay",
-    "erase": "difference erase",
-    "clip": "clip mask extract",
-    "crop": "clip mask",
-    "cut": "clip",
-    "split": "split explode",
-    "dissolve": "dissolve aggregate",
-
-    "average": "mean statistics zonal",
-    "statistics": "statistics stats zonal",
-    "stats": "statistics zonal",
-    "count": "count points polygon",
-    "area": "area geometry attributes",
-    "field": "field attribute calculator",
-
-    "reproject": "reproject warp crs transform",
-    "projection": "reproject crs",
-
-    "distance": "distance buffer proximity",
-    "nearest": "nearest neighbour neighbor hub distance",
-
-    "simplify": "simplify generalize smooth",
-    "smooth": "smooth simplify",
-    "centroid": "centroid center",
-    "grid": "grid fishnet tessellation",
-
-    "elevation": "dem terrain elevation",
-    "slope": "slope terrain",
-    "hillshade": "hillshade shaded relief",
-    "viewshed": "viewshed visibility",
-    "watershed": "watershed basin catchment hydrology",
-    "fill": "fill sink nodata",
-    "interpolate": "interpolate idw tin",
-    "classify": "reclassify classify",
-    "reclass": "reclassify",
-
-    "raster": "raster rasterize gdal",
-    "vector": "vector polygonize vectorize",
-    "convert": "convert translate export",
-}
-
-
 def _algorithm_texts(alg) -> tuple[str, list[str], str]:
 
     try:
@@ -1181,11 +1162,12 @@ def _query_tokens(query: str) -> list[str]:
 
 
 
+
+
+
     latin = re.findall(r"[a-z]+", (query or "").lower())
     words = [word for word in latin if len(word) > 2 and word not in _STOPWORDS]
     ordered: dict = dict.fromkeys(words)
-    for word in words:
-        ordered.update(dict.fromkeys(_TASK_VOCABULARY.get(word, "").split()))
     ordered.update(dict.fromkeys(_unspaced_tokens(query)))
     return list(ordered)
 

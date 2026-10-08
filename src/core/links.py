@@ -73,8 +73,22 @@ def host_of(url) -> str:
 
 
 
-OPEN_DATA_HOSTS = ("stterralabopendata.blob.core.windows.net", "data.terra-lab.ai")
+
+
+OPEN_DATA_HOST = "data.terra-lab.ai"
 OPEN_DATA_NAME = "TerraLab Open Data"
+
+
+def open_data_hosts() -> tuple:
+
+
+
+
+
+    from . import tuning
+
+    served = tuning.service_list("open_data_hosts", ())
+    return (OPEN_DATA_HOST, *(host for host in served if not host.startswith(".") and host != OPEN_DATA_HOST))
 
 
 def open_data_label(url: str) -> str:
@@ -88,7 +102,7 @@ def open_data_label(url: str) -> str:
     host = host_of(text) if "://" in text else text.split("/", 1)[0].split(":", 1)[0].lower()
     if host.startswith("www."):
         host = host[4:]
-    return OPEN_DATA_NAME if host in OPEN_DATA_HOSTS else ""
+    return OPEN_DATA_NAME if host in open_data_hosts() else ""
 
 
 def open_data_chip(url: str) -> str:
@@ -379,6 +393,15 @@ def _portal_page(parts, host: str, segments: list) -> Resolved | None:
         dataset = segments[explore + 2]
         return Resolved(f"{base}/api/explore/v2.1/catalog/datasets/{urllib.parse.quote(dataset)}/exports/geojson",
                         "file", "An Opendatasoft explore page: the dataset's GeoJSON export serves the data.")
+
+    webmap = _query(parts).get("webmap", "")
+    if _spelled(webmap, _HEX, 32, 32) and (parts.path.endswith("/home/webmap/viewer.html")
+                                           or "/apps/" in parts.path):
+        prefix = parts.path.split("/home/", 1)[0].split("/apps/", 1)[0]
+        host_base = "https://www.arcgis.com" if host_is(host, "arcgis.com") else base + prefix
+        return Resolved(f"{host_base}/sharing/rest/content/items/{webmap}/data?f=json", "listing",
+                        "An ArcGIS web map: its operational layers are listed, each with its service address.",
+                        listing="arcgis_webmap", optional=not host_is(host, "arcgis.com"))
     if parts.path.endswith("/home/item.html"):
         item_id = _query(parts).get("id", "")
         if _spelled(item_id, _HEX, 32, 32):
@@ -444,6 +467,35 @@ _SOCRATA_GEOMETRY = ("point", "multipoint", "line", "multiline", "polygon", "mul
 _ARCGIS_SERVICES = ("Feature Service", "Map Service", "Image Service", "Vector Tile Service")
 _ARCGIS_FILE_EXT = {"Shapefile": ".zip", "CSV": ".csv", "GeoJson": ".geojson", "File Geodatabase": ".zip",
                     "KML": ".kml", "GeoPackage": ".gpkg", "Microsoft Excel": ".xlsx", "Image": ".tif"}
+
+
+_WEBMAP_SERVICES = {"ArcGISFeatureLayer": "Feature Service", "ArcGISMapServiceLayer": "Map Service",
+                    "ArcGISTiledMapServiceLayer": "Map Service", "ArcGISImageServiceLayer": "Image Service",
+                    "ArcGISTiledImageServiceLayer": "Image Service"}
+_WEBMAP_OGC = ("WMS", "WMTS", "WFS", "OGCFeatureLayer")
+
+
+def _webmap_layers(layers, depth: int = 0) -> list[dict]:
+
+    out: list[dict] = []
+    for layer in layers if isinstance(layers, list) else ():
+        if not isinstance(layer, dict):
+            continue
+        if layer.get("layers") and depth < 3 and not layer.get("url"):
+            out.extend(_webmap_layers(layer["layers"], depth + 1))
+            continue
+        url, kind = str(layer.get("url") or ""), str(layer.get("layerType") or "")
+        if not url.startswith(("https://", "http://")):
+            continue
+        title = str(layer.get("title") or "") or posixpath.basename(url.rstrip("/"))
+        if kind in _WEBMAP_SERVICES:
+            entry = dict(_file(title, url.rstrip("/")), service=_WEBMAP_SERVICES[kind])
+        elif kind in _WEBMAP_OGC:
+            entry = dict(_file(title, url), folder=True)
+        else:
+            entry = _file(title, url)
+        out.append(dict(entry, layer_type=kind) if kind else entry)
+    return out
 
 
 def listing_files(listing: str, api_url: str, payload) -> list[dict]:
@@ -514,10 +566,17 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
             if layer and kind == "Feature Service" and not (slash and last.isdecimal()):
                 url = f"{url}/{layer}"
             files.append(dict(_file(title, url), service=kind))
+        elif kind == "Web Map":
+
+            prefix = parts.path.split("/sharing/", 1)[0]
+            files.append(dict(_file(title, f"{parts.scheme}://{parts.netloc}{prefix}/home/webmap/viewer.html"
+                                           f"?webmap={payload['id']}"), folder=True))
         elif kind in _ARCGIS_FILE_EXT:
             data = f"{parts.scheme}://{parts.netloc}{parts.path}/data"
             files.append(_file(f"{title}{_ARCGIS_FILE_EXT[kind]}" if not posixpath.splitext(title)[1] else title,
                                data, payload.get("size")))
+    elif listing == "arcgis_webmap" and isinstance(payload, dict):
+        files.extend(_webmap_layers(payload.get("operationalLayers")))
     elif listing == "hub" and isinstance(payload, dict):
         for row in payload.get("data") or []:
             attributes = (row or {}).get("attributes") or {}

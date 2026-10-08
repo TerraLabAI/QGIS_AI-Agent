@@ -13,13 +13,17 @@
 from __future__ import annotations
 
 from ..core.logger import log, log_warning
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import cost_guard
 from . import sibling_setup as _setup
 from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as AIEDIT
 
 AISEG_KEYS = list(AI_SEGMENT_KEYS)
+
+
+
+_DETECT_READY_HINT = coded_fact(hint="aiseg_detect_auto_ready")["hint"]
 
 
 def _find_plugin(candidate_keys: list[str]):
@@ -53,12 +57,15 @@ def _aiseg_outdated(plugin, command: str) -> dict:
 
 
     version = aiseg_version(plugin)
-    return {"_error": (f"AI Segmentation {version or '(this version)'} has no {command}: the agent needs "
-                       f"AI Segmentation 1.3.0 or later."),
-            "code": "PLUGIN_OUTDATED",
-            "installed_version": version,
-            "suggestion": ("ai_segment action setup opens the Plugin Manager on AI Segmentation, where the "
-                           "person clicks Upgrade; that is the one step left.")}
+    return tool_error(f"AI Segmentation {version or '(this version)'} has no {command}: the agent needs "
+                      f"AI Segmentation 1.3.0 or later.", "PLUGIN_OUTDATED", hint="aiseg_outdated",
+                      installed_version=version, command=command, needs_version="1.3.0")
+
+
+def _no_mcp_api() -> dict:
+
+    return tool_error("This AI Segmentation version has no MCP interface (mcp_api).",
+                      hint="aiseg_update_in_plugin_manager", command="mcp_api")
 
 
 def aiseg_not_running_status(presence: dict) -> dict:
@@ -326,7 +333,8 @@ def _aiedit_status(args: dict) -> dict:
         if _setup.signed_in("ai_edit", found["plugin"]) is False or status.get("state") == "NEEDS_ACTIVATION":
             return _setup.signed_out("ai_edit", status)
         if status.get("state") == "NO_PANEL":
-            status["action_required"] = "The AI Edit panel is closed. setup opens it."
+
+            status["name"], status["label"] = _setup._name("ai_edit"), _setup._label("ai_edit")
             status["next_step"] = _setup.SETUP_HINT.format(tool="ai_edit")
         return status
     except Exception as e:
@@ -439,9 +447,9 @@ def _aiseg_status(args: dict) -> dict:
         if _setup.outdated("ai_segment", plugin):
 
 
+
             return {"installed": True, "ready": False, "state": "NEEDS_UPDATE", "installed_version": version,
-                    "action_required": (f"AI Segmentation {version or ''} is too old for the agent (1.3.0 or "
-                                        "later). setup opens the Plugin Manager on it; the person clicks Upgrade."),
+                    "needs_version": "1.3.0", "name": _setup._name("ai_segment"),
                     "next_step": _setup.SETUP_HINT.format(tool="ai_segment")}
 
 
@@ -490,7 +498,7 @@ def _aiseg_add_balance(plugin, status: dict) -> None:
                 status["can_run_auto"] = False
                 status["blocker"] = ("auto_km2_left_this_month is 0.0: the account has no Automatic detection "
                                      "area left, and detect_auto is refused for credits until it renews")
-                if str(status.get("hint") or "").startswith("detect_auto can run now"):
+                if status.get("hint") == _DETECT_READY_HINT:
                     status.pop("hint")
     except Exception as exc:  # noqa: BLE001
         log_warning(f"AI Segmentation balance not read: {exc}")
@@ -507,16 +515,20 @@ def _aiseg_cloud_ready(status: dict) -> dict:
                if isinstance(layer, QgsRasterLayer)]
     status = dict(status)
     status["available_raster_layers"] = rasters
-    status["runs_in"] = "cloud: detect_auto needs no local model, download or Install click"
+    status["runs_in"] = "cloud"
+    status["runs_in_hint"] = coded_fact(hint="aiseg_runs_in_cloud")["hint"]
     if rasters:
         status["ready"] = True
         status["state"] = "READY"
         status.pop("action_required", None)
-        status["hint"] = "detect_auto can run now, with the zone and object_class."
+        status["hint"] = _DETECT_READY_HINT
     else:
         status["ready"] = False
         status["state"] = "NO_RASTER_LAYER"
-        status["action_required"] = "No raster layer in the project; add_data loads imagery."
+
+
+
+        status["label"] = _setup._label("ai_segment")
     return status
 
 
@@ -529,13 +541,12 @@ def _aiseg_load_model(args: dict) -> dict:
         api = getattr(plugin, "mcp_api", None)
         fn = getattr(api, "load_model", None) if api is not None else None
         if fn is None:
-            return {"_error": "This AI Segmentation version has no load_model call; "
-                              "QGIS Plugin Manager has an update."}
+            return tool_error("This AI Segmentation version has no load_model call.",
+                              hint="aiseg_update_in_plugin_manager", command="load_model")
         timeout_s = args.get("timeout_s")
         result = fn(timeout_s=timeout_s) if timeout_s is not None else fn()
         if isinstance(result, dict) and result.get("loaded"):
-            result.setdefault("hint", "The local model is loaded. detect_auto never needed it; "
-                                      "the panel's Semi-Auto clicks do.")
+            result.setdefault("hint", coded_fact(hint="aiseg_model_loaded")["hint"])
         return result
     except Exception as e:
         log_warning(f"AI Segmentation load_model failed: {e}")
@@ -550,7 +561,7 @@ def _aiseg_set_mode(args: dict) -> dict:
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
-            return {"_error": "AI Segmentation needs updating for MCP support, from QGIS Plugin Manager."}
+            return _no_mcp_api()
 
         fn = getattr(api, "set_mode", None)
         if fn is None:
@@ -571,7 +582,7 @@ def _aiseg_set_zone(args: dict) -> dict:
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
-            return {"_error": "AI Segmentation needs updating for MCP support, from QGIS Plugin Manager."}
+            return _no_mcp_api()
 
         fn = getattr(api, "set_auto_zone", None)
         if fn is None:
@@ -606,8 +617,8 @@ def _aiseg_detect_points(args: dict) -> dict:
         api = getattr(plugin, "mcp_api", None)
         fn = getattr(api, "detect_points", None) if api is not None else None
         if fn is None:
-            return {"_error": "This AI Segmentation version does not support interactive point refinement; "
-                              "QGIS Plugin Manager has an update."}
+            return tool_error("This AI Segmentation version does not support interactive point refinement.",
+                              hint="aiseg_update_in_plugin_manager", command="detect_points")
         positive = args.get("positive_points")
         if not positive:
             return {"_error": "positive_points needs at least one [x, y] point."}
@@ -659,26 +670,16 @@ def _aiseg_class_preflight(api, object_class: str, args: dict) -> dict | None:
                 f"and running it would spend credits for nothing. {detail}"
             ),
             "code": "INVALID_ARGS",
-            "suggestion": (
-                ("Nearest catalogue tokens: " + ", ".join(f"'{t}'" for t in nearest) + ". "
-                 if nearest else "")
-                + "ai_segment presets (action 'presets') lists catalogue tokens; exemplars "
-                "(example boxes around one instance) need no class word."
-            ),
+            **coded_fact(hint="aiseg_unknown_class", variant="nearest" if nearest else "",
+                         object_class=object_class, nearest=nearest),
         }
 
     if described.get("weak") and not args.get("accept_weak_class"):
         token = str(described.get("token") or object_class)
         return {
-            "error": (
-                f"'{token}' names a kind of ground cover, not a countable object, so a zone run "
-                "returns soft ragged outlines rather than separate instances."
-            ),
+            "error": f"'{token}' is a weak class in the preset catalogue and accept_weak_class was not set.",
             "code": "INVALID_ARGS",
-            "suggestion": (
-                "Running this spends credits on soft ragged outlines. accept_weak_class: true "
-                "runs it once the user agrees; countable objects need another ai_segment presets token."
-            ),
+            **coded_fact(hint="aiseg_weak_class", token=token),
         }
     return None
 
@@ -775,7 +776,7 @@ def _aiseg_imagery_refusal(args: dict) -> dict | None:
         return {
             "error": str(exc),
             "code": "INVALID_ARGS",
-            "suggestion": "layer_name is the source imagery ID, not the output layer name.",
+            **coded_fact(hint="aiseg_layer_name_is_source", layer_name=wanted),
         }
 
 
@@ -822,8 +823,7 @@ def _aiseg_zone_outside_refusal(plugin, args: dict) -> dict | None:
                   "would read blank tiles and AI Segmentation refuses it. "
                   + _aiseg_zone_facts(plugin, args, layer, zone)),
         "code": "INVALID_ARGS",
-        "suggestion": ("Online imagery (a satellite basemap) covers any zone; a local raster covers only its "
-                       "own extent."),
+        **coded_fact(hint="aiseg_zone_outside_raster", layer=layer.name()),
     }
 
 
@@ -888,7 +888,7 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
     exemplars = args.get("exemplars")
     if not object_class and not exemplars:
         return {"error": "Needs object_class or exemplars.", "code": "INVALID_ARGS",
-                "suggestion": "A class token (e.g. 'building'), or exemplar boxes for reference-image mode."}
+                **coded_fact(hint="aiseg_needs_class_or_exemplars")}
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
     except Exception:  # noqa: BLE001
@@ -904,22 +904,18 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
     params = _aiseg_detect_params(fn)
     if exemplars and params is not None and "exemplars" not in params:
         return {"error": "This AI Segmentation version does not support reference-image exemplars.",
-                "code": "INVALID_ARGS", "suggestion": "QGIS Plugin Manager has an update."}
+                "code": "INVALID_ARGS", **coded_fact(hint="aiseg_update_in_plugin_manager", command="exemplars")}
     if args.get("refine") and params is not None and "refine" not in params:
         return {"error": "This AI Segmentation version cannot retain refinement settings for this run.",
-                "code": "INVALID_ARGS", "suggestion": (
-                    "Update AI Segmentation from QGIS Plugin Manager, "
-                    "or omit refine to use its own settings.")}
+                "code": "INVALID_ARGS", **coded_fact(hint="aiseg_refine_unsupported")}
 
     if (params is None or "wait" not in params) and cost_guard.detaches(args):
         area = cost_guard.zone_area_km2(args, cost_guard.SEGMENTATION) or 0.0
         return {
             "error": (f"This zone is {area:,.1f} km² and the installed AI Segmentation can only "
-                      "run a sweep the caller waits on, which it gives up and cancels after "
-                      "about 5 minutes. A zone this size needs a newer build."),
+                      "run a sweep the caller waits on."),
             "code": "INVALID_ARGS",
-            "suggestion": ("QGIS Plugin Manager updates AI Segmentation; a zone of a few km² "
-                           "also finishes inside that window."),
+            **coded_fact(hint="aiseg_zone_needs_newer_build", area_km2=round(area, 1)),
         }
     return _aiseg_zone_outside_refusal(plugin, args)
 
@@ -932,7 +928,7 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
-            return {"_error": "AI Segmentation needs updating for MCP support, from QGIS Plugin Manager."}
+            return _no_mcp_api()
 
         fn = getattr(api, "detect_auto", None)
         if fn is None:
@@ -1078,13 +1074,7 @@ def _aiseg_review_filter(args: dict) -> dict:
         objects = getattr(plugin, "_auto_objects", None)
         review = getattr(plugin, "_auto_review", None)
         if not objects or review is None:
-            return {
-                "_error": (
-                    "No open detection review to re-filter. MCP ai_segment_detect_auto auto-exports and clears its "
-                    "review; 'confidence' works directly on ai_segment_detect_auto, or a detection kept open "
-                    "in the panel."
-                )
-            }
+            return tool_error("No open detection review to re-filter.", hint="aiseg_no_review_open")
 
 
 
@@ -1220,7 +1210,7 @@ def _aiseg_auto_status(args: dict) -> dict:
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
-            return {"_error": "AI Segmentation needs updating for MCP support, from QGIS Plugin Manager."}
+            return _no_mcp_api()
 
         fn = getattr(api, "auto_detect_status", None)
         if fn is None:
@@ -1256,7 +1246,7 @@ def _aiseg_auto_cancel(args: dict) -> dict:
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
-            return {"_error": "AI Segmentation needs updating for MCP support, from QGIS Plugin Manager."}
+            return _no_mcp_api()
 
         fn = getattr(api, "cancel_auto", None)
         if fn is None:

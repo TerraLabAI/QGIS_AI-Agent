@@ -9,6 +9,41 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-08
+
+### Added
+
+- A safer sign-in: QGIS keeps a secret of its own, and your key goes only to the QGIS that started
+  the sign-in. If the browser cannot hand it back, the card asks for the 6-character code shown in
+  the browser. Several wrong codes close the sign-in. An older website flow still works as before.
+- Over 60 new open data sources the agent can load for free, among them land cover, snow, surface
+  temperature and climate series, Copernicus Land Monitoring products, flood and disaster layers,
+  US national layers and historical Swiss maps, with each licence read on the provider's page.
+  The agent also finds more public data portals and catalogues by name.
+- After a code step, the agent says what really changed in the project, and whether a new layer is
+  visible and in view.
+
+### Changed
+
+- QGIS stays responsive while a raster read over the network is opened and computed.
+- QGIS starts faster: the plugin reuses what it already downloaded instead of fetching it again.
+- Attribute reads ask only for the columns they need, so counts and queries on large layers return
+  sooner.
+- When a layer name has no exact match in a web service, the agent lists every close name.
+
+### Fixed
+
+- A menu or plugin action that opens a dialog answers as soon as the dialog is up, instead of
+  waiting until you close it.
+- WFS 1.1.0 layers, folders of files, zipped rasters, OGC API boxes and very large service
+  documents load correctly.
+- Watersheds over a small area keep the elevation model's detail; statistics grouped by an
+  expression work; a distance in projected units runs and says its length on the ground.
+- A layer that code removes and puts back keeps its data; a file the agent wrote reads back.
+- Overture clips to a layer of many polygons, and long remote downloads answer with what they
+  found instead of timing out.
+- If QGIS is closed during a freeze, the next start reports what held it so we can fix it.
+
 ## [1.5.7] - 2026-10-07
 
 ### Added

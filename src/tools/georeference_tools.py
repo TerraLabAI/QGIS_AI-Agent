@@ -41,6 +41,7 @@ from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer, _layer_not_found_error
 
@@ -154,13 +155,14 @@ def _source_facts(raster, crs_text) -> dict:
     if crs is None:
         return tool_error(
             f"crs {str(crs_text or '')[:60]!r} is not a CRS QGIS knows.", "INVALID_ARGS",
-            "the CRS the points' x and y are in: EPSG:2154 for Lambert 93, EPSG:4326 for degrees, or a WKT.")
+            hint="georef_crs_unknown", crs=str(crs_text or "")[:60])
     ref = str(raster or "").strip()
     expanded = security.expand_path(ref) if ref else ""
     if expanded and os.path.isfile(expanded):
         error = security.validate_path(expanded)
         if error:
-            return tool_error(error, "PERMISSION_DENIED", "Allowed: the project folder or your home folder.")
+            hint = "" if isinstance(error, CodedText) else "Allowed: the project folder or your home folder."
+            return tool_error(error, "PERMISSION_DENIED", hint)
         name, source, path, layer_id = os.path.splitext(os.path.basename(expanded))[0], expanded, expanded, None
     else:
         layer = _find_layer(ref)
@@ -171,11 +173,11 @@ def _source_facts(raster, crs_text) -> dict:
             return _layer_not_found_error(ref)
         if not isinstance(layer, QgsRasterLayer):
             return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
-                              "the scanned map or image: a raster layer by name, or its file path.")
+                              hint="georef_not_raster", layer=layer.name())
         if layer.providerType() != "gdal":
             return tool_error(
                 f"{layer.name()} uses the {layer.providerType()} provider; only an image file can be georeferenced.",
-                "INVALID_ARGS", "the scan's own file (JPEG, PNG, TIFF), by path or loaded with add_data.")
+                "INVALID_ARGS", hint="georef_not_image_file", layer=layer.name(), provider=layer.providerType())
         source = str(layer.source() or "")
         path = source if os.path.isfile(source) else ""
         name, layer_id = layer.name(), layer.id()
@@ -205,7 +207,7 @@ def _add_raster(path: str, name: str) -> dict:
     layer = QgsRasterLayer(path, name, "gdal")
     if not layer.isValid():
         return tool_error(f"The GeoTIFF is written at {path}, but QGIS cannot open it.", "EXECUTION_FAILED",
-                          "add_data loads it; a failure there points at the file.")
+                          hint="georef_geotiff_unopenable", path=path)
     QgsProject.instance().addMapLayer(layer)
     rect = layer.extent()
     return {"layer_id": layer.id(), "layer_name": layer.name(),
@@ -219,12 +221,14 @@ def _too_few(transform: str, given: int) -> dict:
     missing = needed - given
     fallback = ""
     if transform != "polynomial_1" and given >= MIN_POINTS["polynomial_1"]:
-        fallback = f", or transform polynomial_1 needs only {MIN_POINTS['polynomial_1']}"
+        fallback = "polynomial_1"
     elif transform not in _AFFINE and given >= MIN_POINTS["helmert"]:
-        fallback = f", or transform helmert (a shift, a scale and a rotation) needs only {MIN_POINTS['helmert']}"
+        fallback = "helmert"
+    facts = {"fallback_transform": fallback, "fallback_needs": MIN_POINTS[fallback]} if fallback else {}
     return tool_error(
         f"{transform} needs at least {needed} control points; {given} given, {missing} missing.", "INVALID_ARGS",
-        f"{missing} more point{'s' if missing != 1 else ''} spread over the image{fallback}.")
+        hint="georef_too_few_points", variant=fallback, transform=transform, needed=needed, given=given,
+        missing=missing, **facts)
 
 
 def _parse_points(points: list):
@@ -252,15 +256,12 @@ def _outside(points: list, width: int, height: int, name: str) -> dict | None:
         return None
     first = points[out[0] - 1]
     listed = ", ".join(str(i) for i in out[:8]) + (" and more" if len(out) > 8 else "")
-    advice = (f"pixel runs 0 to {width} from the left edge and line 0 to {height} from the top, "
-              "on this image.")
-    if first["line"] < 0 <= -first["line"] <= height:
-        advice = ("A QGIS .points file writes the row as a negative sourceY; line drops that minus sign. "
-                  + advice)
+    negative_line = first["line"] < 0 <= -first["line"] <= height
     return tool_error(
         f"Point{'s' if len(out) > 1 else ''} {listed} lie{'' if len(out) > 1 else 's'} outside {name}, which is "
         f"{width} by {height} pixels (point {out[0]} is at pixel {first['pixel']:g}, line {first['line']:g}).",
-        "INVALID_ARGS", advice)
+        "INVALID_ARGS", hint="georef_point_outside_image", variant="negative_line" if negative_line else "",
+        width=width, height=height, image=name)
 
 
 def _on_one_line(points: list) -> bool:
@@ -314,8 +315,7 @@ def _output_target(args: dict, facts: dict):
                                     "Allowed: the project folder, your home folder or the temp folder.")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
-                                    "The file exists; overwrite true replaces it, the user's call; a new "
-                                    "output_path avoids it.")
+                                    hint="georef_output_exists", path=target)
         return target, None
 
     stem = output_paths.safe_file_name(f"{facts['name']}_georeferenced", "georeferenced")
@@ -334,7 +334,7 @@ def _output_target(args: dict, facts: dict):
         if target and writable and not security.validate_path(target, write=True):
             return target, None
     return None, tool_error("No folder next to the image or in the exports folder can take the GeoTIFF.",
-                            "PERMISSION_DENIED", "output_path under your home folder.")
+                            "PERMISSION_DENIED", hint="georef_no_writable_folder")
 
 
 def _round_up(value: float) -> float:
@@ -351,9 +351,9 @@ def _size_refusal(cols: int, rows: int, size: float, units: str) -> dict | None:
     if pixels <= allowed:
         return None
     fits = _round_up(size * math.sqrt(pixels / float(allowed)))
-    return limits.refusal(
-        "The georeferenced image", f"{cols:,} by {rows:,} pixels", f"{allowed:,} pixels",
-        f"pixel_size {fits:g} or more (in {units}) fits, or a crop to the part that matters.")
+    refused = limits.refusal("The georeferenced image", f"{cols:,} by {rows:,} pixels", f"{allowed:,} pixels", "")
+    refused.update(hint="georef_too_large", fitting_pixel_size=fits, units=units)
+    return refused
 
 
 def _pixel_size(geotransform) -> float:
@@ -363,7 +363,7 @@ def _pixel_size(geotransform) -> float:
 def _unsolvable(transform: str) -> dict:
     return tool_error(
         f"The control points fix no {transform} transform.", "INVALID_ARGS",
-        "Three points on one line, or two at the same place, fix nothing; spread matters.")
+        hint="georef_unsolvable", transform=transform)
 
 
 def _affine(points: list, transform: str):
@@ -424,7 +424,7 @@ def _affine_refusal(points: list, transform: str) -> dict | None:
     if len(distinct) < 2:
         return tool_error(
             f"The control points sit at one place on the image, so they fix no {transform} transform.",
-            "INVALID_ARGS", "at least two points far apart, for example two opposite corners of the image.")
+            "INVALID_ARGS", hint="georef_points_one_place", transform=transform)
     if transform == "linear":
         columns = [p["pixel"] for p in points]
         lines = [p["line"] for p in points]
@@ -432,7 +432,7 @@ def _affine_refusal(points: list, transform: str) -> dict | None:
             return tool_error(
                 "linear scales the columns and the rows on their own, and these points all share one "
                 f"{'column' if max(columns) - min(columns) <= _LINE_PX else 'row'}.", "INVALID_ARGS",
-                "A point in another column and row fixes it, or transform helmert.")
+                hint="georef_linear_no_spread", shared="column" if max(columns) - min(columns) <= _LINE_PX else "row")
     return None
 
 
@@ -691,13 +691,12 @@ def _georeference_raster(args: dict) -> dict:
         from osgeo import gdal
     except ImportError as exc:  # pragma: no cover
         return tool_error(f"GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "QGIS's Georeferencer (Layer > Georeferencer) still works.")
+                          hint="georef_gdal_missing")
     gdal.UseExceptions()
     transform = str(args.get("transform") or "polynomial_1")
     if transform not in MIN_POINTS:
         return tool_error(f"transform {transform!r} is not one this tool knows.", "INVALID_ARGS",
-                          "helmert (2 points or more), linear (2), polynomial_1 (3), polynomial_2 (6), "
-                          "polynomial_3 (10) or thin_plate_spline (3).")
+                          hint="georef_transform_unknown", transform=transform)
     scale = args.get("target_scale")
     if scale is not None:
         try:
@@ -706,7 +705,7 @@ def _georeference_raster(args: dict) -> dict:
             scale = 0.0
         if not math.isfinite(scale) or scale < 1:
             return tool_error("target_scale must be the scale's denominator, 1 or more.", "INVALID_ARGS",
-                              "25000 for a map at 1:25,000, or leave it out.")
+                              hint="georef_target_scale_invalid")
     resampling = str(args.get("resampling") or "nearest")
     if resampling not in _RESAMPLING:
         return tool_error(f"resampling {resampling!r} is not one this tool knows.", "INVALID_ARGS",
@@ -725,8 +724,7 @@ def _georeference_raster(args: dict) -> dict:
         return tool_error(
             f"The control points' pixel positions all lie on one line, so they fix no {transform} transform: "
             "nothing places the image away from that line.", "INVALID_ARGS",
-            "A point well off that line (three corners of the image, for example) fixes it; the same pixel "
-            "twice counts as one.")
+            hint="georef_points_on_one_line", transform=transform)
     pixel_size = args.get("pixel_size")
     if pixel_size is not None:
         try:
@@ -735,7 +733,7 @@ def _georeference_raster(args: dict) -> dict:
             pixel_size = 0.0
         if not pixel_size > 0 or not math.isfinite(pixel_size):
             return tool_error("pixel_size must be a positive number.", "INVALID_ARGS",
-                              "the ground size of one output pixel in the CRS units, or leave it out.")
+                              hint="georef_pixel_size_invalid")
     started = time.monotonic()
     cancelled = net.current_cancel_check()
 
@@ -749,8 +747,7 @@ def _georeference_raster(args: dict) -> dict:
             return tool_error(
                 f"crs {facts['crs_authid'] or 'given'} is in degrees, and point {far} has x {p['x']:g}, "
                 f"y {p['y']:g}, which are not degrees.", "INVALID_ARGS",
-                "the projected CRS these coordinates are in (EPSG:2154 for metres in France), or the points "
-                "as longitude and latitude.")
+                hint="georef_crs_not_degrees", crs=facts["crs_authid"] or "given", point=far, x=p["x"], y=p["y"])
     try:
         dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     except RuntimeError as exc:
@@ -781,7 +778,7 @@ def _georeference_raster(args: dict) -> dict:
             return tool_error(
                 f"{target} is the file the layer {listed} reads in this project, so it is not replaced.",
                 "INVALID_ARGS",
-                "remove_layer frees it; without output_path a new file is written.")
+                hint="georef_target_in_project", path=target, layers=listed)
 
 
 
@@ -860,7 +857,7 @@ def _georeference_raster(args: dict) -> dict:
             failed = tool_error(
                 f"The georeferenced image was computed but could not replace {target}: the file is open, in this "
                 f"project or another program ({exc.strerror or exc}).", "EXECUTION_FAILED",
-                "remove_layer on the layer reading that file frees it; output_path left out is another route.")
+                hint="georef_output_locked", path=target)
         else:
             part = ""
     except InterruptedError:
@@ -868,7 +865,7 @@ def _georeference_raster(args: dict) -> dict:
     except (RuntimeError, OSError) as exc:
         failed = _stopped() if (cancelled is not None and cancelled()) else tool_error(
             f"Georeferencing {facts['name']} failed: {str(exc)[:200]}", "EXECUTION_FAILED",
-            "The image or the folder may be the cause; a retry can help.")
+            hint="georef_failed")
     finally:
         _unlink(gdal, gcp_vrt)
         _unlink(gdal, plan_vrt)
@@ -922,9 +919,9 @@ def _georeference_raster(args: dict) -> dict:
     if len(residuals) > shown:
         result["residuals_note"] = f"The {shown} largest of {len(residuals)} residuals."
     if _exact(transform, len(parsed)):
-        result["note"] = ("The transform passes through every control point, so the residuals are 0 by "
-                          "construction and say nothing about accuracy; a basemap comparison or more "
-                          "points show it.")
+        result["note"] = "The transform passes through every control point, so the residuals are 0 by construction."
+        result["note_hint"] = "georef_exact_fit"
+        result["note_points"] = len(parsed)
     if accuracy is not None:
         result["accuracy"] = accuracy
     points_file, why_not = _write_points(facts, target, _points_text(facts, parsed, errors, source_gt, natural))

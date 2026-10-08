@@ -32,6 +32,8 @@ import os
 import re
 import unicodedata
 
+from ..core.tool_registry import coded_fact
+
 
 
 SHAPEFILE_NAME_MAX = 10
@@ -229,6 +231,7 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
 
 
 
+
     facts = storage_facts(layer)
     name = ""
     try:
@@ -242,8 +245,7 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
     if facts["read_only"]:
         detail["_error"] = (f"Layer {name!r} is marked read-only in this project, so no edit session can open on it.")
         detail["reason"] = "layer_read_only"
-        detail["suggestion"] = ("Clear the read-only box in Layer Properties > Source, or copy the data with "
-                                "export_layer to a GeoPackage and edit the copy.")
+        detail.update(coded_fact(hint="edit_blocked", variant="layer_read_only"))
         return detail
 
     have = _capability_names(layer)
@@ -254,40 +256,31 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
                             "this layer for reading only.")
         detail["reason"] = "provider_read_only"
         detail["capabilities"] = sorted(have)
-        detail["suggestion"] = ("A copy made with export_layer to a GeoPackage (.gpkg) is writable; the same "
-                                "call runs there.")
+        detail.update(coded_fact(hint="edit_blocked", variant="provider_read_only"))
         return detail
 
     reason, blocker = _write_block(facts["path"])
     if reason == "missing":
         detail["_error"] = (f"The file {name!r} reads is not there any more: {blocker}.")
         detail["reason"] = "source_missing"
-        detail["suggestion"] = ("The drive holding it is probably disconnected or the file was moved. "
-                                "add_vector_layer loads it again from a new path once reconnected.")
+        detail.update(coded_fact(hint="edit_blocked", variant="source_missing"))
         return detail
     if reason == "locked":
         detail["_error"] = (f"The file behind {name!r} is open in another program, so QGIS cannot write to it: "
                             f"{blocker}.")
         detail["reason"] = "file_locked"
-        detail["suggestion"] = ("The file is open elsewhere (an Excel or LibreOffice window on the .dbf, "
-                                "another QGIS, ArcGIS, or a sync client such as OneDrive or Dropbox mid-upload), "
-                                "which blocks this call until closed. export_layer to a new GeoPackage gives a "
-                                "copy to edit now.")
-        if _looks_remote(facts["path"]):
-            detail["suggestion"] += (" The path is on a network or second drive, where another user's session holds "
-                                     "the same lock.")
+        detail.update(coded_fact(hint="edit_blocked",
+                                 variant="file_locked_remote" if _looks_remote(facts["path"]) else "file_locked"))
         return detail
     if reason in ("read_only_file", "folder_read_only"):
         detail["_error"] = (f"There is no write permission on {blocker}, so {name!r} cannot be edited in place.")
         detail["reason"] = "no_write_permission"
-        detail["suggestion"] = ("export_layer to a GeoPackage in a folder the user owns, such as Documents, "
-                                "gives a copy to edit.")
+        detail.update(coded_fact(hint="edit_blocked", variant="no_write_permission"))
         return detail
     if reason == "unreadable":
         detail["_error"] = f"The file behind {name!r} could not be opened for writing: {blocker}."
         detail["reason"] = "source_unreadable"
-        detail["suggestion"] = ("export_layer to a local GeoPackage gives a copy to edit. "
-                                "A network drive that has gone to sleep gives this too.")
+        detail.update(coded_fact(hint="edit_blocked", variant="source_unreadable"))
         return detail
 
     editing_elsewhere = ""
@@ -300,9 +293,7 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
                         f"Provider: {facts['provider'] or 'unknown'}"
                         f"{'; storage: ' + facts['storage'] if facts['storage'] else ''}.")
     detail["reason"] = "start_editing_refused"
-    detail["suggestion"] = ("get_provider_capabilities reads the layer's writability. An attribute table open "
-                            "in edit mode blocks this until saved and closed. export_layer to a GeoPackage "
-                            "gives a copy the same call runs on.")
+    detail.update(coded_fact(hint="edit_blocked", variant="start_editing_refused"))
     return detail
 
 
@@ -376,7 +367,8 @@ def _field_names_in(text: str) -> list[str]:
     return re.findall(r"name=([^\s;,]+)", str(text or ""))
 
 
-def _shapefile_name_advice(layer, errors_text: str) -> tuple[str, str] | None:
+def _shapefile_name_advice(layer, errors_text: str) -> tuple[str, dict] | None:
+
 
     folded = _fold(errors_text)
     mismatch = ("not the same" in folded or "ne sont pas les memes" in folded
@@ -392,13 +384,11 @@ def _shapefile_name_advice(layer, errors_text: str) -> tuple[str, str] | None:
         return (
             f"the format behind this layer keeps field names to {limit} characters, so {asked!r} was written as "
             f"{written!r} and the save was refused on the mismatch",
-            f"{shortened!r} is the name that fits; export_layer to a GeoPackage first keeps the long name.",
+            coded_fact(hint="shapefile_field_name", short_name=shortened, asked=asked, written=written),
         )
     return (
-        f"the field the layer added and the field the file created are not the same, which is what a name over "
-        f"{limit} characters, an accent or a space in a field name does to an ESRI Shapefile",
-        "A short ASCII field name (letters, digits, underscore) fits; export_layer to a GeoPackage accepts "
-        "any name.",
+        "the field the layer added and the field the file created are not the same",
+        coded_fact(hint="shapefile_field_name", variant="ascii", max_chars=limit),
     )
 
 
@@ -439,10 +429,10 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
 
     advice = _shapefile_name_advice(layer, joined)
     if advice is not None:
-        explanation, remedy = advice
+        explanation, coded = advice
         result["reason"] = "field_name_truncated"
         result["_error"] = f"{what} could not be saved to {name!r}: {explanation}.{closed}"
-        result["suggestion"] = remedy
+        result.update(coded)
         return result
 
     if any(word in folded for word in ("permission", "denied", "locked", "verrou", "in use", "acces refuse",
@@ -450,22 +440,19 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
         result["reason"] = "file_locked"
         result["_error"] = (f"{what} could not be saved to {name!r}: the file is locked or cannot be opened for "
                             f"writing ({joined}).{closed}")
-        result["suggestion"] = ("Something holds the file open (Excel on a .dbf, another QGIS, a sync client); "
-                                "a new GeoPackage from export_layer takes the write instead.")
+        result.update(coded_fact(hint="commit_refused", variant="file_locked"))
         return result
 
     if any(word in folded for word in ("too long", "truncat", "trop long", "value out of range", "overflow")):
         result["reason"] = "value_does_not_fit"
         result["_error"] = (f"{what} could not be saved to {name!r}: a value does not fit the field it was written "
                             f"to ({joined}).{closed}")
-        result["suggestion"] = ("Shorten the values, or copy the layer with export_layer to a GeoPackage, whose "
-                                "text fields have no width limit, and write there.")
+        result.update(coded_fact(hint="commit_refused", variant="value_does_not_fit"))
         return result
 
     result["reason"] = "commit_refused"
     result["_error"] = f"{what} could not be saved to {name!r}: {joined}.{closed}"
-    result["suggestion"] = ("The provider message above says why. When the format is the problem, a "
-                            "GeoPackage copy from export_layer takes the same call.")
+    result.update(coded_fact(hint="commit_refused"))
     return result
 
 
@@ -569,8 +556,8 @@ def plan_field_name(layer, requested: str, also_taken=()) -> dict:
 
     if plan["changed"]:
         plan["note"] = (f"This layer's format keeps field names to {limit} characters of plain ASCII, so the field "
-                        f"is written as {plan['name']!r}, not {requested!r}. Use {plan['name']!r} in every later "
-                        "call on this layer, or export_layer to a GeoPackage to keep the long name.")
+                        f"is written as {plan['name']!r}, not {requested!r}.")
+        plan["note_hint"] = coded_fact(hint="field_name_written_short")["hint"]
     return plan
 
 
@@ -741,8 +728,8 @@ def geometry_problem(layer, geom, check_crs: bool = True) -> dict | None:
             "_error": (f"The geometry is {_geometry_word(given)} and layer {layer.name()!r} holds "
                        f"{_geometry_word(wanted)}, so it cannot be added to it."),
             "code": "INVALID_ARGS",
-            "suggestion": (f"Send {_geometry_word(wanted)} WKT for this layer, or create a new layer of the right "
-                           "kind with create_memory_layer and add the features there."),
+            **coded_fact(hint="geometry_kind_mismatch", layer_holds=_geometry_word(wanted),
+                         geometry_is=_geometry_word(given)),
         }
 
     return _crs_problem(layer, geom) if check_crs else None
@@ -786,8 +773,7 @@ def _crs_problem(layer, geom) -> dict | None:
                        f"to 180 and 90, and the geometry reaches {x_max:.0f} and {y_max:.0f}. These look like "
                        "projected metres."),
             "code": "INVALID_ARGS",
-            "suggestion": ("This layer takes geometry in degrees; run_processing 'native:reprojectlayer' "
-                           "gives it a projected CRS."),
+            **coded_fact(hint="geometry_not_degrees", crs=authid, x_max=round(x_max), y_max=round(y_max)),
         }
 
     if not geographic and x_max <= 180 and y_max <= 90:
@@ -803,7 +789,8 @@ def _crs_problem(layer, geom) -> dict | None:
                            f"({box.xMinimum():.4f}, {box.yMinimum():.4f}). Those are longitude and latitude "
                            "degrees, not the layer's units, so the feature would land off the map."),
                 "code": "INVALID_ARGS",
-                "suggestion": (f"Convert the coordinates to {authid or 'the layer CRS'} first, or add the features "
-                               "to a layer in EPSG:4326."),
+                **coded_fact(hint="geometry_not_layer_units", crs=authid or "the layer CRS",
+                             layer_x=round(extent.xMinimum()), layer_y=round(extent.yMinimum()),
+                             geometry_x=round(box.xMinimum(), 4), geometry_y=round(box.yMinimum(), 4)),
             }
     return None

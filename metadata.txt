@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.5.7
+version=1.6.0
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.6.0
+    - Safer sign-in: the key reaches only the QGIS that started it, with a 6-character code as backup
+    - QGIS stays responsive while rasters are read over the network, and the plugin starts faster
+    - Over 60 new open data sources; WFS 1.1.0, folder layers, raster ZIPs and OGC API boxes load
+    - Watersheds, grouped statistics and distances in metres come out right; menu dialogs never hang
+
     1.5.7
     - Settings: choose how long your run history stays on our servers, from no copies to one year
     - QGIS no longer freezes while the agent saves or puts back the project around its code
@@ -55,12 +61,6 @@ changelog=
     - Code cards in Balanced mode offer "Allow for this run"; deleting data still asks
     - When the server cannot be reached, the panel says why after about a minute
     - HTML reports load nothing from unknown sites; Autopilot asks before sending to one
-
-    1.5.0
-    - Type while the agent works: a message waits in a queue or reaches the run at its next step
-    - Edit your last message, or Undo and retry a failed run; a stopped run keeps its Undo
-    - Each layer the agent adds keeps its source, licence and the step that made it in its metadata
-    - QGIS calls you back when a run ends or waits for you; a QGIS 3.44 crash and several freezes fixed
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
 icon=icons/icon.png

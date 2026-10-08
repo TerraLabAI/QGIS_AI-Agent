@@ -273,6 +273,14 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
+
+CATALOG_FIELDS = ("connectors", "qgis_plugins", "qgis_plugins_hidden", "basemaps", "basemaps_reset",
+                  "overpass_mirrors", "connector_shelves", "source_licences", "plugin_roster", "use_cases",
+                  "use_case_groups")
+
+
+
+
 _ATTACHMENT_EXTRAS = {"kind": str, "path": str, "layer_id": str, "layer_name": str, "error": str,
                       "mime": str, "upload_id": str, "code_page": str, "width": int, "height": int, "size": int}
 
@@ -351,7 +359,11 @@ def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "
     return _with_code_class(frame, code_class)
 
 
-def call_timing(arrived: float, started: float, answered: float, sent: float) -> dict:
+def call_timing(arrived: float, started: float, answered: float, sent: float, phases: dict | None = None) -> dict:
+
+
+
+
 
 
 
@@ -360,7 +372,33 @@ def call_timing(arrived: float, started: float, answered: float, sent: float) ->
     def ms(at: float) -> int:
         return max(0, int(round((at - arrived) * 1000)))
 
-    return {"started_ms": ms(started), "answered_ms": ms(answered), "sent_ms": ms(sent)}
+    timing = {"started_ms": ms(started), "answered_ms": ms(answered), "sent_ms": ms(sent)}
+    kept = {key: int(value) for key, value in (phases or {}).items()
+            if key in CALL_PHASES and isinstance(value, int) and 0 <= value <= _PHASE_MAX_MS}
+    if kept:
+        timing["phases"] = kept
+    return timing
+
+
+CALL_PHASES = ("backup_ms", "prepare_ms", "handler_ms")
+_PHASE_MAX_MS = 24 * 3600 * 1000
+
+_PHASES: dict = {}
+_PHASES_KEPT = 64
+
+
+def note_phases(tool_call_id: str, phases: dict) -> None:
+
+    if not phases:
+        return
+    _PHASES[str(tool_call_id)] = dict(phases)
+    while len(_PHASES) > _PHASES_KEPT:
+        _PHASES.pop(next(iter(_PHASES)), None)
+
+
+def take_phases(tool_call_id: str) -> dict | None:
+
+    return _PHASES.pop(str(tool_call_id or ""), None)
 
 
 def _with_code_class(frame: dict, code_class: str) -> dict:

@@ -22,6 +22,7 @@ import http.client
 import io
 import os
 import random
+import re
 import threading
 import time
 import urllib.error
@@ -179,6 +180,7 @@ __all__ = [
     "RETRY_JITTER_S",
     "RETRY_MAX",
     "retry_numbers",
+    "s3_regional_url",
     "seconds_to_transfer",
     "set_cancel_check",
     "set_proxy",
@@ -710,6 +712,40 @@ TRANSPORT_RETRY_MAX = 2
 TRANSPORT_RETRY_BASE_S = 2.0
 
 
+_S3_GLOBAL_HOST = "s3.amazonaws.com"
+_S3_REGION = re.compile(r"[a-z]{2}(-[a-z]+)+-\d{1,2}")
+
+
+def s3_regional_url(url: str, error) -> str | None:
+
+
+
+
+
+
+
+
+
+
+    if getattr(error, "code", None) != 400:
+        return None
+    try:
+        region = str(error.headers.get("x-amz-bucket-region") or "").strip().lower()
+    except Exception:  # noqa: BLE001
+        return None
+    if not _S3_REGION.fullmatch(region):
+        return None
+    parts = urllib.parse.urlsplit(url)
+    host = (parts.hostname or "").lower()
+    if host == _S3_GLOBAL_HOST:
+        regional = f"s3.{region}.amazonaws.com"
+    elif host.endswith("." + _S3_GLOBAL_HOST):
+        regional = f"{host[:-len(_S3_GLOBAL_HOST)]}s3.{region}.amazonaws.com"
+    else:
+        return None
+    return urllib.parse.urlunsplit((parts.scheme, regional, parts.path, parts.query, parts.fragment))
+
+
 def _send_politely(request, url: str, method: str, timeout: float, max_bytes: int,
                    deadline: float | None, cancel, budget: float | None = None,
                    connect_timeout: float | None = None, send=None) -> Response:
@@ -731,6 +767,7 @@ def _send_politely(request, url: str, method: str, timeout: float, max_bytes: in
     transport_base = float(tuning.number("net", "retry_base_s", TRANSPORT_RETRY_BASE_S))
     attempt = dropped = 0
     backoff = 0.0
+    regional = None
     while True:
 
 
@@ -750,6 +787,11 @@ def _send_politely(request, url: str, method: str, timeout: float, max_bytes: in
             try:
                 out = (send or _send_once)(request, timeout, max_bytes, deadline, cancel, budget, connect_timeout)
             except urllib.error.HTTPError as exc:
+                regional = s3_regional_url(url, exc)
+                if regional:
+                    with contextlib.suppress(Exception):
+                        exc.close()
+                    break
                 if exc.code not in RETRY_CODES:
                     raise
                 delay = _refusal_delay(exc, attempt)
@@ -780,6 +822,12 @@ def _send_politely(request, url: str, method: str, timeout: float, max_bytes: in
             return out
         finally:
             gate.free()
+
+
+    moved = urllib.request.Request(regional, data=request.data, headers=dict(request.header_items()),
+                                   method=method)
+    return _send_politely(moved, regional, method, timeout, max_bytes, deadline, cancel, budget,
+                          connect_timeout, send)
 
 
 def fetch_to_file(request, path: str, *, timeout: float, max_bytes: int, total_timeout: float | None = None,

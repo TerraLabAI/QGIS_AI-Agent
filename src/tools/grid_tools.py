@@ -261,13 +261,21 @@ def _missing_dependency_error(feature: str) -> dict:
     )
 
 
+class _H3VersionError(RuntimeError):
+
+
+    def __init__(self, names: tuple):
+        super().__init__(f"This h3 version exposes none of {', '.join(names)}.")
+        self.names = names
+
+
 def _h3_call(module, names: tuple, *args, **kwargs):
 
     for name in names:
         function = getattr(module, name, None)
         if function is not None:
             return function(*args, **kwargs)
-    raise RuntimeError(f"This h3 version exposes none of {names}; upgrading h3 gives it.")
+    raise _H3VersionError(names)
 
 
 
@@ -471,7 +479,7 @@ def _h3_cells(module, bbox: tuple, resolution: int, limit: int) -> tuple:
     if ids is None:
         polyfill = getattr(module, "polyfill", None)
         if polyfill is None:
-            raise RuntimeError("This h3 version exposes neither LatLngPoly nor polyfill; upgrading h3 gives it.")
+            raise _H3VersionError(("LatLngPoly", "polyfill"))
         geojson = {"type": "Polygon", "coordinates": [[[lon, lat] for lat, lon in ring] + [[west, south]]]}
         ids = list(itertools.islice(polyfill(geojson, resolution, geo_json_conformant=True), limit + 1))
         if len(ids) > limit:
@@ -644,7 +652,8 @@ def _resolve_extent(args: dict) -> tuple:
             return None, None, tool_error(
                 f"Layer '{layer_name}' not found.",
                 code="LAYER_NOT_FOUND",
-                suggestion="list_layers gives the exact layer names and ids.",
+                hint="layer_not_found",
+                layer=str(layer_name),
             )
         bbox, error = _read_bbox(raw)
         return (None, None, error) if error else (bbox, f"layer:{layer_name}", None)
@@ -761,6 +770,9 @@ def _create_grid_layer(args: dict) -> dict:
             cells, error = _h3_cells(module, bbox, resolution, limit)
         else:
             cells, error = _s2_cells(module, bbox, resolution, limit)
+    except _H3VersionError as exc:
+        return tool_error(f"Building {system} cells failed: {exc}", code="GRID_FAILED",
+                          hint="h3_version_unsupported", names=", ".join(exc.names))
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"Building {system} cells failed: {exc}", code="GRID_FAILED")
     if error:

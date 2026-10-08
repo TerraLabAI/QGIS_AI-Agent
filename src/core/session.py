@@ -18,11 +18,15 @@
 from __future__ import annotations
 
 import base64
+import json
 import math
 import os
 import random
+import tempfile
+import threading
 import time
 import uuid
+import zlib
 from typing import Callable
 from urllib.parse import urlsplit
 
@@ -38,6 +42,11 @@ from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_P
 
 
 HEARTBEAT_MS = 30_000
+
+
+
+
+
 
 
 
@@ -71,6 +80,12 @@ HELLO_UPLOAD_RECHECK_MS = 5_000
 
 _CALL_CLOCKS_KEPT = 256
 MAX_MISSED_PONGS = 2
+
+
+
+
+
+KNOWN_MANIFESTS_KEPT = 8
 
 
 
@@ -121,6 +136,86 @@ QUIT_FLUSH_MS = 1_000
 
 
 _BAD_FRAME_MILESTONES = frozenset({10, 100, 1_000, 10_000})
+
+
+
+
+
+
+
+_CATALOG_FILE = "session-catalogs.z"
+_CATALOG_MAGIC = b"TLCAT1 "
+
+
+def _catalog_path() -> str:
+    from .policy import state_dir
+
+    return os.path.join(state_dir(), _CATALOG_FILE)
+
+
+def _held_catalog_tag() -> str:
+
+    try:
+        with open(_catalog_path(), "rb") as handle:
+            head = handle.readline(128)
+    except OSError:
+        return ""
+    if not head.startswith(_CATALOG_MAGIC):
+        return ""
+    tag = head[len(_CATALOG_MAGIC):].strip().decode("ascii", "replace")
+    return tag if tag.isalnum() and len(tag) <= 64 else ""
+
+
+def _held_catalogs(tag: str) -> dict | None:
+
+    try:
+        with open(_catalog_path(), "rb") as handle:
+            data = handle.read()
+        head, _, body = data.partition(b"\n")
+        if head != _CATALOG_MAGIC + tag.encode("ascii"):
+            return None
+        fields = json.loads(zlib.decompress(body).decode("utf-8"))
+    except (OSError, ValueError, UnicodeError, zlib.error) as exc:
+        log_warning(f"Catalogs on disk not read: {exc}")
+        return None
+    if not isinstance(fields, dict):
+        return None
+    return {key: fields[key] for key in protocol.CATALOG_FIELDS if key in fields}
+
+
+def _store_catalogs(tag: str, fields: dict) -> threading.Thread | None:
+
+
+
+
+
+
+    try:
+        text = json.dumps(fields, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        log_warning(f"Catalogs not stored: {exc}")
+        return None
+
+    def write() -> None:
+        from .host_platform import remove_quietly, retry_file_op
+
+        tmp = ""
+        try:
+            path = _catalog_path()
+            data = _CATALOG_MAGIC + tag.encode("ascii") + b"\n" + zlib.compress(text.encode("utf-8"), 6)
+            fd, tmp = tempfile.mkstemp(prefix=".agent-", suffix=".tmp", dir=os.path.dirname(path))
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(data)
+            retry_file_op(os.replace, tmp, path)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Catalogs not stored: {exc}")
+        finally:
+            if tmp:
+                remove_quietly(tmp)
+
+    writer = threading.Thread(target=write, name="ai-agent-catalogs", daemon=True)
+    writer.start()
+    return writer
 
 
 def _host_of(url: str) -> str:
@@ -249,6 +344,7 @@ class AgentSession(QObject):
         self._attempt = 0
         self._awaiting_pongs = 0
         self._beat_at = 0.0
+        self._sent_at = 0.0
         self._user_closed = True
         self._auth_failed = False
         self._auth_message = ""
@@ -261,6 +357,11 @@ class AgentSession(QObject):
 
 
         self._catalog_tag = ""
+        self._disk_tag: str | None = None
+        self._applied_tag = ""
+        self._catalog_writer: threading.Thread | None = None
+        self._catalogs_came = False
+        self._connect_facts: dict = {}
         self._model_label = ""
         self._last_failure: tuple[str, str, int] | None = None
         self._reached_session = False
@@ -299,6 +400,12 @@ class AgentSession(QObject):
     @property
     def session_id(self) -> str | None:
         return self._session_id
+
+    @property
+    def connect_facts(self) -> dict:
+
+
+        return dict(self._connect_facts)
 
     @property
     def model_label(self) -> str:
@@ -665,6 +772,8 @@ class AgentSession(QObject):
             sent = sender(produce)
         if not sent:
             log_warning("Frame dropped, socket not open: upload")
+        else:
+            self._sent_at = time.monotonic()
         return bool(sent)
 
     def _send(self, frame: dict, clock: tuple | None = None) -> bool:
@@ -679,9 +788,12 @@ class AgentSession(QObject):
         if clock is not None:
             arrived, started, answered = clock
 
+
+            phases = protocol.take_phases(frame.get("tool_call_id"))
+
             def produce() -> str:
                 return protocol.encode(dict(frame, timing=protocol.call_timing(
-                    arrived, started, answered, time.perf_counter())))
+                    arrived, started, answered, time.perf_counter(), phases)))
         else:
             def produce() -> str:
                 return protocol.encode(frame)
@@ -699,6 +811,7 @@ class AgentSession(QObject):
         if not sent:
             log_warning(f"Frame dropped, socket not open: {protocol.describe(frame)}")
             return False
+        self._sent_at = time.monotonic()
         return True
 
     def _on_ws_connected(self) -> None:
@@ -718,12 +831,15 @@ class AgentSession(QObject):
         try:
             identity = self._identity_provider()
             manifest_hash, manifest = self._manifest_provider()
-            include = self._manifest_retry or self._settings.known_manifest_hash != manifest_hash
+            include = self._manifest_retry or manifest_hash not in self._known_manifests()
             last_seq = self._last_seq if self._session_id else 0
 
 
             if self._crash_note is None:
                 self._crash_note = crash_note.take(str(identity.get("plugin_version", ""))) or {}
+            if self._disk_tag is None:
+                self._disk_tag = _held_catalog_tag()
+                self._catalog_tag = self._catalog_tag or self._disk_tag
             frame = protocol.hello(
                 activation_key=self._account.activation_key,
                 device_hash=self._account.device_hash,
@@ -756,6 +872,27 @@ class AgentSession(QObject):
         self._hello_sent_at = self._hello_checked_at = time.monotonic()
         self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
         self._hello_deadline.start()
+
+    def _known_manifests(self) -> list:
+
+
+
+
+
+        try:
+            return str(self._settings.known_manifest_hash or "").split()
+        except Exception:  # noqa: BLE001
+            return []
+
+    def _remember_manifest(self, manifest_hash: str, known: bool) -> None:
+
+        kept = [h for h in self._known_manifests() if h != manifest_hash]
+        if known and manifest_hash:
+            kept.insert(0, manifest_hash)
+        try:
+            self._settings.known_manifest_hash = " ".join(kept[:KNOWN_MANIFESTS_KEPT])
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Manifest memory not stored: {exc}")
 
     def _on_hello_timeout(self) -> None:
 
@@ -1007,13 +1144,15 @@ class AgentSession(QObject):
         if not self._ws.is_open:
             return
         received, writing = self._link_moved()
+        tick_s = max(0.001, self._heartbeat.interval() / 1000.0)
         if received or writing:
 
 
             self._awaiting_pongs = 0
             if writing:
                 return
-        tick_s = max(0.001, self._heartbeat.interval() / 1000.0)
+            if time.monotonic() - self._sent_at < 2 * tick_s:
+                return
         if self._awaiting_pongs >= max(MAX_MISSED_PONGS, math.ceil(LINK_SILENT_S / tick_s)):
             log_warning(f"{self._awaiting_pongs} pongs missed, closing the socket to reconnect")
             self._heartbeat.stop()
@@ -1130,13 +1269,22 @@ class AgentSession(QObject):
             self._resume_refused = True
         known = bool(frame.get("manifest_known"))
         if known:
-            self._settings.known_manifest_hash = self._last_manifest_hash
+            self._remember_manifest(self._last_manifest_hash, True)
         elif not self._manifest_included:
             log("Server does not hold the tool manifest, reconnecting with the full catalog")
-            self._settings.known_manifest_hash = ""
+            self._remember_manifest(self._last_manifest_hash, False)
             self._manifest_retry = True
             self._ws.close(1000, "resend manifest")
             return
+        if not self._take_catalogs(frame):
+            return
+
+
+        self._connect_facts = {
+            "connect_ms": int((time.monotonic() - self._hello_sent_at) * 1000) if self._hello_sent_at else None,
+            "connect_manifest": bool(self._manifest_included),
+            "connect_catalogs": self._catalogs_came,
+        }
         self._manifest_retry = False
         self._last_drop = None
         self._awaiting_pongs = 0
@@ -1166,10 +1314,37 @@ class AgentSession(QObject):
         if self._resume_refused:
             frame = dict(frame, resumed=False)
             self._resume_refused = False
-
-
-        self._catalog_tag = str(frame.get("catalog_tag") or "")
         self.session_started.emit(frame)
+
+    def _take_catalogs(self, frame: dict) -> bool:
+
+
+
+
+
+
+
+        tag = str(frame.get("catalog_tag") or "")
+        carried = {key: frame[key] for key in protocol.CATALOG_FIELDS if key in frame}
+        self._catalogs_came = bool(carried)
+        if carried:
+            if tag and tag != self._disk_tag:
+                self._catalog_writer = _store_catalogs(tag, carried)
+                self._disk_tag = tag
+            self._applied_tag = tag
+        elif tag and tag != self._applied_tag:
+
+
+            held = _held_catalogs(tag)
+            if held is None:
+                log_warning("Catalogs left out by the server are not on disk, asking for them whole")
+                self._catalog_tag = self._disk_tag = ""
+                self._ws.close(1000, "resend catalogs")
+                return False
+            frame.update(held)
+            self._applied_tag = tag
+        self._catalog_tag = tag
+        return True
 
     def _on_policy(self, frame: dict) -> None:
 

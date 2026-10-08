@@ -52,7 +52,7 @@ from qgis.PyQt.QtGui import (
 )
 from qgis.PyQt.QtWidgets import QFrame, QMessageBox, QSizePolicy, QTextBrowser, QTextEdit, QToolTip
 
-from ..core.links import OPEN_DATA_HOSTS, URL_STOP, open_data_label
+from ..core.links import URL_STOP, open_data_hosts, open_data_label
 from .font_scale import widget_pixel_ratio
 from .shared import exec_dialog, qt_enum_int, resolve_qt_enum, tr
 from .source_marks import MARK_PX, item_mark_pixmap, source_host, source_mark_pixmap
@@ -880,7 +880,7 @@ class MarkdownView(QTextBrowser):
         host = url.host().lower()
         shown = self._anchor_text(url.toString()[:4096]).lower()
         bare = host[4:] if host.startswith("www.") else host
-        if bare in shown or host in OPEN_DATA_HOSTS or host == "terra-lab.ai" or host.endswith(".terra-lab.ai"):
+        if bare in shown or host in open_data_hosts() or host == "terra-lab.ai" or host.endswith(".terra-lab.ai"):
             return True
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)

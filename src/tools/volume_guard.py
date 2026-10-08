@@ -131,13 +131,7 @@ COUNT_KEYS = ("max_features", "limit", "max_items", "max_results")
 
 
 
-HELD_TOOLS = {
-    "add_points_from_json": ("Filtering the records before loading, or a CSV/GeoJSON file loaded with "
-                             "add_data, reads from disk whatever its size."),
-    "add_arcgis_rest_layer": ("A bbox over the user's area, or a where clause on the layer's fields, reads "
-                              "that part; the service's own export (GeoJSON or a file) through add_data "
-                              "reads from disk whatever its size."),
-}
+HELD_TOOLS = frozenset({"add_points_from_json", "add_arcgis_rest_layer"})
 
 
 
@@ -148,29 +142,8 @@ _DENSE_RE = re.compile(
 
 
 
-
-HOSTED_INSTEAD = (
-    ' Or fetch_overture(theme, mode="stream") for a city: 4 tiles, about 1.4 degrees a side.'
-)
-
-
-
 WHOLE_BEFORE_PART = (" A smaller box is only part of the zone; the part outside it stays "
                      "unloaded.")
-
-
-
-
-FOOTPRINTS_WHOLE = (" The same footprints, merged, are fetch_overture theme buildings: one call clips 200 km², "
-                    "clip_to a named place follows its outline in up to 12 clips, and full_extent reads a "
-                    "whole place the user named.")
-
-
-
-
-
-CLIP_TO_HINT = (" For a named place, fetch_overture with the theme and clip_to the place reads up to 12 such "
-                "clips along its outline.")
 
 
 
@@ -759,7 +732,6 @@ def fitting_zone(args: dict, hard: float) -> dict:
 
 
 
-
     box = bbox_of(args) or (_canvas_bbox() if args.get("use_canvas_extent") else None)
     fitted = largest_fitting_bbox(box, hard) if box else None
     if fitted is None:
@@ -767,49 +739,6 @@ def fitting_zone(args: dict, hard: float) -> dict:
     south, west, north, east = fitted
     return {"max_bbox": {"south": south, "west": west, "north": north, "east": east},
             "max_bbox_km2": round(float(limits.bbox_km2(south, west, north, east)), 1)}
-
-
-def partial_sentence(fit: dict, area: float) -> str:
-
-
-
-
-
-    if not fit or not area:
-        return ""
-    box = fit["max_bbox"]
-    share = max(1, round(100 * fit["max_bbox_km2"] / area)) if area > 0 else 0
-    return (f" Only part of the zone ({share}%): south={box['south']}, west={box['west']}, "
-            f"north={box['north']}, east={box['east']}.")
-
-
-def whole_zone_route(name: str, args: dict, area: float) -> str:
-
-    provider = provider_of(name)
-    themes = hosted_themes(args.get("query")) if provider == "overpass" else []
-    if provider == "footprints":
-        pair = hosted_caps().get("buildings")
-        per_call = f", {pair[0]:,.0f} km² a call" if pair else ""
-        return (f" Whole zone: fetch_overture theme buildings, same bbox (the same footprints merged"
-                f"{per_call}), clip_to a named place, or full_extent.")
-    if themes:
-        return " Whole zone: full_extent if the user named the place, else fetch_overture clip_to it."
-    if provider == "overpass" and own_overpass_down():
-        return (" Whole zone: TerraLab's Overpass reads it in tiles once it answers again (minutes); "
-                "or full_extent if the user named the place.")
-    return " Whole zone: full_extent if the user named the place (read to disk, no area cap)."
-
-
-def fitting_sentence(fit: dict) -> str:
-    if not fit:
-        return ""
-    box = fit["max_bbox"]
-
-
-
-
-    return (f" south={box['south']}, west={box['west']}, north={box['north']}, "
-            f"east={box['east']} ({fit['max_bbox_km2']:,.1f} km2), or smaller, fits.")
 
 
 def hosted_fallback(name: str, args: dict) -> list:
@@ -1018,15 +947,12 @@ def check(name: str, args: dict) -> dict:
                 return {
 
 
+
                     "error": (f"This zone is too large to load at once: {area:,.1f} km², and TerraLab's tiles "
-                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² at a time."),
-                    "routes": (CLIP_TO_HINT + LIFT_HINT + WHOLE_BEFORE_PART).strip(),
-
-
-                    "suggestion": (whole_zone_route(name, args, area)
-                                   + partial_sentence(fit, area)).strip(),
+                              f"clip {', '.join(hosted)} to at most {hosted_cap:,.0f} km² at a time."
+                              + (WHOLE_BEFORE_PART if fit else "")),
                     "code": limits.CEILING_CODE,
-                    **coded(hint="area_cap", variant=name),
+                    **coded(hint="area_cap", variant=name), "cap_km2": round(hosted_cap, 1), **fit,
                 }
             if hosted:
 
@@ -1036,8 +962,8 @@ def check(name: str, args: dict) -> dict:
             if area > hard:
                 fit = fitting_zone(args, hard)
                 return {
-                    "error": (f"This zone is too large to load at once: {area:,.1f} km², and {provider}."
-                              if provider else
+                    "error": ((f"This zone is too large to load at once: {area:,.1f} km², and {provider}."
+                               if provider else
 
 
                               f"This zone is too large to load at once: {area:,.1f} km², the most one "
@@ -1045,24 +971,15 @@ def check(name: str, args: dict) -> dict:
                               if own and hard == own else
                               f"This zone is too large to load at once: {area:,.1f} km², the cap for "
                               f"{'dense features' if dense else 'one load'} is {hard:.0f} km². Loading it "
-                              "would take minutes and leave a layer QGIS cannot draw."),
+                              "would take minutes and leave a layer QGIS cannot draw.")
+                              + (WHOLE_BEFORE_PART if fit else "")),
 
 
 
 
 
-
-
-
-                    "routes": ((FOOTPRINTS_WHOLE if provider else LIFT_HINT) + WHOLE_BEFORE_PART).strip(),
-
-
-
-
-                    "suggestion": (whole_zone_route(name, args, area)
-                                   + partial_sentence(fit, area)).strip(),
                     "code": limits.CEILING_CODE,
-                    **coded(hint="area_cap", variant=name),
+                    **coded(hint="area_cap", variant=name), "cap_km2": round(hard, 1), **fit,
                 }
             if area > quiet:
                 if not (_confirmed(args, area) or _confirmed(args, asked)):
@@ -1080,15 +997,14 @@ def check(name: str, args: dict) -> dict:
             return {
                 "error": (f"{name} asks for {count:,} features, over the {hard_max_features():,} QGIS can "
                           "hold in memory on this computer."),
-                "suggestion": HELD_TOOLS[name],
                 "code": limits.CEILING_CODE,
-                **coded(hint="feature_ceiling", variant="held"),
+
+                **coded(hint="feature_ceiling", variant="held"), "max_features": hard_max_features(),
             }
     return {}
 
 
-def _cap_fitting_sentence(count: int, args: dict, cap: int) -> str:
-
+def _cap_fitting_zone(count: int, args: dict, cap: int) -> dict:
 
 
 
@@ -1099,16 +1015,12 @@ def _cap_fitting_sentence(count: int, args: dict, cap: int) -> str:
 
     area = zone_km2(args)
     if area is None or area <= 0 or count <= 0 or cap <= 0 or count <= cap:
-        return ""
-    fits = area * cap / float(count)
-    fit = fitting_zone(args, fits)
+        return {}
+    fit = fitting_zone(args, area * cap / float(count))
     if not fit:
-        return ""
-    box = fit["max_bbox"]
-    return (f" At the {count / area:,.0f} features per km2 this zone just returned, {cap:,} of them "
-            f"is about {fits:,.1f} km2: south={box['south']}, west={box['west']}, "
-            f"north={box['north']}, east={box['east']} ({fit['max_bbox_km2']:,.1f} km2), same centre. "
-            "That box or a smaller one fits.")
+        return {}
+    return {"features_per_km2": round(count / area), "fits_bbox": fit["max_bbox"],
+            "fits_bbox_km2": round(fit["max_bbox_km2"], 1)}
 
 
 def coded(hint: str, variant: str = "") -> dict:
@@ -1138,9 +1050,10 @@ def too_many(count: int, args: dict, what: str = "this source", held: str = "") 
     return {
         "_error": (f"{what} holds {count:,} features, over the {hard_max_features():,} QGIS can hold in "
                    "memory on this computer. It was not added."),
-        "suggestion": HELD_TOOLS.get(held, "") + _cap_fitting_sentence(count, args, hard_max_features()),
         "feature_count": count,
-        **coded(hint="feature_ceiling", variant="held"),
+
+        **coded(hint="feature_ceiling", variant="held"), "max_features": hard_max_features(),
+        **_cap_fitting_zone(count, args, hard_max_features()),
     }
 
 

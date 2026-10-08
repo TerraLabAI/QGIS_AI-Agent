@@ -366,7 +366,7 @@ def _checked_geometry(layer, position: int, update: dict):
     fid = update["fid"]
     if not layer.getFeature(fid).isValid():
         return tool_error(f"Update {position}: no feature with fid {fid} in layer {layer.name()!r}", "INVALID_ARGS",
-                          "Feature ids come from the _fid field of get_features.")
+                          hint="feature_ids_not_found")
     wkt = update["geometry_wkt"]
     shape = QgsGeometry.fromWkt(wkt)
     if shape.isNull():

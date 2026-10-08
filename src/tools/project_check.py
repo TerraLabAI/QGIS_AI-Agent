@@ -45,11 +45,10 @@ def _verdict(report: dict, path: str) -> dict:
                                                  if key != "ok"}}
     if broken:
         out["verdict"] = "problem"
-        out["note"] = ("Reopened in a separate QGIS, and " + ", ".join(str(name) for name in broken[:6])
-                       + " did not come back: the layer is invalid or its file is not where the project "
-                         "says it is. Data that lives only in this QGIS session (a memory layer, a "
-                         "scratch layer) is gone the moment the project is reopened, so write it to a "
-                         "file with export_file and save again.")
+        names = [str(name) for name in broken[:6]]
+        out["note"] = "Reopened in a separate QGIS, and " + ", ".join(names) + " did not come back."
+        out["note_hint"] = "project_layers_missing"
+        out["layers"] = names
     elif outside:
         out["verdict"] = "problem"
         out["note"] = ("Every layer came back, but " + ", ".join(str(item) for item in outside[:6])
@@ -102,9 +101,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
                 process.terminate()
                 return tool_error(
                     f"The separate QGIS did not finish reading the project in {_MAX_SECONDS} s.",
-                    "TIMEOUT",
-                    "The file was still written. A project this slow to open is usually waiting on a "
-                    "remote layer; list_layers lists the sources.")
+                    "TIMEOUT", hint="project_check_timeout", seconds=_MAX_SECONDS)
             time.sleep(0.2)
 
     report = _read_json(status_path)
@@ -114,9 +111,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
 
         return tool_error(
             f"A separate QGIS could not reopen {os.path.basename(path)}: {detail}",
-            "PROJECT_DOES_NOT_REOPEN",
-            "Your own QGIS is untouched and the file is still on disk. list_layers shows the layer "
-            "sources; export_file writes a scratch layer to a file before saving again.")
+            "PROJECT_DOES_NOT_REOPEN", hint="project_does_not_reopen", file=os.path.basename(path))
     return _verdict(report, path)
 
 
@@ -130,14 +125,12 @@ def _check_saved_project(args: dict) -> dict:
         path = run_on_main_thread(_open_project_file, timeout=10)
         if not path:
             return tool_error(
-                "This QGIS has no saved project to reopen.", "INVALID_ARGS",
-                "save_project saves the project this checks.")
+                "This QGIS has no saved project to reopen.", "INVALID_ARGS", hint="no_saved_project")
     path_error = validate_path(path)
     if path_error:
         return {"_error": path_error, "_code": "INVALID_ARGS"}
     if not os.path.isfile(path):
-        return tool_error(f"No project file at {path}.", "INVALID_ARGS",
-                          "save_project answers with the path it wrote.")
+        return tool_error(f"No project file at {path}.", "INVALID_ARGS", hint="project_file_missing", path=path)
 
     python_executable = run_on_main_thread(_qgis_python, timeout=10)
     return _run_child(path, net.current_cancel_check(), python_executable)

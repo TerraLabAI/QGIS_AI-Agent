@@ -19,6 +19,7 @@ import time
 from typing import Any
 
 from ...core.logger import log_warning
+from ...core.tool_registry import coded_fact, tool_error
 from .._widgets import AI_EDIT_KEYS, process_events, sibling_plugin
 
 
@@ -104,18 +105,6 @@ def _whitelist_usage(raw: dict) -> dict:
     }
 
 
-
-
-
-
-
-
-
-KNOWN_BASEMAP_XYZ = {
-    "openstreetmap": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-}
-
-
 def _basemap_url(name: str) -> str:
 
 
@@ -126,16 +115,14 @@ def _basemap_url(name: str) -> str:
 
 
 
-
     key = (name or "").strip().lower()
-    shipped = KNOWN_BASEMAP_XYZ.get(key, "")
     try:
         from ...core.catalog import basemaps
 
         rows = basemaps().items()
     except Exception as exc:  # noqa: BLE001
-        log_warning(f"Basemap catalog unreadable, keeping the shipped list: {exc}")
-        return shipped
+        log_warning(f"Basemap catalog unreadable: {exc}")
+        return ""
     for row_id, row in rows:
 
         if row.get("kind") == "vectortile":
@@ -144,7 +131,7 @@ def _basemap_url(name: str) -> str:
             url = str(row.get("url") or "")
             if url:
                 return url
-    return shipped
+    return ""
 
 
 def _find_project_layer(name: str):
@@ -264,8 +251,7 @@ class AiEditAccess:
             "plan": ("free" if is_free else "pro") if is_free is not None else "",
             "is_free_tier": is_free,
         }
-        if not signed:
-            out["action_required"] = "Activate AI Edit: paste a TerraLab key in the AI Edit dock."
+
         usage = self.credits()
         if "_error" not in usage:
             out["usage"] = usage
@@ -552,18 +538,15 @@ class AiEditAccess:
 
 
         if self.is_busy(inst):
-            return {
-                "_error": "AI Edit is already generating; ai_edit_generation_status reports when idle.",
-                "busy": True,
-            }
+            return tool_error("AI Edit is already generating.", hint="ai_edit_busy", busy=True)
 
         source = params.get("layer_name")
         if source:
             from ..integration_handoff import raster_layer
             setter = getattr(self._mcp_api(inst), "set_input_layer", None)
             if not callable(setter):
-                return {"_error": "This AI Edit version cannot select imagery by ID; update it or choose "
-                                  "the input in its panel before generating.", "code": "PLUGIN_OUTDATED"}
+                return tool_error("This AI Edit version cannot select imagery by ID.", "PLUGIN_OUTDATED",
+                                  hint="ai_edit_cannot_select_input")
             try:
                 selected = setter(raster_layer(source).id())
             except ValueError as exc:
@@ -700,7 +683,7 @@ class AiEditAccess:
                 "status": "submitted",
                 "prompt_len": len(prompt),
                 "resolution": applied_resolution,
-                "note": "Generation runs async; ai_edit_generation_status reports it.",
+                **coded_fact(hint="ai_edit_submitted"),
             }
             result["resolution_source"] = "call" if res_label else "panel"
             result["prompt_shown_in_panel"] = written
@@ -710,8 +693,9 @@ class AiEditAccess:
 
                 result["tell_user"] = (
                     "AI Edit's prompt box could not be written, so the panel does not show "
-                    f'the request. Quote it to the user: "{prompt}".'
+                    f'the request: "{prompt}".'
                 )
+                result["tell_user_hint"] = "ai_edit_prompt_unwritten"
             if ref_info is not None:
                 result["references_attached"] = ref_info.get("attached")
                 result["references_count"] = ref_info.get("count")
@@ -853,8 +837,7 @@ class AiEditAccess:
         if params.get("use_zone"):
             found = self._zone_of_interest()
             if found is None:
-                return {"_error": ("This project holds no zone of interest. zone action set makes one from a "
-                                   "layer the user named; bbox or use_canvas_extent also works.")}
+                return tool_error("This project holds no zone of interest.", hint="ai_edit_no_zone_of_interest")
             return QgsRectangle(found.boundingBox())
         if params.get("use_canvas_extent"):
             return iface.mapCanvas().extent()
@@ -879,7 +862,8 @@ class AiEditAccess:
             moved = _to_canvas_crs(*held)
             if moved is not None:
                 return QgsRectangle(moved.boundingBox())
-        return {"_error": "Needs a prepared AI Edit zone, use_zone, bbox or use_canvas_extent:true."}
+        return tool_error("This call carries no zone and AI Edit holds no prepared zone.",
+                          hint="ai_edit_needs_zone")
 
     def current_zone(self):
 
@@ -1140,7 +1124,7 @@ class AiEditAccess:
             return {"_error": "AI Edit plugin is not installed."}
         strip = self._version_strip(inst)
         if strip is None:
-            return {"_error": "AI Edit version strip not available; a generation makes it."}
+            return tool_error("AI Edit version strip not available.", hint="ai_edit_no_versions")
         try:
             count = int(strip.count())
             sel = int(strip.selected_index())
@@ -1170,13 +1154,13 @@ class AiEditAccess:
         dock = self.dock(inst)
         strip = self._version_strip(inst)
         if dock is None or strip is None:
-            return {"_error": "AI Edit version strip not available; a generation makes it."}
+            return tool_error("AI Edit version strip not available.", hint="ai_edit_no_versions")
         try:
             count = int(strip.count())
         except Exception:
             count = 0
         if count <= 0:
-            return {"_error": "No versions yet; a generation creates one."}
+            return tool_error("No versions yet.", hint="ai_edit_no_versions")
         try:
             idx = int(index)
         except (TypeError, ValueError):
@@ -1283,8 +1267,7 @@ class AiEditAccess:
         except Exception as err:
 
             msg = getattr(err, "message", None) or str(err)
-            return {"_error": f"Vectorize failed: {msg}",
-                    "_suggestion": "A wider tolerance, target_rgb or simplify_factor may vectorize it."}
+            return tool_error(f"Vectorize failed: {msg}", hint="ai_edit_vectorize_failed")
         if layer is None or not layer.isValid():
             return {"_error": "Vectorize produced no valid layer."}
 
@@ -1328,10 +1311,8 @@ class AiEditAccess:
         if action in ("draw", "clear") and in_panel != "markup":
             enter = _attr(inst, "_on_markup_clicked")
             if not callable(enter):
-                return {
-                    "_error": "AI Edit markup entry (_on_markup_clicked) not available. "
-                    "Launch AI Edit and draw a zone first."
-                }
+                return tool_error("AI Edit markup entry (_on_markup_clicked) not available.",
+                                  hint="ai_edit_markup_unavailable")
             try:
                 enter()
             except Exception as err:
@@ -1389,7 +1370,7 @@ class AiEditAccess:
                     geom = line
                 shape = "circle"
             elif gtype == QgsWkbTypes.GeometryType.PointGeometry:
-                return {"_error": "A single point can't be a markup stroke; pass a LINESTRING or POLYGON."}
+                return tool_error("A single point can't be a markup stroke.", hint="ai_edit_markup_point")
         except Exception:  # nosec B110
             pass
 
@@ -1409,7 +1390,8 @@ class AiEditAccess:
             "action": "draw",
             "shape": shape,
             "annotation_count": after,
-            "note": None if added else "Stroke rejected (likely entirely outside the selected zone).",
+            "note": None if added else "The stroke was not added.",
+            **({} if added else coded_fact(hint="ai_edit_stroke_rejected")),
         }
 
 

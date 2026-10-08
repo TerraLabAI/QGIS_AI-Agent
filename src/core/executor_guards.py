@@ -15,7 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 from . import limits, output_paths, tuning
 from .logger import log, log_warning
 from .protocol import Danger
-from .tool_registry import spec
+from .tool_registry import coded_fact, spec
 
 try:
     from ..tools import cost_guard
@@ -42,19 +42,16 @@ except ImportError:
 CODE_TOOL = "execute_code"
 
 
+
+
+
 _DISTANCE_KEYS = ("DISTANCE", "BUFFER", "RADIUS", "TOLERANCE", "INTERVAL", "MAX_DISTANCE",
-                  "OFFSET", "HUB_DISTANCE", "SEGMENT_LENGTH", "NEIGHBOR_DISTANCE")
-_METRIC_ALGS = frozenset({
-    "native:buffer", "native:bufferbym", "native:singlesidedbuffer", "native:offsetline",
-    "native:extractwithindistance", "native:selectwithindistance", "native:joinbynearest",
-    "native:pointsalonglines", "native:densifygeometriesgivenaninterval", "native:simplifygeometries",
-    "native:smoothgeometry", "native:shortestline", "native:snapgeometries", "native:extendlines",
-    "native:arrayoffsetlines", "native:wedgebuffers", "native:taperedbuffer", "native:hublines",
-    "qgis:distancetonearesthubpoints", "qgis:distancetonearesthublinetohub",
-})
+                  "HUB_DISTANCE", "SEGMENT_LENGTH", "NEIGHBOR_DISTANCE")
+_METRIC_ALGS = frozenset()
 
 
 def _metric_algs() -> frozenset:
+
 
 
 
@@ -140,11 +137,8 @@ class _ExecutorGuards:
             return None
         added = self.stacker.added_total()
 
-        return dict(hint="layer_count", added=added, in_project=present,  # noqa: C408
-                    note=(f"This run has added {added} layers; {present} of them are still in the project. "
-                          "Each layer costs a redraw of the layer tree and the canvas. remove_layer takes a "
-                          "working layer out, and run_processing with add_to_project false writes a step's "
-                          "output to a file without adding it."))
+
+        return dict(hint="layer_count", added=added, in_project=present)  # noqa: C408
 
     def _drop_unused_bbox(self, name: str, args: dict) -> None:
 
@@ -205,15 +199,13 @@ class _ExecutorGuards:
 
         if guards is None:
             return {"error": "The argument guards are not available, so no tool call can be checked.",
-                    "code": "EXECUTION_FAILED",
-                    "suggestion": "Tell the user to reload the AI Agent plugin, and to report this if it persists."}
+                    "code": "EXECUTION_FAILED", "suggestion": "", "hint": "guards_unavailable"}
         try:
             return guards.check_call(name, args, own_files)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"argument guard failed for {name}: {exc}")
             return {"error": f"The arguments of {name} could not be checked, so the call was not run.",
-                    "code": "EXECUTION_FAILED",
-                    "suggestion": "Try a simpler form of the call, and tell the user if it keeps failing."}
+                    "code": "EXECUTION_FAILED", "suggestion": "", "hint": "guard_check_failed", "tool": name}
 
     @staticmethod
     def _costly_check(name: str, args: dict) -> dict:
@@ -262,7 +254,10 @@ class _ExecutorGuards:
 
 
 
-    def _crs_guard(self, name: str, args: dict) -> tuple[str, str] | None:
+    def _crs_guard(self, name: str, args: dict) -> tuple[str, str, dict] | None:
+
+
+
 
         lowered = name.lower()
         unit_keys = ("distance_units", "DISTANCE_UNITS", "units", "unit", "UNITS", "UNIT")
@@ -297,10 +292,8 @@ class _ExecutorGuards:
         utm = self._utm_for(layer)
         message = tr("{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, "
                      "not meters.").format(what=what, layer=layer.name(), crs=crs.authid())
-        suggestion = (f"Reproject '{layer.name()}' to a metric CRS first (native:reprojectlayer with "
-                      f"TARGET_CRS={utm}), then run the operation on the reprojected layer, or pass "
-                      f"DISTANCE_UNITS: meters when the tool supports it.")
-        return message, suggestion
+        facts = coded_fact(hint="metric_distance_geographic", layer=layer.name(), crs=crs.authid(), utm=str(utm))
+        return message, "", facts
 
     @staticmethod
     def _resolve_layer(ref):

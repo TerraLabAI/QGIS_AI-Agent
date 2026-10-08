@@ -25,6 +25,7 @@
 
 
 
+
 from __future__ import annotations
 
 import contextlib
@@ -33,13 +34,6 @@ import urllib.parse
 from . import data_date, security, tuning
 from .logger import log_warning
 
-
-FALLBACK_OVERPASS = "https://overpass-api.de/api/interpreter"
-
-
-
-FALLBACK_OWN_OVERPASS = "https://overpass.terra-lab.ai/api/interpreter"
-FALLBACK_MIRRORS = (FALLBACK_OWN_OVERPASS, FALLBACK_OVERPASS)
 
 
 _SHELF_CAP_MIN, _SHELF_CAP_MAX = 3, 24
@@ -243,7 +237,7 @@ def set_overpass_mirrors(urls) -> None:
 
 def overpass_mirrors() -> list:
 
-    return list(_mirrors) or list(FALLBACK_MIRRORS)
+    return list(_mirrors)
 
 
 def set_connector_shelves(payload) -> None:

@@ -14,7 +14,7 @@ from ..core import background, layer_order, limits, net
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
-from ..core.tool_registry import tool_error
+from ..core.tool_registry import coded_fact, tool_error
 from . import style_3d, style_rows
 from ._compat import QVAR_DOUBLE, QVAR_INT, QVAR_LONGLONG, QVAR_STRING
 from .colour_text import qcolor_from_text
@@ -89,8 +89,8 @@ def _set_layer_legend_image(layer, args: dict) -> dict:
 
     return {"supported": False, "layer": layer.name() if layer is not None else args.get("layer_name"),
             "capability": "manual_legend_image", "reason":
-            "QGIS exposes no public API to attach a legend image to a map layer. "
-            "A layout image item or the service's native legend URL; no layer property was changed."}
+            "QGIS exposes no public API to attach a legend image to a map layer; no layer property was changed.",
+            "next": coded_fact(hint="legend_image_unsupported")}
 
 
 def _set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_style: str = "") -> dict:
@@ -245,15 +245,13 @@ def _style_plan(args: dict) -> dict:
 
 
     if not layer.isSpatial():
-        return {"_error": f"Layer {layer.name()!r} has no geometry, so there is nothing on the map to style.",
-                "code": "INVALID_ARGS",
-                "suggestion": "Style the layer that draws these rows, or join this table to it first."}
+        return tool_error(f"Layer {layer.name()!r} has no geometry, so there is nothing on the map to style.",
+                          "INVALID_ARGS", hint="style_table_no_geometry", layer=layer.name())
     if (args.get("size_expression") and style_type != "cluster"
             and layer.geometryType() == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")):
-        return {"_error": (f"size_expression sizes point markers or line widths, and {layer.name()!r} "
-                           "is a polygon layer. Nothing was changed."),
-                "code": "INVALID_ARGS",
-                "suggestion": "A graduated style on the field shows its values on polygons."}
+        return tool_error(f"size_expression sizes point markers or line widths, and {layer.name()!r} "
+                          "is a polygon layer. Nothing was changed.",
+                          "INVALID_ARGS", hint="style_size_expression_polygon", layer=layer.name())
     proportional = None
     if args.get("size_field") and style_type != "cluster":
         proportional = _proportional_request(layer, args)
@@ -600,7 +598,7 @@ def _style_apply(plan: dict, facts: dict) -> dict:
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{args.get('layer_name')} left the project before it was styled.", "EXECUTION_FAILED",
-                          "The layer left the project; load it again first.")
+                          hint="chart_layer_gone", layer=str(args.get("layer_name")))
     if not background.still_awaited():
         return tool_error("Stopped before the style was applied.", "CANCELLED",
                           "Nothing was changed: the layer keeps its style.")
@@ -678,9 +676,10 @@ def _style_apply(plan: dict, facts: dict) -> dict:
                 "classes_folded": n_folded,
                 "warning": (
                     f"{n} distinct values in {field}: the {shown} most frequent got a class each, "
-                    f"{n_folded} others share one grey class; a graduated style or a field with "
-                    "fewer values reads better"
+                    f"{n_folded} others share one grey class"
                 ),
+                "advice": coded_fact(hint="style_categories_folded", field=field, distinct=n, shown=shown,
+                                     folded=n_folded),
             }
 
 
@@ -722,11 +721,8 @@ def _style_apply(plan: dict, facts: dict) -> dict:
             if isinstance(renderer, dict):
                 return renderer
         if len(renderer.ranges()) == 0:
-            return {
-                "_error": f"Field {field!r} has no values to classify.",
-                "code": "INVALID_ARGS",
-                "suggestion": "The field must hold numbers on at least one feature, or another field works.",
-            }
+            return tool_error(f"Field {field!r} has no values to classify.", "INVALID_ARGS",
+                              hint="style_field_no_values", field=field)
         _readable_range_labels(renderer, args.get("units"))
 
     else:
@@ -882,9 +878,9 @@ def _style_apply(plan: dict, facts: dict) -> dict:
         result["size_field"] = {
             "field": proportional["field"], "values": [proportional["low"], proportional["high"]],
             "sizes_mm": [proportional["min_size"], proportional["max_size"]], "scale": proportional_done,
-            "note": ("marker area follows the value (square-root size), so a value twice as large draws twice "
-                     "the area; the legend shows the sizes" if proportional_done == "area"
-                     else "line width follows the value linearly")}
+            "note": (coded_fact(hint="style_proportional_area", field=proportional["field"])
+                     if proportional_done == "area"
+                     else coded_fact(hint="style_proportional_line", field=proportional["field"]))}
     elif proportional and args.get("size_expression"):
         result["size_field_note"] = "size_expression was given as well and sizes the symbols; size_field was not used"
     return result
@@ -926,8 +922,8 @@ def _class_limits(breaks):
     except (TypeError, ValueError):
         return {"_error": "breaks are numbers, the class limits from lowest to highest.", "code": "INVALID_ARGS"}
     if len(limits) < 2:
-        return {"_error": "breaks needs at least two different limits (one class).", "code": "INVALID_ARGS",
-                "suggestion": "[0, 20, 40, 60, 80, 100] gives five classes over 0 to 100."}
+        return tool_error("breaks needs at least two different limits (one class).", "INVALID_ARGS",
+                          hint="style_breaks_too_few", given=len(limits))
     return limits
 
 
@@ -1002,15 +998,14 @@ def _proportional_request(layer, args: dict) -> dict:
     if index < 0:
         return _field_not_found_error(layer, field)
     if not layer.fields().at(index).isNumeric():
-        return {"_error": f"size_field {field!r} is {layer.fields().at(index).typeName()}, not a number.",
-                "code": "INVALID_ARGS",
-                "suggestion": "A numeric field, or a numeric copy of this one, is needed."}
+        return tool_error(f"size_field {field!r} is {layer.fields().at(index).typeName()}, not a number.",
+                          "INVALID_ARGS", hint="style_size_field_not_numeric", field=field,
+                          field_type=layer.fields().at(index).typeName())
     geometry = layer.geometryType()
     if geometry == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry"):
-        return {"_error": (f"size_field sizes point markers or line widths, and {layer.name()!r} is a polygon "
-                           "layer. Nothing was changed."), "code": "INVALID_ARGS",
-                "suggestion": ("native:centroids (run_processing) makes points to size for proportional "
-                               "symbols; a graduated style also works.")}
+        return tool_error(f"size_field sizes point markers or line widths, and {layer.name()!r} is a polygon "
+                          "layer. Nothing was changed.", "INVALID_ARGS", hint="style_size_field_polygon",
+                          layer=layer.name(), field=field)
     markers = geometry == enum_member(QgsWkbTypes, "GeometryType", "PointGeometry")
     default_min, default_max = (2.0, 10.0) if markers else (0.3, 3.0)
     try:
@@ -1071,21 +1066,17 @@ def _style_raster_layer(layer, target: str, args: dict) -> dict:
 
     if not isinstance(layer, QgsRasterLayer):
         kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "unknown"
-        return {"_error": f"Layer {target!r} is a {kind} layer, and set_layer_style paints vectors and rasters.",
-                "code": "INVALID_ARGS",
-                "suggestion": "set_layer_property changes its opacity; apply_style_qml applies a "
-                              "style written for this layer kind."}
+        return tool_error(f"Layer {target!r} is a {kind} layer, and set_layer_style paints vectors and rasters.",
+                          "INVALID_ARGS", hint="style_layer_kind_unsupported", layer=target, kind=kind)
 
     bands = layer.bandCount()
     opacity = args.get("opacity")
     if bands != 1:
 
 
-        return {"_error": f"Layer {target!r} has {bands} bands, so it is drawn as a colour image and has no "
-                          "single value to classify.",
-                "code": "INVALID_ARGS",
-                "suggestion": "Colour ramps need one band. set_layer_property changes its opacity; "
-                              "run_processing native:rastercalc picks one band."}
+        return tool_error(f"Layer {target!r} has {bands} bands, so it is drawn as a colour image and has no "
+                          "single value to classify.", "INVALID_ARGS", hint="style_raster_multiband",
+                          layer=target, bands=bands)
 
     color_ramp = str(args.get("color_ramp") or "").strip()
     band = int(args.get("band") or 1)
@@ -1379,14 +1370,12 @@ def _plan_coloured(layer, args: dict, plan: dict, rows) -> dict | None:
         return _field_not_found_error(layer, field)
     color_field = str(args.get("color_field") or "").strip()
     if color_field and args.get("keep_colors") is True:
-        return {"_error": "color_field and keep_colors are two colour sources; pass one.", "code": "INVALID_ARGS",
-                "suggestion": ("color_field when a field holds each feature's colour, keep_colors to keep the "
-                               "colours the layer shows now.")}
+        return tool_error("color_field and keep_colors are two colour sources; pass one.", "INVALID_ARGS",
+                          hint="style_colour_sources_conflict", color_field=color_field)
     if layer_order.is_remote_vector(layer):
-        return {"_error": (f"{layer.name()!r} is a web service layer: reading each feature's colour holds QGIS "
-                           "while the service sends every row. Nothing was changed."),
-                "code": "INVALID_ARGS",
-                "suggestion": "A GeoPackage copy from export_layer styles fast; color_ramp needs no read."}
+        return tool_error(f"{layer.name()!r} is a web service layer: reading each feature's colour holds QGIS "
+                          "while the service sends every row. Nothing was changed.", "INVALID_ARGS",
+                          hint="style_remote_colour_read", layer=layer.name())
 
     if color_field:
         cidx = fields.indexOf(color_field)
@@ -1479,11 +1468,10 @@ def _coloured_categories(layer, plan: dict, read: dict) -> dict:
 
     if n > _MAX_COLOURED_CATEGORIES:
         if not color_field:
-            return {"_error": (f"{n} distinct values in {field}: more classes than one style builds "
-                               f"({_MAX_COLOURED_CATEGORIES}). Nothing was changed."),
-                    "code": "INVALID_ARGS",
-                    "suggestion": ("Classify on a field with fewer values, or pass color_field naming a field "
-                                   "that holds each feature's colour: past this count it is drawn per feature.")}
+            return tool_error(f"{n} distinct values in {field}: more classes than one style builds "
+                              f"({_MAX_COLOURED_CATEGORIES}). Nothing was changed.", "INVALID_ARGS",
+                              hint="style_categories_over_cap", field=field, distinct=n,
+                              cap=_MAX_COLOURED_CATEGORIES)
 
         direct = all(QColor(text).isValid() for text, name in memo.items() if name)
         quoted = '"' + color_field.replace('"', '""') + '"'
@@ -1550,7 +1538,8 @@ def _coloured_categories(layer, plan: dict, read: dict) -> dict:
         note["features_without_value"] = no_value
     if partial:
         note["warning"] = (f"colours read on the first {scanned} of {total if total is not None else 'all'} "
-                           "features; values past them fall in the last class")
+                           "features")
+        note["advice"] = coded_fact(hint="style_colours_partial_scan", scanned=scanned)
     note["seconds"] = round(time.monotonic() - plan["started"], 2)
     return note
 
@@ -1657,8 +1646,8 @@ def _cluster_renderer(layer, args: dict):
 
 
     if layer.geometryType() != enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"):
-        return {"_error": f"Layer {layer.name()!r} is not a point layer.",
-                "suggestion": "Clusters group points. Single, categorized or graduated fit here."}
+        return tool_error(f"Layer {layer.name()!r} is not a point layer.", hint="style_cluster_needs_points",
+                          layer=layer.name())
 
     color = qcolor_from_text(str(args.get("color") or "#2b83ba"))
     label_color = qcolor_from_text(str(args.get("label_color") or "#ffffff"))
@@ -1845,10 +1834,8 @@ def _flash_ids(layer, args: dict) -> tuple:
     raw = args.get("fids")
     expression = str(args.get("expression") or "").strip()
     if raw is None and not expression:
-        return [], {"_error": "flash_features needs 'fids' or 'expression'.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "fids: [554], or expression: \"name = 'Ilha'\". "
-                                   "get_features returns the fid of every row it prints."}
+        return [], tool_error("flash_features needs 'fids' or 'expression'.", "INVALID_ARGS",
+                              hint="flash_needs_target", layer=layer.name())
     if raw is not None and expression:
         return [], {"_error": "'fids' and 'expression' cannot both be set.",
                     "_code": "INVALID_ARGS",
@@ -1886,19 +1873,16 @@ def _flash_ids(layer, args: dict) -> tuple:
     except Exception as e:  # noqa: BLE001
         return [], {"_error": f"Reading the features to flash failed: {e}"}
     if len(found) > _FLASH_MAX_FEATURES:
-        return [], {"_error": f"More than {_FLASH_MAX_FEATURES} features match: a flash that covers the map "
-                              "points at nothing.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "A narrower expression fits; set_layer_style shows the whole group."}
+        return [], tool_error(f"More than {_FLASH_MAX_FEATURES} features match: a flash that covers the map "
+                              "points at nothing.", "INVALID_ARGS", hint="flash_too_many",
+                              limit=_FLASH_MAX_FEATURES)
     if not found:
         if wanted is not None:
-            return [], {"_error": f"No feature of {layer.name()!r} carries any of these ids: "
-                                  f"{', '.join(str(v) for v in wanted[:20])}.",
-                        "_code": "INVALID_ARGS",
-                        "_suggestion": "get_features on this layer gives the fid it prints."}
-        return [], {"_error": f"No feature of {layer.name()!r} matches {expression!r}.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "get_features with the same expression shows what it selects."}
+            return [], tool_error(f"No feature of {layer.name()!r} carries any of these ids: "
+                                  f"{', '.join(str(v) for v in wanted[:20])}.", "INVALID_ARGS",
+                                  hint="flash_ids_not_found", layer=layer.name(), fids=wanted[:20])
+        return [], tool_error(f"No feature of {layer.name()!r} matches {expression!r}.", "INVALID_ARGS",
+                              hint="flash_expression_no_match", layer=layer.name(), expression=expression)
     return found, None
 
 
@@ -1916,15 +1900,13 @@ def _flash_features(args: dict) -> dict:
     if not layer:
         return _layer_not_found_error(args["layer_name"])
     if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer {layer.name()!r} is not a vector layer, and only features can be flashed.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "A vector layer is needed; zoom to part of a raster instead."}
+        return tool_error(f"Layer {layer.name()!r} is not a vector layer, and only features can be flashed.",
+                          "INVALID_ARGS", hint="flash_needs_vector", layer=layer.name())
 
     canvas = iface.mapCanvas() if iface is not None else None
     if canvas is None or not hasattr(canvas, "flashFeatureIds"):
-        return {"_error": "This QGIS has no map canvas feature flash.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "select_features marks them; zoom_to_selected zooms in."}
+        return tool_error("This QGIS has no map canvas feature flash.", "EXECUTION_FAILED",
+                          hint="flash_unavailable")
 
     ids, error = _flash_ids(layer, args)
     if error:
@@ -1951,8 +1933,8 @@ def _flash_features(args: dict) -> dict:
         "changed_nothing": True,
         "note": (f"{len(ids)} feature(s) of {layer.name()!r} blink {flashes} times over {duration} ms. "
                  "The layer's symbology, its selection and its data are untouched and nothing stays on "
-                 "screen, so this is what points at a feature temporarily; a style call is permanent and "
-                 "covers the whole layer."),
+                 "screen."),
+        "advice": coded_fact(hint="flash_is_temporary"),
     }
 
 
@@ -1971,10 +1953,9 @@ def _expression_error(layer, text: str, argument: str = "Label expression") -> d
     if expression.hasParserError():
 
 
-        return {"_error": f"{argument} parse error: {expression.parserErrorString().strip()}",
-                "_code": "EXPRESSION_INVALID",
-                "suggestion": "validate_expression shows the error; a field name also works.",
-                "fields": [f.name() for f in layer.fields()]}
+        return tool_error(f"{argument} parse error: {expression.parserErrorString().strip()}",
+                          "EXPRESSION_INVALID", hint="expression_parse_error", argument=argument,
+                          fields=[f.name() for f in layer.fields()])
     names = {f.name() for f in layer.fields()}
     unknown = sorted(str(column) for column in expression.referencedColumns() if str(column) not in names)
     if unknown:
@@ -2024,10 +2005,8 @@ def _color_error(value, argument: str) -> dict | None:
         return None
     if QColor(text).isValid():
         return None
-    return {"_error": f"{argument} {text!r} is not a colour Qt understands.",
-            "code": "INVALID_ARGS",
-            "suggestion": ("A hex colour ('#2b83ba') or an SVG name ('steelblue', 'darkgreen') is a "
-                           "colour; a phrase is not.")}
+    return tool_error(f"{argument} {text!r} is not a colour Qt understands.", "INVALID_ARGS",
+                      hint="colour_not_understood", argument=argument, value=text)
 
 
 
@@ -2051,9 +2030,9 @@ def _style_args_error(layer, args: dict) -> dict | None:
         if layer.fields().indexOf(label_field) < 0:
             return _field_not_found_error(layer, label_field)
         if layer_order.is_remote_vector(layer):
-            return {"_error": (f"{layer.name()!r} is a web service layer: reading each feature's label holds QGIS "
-                               "while the service sends every row. Nothing was changed."), "code": "INVALID_ARGS",
-                    "suggestion": "export_layer copies it to a GeoPackage to style there."}
+            return tool_error(f"{layer.name()!r} is a web service layer: reading each feature's label holds QGIS "
+                              "while the service sends every row. Nothing was changed.", "INVALID_ARGS",
+                              hint="style_remote_label_read", layer=layer.name())
     categories = args.get("categories")
     if categories:
         if str(args.get("style_type") or "").strip() != "categorized":
@@ -2078,9 +2057,9 @@ def _style_args_error(layer, args: dict) -> dict | None:
                     "code": "INVALID_ARGS",
                     "suggestion": "style_type graduated (numbers) or categorized (classes) fits."}
         if args.get("color_field") or args.get("keep_colors") is True or label_field:
-            return {"_error": ("value_expression takes its colours from color_ramp; color_field, keep_colors and "
-                               "label_field read a field's own values."), "code": "INVALID_ARGS",
-                    "suggestion": "field classifies the values without them."}
+            return tool_error("value_expression takes its colours from color_ramp; color_field, keep_colors and "
+                              "label_field read a field's own values.", "INVALID_ARGS",
+                              hint="style_value_expression_colour_conflict", value_expression=value_expression)
         bad = _expression_error(layer, value_expression, "value_expression")
         if bad:
             return bad
@@ -2090,7 +2069,7 @@ def _style_args_error(layer, args: dict) -> dict | None:
 def _expression_choice(text: str, values: list) -> dict:
 
 
-    from .style_defaults import skewness
+    from .style_defaults import graduated_choice
 
     numbers = []
     for value in values:
@@ -2100,16 +2079,7 @@ def _expression_choice(text: str, values: list) -> dict:
             continue
         if number == number:
             numbers.append(number)
-    g1 = skewness(numbers)
-    if g1 is None:
-        return {}
-    if abs(g1) >= 1.0:
-        return {"mode": "jenks", "skewness": round(g1, 2),
-                "reason": (f"{text} is skewed (skewness {g1:.1f}), so natural breaks (Jenks) were used: equal "
-                           "intervals would put almost every feature in one class")}
-    return {"mode": "equal_interval", "skewness": round(g1, 2),
-            "reason": (f"{text} is spread fairly evenly (skewness {g1:.1f}), so equal intervals keep classes of "
-                       "the same width")}
+    return graduated_choice(text, numbers)
 
 
 def _set_layer_labels(args: dict) -> dict:
@@ -2348,8 +2318,7 @@ def _set_layer_labels_2d(args: dict) -> dict:
     if min_scale or max_scale:
         out["scale_visibility"] = {
             "min_scale": min_scale, "max_scale": max_scale,
-            "note": ("labels draw between 1:max_scale (zoomed in) and "
-                     "1:min_scale (zoomed out); 0 is no limit")}
+            "note": coded_fact(hint="label_scale_visibility", min_scale=min_scale, max_scale=max_scale)}
     return out
 
 
@@ -2497,10 +2466,8 @@ def _label_placement_extras(layer, settings, spec: dict, args: dict, fresh: bool
         for name, value in overrides.items():
             key = known.get(str(name).casefold())
             if key is None:
-                return {"_error": f"Unknown label property {name!r} in data_defined.", "code": "INVALID_ARGS",
-                        "suggestion": "Label properties: PositionX, PositionY, OffsetXY, LabelRotation, Show, Size, "
-                                      "Color, Bold, Italic, Family, BufferDraw, Hali, Vali, MinScale, MaxScale. "
-                                      "in_3d floats the labels in the 3D view."}
+                return tool_error(f"Unknown label property {name!r} in data_defined.", "INVALID_ARGS",
+                                  hint="label_property_unknown", name=str(name))
             text = str(value)
             if layer.fields().indexOf(text) < 0:
                 error = _expression_error(layer, text, f"data_defined {name}")

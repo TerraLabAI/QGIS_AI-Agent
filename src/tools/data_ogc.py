@@ -766,30 +766,56 @@ _WFS_CAPS_TTL_S = 900
 _WFS_NAMES_SHOWN = 12
 
 
+
+
+
+_WFS_CAPS_QUERIES = (
+    {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetCapabilities"},
+    {"SERVICE": "WFS", "ACCEPTVERSIONS": "2.0.0,1.1.0,1.0.0", "REQUEST": "GetCapabilities"},
+    {"SERVICE": "WFS", "VERSION": "1.1.0", "REQUEST": "GetCapabilities"},
+)
+_WFS_VERSION_RE = re.compile(rb"<(?:\w+:)?WFS_Capabilities\b[^>]*?\sversion\s*=\s*[\"']([\d.]+)[\"']")
+
+
+def _wfs_capabilities(url: str) -> tuple[bytes, str]:
+
+
+
+
+
+    for query in _WFS_CAPS_QUERIES:
+        probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
+        try:
+            answer = net.fetch(probe, timeout=20, max_bytes=_WFS_CAPS_MAX_BYTES,
+                               total_timeout=25, cache_ttl=_WFS_CAPS_TTL_S)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"WFS capabilities probe failed for {probe}: {exc}")
+            continue
+        body = answer.body or b""
+        if _WFS_TYPE_BLOCK_RE.search(body):
+            found = _WFS_VERSION_RE.search(body)
+            return body, found.group(1).decode("ascii", "replace") if found else query.get("VERSION", "")
+    return b"", ""
+
+
 def _wfs_typenames(url: str) -> list[str]:
 
 
 
 
 
-    query = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetCapabilities"}
-    probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
-    try:
-        answer = net.fetch(probe, timeout=20, max_bytes=_WFS_CAPS_MAX_BYTES,
-                           total_timeout=25, cache_ttl=_WFS_CAPS_TTL_S)
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"WFS capabilities probe failed for {url}: {exc}")
-        return []
     names: list[str] = []
-    for found in _WFS_TYPENAME_RE.finditer(answer.body or b""):
-        name = found.group(1).decode("utf-8", "replace").strip()
-        if name and ":" in name and name not in names:
+    for block in _WFS_TYPE_BLOCK_RE.finditer(_wfs_capabilities(url)[0]):
+        found = _WFS_TYPENAME_RE.search(block.group(1))
+        name = found.group(1).decode("utf-8", "replace").strip() if found else ""
+        if name and name not in names:
             names.append(name)
     return names
 
 
 _WFS_TYPE_BLOCK_RE = re.compile(rb"<(?:\w+:)?FeatureType\b[^>]*>(.*?)</(?:\w+:)?FeatureType>", re.DOTALL)
-_WFS_CRS_RE = re.compile(rb"<(?:\w+:)?(?:Default|Other)CRS>\s*([^<\s][^<]*?)\s*</")
+
+_WFS_CRS_RE = re.compile(rb"<(?:\w+:)?(?:Default|Other)?(?:CRS|SRS)>\s*([^<\s][^<]*?)\s*</")
 _WFS_CRS_SHOWN = 6
 
 
@@ -799,16 +825,8 @@ def _wfs_type_crs(url: str, typename: str) -> list[str]:
 
 
 
-    query = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetCapabilities"}
-    probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
-    try:
-        answer = net.fetch(probe, timeout=20, max_bytes=_WFS_CAPS_MAX_BYTES,
-                           total_timeout=25, cache_ttl=_WFS_CAPS_TTL_S)
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"WFS capabilities probe failed for {url}: {exc}")
-        return []
     wanted = typename.strip()
-    for block in _WFS_TYPE_BLOCK_RE.finditer(answer.body or b""):
+    for block in _WFS_TYPE_BLOCK_RE.finditer(_wfs_capabilities(url)[0]):
         body = block.group(1)
         found = _WFS_TYPENAME_RE.search(body)
         if not found:
@@ -843,7 +861,9 @@ def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
     detail = (qgis_message or "").strip()
     names = _wfs_typenames(url)
     if names and typename not in names:
-        close = [n for n in names if typename.split(":")[-1].lower() in n.lower()][:3]
+
+
+        close = [n for n in names if typename.split(":")[-1].lower() in n.lower()][:_WFS_NAMES_SHOWN]
         shown = close or names[:_WFS_NAMES_SHOWN]
         more = "" if len(names) <= len(shown) else f", and {len(names) - len(shown)} more"
         return (f"The service does not publish a type name {typename!r}. It offers: "
@@ -1131,9 +1151,20 @@ def _add_wfs_layer(args: dict) -> dict:
 
     from .data_wfs_extract import extract
 
-    out = extract(url, typename, name, source.uri(False),
-                  count_at=max_features if hits is None and not lifted else None,
-                  view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None)
+    def _copy() -> dict:
+        return extract(url, typename, name, source.uri(False),
+                       count_at=max_features if hits is None and not lifted else None,
+                       view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None)
+
+    out = _copy()
+    if out.get("_invalid"):
+
+
+        spoken = _wfs_capabilities(url)[1]
+        if spoken and spoken != "2.0.0":
+            source.removeParam("version")
+            source.setParam("version", spoken)
+            out = _copy()
     if out.get("_invalid"):
         return {"_error": _wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits)}
     fields = out.pop("_fields", None)

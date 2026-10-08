@@ -59,6 +59,7 @@ import types
 from typing import Any, Callable
 
 from .code_guard_files import GUARDED_MODULES
+from .serialization import coded_like
 
 MAX_OUTPUT_CHARS = 200_000
 
@@ -368,20 +369,20 @@ def _parameters_refusal(algorithm: str, parameters: object) -> str | None:
             for text in _strings(value):
                 problem = _no_network(text) or _input_scope(text)
                 if problem:
-                    return f"{key}: {problem}"
+                    return coded_like(f"{key}: {problem}", problem)
             continue
         if not isinstance(value, str):
             continue
         problem = _no_network(value)
         if problem:
-            return f"{key}: {problem}"
+            return coded_like(f"{key}: {problem}", problem)
         if not value.strip() or value.strip().startswith(_MEMORY_OUTPUTS):
             continue
         if _database_uri(value):
             return f"{key}: {_DATABASE_URI}"
         error = validate_path(value.split("|", 1)[0], write=True, overwrite=False)
         if error:
-            return f"{key}: {error}"
+            return coded_like(f"{key}: {error}", error)
     return None
 
 
@@ -543,21 +544,7 @@ def _check(code: str) -> tuple[str | None, str]:
 
 
 
-
-
-_SQL_SENTENCE = ("execute_sql runs SQL on a GeoPackage or any layer; in a snippet, read a table with "
-                 "QgsVectorLayer(f'{path}|layername=<table>', 'name', 'ogr').")
-_ARCHIVE_SENTENCE = ("package_project writes the zip: it copies the project and every local layer file into "
-                     "one archive.")
-_NETWORK_SENTENCE = ("The snippet cannot use the network. fetch_text reads a page or a CSV, and "
-                     "add_data (source=<url>) loads a file at a URL for execute_code to use.")
-_TOOL_INSTEAD = {
-    "sqlite3": _SQL_SENTENCE, "_sqlite3": _SQL_SENTENCE,
-    "tarfile": _ARCHIVE_SENTENCE, "make_archive": _ARCHIVE_SENTENCE,
-    "socket": _NETWORK_SENTENCE, "requests": _NETWORK_SENTENCE, "urllib3": _NETWORK_SENTENCE,
-    "httpx": _NETWORK_SENTENCE, "aiohttp": _NETWORK_SENTENCE, "http.client": _NETWORK_SENTENCE,
-    "urllib.request": _NETWORK_SENTENCE,
-}
+_NO_ROW = "execute_code refuses these names on this computer."
 
 
 def refusal_for(code: str) -> dict | None:
@@ -585,12 +572,10 @@ def refusal_for(code: str) -> dict | None:
     if refused.startswith("SyntaxError"):
 
 
-        return {"error": refused, "code": "INVALID_ARGS",
-                "suggestion": "A corrected snippet at that line runs on the next call."}
-    suggestion = _TOOL_INSTEAD.get(name) or ("get_features, run_processing and export_layer do this without "
-                                             "the refused names.")
+        return dict(error=refused, code="INVALID_ARGS", suggestion="",  # noqa: C408
+                    hint="snippet_syntax_error")
 
-    return dict(error=refused, code="INVALID_ARGS", suggestion=suggestion,  # noqa: C408
+    return dict(error=refused, code="INVALID_ARGS", suggestion=_NO_ROW,  # noqa: C408
                 hint="code_refused", variant=name)
 
 

@@ -521,9 +521,8 @@ class AiEditAdapter(PluginAdapter):
 
 
                 if extent is not None and crs is not None and not _covers_zone(inst, matches[0], extent, crs):
-                    return {"_error": (f"'{layer_name}' has nothing over the generation zone. Attached, it "
-                                       "renders whole and unaligned, which is the blank reference. A layer "
-                                       "over the zone, or an image file, avoids it.")}
+                    return {"_error": f"'{layer_name}' has nothing over the generation zone.",
+                            "hint": "reference_layer_off_zone", "layer": layer_name}
                 ref.add_layers([matches[0]])
                 source = layer_name
         except Exception as err:

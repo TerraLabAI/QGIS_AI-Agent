@@ -183,7 +183,10 @@ class _ControllerRuns:
             telemetry.track(ev.AGENT_RUN_STARTED, {
                 "run_id": run_id, "mode": mode, "approval": approval, "effort": effort,
                 "attachment_count": len(attachments), "chip_count": len(chips), "new_thread": new_thread,
-                "prep_ms": prep_ms, "context_bytes": _context_bytes(context)})
+                "prep_ms": prep_ms, "context_bytes": _context_bytes(context),
+
+
+                **(getattr(self._session, "connect_facts", None) or {})})
             self._last_run = {"text": text, "mode": mode, "approval": approval, "chips": chips,
                               "attachments": attachments}
             self._agent_text[run_id] = ""

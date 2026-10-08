@@ -32,6 +32,13 @@
 
 
 
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import functools
@@ -45,6 +52,12 @@ from ..core import code_namespace, code_tripwire
 _NOT_FROM_CODE = frozenset({"execute_code", "ask_user", "verify_run", "call_tool",
                             "search_tools", "install_dependency", "reload_plugin", "trigger_plugin_action",
                             "trigger_menu_action"})
+
+
+
+
+
+_DEBUG_PACKAGE = __name__.rsplit(".", 1)[0] + ".debug."
 
 
 @dataclass
@@ -225,6 +238,8 @@ def tool_code_class(name: str, args: dict | None = None, registry=None) -> str |
     tool = registry.get_tool(name) if registry is not None else None
     if tool is None or name in _NOT_FROM_CODE or tool.catalog or tool.open_world:
         return None
+    if str(getattr(tool.handler, "__module__", "") or "").startswith(_DEBUG_PACKAGE):
+        return None
     args = args if isinstance(args, dict) else {}
     background = tool.background
     try:
@@ -263,7 +278,7 @@ class Tools:
             raise AttributeError(name)
         if tool_code_class(name) is None:
             raise AttributeError(f"tools.{name} is not callable from code: it fetches, spends credits, runs "
-                                 "in the background or always asks the user.")
+                                 "in the background, always asks the user or is a debugging tool.")
         return functools.partial(self._call, name)
 
     def __dir__(self):

@@ -255,21 +255,20 @@ def _cad_crs_question(path: str, name: str) -> dict:
 
 
 
-    from .crs_at_load import _VERDICT_FACT, suggestion, verdict
+    from .crs_at_load import _VERDICT_FACT, verdict
 
     def refusal(probe) -> dict:
         found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False) if probe.isValid() else {}
-        found = found or {"verdict": "missing", "candidates": []}
+        found = found or {"verdict": "missing", "crs": "", "candidates": []}
         candidate_crs = [authid for authid, _why in found["candidates"]]
         return {"_error": ("CAD import needs the CRS the drawing was made in, and a drawing does not say it: "
                            "nothing was imported." + (f" {found['detail']}" if found.get("detail") else "")),
                 "code": "INVALID_ARGS",
                 "candidate_crs": candidate_crs,
-                "suggestion": suggestion(found, name, cad=True),
-
 
 
                 "variant": "candidates" if candidate_crs else "none", "layer": name, "cad": True,
+                "declared": found.get("crs") or "", "candidates": candidate_crs,
                 **_VERDICT_FACT.get(found["verdict"], {})}
 
     if on_main_thread():
@@ -656,9 +655,8 @@ def _add_vector_layer(args: dict) -> dict:
     if path.lower().endswith(".zip"):
         members, names, problem = _zip_listing(path)
         if problem:
-            return {"_error": f"Could not read the archive {os.path.basename(path)}: {problem}",
-                    "suggestion": ("A OneDrive or Dropbox file kept online only is unreadable until it syncs "
-                                   "offline; the extracted files also work.")}
+            return tool_error(f"Could not read the archive {os.path.basename(path)}: {problem}",
+                              hint="archive_unreadable")
         gdbs = gdb_folders(names)
         if gdbs and not members and len(gdbs) == 1:
 
@@ -692,14 +690,12 @@ def _add_vector_layer(args: dict) -> dict:
             if not picked and len(members) == 1 and members[0].lower().endswith(_CONTAINER_EXTENSIONS):
                 picked, sublayer = members, wanted
             if not picked:
-                return {"_error": f"No file named {wanted!r} in {os.path.basename(path)}.",
-                        "files": (members + tables or names)[:50],
-                        "suggestion": "layer names one of the listed files. " + MERGE_OFFER}
+                return tool_error(f"No file named {wanted!r} in {os.path.basename(path)}.",
+                                  hint="archive_file_not_found", files=(members + tables or names)[:50])
             members = picked
         if not members:
-            return {"_error": f"{os.path.basename(path)} holds no vector file QGIS reads.", "files": names[:50],
-                    "suggestion": ("files lists what the archive holds; layer=<file> loads a .csv of it, and a "
-                                   "raster inside it loads with kind='raster'.")}
+            return tool_error(f"{os.path.basename(path)} holds no vector file QGIS reads.",
+                              hint="archive_no_vector_file", files=names[:50])
         if len(members) > 1 and wanted:
 
             from . import vector_merge
@@ -711,8 +707,8 @@ def _add_vector_layer(args: dict) -> dict:
             return {
                 "path": path,
                 "layers": members[:50],
-                "_note": (f"{os.path.basename(path)} holds {len(members)} vector files, none added yet. "
-                          "add_data with layer=<file> loads each one wanted, or the list answers. " + MERGE_OFFER),
+                "_note": f"{os.path.basename(path)} holds {len(members)} vector files, none added yet.",
+                **coded_fact(hint="archive_files_listed", archive=os.path.basename(path), count=len(members)),
             }
         if members[0] in gdbs:
             return _add_vector_layer({**args, "layer": None, "path": _zip_member_uri(path, members[0])})
@@ -737,8 +733,8 @@ def _add_vector_layer(args: dict) -> dict:
             return {
                 "path": path,
                 "layers": describe_sublayers(source, names),
-                "_note": (f"{os.path.basename(source)} holds {len(names)} layers, none added yet. "
-                          "add_data with layer=<name> loads each one wanted, or the list answers."),
+                "_note": f"{os.path.basename(source)} holds {len(names)} layers, none added yet.",
+                **coded_fact(hint="container_layers_listed", source=os.path.basename(source), count=len(names)),
             }
         elif len(names) == 1:
             uri = f"{source}|layername={names[0]}"
@@ -786,8 +782,8 @@ def _add_vector_layer(args: dict) -> dict:
     def add(layer) -> dict:
         if not layer.isValid():
             if archive_members:
-                return {"_error": f"Failed to load vector layer from: {uri}", "layers": archive_members[:50],
-                        "suggestion": "The zip itself, with layer set to one of the listed files."}
+                return tool_error(f"Failed to load vector layer from: {uri}", hint="archive_member_load_failed",
+                                  layers=archive_members[:50])
             return {"_error": f"Failed to load vector layer from: {uri}"}
         split = facts.get("split") if built is not None else on_main.get("split")
         crs_outcome = _apply_requested_crs(layer, args.get("crs"))
@@ -850,8 +846,7 @@ def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
 
 
 
-NO_CRS_WARNING = ("The file declares no CRS, so QGIS cannot place it. Only the user or the source "
-                  "names it; set_layer_crs then applies it.")
+NO_CRS_WARNING = "The file declares no CRS, so QGIS cannot place it."
 
 
 def _apply_requested_crs(layer, wanted) -> dict:
@@ -880,9 +875,8 @@ def _apply_requested_crs(layer, wanted) -> dict:
     if declared == target:
         return {}
     named = declared.authid() or declared.description() or "a custom CRS"
-    return {"warning": (f"The file declares {named}, so crs {wanted} was not applied: that would move the data "
-                        "without reprojecting it. native:reprojectlayer reprojects it; set_layer_crs fixes "
-                        "a wrong declared CRS.")}
+    return {"warning": f"The file declares {named}, so crs {wanted} was not applied.",
+            **coded_fact(hint="crs_request_not_applied", declared=named, requested=wanted)}
 
 
 def _add_raster_layer(args: dict) -> dict:
@@ -890,8 +884,7 @@ def _add_raster_layer(args: dict) -> dict:
     name = args.get("name") or os.path.splitext(os.path.basename(path))[0]
 
     if path.startswith(("http://", "https://", "/vsicurl/", "ftp://")):
-        return {"_error": "add_raster_layer loads LOCAL raster files only. For remote imagery use "
-                          "add_xyz_layer (tile services) or add_wms_layer (WMS)."}
+        return tool_error("add_raster_layer loads LOCAL raster files only.", hint="raster_remote_source")
 
     path_error = _checked_path(path)
     if path_error:
@@ -1003,10 +996,8 @@ def _add_point_cloud_layer(args: dict) -> dict:
     if remote:
         source = source.replace("/vsicurl/", "", 1)
         if provider not in _REMOTE_POINT_CLOUD_PROVIDERS:
-            return {"_error": f"A remote {os.path.splitext(source)[1]} has no index, so it can only be read "
-                              "once downloaded in full.",
-                    "suggestion": "A COPC or EPT distribution of the same tiles reads in place; a "
-                                  "downloaded file loads by its local path."}
+            return tool_error(f"A remote {os.path.splitext(source)[1]} has no index, so it can only be read "
+                              "once downloaded in full.", hint="point_cloud_remote_unindexed")
     else:
         path_error = validate_path(source, write=False)
         if path_error:
@@ -1015,8 +1006,8 @@ def _add_point_cloud_layer(args: dict) -> dict:
             return {"_error": f"File not found: {source}"}
 
     if not _provider_available(provider):
-        return {"_error": f"This QGIS build has no {provider} provider, so it cannot open point clouds.",
-                "suggestion": "The official QGIS packages carry PDAL."}
+        return tool_error(f"This QGIS build has no {provider} provider, so it cannot open point clouds.",
+                          hint="point_cloud_provider_missing", provider=provider)
 
     try:
         from qgis.core import QgsPointCloudLayer
@@ -1027,8 +1018,7 @@ def _add_point_cloud_layer(args: dict) -> dict:
     name = args.get("name") or os.path.splitext(os.path.basename(source.split("?", 1)[0]))[0] or "point cloud"
     layer = QgsPointCloudLayer(source, name, provider)
     if not layer.isValid():
-        return {"_error": f"Failed to load point cloud from: {source}",
-                "suggestion": "A LAZ written before LAS 1.4 sometimes needs converting first."}
+        return tool_error(f"Failed to load point cloud from: {source}", hint="point_cloud_load_failed")
 
     QgsProject.instance().addMapLayer(layer)
     out = {
@@ -1189,7 +1179,7 @@ def _publish_staged_write(staging: str, path: str) -> str:
     return ""
 
 
-def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], str]:
+def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], dict]:
 
 
 
@@ -1207,11 +1197,13 @@ def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], str]:
         if not file_part or not _same_file(file_part, path):
             continue
         if not isinstance(layer, QgsVectorLayer):
-            return [], (f"A non-vector layer named '{layer.name()}' is using {os.path.basename(path)}. "
-                        "A different file name avoids it.")
+            return [], tool_error(f"A non-vector layer named '{layer.name()}' is using {os.path.basename(path)}.",
+                                  hint="export_target_non_vector_layer", layer=layer.name(),
+                                  file=os.path.basename(path))
         if layer.isEditable() or layer.isModified():
-            return [], (f"Layer '{layer.name()}' has unsaved edits in {os.path.basename(path)}. "
-                        "Those edits hold it; a different file name avoids it.")
+            return [], tool_error(f"Layer '{layer.name()}' has unsaved edits in {os.path.basename(path)}.",
+                                  hint="export_target_unsaved_edits", layer=layer.name(),
+                                  file=os.path.basename(path))
         style = QgsMapLayerStyle()
         style.readFromLayer(layer)
         matches.append({
@@ -1237,8 +1229,9 @@ def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], str]:
         layer.setDataSource(temporary, state["name"], "memory")
         if not layer.isValid() or layer.providerType() != "memory":
             _restore_detached_layers(detached)
-            return [], f"Could not release layer '{state['name']}' before replacing {os.path.basename(path)}."
-    return detached, ""
+            return [], tool_error(f"Could not release layer '{state['name']}' before replacing "
+                                  f"{os.path.basename(path)}.")
+    return detached, {}
 
 
 def _restore_detached_layers(states: list[dict]) -> list[str]:
@@ -1296,20 +1289,21 @@ def _style_into_export(layer, path: str, driver: str, table: str) -> dict:
             "note": "the table opens with this layer's style in any QGIS project (its default style)"}
 
 
-def _publish_export(staging: str, path: str, driver: str) -> tuple[str, list[str]]:
+def _publish_export(staging: str, path: str, driver: str) -> tuple[dict, list[str]]:
 
     if driver != "GPKG" or not os.path.exists(path):
-        return _publish_staged_write(staging, path), []
+        written = _publish_staged_write(staging, path)
+        return (_export_failure(path, written, lead="") if written else {}), []
     states, detach_error = _detach_vector_layers_at_path(path)
     if detach_error:
         return detach_error, []
     try:
-        publish_error = _publish_staged_write(staging, path)
+        written = _publish_staged_write(staging, path)
     finally:
         failed = _restore_detached_layers(states)
     if failed:
-        return (f"The export was written, but these layers could not be refreshed: {', '.join(failed)}", [])
-    return publish_error, [state["name"] for state in states]
+        return tool_error(f"The export was written, but these layers could not be refreshed: {', '.join(failed)}"), []
+    return (_export_failure(path, written, lead="") if written else {}), [state["name"] for state in states]
 
 
 def _discard_staged_write(staging: str) -> None:
@@ -1354,7 +1348,7 @@ def _collapse_repeats(error_msg: str) -> tuple[str, int]:
     return " ".join(kept), max(counts.values())
 
 
-def _export_failure_message(path: str, error_msg: str) -> str:
+def _export_failure(path: str, error_msg: str, lead: str = "Export failed: ") -> dict:
 
 
 
@@ -1363,19 +1357,14 @@ def _export_failure_message(path: str, error_msg: str) -> str:
 
 
     if IS_WINDOWS and os.path.exists(path) and "already exists" in (error_msg or "").lower():
-        return (f"Export failed: {error_msg} On Windows a file that a loaded layer still holds "
-                f"cannot be replaced: the layer reading {os.path.basename(path)} holds it, and a "
-                f"different file name avoids it.")
+        return tool_error(f"{lead}{error_msg}", hint="export_file_held", file=os.path.basename(path))
     collapsed, repeats = _collapse_repeats(error_msg)
     if _NON_FINITE_PHRASE in (error_msg or ""):
         many = f"{repeats} features hold" if repeats > 1 else "A feature holds"
-        return (f"Export failed: {collapsed} {many} a coordinate that is NaN or infinite, which no "
-                f"OGR format can write; the rest of the layer was not written either. Such "
-                f"coordinates come from a transform or a calculation that failed upstream, so they "
-                f"cannot be repaired by reprojecting again: find them with check_geometry_validity, "
-                f"drop them (run_processing native:extractbyexpression with "
-                f"is_valid($geometry) AND $geometry IS NOT NULL) and export the result.")
-    return f"Export failed: {collapsed}"
+        return tool_error(f"{lead}{collapsed} {many} a coordinate that is NaN or infinite, which no OGR "
+                          "format can write; the rest of the layer was not written either.",
+                          hint="export_non_finite_coordinates", features=repeats)
+    return tool_error(f"{lead}{collapsed}")
 
 
 
@@ -1472,7 +1461,10 @@ def commit_failure_error(layer, errors: list, suggestion: str = "", hint: str = 
             f"Commit failed: {collapsed}",
             code="EXECUTION_FAILED", hint="shapefile_field_stored_short", max_chars=SHAPEFILE_FIELD_NAME_MAX,
         )
-    return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED", hint=hint,
+    if hint:
+
+        return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED", hint=hint)
+    return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED",
                       suggestion=suggestion or "The layer is unchanged; read the message and change the approach.")
 
 
@@ -1667,7 +1659,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
         _discard_staged_write(staging)
         return None
     return {"task_id": task_id, "status": "running", "exporting": path, "feature_count": count,
-            "note": "Writing in the background, QGIS stays responsive. Poll get_task_status(task_id).",
+            **coded_fact(hint="export_running", task_id=task_id),
             "poll": {"tool": "get_task_status", "args": {"task_id": task_id},
                      "interval_s": 0.4, "label": f"Writing {os.path.basename(path)}"}}
 
@@ -1704,8 +1696,7 @@ def _misspelt_folder(path: str) -> dict | None:
             return tool_error(
                 f"The folder {folder} does not exist, and the project already reads {os.path.basename(source)} "
                 f"from {source} (layer {layer.name()!r}). Nothing was written.",
-                "INVALID_ARGS",
-                f"path {source!r}, copied exactly, writes into that file.",
+                "INVALID_ARGS", hint="export_folder_misspelt", existing_path=source,
             )
     return None
 
@@ -1723,11 +1714,9 @@ def _export_raster(layer, path: str, args: dict) -> dict:
     if args.get("crs") and args["crs"] != layer.crs().authid():
         return tool_error(
             f"export_layer copies a raster on its own grid and does not reproject it ({layer.crs().authid()} "
-            f"to {args['crs']}).", "INVALID_ARGS",
-            "run_processing gdal:warpreproject with this path as OUTPUT reprojects it.")
+            f"to {args['crs']}).", "INVALID_ARGS", hint="export_raster_reproject", path=path)
     if os.path.exists(path) and not args.get("overwrite"):
-        return tool_error(f"{path} already exists.", "INVALID_ARGS",
-                          "overwrite true replaces it with the user's agreement, or another path avoids it.")
+        return tool_error(f"{path} already exists.", "INVALID_ARGS", hint="export_raster_exists", path=path)
     source = layer.source().split("|", 1)[0]
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     staging = _staging_path(path)
@@ -1802,9 +1791,7 @@ def _csv_geometry(layer) -> tuple[str, list[str]] | dict:
     return tool_error(
         f"Layer '{layer.name()}' already has a field named {by_name['wkt']}, the name the CSV geometry column "
         f"would take, so the file could not be read back. Nothing was written.",
-        "INVALID_ARGS",
-        "rename_field frees the name; .gpkg or .geojson have no such column; geometryless true "
-        "writes the attributes only.",
+        "INVALID_ARGS", hint="csv_geometry_column_clash", field=by_name["wkt"], layer=layer.name(),
     )
 
 
@@ -1839,7 +1826,7 @@ def _export_layer(args: dict) -> dict:
         return export_dxf(layer, path, args)
     if ext == ".dwg":
         return tool_error("QGIS cannot write DWG: GDAL reads it but has no DWG writer.", "INVALID_ARGS",
-                          ".dxf is written; AutoCAD opens it and saves it as DWG.")
+                          hint="dwg_not_writable")
     driver_map = {
         ".gpkg": "GPKG",
         ".geojson": "GeoJSON",
@@ -1995,14 +1982,14 @@ def _export_layer(args: dict) -> dict:
 
     if error_code != enum_member(QgsVectorFileWriter, "WriterError", "NoError"):
         _discard_staged_write(staging)
-        return {"_error": _export_failure_message(path, error_msg)}
+        return _export_failure(path, error_msg)
 
-    publish_error, refreshed = _publish_export(staging, path, driver)
-    if publish_error:
+    publish_failure, refreshed = _publish_export(staging, path, driver)
+    if publish_failure:
         _discard_staged_write(staging)
-        return {"_error": f"The export was written but could not be put in place at {path}: {publish_error}",
-                "_code": "EXECUTION_FAILED",
-                "suggestion": _export_failure_message(path, publish_error)}
+        return {**publish_failure,
+                "_error": f"The export was written but could not be put in place at {path}: "
+                          f"{publish_failure['_error']}"}
 
     if shapefile_mapping:
         expected_names = [shapefile_mapping[field.name()] for field in layer.fields()]
@@ -2017,10 +2004,9 @@ def _export_layer(args: dict) -> dict:
         out["geometry_written"] = geometry_written
     if shapefile_mapping and any(old != new for old, new in shapefile_mapping.items()):
         out["field_name_mapping"] = shapefile_mapping
-        out["warning"] = (
-            "ESRI Shapefile field names are limited to 10 ASCII characters. "
-            "The export used the explicit mapping in field_name_mapping; the source layer was not changed."
-        )
+        out["warning"] = ("The export used the explicit mapping in field_name_mapping; the source layer was "
+                          "not changed.")
+        out.update(coded_fact(hint="shapefile_field_names_mapped", max_chars=SHAPEFILE_FIELD_NAME_MAX))
     if driver == "GPKG":
         out["layer_name_in_file"] = options.layerName
         out.update(_style_into_export(layer, path, driver, options.layerName))
@@ -2119,11 +2105,7 @@ def _add_field(args: dict) -> dict:
             return tool_error(
                 f"Layer '{layer.name()}' {has}; "
                 "populating a new field with an expression would freeze QGIS.",
-                code="INVALID_ARGS",
-                suggestion=(
-                    "run_processing on 'qgis:fieldcalculator' avoids that; add_field without an "
-                    "expression also works, populated separately."
-                ),
+                code="INVALID_ARGS", hint="field_expression_loop_ceiling",
             )
 
 
@@ -2136,8 +2118,7 @@ def _add_field(args: dict) -> dict:
     if layer.isEditCommandActive():
         return tool_error(
             f"Layer {layer.name()!r} has an active QGIS edit command.",
-            code="INVALID_ARGS",
-            suggestion="Finish or cancel the current digitizing operation, then add_field can own its edit command.",
+            code="INVALID_ARGS", hint="edit_command_active",
         )
 
 
@@ -2174,14 +2155,11 @@ def _add_field(args: dict) -> dict:
             except Exception:  # noqa: BLE001
                 same_type = True
             if existing_kind and not same_type:
-                return {
-                    "_error": (f"Layer {layer.name()!r} already has a field named {field_name!r}, and it is "
-                               f"{existing_kind}, not {kind}."),
-                    "_code": "INVALID_ARGS",
-                    "existing_type": existing_kind,
-                    "suggestion": (f"Another field_name avoids this, or field_type='{existing_kind}' writes to "
-                                   f"the field as it stands."),
-                }
+                return tool_error(
+                    f"Layer {layer.name()!r} already has a field named {field_name!r}, and it is "
+                    f"{existing_kind}, not {kind}.", "INVALID_ARGS",
+                    hint="field_name_taken_other_type", existing_type=existing_kind,
+                )
         else:
 
 
@@ -2278,7 +2256,8 @@ def _add_field(args: dict) -> dict:
     if type_plan.get("type_name"):
         result["provider_type"] = type_plan["type_name"]
     if was_editing:
-        result["note"] = "added to the open edit session (not committed, commit or discard it yourself)"
+        result["note"] = "added to the open edit session, not committed"
+        result.update(coded_fact(hint="field_in_open_edit_session"))
 
     if expr is not None and _MEASURE_FUNCTIONS.intersection(expr.referencedFunctions()):
         from qgis.core import QgsUnitTypes

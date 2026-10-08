@@ -55,7 +55,7 @@ from ..core.invariants import metres_per_map_unit
 from ..core.layer_order import feature_count_of
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import spatial_stats_math as sm
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 
@@ -142,20 +142,19 @@ def _check_args(args: dict) -> dict | None:
     method = str(args.get("method") or "")
     if method not in METHODS:
         return tool_error(f"method {method!r} is not one this tool runs.", "INVALID_ARGS",
-                          "getis_ord_gi_star (hot and cold spots), local_moran (clusters and outliers) "
-                          "or standard_deviational_ellipse (the direction and spread of points).")
+                          hint="spatial_stats_method", method=method)
     neighbours = str(args.get("neighbours") or "")
     if neighbours and neighbours not in NEIGHBOURS:
         return tool_error(f"neighbours {neighbours!r} is not one this tool knows.", "INVALID_ARGS",
                           "queen or rook (polygons), distance_band or k_nearest.")
     if method != "standard_deviational_ellipse" and not str(args.get("field") or "").strip():
         return tool_error(f"{method} needs the numeric field it tests.", "INVALID_ARGS",
-                          "field, for example a count from native:countpointsinpolygon.")
+                          hint="spatial_stats_field_needed", method=method)
     if method == "standard_deviational_ellipse":
         if args.get("std_devs") is not None and args.get("confidence") is not None:
             return tool_error("std_devs or confidence, not both.", "INVALID_ARGS",
-                              "std_devs 1, 2 or 3 is ArcGIS's ellipse; confidence 0.95 holds 95% of a "
-                              "bivariate normal.")
+                              hint="spatial_stats_ellipse_spread", std_devs=args.get("std_devs"),
+                              confidence=args.get("confidence"))
         if args.get("std_devs") is not None and args.get("std_devs") not in (1, 2, 3):
             return tool_error("std_devs is 1, 2 or 3.", "INVALID_ARGS", "1, 2 or 3.")
         confidence = args.get("confidence")
@@ -172,7 +171,7 @@ def _check_args(args: dict) -> dict | None:
                 raise ValueError
         except (TypeError, ValueError):
             return tool_error("distance is a positive number of metres.", "INVALID_ARGS",
-                              "Left out, the tool picks the smallest band that gives every feature a neighbour.")
+                              hint="spatial_stats_distance_default", distance=str(args.get("distance")))
     if args.get("k") is not None and (not isinstance(args["k"], int) or args["k"] < 1):
         return tool_error("k is a whole number of neighbours, 1 or more.", "INVALID_ARGS", "Left out, it is 8.")
     return None
@@ -201,7 +200,8 @@ def _field(layer, name: str, role: str, numeric: bool):
     if numeric and not _numeric(field):
         return None, tool_error(
             f"{field.name()!r} of {layer.name()} is {field.typeName()}, and the {role} must be a number.",
-            "INVALID_ARGS", "field_calculator with to_real() makes a numeric field from text.")
+            "INVALID_ARGS", hint="spatial_stats_field_not_numeric", layer=layer.name(), field=field.name(),
+            field_type=field.typeName(), role=role)
     return index, None
 
 
@@ -213,7 +213,7 @@ def _plan(args: dict) -> dict:
         return _layer_not_found_error(ref)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
-                          "A point or polygon layer works; zonal_statistics aggregates a raster to polygons first.")
+                          hint="spatial_stats_not_vector", layer=layer.name())
     kind = _geometry_kind(layer)
     if not kind:
         return tool_error(f"{layer.name()} has no geometry.", "INVALID_ARGS",
@@ -230,7 +230,8 @@ def _plan(args: dict) -> dict:
                     return refused
                 plan[key] = {"name": layer.fields().at(index).name(), "index": index}
         if args.get("field"):
-            plan["notes"].append("field is not read by the ellipse; pass weight_field to weight the points.")
+            plan["notes"].append("field is not read by the ellipse.")
+            plan["coded"] = coded_fact(hint="spatial_stats_ellipse_field_ignored", field=str(args.get("field")))
         neighbours = ""
         if kind != "point":
             plan["notes"].append(f"{layer.name()} holds {kind}s, so the ellipse is drawn around their centroids.")
@@ -244,7 +245,8 @@ def _plan(args: dict) -> dict:
             neighbours = "queen" if kind == "polygon" else "distance_band"
         if neighbours in ("queen", "rook") and kind != "polygon":
             return tool_error(f"{neighbours} contiguity needs polygons, and {layer.name()} holds {kind}s.",
-                              "INVALID_ARGS", "neighbours distance_band or k_nearest, or none.")
+                              "INVALID_ARGS", hint="spatial_stats_contiguity_kind", neighbours=neighbours,
+                              layer=layer.name(), kind=kind)
         if kind != "polygon" or neighbours in ("distance_band", "k_nearest"):
             if kind != "point":
                 plan["notes"].append(f"Distances are measured between the {kind}s' centroids.")
@@ -277,7 +279,7 @@ def _plan(args: dict) -> dict:
         centre = _centre_lonlat(layer)
         if centre is None:
             return tool_error(f"{layer.name()} is in degrees and its extent is empty.", "INVALID_ARGS",
-                              "native:reprojectlayer gives it a metric CRS.")
+                              hint="spatial_stats_degrees_empty", layer=layer.name(), crs=crs.authid())
         utm = QgsCoordinateReferenceSystem(_utm_authid(*centre))
         plan["transform"] = QgsCoordinateTransform(crs, utm, QgsProject.instance().transformContext())
         plan["work_crs"] = utm
@@ -322,8 +324,7 @@ def _too_many(plan: dict, count: int) -> dict:
     return tool_error(
         f"{plan['layer']} has {count:,} features, over the {plan['max_features']:,} one spatial_statistics call "
         "reads (SPATIAL_STATS_MAX_FEATURES).", "INVALID_ARGS",
-        "Aggregate first (points: native:countpointsinpolygon over a grid from native:creategrid, then test the "
-        "counts), or select an area and pass selected_only true.")
+        hint="spatial_stats_too_many", layer=plan["layer"], count=count, cap=plan["max_features"], kind=plan["kind"])
 
 
 def _display_field(layer) -> str:
@@ -529,13 +530,14 @@ def _analyse(plan: dict, rows: list, cancelled) -> dict:
     if max(values) == min(values):
         return {"_refusal": tool_error(
             f"Every feature has {plan['field']['name']} = {values[0]:g}, so nothing stands out to test.",
-            "INVALID_ARGS", "A field whose values differ, such as a count per cell.")}
+            "INVALID_ARGS", hint="spatial_stats_constant_field", field=plan["field"]["name"], value=values[0])}
     try:
         neighbours, facts = _neighbours(plan, usable, cancelled)
     except sm.TooManyLinks as exc:
         return {"_refusal": tool_error(
             f"The distance band links about {exc.links:,} pairs of features, over the {exc.limit:,} one call holds.",
-            "INVALID_ARGS", "neighbours k_nearest (k 8), or a smaller distance.")}
+            "INVALID_ARGS", hint="spatial_stats_too_many_links", links=exc.links, limit=exc.limit,
+            distance=plan.get("distance"))}
     islands = [row for row, near in zip(usable, neighbours) if not near]
     facts["neighbours_per_feature"] = _cardinality(neighbours)
     summary["neighbours"] = facts
@@ -545,7 +547,8 @@ def _analyse(plan: dict, rows: list, cancelled) -> dict:
     if len(islands) == len(usable):
         return {"_refusal": tool_error(
             f"No feature of {plan['layer']} has a neighbour with neighbours {plan['neighbours']}.", "INVALID_ARGS",
-            "Polygons that do not touch need neighbours distance_band or k_nearest.")}
+            hint="spatial_stats_no_neighbours", layer=plan["layer"], neighbours=plan["neighbours"],
+            kind=plan["kind"])}
     if plan["method"] == "getis_ord_gi_star":
         return _gi(plan, usable, values, neighbours, summary)
     return _moran(plan, usable, values, neighbours, summary, cancelled)
@@ -881,6 +884,8 @@ def _spatial_statistics(args: dict) -> dict:
         result["distance_crs"] = plan["work_crs"].authid() or "the layer's own coordinates"
     if plan["notes"]:
         result["note"] = " ".join(plan["notes"])
+    if plan.get("coded"):
+        result.update(plan["coded"])
     result["seconds"] = round(time.monotonic() - started, 1)
     return result
 

@@ -54,7 +54,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorLayerTemporalProperties,
 )
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, Qt, QTime
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, Qt, QTime, QTimeZone
 
 from ..core import net
 from ..core.background import run_on_main_thread
@@ -355,7 +355,10 @@ def _moment(value: QDateTime) -> int:
 
 
 def _qdt(moment: int) -> QDateTime:
-    return QDateTime(QDate.fromJulianDay(moment // _DAY_MS), QTime.fromMSecsSinceStartOfDay(moment % _DAY_MS))
+
+
+    return QDateTime(QDate.fromJulianDay(moment // _DAY_MS), QTime.fromMSecsSinceStartOfDay(moment % _DAY_MS),
+                     QTimeZone.utc())
 
 
 def _unit(name: str):

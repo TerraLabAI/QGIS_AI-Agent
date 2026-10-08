@@ -368,6 +368,9 @@ def register_core_tools(registry: ToolRegistry):
 
 
             "x-field-expression": True,
+
+
+            "x-group-by-expression": True,
         },
         handler=_get_field_statistics,
 

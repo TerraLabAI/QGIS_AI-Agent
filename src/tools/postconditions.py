@@ -83,57 +83,24 @@ class _Coded(str):
 
 
 
-_JOIN_ALGORITHMS = frozenset({
-    "native:joinattributestable", "qgis:joinattributestable",
-    "native:joinattributesbylocation", "qgis:joinattributesbylocation",
-    "native:joinbylocationsummary", "qgis:joinbylocationsummary",
-    "native:joinbynearest",
-})
+_JOIN_ALGORITHMS = frozenset()
 
 
-_OVERLAY_ALGORITHMS = frozenset({
-    "native:clip", "qgis:clip",
-    "native:intersection", "qgis:intersection",
-    "native:difference", "qgis:difference",
-    "native:symmetricaldifference",
-    "native:extractbylocation", "qgis:extractbylocation",
-    "native:joinattributesbylocation", "qgis:joinattributesbylocation",
-    "native:joinbylocationsummary",
-    "native:splitwithlines", "native:clipvectorbyextent",
-    "gdal:cliprasterbymasklayer",
-})
+_OVERLAY_ALGORITHMS = frozenset()
 
 _OVERLAY_PARAMS = ("OVERLAY", "CLIP", "JOIN", "INTERSECT", "MASK", "LINES")
 
-_REDUCES_ROWS = frozenset({
-    "native:dissolve", "qgis:dissolve", "native:aggregate", "native:collect",
-    "native:deleteduplicategeometries", "native:removeduplicatesbyattribute",
-})
-_PRESERVES_ROWS = frozenset({
-    "native:fieldcalculator", "qgis:fieldcalculator", "native:refactorfields",
-    "native:reprojectlayer", "qgis:reprojectlayer", "native:buffer",
-    "native:centroids", "native:assignprojection", "native:setzvalue",
-    "native:setmvalue", "native:addfieldtoattributestable", "native:renametablefield",
-})
+_REDUCES_ROWS = frozenset()
+_PRESERVES_ROWS = frozenset()
 
 
 
-_NEVER_GROWS = frozenset({
-    "native:clip", "qgis:clip", "native:clipvectorbyextent",
-    "native:extractbylocation", "qgis:extractbylocation",
-    "native:extractbyattribute", "qgis:extractbyattribute",
-    "native:extractbyexpression", "qgis:extractbyexpression",
-    "native:randomextract",
-})
+_NEVER_GROWS = frozenset()
 
 
 
 
-_FIELD_TO_A_COPY = frozenset({
-    "native:fieldcalculator", "qgis:fieldcalculator",
-    "native:addfieldtoattributestable", "qgis:addfieldtoattributestable",
-    "native:refactorfields",
-})
+_FIELD_TO_A_COPY = frozenset()
 
 
 
@@ -144,14 +111,10 @@ _FIELD_TO_A_COPY = frozenset({
 
 
 
-_RASTER_PRESERVES = frozenset({
-    "gdal:cliprasterbymasklayer", "gdal:cliprasterbyextent", "gdal:translate",
-    "gdal:warpreproject", "gdal:buildvirtualraster", "gdal:merge",
-    "native:cliprasterbyextent", "native:fillnodata",
-})
+_RASTER_PRESERVES = frozenset()
 
 
-_RASTER_MASKED = frozenset({"gdal:cliprasterbymasklayer"})
+_RASTER_MASKED = frozenset()
 
 _RESOLUTION_PARAMS = ("TR", "TARGET_RESOLUTION", "RESOLUTION", "XRES", "YRES", "CELL_SIZE", "PIXEL_SIZE")
 
@@ -160,6 +123,8 @@ _RASTER_SAMPLE_PIXELS = 250_000
 
 
 _PIXEL_SIZE_TOLERANCE = 0.01
+
+
 
 
 

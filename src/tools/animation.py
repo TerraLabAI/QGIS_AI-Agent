@@ -56,6 +56,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import background, limits, net, output_paths, security
 from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_quietly, retry_file_op
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 TOOL = "make_animation"
@@ -156,17 +157,14 @@ def _check_args(args: dict) -> dict | None:
     asked = str(args.get("frames_folder") or "").strip()
     if not asked:
         return tool_error("frames_folder is required: make_animation does not keep a session's last export.",
-                          "INVALID_ARGS",
-                          "export_animation_frames answers out_dir; QGIS's own "
-                          "Export Animation also writes a folder.")
+                          "INVALID_ARGS", hint="frames_folder_source")
     folder = security.expand_path(asked)
     if not os.path.isdir(folder):
-        return tool_error(f"{folder} is not a folder.", "INVALID_ARGS",
-                          "export_animation_frames (out_dir) or Export Animation gives the frames folder.")
+        return tool_error(f"{folder} is not a folder.", "INVALID_ARGS", hint="frames_folder_source")
     error = security.validate_path(folder, write=False)
     if error:
-        return tool_error(error, "PERMISSION_DENIED", "Frames folders sit under your home folder or the "
-                                                       "project folder.")
+        return tool_error(error, "PERMISSION_DENIED", "" if isinstance(error, CodedText)
+                          else "Frames folders sit under your home folder or the project folder.")
     return None
 
 
@@ -203,7 +201,7 @@ def _frame_sizes(gdal, frames: list[str], cancelled) -> list[tuple[int, int]] | 
         dataset = _gdal_open(gdal, path)
         if dataset is None:
             return tool_error(f"{os.path.basename(path)} could not be opened as an image.", "EXECUTION_FAILED",
-                              "A partial export leaves an unreadable PNG behind.")
+                              hint="partial_export_png")
         sizes.append((dataset.RasterXSize, dataset.RasterYSize))
         dataset = None
         background.breathe(index)
@@ -255,7 +253,7 @@ def _build_palette(gdal, frames: list[str], sizes: list[tuple[int, int]], cancel
             if data is None:
                 return tool_error(f"{os.path.basename(frames[frame_index])} could not be read for the palette: "
                                   "its pixel data looks truncated.", "EXECUTION_FAILED",
-                                  "A partial export leaves an incomplete PNG behind.")
+                                  hint="partial_export_png")
             mosaic.GetRasterBand(band + 1).WriteRaster(tile * _MOSAIC_TILE_W, 0, tile_w, tile_h, data)
         tile_ds = None
     colours = gdal.ColorTable()
@@ -380,8 +378,8 @@ def _write_gif(part_path: str, frame_blocks: list, table: bytes, canvas_w: int, 
                 fits = max(1, ceiling // per_frame)
                 failure = limits.refusal(
                     "The GIF", f"over {written:,} bytes at {index + 1} of {total} frames",
-                    f"{ceiling:,} bytes",
-                    f"Make about {fits:,} frames at this size and width, or pass a smaller width.")
+                    f"{ceiling:,} bytes", "")
+                failure.update(hint="gif_bytes_ceiling", frames_fit=int(fits))
                 break
         else:
             emit(bytes([_TRAILER]))
@@ -463,8 +461,8 @@ def _encode_mp4(ffmpeg: str, frames: list[str], fps: float, width: int | None, h
             timeout=timeout_s, **kwargs)
     except subprocess.TimeoutExpired:
         remove_quietly(part_path)
-        return tool_error(f"ffmpeg did not finish the MP4 within {timeout_s:.0f} s.", "EXECUTION_FAILED",
-                          "Fewer frames or a smaller width fit the timeout; the GIF this call made already stands.")
+        return tool_error(f"ffmpeg did not finish the MP4 within {timeout_s:.0f} s; the GIF this call made "
+                          "already stands.", "EXECUTION_FAILED", hint="mp4_timeout", timeout_s=int(timeout_s))
     except OSError as exc:
         remove_quietly(part_path)
         return tool_error(f"ffmpeg could not be started: {exc}", "EXECUTION_FAILED",
@@ -481,7 +479,7 @@ def _encode_mp4(ffmpeg: str, frames: list[str], fps: float, width: int | None, h
     except OSError as exc:
         remove_quietly(part_path)
         return tool_error(f"The MP4 was encoded but could not be moved to {mp4_target}: {exc}", "EXECUTION_FAILED",
-                          "Another program may hold that name open.")
+                          hint="output_name_held")
     return {"path": mp4_target, "size_bytes": os.path.getsize(mp4_target)}
 
 
@@ -515,8 +513,7 @@ def _targets(args: dict, frames_folder: str):
             taken = expanded if os.path.exists(expanded) else mp4_candidate if os.path.exists(mp4_candidate) else None
             if taken:
                 return None, None, tool_error(f"{taken} already exists.", "INVALID_ARGS",
-                                              "The file exists; overwrite true replaces it, or a new "
-                                              "file name keeps it, the user's call.")
+                                              hint="animation_output_exists", path=taken)
         gif_path = expanded
         mp4_path = mp4_candidate
     else:
@@ -532,13 +529,12 @@ def _targets(args: dict, frames_folder: str):
             if not os.path.exists(gif_candidate) and not os.path.exists(mp4_candidate):
                 error = security.validate_path(gif_candidate, write=True)
                 if error:
-                    return None, None, tool_error(error, "PERMISSION_DENIED",
-                                                  "output_path sits under your home folder.")
+                    return None, None, tool_error(error, "PERMISSION_DENIED", hint="georef_no_writable_folder")
                 gif_path, mp4_path = gif_candidate, mp4_candidate
                 break
         if gif_path is None:
             return None, None, tool_error(f"{folder} already holds 999 animations named {stem}.", "INVALID_ARGS",
-                                          "output_path needs a new name.")
+                                          hint="chart_name_space_full", folder=folder, stem=stem)
     return gif_path, mp4_path, None
 
 
@@ -563,9 +559,7 @@ def _make_animation(args: dict) -> dict:
     if not frames:
         return tool_error(f"No numbered PNG frames were found in {folder}"
                           + (f" starting with {args['prefix']!r}" if args.get("prefix") else "") + ".",
-                          "INVALID_ARGS",
-                          "export_animation_frames (out_dir) or Export Animation names the folder; prefix "
-                          "narrows it when several exports share one.")
+                          "INVALID_ARGS", hint="frames_folder_source", variant="prefix")
 
     fps = args.get("fps")
     if fps is None:
@@ -594,12 +588,12 @@ def _make_animation(args: dict) -> dict:
             biggest = max(w * h for w, h in target_sizes) or 1
             frames_that_fit = max(1, ceiling // biggest)
             narrower = max(16, int((ceiling / len(frames)) ** 0.5)) if frames else 16
-            return limits.refusal(
+            refused = limits.refusal(
                 "The animation", f"{len(frames):,} frames of up to {max(w for w, h in target_sizes):,} by "
                 f"{max(h for w, h in target_sizes):,} pixels ({total_pixels:,} pixels in all)",
-                f"{ceiling:,} pixels in all",
-                f"Export about {frames_that_fit:,} frames at this size, or pass width {narrower:,} to keep every "
-                f"frame.")
+                f"{ceiling:,} pixels in all", "")
+            refused.update(hint="animation_pixels_ceiling", frames_fit=int(frames_that_fit), width_fit=int(narrower))
+            return refused
 
         gif_path, mp4_path, refusal = _targets(args, folder)
         if refusal:
@@ -621,14 +615,12 @@ def _make_animation(args: dict) -> dict:
                                                   f"{index}", vsimem_paths)
                 if data is None:
                     return tool_error(f"{os.path.basename(path)} could not be dithered or written.",
-                                      "EXECUTION_FAILED", "The frame may be unreadable, or disk lacks room "
-                                                          "for the temporary work.")
+                                      "EXECUTION_FAILED", hint="frame_dither_failed")
                 try:
                     parsed_w, parsed_h, table, block = _read_frame_gif(data)
                 except (ValueError, IndexError):
                     return tool_error(f"{os.path.basename(path)} produced a GIF this tool could not parse back.",
-                                      "EXECUTION_FAILED",
-                                      "A partial export leaves a truncated PNG behind.")
+                                      "EXECUTION_FAILED", hint="partial_export_png")
                 if index == 0:
                     global_table = table
                 frame_blocks.append((parsed_w, parsed_h, block))
@@ -639,6 +631,13 @@ def _make_animation(args: dict) -> dict:
     finally:
         gdal.PopErrorHandler()
 
+
+
+    try:
+        os.makedirs(os.path.dirname(gif_path) or ".", exist_ok=True)
+    except OSError as exc:
+        return tool_error(f"The folder for {gif_path} could not be created: {exc}", "EXECUTION_FAILED",
+                          "output_path can name a folder that exists.")
     part_path = gif_path + ".part"
     if not security.fits_path(part_path):
         part_path = os.path.join(os.path.dirname(gif_path), f".make_animation_{uuid.uuid4().hex[:12]}.gif.part")
@@ -652,7 +651,7 @@ def _make_animation(args: dict) -> dict:
     except OSError as exc:
         remove_quietly(part_path)
         return tool_error(f"The GIF was written but could not be moved to {gif_path}: {exc}", "EXECUTION_FAILED",
-                          "Another program may hold that name open.")
+                          hint="output_name_held")
 
     result = {
         "path": gif_path, "size_bytes": gif_bytes,
@@ -667,8 +666,8 @@ def _make_animation(args: dict) -> dict:
     ffmpeg = _find_ffmpeg()
     if ffmpeg is None:
         result["mp4"] = None
-        result["note"] = "No ffmpeg executable was found on this machine, so only the GIF was made. Installing " \
-                          "ffmpeg (ffmpeg.org) and calling make_animation again would also make an MP4."
+        result["note"] = "No ffmpeg executable was found on this machine, so only the GIF was made."
+        result["note_hint"] = "ffmpeg_missing"
         return result
     mp4_outcome = _encode_mp4(ffmpeg, frames, fps, width_arg, hold_last_s, mp4_path)
     if "_error" in mp4_outcome:

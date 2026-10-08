@@ -26,6 +26,12 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 import hmac
@@ -42,6 +48,7 @@ from .policy import AGENT_HOME, ensure_agent_directories
 from .qt_compat import enum_member
 
 PORTS = tuple(range(47821, 47831))
+PAIRING_PATH = "/terralab/signed-in"
 MAX_REQUEST_BYTES = 4096
 _TOKEN_FILE = os.path.join(AGENT_HOME, "report-bridge-token")
 _HEADERS = ("HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\n"
@@ -79,6 +86,10 @@ class ReportBridge(QObject):
         self._server: QTcpServer | None = None
         self._token: str | None = None
         self.port = 0
+
+        self.pairing_handler = None
+
+        self.for_pairing_only = False
 
 
 
@@ -121,6 +132,9 @@ class ReportBridge(QObject):
                 break
             socket.readyRead.connect(lambda s=socket: self._on_ready(s))
             socket.disconnected.connect(socket.deleteLater)
+            if socket.bytesAvailable() > 0:
+
+                self._on_ready(socket)
 
     def _on_ready(self, socket) -> None:
         try:
@@ -141,6 +155,13 @@ class ReportBridge(QObject):
                 self._reply(socket, 405, {"ok": False, "error": "GET only"})
                 return
             url = urlsplit(target)
+            if url.path == PAIRING_PATH:
+                handler = self.pairing_handler
+                if handler is None:
+                    self._reply(socket, 404, {"ok": False, "error": "unknown path"})
+                    return
+                handler(socket, {k: v[0] for k, v in parse_qs(url.query, keep_blank_values=True).items()})
+                return
             if url.path != "/qgis":
                 self._reply(socket, 404, {"ok": False, "error": "unknown path"})
                 return
@@ -192,7 +213,56 @@ def ensure_started() -> tuple[int, str] | None:
         _BRIDGE = ReportBridge()
     if not _BRIDGE.start():
         return None
+    _BRIDGE.for_pairing_only = False
     return _BRIDGE.port, _BRIDGE.token
+
+
+def open_pairing_route(handler) -> int | None:
+
+
+    global _BRIDGE
+    if _BRIDGE is None:
+        _BRIDGE = ReportBridge()
+    was_running = _BRIDGE.port != 0
+    if not _BRIDGE.start():
+        return None
+    if not was_running:
+        _BRIDGE.for_pairing_only = True
+    _BRIDGE.pairing_handler = handler
+    return _BRIDGE.port
+
+
+def close_pairing_route(handler) -> None:
+
+
+    bridge = _BRIDGE
+    if bridge is None or bridge.pairing_handler != handler:
+        return
+    bridge.pairing_handler = None
+    if bridge.for_pairing_only:
+        from qgis.PyQt.QtCore import QTimer
+
+        QTimer.singleShot(2000, _stop_if_unused)
+
+
+def _stop_if_unused() -> None:
+    bridge = _BRIDGE
+    if bridge is not None and bridge.for_pairing_only and bridge.pairing_handler is None:
+        bridge.stop()
+        bridge.for_pairing_only = False
+
+
+def write_http(socket, status_line: str, headers: list[tuple[str, str]], body: bytes) -> None:
+
+
+    head = f"HTTP/1.1 {status_line}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers)
+    head += f"Connection: close\r\nContent-Length: {len(body)}\r\n\r\n"
+    try:
+        socket.write(head.encode("ascii") + body)
+        socket.flush()
+        socket.disconnectFromHost()
+    except RuntimeError:
+        pass
 
 
 def shutdown() -> None:

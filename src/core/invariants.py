@@ -326,8 +326,9 @@ def unit_still_wrong(layer_id: str, field_name: str) -> bool | None:
 
 
 
-_SLOPE = frozenset({"native:slope", "qgis:slope", "gdal:slope"})
-_ASPECT = frozenset({"native:aspect", "qgis:aspect", "gdal:aspect"})
+
+_SLOPE = frozenset()
+_ASPECT = frozenset()
 
 _CALCULATORS = {"native:rastercalc": "EXPRESSION", "qgis:rastercalculator": "EXPRESSION",
                 "native:virtualrastercalc": "EXPRESSION", "gdal:rastercalculator": "FORMULA"}
@@ -422,8 +423,8 @@ def index_range(layer, expected: tuple[float, float, str] | None) -> dict | None
 
 
 
-_CLIPS_TO_OVERLAY = frozenset({"native:clip", "qgis:clip", "native:intersection", "qgis:intersection"})
-_ZONAL_HISTOGRAM = frozenset({"native:zonalhistogram", "qgis:zonalhistogram"})
+_CLIPS_TO_OVERLAY = frozenset()
+_ZONAL_HISTOGRAM = frozenset()
 
 
 def _area_sum(layer, limit: int, budget) -> float | None:
@@ -567,8 +568,8 @@ def _raster_of(value):
 
 
 
-_CLIP_VECTOR = frozenset({"native:clip", "qgis:clip"})
-_CLIP_RASTER = frozenset({"gdal:cliprasterbymasklayer"})
+_CLIP_VECTOR = frozenset()
+_CLIP_RASTER = frozenset()
 
 
 def clip_extent(algorithm_id: str, parameters: dict, output_layer, overlay_layer) -> dict | None:

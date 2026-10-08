@@ -29,6 +29,7 @@ from qgis.PyQt.QtGui import QImage
 
 from ..core import limits
 from ..core.security import expand_path, validate_path
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
 from .data_tools import _safe_filename
@@ -383,7 +384,8 @@ def _configure_atlas(args: dict) -> dict:
         "page_names": _leading_page_names(atlas, 5),
     }
     if driven == 0:
-        summary["note"] = "no map frame follows the atlas yet; add_layout_map adds one for the atlas to drive"
+        summary["note"] = ("no map frame in the layout follows the atlas; a frame follows it when "
+                           "configure_atlas runs with that frame already in the layout")
     if wanted_scale is not None:
         summary["scale"] = int(wanted_scale)
         summary["scale_mode"] = "fixed"
@@ -631,7 +633,8 @@ def _export_atlas_with(args: dict, ready) -> dict:
                   if requested > max_dpi and args.get("meters_per_pixel") is None else {})
     path_error = validate_path(output_path, write=True)
     if path_error:
-        return tool_error(path_error, "INVALID_ARGS", "output_path must be writable")
+        hint = "" if isinstance(path_error, CodedText) else "output_path must be writable"
+        return tool_error(path_error, "INVALID_ARGS", hint)
 
     if args.get("filename_expression"):
         outcome = atlas.setFilenameExpression(args["filename_expression"])
@@ -900,7 +903,8 @@ def _get_3d_screenshot(args: dict) -> dict:
         keep_at = expand_path(keep_at)
         refused = validate_path(keep_at, write=True)
         if refused:
-            return tool_error(refused, "INVALID_ARGS", "save_path must be writable")
+            hint = "" if isinstance(refused, CodedText) else "save_path must be writable"
+            return tool_error(refused, "INVALID_ARGS", hint)
         png_path = keep_at
     else:
         png_path = os.path.join(tempfile.gettempdir(), f"agent_3d_{uuid.uuid4().hex[:8]}.png")

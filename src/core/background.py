@@ -528,6 +528,59 @@ def calling(tool_call_id: str):
         _CALL.tool_call_id = previous
 
 
+
+
+_EARLY_ANSWERS: dict = {}
+
+_DIALOG_LOOK_MS = 200
+
+
+@contextlib.contextmanager
+def answerable(tool_call_id: str, answer: Callable[[Any], bool]):
+
+    key = str(tool_call_id or "")
+    _EARLY_ANSWERS[key] = answer
+    try:
+        yield
+    finally:
+        _EARLY_ANSWERS.pop(key, None)
+
+
+def answer_when_dialog_opens(result: dict) -> None:
+
+
+
+
+
+
+
+
+    tool_call_id = current_call()
+    if not tool_call_id or tool_call_id not in _EARLY_ANSWERS:
+        return
+    from qgis.PyQt.QtCore import QTimer
+    from qgis.PyQt.QtWidgets import QApplication
+
+    already = QApplication.activeModalWidget()
+
+    def look() -> None:
+        answer = _EARLY_ANSWERS.get(tool_call_id)
+        if answer is None:
+            return
+        try:
+            dialog = QApplication.activeModalWidget()
+            if dialog is None or dialog is already:
+                QTimer.singleShot(_DIALOG_LOOK_MS, look)
+                return
+            title = str(dialog.windowTitle() or "")
+            if answer(dict(result, dialog_open=title)):
+                _EARLY_ANSWERS.pop(tool_call_id, None)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Early answer for {tool_call_id} not sent: {type(exc).__name__}: {exc}")
+
+    QTimer.singleShot(0, look)
+
+
 def _without_locals(exc: BaseException) -> BaseException:
 
 

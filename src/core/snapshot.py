@@ -386,6 +386,14 @@ class RunSnapshot:
 
         self.pending_sweep: list[tuple] = []
         self._swept: list = []
+
+
+
+        self._copy_lock = threading.Lock()
+
+        self._copies_taken: set[str] = set()
+
+        self.copy_progress: list = [0, 0]
         self._not_copyable: set[str] = set()
 
 
@@ -918,7 +926,10 @@ class RunSnapshot:
                 total += _backup_size(src)
             except OSError:
                 continue
-        if total <= INLINE_BACKUP_BYTES:
+
+
+
+        if total <= INLINE_BACKUP_BYTES and not self._copy_lock.locked():
             reason = _copy_files(folder, copies, label)
             if reason:
                 raise OSError(self._copy_failed(copies, label, reason))
@@ -942,25 +953,66 @@ class RunSnapshot:
     def has_pending_copies(self) -> bool:
         return bool(self.pending_copies or self.pending_sweep)
 
-    def run_pending_copies(self) -> int:
+    def take_pending_copies(self) -> tuple[list, list]:
 
 
 
 
 
-        sweep, self.pending_sweep = self.pending_sweep, []
-        if sweep:
-            self._swept.append(self._sweep(sweep))
-            if threading.current_thread() is threading.main_thread():
-                self.adopt_copies()
-        jobs, self.pending_copies = self.pending_copies, []
-        done, refusals = 0, []
-        for folder, copies, label in jobs:
-            reason = _copy_files(folder, copies, label)
-            if reason:
-                refusals.append(self._copy_failed(copies, label, reason))
-            else:
-                done += 1
+
+
+
+        sweep, jobs = self.pending_sweep, self.pending_copies
+        self.pending_sweep, self.pending_copies = [], []
+        self._copies_taken.update(dst for _folder, copies, _label in jobs for _src, dst in copies)
+        return sweep, jobs
+
+    def forget_unmade(self, taken: tuple) -> None:
+
+
+
+        for _folder, copies, label in taken[1]:
+            dsts = [dst for _src, dst in copies]
+            if any(dst in self._copies_taken for dst in dsts):
+                self._copies_taken.difference_update(dsts)
+                self._copy_failed(copies, label, "stopped")
+
+    def run_pending_copies(self, taken: tuple | None = None) -> int:
+
+
+
+
+
+
+
+
+
+
+        from . import net
+
+        stop = net.current_cancel_check() or (lambda: False)
+        with self._copy_lock:
+            sweep, jobs = taken if taken is not None else self.take_pending_copies()
+            try:
+                self.copy_progress = [0, len(sweep) + len(jobs)]
+                if sweep:
+                    self._swept.append(self._sweep(sweep, stop))
+                    if threading.current_thread() is threading.main_thread():
+                        self.adopt_copies()
+                done, refusals = 0, []
+                for folder, copies, label in jobs:
+                    if stop():
+                        self._copy_failed(copies, label, "stopped")
+                        continue
+                    reason = _copy_files(folder, copies, label)
+                    self.copy_progress[0] += 1
+                    if reason:
+                        refusals.append(self._copy_failed(copies, label, reason))
+                    else:
+                        done += 1
+            finally:
+                self._copies_taken.difference_update(
+                    dst for _folder, copies, _label in jobs for _src, dst in copies)
         if refusals:
             raise OSError("; ".join(refusals))
         return done
@@ -1008,7 +1060,7 @@ class RunSnapshot:
             listed.add(lid)
         return len(listed)
 
-    def _sweep(self, items: list) -> list:
+    def _sweep(self, items: list, stop=None) -> list:
 
 
 
@@ -1018,8 +1070,16 @@ class RunSnapshot:
 
 
         out: list = []
-        made: dict = {}
+
+
+        earlier = {row[1] for rows in self._swept for row in rows if row[0] in ("copied", "shared")}
+        made: dict = {row[3][0]: row[3][1] for rows in self._swept for row in rows if row[0] == "copied"}
         for lid, name, path in items:
+            if stop is not None and stop():
+                break
+            self.copy_progress[0] += 1
+            if lid in earlier:
+                continue
             try:
                 if not os.path.isfile(path):
                     continue
@@ -1594,6 +1654,7 @@ class RunSnapshot:
 
 
         pending = {dst for _folder, copies, _label in self.pending_copies for _src, dst in copies}
+        pending |= self._copies_taken
         groups: dict[str, list[tuple[str, str]]] = {}
         sources = [*self.backups.values(), *(record.get("copies") or [] for record in self.file_backups.values())]
         for copies in sources:

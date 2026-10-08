@@ -201,8 +201,7 @@ def closest_class_colours(renderer, touching=None) -> dict:
         return {}
     return {"closest_colours": {"classes": [colours[a][0], colours[b][0]], "delta_e": round(closest, 1),
                                 "between": between,
-                                "note": (f"colours under {_CLOSE_DELTA_E:.0f} delta E (CIE76) apart read as one "
-                                         "at a glance")}}
+                                "note": coded_fact(hint="style_close_colours", threshold=_CLOSE_DELTA_E)}}
 
 
 def _closest_pair(colours: dict):
@@ -554,5 +553,4 @@ def style_computed_hillshade(layer) -> dict:
     except Exception:  # noqa: BLE001
         return {}
     return {"renderer": "singlebandgray 0-255", "blend": "multiply" if mode is not None else "normal",
-            "note": ("already drawn as a hillshade: its values are light, not heights, so restyling "
-                     "changes only the light. Colours belong on the DEM below it.")}
+            "note": coded_fact(hint="style_hillshade_already_styled", layer=layer.name())}

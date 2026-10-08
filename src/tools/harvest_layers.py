@@ -30,6 +30,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, QLocale, Qt, Q
 from ..core import layer_order, limits
 from ..core.crs_ref import crs_ref
 from ..core.qt_compat import enum_member
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import raster_overviews
 from ._compat import (
@@ -366,8 +367,7 @@ def _vector(name: str):
     if not is_vector(layer):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a vector layer.",
-            "INVALID_ARGS",
-            "list_layers shows each layer's type; vector layers only.",
+            "INVALID_ARGS", hint="layer_not_vector", layer=layer.name(),
         )
     return layer, None
 
@@ -379,8 +379,7 @@ def _raster(name: str):
     if not is_raster(layer):
         return None, tool_error(
             f"Layer {layer.name()!r} is not a raster layer.",
-            "INVALID_ARGS",
-            "list_layers shows each layer's type; raster layers only. Vector layers use set_layer_style.",
+            "INVALID_ARGS", hint="layer_not_raster", layer=layer.name(),
         )
     return layer, None
 
@@ -524,7 +523,7 @@ def _limits_plan(args: dict) -> tuple:
         return None, None
     if limits not in RASTER_LIMITS:
         return None, tool_error(f"min_max {limits!r} is not one of {', '.join(RASTER_LIMITS)}.", "INVALID_ARGS",
-                                "The mean plus or minus N standard deviations is set_layer_symbology min_max std_dev.")
+                                hint="raster_min_max_unknown", min_max=str(limits))
     if args.get("min_value") is not None or args.get("max_value") is not None:
         if limits == "min_max" and not cut_given:
 
@@ -535,9 +534,7 @@ def _limits_plan(args: dict) -> tuple:
             return {"limits": "typed", "cut": None}, None
         return None, tool_error(
             "min_value/max_value type the range by hand; min_max cumulative_cut has QGIS compute one; "
-            "not both.", "INVALID_ARGS",
-            "min_value/max_value give the range the user asked for; min_max cumulative_cut alone gives a "
-            "computed cumulative count cut.")
+            "not both.", "INVALID_ARGS", hint="raster_range_both")
     if cut_given and limits != "cumulative_cut":
         return None, tool_error(f"cumulative_cut goes with min_max cumulative_cut, not {limits}.", "INVALID_ARGS")
     cut = None
@@ -577,9 +574,8 @@ def _band_limits(layer, band: int, plan, min_value, max_value, notes: dict, long
         return lo, hi, min_max_origin("CumulativeCut", plan["cut"]), how
     lo, hi = _band_span(provider, band, min_value, max_value)
     if plan is not None and plan["limits"] == "typed":
-        return lo, hi, min_max_origin("None"), (
-            "typed in the call (min_value/max_value) and kept as typed: min_max min_max beside them leaves the "
-            "range whole, no stretch replaces it")
+        return lo, hi, min_max_origin("None"), CodedText(
+            "typed in the call (min_value/max_value) and kept as typed", "raster_range_typed_kept")
     if plan is not None:
         return lo, hi, min_max_origin("MinMax"), "min_max: the band's minimum and maximum, computed by QGIS"
     if min_value is not None and max_value is not None and long_tail:
@@ -592,13 +588,12 @@ def _band_limits(layer, band: int, plan, min_value, max_value, notes: dict, long
         if slack > 0 and abs(lo - full_lo) <= slack and abs(hi - full_hi) <= slack:
             cut_lo, cut_hi = _long_tail(layer, band, full_lo, full_hi, notes)
             if (cut_lo, cut_hi) != (full_lo, full_hi):
-                return cut_lo, cut_hi, min_max_origin("CumulativeCut", (2, 98)), (
+                return cut_lo, cut_hi, min_max_origin("CumulativeCut", (2, 98)), CodedText(
                     "cumulative_cut 2-98 %, chosen by the tool: min_value/max_value were the band's full range "
-                    "and the band has a long tail (see stretch); min_max min_max keeps the full range")
+                    "and the band has a long tail (see stretch)", "raster_range_long_tail_cut")
     if min_value is not None or max_value is not None:
-        return lo, hi, min_max_origin("None"), (
-            "typed in the call (min_value/max_value), not a cumulative count cut; min_max cumulative_cut has "
-            "QGIS compute one")
+        return lo, hi, min_max_origin("None"), CodedText(
+            "typed in the call (min_value/max_value), not a cumulative count cut", "raster_range_typed")
     if long_tail:
         cut_lo, cut_hi = _long_tail(layer, band, lo, hi, notes)
         if (cut_lo, cut_hi) != (lo, hi):
@@ -651,12 +646,12 @@ def _style_raster(layer, args: dict) -> dict:
         return error
     if plan is not None and style_type not in ("singleband_pseudocolor", "singleband_gray", "multiband_color"):
         return tool_error(f"min_max sets the range of a gray, pseudocolor or multiband style, not {style_type}.",
-                          "INVALID_ARGS", "style_type singleband_pseudocolor (or singleband_gray) takes it.")
+                          "INVALID_ARGS", hint="raster_min_max_style", style_type=str(style_type))
     if (args.get("color_stops") or args.get("invert_ramp") is True) and style_type not in (
             "singleband_pseudocolor", "paletted"):
         return tool_error(f"color_stops and invert_ramp colour a singleband_pseudocolor or paletted style, "
-                          f"not {style_type}.", "INVALID_ARGS",
-                          "singleband_pseudocolor colours it; a gray style takes gradient white_to_black.")
+                          f"not {style_type}.", "INVALID_ARGS", hint="raster_color_stops_style",
+                          style_type=str(style_type))
     min_value, max_value = args.get("min_value"), args.get("max_value")
     notes: dict = {}
     codes: list = []
@@ -677,10 +672,10 @@ def _style_raster(layer, args: dict) -> dict:
         if codes:
             style_type = "paletted"
             shown = ", ".join(str(c) for c in codes[:8]) + (", ..." if len(codes) > 8 else "")
-            notes["style_type_changed"] = (
+            notes["style_type_changed"] = CodedText(
                 f"band {wanted} holds {len(codes)} whole-number class codes ({shown}), so each code got its own "
-                "colour (paletted) instead of a continuous ramp, which would draw a gradient between categories. "
-                "classification or min_value keeps a ramp.")
+                "colour (paletted) instead of a continuous ramp.", "raster_style_paletted_chosen", band=wanted,
+                class_count=len(codes))
     build = _RASTER_BUILDERS.get(style_type) if isinstance(style_type, str) else None
     if build is None:
         return tool_error(f"Unknown style_type: {style_type!r}.", "INVALID_ARGS", f"One of {list(RASTER_STYLES)}.")
@@ -709,10 +704,10 @@ def _style_raster(layer, args: dict) -> dict:
             opacity = float(args["opacity"])
         except (TypeError, ValueError):
             return tool_error("opacity must be a number between 0 and 1.", "INVALID_ARGS",
-                              "0.65 lets the basemap read through the surface.")
+                              hint="opacity_invalid", variant="type")
         if not 0.0 <= opacity <= 1.0:
             return tool_error(f"opacity={opacity} is outside 0 to 1.", "INVALID_ARGS",
-                              "1 is opaque, 0 invisible; 0.6 to 0.8 lets a basemap through.")
+                              hint="opacity_invalid", variant="range", opacity=opacity)
         renderer.setOpacity(opacity)
         applied["opacity"] = opacity
 
@@ -766,8 +761,7 @@ def _build_pseudocolor(job: dict) -> tuple:
     if not 2 <= classes <= _MAX_RASTER_CLASSES:
         return None, None, tool_error(
             f"classes={classes} is outside 2 to {_MAX_RASTER_CLASSES}.", "INVALID_ARGS",
-            f"A colour ramp past {_MAX_RASTER_CLASSES} classes is not readable on a map; "
-            "5 to 12 is the usual range.")
+            hint="raster_classes_range", classes=classes, max_classes=_MAX_RASTER_CLASSES)
     fallback, fallback_name = None, "Viridis"
     if not args.get("color_ramp") and not args.get("color_stops"):
         from .elevation_style import elevation_ramp, looks_like_elevation
@@ -858,9 +852,8 @@ def _build_hillshade(job: dict) -> tuple:
     if metres:
         z_factor *= metres
         applied.update({"z_factor": z_factor, "z_factor_exaggeration": applied["z_factor"],
-                        "z_factor_note": ("the DEM's cells are degrees and its heights metres: z_factor is the "
-                                          "exaggeration times 1 / (111320 * cos(latitude)), the metres per degree "
-                                          "at this layer's latitude")})
+                        "z_factor_note": CodedText("the DEM's cells are degrees and its heights metres",
+                                                   "hillshade_z_factor_degrees")})
     renderer = QgsHillshadeRenderer(job["provider"], band, light["azimuth"], light["altitude"])
     renderer.setZFactor(z_factor)
     return renderer, applied, None
@@ -878,9 +871,7 @@ def _build_paletted(job: dict) -> tuple:
     if not codes:
         return None, None, tool_error(
             f"Band {band} of {layer.name()!r} holds no whole-number classes to list (it is continuous, or has "
-            "more than 256 values).", "INVALID_ARGS",
-            "singleband_pseudocolor with classes draws a continuous band; set_raster_class_style "
-            "sets the values and colours of each class.")
+            "more than 256 values).", "INVALID_ARGS", hint="raster_no_classes", band=band, layer=layer.name())
     ramp = None
     if args.get("color_ramp") or args.get("color_stops"):
         ramp, _described, error = _raster_ramp(args)
@@ -895,9 +886,8 @@ def _build_paletted(job: dict) -> tuple:
 
     return renderer, {"band": band, "classes": len(codes), "codes": codes[:30],
                       **({"colours": colours} if colours else {}),
-                      "note": "codes read from QGIS's histogram of the band (250 000 pixel sample); the colours "
-                              "run through color_stops or color_ramp in code order, a default ramp without them; "
-                              "set_raster_class_style sets each code's own colour and label"}, None
+                      "note": CodedText("codes read from QGIS's histogram of the band (250 000 pixel sample)",
+                                        "paletted_codes_note")}, None
 
 
 _RASTER_BUILDERS = {
@@ -934,8 +924,7 @@ def _apply_style_qml(args: dict) -> dict:
                           "path is local, not a URL.")
     if not os.path.isfile(path):
         return tool_error(
-            f"Style file not found: {path}", "INVALID_ARGS",
-            "save_style_qml writes a .qml file; path must exist already.",
+            f"Style file not found: {path}", "INVALID_ARGS", hint="style_file_missing", path=path,
         )
 
 
@@ -955,8 +944,7 @@ def _apply_style_qml(args: dict) -> dict:
         return tool_error(f"Classification field not found: {classification_field}", "INVALID_ARGS",
                           "It must be a field of the target layer.")
     if extension == ".sld" and not hasattr(layer, "loadSldStyle"):
-        return tool_error("This QGIS version cannot load SLD styles.", "STYLE_FAILED",
-                          "QML works here; SLD needs a newer QGIS.")
+        return tool_error("This QGIS version cannot load SLD styles.", "STYLE_FAILED", hint="style_sld_unsupported")
     message, success = (layer.loadSldStyle(path) if extension == ".sld" else layer.loadNamedStyle(path))
     if not success:
         if kept:
@@ -1084,7 +1072,7 @@ def _set_layer_order(args: dict) -> dict:
         if node is None:
             return tool_error(
                 f"Layer {layer.name()!r} has no node in the layer tree.", "INVALID_ARGS",
-                "get_layer_tree shows the tree; non-spatial tables have no node.",
+                hint="layer_no_tree_node", layer=layer.name(),
             )
         if node in nodes:
             return tool_error(f"Layer {layer.name()!r} is listed twice.", "INVALID_ARGS", "Each layer once.")
@@ -1099,9 +1087,7 @@ def _set_layer_order(args: dict) -> dict:
         if node.parent() is not parent:
             return tool_error(
                 "The list form reorders one group; these layers are in different groups.",
-                "INVALID_ARGS",
-                "set_layer_order with layer_name and position top, bottom, above or below "
-                "moves one layer at a time, across groups.",
+                "INVALID_ARGS", hint="layer_order_groups",
             )
     _arrange_children(parent, nodes)
     root.setHasCustomLayerOrder(False)
@@ -1151,7 +1137,7 @@ def _tree_node(name: str, root):
         node = root.findLayer(layer.id())
         if node is None:
             return None, layer, tool_error(f"Layer {layer.name()!r} has no node in the layer tree.", "INVALID_ARGS",
-                                           "get_layer_tree shows the tree; non-spatial tables have no node.")
+                                           hint="layer_no_tree_node", layer=layer.name())
         return node, layer, None
     return None, None, layer_not_found(name)
 
@@ -1271,9 +1257,7 @@ def _set_layer_crs(args: dict) -> dict:
             new_crs = built
     if not new_crs.isValid():
         return tool_error(
-            f"Invalid CRS: {args['crs']}", "CRS_INVALID",
-            "An authority id such as EPSG:4326 or EPSG:32632, or a proj4 string "
-            "starting with +proj= for a projection that has no code.",
+            f"Invalid CRS: {args['crs']}", "CRS_INVALID", hint="crs_invalid", crs=str(args["crs"]),
         )
 
 
@@ -1286,10 +1270,8 @@ def _set_layer_crs(args: dict) -> dict:
     _refresh(layer)
     out = _crs_info(layer)
     out["previous_authid"] = before
-    out["note"] = (
-        "Declaration changed only; the coordinates were not reprojected. "
-        "run_processing native:reprojectlayer does that."
-    )
+    out["note"] = CodedText("Declaration changed only; the coordinates were not reprojected.",
+                            "crs_declaration_only")
     return out
 
 
@@ -1307,14 +1289,12 @@ def _delete_field(args: dict) -> dict:
     if layer.isEditable():
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
-            "qgis_edit_commit or qgis_edit_rollback ends the open session.",
+            hint="layer_edit_session_open", layer=layer.name(),
         )
     if not layer.dataProvider().deleteAttributes([idx]):
         return tool_error(
             f"The provider refused to delete field {field_name!r}.",
-            "INVALID_ARGS",
-            "The data source may be read-only or not support schema changes; "
-            "export_layer makes a GeoPackage copy that does.",
+            "INVALID_ARGS", hint="field_refused", field_name=field_name, layer=layer.name(),
         )
     layer.updateFields()
     return {
@@ -1359,7 +1339,7 @@ def _rename_field(args: dict) -> dict:
     if layer.isEditable():
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
-            "qgis_edit_commit or qgis_edit_rollback ends the open session.",
+            hint="layer_edit_session_open", layer=layer.name(),
         )
 
 
@@ -1373,26 +1353,24 @@ def _rename_field(args: dict) -> dict:
         storage = ""
     if "flatgeobuf" in storage.lower() or layer.source().split("|", 1)[0].lower().endswith(".fgb"):
         return tool_error(
-            f"{layer.name()!r} is a FlatGeobuf file, and renaming a field there empties every value of it.",
-            "INVALID_ARGS",
-            f"Nothing was changed. run_processing native:renametablefield with INPUT {layer.id()!r}, "
-            f"FIELD {old_name!r}, NEW_NAME {new_name!r} and output_name {layer.name()!r}.",
+            f"{layer.name()!r} is a FlatGeobuf file, and renaming a field there empties every value of it. "
+            "Nothing was changed.",
+            "INVALID_ARGS", hint="rename_field_flatgeobuf", layer_id=layer.id(), old_name=old_name,
+            new_name=new_name, layer_name=layer.name(),
         )
     before = _non_null_count(layer, old_name)
     if not layer.dataProvider().renameAttributes({idx: new_name}):
         return tool_error(
             f"The provider refused to rename field {old_name!r}.",
-            "INVALID_ARGS",
-            "Shapefiles cap names at 10 characters and some providers cannot rename; "
-            "export_layer makes a copy that can.",
+            "INVALID_ARGS", hint="field_refused", field_name=old_name, layer=layer.name(), new_name=new_name,
         )
     layer.updateFields()
     after = _non_null_count(layer, new_name)
     if before and not after:
         return tool_error(
             f"The provider renamed {old_name!r} to {new_name!r} and lost its values: {before} non-null before, "
-            f"none after.", "EXECUTION_FAILED",
-            "A layer recreated from its source, then run_processing native:renametablefield, avoids this.",
+            f"none after.", "EXECUTION_FAILED", hint="rename_field_lost_values", layer=layer.name(),
+            old_name=old_name, new_name=new_name,
         )
     return {
         "layer_id": layer.id(),
@@ -1581,18 +1559,15 @@ def _add_table_join(args: dict) -> dict:
             f"The join would match none of the {match['checked']} distinct {target_field!r} values "
             f"({target_type}) on {target.name()!r} against {join_field!r} ({join_type}) on "
             f"{join.name()!r}, so it was not added.",
-            "JOIN_NO_MATCHES",
-            f"Sample {target_field!r} values: {match['unmatched_keys']!r}. Sample {join_field!r} values: "
-            f"{join_samples!r}. add_field/field_calculator (to_string or to_int) casts one side "
-            f"when the types differ.",
+            "JOIN_NO_MATCHES", hint="join_no_matches", target_field=target_field, join_field=join_field,
+            target_samples=[str(v) for v in match["unmatched_keys"]], join_samples=[str(v) for v in join_samples],
         )
 
     before = {f.name() for f in target.fields()}
     if not target.addJoin(_join_spec(join, join_field, target_field, args.get("prefix"))):
         return tool_error(
             "Failed to add the table join.",
-            "JOIN_FAILED",
-            "A join on the same layer may already exist; the key fields must hold the same kind of value.",
+            "JOIN_FAILED", hint="join_failed",
         )
     target.updateFields()
     added = [f.name() for f in target.fields() if f.name() not in before]
@@ -1661,7 +1636,7 @@ def _set_layer_metadata(args: dict) -> dict:
         metadata.setType("dataset")
     layer.setMetadata(metadata)
     return {"layer_id": layer.id(), "name": layer.name(), "applied": applied,
-            "note": "Kept in the project file; save_layer_to_gpkg carries it into the GeoPackage."}
+            "note": CodedText("Kept in the project file.", "layer_metadata_note")}
 
 
 def _set_field_aliases(args: dict) -> dict:
@@ -1714,19 +1689,19 @@ def _duplicate_layer(args: dict) -> dict:
         if count is not None and count > ceiling:
             return limits.refusal(
                 f"The layer {layer.name()!r}", f"{count:,} features",
-                f"{ceiling:,} for an independent copy made in memory",
-                "export_layer or save_layer_to_gpkg writes a separate file that can be added.")
+                f"{ceiling:,} for an independent copy made in memory", "",
+                hint="copy_over_ceiling", ceiling=ceiling)
 
 
         clone = layer.materialize(QgsFeatureRequest().setLimit(ceiling + 1))
         if clone is None or not clone.isValid():
             return tool_error("QGIS could not create an independent copy.", "EXECUTION_FAILED",
-                              "export_layer writes a separate file that can be added.")
+                              hint="copy_failed")
         if clone.featureCount() > ceiling:
             return limits.refusal(
                 f"The layer {layer.name()!r}", f"more than {ceiling:,} features",
-                f"{ceiling:,} for an independent copy made in memory",
-                "export_layer avoids this; no partial copy was added.")
+                f"{ceiling:,} for an independent copy made in memory", "",
+                hint="copy_over_ceiling", variant="partial", ceiling=ceiling)
         style = QgsMapLayerStyle()
         style.readFromLayer(layer)
         style.writeToLayer(clone)

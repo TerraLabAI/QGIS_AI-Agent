@@ -251,11 +251,142 @@ def _signature(layer) -> tuple:
     return layer.name(), look, data
 
 
+class _State(dict):
+
+
+    facts: dict
+
+
+def _quiet(read, default=None):
+    try:
+        return read()
+    except Exception:  # noqa: BLE001
+        return default
+
+
+def _layer_facts(layer) -> dict:
+    out = {}
+    fields = _quiet(lambda: tuple(f.name() for f in layer.fields())) if hasattr(layer, "fields") else None
+    if fields is not None:
+        out["fields"] = fields
+    crs = _quiet(lambda: layer.crs().authid())
+    if crs is not None:
+        out["crs"] = crs
+    return out
+
+
+def _tree_visibility(project) -> dict:
+    nodes = _quiet(lambda: project.layerTreeRoot().findLayers(), [])
+    out = {}
+    for node in nodes:
+        lid = _quiet(node.layerId)
+        shown = _quiet(node.isVisible)
+        if lid is not None and shown is not None:
+            out[lid] = bool(shown)
+    return out
+
+
+def _item_types(layout) -> dict:
+
+
+    counts: dict[str, int] = {}
+    found = list(_quiet(layout.items, [])) + list(_quiet(layout.multiFrames, []))
+    for item in found:
+        kind = type(item).__name__
+        if not kind.startswith("QgsLayoutItem") or kind == "QgsLayoutItemPage":
+            continue
+        kind = kind[len("QgsLayoutItem"):] or "Item"
+        counts[kind] = counts.get(kind, 0) + 1
+    return counts
+
+
+def _layouts(project) -> dict:
+    found = _quiet(lambda: project.layoutManager().printLayouts(), [])
+    out = {}
+    for layout in found:
+        name = _quiet(layout.name)
+        if name is not None:
+            out[name] = _item_types(layout)
+    return out
+
+
 def project_state(project) -> dict:
-    return {lid: _signature(layer) for lid, layer in project.mapLayers().items()}
+    state = _State({lid: _signature(layer) for lid, layer in project.mapLayers().items()})
+    state.facts = {
+        "layers": {lid: _layer_facts(layer) for lid, layer in project.mapLayers().items()},
+        "visible": _tree_visibility(project),
+        "layouts": _layouts(project),
+    }
+    return state
 
 
-def _settle_tree_removals(project) -> None:
+class EditWatch:
+
+
+
+
+
+
+
+
+
+    def __init__(self, project):
+        self.values: dict[str, dict] = {}
+        self._project = project
+
+
+        self._links: list = []
+        for lid, layer in _quiet(project.mapLayers, {}).items():
+            if not (hasattr(layer, "committedAttributeValuesChanges")
+                    and hasattr(layer, "committedGeometriesChanges")):
+                continue
+            for signal, slot in (("committedAttributeValuesChanges", self._on_values(lid)),
+                                 ("committedGeometriesChanges", self._on_geoms(lid))):
+                try:
+                    getattr(layer, signal).connect(slot)
+                    self._links.append((lid, signal, slot))
+                except Exception:  # noqa: BLE001  # nosec B110
+                    pass
+
+    def _entry(self, lid) -> dict:
+        return self.values.setdefault(lid, {"features": set(), "fields": set(), "geometries": set()})
+
+    def _on_values(self, lid):
+        def note(_layer_id, changes):
+            entry = self._entry(lid)
+            names = _quiet(lambda: self._project.mapLayer(lid).fields().names(), [])
+            for fid, attrs in dict(changes).items():
+                entry["features"].add(fid)
+                for idx in dict(attrs):
+                    entry["fields"].add(names[idx] if 0 <= idx < len(names) else str(idx))
+        return note
+
+    def _on_geoms(self, lid):
+        def note(_layer_id, changes):
+            self._entry(lid)["geometries"].update(dict(changes))
+        return note
+
+    def close(self) -> None:
+
+        try:
+            from qgis.PyQt import sip
+        except Exception:  # noqa: BLE001
+            sip = None
+        for lid, signal, slot in self._links:
+            layer = _quiet(lambda lid=lid: self._project.mapLayer(lid))
+            if layer is None or sip is None or sip.isdeleted(layer):
+                continue
+            try:
+                getattr(layer, signal).disconnect(slot)
+            except Exception:  # noqa: BLE001  # nosec B110
+                pass
+        self._links = []
+
+
+def _settle_tree_removals(project, before) -> None:
+
+
+
 
 
 
@@ -267,23 +398,48 @@ def _settle_tree_removals(project) -> None:
         from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
         bridge = project.layerTreeRegistryBridge()
-        if bridge is not None:
-            QCoreApplication.sendPostedEvents(bridge, QEvent.Type.MetaCall)
+        if bridge is None:
+            return
+        QCoreApplication.removePostedEvents(bridge, QEvent.Type.MetaCall)
+        root = project.layerTreeRoot()
+        held = (getattr(before, "facts", None) or {}).get("visible") or {}
+        gone = [lid for lid in project.mapLayers() if lid in held and root.findLayer(lid) is None]
+        if gone:
+            project.removeMapLayers(gone)
     except Exception:  # noqa: BLE001  # nosec B110
         pass
 
 
-def changed(before: dict, project) -> dict:
+def changed(before: dict, project, edits: EditWatch | None = None) -> dict:
 
-    _settle_tree_removals(project)
+
+
+    _settle_tree_removals(project, before)
     after = project_state(project)
-    out: dict[str, list] = {}
+    out: dict = {}
     added = [lid for lid in after if lid not in before]
     removed = [lid for lid in before if lid not in after]
     if added:
         out["added"] = [{"id": lid, "name": after[lid][0]} for lid in added]
     if removed:
         out["removed"] = [before[lid][0] for lid in removed]
+    facts0 = getattr(before, "facts", None) or {}
+    facts1 = after.facts
+    layers0, layers1 = facts0.get("layers", {}), facts1.get("layers", {})
+
+
+
+    values = {}
+    for lid, entry in ((edits.values if edits is not None else {}) or {}).items():
+        if lid not in after or not (entry["features"] or entry["geometries"]):
+            continue
+        fact = {}
+        if entry["features"]:
+            fact["features"] = len(entry["features"])
+            fact["fields"] = sorted(entry["fields"])
+        if entry["geometries"]:
+            fact["geometries"] = len(entry["geometries"])
+        values[lid] = fact
     for lid in after:
         if lid not in before:
             continue
@@ -292,6 +448,49 @@ def changed(before: dict, project) -> dict:
             out.setdefault("renamed", []).append({"from": name0, "to": name1})
         if look0 != look1:
             out.setdefault("restyled", []).append(name1)
-        if data0 != data1:
+
+
+        refiltered = bool(data0 and data1) and data0[2:] != data1[2:]
+        if refiltered:
+            out.setdefault("filtered", {})[name1] = [data0[0], data1[0]]
+        moved = bool(data0 and data1) and data0[0] != data1[0] and -1 not in (data0[0], data1[0])
+        if (data0[1:2] != data1[1:2]) or (moved and not refiltered) or lid in values:
             out.setdefault("edited", []).append(name1)
+        if moved and not refiltered:
+            out.setdefault("features", {})[name1] = [data0[0], data1[0]]
+        f0, f1 = layers0.get(lid, {}), layers1.get(lid, {})
+        if "fields" in f0 and "fields" in f1:
+            gained = [n for n in f1["fields"] if n not in f0["fields"]]
+            lost = [n for n in f0["fields"] if n not in f1["fields"]]
+            if gained:
+                out.setdefault("fields_added", {})[name1] = gained
+            if lost:
+                out.setdefault("fields_removed", {})[name1] = lost
+        if f0.get("crs") is not None and f1.get("crs") is not None and f0["crs"] != f1["crs"]:
+            out.setdefault("crs", {})[name1] = [f0["crs"], f1["crs"]]
+    if values:
+        out["values"] = {after[lid][0]: fact for lid, fact in values.items()}
+    vis0, vis1 = facts0.get("visible", {}), facts1.get("visible", {})
+    for lid, shown in vis1.items():
+        if lid in before and lid in vis0 and vis0[lid] != shown:
+            out.setdefault("shown" if shown else "hidden", []).append(after[lid][0])
+    if "layouts" in facts0:
+        lay0, lay1 = facts0["layouts"], facts1.get("layouts", {})
+        made = {n: kinds for n, kinds in lay1.items() if n not in lay0}
+        gone = [n for n in lay0 if n not in lay1]
+        moved = {}
+        for name, kinds in lay1.items():
+            if name not in lay0:
+                continue
+            old = lay0[name]
+            plus = {k: kinds.get(k, 0) - old.get(k, 0) for k in kinds if kinds.get(k, 0) > old.get(k, 0)}
+            minus = {k: old.get(k, 0) - kinds.get(k, 0) for k in old if old.get(k, 0) > kinds.get(k, 0)}
+            if plus or minus:
+                moved[name] = {k: v for k, v in (("added", plus), ("removed", minus)) if v}
+        if made:
+            out["layouts_added"] = made
+        if gone:
+            out["layouts_removed"] = gone
+        if moved:
+            out["layouts_changed"] = moved
     return out

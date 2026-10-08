@@ -38,34 +38,14 @@
             <translation>1. 复制诊断信息</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>缓冲区及其内部要素的统计。</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent 与您的数据</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>画布为空时添加底图</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>添加标题、图例、比例尺、指北针和署名</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Allow / Skip</source>
             <translation>允许 / 跳过</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>带标题、图例、比例尺和指北针的 A4 页面。</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -108,29 +88,9 @@
             <translation>取回您发送的上一条消息</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>在米制 CRS 中为线图层做 100 米缓冲区，统计每个缓冲区内有多少个点，并把点数最多的十个缓冲区整理成一张易读的表格给我。工程中有线图层和点图层时，用我自己的图层；否则请自选一个街区，下载其道路和商铺数据，并告诉我选了哪个。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffers the lines by 100 m</source>
-            <translation>将线按 100 米做缓冲区</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bug, question, feature request?</source>
             <translation>遇到错误、问题或有功能请求？</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build a print map and export it</source>
-            <translation>制作打印地图并导出</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>为当前视图制作 A4 横向布局，包含标题、图例、以米为单位的比例尺、指北针，以及注明数据来源的署名行，然后以 300 dpi 导出为 PDF。如果画布为空，请先在自选地点上添加底图，让页面上有地图。</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -198,21 +158,6 @@
             <translation>将下方的支持邮箱地址复制到邮件应用中。</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Count what falls within a distance</source>
-            <translation>统计落入某距离内的要素</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Counts the points inside each buffer</source>
-            <translation>统计每个缓冲区内的点数</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>创建带图框的 A4 横向布局</translation>
-        </message>
-        <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
             <translation>删除我的账户</translation>
@@ -226,11 +171,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Done</source>
             <translation>完成</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>从 OpenStreetMap 下载一个街区内所有的学校、公园和公交站。使用我的画布当前所在的区域，或在测绘完善的城市中选一个街区，并告诉我选了哪个。把它们放进三个图层，公园用多边形，并为每个图层设置不同的样式，再告诉我每个图层各有多少个要素。三个查询请逐个执行。</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -251,11 +191,6 @@
             <location filename="src/ui/use_cases.py" />
             <source>Explore</source>
             <translation>探索</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>以 300 dpi 将页面导出为 PDF</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -283,19 +218,9 @@
             <translation>在本次对话中</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>公园保留为多边形，其余保留为点</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Keyboard shortcuts</source>
             <translation>键盘快捷键</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Loads each answer as its own layer</source>
-            <translation>将每个答案加载为各自独立的图层</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -378,11 +303,6 @@
             <translation>项目已更改</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Pull OpenStreetMap data for an area</source>
-            <translation>获取某区域的 OpenStreetMap 数据</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a browser.</source>
             <translation>QGIS 无法打开浏览器。</translation>
@@ -428,29 +348,9 @@
             <translation>报告与分享</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reports the feature count of the three</source>
-            <translation>报告三者的要素数</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reprojects to a metric CRS before measuring</source>
-            <translation>量算前重投影到米制 CRS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Returns the ten highest as a readable table</source>
-            <translation>以易读表格返回最高的十个</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>在欧洲运行，存储于法国。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>一个街区的学校、公园和站点，共三个图层。</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -461,11 +361,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Send the message</source>
             <translation>发送消息</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>依次发送三个 Overpass 查询：学校、公园、站点</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -486,11 +381,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>停止运行</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Takes the area from the canvas, or picks one</source>
-            <translation>从画布获取区域，或自选一个</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -546,11 +436,6 @@
             <location filename="src/ui/library/detail.py" />
             <source>Use this prompt</source>
             <translation>使用此 prompt</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Uses my lines and points, or downloads both</source>
-            <translation>使用我的线和点，或两者都下载</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -2361,6 +2246,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This link opens a page on {host}.</source>
             <translation>此链接将打开 {host} 上的页面。</translation>
         </message>
+        <message>
+            <source>Close</source>
+            <translation>关闭</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>打开</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3090,6 +2983,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The browser page should show the code {code}</source>
             <translation>浏览器页面应显示代码 {code}</translation>
+        </message>
+        <message>
+            <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
+            <translation>请只输入你在 terra-lab.ai 上看到的代码，且该页面需从此 QGIS 打开。</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登录</translation>
+        </message>
+        <message>
+            <source>Type the code shown in your browser:</source>
+            <translation>输入浏览器中显示的代码：</translation>
         </message>
     </context>
     <context>
@@ -6332,6 +6237,10 @@ Click to open its page.</source>
             <source>The run is paused.</source>
             <translation>运行已暂停。</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>获取 Pro</translation>
+        </message>
     </context>
     <context>
         <name>RecommendationCard</name>
@@ -7456,6 +7365,10 @@ Click to open its page.</source>
         <message>
             <source>e.g. I work in EPSG:2154</source>
             <translation>例如：我使用 EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>数据源</translation>
         </message>
     </context>
     <context>
@@ -8825,6 +8738,18 @@ This file is no longer where the run wrote it.</source>
             <source>{n} working files</source>
             <translation>{n} 个工作文件</translation>
         </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>还有 +{n} 项</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>收起</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>只显示一行图层</translation>
+        </message>
     </context>
     <context>
         <name>RetentionRow</name>
@@ -8923,6 +8848,10 @@ This file is no longer where the run wrote it.</source>
             <source>{n} days</source>
             <translation>{n} 天</translation>
         </message>
+        <message>
+            <source>Continue</source>
+            <translation>继续</translation>
+        </message>
     </context>
     <context>
         <name>FileCardStack</name>
@@ -8930,6 +8859,45 @@ This file is no longer where the run wrote it.</source>
             <location filename="src/ui/file_card.py" />
             <source>Working files</source>
             <translation>工作文件</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingV2</name>
+        <message>
+            <source>Can't reach TerraLab. Try again.</source>
+            <translation>无法连接 TerraLab，请重试。</translation>
+        </message>
+        <message>
+            <source>Click Connect in your browser first, then type the code.</source>
+            <translation>请先在浏览器中点击“连接”，然后输入代码。</translation>
+        </message>
+        <message>
+            <source>Connecting AI Agent</source>
+            <translation>正在连接 AI Agent</translation>
+        </message>
+        <message>
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>浏览器中的登录已取消。请点击“登录”重试。</translation>
+        </message>
+        <message>
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>此账户没有有效的 AI Agent 套餐。请先在 terra-lab.ai 上开通，然后再次点击“登录”。</translation>
+        </message>
+        <message>
+            <source>This sign-in has ended. Click Sign in to start again.</source>
+            <translation>本次登录已结束。请点击“登录”重新开始。</translation>
+        </message>
+        <message>
+            <source>Too many wrong codes: this sign-in is closed. Click Sign in to start again.</source>
+            <translation>错误代码次数过多，本次登录已关闭。请点击“登录”重新开始。</translation>
+        </message>
+        <message>
+            <source>Type the 6 characters shown in your browser, like K7P-4QX.</source>
+            <translation>输入浏览器中显示的 6 位字符，例如 K7P-4QX。</translation>
+        </message>
+        <message>
+            <source>Wrong code. Check it and try again.</source>
+            <translation>代码错误，请检查后重试。</translation>
         </message>
     </context>
 </TS>

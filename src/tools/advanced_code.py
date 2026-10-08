@@ -20,7 +20,8 @@ from ..core import code_guard, code_namespace, code_owners, code_split, code_tri
 from ..core.background import on_main_thread, run_on_main_thread
 from ..core.logger import log_debug
 from ..core.security import safe_read_text, validate_path
-from ..core.serialization import cut_string
+from ..core.serialization import carried_code, cut_string
+from ..core.tool_registry import coded_fact
 from . import code_runtime, isolated_code
 
 _QT_CORE_NAMES = ("QVariant", "Qt", "QSize", "QSizeF", "QPointF", "QPoint", "QRectF", "QRect",
@@ -161,7 +162,7 @@ def _run_code_in_qgis(args: dict) -> dict:
     except SyntaxError as exc:
         return {"executed": False, "_code": "INVALID_ARGS",
                 "_error": f"execute_code raised SyntaxError: {exc.msg} (line {exc.lineno})",
-                "suggestion": "A corrected snippet at that line runs on the next call."}
+                "suggestion": "", "hint": "code_syntax_error", "line": exc.lineno}
 
     context = code_runtime.current()
     project = QgsProject.instance()
@@ -217,6 +218,7 @@ def _run_code_in_qgis(args: dict) -> dict:
     wire = code_tripwire.armed(context.granted) if code_tripwire.enabled() else None
     arm = None
     error = None
+    edits = code_namespace.EditWatch(project)
     try:
         with wire if wire is not None else contextlib.nullcontext() as arm:
             code_guard.run_with_timeout(
@@ -231,6 +233,7 @@ def _run_code_in_qgis(args: dict) -> dict:
         error = exc
         tb = exc.__traceback__
     finally:
+        edits.close()
         code_runtime.keep(context.chat, namespace, bound)
 
         code_guard.restore_gdal_config()
@@ -242,7 +245,8 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_error": f"The snippet {trip.reason}, which needs the user's permission. Nothing after that call ran.",
             "needs_permission": {"class": trip.cls, "reason": trip.reason},
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "The plugin asks the user and runs the snippet again on a yes.",
+            "suggestion": "",
+            "hint": "code_needs_permission",
         }
     if isinstance(trip, code_tripwire.Refused):
         out = {
@@ -250,11 +254,13 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_code": "PERMISSION_DENIED",
             "_error": f"execute_code stopped: the snippet {trip.reason}. Nothing after that call ran.",
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "add_data or the fetch tools load remote data; execute_code continues from there.",
+            "suggestion": "",
+            "hint": "code_permission_refused",
+            "reason": trip.reason,
         }
 
 
-        _partial_state(out, code_namespace.changed(before, project))
+        _partial_state(out, code_namespace.changed(before, project, edits))
         return out
     if error == "timeout":
         out = {
@@ -262,10 +268,11 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_error": f"execute_code stopped after {int(context.timeout_s)} s.",
             "_code": "EXEC_TIMEOUT",
             "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": ("Less work (fewer features, one layer) fits; "
-                           "run_processing with async=true has no such limit."),
+            "suggestion": "",
+            "hint": "code_timeout",
+            "timeout_s": int(context.timeout_s),
         }
-        _partial_state(out, code_namespace.changed(before, project))
+        _partial_state(out, code_namespace.changed(before, project, edits))
         return out
     if error is not None:
 
@@ -283,6 +290,13 @@ def _run_code_in_qgis(args: dict) -> dict:
             out.update(code_guard.INVALID_GEOMETRY)
 
 
+        coded = carried_code(error)
+        if coded is not None:
+            out.setdefault("hint", coded.hint)
+            for fact, value in coded.facts.items():
+                out.setdefault(fact, value)
+
+
         frames = code_runtime.snippet_traceback(tb, code)
         if frames:
 
@@ -294,7 +308,7 @@ def _run_code_in_qgis(args: dict) -> dict:
         help_text = help_text or _api_help(error)
         if help_text:
             out["api"] = help_text
-        _partial_state(out, code_namespace.changed(before, project))
+        _partial_state(out, code_namespace.changed(before, project, edits))
         return out
 
 
@@ -311,7 +325,7 @@ def _run_code_in_qgis(args: dict) -> dict:
         out["result_type"] = kind
     else:
         out["result_set"] = False
-    noted = code_namespace.changed(before, project)
+    noted = code_namespace.changed(before, project, edits)
     if noted:
         out["changed"] = noted
 
@@ -334,10 +348,10 @@ def _run_code_in_qgis(args: dict) -> dict:
 
 
 
-_SPATIAL_INDEX_HINT = (
-    "QgsSpatialIndex takes a layer, a feature source or a feature iterator, never a list: "
-    "QgsSpatialIndex(layer.getFeatures()) or QgsSpatialIndex(layer). To index features you already "
-    "hold in a list, build an empty QgsSpatialIndex() and call index.addFeature(f) for each one.")
+
+
+
+_SPATIAL_INDEX_HINT = coded_fact(hint="api_spatial_index_list")
 
 
 def _called_name(node) -> str:
@@ -443,8 +457,8 @@ def _preflight(code: str) -> dict | None:
                     "_error": (f"QgsSpatialIndex is given a list on line {getattr(node, 'lineno', 0)}, which "
                                f"raises TypeError: none of its overloads takes one. Nothing was run."),
                     "_code": "INVALID_ARGS",
-                    "api": _SPATIAL_INDEX_HINT,
-                    "suggestion": _SPATIAL_INDEX_HINT,
+                    "api": dict(_SPATIAL_INDEX_HINT),
+                    "suggestion": "",
                 }
         missing = []
         for name, lineno in _subscripted_layer_names(tree):
@@ -461,8 +475,11 @@ def _preflight(code: str) -> dict | None:
                            f"Nothing was run."),
                 "_code": "INVALID_ARGS",
                 "layers": existing,
-                "suggestion": (("Closest names: " + ", ".join(near) + ". ") if near else "")
-                              + "mapLayersByName matches the name exactly; list_layers gives the names and ids.",
+                "suggestion": "",
+                "hint": "layer_name_not_found",
+                "name": first_name,
+                "line": first_line,
+                **({"variant": "closest", "closest": near} if near else {}),
             }
     except Exception:  # noqa: BLE001
         return None
@@ -497,34 +514,23 @@ _API_HELP_CHARS = 600
 
 
 
-_LIST_INDEX_HINT = (
-    "Something came back empty and was indexed anyway: mapLayersByName(name) returns [] unless the name "
-    "matches exactly, and getFeatures(), selectedFeatures() and a [f for f in ...] list are empty when the "
-    "filter or the selection matched nothing. Test the list, or put its len() in result, before [0].")
-_SIGNATURE_HINTS: tuple[tuple[str, str], ...] = (
+_LIST_INDEX_HINT = coded_fact(hint="api_empty_indexed")
+_SIGNATURE_HINTS: tuple[tuple[str, dict], ...] = (
     ("QgsSpatialIndex(): arguments did not match", _SPATIAL_INDEX_HINT),
-    ("object has no attribute 'isNullable'",
-     "QgsField has no isNullable(). A field's constraints are field.constraints().constraints(), tested "
-     "against QgsFieldConstraints.ConstraintNotNull; field.typeName(), length() and precision() do exist."),
-    ("QgsVectorLayer(): arguments did not match",
-     "QgsVectorLayer takes strings: QgsVectorLayer(path_or_uri, name, 'ogr' or 'memory'). A layer already "
-     "in the project comes from QgsProject.instance().mapLayersByName(name), not from the constructor."),
-    ("QgsFeatureRequest(): arguments did not match",
-     "QgsFeatureRequest() takes no argument; add the filter with setFilterExpression(text), "
-     "setFilterFids(list), setFilterRect(rectangle) or setSubsetOfAttributes(list, fields)."),
+    ("object has no attribute 'isNullable'", coded_fact(hint="api_field_is_nullable")),
+    ("QgsVectorLayer(): arguments did not match", coded_fact(hint="api_vector_layer_ctor")),
+    ("QgsFeatureRequest(): arguments did not match", coded_fact(hint="api_feature_request_ctor")),
 )
 
 _TYPE_HINTS = {
     "IndexError": _LIST_INDEX_HINT,
-    "KeyError": ("That key is not there: a feature's attribute is f['field'] with a field name the layer "
-                 "really has (print [fl.name() for fl in layer.fields()] into result first)."),
-    "StopIteration": ("A QgsFeatureIterator is walked once: call layer.getFeatures() again, or keep the "
-                      "features in a list before you read them twice."),
-    "ZeroDivisionError": "Guard the divisor: a count, an area or a length can be zero on an empty selection.",
+    "KeyError": coded_fact(hint="api_key_missing"),
+    "StopIteration": coded_fact(hint="api_iterator_spent"),
+    "ZeroDivisionError": coded_fact(hint="api_zero_divisor"),
 }
 
 
-def code_help(exc_type: str, message: str) -> str:
+def code_help(exc_type: str, message: str) -> dict | str:
 
 
 
@@ -533,8 +539,9 @@ def code_help(exc_type: str, message: str) -> str:
     text = str(message or "")
     for needle, suggestion in _SIGNATURE_HINTS:
         if needle in text:
-            return suggestion
-    return _TYPE_HINTS.get(str(exc_type or ""), "")
+            return dict(suggestion)
+    found = _TYPE_HINTS.get(str(exc_type or ""))
+    return dict(found) if found else ""
 
 
 def _scoped_enum(cls, wanted: str) -> str:
@@ -608,7 +615,7 @@ def _api_module_of(name: str) -> str:
 _FAMILY_SHOWN = 8
 
 
-def _api_family(cls_name: str, wanted: str, public: list) -> str:
+def _api_family(cls_name: str, wanted: str, public: list) -> dict | str:
 
     verb = ""
     for ch in wanted:
@@ -621,9 +628,8 @@ def _api_family(cls_name: str, wanted: str, public: list) -> str:
     kin = sorted(a for a in public if a.startswith(verb) and a != wanted)
     if not kin:
         return ""
-    shown = ", ".join(kin[:_FAMILY_SHOWN])
-    more = "" if len(kin) <= _FAMILY_SHOWN else f", and {len(kin) - _FAMILY_SHOWN} more"
-    return f"{cls_name} has no {wanted}. Its {verb} methods are: {shown}{more}."
+    return coded_fact(hint="api_method_family", cls=cls_name, wanted=wanted, verb=verb, methods=kin[:_FAMILY_SHOWN],
+                      **({"variant": "more", "more": len(kin) - _FAMILY_SHOWN} if len(kin) > _FAMILY_SHOWN else {}))
 
 
 def _inside_a_word(wanted: str, name: str) -> bool:
@@ -644,7 +650,7 @@ def _inside_a_word(wanted: str, name: str) -> bool:
         found, start = True, at + 1
 
 
-def _api_help(exc: Exception) -> str:
+def _api_help(exc: Exception) -> dict | str:
 
     text = str(exc)
     known = code_help(type(exc).__name__, text)
@@ -660,8 +666,7 @@ def _api_help(exc: Exception) -> str:
                 return ""
             scoped = _scoped_enum(cls, match.group(2))
             if scoped:
-                return (f"{match.group(1)} has no {match.group(2)} of its own: it is scoped as {scoped} "
-                        "in this QGIS.")
+                return coded_fact(hint="api_enum_scoped", cls=match.group(1), name=match.group(2), scoped=scoped)
             public = [a for a in dir(cls) if not a.startswith("_")]
             near = [a for a in difflib.get_close_matches(match.group(2), public, n=5, cutoff=0.6)
                     if not _inside_a_word(match.group(2), a)]
@@ -680,17 +685,15 @@ def _api_help(exc: Exception) -> str:
             module_name = _api_module_of(wanted)
             if not module_name:
                 return ""
-            return (f"{wanted} is real but execute_code does not bind it. It is in {module_name}: "
-                    f"write from {module_name} import {wanted}, or {module_name}.{wanted} where "
-                    "qgis is already bound.")
+            return coded_fact(hint="api_name_unbound", name=wanted, module=module_name)
         if isinstance(exc, TypeError):
             enum = _ENUM_RE.search(text)
             if enum:
                 family = _api_enum(enum.group(1))
                 members = list(getattr(family, "__members__", {}) or {})
                 if members:
-                    return (f"{enum.group(2)} belongs to another family. {enum.group(1)} is: "
-                            + ", ".join(members[:12]) + ("." if len(members) <= 12 else ", ..."))
+                    return coded_fact(hint="api_enum_family", member=enum.group(2), family=enum.group(1),
+                                      members=members[:12], **({"variant": "more"} if len(members) > 12 else {}))
                 return ""
             match = _CALL_RE.search(text)
             if not match:

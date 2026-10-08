@@ -41,6 +41,7 @@ from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from ..core.tool_registry import coded_fact, tool_error
 from .data_common import _avoid_reserved_name, built_here, worker_options
 
 
@@ -283,7 +284,9 @@ def _read(uri: str, name: str, path: str, table: str, state: dict, halted: threa
         QCoreApplication.sendPostedEvents(None, int(getattr(deferred, "value", deferred)))
 
 
-def misses_the_view(layer) -> str:
+def misses_the_view(layer) -> tuple[str, str]:
+
+
 
 
 
@@ -296,24 +299,23 @@ def misses_the_view(layer) -> str:
 
         canvas = qgis_iface.mapCanvas() if qgis_iface is not None else None
         if canvas is None:
-            return ""
+            return "", ""
         view = canvas.extent()
         if view.isEmpty():
-            return ""
+            return "", ""
         extent = layer.extent()
         if extent.isEmpty():
-            return "The layer reports an empty extent, so nothing will draw."
+            return "The layer reports an empty extent, so nothing will draw.", ""
         target = canvas.mapSettings().destinationCrs()
         if layer.crs().isValid() and target.isValid() and layer.crs() != target:
             extent = QgsCoordinateTransform(layer.crs(), target,
                                             QgsProject.instance()).transformBoundingBox(extent)
         if extent.intersects(view):
-            return ""
-        return ("The layer's own extent does not reach the current view, so the map will look "
-                "empty. Either the service published a wrong bounding box, or the data is "
-                "somewhere else: zoom_to_layer shows where it says it is.")
+            return "", ""
+        return ("The layer's own extent does not reach the current view, so the map will look empty.",
+                "layer_off_view")
     except Exception:  # noqa: BLE001
-        return ""
+        return "", ""
 
 
 def extract(url: str, typename: str, name: str, uri: str, count_at: int | None = None,
@@ -378,10 +380,9 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
             halted.set()
             if not over.wait(_CLOSE_WAIT_S):
                 drop()
-                return {"_error": (f"The WFS was still sending {typename} when the clock ran out, and the file "
-                                   "could not be closed in time; nothing was added."),
-                        "code": "TIMEOUT",
-                        "suggestion": "A smaller area with bbox, or a filter on the type, fits."}
+                return tool_error(f"The WFS was still sending {typename} when the clock ran out, and the file "
+                                  "could not be closed in time; nothing was added.", "TIMEOUT",
+                                  hint="wfs_clock_ran_out", typename=typename)
     if "invalid" in state:
         remove_tree(directory)
         return {"_invalid": True, "_qgis_message": state["invalid"]}
@@ -396,10 +397,9 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
                 "_fields": [field_name for field_name, _number in state.get("fields") or ()]}
     if not os.path.exists(path):
         remove_tree(directory)
-        return {"_error": (f"The clock ran out while the WFS was describing {typename}, before any feature "
-                           "came back; nothing was added."),
-                "code": "TIMEOUT",
-                "suggestion": "A smaller area with bbox, or a filter on the type, fits."}
+        return tool_error(f"The clock ran out while the WFS was describing {typename}, before any feature "
+                          "came back; nothing was added.", "TIMEOUT",
+                          hint="wfs_clock_ran_out", typename=typename)
     source = f"{path}|layername={table}"
     facts: dict = {}
 
@@ -431,9 +431,11 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
         out = {"layer_name": layer.name(), "layer_id": layer.id(),
                "feature_count": facts["feature_count"] if "feature_count" in facts else layer.featureCount(),
                "crs": crs_ref(layer.crs())}
-        missed = misses_the_view(layer)
+        missed, missed_hint = misses_the_view(layer)
         if missed:
             out["_note"] = missed
+            if missed_hint:
+                out.update(coded_fact(missed_hint))
         return out
 
     try:

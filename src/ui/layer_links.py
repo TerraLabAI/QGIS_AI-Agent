@@ -55,7 +55,7 @@ from .card_base import mono_font
 from .file_links import escape_markdown_label
 from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
-from .layer_icons import layer_name, resolve_layer
+from .layer_icons import follows_layers, layer_name, resolve_layer
 from .markdown_view import GONE_SCHEME
 from .run_bar import ACTION_SHOW, ACTION_ZOOM
 from .shared import event_pos, exec_menu, tr
@@ -349,7 +349,12 @@ class _LayerChip(_Chip):
 
 
 
+
+
         name = None if self.layer_id in gone else layer_name(self.layer_id)
+        if getattr(self, "_shown_name", False) == (name,):
+            return
+        self._shown_name = (name,)
         self.in_project = name is not None
         if name:
             self.layer_name = name
@@ -572,6 +577,8 @@ class RunChangesRow(QWidget):
         policy.setHeightForWidth(True)
         self.setSizePolicy(policy)
         self.setVisible(not self.is_empty())
+        if self._chips:
+            follows_layers(self)
 
 
 

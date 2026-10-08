@@ -33,7 +33,7 @@ from ..core import output_paths, report_page
 from ..core.background import run_on_main_thread
 from ..core.context import tr
 from ..core.security import validate_path, validate_read
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ..core.writeback import write_atomic
 
 MAX_FIGURES = 12
@@ -93,7 +93,8 @@ def _write_html_report(args: dict) -> dict:
         return tool_error("html is empty.", "INVALID_ARGS", "html is the whole page: <!doctype html> to </html>.")
     if len(page.encode("utf-8")) > report_page.MAX_PAGE_BYTES:
         return tool_error(f"html is over {report_page.MAX_PAGE_BYTES} bytes.", "INVALID_ARGS",
-                          "figures render maps without pasted images; long tables add bytes too.")
+                          hint="report_page_too_large", limit=report_page.MAX_PAGE_BYTES,
+                          size=len(page.encode("utf-8")))
 
 
 
@@ -105,9 +106,9 @@ def _write_html_report(args: dict) -> dict:
     overwrite = bool(args.get("overwrite"))
     refusal = validate_path(target, write=True, overwrite=overwrite)
     if refusal:
-        return tool_error(refusal, "INVALID_ARGS",
-                          "overwrite true replaces it; another path works too." if os.path.exists(target)
-                          else "The project folder, Documents and the exports folder take it.")
+        if os.path.exists(target):
+            return tool_error(refusal, "INVALID_ARGS", hint="report_path_exists", path=target)
+        return tool_error(refusal, "INVALID_ARGS", hint="report_path_refused", path=target)
 
     figures, figure_facts, figure_errors = _render_figures(args.get("figures") or [])
     declared = set(figures)
@@ -132,7 +133,7 @@ def _write_html_report(args: dict) -> dict:
         write_atomic(target, page)
     except OSError as exc:
         return tool_error(f"The page could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "The folder may not exist or lack room; another path helps.")
+                          hint="report_write_failed", path=target)
 
     opened = False
     if args.get("open", True):
@@ -155,9 +156,9 @@ def _write_html_report(args: dict) -> dict:
     if unplaced:
         result["figures_unplaced"] = unplaced
 
-        result["figures_unplaced_note"] = ('These maps are rendered and not on the page: an <img src="figure:<id>"> '
-                                           "tag places each (" + ", ".join(f'<img src="figure:{n}">' for n in unplaced)
-                                           + ").")
+        result["figures_unplaced_note"] = "These maps are rendered and not on the page."
+        result["advice"] = coded_fact(hint="report_figures_unplaced", ids=", ".join(unplaced),
+                                      tags=", ".join(f'<img src="figure:{n}">' for n in unplaced))
     if embedded["files_embedded"]:
         result["images_embedded"] = embedded["files_embedded"]
     if embedded["files_skipped"]:

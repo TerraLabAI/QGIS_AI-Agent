@@ -66,8 +66,10 @@ from . import code_effects as ce
 from . import tuning
 from .logger import log, log_warning
 from .protocol import Approval, Decision, Mode
+from .serialization import error_details
 from .snapshot import RunSnapshot
 from .snapshot_in_place import put_back_in_place
+from .tool_registry import coded_fact
 
 try:
     from ..tools import code_runtime, guards
@@ -416,7 +418,7 @@ class _ExecutorCode:
         if mode == Mode.ASK:
             self._fail(call, "READ_ONLY_MODE",
                        tr("Question mode is read only: the snippet {what}.").format(what=reason),
-                       "Nothing changes in Question mode unless the user says yes.")
+                       "", details=error_details(coded_fact(hint="question_mode_read_only", reason=reason)))
             return
         approval = self._approval_now()
         if ((not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]))

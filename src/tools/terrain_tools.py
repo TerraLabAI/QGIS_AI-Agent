@@ -199,11 +199,11 @@ def _raster_facts(name: str, extent) -> dict:
         return _layer_not_found_error(name)
     if not isinstance(layer, QgsRasterLayer):
         return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
-                          "A DEM or DTM raster is needed; list_layers shows each layer's type.")
+                          hint="terrain_dem_needed", layer=layer.name())
     if layer.providerType() != "gdal":
         return tool_error(
             f"{layer.name()} uses the {layer.providerType()} provider; the relief is computed from a file.",
-            "INVALID_ARGS", "add_data with the DEM (GeoTIFF, COG, VRT) reads it; a WMS or XYZ view does not.")
+            "INVALID_ARGS", hint="terrain_dem_provider", layer=layer.name(), provider=layer.providerType())
     crs = layer.crs()
     facts = {
         "name": layer.name(),
@@ -224,7 +224,7 @@ def _raster_facts(name: str, extent) -> dict:
             rect = transform.transformBoundingBox(canvas.extent())
         except Exception as exc:  # noqa: BLE001
             return tool_error(f"The canvas extent could not be read in the DEM's CRS: {exc}", "INVALID_ARGS",
-                              "extent as {xmin, ymin, xmax, ymax} in the DEM's CRS also works.")
+                              hint="terrain_canvas_unreadable")
         facts["window"] = [rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()]
     elif isinstance(extent, dict):
         facts["window"] = [float(extent["xmin"]), float(extent["ymin"]), float(extent["xmax"]), float(extent["ymax"])]
@@ -316,7 +316,7 @@ def _reference_geometries(names: list, crs_wkt: str, cap: int, window: tuple | N
             return _layer_not_found_error(name)
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
-                              "reference_layers are the points or lines of interest the user already drew.")
+                              hint="terrain_reference_not_vector", layer=layer.name())
         transform = QgsCoordinateTransform(layer.crs(), target, QgsProject.instance())
         request = QgsFeatureRequest().setNoAttributes()
         if window is not None:
@@ -392,7 +392,7 @@ def _libs():
         from osgeo import gdal, ogr, osr
     except ImportError as exc:  # pragma: no cover
         return None, tool_error(f"numpy or GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                                "The Relief Visualization Toolbox plugin has this.")
+                                hint="terrain_libs_missing")
     gdal.UseExceptions()
     return (np, gdal, ogr, osr), None
 
@@ -407,12 +407,11 @@ def _grid(facts: dict, gdal, osr) -> tuple:
         reason = ""
     if dataset is None:
         return None, tool_error(f"GDAL could not open {facts['name']}: {reason[:160]}", "EXECUTION_FAILED",
-                                "The DEM file itself, loaded with add_data, reads cell by cell; a layer "
-                                "through another provider does not.")
+                                hint="terrain_dem_unopened", layer=facts["name"])
     x0, dx, rx, y0, ry, dy = dataset.GetGeoTransform()
     if dx == 0 or dy == 0 or rx != 0 or ry != 0:
         return None, tool_error(f"{facts['name']} has a rotated or missing geotransform.", "EXECUTION_FAILED",
-                                "run_processing gdal:warpreproject warps it north-up.")
+                                hint="terrain_dem_rotated", layer=facts["name"])
     full_w, full_h = dataset.RasterXSize, dataset.RasterYSize
     col0, row0, width, height = 0, 0, full_w, full_h
     if facts.get("window"):
@@ -424,7 +423,7 @@ def _grid(facts: dict, gdal, osr) -> tuple:
         width, height = col1 - col0, row1 - row0
         if width < 3 or height < 3:
             return None, tool_error(f"The extent covers fewer than three cells of {facts['name']}.", "INVALID_ARGS",
-                                    "get_layer_info shows the DEM's CRS; the extent must overlap it.")
+                                    hint="terrain_extent_outside_dem", layer=facts["name"], crs=facts["crs_authid"])
     srs = osr.SpatialReference()
     srs.ImportFromWkt(facts["crs_wkt"])
     if facts["geographic"]:
@@ -457,10 +456,10 @@ def _cells_error(grid: dict, what: str) -> dict | None:
     if cells <= allowed:
         return None
     side_m = math.sqrt(allowed * grid["cell_x_m"] * grid["cell_y_m"])
-    return limits.refusal(
-        f"The {what} window", f"{grid['width']:,} by {grid['height']:,} cells ({cells:,})", f"{allowed:,} cells",
-        f"extent 'canvas' after zooming in, or a box about {side_m:,.0f} m across in "
-        f"the DEM's CRS, fits; a larger area needs several tiles.")
+    refused = limits.refusal(
+        f"The {what} window", f"{grid['width']:,} by {grid['height']:,} cells ({cells:,})", f"{allowed:,} cells", "")
+    refused.update(hint="terrain_window_too_large", box_side_m=round(side_m))
+    return refused
 
 
 def _stop(cancelled) -> None:
@@ -725,7 +724,7 @@ def _terrain_visualisation(args: dict) -> dict:
     unknown = [p for p in products if p not in PRODUCTS]
     if unknown:
         return tool_error(f"Unknown products: {', '.join(map(str, unknown))}.", "INVALID_ARGS",
-                          f"Products: {', '.join(PRODUCTS)}.")
+                          hint="terrain_products_unknown", products=", ".join(PRODUCTS))
     lrm_radius_m = float(args.get("lrm_radius_m") or _DEFAULT_LRM_RADIUS_M)
     svf_radius_m = float(args.get("svf_radius_m") or _DEFAULT_SVF_RADIUS_M)
     directions = int(args.get("directions") or _DEFAULT_DIRECTIONS)
@@ -745,14 +744,15 @@ def _terrain_visualisation(args: dict) -> dict:
         return tool_error(
             f"lrm_radius_m {lrm_radius_m:g} is {max(lrm_r)} cells at {grid['cell_x_m']:.2f} m, over "
             f"{_MAX_LRM_RADIUS_PX}.", "INVALID_ARGS",
-            f"lrm_radius_m {_MAX_LRM_RADIUS_PX * min(grid['cell_x_m'], grid['cell_y_m']):.0f} or less fits; "
-            f"resampling coarser also works.")
+            hint="terrain_lrm_radius_too_large",
+            max_radius_m=round(_MAX_LRM_RADIUS_PX * min(grid["cell_x_m"], grid["cell_y_m"])))
     offsets, pad_scan, steps = scan_offsets(svf_radius_m, directions, grid)
     if any(p in ("svf", "openness_positive", "openness_negative") for p in products):
         if pad_scan > _MAX_SVF_RADIUS_PX:
             return tool_error(
                 f"svf_radius_m {svf_radius_m:g} is {pad_scan} cells, over {_MAX_SVF_RADIUS_PX}.", "INVALID_ARGS",
-                f"svf_radius_m {_MAX_SVF_RADIUS_PX * min(grid['cell_x_m'], grid['cell_y_m']):.0f} or less fits.")
+                hint="terrain_svf_radius_too_large",
+                max_radius_m=round(_MAX_SVF_RADIUS_PX * min(grid["cell_x_m"], grid["cell_y_m"])))
 
     prefix = str(args.get("name_prefix") or facts["name"]).strip() or "DEM"
     folder = create_managed_temp_dir("terrain")
@@ -785,7 +785,7 @@ def _terrain_visualisation(args: dict) -> dict:
                              "Nothing was added to the project.")
     except RuntimeError as exc:
         failure = tool_error(f"GDAL failed while computing the relief: {exc}", "EXECUTION_FAILED",
-                             "get_layer_info shows if the DEM opens; a remote tile may have timed out.")
+                             hint="terrain_gdal_failed", layer=facts["name"])
     else:
         failure = None
     if failure is not None:
@@ -1003,7 +1003,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
     source_name = args.get("lrm_layer") or args.get("dem")
     if not source_name:
         return tool_error("dem or lrm_layer (an LRM from terrain_visualisation) is needed.", "INVALID_ARGS",
-                          "dem is the elevation raster; the local relief is computed from it on the way.")
+                          hint="terrain_anomalies_input")
     threshold = float(args.get("threshold_m") or _DEFAULT_THRESHOLD_M)
     kinds = set(args.get("kinds") or ("raised", "sunken"))
     min_area = float(args["min_area_m2"]) if args.get("min_area_m2") is not None else _DEFAULT_MIN_AREA_M2
@@ -1035,7 +1035,9 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             rx, ry = _radius_px(lrm_radius_m, grid)
             if max(rx, ry) > _MAX_LRM_RADIUS_PX:
                 return tool_error(f"lrm_radius_m {lrm_radius_m:g} is {max(rx, ry)} cells, over "
-                                  f"{_MAX_LRM_RADIUS_PX}.", "INVALID_ARGS", "A smaller lrm_radius_m fits.")
+                                  f"{_MAX_LRM_RADIUS_PX}.", "INVALID_ARGS",
+                                  hint="terrain_lrm_radius_too_large",
+                                  max_radius_m=round(_MAX_LRM_RADIUS_PX * min(grid["cell_x_m"], grid["cell_y_m"])))
             lrm_path = os.path.join(folder, "lrm.tif")
             _numpy_products(np, gdal, grid, {"lrm"}, {"lrm": lrm_path}, (rx, ry), None, 0, cancelled)
             lrm_dataset = gdal.Open(lrm_path)
@@ -1076,7 +1078,8 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
         if found > _MAX_POLYGONS:
             return tool_error(
                 f"{found:,} shapes stand {threshold:g} m out of the local relief: that is noise, not features.",
-                "INVALID_ARGS", f"A higher threshold_m ({threshold * 2:g}) or min_area_m2, or a smaller extent, fits.")
+                "INVALID_ARGS", hint="terrain_too_many_shapes", threshold_m=threshold,
+                doubled_threshold_m=threshold * 2)
 
 
         kept = []
@@ -1098,7 +1101,8 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             if len(kept) > _MAX_MEASURED:
                 return tool_error(
                     f"Over {_MAX_MEASURED:,} shapes between {min_area:g} and {max_area:g} m2 at {threshold:g} m.",
-                    "INVALID_ARGS", "A higher threshold_m or min_area_m2, or a smaller extent, fits.")
+                    "INVALID_ARGS", hint="terrain_too_many_measured", threshold_m=threshold,
+                    doubled_threshold_m=threshold * 2)
         _stop(cancelled)
 
 
@@ -1137,7 +1141,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
         return tool_error("Stopped before the candidates were finished.", "CANCELLED", "Nothing was added.")
     except RuntimeError as exc:
         return tool_error(f"GDAL failed while extracting the anomalies: {exc}", "EXECUTION_FAILED",
-                          "get_layer_info shows if it opens.")
+                          hint="terrain_gdal_failed", layer=str(source_name))
 
 
     distance_unit_m = (unit_m if to_metric is None else
@@ -1159,7 +1163,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
         except TimeoutError:
             return tool_error("Reading the reference layers took QGIS more than 30 s, so no candidate was added.",
                               "EXECUTION_FAILED",
-                              "Fewer or smaller reference_layers (a saved selection), or none, reads faster.")
+                              hint="terrain_references_slow", references=len(args["reference_layers"]))
         if "_error" in references or references.get("isError"):
             return references
     buckets = None

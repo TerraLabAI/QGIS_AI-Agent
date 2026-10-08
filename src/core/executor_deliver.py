@@ -14,7 +14,7 @@ from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication
 
 from . import code_effects as ce
-from . import layer_egress, layout_show, licence, limits, postcondition, scratch, security, stalls, tuning
+from . import layer_egress, layout_show, licence, limits, postcondition, protocol, scratch, security, stalls, tuning
 from .checkpoints import KIND_BEFORE
 from .context import stamp_thread
 from .executor_code import CODE_TOOL
@@ -23,7 +23,14 @@ from .logger import log_warning
 from .protocol import ClientErrorCode as Err
 from .protocol import Danger
 from .run_report import MAX_CALL_WARNINGS, MAX_OUTPUT_FILES, call_warnings, result_files, written_paths
-from .serialization import bound_result, dump_json, error_details, neutralise_result, reads_the_outside_world
+from .serialization import (
+    CodedText,
+    bound_result,
+    dump_json,
+    error_details,
+    neutralise_result,
+    reads_the_outside_world,
+)
 from .snapshot import RunSnapshot
 from .tool_registry import spec
 
@@ -118,6 +125,11 @@ def tr(text: str) -> str:
 
 _CHECK_NOTE_CHARS = 90
 
+_DEFAULT_HINTS = {
+    Err.LAYER_NOT_FOUND: "error_default_layer_not_found",
+    Err.INVALID_ARGS: "error_default_invalid_args",
+}
+
 
 def _first_check_warning(result) -> str:
 
@@ -186,6 +198,13 @@ class _ExecutorDeliver:
             self._note_slow_main_thread(run_id, name, duration - on_dialog)
         if on_dialog >= 1.0 and isinstance(result, dict):
             result["waited_on_dialog"] = {"title": dialog_title, "seconds": round(on_dialog)}
+
+
+
+        phases = call.get("phase_ms") or {}
+        if phases.get("backup_ms", 0) >= 1000 and isinstance(result, dict):
+            result["waited_for_backup_s"] = round(phases["backup_ms"] / 1000)
+        protocol.note_phases(tool_call_id, phases)
         if name == CODE_TOOL and isinstance(result, dict):
             if result.get("needs_permission") and run_id not in self._cancelled:
                 self._code_tripped(call, result)
@@ -248,6 +267,12 @@ class _ExecutorDeliver:
         refused = layer_egress.take_refusals(run_id)
         if refused and isinstance(result, dict):
             result["network_refused"] = refused
+
+            coded = next((item for item in refused if isinstance(item, CodedText)), None)
+            if coded is not None:
+                result.setdefault("network_refused_hint", coded.hint)
+                for fact, value in coded.facts.items():
+                    result.setdefault(fact, value)
         with stalls.probe("result.scrub"):
             result = neutralise_result(scrub_result(result), name, open_world=outside)
 
@@ -274,8 +299,8 @@ class _ExecutorDeliver:
         if call.get("user_edits") and isinstance(result, dict):
             result["edited_by_user"] = {
                 "values": call["user_edits"],
-                "note": ("The user changed these values on the permission card before the call ran; it ran "
-                         "with the 'after' values, not what was first asked."),
+                "note": "The user changed these values on the permission card before the call ran.",
+                "note_hint": "edited_by_user",
             }
 
 
@@ -290,7 +315,12 @@ class _ExecutorDeliver:
             detail = result.get("traceback", "") if isinstance(result, dict) else ""
 
 
-            self._fail(call, code, message, suggestion, duration, detail, details=error_details(result))
+
+
+
+            unadvised = not suggestion and isinstance(result, dict) and not result.get("hint")
+            shown = {**result, "hint": _DEFAULT_HINTS.get(code, "error_default_generic")} if unadvised else result
+            self._fail(call, code, message, suggestion, duration, detail, details=error_details(shown))
             if danger != Danger.READ:
                 self._journal_note(run_id, call, result, False)
             return
@@ -308,7 +338,7 @@ class _ExecutorDeliver:
         if danger != Danger.READ or (isinstance(args, dict)
                                      and str(args.get("task_id") or "") in self._task_ids.get(run_id, ())):
             with stalls.probe("postcondition.describe"):
-                postcondition.describe(result)
+                postcondition.describe(result, placed=danger != Danger.READ)
 
 
 
@@ -436,12 +466,8 @@ class _ExecutorDeliver:
             else:
                 code = Err.EXECUTION_FAILED
         suggestion = str(result.get("suggestion") or "")
-        if not suggestion:
-            suggestion = {
-                Err.LAYER_NOT_FOUND: "list_layers gives every layer's exact name and id.",
-                Err.INVALID_ARGS: "The schema states what each argument must be.",
-                Err.CANCELLED: "The call was cancelled.",
-            }.get(code, "The message states what happened; another call may fit better.")
+        if not suggestion and code == Err.CANCELLED:
+            suggestion = "The call was cancelled."
         return code, message, suggestion
 
     @staticmethod

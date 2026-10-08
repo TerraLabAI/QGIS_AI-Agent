@@ -162,8 +162,9 @@ def not_running(tool: str, found: dict) -> dict:
     name, label = _name(tool), _label(tool)
     state = found.get("state")
     if state == "disabled":
-        out = {"installed": True, "enabled": False, "ready": False, "state": "PLUGIN_DISABLED",
-               "action_required": f"{name} is installed but switched off. setup switches it on."}
+
+
+        out = {"installed": True, "enabled": False, "ready": False, "state": "PLUGIN_DISABLED"}
     elif state == "not_started":
         out = {"installed": True, "enabled": True, "ready": False, "state": "PLUGIN_NOT_STARTED",
                "action_required": (f"{name} is installed but did not start in this QGIS session; "

@@ -122,12 +122,8 @@ def _validity(layer: QgsVectorLayer, fid) -> dict:
 def _require_editable(layer: QgsVectorLayer):
 
     if not layer.isEditable():
-        return {
-            "_error": (
-                f"Layer '{layer.name()}' has no open edit session. "
-                "qgis_edit_begin opens one."
-            )
-        }
+        return tool_error(f"Layer '{layer.name()}' has no open edit session.",
+                          hint="edit_session_required", layer=layer.name())
     return None
 
 
@@ -480,7 +476,7 @@ def _edit_begin(args: dict) -> dict:
         },
         "topological": topological,
         "avoid_overlap": avoid_overlap,
-        "note": "prior editing aids saved; state_token restores them via qgis_edit_restore_aids.",
+        "note": coded_fact(hint="edit_aids_saved", state_token=token),
     }
 
 
@@ -525,8 +521,7 @@ def _edit_commit(args: dict) -> dict:
                 "changed_attributes": len(remaining.changedAttributeValues()),
                 "deleted": len(remaining.deletedFeatureIds()),
             } if remaining is not None else {},
-            "suggestion": ("Correct the provider error, then qgis_edit_commit retries the remaining edits. "
-                           "qgis_edit_rollback explicitly discards the remaining buffer."),
+            **coded_fact(hint="edit_commit_incomplete", layer=layer.name()),
         }
 
     return {
@@ -538,10 +533,7 @@ def _edit_commit(args: dict) -> dict:
 
         "feature_count": feature_count_of(layer),
         "editing": layer.isEditable(),
-        "note": (
-            "editing aids still applied; qgis_edit_restore_aids with the "
-            "state_token clears them."
-        ),
+        "note": coded_fact(hint="edit_aids_still_applied", state_token=_layer_tokens.get(layer.id())),
     }
 
 
@@ -563,8 +555,7 @@ def _edit_rollback(args: dict) -> dict:
             "_error": f"rollBack failed on layer '{layer.name()}', which is still in edit mode.",
             "code": "EXECUTION_FAILED",
             "aids_restored": aids_restored,
-            "suggestion": ("The user closes it with Toggle Editing on that layer, discarding the changes; no "
-                           "tool call on it succeeds until then."),
+            **coded_fact(hint="edit_rollback_failed", layer=layer.name()),
         }
 
     return {
@@ -655,12 +646,8 @@ def _arm_tool(args: dict) -> dict:
     if action is None:
         return {"_error": f"Could not resolve a QGIS action to arm '{name}'."}
     if not action.isEnabled():
-        return {
-            "_error": (
-                f"The '{name}' action is disabled right now; it needs an edit session "
-                "(qgis_edit_begin) on an editable vector layer."
-            )
-        }
+        return tool_error(f"The '{name}' action is disabled right now.",
+                          hint="edit_action_disabled", action=name)
     action.trigger()
 
     return {
@@ -733,7 +720,7 @@ def _move_vertex(args: dict) -> dict:
         "y": y,
         "coincident_vertices_moved": co_moved,
         "committed": False,
-        "note": "moved in the open edit session; qgis_edit_commit persists it.",
+        "note": coded_fact(hint="edit_uncommitted", change="vertex moved"),
         **_validity(layer, fid),
     }
 
@@ -805,7 +792,7 @@ def _trim_extend_line(args: dict) -> dict:
         "old_endpoint": {"x": old.x(), "y": old.y()},
         "topological_editing": QgsProject.instance().topologicalEditing(),
         "committed": False,
-        "note": "Endpoint moved in the open edit session; qgis_edit_commit persists it.",
+        "note": coded_fact(hint="edit_uncommitted", change="endpoint moved"),
         **_validity(layer, fid),
     }
 
@@ -868,13 +855,10 @@ def _split_feature(args: dict) -> dict:
         "result_code": code,
         "new_pieces": new_pieces,
         "committed": False,
-        "note": "split in the open edit session; qgis_edit_commit persists it.",
+        "note": coded_fact(hint="edit_uncommitted", change="split"),
     }
     if not success:
-        out["_error"] = (
-            f"splitFeatures returned code {code} (0=Success). "
-            "The cut line may not cross the feature."
-        )
+        out["_error"] = f"splitFeatures returned code {code} (0=Success)."
 
         out.update(coded_fact(hint="digitize_split", result_code=code, layer=layer.name(), fid=fid))
     else:
@@ -912,10 +896,7 @@ def _reshape_feature(args: dict) -> dict:
             "layer": layer.name(),
             "fid": fid,
             "result_code": code,
-            "_error": (
-                f"reshapeGeometry returned code {code} (0=Success). "
-                "The reshape line must start and end on the feature boundary."
-            ),
+            "_error": f"reshapeGeometry returned code {code} (0=Success).",
 
             **coded_fact(hint="digitize_reshape", result_code=code, layer=layer.name(), fid=fid),
         }
@@ -930,7 +911,7 @@ def _reshape_feature(args: dict) -> dict:
         "fid": fid,
         "result_code": code,
         "committed": False,
-        "note": "reshaped in the open edit session; qgis_edit_commit persists it.",
+        "note": coded_fact(hint="edit_uncommitted", change="reshaped"),
         **_validity(layer, fid),
     }
 
@@ -1088,7 +1069,8 @@ def _simplify_feature(args: dict) -> dict:
         return {"_error": f"Feature {fid} has no geometry to simplify."}
     simplified = geom.simplify(float(args["tolerance"]))
     if simplified.isNull():
-        return {"_error": "simplify produced a null geometry; lower the tolerance."}
+        return tool_error("simplify produced a null geometry.", hint="edit_simplify_null", fid=fid,
+                          tolerance=float(args["tolerance"]))
     vbefore = sum(1 for _ in geom.vertices())
     vafter = sum(1 for _ in simplified.vertices())
     if not layer.changeGeometry(fid, simplified):
@@ -1153,8 +1135,7 @@ def _add_ring(args: dict) -> dict:
         ring_fid = None
     if code != 0:
         return {"ring_added": False, "layer": layer.name(), "result_code": code,
-                "_error": (f"addRing returned code {code} (0=Success). The ring must lie "
-                           "entirely inside exactly one existing feature."),
+                "_error": f"addRing returned code {code} (0=Success).",
                 **coded_fact(hint="digitize_addring", result_code=code, layer=layer.name())}
     layer.triggerRepaint()
     return {"ring_added": True, "layer": layer.name(), "feature_fid": ring_fid,
@@ -1197,7 +1178,7 @@ def _undo_saved(layer) -> dict:
     if context.restore_previous is None or not context.chat:
         return {"undone": False, "layer": layer.name(),
                 "_error": f"Layer '{layer.name()}' has no edit waiting to be undone.",
-                "suggestion": "The chat's Undo arrow takes the project back to before a request."}
+                **coded_fact(hint="edit_nothing_to_undo", layer=layer.name())}
     return context.restore_previous(context.chat)
 
 

@@ -564,7 +564,7 @@ _tool_names: list = []
 
 
 _PLUGIN_FIELDS = ("folder", "folders", "name", "author", "licence", "url", "category",
-                  "summary", "skill", "prompts", "glyph", "providers")
+                  "summary", "prompts", "glyph")
 
 
 def set_qgis_plugins(rows) -> None:

@@ -121,8 +121,8 @@ def _connection(name: str):
     connection = connections.get(name)
     if connection is None:
         return None, tool_error(f"No saved PostgreSQL connection named {name!r}.", "INVALID_ARGS",
-                                f"Saved connections: {sorted(connections)[:20]}. create_postgresql_connection "
-                                "adds one.")
+                                hint="pg_connection_unknown", connection=name,
+                                saved_connections=sorted(connections)[:20])
     if not isinstance(connection, QgsAbstractDatabaseProviderConnection):
         return None, tool_error(f"Connection {name!r} is not a database connection.", "INVALID_ARGS", "")
     return connection, None
@@ -151,15 +151,15 @@ def _source_copy(layer, selected_only: bool, encoding: str):
 
     ceiling = limits.current("MAX_FEATURES_MATERIALISED")
     reopen_error = tool_error(f"The source of {layer.name()!r} could not be opened again for the import.",
-                              "EXECUTION_FAILED", "A GeoPackage copy of it reopens for the import.")
+                              "EXECUTION_FAILED", hint="pg_source_reopen", layer=layer.name())
     if selected_only:
         ids = list(layer.selectedFeatureIds())
         if not ids:
             return None, tool_error(f"{layer.name()!r} has no selected features.", "INVALID_ARGS",
-                                    "selected_only off copies the whole layer.")
+                                    hint="pg_no_selection", layer=layer.name())
         if len(ids) > ceiling:
             return None, tool_error(f"{len(ids):,} selected features is past the {ceiling:,} this call copies.",
-                                    "INVALID_ARGS", "Whole-layer import streams; a smaller selection fits too.")
+                                    "INVALID_ARGS", hint="pg_selection_too_large", selected=len(ids), ceiling=ceiling)
         source = layer
         if encoding and layer.providerType() != "memory":
 
@@ -172,7 +172,7 @@ def _source_copy(layer, selected_only: bool, encoding: str):
         if count > ceiling:
             return None, tool_error(f"{layer.name()!r} is a scratch layer of {count:,} features, past the "
                                     f"{ceiling:,} this call copies.", "INVALID_ARGS",
-                                    "A GeoPackage copy (save_layer_to_gpkg) reopens for the import.")
+                                    hint="pg_scratch_too_large", layer=layer.name(), features=count, ceiling=ceiling)
         return layer.materialize(QgsFeatureRequest()), None
     copy = _reopened(layer, encoding)
     if copy is None:
@@ -222,13 +222,12 @@ def _key_problem(layer, field_name: str):
     nulls = [v for v in values if v is None or (hasattr(v, "isNull") and v.isNull())]
     if nulls:
         return tool_error(f"{field_name!r} has empty values, and a primary key cannot. Nothing was written.",
-                          "INVALID_ARGS", "A key with no empty values avoids this; without primary_key, PostGIS "
-                          "adds an id.")
+                          "INVALID_ARGS", hint="pg_key_has_nulls", field=field_name)
     if len(values) < count:
         return tool_error(f"{field_name!r} repeats: {count - len(values):,} of {count:,} rows share a value "
                           "with another row, so the insert would fail partway. Nothing was written.",
-                          "INVALID_ARGS", "A key with unique values avoids this; without primary_key, PostGIS "
-                          "adds a serial id.")
+                          "INVALID_ARGS", hint="pg_key_repeats", field=field_name,
+                          repeated=count - len(values), rows=count)
     return None
 
 
@@ -238,13 +237,13 @@ def _import_to_postgis(args: dict) -> dict:
         return layer_not_found(args.get("layer_name"))
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()!r} is not a vector layer.", "INVALID_ARGS",
-                          "Rasters go to PostGIS with raster2pgsql outside QGIS.")
+                          hint="pg_raster_layer", layer=layer.name())
     if not layer.isValid():
         return tool_error(f"{layer.name()!r} is not readable (its source is missing or broken).", "INVALID_ARGS",
-                          "repair_layer_paths repairs a layer's broken path.")
+                          hint="pg_layer_unreadable", layer=layer.name())
     if layer.isModified():
         return tool_error(f"{layer.name()!r} has unsaved edits, and the import reads what is saved.",
-                          "INVALID_ARGS", "qgis_edit_commit commits or rolls back edits.")
+                          "INVALID_ARGS", hint="pg_unsaved_edits", layer=layer.name())
     connection_name = str(args.get("connection") or "").strip()
     connection, error = _connection(connection_name)
     if error:
@@ -269,7 +268,7 @@ def _import_to_postgis(args: dict) -> dict:
             codecs.lookup(encoding)
         except LookupError:
             return tool_error(f"Unknown encoding {encoding!r}.", "INVALID_ARGS",
-                              "Accepted names: UTF-8, windows-1252, ISO-8859-1, CP1250.")
+                              hint="pg_encoding_unknown", encoding=encoding)
 
     crs = layer.crs()
     target = str(args.get("target_crs") or "").strip()
@@ -277,7 +276,7 @@ def _import_to_postgis(args: dict) -> dict:
         crs = QgsCoordinateReferenceSystem(target)
         if not crs.isValid():
             return tool_error(f"target_crs {target!r} is not a CRS QGIS knows.", "INVALID_ARGS",
-                              "Authority ids such as EPSG:2154 work.")
+                              hint="pg_target_crs_unknown", target_crs=target)
     if has_geometry and (not crs.isValid() or not layer.crs().isValid()):
         return tool_error(f"{layer.name()!r} has no known CRS, so its SRID in PostGIS would be 0.",
                           "INVALID_ARGS", "The import needs the layer's CRS declared.")
@@ -302,14 +301,14 @@ def _import_to_postgis(args: dict) -> dict:
                     "SELECT 1 FROM pg_extension WHERE extname = 'postgis'"))
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"Could not reach {connection_name!r}: {str(exc)[:300]}", "EXECUTION_FAILED",
-                          "list_connections lists saved connections; the server may be down.")
+                          hint="pg_unreachable", connection=connection_name)
     if exists and not overwrite:
         return tool_error(f"Table {schema}.{table} already exists. Nothing was written.", "INVALID_ARGS",
-                          "A different name avoids this; overwrite true replaces it, losing its rows.")
+                          hint="pg_table_exists", schema=schema, table=table)
     if not postgis:
         return tool_error(f"The database behind {connection_name!r} has no PostGIS extension, so a layer "
                           "with geometry cannot be stored there. Nothing was written.", "INVALID_ARGS",
-                          "A database owner runs CREATE EXTENSION postgis once; import then works.")
+                          hint="pg_no_postgis", connection=connection_name)
 
     copy, error = _source_copy(layer, bool(args.get("selected_only")), encoding)
     if error:
@@ -326,8 +325,7 @@ def _import_to_postgis(args: dict) -> dict:
             f"({'; '.join(repr(s) for s in suspect['samples'])}). Written now, the database would keep it "
             "broken. Nothing was written.",
             "INVALID_ARGS",
-            f"source_encoding {suspect['source_encoding']!r} (or the file's real code page) reads it right; a "
-            "given encoding imports as is.")
+            hint="pg_text_misread", source_encoding=suspect["source_encoding"], reading=suspect["reading"])
 
     uri = QgsDataSourceUri(connection.uri())
     uri.setSchema(schema)
@@ -399,6 +397,6 @@ def _import_to_postgis(args: dict) -> dict:
     task_id, _entry = register_task(task, f"import_to_postgis {schema}.{table}", connect=wire)
     return {"task_id": task_id, "status": "running", "importing": f"{schema}.{table}",
             "feature_count": feature_count,
-            "note": "Writing in the background, QGIS stays responsive. Poll get_task_status(task_id).",
+            "note": "Writing in the background.", "note_hint": "pg_import_running",
             "poll": {"tool": "get_task_status", "args": {"task_id": task_id},
                      "interval_s": 0.5, "label": f"Importing into {schema}.{table}"}}

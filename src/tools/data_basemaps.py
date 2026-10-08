@@ -21,7 +21,7 @@ from ..core.follow import view_kept
 from ..core.layer_order import COVERAGE_PROPERTY, cover_report, feature_count_of, place_basemap
 from ..core.logger import log_warning
 from ..core.provider_uri import encode_uri_url
-from ..core.tool_registry import ServedValueMissing
+from ..core.tool_registry import ServedValueMissing, coded_fact, tool_error
 from .data_common import _canvas_viewbox_4326, _http_get, _viewbox_bounds, built_here, worker_options
 
 
@@ -80,7 +80,7 @@ def _list_xyz_sources(args: dict) -> dict:
             "provider": "QuickMapServices",
             "groups": by_group,
             "count": len(qms_catalog),
-            "_note": "add_xyz_layer(source=<id or name>) adds any of these.",
+            **coded_fact(hint="xyz_sources_listed"),
         }
         browser = _browser_xyz_connections()
         if browser:
@@ -260,8 +260,7 @@ def _withdrawn_basemap(*urls) -> dict | None:
         host = urllib.parse.urlsplit(str(url or "")).hostname or ""
         reason = net.withdrawn_reason(host)
         if reason:
-            return {"_error": reason, "_code": "INVALID_ARGS",
-                    "_suggestion": "list_xyz_sources names other basemaps to add."}
+            return tool_error(reason, "INVALID_ARGS", hint="basemap_withdrawn", host=host)
     return None
 
 
@@ -401,9 +400,8 @@ def _add_preset_chain(preset: dict, source) -> dict:
             return out
         failures.append(f"{current['name']}: {out.get('_error')}")
         current = presets.get(str(current.get("fallback") or ""))
-    return {"_error": "No basemap of this preset's chain could be loaded. " + " ".join(failures),
-            "_code": "EXECUTION_FAILED",
-            "_suggestion": "list_xyz_sources lists other basemaps to add."}
+    return tool_error("No basemap of this preset's chain could be loaded. " + " ".join(failures),
+                      "EXECUTION_FAILED", hint="basemap_chain_failed", preset=str(preset.get("name") or ""))
 
 
 def _add_xyz_layer(args: dict) -> dict:
@@ -439,8 +437,8 @@ def _add_xyz_layer(args: dict) -> dict:
             if checked["status"] != "ok":
                 out["warning"] = (f"The layer is in the project, but the tile of this view at zoom "
                                   f"{checked['z']} did not come back ({checked['reason']}): the map may "
-                                  "show nothing here. The service may not cover this area, or the URL "
-                                  "template may be wrong.")
+                                  "show nothing here.")
+                out.update(coded_fact(hint="tile_not_returned", z=checked["z"], reason=str(checked["reason"])))
         return out
 
 
@@ -487,8 +485,8 @@ def _add_xyz_layer(args: dict) -> dict:
                     "layer_name": kept.name(),
                     "type": getattr(ds, "type", None),
                     "already_present": True,
-                    "message": f"'{kept.name()}' already reads this exact source, so it was reused. "
-                    "Adding it twice would make the name ambiguous for every later tool.",
+                    "message": f"'{kept.name()}' already reads this exact source, so it was reused.",
+                    **coded_fact(hint="basemap_reused", layer=kept.name()),
                 }
 
             out = {
@@ -524,9 +522,7 @@ def _add_xyz_layer(args: dict) -> dict:
 
     available = list(presets.keys()) or sorted(qms_catalog.keys())[:25]
     refusal = {
-        "_error": f"Unknown basemap '{source}'.",
-        "_code": "INVALID_ARGS",
-        "_suggestion": "list_xyz_sources lists QuickMapServices ids/names.",
+        **tool_error(f"Unknown basemap '{source}'.", "INVALID_ARGS", hint="unknown_basemap", source=str(source)),
         "examples": available,
     }
     if qms_catalog:
@@ -674,7 +670,25 @@ def _oapif_collection(url: str) -> str | None:
     return f"{parts.scheme}://{parts.netloc}{found.group('collection')}"
 
 
-def _oapif_local_copy(collection: str, name: str) -> dict | None:
+def _oapif_box(url: str, bbox) -> list | None:
+
+
+    if bbox:
+        return [float(v) for v in bbox[:4]]
+    query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+    crs = str(query.get("bbox-crs") or "").lower()
+    if crs and not crs.endswith(("crs84", "/4326", ":4326")):
+        return None
+    try:
+        values = [float(v) for v in str(query.get("bbox") or "").split(",")]
+    except ValueError:
+        return None
+
+    box = values[:2] + values[3:5] if len(values) == 6 else values
+    return box if len(box) == 4 and box[0] < box[2] and box[1] < box[3] else None
+
+
+def _oapif_local_copy(collection: str, name: str, box: list | None = None) -> dict | None:
 
 
 
@@ -702,12 +716,16 @@ def _oapif_local_copy(collection: str, name: str) -> dict | None:
     source = f"OAPIF:{collection}"
 
 
+
+    spat = ["-spat", *(repr(v) for v in box), "-spat_srs", "EPSG:4326"] if box else []
+
+
     ceiling = int(limits.current("MAX_FEATURES_MATERIALISED"))
     cancel = net.current_cancel_check()
     path = os.path.join(create_managed_temp_dir("extract"), f"{_safe_extract_stem(name)}.gpkg")
     try:
         written = gdal.VectorTranslate(
-            path, source, format="GPKG", options=["-limit", str(ceiling + 1)],
+            path, source, format="GPKG", options=["-limit", str(ceiling + 1), *spat],
             callback=lambda _done, _message, _data: 0 if (cancel is not None and cancel()) else 1)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"OGC API - Features copy of {collection} failed: {exc}")
@@ -745,7 +763,8 @@ def _add_oapif_layer(args: dict) -> dict:
                 "code": "INVALID_ARGS",
                 "suggestion": "url must have the shape .../collections/<id>/items."}
     name = args.get("name") or collection.rsplit("/", 1)[-1]
-    local = _oapif_local_copy(collection, name)
+    box = _oapif_box(url, args.get("bbox"))
+    local = _oapif_local_copy(collection, name, box)
     if local is not None and local.get("cancelled"):
         return {"_error": "The run was stopped while the collection was being read.", "code": "CANCELLED"}
     if local is not None:
@@ -760,7 +779,7 @@ def _add_oapif_layer(args: dict) -> dict:
             QgsProject.instance().addMapLayer(layer)
             return {"layer_name": layer.name(), "layer_id": layer.id(),
                     "feature_count": local["feature_count"], "url": collection,
-                    "provider": "OGC API - Features, local copy"}
+                    "provider": "OGC API - Features, local copy", **({"bbox": box} if box else {})}
 
         out = run_on_main_thread(_create_local, timeout=60)
         if not out.get("_invalid"):
@@ -784,14 +803,15 @@ def _add_oapif_layer(args: dict) -> dict:
 
         return {"layer_name": layer.name(), "layer_id": layer.id(),
                 "feature_count": feature_count_of(layer), "url": collection,
-                "provider": "OGC API - Features"}
+                "provider": "OGC API - Features",
+                **({"warning": "The bbox was not applied: no local copy of the box was made (over "
+                               "the feature ceiling, or the copy failed), so the collection is read in "
+                               "place, whole."} if box else {})}
 
     out = run_on_main_thread(_create, timeout=60)
     if out.get("_invalid"):
-        return {"_error": f"The OGC API - Features collection at {collection} would not load.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": ("inspect_data_source confirms the collection exists. A GDAL older than "
-                               "3.0 has no OAPIF driver; the items page still reads a page at a time.")}
+        return tool_error(f"The OGC API - Features collection at {collection} would not load.",
+                          "EXECUTION_FAILED", hint="oapif_collection_not_loaded", collection=str(collection))
     return out
 
 
@@ -816,19 +836,12 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
 
             looks_like_style = "style" in urllib.parse.urlparse(url).path.lower()
-            suggestion = ("source is the tile template, e.g. "
-                          "https://host/tms/1.0.0/LAYER/{z}/{x}/{y}.pbf, or the "
-                          "TileJSON URL of the service.")
-            if looks_like_style:
 
 
 
-                suggestion = ("That address looks like a MapLibre style document. It goes in the style "
-                              "argument, with the service's TileJSON as the source, as written: source "
-                              "https://tiles.openfreemap.org/planet, style "
-                              "https://tiles.openfreemap.org/styles/liberty.")
-            return {"_error": f"{url} is neither a tile template nor a TileJSON document ({a}).",
-                    "_code": "INVALID_ARGS", "_suggestion": suggestion}
+            return tool_error(f"{url} is neither a tile template nor a TileJSON document ({a}).",
+                              "INVALID_ARGS", hint="tile_source_not_template",
+                              variant="style" if looks_like_style else "")
 
 
         probe = template.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0").replace("{s}", "a")
@@ -868,9 +881,8 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
         layer = QgsVectorTileLayer(uri, name)
         if not layer.isValid():
-            return {"_error": f"QGIS could not open the vector tile service at {url}.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "The template may not resolve for one tile, or the zoom range may be off."}
+            return tool_error(f"QGIS could not open the vector tile service at {url}.", "INVALID_ARGS",
+                              hint="vector_tiles_unopenable")
         out = {"layer_name": layer.name(), "layer_id": layer.id(), "url": url,
                "provider": "vector tiles", "zmin": zmin, "zmax": zmax}
         if tilejson_note:
@@ -892,9 +904,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
 
 
-            out["_note"] = ("No style was passed, so QGIS draws these tiles with its own default "
-                            "renderer and the map will look almost empty. The style argument takes the "
-                            "service's MapLibre style.")
+            out.update(coded_fact(hint="vector_tiles_no_style"))
         with view_kept():
             QgsProject.instance().addMapLayer(layer)
         out.update(_stacked(layer))

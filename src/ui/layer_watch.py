@@ -27,18 +27,16 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QObject, QTimer
 
 from ..core.logger import log_warning
-from .bubbles import AgentBubble
-from .layer_card import LayerCard
-from .layer_links import RunChangesRow
-
-
-_FOLLOWERS = (RunChangesRow, LayerCard, AgentBubble)
+from .layer_icons import layer_followers
 
 
 def _ids(items) -> frozenset:
@@ -85,18 +83,18 @@ class LayerWatch(QObject):
     def follow(self, gone=frozenset()) -> int:
 
 
-        try:
-            followers = self._root.findChildren(_FOLLOWERS)
-        except (RuntimeError, TypeError):
-
-            return 0
-        for widget in followers:
+        root = self._root
+        read = 0
+        for widget in layer_followers():
             try:
+                if not root.isAncestorOf(widget):
+                    continue
                 widget.follow_project(gone)
             except RuntimeError:
 
                 continue
-        return len(followers)
+            read += 1
+        return read
 
     def refresh(self, *_signal_args) -> None:
 

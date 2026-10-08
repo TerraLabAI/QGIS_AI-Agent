@@ -48,7 +48,7 @@ from qgis.PyQt.QtCore import QSize
 from ..core import limits, output_paths, security
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
-from ..core.tool_registry import tool_error
+from ..core.tool_registry import coded_fact, tool_error
 
 TOOL = "export_animation_frames"
 _DIGITS = 4
@@ -73,16 +73,14 @@ def _animation(controller) -> dict:
               if layer.temporalProperties() is not None and layer.temporalProperties().isActive()]
     if not layers:
         return tool_error("No layer of the project is animated over time, so there are no frames to export.",
-                          "INVALID_ARGS", "set_layer_temporal (date field, or begin/end for a raster) "
-                                          "gives frames to export.")
+                          "INVALID_ARGS", hint="animation_no_temporal_layer")
     extents = controller.temporalExtents()
     total = int(controller.totalFrameCount())
     if (controller.navigationMode() != _navigation_mode("Animated") or not extents.begin().isValid()
             or not extents.end().isValid() or total < 1):
         return tool_error(f"The temporal controller is not animating a range: {', '.join(layers[:5])} "
                           "have time settings, but no frames run.", "INVALID_ARGS",
-                          "set_layer_temporal puts the controller in animation over its dates, "
-                          "with frames to export.")
+                          hint="animation_not_running")
     begin, end = _moment(extents.begin()), _moment(extents.end())
     return {"layers": layers, "total": total,
             "range": {"begin": _fmt(begin, bool(begin % _DAY_MS)), "end": _fmt(end, bool(end % _DAY_MS))}}
@@ -104,11 +102,9 @@ def _frames(args: dict, total: int):
     count = last - first + 1
     if count > ceiling:
         factor = -(-count // ceiling)
-        return limits.refusal(
-            "The export", f"{count:,} frames", f"{ceiling:,} frames",
-            f"Export frames {first} to {first + ceiling - 1} now (first_frame and last_frame) and the rest in a "
-            f"second call, or make the step of set_layer_temporal {factor} times as long, which gives about "
-            f"{-(-count // factor):,} frames.")
+        return {**limits.refusal("The export", f"{count:,} frames", f"{ceiling:,} frames", ""),
+                **coded_fact(hint="animation_frames_over_ceiling", first=first, last_fitting=first + ceiling - 1,
+                             factor=factor, frames_after=-(-count // factor))}
     return first, last
 
 
@@ -159,8 +155,7 @@ def _folder(args: dict, layer: str, prefix: str, first: int, last: int):
             index += 1
     error = security.validate_path(folder, write=True)
     if error:
-        return tool_error(error, "PERMISSION_DENIED",
-                          "Under the project folder, the home folder or the temp folder works.")
+        return tool_error(error, "PERMISSION_DENIED", hint="output_folder_refused")
     existed = os.path.isdir(folder)
 
 
@@ -208,7 +203,7 @@ def export_animation_frames(args: dict) -> dict:
     running = running_export()
     if running:
         return tool_error(f"An animation export is already running (task {running}).", "INVALID_ARGS",
-                          f"get_task_status task_id {running} follows it; cancel_task stops it.")
+                          hint="animation_export_running", task_id=running)
     canvas, controller = _canvas_and_controller()
     if canvas is None or controller is None:
         return tool_error("There is no map canvas with a temporal controller in this QGIS window.",
@@ -270,6 +265,8 @@ class FrameExport:
         self.current: dict | None = None
         self.removed = 0
         self.error = ""
+        self.error_hint = ""
+        self.error_frame = -1
         self.longest_start_ms = 0.0
         self.started = time.monotonic()
         self.ended: float | None = None
@@ -290,13 +287,12 @@ class FrameExport:
         if self.entry["status"] != "running":
             _PROCESSING_TASKS.pop(self.task_id, None)
             return tool_error(self.error or "The first frame could not start.", "EXECUTION_FAILED",
-                              "Folder space or a smaller frame may fix it.")
+                              hint="animation_first_frame_failed")
 
         return {**self.report(), "task_id": self.task_id, "status": "running",
                 "outputs": {"first_frame": {"path": self.path(self.first)},
                             "last_frame": {"path": self.path(self.last)}},
-                "note": "The frames render in the background, one after another, and QGIS stays responsive. "
-                        "Poll get_task_status(task_id).",
+                **coded_fact(hint="animation_export_started", task_id=self.task_id),
                 "poll": {"tool": "get_task_status", "args": {"task_id": self.task_id},
                          "interval_s": _POLL_INTERVAL_S, "timeout_s": 600 + 2 * self.count,
                          "label": f"Exporting {self.count} animation frames"}}
@@ -321,6 +317,8 @@ class FrameExport:
                            + (f", and the folder {self.folder}" if self.created else "") + "; nothing is left.")
         elif status == "error":
             out["error"] = self.error
+            if self.error_hint:
+                out.update(coded_fact(self.error_hint, frame=self.error_frame))
             out["note"] = f"The export failed; the {self.removed} frames it had written were removed."
         return out
 
@@ -404,8 +402,8 @@ class FrameExport:
             return
         if not ok or not os.path.isfile(item["part"]):
             self._remove(item["part"])
-            self.error = (f"Frame {item['frame']} could not be rendered or written to {self.folder}: check the "
-                          "folder has room, or export a smaller frame.")
+            self.error = f"Frame {item['frame']} could not be rendered or written to {self.folder}."
+            self.error_hint, self.error_frame = "animation_frame_not_written", item["frame"]
             self._fail()
             return
         try:

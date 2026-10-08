@@ -67,17 +67,6 @@ COSTLY = {
 
 COSTLY_TOOLS = {f"{name}_{action}": label for (name, action), label in COSTLY.items()}
 
-
-
-ZONE_ARGUMENTS = (
-    "use_zone true names a zone of interest already in the project (zone "
-    "action get says so; zone action set makes one from a layer the user named), or bbox "
-    "[xmin,ymin,xmax,ymax] in the canvas CRS, or zone_wkt (a WKT polygon), or use_canvas_extent "
-    "true for the current view (get_canvas_extent gives both). Above "
-    f"{CONFIRM_KM2:.0f} km², confirm_area_km2 is the user's yes to the area once stated to them."
-)
-
-
 def costly_label(name: str, args: dict) -> str | None:
 
 
@@ -282,16 +271,19 @@ def check(name: str, args: dict) -> dict:
         return {
             "error": (f"{label} needs a measurable imagery footprint before approval; this call carries "
                       "no zone that can be measured, so it was not run."),
-            "suggestion": ZONE_ARGUMENTS,
+
+
+            "suggestion": "",
             "code": limits.CEILING_CODE,
+            "hint": "zone_unmeasurable", "label": label, "confirm_km2": CONFIRM_KM2,
         }
     try:
         from .integration_handoff import spending_inputs
         inputs = spending_inputs(label, args, geom)
     except (ValueError, TypeError, RuntimeError, AttributeError) as exc:
         return {"error": f"{label} inputs could not be read before approval: {exc}",
-                "suggestion": "Check the source image and prepared zone in the native panel, then retry.",
-                "code": limits.CEILING_CODE}
+                "suggestion": "", "code": limits.CEILING_CODE,
+                "hint": "spending_inputs_unreadable", "label": label}
     if area > CONFIRM_KM2:
         confirmed = args.get("confirm_area_km2")
         try:
@@ -300,18 +292,15 @@ def check(name: str, args: dict) -> dict:
             confirmed = None
         if confirmed is None or abs(confirmed - area) > max(0.15, area * 0.1):
             return {
-                "error": (f"This {label} run covers {area:.1f} km². "
-                          + ("Segmentation credits follow the processed area." if label == SEGMENTATION
-                             else "AI Edit credits depend on the output resolution, not this area.")
-                          + f"{_balance_sentence(label, area)} confirm_area_km2={area:.1f} "
-                            "states the footprint for the native approval card."),
+                "error": f"This {label} run covers {area:.1f} km².{_balance_sentence(label, area)}",
 
 
 
 
-                "suggestion": ("Keep the intended zone as one run. State its measured footprint and use "
-                               "the native permission card; do not substitute a set of bounding boxes."),
+                "suggestion": "",
                 "code": limits.CEILING_CODE,
+                "hint": "area_confirmation_needed", "variant": "segmentation" if label == SEGMENTATION else "edit",
+                "label": label, "area_km2": round(area, 1),
             }
     shown = f"{area:.2f} km²" if area < 1 else f"{area:.1f} km²"
     if label == SEGMENTATION:

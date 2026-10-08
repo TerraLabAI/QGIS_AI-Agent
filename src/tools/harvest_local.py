@@ -704,7 +704,7 @@ def _find_local_data(args: dict) -> dict:
             return tool_error(
                 f"Could not start the index task: {e}",
                 "INDEX_FAILED",
-                "get_message_log has detail; find_local_data can rerun.",
+                hint="index_task_not_started",
             )
         running = True
         started = True
@@ -716,7 +716,7 @@ def _find_local_data(args: dict) -> dict:
             return tool_error(
                 "Could not read the canvas extent in EPSG:4326.",
                 "INVALID_ARGS",
-                "get_canvas_extent gives it; an empty canvas needs set_canvas_extent, or no within_canvas.",
+                hint="canvas_extent_unreadable",
             )
 
     results = []
@@ -759,15 +759,12 @@ def _find_local_data(args: dict) -> dict:
     if status == "indexing":
         out["note"] = (
             f"The project's folders are being indexed ({index['files_indexed']} files so far"
-            f"{', just started' if started else ''}). Results are partial; a call moments later "
-            "returns more."
+            f"{', just started' if started else ''}). Results are partial."
         )
+        out["note_hint"] = "index_partial"
     elif status == "refreshing":
         out["note"] = "Results come from the previous index while it refreshes in the background."
     elif not results:
-        out["note"] = (
-            "No indexed file matches. Fewer words, no within_canvas, or refresh=true for a new "
-            "file may find it. Only the project's folder, its layers' folders and the folders of "
-            "files the user attached or typed are indexed; other files are not."
-        )
+        out["note"] = "No indexed file matches."
+        out["note_hint"] = "no_indexed_match"
     return out

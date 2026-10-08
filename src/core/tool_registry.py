@@ -28,7 +28,7 @@ from typing import Any, Callable
 
 from .host_platform import IS_WINDOWS, expand_leading_env
 from .logger import log_warning
-from .serialization import reads_the_outside_world
+from .serialization import CodedText, carried_code, reads_the_outside_world
 
 DANGER_LEVELS = ("read", "write", "destructive")
 
@@ -94,6 +94,14 @@ def tool_error(message: str, code: str = "EXECUTION_FAILED", suggestion: str = "
 
 
 
+
+
+    if isinstance(message, CodedText) and not hint and not suggestion:
+
+        hint, facts = message.hint, {**message.facts, **facts}
+    if code == "NETWORK_ERROR" and not hint and not suggestion:
+
+        hint = "network_failed"
     error = {"_error": message, "code": code, "suggestion": suggestion}
     if hint:
         error.update(facts, hint=hint)
@@ -111,6 +119,32 @@ class ServedValueMissing(RuntimeError):
     def __init__(self, key: str):
         super().__init__(f"The server did not send '{key}' for this session.")
         self.key = key
+
+
+def _send_coded(result: Any, depth: int = 0) -> Any:
+
+
+
+
+
+
+
+    if not isinstance(result, dict) or depth > 2:
+        return result
+    for key, item in list(result.items()):
+        if isinstance(item, CodedText):
+            if key == "_error":
+                if result.get("hint") or result.get("suggestion"):
+                    continue
+                name = "hint"
+            else:
+                name = f"{key}_hint"
+            result.setdefault(name, item.hint)
+            for fact, value in item.facts.items():
+                result.setdefault(fact, value)
+        elif isinstance(item, dict):
+            _send_coded(item, depth + 1)
+    return result
 
 
 def coded_fact(hint: str, **facts) -> dict:
@@ -142,13 +176,7 @@ def _network_failure(exc: BaseException) -> str | None:
     return net.describe_failure(exc)
 
 
-def _network_suggestion() -> str:
-    from . import net
-
-    return net.NETWORK_SUGGESTION
-
-
-def _refused_file_suggestion(exc: BaseException) -> str:
+def _refused_file_hint(exc: BaseException) -> str:
 
 
 
@@ -157,8 +185,7 @@ def _refused_file_suggestion(exc: BaseException) -> str:
 
 
     if IS_WINDOWS and isinstance(exc, PermissionError):
-        return ("The file is open in another program or read-only; closing it or writing to "
-                "another file name or folder works.")
+        return "file_refused_by_windows"
     return ""
 
 
@@ -525,7 +552,8 @@ class ToolRegistry:
             return None, arguments, tool_error(
                 f"Tool not found: {name}",
                 "TOOL_NOT_FOUND",
-                "search_tools finds the right name against the manifest.",
+                hint="tool_not_found",
+                tool=name,
             )
         if isinstance(arguments, dict):
             arguments = _expand_home(self._coerce_arguments(tool.input_schema, arguments))
@@ -534,7 +562,8 @@ class ToolRegistry:
             return tool, arguments, tool_error(
                 validation_error,
                 "INVALID_ARGS",
-                "The tool's parameters schema states what each argument must be.",
+                hint="args_schema",
+                tool=name,
             )
         return tool, arguments, None
 
@@ -546,7 +575,7 @@ class ToolRegistry:
             result = tool.handler(arguments)
         except Exception as e:
             return self._failure(name, e)
-        return self._normalize_result(result)
+        return _send_coded(self._normalize_result(result))
 
     @staticmethod
     def _failure(name: str, e: Exception) -> dict:
@@ -558,29 +587,35 @@ class ToolRegistry:
             return tool_error(
                 f"Arguments for tool '{name}' are nested too deeply",
                 "INVALID_ARGS",
-                "A flatter argument shape matches the tool's parameters schema.",
+                hint="args_too_deep",
+                tool=name,
             )
         if isinstance(e, ServedValueMissing):
             log_warning(f"Tool '{name}': {e}")
-            return tool_error(str(e), "SERVICE_NOT_RECEIVED", "It arrives after reconnect.",
-                              hint="served_value_missing", key=e.key)
+            return tool_error(str(e), "SERVICE_NOT_RECEIVED", hint="served_value_missing", key=e.key)
         network = _network_failure(e)
         if network:
 
 
             log_warning(f"Tool '{name}' lost its network: {network}")
-            return tool_error(network, "NETWORK_ERROR", _network_suggestion())
+            return tool_error(network, "NETWORK_ERROR", hint="network_failed")
         cls = e.__class__.__name__
         detail = str(e).strip()
         message = f"{cls}: {detail}" if detail else f"{cls} (no message)"
         full_traceback = traceback.format_exc()
         log_warning(f"Tool '{name}' raised {message}\n{full_traceback}")
-        error = tool_error(
-            message,
-            "EXECUTION_FAILED",
-            _refused_file_suggestion(e)
-            or "The traceback names the error; the same call unchanged fails the same way.",
-        )
+        coded = carried_code(e)
+        refused = _refused_file_hint(e)
+        if coded is not None:
+
+            error = tool_error(message, "EXECUTION_FAILED", hint=coded.hint, **coded.facts)
+        else:
+            error = tool_error(
+                message,
+                "EXECUTION_FAILED",
+                "" if refused else "The traceback names the error; the same call unchanged fails the same way.",
+                hint=refused,
+            )
         error["traceback"] = _short_traceback(e)
         return error
 
@@ -604,6 +639,8 @@ class ToolRegistry:
         else:
             result.setdefault("code", result.pop("_code", None) or "EXECUTION_FAILED")
             result.setdefault("suggestion", result.pop("_suggestion", None) or "")
+        if result.get("code") == "NETWORK_ERROR" and not result.get("suggestion") and not result.get("hint"):
+            result["hint"] = "network_failed"
         if not str(result["_error"]).strip():
             result["_error"] = "The tool failed but returned no error detail."
             result["code"] = result.get("code") or "EMPTY_ERROR"

@@ -39,8 +39,7 @@ def _unsafe_processing_algorithm(algorithm_id: str) -> dict | None:
     return tool_error(
         f"{algorithm_id} is blocked because its installed implementation edits the source "
         "layer from Processing and is unsafe for AI Agent execution.",
-        "INVALID_ARGS", "Every call of it is blocked.",
-        hint="processing_unsafe_algorithm", variant=folded, algorithm=folded)
+        "INVALID_ARGS", hint="processing_unsafe_algorithm", variant=folded, algorithm=folded)
 
 
 def _rules(section: str) -> dict:
@@ -555,7 +554,7 @@ def align_raster_grids(alg, algorithm_id: str, parameters: dict) -> tuple[dict, 
             names = ", ".join(_grid_words(layers[i]) for i in foreign)
             return parameters, [], tool_error(
                 f"{names} {'is' if len(foreign) == 1 else 'are'} not in the CRS of the first input, "
-                f"{_grid_words(reference)}.", "INVALID_ARGS", "The inputs need one CRS.",
+                f"{_grid_words(reference)}.", "INVALID_ARGS",
                 hint="grid_mixed_crs", algorithm=str(algorithm_id), inputs=names,
                 first=_grid_words(reference), crs=reference.crs().authid() or "the first input CRS",
                 count=len(foreign))

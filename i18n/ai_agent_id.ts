@@ -38,34 +38,14 @@
             <translation>1. Salin diagnostik</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>Area buffer beserta isinya, dihitung.</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent dan data Anda</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>Menambahkan basemap saat peta masih kosong</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>Menambahkan judul, legenda, scale bar, north arrow, kredit</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Allow / Skip</source>
             <translation>Izinkan / Lewati</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>Lembar A4 dengan judul, legenda, scale bar, dan north arrow.</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -108,29 +88,9 @@
             <translation>Kembalikan pesan terakhir yang Anda kirim</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>Buat buffer layer garis sejauh 100 m dalam CRS metrik, hitung berapa titik yang masuk di setiap buffer, dan berikan sepuluh dengan jumlah terbanyak sebagai tabel yang mudah dibaca. Gunakan layer saya sendiri bila proyek memiliki layer garis dan layer titik; jika tidak, unduh jalan dan toko dari distrik pilihan Anda, dan sebutkan distriknya.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffers the lines by 100 m</source>
-            <translation>Membuat buffer garis sejauh 100 m</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bug, question, feature request?</source>
             <translation>Bug, pertanyaan, atau permintaan fitur?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build a print map and export it</source>
-            <translation>Buat peta cetak dan ekspor</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>Buat layout lanskap A4 dari tampilan saat ini dengan judul, legenda, scale bar dalam meter, north arrow, dan baris kredit yang menyebutkan sumber data, lalu ekspor ke PDF pada 300 dpi. Jika map canvas kosong, tambahkan basemap lebih dulu di tempat yang Anda pilih, agar lembar itu berisi peta.</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -198,21 +158,6 @@
             <translation>Salin alamat dukungan di bawah ini ke aplikasi email Anda.</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Count what falls within a distance</source>
-            <translation>Hitung apa yang masuk dalam jarak tertentu</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Counts the points inside each buffer</source>
-            <translation>Menghitung titik di dalam setiap buffer</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>Membuat layout lanskap A4 dengan bingkai peta</translation>
-        </message>
-        <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
             <translation>Hapus akun saya</translation>
@@ -226,11 +171,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Done</source>
             <translation>Selesai</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>Unduh dari OpenStreetMap semua sekolah, taman, dan halte bus di satu distrik. Kerjakan di area yang sedang tampil di peta saya, atau pilih distrik di kota yang terpetakan dengan baik dan sebutkan. Letakkan dalam tiga layer, taman sebagai poligon, atur simbologi yang berbeda untuk masing-masing, dan beri tahu saya berapa banyak feature di tiap layer. Jalankan kueri untuk ketiganya satu per satu.</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -251,11 +191,6 @@
             <location filename="src/ui/use_cases.py" />
             <source>Explore</source>
             <translation>Jelajahi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>Mengekspor lembar ke PDF pada 300 dpi</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -283,19 +218,9 @@
             <translation>Di chat ini</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>Menyimpan taman sebagai poligon, sisanya sebagai titik</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Keyboard shortcuts</source>
             <translation>Pintasan keyboard</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Loads each answer as its own layer</source>
-            <translation>Memuat setiap jawaban sebagai layer tersendiri</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -378,11 +303,6 @@
             <translation>Proyek berubah</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Pull OpenStreetMap data for an area</source>
-            <translation>Ambil data OpenStreetMap untuk sebuah area</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a browser.</source>
             <translation>QGIS tidak dapat membuka browser.</translation>
@@ -428,29 +348,9 @@
             <translation>Lapor dan bagikan</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reports the feature count of the three</source>
-            <translation>Melaporkan jumlah feature dari ketiganya</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reprojects to a metric CRS before measuring</source>
-            <translation>Memproyeksikan ulang ke CRS metrik sebelum mengukur</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Returns the ten highest as a readable table</source>
-            <translation>Menampilkan sepuluh teratas sebagai tabel yang mudah dibaca</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>Berjalan di Eropa, disimpan di Prancis.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>Sekolah, taman, dan halte untuk satu distrik, sebagai tiga layer.</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -461,11 +361,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Send the message</source>
             <translation>Kirim pesan</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>Mengirim tiga kueri Overpass bergantian: sekolah, taman, halte</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -486,11 +381,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>Hentikan proses</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Takes the area from the canvas, or picks one</source>
-            <translation>Mengambil area dari peta, atau memilih satu</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -546,11 +436,6 @@
             <location filename="src/ui/library/detail.py" />
             <source>Use this prompt</source>
             <translation>Gunakan prompt ini</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Uses my lines and points, or downloads both</source>
-            <translation>Memakai garis dan titik saya, atau mengunduh keduanya</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -2361,6 +2246,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>This link opens a page on {host}.</source>
             <translation>Tautan ini membuka halaman di {host}.</translation>
         </message>
+        <message>
+            <source>Close</source>
+            <translation>Tutup</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Buka</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3090,6 +2983,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>The browser page should show the code {code}</source>
             <translation>Halaman browser seharusnya menampilkan kode {code}</translation>
+        </message>
+        <message>
+            <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
+            <translation>Ketik hanya kode yang Anda lihat di terra-lab.ai, di halaman yang Anda buka dari QGIS ini.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Type the code shown in your browser:</source>
+            <translation>Ketik kode yang muncul di browser Anda:</translation>
         </message>
     </context>
     <context>
@@ -6332,6 +6237,10 @@ Klik untuk membuka halamannya.</translation>
             <source>The run is paused.</source>
             <translation>Proses dijeda.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
     </context>
     <context>
         <name>RecommendationCard</name>
@@ -7456,6 +7365,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>e.g. I work in EPSG:2154</source>
             <translation>mis. Saya bekerja di EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Sumber data</translation>
         </message>
     </context>
     <context>
@@ -8825,6 +8738,18 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>{n} working files</source>
             <translation>{n} file kerja</translation>
         </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} lagi</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Tampilkan satu baris layer</translation>
+        </message>
     </context>
     <context>
         <name>RetentionRow</name>
@@ -8923,6 +8848,10 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>{n} days</source>
             <translation>{n} hari</translation>
         </message>
+        <message>
+            <source>Continue</source>
+            <translation>Lanjutkan</translation>
+        </message>
     </context>
     <context>
         <name>FileCardStack</name>
@@ -8930,6 +8859,45 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <location filename="src/ui/file_card.py" />
             <source>Working files</source>
             <translation>File kerja</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingV2</name>
+        <message>
+            <source>Can't reach TerraLab. Try again.</source>
+            <translation>Tidak dapat terhubung ke TerraLab. Coba lagi.</translation>
+        </message>
+        <message>
+            <source>Click Connect in your browser first, then type the code.</source>
+            <translation>Klik Hubungkan di browser Anda terlebih dahulu, lalu ketik kodenya.</translation>
+        </message>
+        <message>
+            <source>Connecting AI Agent</source>
+            <translation>Menghubungkan AI Agent</translation>
+        </message>
+        <message>
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>Masuk dibatalkan di browser. Klik Masuk untuk mencoba lagi.</translation>
+        </message>
+        <message>
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>Akun ini tidak punya paket AI Agent yang aktif. Aktifkan di terra-lab.ai, lalu klik Masuk lagi.</translation>
+        </message>
+        <message>
+            <source>This sign-in has ended. Click Sign in to start again.</source>
+            <translation>Sesi masuk ini sudah berakhir. Klik Masuk untuk mulai lagi.</translation>
+        </message>
+        <message>
+            <source>Too many wrong codes: this sign-in is closed. Click Sign in to start again.</source>
+            <translation>Terlalu banyak kode salah: masuk ini ditutup. Klik Masuk untuk mulai lagi.</translation>
+        </message>
+        <message>
+            <source>Type the 6 characters shown in your browser, like K7P-4QX.</source>
+            <translation>Ketik 6 karakter yang muncul di browser Anda, seperti K7P-4QX.</translation>
+        </message>
+        <message>
+            <source>Wrong code. Check it and try again.</source>
+            <translation>Kode salah. Periksa lalu coba lagi.</translation>
         </message>
     </context>
 </TS>

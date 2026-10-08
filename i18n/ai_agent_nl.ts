@@ -38,34 +38,14 @@
             <translation>1. Diagnosegegevens kopiëren</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>A buffer band, and what sits inside it, counted.</source>
-            <translation>Een bufferstrook, met een telling van wat erin valt.</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent en je gegevens</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds a basemap when the canvas has nothing on it</source>
-            <translation>Voegt een basiskaart toe als het kaartvenster leeg is</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Adds title, legend, scale bar, north arrow, credits</source>
-            <translation>Voegt titel, legenda, schaalbalk, noordpijl en bronvermelding toe</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Allow / Skip</source>
             <translation>Toestaan / Overslaan</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>An A4 sheet with title, legend, scale bar and north arrow.</source>
-            <translation>Een A4-blad met titel, legenda, schaalbalk en noordpijl.</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -108,29 +88,9 @@
             <translation>Het laatste verzonden bericht terughalen</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffer a line layer by 100 m in a metric CRS, count how many points fall inside each buffer, and give me the ten with the most, as a table I can read. Use my own layers when the project holds a line and a point layer; otherwise download the roads and the shops of a district you pick, and say which.</source>
-            <translation>Maak een buffer van 100 m rond een lijnlaag in een metrisch CRS, tel hoeveel punten er in elke buffer vallen, en geef me de tien met de meeste, als een tabel die ik kan lezen. Gebruik mijn eigen lagen als het project een lijn- en een puntlaag bevat; download anders de wegen en de winkels van een wijk naar keuze, en zeg welke.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Buffers the lines by 100 m</source>
-            <translation>Maakt een buffer van 100 m rond de lijnen</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Bug, question, feature request?</source>
             <translation>Bug, vraag of functieverzoek?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build a print map and export it</source>
-            <translation>Maak een afdruklay-out en exporteer die</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Build an A4 landscape layout of the current view with a title, a legend, a scale bar in metres, a north arrow and a credits line naming the data sources, then export it to PDF at 300 dpi. If the canvas is empty, add a basemap over a place you pick first, so the sheet has a map on it.</source>
-            <translation>Maak een liggende A4-lay-out van het huidige kaartvenster met een titel, een legenda, een schaalbalk in meters, een noordpijl en een bronregel met de databronnen, en exporteer die naar PDF op 300 dpi. Als het kaartvenster leeg is, voeg dan eerst een basiskaart toe voor een plek naar keuze, zodat er een kaart op het blad staat.</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -198,21 +158,6 @@
             <translation>Kopieer het onderstaande supportadres naar je e-mailapp.</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Count what falls within a distance</source>
-            <translation>Tel wat binnen een afstand valt</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Counts the points inside each buffer</source>
-            <translation>Telt de punten in elke buffer</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Creates an A4 landscape layout with a map frame</source>
-            <translation>Maakt een liggende A4-lay-out met een kaartframe</translation>
-        </message>
-        <message>
             <location filename="src/ui/delete_account_dialog.py" />
             <source>Delete my account</source>
             <translation>Account verwijderen</translation>
@@ -226,11 +171,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Done</source>
             <translation>Klaar</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Download from OpenStreetMap every school, park and bus stop in one district. Work over the area my canvas is on, or pick a district of a well mapped city and say which. Put them in three layers, the parks as polygons, style each one distinctly, and tell me how many features each holds. Query the three one at a time.</source>
-            <translation>Download alle scholen, parken en bushaltes uit OpenStreetMap voor één wijk. Werk in het gebied waar mijn kaartvenster op staat, of kies een wijk van een goed in kaart gebrachte stad en zeg welke. Zet ze in drie lagen, de parken als polygonen, geef elk een eigen stijl, en vertel me hoeveel objecten elk bevat. Bevraag de drie één voor één.</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -251,11 +191,6 @@
             <location filename="src/ui/use_cases.py" />
             <source>Explore</source>
             <translation>Verkennen</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Exports the sheet to PDF at 300 dpi</source>
-            <translation>Exporteert het blad naar PDF op 300 dpi</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -283,19 +218,9 @@
             <translation>In deze chat</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Keeps the parks as polygons, the rest as points</source>
-            <translation>Houdt de parken als polygonen, de rest als punten</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>Keyboard shortcuts</source>
             <translation>Sneltoetsen</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Loads each answer as its own layer</source>
-            <translation>Laadt elk antwoord als eigen laag</translation>
         </message>
         <message>
             <location filename="src/ui/use_cases.py" />
@@ -378,11 +303,6 @@
             <translation>Project gewijzigd</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Pull OpenStreetMap data for an area</source>
-            <translation>Haal OpenStreetMap-data op voor een gebied</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>QGIS could not open a browser.</source>
             <translation>QGIS kon geen browser openen.</translation>
@@ -428,29 +348,9 @@
             <translation>Rapporteren en delen</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reports the feature count of the three</source>
-            <translation>Rapporteert het aantal objecten van de drie</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Reprojects to a metric CRS before measuring</source>
-            <translation>Projecteert opnieuw naar een metrisch CRS vóór het meten</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Returns the ten highest as a readable table</source>
-            <translation>Geeft de tien hoogste als leesbare tabel terug</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>Draait in Europa, opgeslagen in Frankrijk.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Schools, parks and stops for one district, as three layers.</source>
-            <translation>Scholen, parken en haltes voor één wijk, als drie lagen.</translation>
         </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
@@ -461,11 +361,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Send the message</source>
             <translation>Het bericht verzenden</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Sends three Overpass queries in turn: schools, parks, stops</source>
-            <translation>Stuurt drie Overpass-query's achter elkaar: scholen, parken, haltes</translation>
         </message>
         <message>
             <location filename="src/ui/delete_account_dialog.py" />
@@ -486,11 +381,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>De uitvoering stoppen</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Takes the area from the canvas, or picks one</source>
-            <translation>Neemt het gebied van het kaartvenster, of kiest er een</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -546,11 +436,6 @@
             <location filename="src/ui/library/detail.py" />
             <source>Use this prompt</source>
             <translation>Gebruik deze prompt</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Uses my lines and points, or downloads both</source>
-            <translation>Gebruikt mijn lijnen en punten, of downloadt beide</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -2361,6 +2246,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>This link opens a page on {host}.</source>
             <translation>Deze link opent een pagina op {host}.</translation>
         </message>
+        <message>
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3090,6 +2983,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>The browser page should show the code {code}</source>
             <translation>De browserpagina zou de code {code} moeten tonen.</translation>
+        </message>
+        <message>
+            <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
+            <translation>Typ alleen een code die je ziet op terra-lab.ai, op een pagina die je vanuit deze QGIS hebt geopend.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Aanmelden</translation>
+        </message>
+        <message>
+            <source>Type the code shown in your browser:</source>
+            <translation>Typ de code die in je browser staat:</translation>
         </message>
     </context>
     <context>
@@ -6332,6 +6237,10 @@ Klik om de pagina te openen.</translation>
             <source>The run is paused.</source>
             <translation>De uitvoering is gepauzeerd.</translation>
         </message>
+        <message>
+            <source>Get Pro</source>
+            <translation>Krijg Pro</translation>
+        </message>
     </context>
     <context>
         <name>RecommendationCard</name>
@@ -7456,6 +7365,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>e.g. I work in EPSG:2154</source>
             <translation>bijv. Ik werk in EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Gegevensbronnen</translation>
         </message>
     </context>
     <context>
@@ -8825,6 +8738,18 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <source>{n} working files</source>
             <translation>{n} werkbestanden</translation>
         </message>
+        <message>
+            <source>+{n} more</source>
+            <translation>+{n} meer</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show one line of layers</source>
+            <translation>Eén regel met lagen tonen</translation>
+        </message>
     </context>
     <context>
         <name>RetentionRow</name>
@@ -8923,6 +8848,10 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <source>{n} days</source>
             <translation>{n} dagen</translation>
         </message>
+        <message>
+            <source>Continue</source>
+            <translation>Doorgaan</translation>
+        </message>
     </context>
     <context>
         <name>FileCardStack</name>
@@ -8930,6 +8859,45 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <location filename="src/ui/file_card.py" />
             <source>Working files</source>
             <translation>Werkbestanden</translation>
+        </message>
+    </context>
+    <context>
+        <name>PairingV2</name>
+        <message>
+            <source>Can't reach TerraLab. Try again.</source>
+            <translation>Geen verbinding met TerraLab. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Click Connect in your browser first, then type the code.</source>
+            <translation>Klik eerst in je browser op Verbinden en typ daarna de code.</translation>
+        </message>
+        <message>
+            <source>Connecting AI Agent</source>
+            <translation>AI Agent verbinden</translation>
+        </message>
+        <message>
+            <source>Sign-in was cancelled in the browser. Click Sign in to try again.</source>
+            <translation>Het aanmelden is in de browser geannuleerd. Klik op Aanmelden om het opnieuw te proberen.</translation>
+        </message>
+        <message>
+            <source>This account has no active AI Agent plan. Activate it on terra-lab.ai, then click Sign in again.</source>
+            <translation>Dit account heeft geen actief AI Agent-abonnement. Activeer het op terra-lab.ai en klik daarna opnieuw op Aanmelden.</translation>
+        </message>
+        <message>
+            <source>This sign-in has ended. Click Sign in to start again.</source>
+            <translation>Deze aanmelding is afgelopen. Klik op Aanmelden om opnieuw te beginnen.</translation>
+        </message>
+        <message>
+            <source>Too many wrong codes: this sign-in is closed. Click Sign in to start again.</source>
+            <translation>Te veel foute codes: deze aanmelding is gesloten. Klik op Aanmelden om opnieuw te beginnen.</translation>
+        </message>
+        <message>
+            <source>Type the 6 characters shown in your browser, like K7P-4QX.</source>
+            <translation>Typ de 6 tekens die in je browser staan, zoals K7P-4QX.</translation>
+        </message>
+        <message>
+            <source>Wrong code. Check it and try again.</source>
+            <translation>Foutieve code. Controleer ze en probeer het opnieuw.</translation>
         </message>
     </context>
 </TS>

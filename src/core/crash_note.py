@@ -26,6 +26,7 @@
 
 
 
+
 from __future__ import annotations
 
 import hashlib
@@ -35,6 +36,7 @@ import re
 import tempfile
 import time
 
+from . import freeze_stack
 from .host_platform import remove_quietly, retry_file_op
 from .logger import log, log_warning
 from .policy import AGENT_HOME, ensure_agent_directories
@@ -273,7 +275,10 @@ def _pid_of(name: str, prefix: str, suffix: str) -> int:
 
 def _stack_paths(pid: int) -> list:
 
-    return [os.path.join(_temp_dir(), f"{STACK_PREFIX}{pid}"), _own_stack_path(pid)]
+
+
+
+    return [os.path.join(_temp_dir(), f"{STACK_PREFIX}{pid}"), _own_stack_path(pid), freeze_stack.path_for(pid)]
 
 
 def take(plugin_version: str = "") -> dict | None:
@@ -308,7 +313,7 @@ def take(plugin_version: str = "") -> dict | None:
                 continue
             dead.append((mtime, pid, path, record))
 
-        own = _pid_of(name, OWN_PREFIX, OWN_SUFFIX)
+        own = _pid_of(name, OWN_PREFIX, OWN_SUFFIX) or freeze_stack.pid_of(name)
         if own and not pid_alive(own) and f"{RECORD_PREFIX}{own}{RECORD_SUFFIX}" not in names:
             drop.append(os.path.join(AGENT_HOME, name))
     dead.sort(key=lambda item: item[0], reverse=True)

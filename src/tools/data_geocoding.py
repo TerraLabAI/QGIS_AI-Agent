@@ -15,6 +15,7 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsDistanceArea, QgsPointXY,
 from ..core import net, tuning
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
+from ..core.tool_registry import tool_error
 from .data_common import (
     _CACHE_CATALOG_S,
     _CACHE_GEOCODE_S,
@@ -728,6 +729,22 @@ _GEOCODE_PROVIDERS = {
 _GEOCODE_PROVIDER_IDS = tuple(_GEOCODE_PROVIDERS)
 
 
+class _NoEndpoint(ValueError):
+
+
+    def __init__(self, provider_name: str):
+        super().__init__(f"{provider_name} has no public endpoint.")
+        self.provider_name = provider_name
+
+
+def _provider_refusal(error: ValueError) -> dict:
+
+    if isinstance(error, _NoEndpoint):
+        return tool_error(str(error), "INVALID_ARGS", hint="geocode_endpoint_missing",
+                          provider=error.provider_name)
+    return {"_error": str(error)}
+
+
 def _resolve_geocode_provider(args: dict) -> tuple:
 
 
@@ -744,8 +761,7 @@ def _resolve_geocode_provider(args: dict) -> tuple:
 
     base = _text(args.get("endpoint")) or (_service(provider["service"]) if provider.get("service") else "")
     if not base:
-        raise ValueError(f"{provider['name']} has no public endpoint; endpoint takes your own instance, "
-                         "or 'ban' (France), 'cartociudad' (Spain), 'photon' or 'nominatim' (anywhere).")
+        raise _NoEndpoint(provider["name"])
     return provider_id, provider, base
 
 
@@ -907,7 +923,7 @@ def _geocode(args: dict) -> dict:
     try:
         provider_id, provider, base = _resolve_geocode_provider(args)
     except ValueError as e:
-        return {"_error": str(e)}
+        return _provider_refusal(e)
 
 
 
@@ -949,7 +965,7 @@ def _geocode(args: dict) -> dict:
                    else {"_error": f"Geocoding request failed: {e}"})
         payload, fell_back = None, True
     except ValueError:
-        failure = {"_error": "An unreadable geocoding answer; such failures are usually brief."}
+        failure = {"_error": "The geocoding answer was unreadable.", "hint": "geocode_unreadable"}
         payload, fell_back = None, True
     else:
         failure = None
@@ -1040,16 +1056,18 @@ def _geocode(args: dict) -> dict:
 
 
         out["approximate"] = True
-        out["note"] = (f"No result carries the name {query.split(',')[0].strip()!r} as written: it may be the "
-                       "place under another name, or only a similar spelling; the first hit may not be it.")
+        out["note"] = f"No result carries the name {query.split(',')[0].strip()!r} as written."
+        out["note_hint"] = "geocode_approximate"
+        out["note_name"] = query.split(",")[0].strip()
 
 
 
     coded = [str(hit.get("country_code") or "") for hit in output if hit.get("country_code")]
     if wanted and coded and not any(code in wanted for code in coded):
 
-        out["warning"] = (f"No result lies in {', '.join(sorted(wanted)).upper()}: the geocoder does not hold this "
-                          "name there; the English, French or local name may fit it.")
+        out["warning"] = f"No result lies in {', '.join(sorted(wanted)).upper()}."
+        out["warning_hint"] = "geocode_none_in_country"
+        out["warning_countries"] = ", ".join(sorted(wanted)).upper()
     if project_crs:
 
         out["project_crs"] = project_crs
@@ -1095,7 +1113,7 @@ def _reverse_geocode(args: dict) -> dict:
     try:
         provider_id, provider, base = _resolve_geocode_provider(args)
     except ValueError as e:
-        return {"_error": str(e)}
+        return _provider_refusal(e)
 
     url = provider["reverse_url"](base, lat, lon)
 
@@ -1105,7 +1123,7 @@ def _reverse_geocode(args: dict) -> dict:
         payload, failure = None, {"_error": f"Reverse geocoding failed: {e}"}
     except ValueError:
         payload = None
-        failure = {"_error": "Reverse geocoding gave an unreadable answer; usually brief."}
+        failure = {"_error": "Reverse geocoding gave an unreadable answer.", "hint": "geocode_unreadable"}
     else:
         failure = None
 
@@ -1159,11 +1177,7 @@ def _get_route(args: dict) -> dict:
     base = _osrm_base(profile)
     url = f"{base}/{coords_str}?overview=full&geometries=geojson&steps=false"
 
-    _osrm_hint = (
-        "The public OSRM server (routing.openstreetmap.de) is rate-limited and "
-        "often slow or down, usually briefly. Fewer waypoints, or measure_distance "
-        "for straight-line distance, may help."
-    )
+    _osrm_hint = "osrm_failed"
     failure = None
     result = {}
     try:
@@ -1174,7 +1188,8 @@ def _get_route(args: dict) -> dict:
         failure = {
             "_error": f"OSRM routing request failed: {reason}",
             "_code": "OSRM_UNREACHABLE",
-            "_suggestion": _osrm_hint,
+            "hint": _osrm_hint,
+            "waypoints": len(waypoints),
         }
     else:
         try:
@@ -1185,18 +1200,20 @@ def _get_route(args: dict) -> dict:
             failure = {
                 "_error": f"OSRM returned a non-JSON response ({e}): {snippet}",
                 "_code": "OSRM_BAD_RESPONSE",
-                "_suggestion": _osrm_hint,
+                "hint": _osrm_hint,
+                "waypoints": len(waypoints),
             }
         else:
             if result.get("code") != "Ok":
                 detail = result.get("message") or result.get("code") or "unknown OSRM error"
                 failure = {"_error": f"OSRM error: {detail}", "_code": "OSRM_ERROR",
-                           "_suggestion": _osrm_hint}
+                           "hint": _osrm_hint, "waypoints": len(waypoints)}
             elif not result.get("routes"):
                 failure = {
                     "_error": "No route found between the given waypoints",
                     "_code": "INVALID_ARGS",
-                    "_suggestion": _osrm_hint,
+                    "hint": _osrm_hint,
+                    "waypoints": len(waypoints),
                 }
 
     fell_back = failure is not None

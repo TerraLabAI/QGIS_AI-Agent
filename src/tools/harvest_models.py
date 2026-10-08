@@ -50,7 +50,7 @@ from qgis.PyQt.QtGui import QColor
 from ..core import layer_order, limits
 from ..core.logger import log, log_warning
 from ..core.security import expand_path
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import enum_value
 from .data_tools import _avoid_reserved_name
 from .processing_run import (
@@ -179,7 +179,19 @@ def register_harvest_models_tools(registry: ToolRegistry):
 
 
 class _SpecError(ValueError):
-    pass
+
+
+
+    def __init__(self, message: str, hint: str = "", **facts):
+        super().__init__(message)
+        self.hint = hint
+        self.facts = facts
+
+
+def _coded_under(key: str, fact: dict) -> dict:
+
+    rest = dict(fact)
+    return {f"{key}_hint": rest.pop("hint"), **rest}
 
 
 def _hint_rank(algorithm, key: str):
@@ -231,10 +243,7 @@ def _resolve_algorithm_id(hint: str) -> str:
 
     everything = list(itertools.chain.from_iterable(ranked))
     if not everything:
-        raise _SpecError(
-            f"No Processing algorithm matches '{wanted}'. "
-            "a keyword in the algorithm name or its full id (e.g. 'native:buffer') matches."
-        )
+        raise _SpecError(f"No Processing algorithm matches '{wanted}'.", "algorithm_no_match", wanted=wanted)
     shortlist = sorted(everything, key=lambda a: (a.provider().id() != "native", len(a.id())))[:8]
     listed = ", ".join(f"{a.id()} ({a.displayName()})" for a in shortlist)
     raise _SpecError(f"Algorithm hint '{wanted}' is ambiguous. Candidates: {listed}.")
@@ -518,7 +527,7 @@ class _ModelBuilder:
             try:
                 algorithm_id = _resolve_algorithm_id(step["algorithm"])
             except _SpecError as e:
-                raise _SpecError(f"Step '{step_id}': {e}") from e
+                raise _SpecError(f"Step '{step_id}': {e}", e.hint, **e.facts) from e
             self.algorithm_of[step_id] = algorithm_id
             accepted = {p.name() for p in self.registry.algorithmById(algorithm_id).parameterDefinitions()}
             stray = next((key for key in step.get("parameters") or {} if key not in accepted), None)
@@ -636,9 +645,7 @@ def _build_model(name: str, steps: list, inputs: list, outputs: list, descriptio
 
     unused = sorted(builder.input_names - builder.referenced_inputs)
     if unused:
-        raise _SpecError(f"Unused model inputs: {', '.join(unused)}. Reference model inputs as '@name', "
-                         "previous step outputs as '$step_id.OUTPUT', and expression sources as '=expression'. "
-                         "Bare strings are literal values; remove inputs the workflow does not use.")
+        raise _SpecError(f"Unused model inputs: {', '.join(unused)}.", "model_inputs_unused", inputs=unused)
     if not outputs and added:
         builder.expose_last_step(added[-1], positions)
 
@@ -841,7 +848,7 @@ def _main_thread_entry(algorithm_id: str, index: int, parameters, layer_name, en
 
 
         line.update(status="running", task_id=background,
-                    message="Started in the background; poll get_task_status(task_id).")
+                    message="Started in the background.")
     else:
         line.update(status="success", outputs=outcome.get("outputs"))
         if outcome.get("outputs_note"):
@@ -855,7 +862,7 @@ def _execute_processing_batch(args: dict) -> dict:
     try:
         algorithm_id = _resolve_algorithm_id(args["algorithm"])
     except _SpecError as e:
-        return tool_error(str(e), "INVALID_ARGS", "list_algorithms finds the exact id.")
+        return tool_error(str(e), "INVALID_ARGS", hint=e.hint or "algorithm_hint_unresolved", **e.facts)
     parameters_list = args["parameters_list"]
     from .processing_decisions import _threadable
 
@@ -874,21 +881,17 @@ def _execute_processing_batch(args: dict) -> dict:
     running = [r["task_id"] for r in results if r["status"] == "running"]
     response = {"algorithm": algorithm_id, "results": results, "count": len(results),
                 "succeeded": sum(1 for r in results if r["status"] == "success")}
-    advice = []
     if running:
         response["running"] = running
         response["poll"] = {"tool": "get_task_status", "args": {"task_id": running[0]},
                             "label": f"Running {algorithm_id}"}
-        advice.append(
-            f"{len(running)} run(s) were too heavy to run inline and went to the background. "
-            "They have produced nothing yet: poll get_task_status on each task_id before "
-            "reporting the batch as done."
-        )
+        response["note"] = (f"{len(running)} run(s) were too heavy to run inline and went to the background; "
+                            "they have produced nothing yet.")
+        response.update(_coded_under("running", coded_fact(hint="batch_runs_backgrounded",
+                                                           backgrounded=len(running))))
     if any(r["status"] == "skipped" for r in results):
         response["timed_out"] = True
-        advice.append("A longer timeout or a split parameters_list fits; the completed runs are kept.")
-    if advice:
-        response["suggestion"] = " ".join(advice)
+        response.update(_coded_under("timed_out", coded_fact(hint="batch_timed_out")))
     return response
 
 
@@ -1036,8 +1039,7 @@ class _BatchRun:
             _PROCESSING_TASKS.pop(self.task_id, None)
             return self.report()
         return {**self.report(), "task_id": self.task_id, "status": "running",
-                "note": f"The runs go in the background, up to {self.width} at a time, and QGIS stays "
-                        "responsive. Poll get_task_status(task_id).",
+                **coded_fact(hint="batch_started", width=self.width, task_id=self.task_id),
                 "poll": {"tool": "get_task_status", "args": {"task_id": self.task_id},
                          "interval_s": _POLL_INTERVAL_S,
                          "label": f"Running {self.algorithm_id}, {self.count} runs"}}
@@ -1049,7 +1051,7 @@ class _BatchRun:
                "succeeded": sum(1 for r in results if r["status"] == "success")}
         if self.timed_out:
             out["timed_out"] = True
-            out["suggestion"] = "A longer timeout or a split parameters_list fits; the completed runs are kept."
+            out.update(_coded_under("timed_out", coded_fact(hint="batch_timed_out")))
         return out
 
     def advance(self) -> None:
@@ -1371,7 +1373,8 @@ def _create_processing_model(args: dict) -> dict:
             args.get("description") or "", args.get("group") or "Models",
         )
     except _SpecError as e:
-        return tool_error(str(e), "INVALID_ARGS", "Nothing was written; the error above names the spec problem.")
+        return tool_error(str(e), "INVALID_ARGS", "" if e.hint else "Nothing was written; the error above "
+                          "names the spec problem.", hint=e.hint, **e.facts)
 
     if not model.toFile(target_path):
         return tool_error(f"Failed to write model to {target_path}", "EXECUTION_FAILED",
@@ -1429,8 +1432,7 @@ def _model_from_file(given: str):
 
     path = expand_path(given)
     if not os.path.isfile(path):
-        return None, path, tool_error(f"Model file not found: {path}", "INVALID_ARGS",
-                                      "a .model3 path, or a registered id from list_processing_models, works.")
+        return None, path, tool_error(f"Model file not found: {path}", "INVALID_ARGS", hint="model_file_not_found")
     loaded = QgsProcessingModelAlgorithm()
     if not loaded.fromFile(path):
         return None, path, tool_error(f"Failed to load model file: {path}", "EXECUTION_FAILED",
@@ -1464,8 +1466,7 @@ def _run_model(args: dict) -> dict:
     else:
         alg, model = _registered_model(model)
         if alg is None:
-            return tool_error(f"Model not found: {model!r}", "INVALID_ARGS",
-                              "list_processing_models gives the registered ids; a .model3 file path also works.")
+            return tool_error(f"Model not found: {model!r}", "INVALID_ARGS", hint="model_not_registered")
 
 
 
@@ -1511,9 +1512,7 @@ def _run_model(args: dict) -> dict:
             continue
         problem = validate_path(value.split("|", 1)[0], write=True)
         if problem:
-            return tool_error(problem, "PERMISSION_DENIED",
-                              "The model's output goes under the project folder, the user's home folder, "
-                              "the temp folder, or as TEMPORARY_OUTPUT.")
+            return tool_error(problem, "PERMISSION_DENIED", hint="model_output_path_refused")
 
 
 
@@ -1535,14 +1534,11 @@ def _run_model(args: dict) -> dict:
         return tool_error(
             "A step of this model cannot run in the background, and the inputs are too large to run it on "
             "the main thread; nothing was run.",
-            "INVALID_ARGS",
-            "smaller inputs fit.")
+            "INVALID_ARGS", hint="model_inputs_too_large")
 
     feedback = QgsProcessingFeedback()
     try:
         result = processing.run(file_alg, parameters, feedback=feedback)
     except Exception as e:
-        return tool_error(f"Model run failed: {e}", "EXECUTION_FAILED",
-                          "get_algorithm_help on a registered model gives the parameter names its "
-                          "inputs expect.")
+        return tool_error(f"Model run failed: {e}", "EXECUTION_FAILED", hint="model_run_failed")
     return _named({"model": model, "outputs": _process_outputs(result)})

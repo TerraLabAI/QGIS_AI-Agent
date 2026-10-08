@@ -68,7 +68,7 @@ from array import array
 from ..core import net, security
 from ..core.background import heartbeat, run_on_main_thread
 from ..core.logger import log_warning
-from ..core.tool_registry import tool_error
+from ..core.tool_registry import coded_fact, tool_error
 
 
 
@@ -124,19 +124,18 @@ def _read_grid(args: dict) -> dict:
     if not isinstance(layer, QgsRasterLayer):
         return {"error": tool_error(
             f"{layer.name()!r} is not a raster layer, so it carries no elevation to build a mesh from.",
-            "INVALID_ARGS",
-            "list_layers shows which layers are rasters.")}
+            "INVALID_ARGS", hint="mesh_layer_not_raster", layer=layer.name())}
     provider = layer.dataProvider()
     if provider is None or not layer.isValid():
         return {"error": tool_error(
             f"{layer.name()!r} has no readable data source.", "EXECUTION_FAILED",
-            "add_raster_layer can load it fresh.")}
+            hint="mesh_raster_unreadable", layer=layer.name())}
 
     band = int(args.get("band") or 1)
     if band < 1 or band > max(1, layer.bandCount()):
         return {"error": tool_error(
             f"band must be between 1 and {layer.bandCount()} for {layer.name()!r}.", "INVALID_ARGS",
-            "The elevation band is usually 1.")}
+            hint="mesh_band_out_of_range", layer=layer.name(), bands=layer.bandCount())}
 
     full = layer.extent()
     asked = args.get("extent")
@@ -196,7 +195,7 @@ def _read_grid(args: dict) -> dict:
     if block is None or not block.isValid():
         return {"error": tool_error(
             f"QGIS could not read band {band} of {layer.name()!r} over that extent.", "EXECUTION_FAILED",
-            "get_raster_band_stats shows if the DEM still opens and the extent covers data.")}
+            hint="mesh_block_unreadable", layer=layer.name(), band=band)}
 
     data_type = provider.dataType(band)
     is_float = data_type in (enum_member(Qgis, "DataType", "Float32", None),
@@ -462,12 +461,11 @@ def _format_for(path: str, asked) -> tuple[str, dict | None]:
     wanted = str(asked or "").strip().lower().lstrip(".")
     if wanted and wanted not in FORMATS:
         return "", tool_error(f"format must be one of {', '.join(FORMATS)}, not {wanted!r}.", "INVALID_ARGS",
-                              "obj suits Blender or SketchUp; stl suits a 3D print.")
+                              hint="mesh_format_unknown", formats=", ".join(FORMATS))
     if from_path is None:
         return "", tool_error(
             f"path must end in .obj or .stl; {extension or 'no extension'} names no mesh format.",
-            "INVALID_ARGS",
-            "<name>.obj suits Blender or SketchUp; <name>.stl suits a slicer.")
+            "INVALID_ARGS", hint="mesh_extension_unknown", extension=extension)
     if wanted and wanted != from_path:
         return "", tool_error(
             f"format is {wanted!r} but path ends in {extension}.", "INVALID_ARGS",
@@ -489,8 +487,7 @@ def _export_3d_model(args: dict) -> dict:
     path = security.expand_path(path)
     problem = security.validate_path(path, write=True)
     if problem:
-        return tool_error(problem, "PERMISSION_DENIED",
-                          "The project folder, the home folder and the temp folder are writable.")
+        return tool_error(problem, "PERMISSION_DENIED", hint="mesh_path_not_writable")
 
     z_factor, error = _number(args, "z_factor", 1.0, 1e-9, 1e9)
     if error:
@@ -503,7 +500,7 @@ def _export_3d_model(args: dict) -> dict:
     if nx < MIN_GRID or ny < MIN_GRID:
         return tool_error(
             f"That extent samples to {nx} by {ny} cells, too few to build a surface.", "INVALID_ARGS",
-            "A larger extent or a higher max_cells helps.")
+            hint="mesh_too_few_cells", columns=nx, rows=ny, minimum=MIN_GRID)
 
     missing, filled = _fill_holes(values, nx, ny, grid["nodata"])
     if missing and filled < missing:
@@ -553,11 +550,11 @@ def _export_3d_model(args: dict) -> dict:
     except InterruptedError:
         _discard_staged_write(staging)
         return tool_error("The export was stopped before the file was finished.", "CANCELLED",
-                          "A smaller max_cells runs faster.")
+                          hint="mesh_export_cancelled")
     except (OSError, MemoryError) as exc:
         _discard_staged_write(staging)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
-                          "A writable folder with room, or a lower max_cells, fixes this.")
+                          hint="mesh_write_failed", path=path)
 
     size = os.path.getsize(staging) if os.path.isfile(staging) else 0
     publish_error = _publish_staged_write(staging, path)
@@ -565,8 +562,7 @@ def _export_3d_model(args: dict) -> dict:
         _discard_staged_write(staging)
         return tool_error(
             f"The model was written but could not be put in place at {path}: {publish_error}",
-            "EXECUTION_FAILED",
-            "The file is open in Blender, SketchUp or the slicer, or the name exists.")
+            "EXECUTION_FAILED", hint="mesh_publish_failed", path=path)
 
     unit = grid["units"] or ("degrees" if grid["geographic"] else "map units")
     origin_x, origin_y = grid["extent"][0], grid["extent"][1]
@@ -580,11 +576,9 @@ def _export_3d_model(args: dict) -> dict:
         "cell_size": [round(dx, 6), round(dy, 6)],
         "cell_size_unit": unit,
         "model_size": [round((nx - 1) * dx, 6), round((ny - 1) * dy, 6)],
-        "origin": {"x": round(origin_x, 6), "y": round(origin_y, 6), "crs": grid["crs"]},
-        "origin_note": (f"Vertex (0, 0, 0) of the file is {origin_x:.6f}, {origin_y:.6f} in "
-                        f"{grid['crs']} at elevation 0: add those to the model's X and Y to put it "
-                        f"back on the map. The mesh spans the DEM extent exactly, so its bounding "
-                        f"box is that extent and its height is the elevation range times z_factor."),
+
+        "origin": {"x": round(origin_x, 6), "y": round(origin_y, 6), "crs": grid["crs"],
+                   **coded_fact(hint="mesh_origin")},
         "z_factor": z_factor,
         "elevation_range": [round(z_min / z_factor, 4), round(z_max / z_factor, 4)],
         "z_range_in_model": [round(z_min, 4), round(z_max, 4)],
@@ -594,22 +588,19 @@ def _export_3d_model(args: dict) -> dict:
         out["base_thickness"] = round(thickness, 6)
         out["base_z"] = round(z_base, 4)
         out["watertight"] = True
-        out["solid_note"] = ("Closed solid: the height surface, four vertical walls and a flat base "
-                             f"{thickness:.4g} below the lowest point. Every edge is shared by exactly "
-                             "two triangles, which is what a slicer needs.")
+        out["solid_hint"] = "mesh_solid"
     else:
-        out["surface_note"] = ("An open height surface, no sides and no base, for Blender or SketchUp "
-                               "as a mesh; the same DEM as .stl closes it into a solid for a 3D print.")
+        out["surface_hint"] = "mesh_surface"
 
     native = grid["native_nx"] * grid["native_ny"]
     if nx * ny < native:
         out["reduced"] = True
         out["native_grid"] = [grid["native_nx"], grid["native_ny"]]
-        out["reduction_note"] = (
-            f"The DEM is {grid['native_nx']} x {grid['native_ny']} cells over that extent "
-            f"({native:,} in all), over the {grid['max_cells']:,} cell cap, so it was read at "
-            f"{nx} x {ny} cells, about {dx:.6g} x {dy:.6g} {unit} per cell. More detail needs a "
-            f"higher max_cells (up to {MAX_CELLS_CEILING:,}) or a smaller extent.")
+        out["reduction"] = {
+            "native_columns": grid["native_nx"], "native_rows": grid["native_ny"], "native_cells": native,
+            "max_cells": grid["max_cells"], "max_cells_ceiling": MAX_CELLS_CEILING,
+            "columns": nx, "rows": ny, "cell_x": round(dx, 6), "cell_y": round(dy, 6), "unit": unit,
+            **coded_fact(hint="mesh_reduced")}
     else:
         out["reduced"] = False
 
@@ -625,11 +616,8 @@ def _export_3d_model(args: dict) -> dict:
             out["warning"] = (f"{share:.1f}% of this extent is NoData: that much of the model is "
                               "interpolated, not measured.")
     if grid["geographic"]:
-        out["warning"] = (
-            f"The DEM is in {grid['crs']}, so X and Y in the file are degrees while Z is metres: "
-            "Blender and a slicer read them as the same unit and the model comes out as a flat sheet. "
-            "A metric CRS (run_processing gdal:warpreproject to a UTM zone or the national grid) "
-            "fixes that on export.")
+        out["geographic"] = True
+        out.update(coded_fact(hint="mesh_geographic_crs"))
     log_warning(f"export_3d_model: {os.path.basename(path)}, {nx}x{ny} cells, "
                 f"{triangles} triangles, {size} bytes")
     return out

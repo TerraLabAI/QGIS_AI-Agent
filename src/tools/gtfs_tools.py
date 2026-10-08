@@ -55,6 +55,7 @@ from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .csv_loader import _ansi_encoding, detect_encoding
 from .data_common import _download_timeout, _safe_filename
@@ -262,7 +263,8 @@ def _local_source(source: str) -> tuple[_GtfsSource | None, dict | None]:
     expanded = security.expand_path(source)
     error = security.validate_path(expanded)
     if error:
-        return None, tool_error(error, "PERMISSION_DENIED", "a path under your home folder or the project.")
+        return None, tool_error(error, "PERMISSION_DENIED",
+                                "" if isinstance(error, CodedText) else "a path under your home folder or the project.")
     if os.path.isdir(expanded):
         gtfs = _GtfsSource()
         gtfs.open_dir(expanded)
@@ -274,8 +276,7 @@ def _local_source(source: str) -> tuple[_GtfsSource | None, dict | None]:
         gtfs = _GtfsSource()
         gtfs.open_zip(expanded)
     except zipfile.BadZipFile:
-        return None, tool_error(f"{source} is not a valid ZIP archive.", "INVALID_ARGS",
-                                "the GTFS zip itself, not a page that links to it.")
+        return None, tool_error(f"{source} is not a valid ZIP archive.", "INVALID_ARGS", hint="gtfs_not_a_zip")
     return gtfs, None
 
 
@@ -297,12 +298,12 @@ def _download(url: str, tmp_dir: str) -> tuple[str | None, dict | None]:
     except net.FetchTooLarge:
         return None, tool_error(
             f"That feed is over the {_human_bytes(cap)} this tool downloads.", "INVALID_ARGS",
-            "A smaller feed, or a locally downloaded zip's path, works.")
+            hint="gtfs_feed_too_large", max_size=_human_bytes(cap))
     except net.FetchCancelled:
         return None, tool_error("The run was stopped.", "CANCELLED", "No file was loaded.")
     except net.FetchDeadline as exc:
         return None, tool_error(f"The download did not finish in time: {exc}", "TIMEOUT",
-                                "A smaller feed, or a retry, may work.")
+                                hint="gtfs_download_timeout")
     except (urllib.error.URLError, OSError) as exc:
         return None, tool_error(f"The download failed: {net.describe_failure(exc) or exc}", "EXECUTION_FAILED",
                                 net.NETWORK_SUGGESTION)
@@ -951,7 +952,7 @@ def _load_gtfs(args: dict) -> dict:
                 gtfs.open_zip(zip_path)
             except zipfile.BadZipFile:
                 return tool_error(f"{source_text} did not download a valid ZIP archive.", "INVALID_ARGS",
-                                  "The URL may be a download page rather than the file.")
+                                  hint="gtfs_download_not_zip")
         else:
             gtfs, refusal = _local_source(source_text)
             if refusal:
@@ -959,7 +960,7 @@ def _load_gtfs(args: dict) -> dict:
         missing = [name for name in _REQUIRED if not gtfs.has(name)]
         if missing:
             return tool_error(f"This feed is missing {', '.join(missing)}.", "INVALID_ARGS",
-                              "A GTFS feed needs at least stops.txt, routes.txt, trips.txt and stop_times.txt.")
+                              hint="gtfs_missing_files", missing=", ".join(missing))
         if not gtfs.has("calendar.txt") and not gtfs.has("calendar_dates.txt"):
             return tool_error("This feed has neither calendar.txt nor calendar_dates.txt.", "INVALID_ARGS",
                               "Without one of them no date can say which trips run.")
@@ -984,7 +985,7 @@ def _load_gtfs(args: dict) -> dict:
             return tool_error(
                 f"No trip runs on {date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:]} "
                 f"({why}).", "INVALID_ARGS",
-                "another date or weekday inside the feed's service dates.")
+                hint="gtfs_no_trip_on_date", date=f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:]}")
 
         if net.is_cancelled(cancel):
             return _stopped()
@@ -1042,14 +1043,14 @@ def _load_gtfs(args: dict) -> dict:
         except Exception as exc:  # noqa: BLE001
             remove_tree(folder)
             return tool_error(f"The GeoPackage could not be written: {exc}", "EXECUTION_FAILED",
-                              "A retry may help; disk space may also be the cause.")
+                              hint="gtfs_write_failed")
         if net.is_cancelled(cancel):
             remove_tree(folder)
             return _stopped()
     except _GtfsEncodingError as exc:
         return tool_error(
             f"{exc.name} is not readable as {' or '.join(exc.tried)}.", "INVALID_ARGS",
-            "The file may need UTF-8, or the feed was truncated mid-download.")
+            hint="gtfs_encoding_unreadable", file=exc.name, tried=" or ".join(exc.tried))
     finally:
         if gtfs is not None:
             gtfs.close()
@@ -1066,7 +1067,7 @@ def _load_gtfs(args: dict) -> dict:
         route_layer = QgsVectorLayer(f"{gpkg_path}|layername=routes", route_name, "ogr")
         if not stop_layer.isValid() or not route_layer.isValid():
             return tool_error("QGIS could not open the GeoPackage this tool just wrote.", "EXECUTION_FAILED",
-                              "A local GDAL problem, not the feed, is likely here.")
+                              hint="gtfs_geopackage_unreadable")
         _style_stops(stop_layer, values)
         _style_routes(route_layer)
         QgsProject.instance().addMapLayer(stop_layer)

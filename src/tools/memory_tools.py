@@ -41,7 +41,7 @@ from ..core.profile import (
     remove_memory_note,
 )
 from ..core.settings import Settings
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact
 
 _DISABLED = {"stored": False, "reason": "memory_disabled",
              "message": "The user turned the memory off in Settings > Memory."}
@@ -82,15 +82,15 @@ def _remember(args: dict) -> dict:
     path = _project_path()
     if scope == "project" and not path:
         return {"stored": False, "reason": "project_unsaved",
-                "message": "The project has not been saved, so a note cannot be pinned to it; "
-                           "scope user stores it without a project."}
+                "message": "The project has not been saved, so a note cannot be pinned to it.",
+                "advice": coded_fact(hint="memory_project_unsaved")}
 
     if replaces:
         note = add_memory_note(settings, text, "ai", kind, scope, project_key(path), replaces)
         if note is None:
             return {"stored": False, "reason": "unknown_id", "id": replaces,
-                    "message": "No note has that id. remember without replaces adds a new one; "
-                               "forget with no arguments lists what is stored."}
+                    "message": "No note has that id.",
+                    "advice": coded_fact(hint="memory_unknown_id", id=replaces)}
         return {"stored": True, "updated": True, "note": _shown(note),
                 "notes": len(load_memory_notes(settings))}
 
@@ -110,9 +110,8 @@ def _remember(args: dict) -> dict:
             "reason": "duplicate" if same else "similar_note_exists",
             "existing": _shown(conflict),
             "message": ("That note is already stored, word for word. Nothing to do." if same else
-                        "A stored note already covers this. remember with "
-                        f"replaces=\"{conflict['id']}\" updates it in place; wording that does not "
-                        "repeat it is a different fact."),
+                        "A stored note already covers this."),
+            **({} if same else {"advice": coded_fact(hint="memory_similar_note", id=conflict["id"])}),
         }
 
     note = add_memory_note(settings, text, "ai", kind, scope, project_key(path))

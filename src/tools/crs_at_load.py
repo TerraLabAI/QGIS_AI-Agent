@@ -144,21 +144,6 @@ def verdict(layer, crs, declared: bool = True) -> dict:
                        f"that CRS publishes{lands}.")}
 
 
-def suggestion(found: dict, layer_name: str, cad: bool = False) -> str:
-
-    kind = found.get("verdict")
-    if kind == "not_georeferenced":
-        return f"'{layer_name}' has no position yet; georeference_raster gives it one."
-    if kind == "swapped_axes":
-        return f"The coordinates of '{layer_name}' fit its CRS with x and y swapped; native:swapxy swaps them back."
-    options = [f"{authid} ({why})" if why else authid for authid, why in found.get("candidates") or []]
-    fits = (f"CRSs whose area holds these coordinates: {', '.join(options)}." if options
-            else "The numbers alone cannot tell one UTM zone or national grid from another.")
-    relabel = ("add_data takes crs= for the drawing." if cad
-               else "set_layer_crs relabels a layer, it does not reproject.")
-    return f"{fits} {relabel}"
-
-
 
 
 
@@ -172,7 +157,9 @@ _VERDICT_FACT = {
 }
 
 
-def check_loaded(layer, crs_assigned: bool = False, cad: bool = False) -> dict:
+def check_loaded(layer, crs_assigned: bool = False) -> dict:
+
+
 
     try:
         provider = layer.dataProvider()
@@ -190,11 +177,7 @@ def check_loaded(layer, crs_assigned: bool = False, cad: bool = False) -> dict:
     check = {"verdict": found["verdict"], "declared": found["crs"], "candidates": candidates,
              "layer": layer.name(), "variant": "candidates" if candidates else "none",
              **_VERDICT_FACT.get(found["verdict"], {})}
-    return {
-        "crs_check": check,
-        "warning": found["detail"],
-        "suggestion": suggestion(found, layer.name(), cad=cad),
-    }
+    return {"crs_check": check, "warning": found["detail"]}
 
 
-__all__ = ["check_loaded", "suggestion", "verdict"]
+__all__ = ["check_loaded", "verdict"]

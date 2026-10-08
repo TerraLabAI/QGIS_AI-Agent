@@ -23,7 +23,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ...core.serialization import dump_json
-from ...core.tool_registry import Tool, ToolRegistry
+from ...core.tool_registry import Tool, ToolRegistry, coded_fact
 from ..adapters import get_adapter
 from .refs import get_ref_store, is_item_ref
 from .widgets import (
@@ -417,7 +417,7 @@ def _ref_action(args: dict) -> dict:
 
         QTimer.singleShot(0, lambda w=widget: _do_click(w))
         out = {"clicked": True, "deferred": True, "widget": widget_ident(widget),
-               "note": "Fires in about 1s; accessibility_snapshot/screenshot shows it, close_dialog dismisses."}
+               "note": coded_fact(hint="ui_click_deferred", fires_in_s=1)}
         if rebound:
             out["rebound"] = True
         return _expand_widget(out, widget, args)
@@ -481,8 +481,7 @@ def _dispatch_action(action: str, widget, args: dict):
         return {
             "_error": f"'{action}' applies to a row of a tree, not to a widget.",
             "_code": "UNSUPPORTED_ACTION",
-            "_suggestion": "The row's @iN ref (`rows` in accessibility_snapshot), or a view "
-                           "ref plus item_path, is needed.",
+            **coded_fact(hint="ui_row_action_needs_row", action=action),
             "widget": widget_ident(widget),
         }
     if action == "screenshot":
@@ -586,19 +585,14 @@ def _check_no_progress(action: str, widget, args: dict, extra: str = ""):
             "error": {
                 "_error": f"Aborting: '{action}' on this target repeated {count + 1}× with no UI change.",
                 "_code": "NO_PROGRESS",
-                "_suggestion": (
-                    "This action had no effect; accessibility_snapshot, a different widget, a "
-                    "blocking dialog (close_dialog) or an error (get_python_errors) may explain it."
-                ),
+                **coded_fact(hint="ui_no_progress", action=action, repeats=count + 1),
                 "widget": widget_ident(widget),
             },
         }
     if count >= 1:
         return {
-            "message": (
-                f"No UI state change since the last identical '{action}' on this target, it likely "
-                "had no effect. Re-snapshot and try a different approach rather than repeating it."
-            )
+            "message": f"No UI state change since the last identical '{action}' on this target.",
+            "repeat_note": coded_fact(hint="ui_action_repeated", action=action),
         }
     return None
 
@@ -726,12 +720,7 @@ def _wait_actionable(widget, action: str, timeout_ms: int):
             return {
                 "_error": f"Target not actionable for '{action}': {last_fail}",
                 "_code": "NOT_ACTIONABLE",
-                "_suggestion": (
-                    "accessibility_snapshot gives current state. The target may be disabled, "
-                    "hidden, still loading, covered by a dialog, or on a tab that is not showing "
-                    "(ref_action select_tab switches tabs). Scrolling it into view was already "
-                    "tried; assert_ui waits for it."
-                ),
+                **coded_fact(hint="ui_not_actionable", action=action, reason=last_fail),
                 "widget": widget_ident(widget),
                 "scrolled_into_view": notes.get("scrolled_into_view", ""),
             }, notes
@@ -1025,8 +1014,7 @@ def _close_dialog(args: dict) -> dict:
         from qgis.PyQt.QtCore import QTimer
 
         QTimer.singleShot(0, lambda: _do_close_dialog(args))
-        return {"deferred": True,
-                "note": "close scheduled on the event loop, use for a modal blocking the handler."}
+        return {"deferred": True, "note": coded_fact(hint="ui_close_deferred")}
     return _do_close_dialog(args)
 
 
@@ -1106,13 +1094,12 @@ def _menu_actions(menu) -> list:
 def _select_menu_item(args: dict) -> dict:
     text = (args.get("text") or "").strip()
     if not text:
-        return {"_error": "text is required",
-                "_suggestion": "text is the menu entry to trigger."}
+        return {"_error": "text is required", **coded_fact(hint="ui_menu_text_missing")}
     menus = _open_menus()
     if not menus:
         return {"_error": "No open QMenu found.",
                 "_code": "NO_MENU_OPEN",
-                "_suggestion": "ref_action click on the menu button opens one."}
+                **coded_fact(hint="ui_no_menu_open")}
     needle = text.lower()
     available = []
     for menu in menus:
@@ -1126,7 +1113,7 @@ def _select_menu_item(args: dict) -> dict:
     return {"_error": f"No menu entry matched '{text}'.",
             "_code": "NO_MATCH",
             "available": available,
-            "_suggestion": "available lists them, matched case-insensitive as a substring."}
+            **coded_fact(hint="ui_menu_no_match", text=text)}
 
 
 def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
@@ -1151,7 +1138,7 @@ def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
                 "_code": "TAB_CLICK_MISSED",
                 "tabs": tabs,
                 "current": current,
-                "_suggestion": "action=select_tab with value=<tab name>, or option_index.",
+                **coded_fact(hint="ui_tab_click_missed"),
                 "widget": widget_ident(widget),
             }
     if kind == "double":
@@ -1164,7 +1151,7 @@ def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
         QTest.mouseClick(widget, Qt.MouseButton.RightButton, Qt.KeyboardModifier.NoModifier, widget.rect().center())
         process_events()
         return {"right_clicked": True, "widget": widget_ident(widget),
-                "note": "if a context menu opened, drive it with select_menu_item or dismiss with press_key Escape"}
+                "note": coded_fact(hint="ui_context_menu_maybe")}
 
 
 
@@ -1178,7 +1165,7 @@ def _do_click(widget, kind: str = "left", programmatic: bool = False) -> dict:
 
                 QTimer.singleShot(0, widget.showMenu)
                 return {"clicked": True, "menu_opened": True, "widget": widget_ident(widget),
-                        "note": "menu is open, use select_menu_item to pick an entry or press_key Escape to dismiss"}
+                        "note": coded_fact(hint="ui_menu_opened")}
         except Exception:  # nosec B110
             pass
     if isinstance(widget, QComboBox):
@@ -1289,7 +1276,7 @@ def _do_select_tab(widget, args: dict) -> dict:
 
     if not isinstance(widget, (QTabBar, QTabWidget, QToolBox)):
         return {"_error": "Target has no tabs", "_code": "NO_TABS",
-                "_suggestion": "accessibility_snapshot names nodes whose role is 'tabs'.",
+                **coded_fact(hint="ui_no_tabs"),
                 "widget": widget_ident(widget)}
     labels, before = tab_state(widget)
     if not labels:
@@ -1328,7 +1315,7 @@ def _do_check_widget(widget, want: bool) -> dict:
     is_checked = getattr(widget, "isChecked", None)
     if not (callable(set_checked) and callable(is_checked)) or (callable(checkable) and not checkable()):
         return {"_error": "This widget cannot be checked", "_code": "NOT_CHECKABLE",
-                "_suggestion": "action=click, or a row @iN ref for a checkable row, works.",
+                **coded_fact(hint="ui_not_checkable"),
                 "widget": widget_ident(widget)}
     before = bool(is_checked())
     if before == want:
@@ -1378,7 +1365,7 @@ def _item_click_point(view, index):
         return None, {
             "_error": "This row has no visible rectangle, even after scrolling to it.",
             "_code": "NOT_ACTIONABLE",
-            "_suggestion": "The view may be collapsed, filtered or hidden; accessibility_snapshot shows it.",
+            **coded_fact(hint="ui_row_not_visible"),
             "item": _item_ident(view, index),
         }
     return visible.center(), None
@@ -1390,7 +1377,7 @@ def _item_action(action: str, view, index, args: dict) -> dict:
             "_error": f"Action '{action}' does not apply to a row.",
             "_code": "UNSUPPORTED_ACTION",
             "supported": sorted(_ITEM_ACTIONS),
-            "_suggestion": "Target the view itself with its @wN ref for screenshot, scroll or focus.",
+            **coded_fact(hint="ui_row_action_unsupported", action=action),
             "item": _item_ident(view, index),
         }
     column = args.get("column")
@@ -1445,7 +1432,7 @@ def _do_click_item(view, index, action: str, args: dict) -> dict:
         process_events()
         _post_context_menu(viewport, point)
         return {"right_clicked": True, "menu_opened": True, "item": _item_ident(view, index),
-                "note": "context menu requested; pick an entry with select_menu_item or dismiss with press_key Escape"}
+                "note": coded_fact(hint="ui_row_context_menu")}
     QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point)
     process_events()
     return {"clicked": True, "current": view.currentIndex() == index, "item": _item_ident(view, index)}

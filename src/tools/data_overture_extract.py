@@ -14,8 +14,9 @@ from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
+from ..core.tool_registry import coded_fact, tool_error
 from . import volume_guard
-from .data_common import _USER_AGENT, _bbox_km2, _footprint_box
+from .data_common import _USER_AGENT, _bbox_km2, _footprint_box, _vector_source_from_features
 from .data_inspect import _VSICURL_TIMEOUT_S, _human_bytes, _safe_extract_stem, _tune_gdal_for_range_reads
 from .data_osm_geometry import _LIFTED_CHECK_EVERY, _LIFTED_FAMILIES, _beyond_bbox
 from .data_overture import (
@@ -47,6 +48,7 @@ from .data_overture import (
     _overture_themes,
     _overture_tile_url,
     _overture_tiles,
+    _polys_bbox,
     _stop_if_cancelled,
     _stream_refusal,
     _subset_string,
@@ -56,13 +58,24 @@ from .data_overture import (
 from .data_places import _resolve_outline
 
 
-def _town_elsewhere(levels) -> str:
+def _say(result: dict, hint: str, variant: str = "", **facts) -> None:
 
 
 
-    return (f"Overture has no outline for this town here. The {', '.join(sorted(levels))} in this box are "
-            "larger units: a county or region often carries the town's name but is not the town. "
-            "OpenStreetMap's place or boundary polygon (fetch_osm_data) is the town's own outline where one exists.")
+    result.pop("variant", None)
+    result.update(coded_fact(hint=hint, **({"variant": variant} if variant else {}), **facts))
+
+
+def _say_unless_miss(empty: dict, hint: str, **facts) -> None:
+
+
+    miss = _filter_miss_suggestion(empty)
+    if miss:
+        empty["suggestion"] = miss
+        empty.pop("hint", None)
+        empty.pop("variant", None)
+    else:
+        _say(empty, hint=hint, **facts)
 
 
 def _say_named(empty: dict, asked: list, names: list, box) -> bool:
@@ -80,10 +93,12 @@ def _say_named(empty: dict, asked: list, names: list, box) -> bool:
         return False
     empty["message"] = _named_sentence(asked, names, named)
     if "locality" in asked:
-        empty["suggestion"] = _town_elsewhere({entry["subtype"] for entry in named})
+
+
+
+        _say(empty, hint="overture_town_elsewhere", levels=", ".join(sorted({e["subtype"] for e in named})))
     else:
-        empty["suggestion"] = (f'filter {{"subtype": "{named[0]["subtype"]}"}} reads the {named[0]["subtype"]} '
-                               f'named {named[0]["name"]!r}.')
+        _say(empty, hint="overture_subtype_named", subtype=named[0]["subtype"], name=str(named[0]["name"]))
     return True
 
 
@@ -179,7 +194,11 @@ def _outline_shape(outline: dict):
     if shape is None:
         return None
     if sum(len(ring) for polygon in coordinates for ring in polygon) > _LIFTED_OUTLINE_VERTICES:
-        shape = shape.SimplifyPreserveTopology(_OUTLINE_PRECISION_DEG)
+
+
+        sizes = sorted(max(east - west, north - south) for west, south, east, north in
+                       (_polys_bbox([(exterior, [])]) for exterior, _holes in polys))
+        shape = shape.SimplifyPreserveTopology(min(_OUTLINE_PRECISION_DEG, sizes[len(sizes) // 2] / 20.0))
     if not shape.IsValid():
         shape = shape.Buffer(0)
     return shape
@@ -494,7 +513,7 @@ def _polygon_cover(geometries, area_shape, stopped=None):
 
 
 
-    from osgeo import gdal, ogr
+    from osgeo import ogr
 
     total = area_shape.GetArea() if area_shape is not None else 0.0
     if total <= 0:
@@ -515,6 +534,16 @@ def _polygon_cover(geometries, area_shape, stopped=None):
             _stop_if_cancelled(stopped)
     if not count:
         return 0.0
+    return _burned_share(polygons, area_shape, stopped)[0]
+
+
+def _burned_share(polygons, area_shape, stopped=None) -> tuple:
+
+
+
+    from osgeo import gdal, ogr
+
+    vectors = (ogr.GetDriverByName("Memory") or ogr.GetDriverByName("MEM")).CreateDataSource("")
     area = vectors.CreateLayer("area", None, ogr.wkbMultiPolygon)
     feature = ogr.Feature(area.GetLayerDefn())
     feature.SetGeometry(area_shape)
@@ -526,23 +555,69 @@ def _polygon_cover(geometries, area_shape, stopped=None):
     grid = gdal.GetDriverByName("MEM").Create("", columns, rows, 1, gdal.GDT_Byte)
     grid.SetGeoTransform((min_x, width / columns, 0.0, max_y, 0.0, -height / rows))
     _stop_if_cancelled(stopped)
-    gdal.RasterizeLayer(grid, [1], polygons, burn_values=[1])
+    burnt = gdal.RasterizeLayer(grid, [1], polygons, burn_values=[1]) == gdal.CE_None
     gdal.RasterizeLayer(grid, [1], area, burn_values=[2], options=["MERGE_ALG=ADD"])
     counts = grid.GetRasterBand(1).GetHistogram(-0.5, 3.5, 4, include_out_of_range=0, approx_ok=0)
     inside = counts[2] + counts[3]
-    return round(counts[3] / inside, 3) if inside else None
+    return (round(counts[3] / inside, 3) if inside else None), inside, burnt
 
 
-def _served_cover(features: list, outline, box, stopped):
+
+
+_WHOLE_POLYGON_TYPES = frozenset({"Polygon", "MultiPolygon"})
+
+
+def _file_cover(source: str, count: int, area_shape, stopped):
+
+
+
+
+
+
+
+
+
+
+    from osgeo import gdal
+
+    path, _, table = source.partition("|layername=")
+    dataset = layer = None
+    try:
+        dataset = gdal.OpenEx(path, gdal.OF_VECTOR | gdal.OF_READONLY)
+        layer = dataset.GetLayerByName(table) if table else dataset.GetLayer(0)
+        if layer is None or layer.GetFeatureCount() != count:
+            return None
+        share, cells, burnt = _burned_share(layer, area_shape, stopped)
+        return (share,) if cells and burnt else None
+    except InterruptedError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Polygon cover not read from {os.path.basename(path)}: {exc}")
+        return None
+    finally:
+        layer = None
+        if dataset is not None:
+            _close_dataset(dataset)
+
+
+def _served_cover(features: list, outline, box, stopped, source: str = ""):
+
+
+
+
+
 
     from osgeo import ogr
 
-    geometries = []
+    shapes = []
+    whole = bool(source)
     for feature in features:
         shape = feature.get("geometry") if isinstance(feature, dict) else None
         if isinstance(shape, dict) and str(shape.get("type") or "").endswith("Polygon"):
-            geometries.append(ogr.CreateGeometryFromJson(json.dumps(shape)))
-    if not geometries:
+            shapes.append(shape)
+        whole = whole and isinstance(feature, dict) and (
+            shape is None or (isinstance(shape, dict) and shape.get("type") in _WHOLE_POLYGON_TYPES))
+    if not shapes:
         return None
     west, south, east, north = box
     area = _outline_shape(outline) if outline is not None else None
@@ -552,6 +627,13 @@ def _served_cover(features: list, outline, box, stopped):
             ring.AddPoint_2D(x, y)
         area = ogr.Geometry(ogr.wkbPolygon)
         area.AddGeometry(ring)
+    if area.GetArea() <= 0:
+        return None
+    if whole:
+        burnt = _file_cover(source, len(features), area, stopped)
+        if burnt is not None:
+            return burnt[0]
+    geometries = [ogr.CreateGeometryFromJson(json.dumps(shape)) for shape in shapes]
     return _polygon_cover(geometries, area, stopped)
 
 
@@ -559,7 +641,9 @@ def _cover_entry(share, area_label: str, theme: str) -> dict:
     percent = round(share * 100)
     return {"share": share, "of": area_label,
             "note": (f"{percent}% of {area_label} lies under a returned {theme} polygon; the other "
-                     f"{100 - percent}% has none in the source, which says nothing of what is there.")}
+                     f"{100 - percent}% has none in the source."),
+            **coded_fact(hint="overture_polygon_cover", percent=percent, uncovered=100 - percent,
+                         area=area_label, theme=theme)}
 
 
 def _tile_bounds(label: str):
@@ -982,7 +1066,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
     name = _overture_layer_name(theme, args)
     filters = dict(wanted) if isinstance(wanted, dict) else {}
     if theme == "divisions":
-        subtypes, refusal = _divisions_subtypes_asked(wanted, args)
+        subtypes, refusal = _divisions_subtypes_asked(wanted)
         if refusal:
             return refusal
         filters.pop("subtype", None)
@@ -1041,20 +1125,19 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         why = " and ".join(part for part in (
             f"{len(refused)} could not be read" if refused else "",
             "the read reached its time limit" if stopped == "clock" else "") if part)
-        return {"_error": (f"No {theme} came back from the {read} of {len(sources)} published files read, but "
-                           f"{why}, leaving {len(unread)} unread ({shown}): this does not show that the area "
-                           "has none."),
-                "code": "TIMEOUT" if stopped == "clock" and not refused else "EXECUTION_FAILED",
-                "theme": theme, "box_km2": area, "lifted": True, "files_read": read, "unread_files": unread,
-                "missing_tiles": reader.missing, "coverage": "partial" if read else "none",
-                "suggestion": ("Tell the user the files could not all be read, which is not the same as an empty "
-                               "area. Try once more; if it fails again, offer a smaller place.")}
+        return tool_error(
+            f"No {theme} came back from the {read} of {len(sources)} published files read, but "
+            f"{why}, leaving {len(unread)} unread ({shown}): this does not show that the area has none.",
+            "TIMEOUT" if stopped == "clock" and not refused else "EXECUTION_FAILED",
+            hint="overture_files_unread", theme=theme, box_km2=area, lifted=True, files_read=read,
+            files_total=len(sources), unread_files=unread, missing_tiles=reader.missing,
+            coverage="partial" if read else "none")
     if not total and not continuing:
         empty = {"feature_count": 0, "theme": theme, "box_km2": area, "lifted": True, "files_read": read,
                  "missing_tiles": reader.missing,
                  "message": (f"{_overture_source(theme)} has no {theme} in the area the user asked for"
                              + (" that match the filter" if wanted else "") + "."),
-                 "suggestion": "Say so; drop the filter or try another theme if the user wants something here."}
+                 **coded_fact(hint="overture_empty_area", theme=theme, filtered=bool(wanted))}
         flat = wanted if isinstance(wanted, dict) else {k: v for one in wanted or [] for k, v in one.items()}
         flat = {key: value for key, value in flat.items() if not (theme == "divisions" and key == "subtype")}
         if flat and sources:
@@ -1064,7 +1147,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
             sample = _tile_sample(sources[0][1], box)
             if sample and not any(_overture_matches(feature, flat) for feature in sample):
                 empty.update(_overture_filter_miss(sample, flat))
-                empty["suggestion"] = _filter_miss_suggestion(empty) or empty["suggestion"]
+                _say_unless_miss(empty, hint="overture_empty_area", theme=theme, filtered=True)
         remove_tree(directory)
         return empty
     added = run_on_main_thread(reader.add_layers, timeout=_VSICURL_TIMEOUT_S) if total else []
@@ -1092,15 +1175,19 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         if inside is not None:
             made["dropped_outside"] = reader.outside
     made["_note"] = (f"Loaded in full, as the user asked: {total:,} features, {_human_bytes(size)} on disk in a "
-                     f"GeoPackage, read from the published files in {wall:.0f} s. Tell the user the size.")
+                     f"GeoPackage, read from the published files in {wall:.0f} s.")
+    _say(made, hint="overture_loaded_full", features=total, size=_human_bytes(size), seconds=round(wall))
     if continuing:
+        made.pop("hint", None)
         made["files_left"] = len(reader.queue)
         made["_note"] = (f"{total:,} features from {read} of {len(sources)} published files are on the map; the "
                          f"other {len(reader.queue)} are being read in the background into the same GeoPackage, "
                          "and the layers are refreshed when it completes.")
     elif stopped == "clock":
         made["_note"] += (f" The read stopped at the time limit after {read} of {len(sources)} files, so part of "
-                          f"the area is missing ({shown}): say which, and offer the rest in a second call.")
+                          f"the area is missing ({shown}).")
+        _say(made, hint="overture_loaded_full", variant="clock", features=total, size=_human_bytes(size),
+             seconds=round(wall), files_read=read, files_total=len(sources))
     elif refused:
         made["_note"] += (f" {len(refused)} of the {len(sources)} files could not be read ({shown}), so part of "
                           "the area is missing from the map, not empty.")
@@ -1214,25 +1301,30 @@ class ExtractContinuation(QgsTask):
             return
         if self.error:
             entry.update({"status": "error", "error": self.error, "code": "EXECUTION_FAILED",
-                          "suggestion": (f"{report['feature_count']:,} features are on the map; the rest of the "
-                                         "files were not read. Tell the user which part is missing.")})
+                          "feature_count": report["feature_count"],
+                          **coded_fact(hint="overture_background_failed", features=report["feature_count"])})
             return
         total = report["feature_count"]
         note = (f"Loaded in full, as the user asked: {total:,} features, the last {self.files} files read in the "
-                f"background in {wall:.0f} s. Tell the user it is complete and the size.")
+                f"background in {wall:.0f} s.")
+        coded = coded_fact(hint="overture_background_done", features=total, files=self.files,
+                           seconds=round(wall))
         if not total:
             themes = ", ".join(report["themes"])
-            note = (f"No {themes} in the area the user asked for, read in full from the published files. "
-                    "Say so; drop the filter or try another theme if the user wants something here.")
+            note = f"No {themes} in the area the user asked for, read in full from the published files."
+            coded = coded_fact(hint="overture_empty_area", variant="note", themes=themes)
         if report.get("unread_files"):
             note = (f"{total:,} features are on the map; {len(report['unread_files'])} files could not be read "
-                    f"({', '.join(report['unread_files'][:8])}), so that part is missing, not empty. Say so.")
+                    f"({', '.join(report['unread_files'][:8])}), so that part is missing, not empty.")
+            coded = coded_fact(hint="overture_background_unread", features=total,
+                               unread_files=report["unread_files"][:8])
         if self.stopped == "disk":
             note = (f"{total:,} features are on the map; the read stopped with less than "
                     f"{_CONTINUE_KEEP_FREE_BYTES / 1024 ** 3:.0f} GB left on the drive, so the rest is missing.")
+            coded = {}
         entry.update({"status": "complete", "progress": 100, "feature_count": total,
                       "outputs": report, "files_written": sorted({reader.path for reader in self.readers}),
-                      "note": note})
+                      "note": note, **coded})
         if report.get("unread_files") or self.stopped:
             entry["warning"] = note
         self._tell_user(total, bool(report.get("unread_files") or self.stopped))
@@ -1309,8 +1401,8 @@ def continue_in_background(readers: list, made: dict) -> dict:
         "poll": {"tool": "get_task_status", "args": {"task_id": task_id}, "interval_s": _CONTINUE_POLL_S,
                  "timeout_s": _CONTINUE_POLL_TIMEOUT_S, "label": _tr("Reading {names}").format(names=names)},
     })
-    made["_note"] = (str(made.get("_note") or "") + " It continues as a QGIS background task (QGIS stays "
-                     "responsive); get_task_status answers when it completes, and Stop cancels it.").strip()
+    made["_note"] = (str(made.get("_note") or "") + " It continues as a QGIS background task.").strip()
+    _say(made, hint="overture_continues", files_left=made.get("files_left"))
     return made
 
 
@@ -1358,17 +1450,15 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     if outline is not None and not raw_box:
         box = outline["bbox"]
     elif not raw_box:
-        return {"_error": "This call says where to fetch with neither a bbox nor clip_to.",
-                "code": "INVALID_ARGS",
-                "suggestion": 'Pass clip_to with the place name ("Paris"), or a bbox in EPSG:4326 degrees.'}
+        return tool_error("This call says where to fetch with neither a bbox nor clip_to.", "INVALID_ARGS",
+                          hint="overture_where_missing")
     else:
         box, problem = _footprint_box(raw_box)
         if box is None:
             return {"_error": problem, "code": "INVALID_ARGS"}
         problem = volume_guard.not_degrees(*box)
         if problem:
-            return {"_error": problem, "code": "INVALID_ARGS",
-                    "suggestion": 'Pass clip_to with the place name ("Paris"), or the bbox in EPSG:4326 degrees.'}
+            return tool_error(problem, "INVALID_ARGS", hint="overture_bbox_not_degrees", bbox=list(box))
         if outline is not None:
 
 
@@ -1378,8 +1468,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             east = min(box[2], outline["bbox"][2])
             north = min(box[3], outline["bbox"][3])
             if east <= west or north <= south:
-                return {"_error": f"The bbox and {clip_to!r} do not overlap.", "code": "INVALID_ARGS",
-                        "suggestion": "Drop the bbox and let clip_to give the box, or drop clip_to."}
+                return tool_error(f"The bbox and {clip_to!r} do not overlap.", "INVALID_ARGS",
+                                  hint="overture_bbox_outline_apart", clip_to=str(clip_to), bbox=list(box))
             box = (west, south, east, north)
     west, south, east, north = box
 
@@ -1452,7 +1542,6 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         if max(east - west, north - south) > max_span:
             return {"_error": f"Each side of the box must stay under {max_span:.0f} degree.",
-                    "routes": volume_guard.LIFT_HINT.strip(),
 
 
 
@@ -1460,8 +1549,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
 
                     "code": "INVALID_ARGS",
-                    "suggestion": ('Whole zone: clip_to the place by name (its outline in clips), full_extent '
-                                   'if the user named it, or mode "stream" for a city. A smaller box is only part.'),
+
                     **volume_guard.coded(hint="overture_too_big", variant="span")}
 
 
@@ -1469,12 +1557,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         if area_km2 > max_km2 * volume_guard.NEAR_MISS:
             return {"_error": f"This box is {area_km2:.0f} km2 and the Overture service takes at most "
                     f"{max_km2:.0f} km2.",
-                    "routes": volume_guard.LIFT_HINT.strip(),
                     "code": "INVALID_ARGS",
                     "box_km2": round(area_km2, 1),
-                    "suggestion": ('Whole zone: clip_to the place name splits its outline into clips of that '
-                                   'size; full_extent if the user named it; mode "stream" for a city. Zooming in '
-                                   'loads only part.'),
                     **volume_guard.coded(hint="overture_too_big", variant="area")}
 
 
@@ -1484,7 +1568,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
     subtypes = [""]
     if theme == "divisions":
-        subtypes, refusal = _divisions_subtypes_asked(wanted, args)
+        subtypes, refusal = _divisions_subtypes_asked(wanted)
         if refusal:
             return refusal
     if check_only:
@@ -1535,8 +1619,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
         inside = _outline_test(outline, cut=cut)
         if inside is None:
-            return {"_error": f"The outline of {outline['label']!r} could not be read as a polygon.",
-                    "code": "INVALID_ARGS", "suggestion": "Pass a bbox instead of clip_to."}
+            return tool_error(f"The outline of {outline['label']!r} could not be read as a polygon.",
+                              "INVALID_ARGS", hint="overture_outline_unreadable", outline=outline["label"])
         kept = []
         for index, feature in enumerate(features):
             if index % _CLIP_CHECK_EVERY == 0:
@@ -1571,7 +1655,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                 empty["clip_note"] = outline["note"]
             empty["message"] = (f"{served_in_box} {theme} came back for the box around {outline['label']}, "
                                 f"and none of them fall inside its outline.")
-            empty["suggestion"] = "Drop clip_to to keep what the box holds, or try another theme."
+            _say(empty, hint="overture_outline_held_none", theme=theme, clipped_to=outline["label"],
+                 served_in_box=served_in_box)
             if theme == "divisions":
                 _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
             return empty
@@ -1591,7 +1676,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             empty["message"] = (f"The service stopped at its limit after {len(served)} {theme}, and none "
                                 f"of those matched the filter. Whether the box holds a match further on is "
                                 f"not known from this answer.")
-            empty["suggestion"] = "Ask again over a smaller box, where the whole answer fits under the limit."
+            _say(empty, hint="overture_service_limit", theme=theme, served=len(served))
         elif served and theme == "divisions" and any(subtypes):
 
 
@@ -1599,8 +1684,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             level = " or ".join(s for s in subtypes if s)
             empty["message"] = (f"{len(served):,} {level} divisions came back in this box and none matched "
                                 f"the rest of the filter; values_present holds what they carry.")
-            empty["suggestion"] = (_filter_miss_suggestion(empty)
-                                   or "Drop the name from the filter to see every division of that level here.")
+            _say_unless_miss(empty, hint="overture_name_miss", level=level, served=len(served))
             _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
         else:
             asked = [s for s in subtypes if s] if theme == "divisions" else []
@@ -1617,22 +1701,21 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                 empty["message"] = f"No {' or '.join(asked)} divisions in this box, but {named}."
                 empty["other_subtypes_here"] = dict(ranked)
                 if "locality" in asked:
-                    empty["suggestion"] = _town_elsewhere(elsewhere)
+                    _say(empty, hint="overture_town_elsewhere", levels=", ".join(sorted(elsewhere)))
                 else:
-                    empty["suggestion"] = (
-                        f"A {ranked[0][0]} is another admin level than the {' or '.join(asked)} asked, not the "
-                        f'same place under another name: load it (filter {{"subtype": "{ranked[0][0]}"}}) only '
-                        "if that level is what the user wants, and name the layer and the answer after it.")
+                    _say(empty, hint="overture_other_level", subtype=ranked[0][0], asked=" or ".join(asked))
             else:
                 empty["message"] = (f"{_overture_source(theme)} has no {theme} in this box"
                                     + (" that match the filter" if wanted else "") + ".")
-                empty["suggestion"] = (_filter_miss_suggestion(empty)
-                                       or "Widen the box, drop the filter, or try another theme.")
+                _say_unless_miss(empty, hint="overture_empty_box", theme=theme, filtered=bool(wanted))
             if names and empty.get("named_here") == []:
                 empty["message"] = f"{_named_sentence(asked, names, [])} {empty['message']}"
         return empty
 
-    made = _overture_layer(features, name, args)
+    uri = _vector_source_from_features(features, name, "overture")
+
+    cover = _served_cover(features, outline, (west, south, east, north), stopped, source=uri)
+    made = _overture_layer(features, name, args, uri=uri)
     if made.get("_error"):
         return made
     made.update({
@@ -1697,7 +1780,6 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         properties = (feature.get("properties") or {}) if isinstance(feature, dict) else {}
         classes.add(properties.get)
     made["by_class"] = classes.result()
-    cover = _served_cover(features, outline, (west, south, east, north), stopped)
     if cover is not None:
         made["polygon_cover"] = _cover_entry(cover, outline["label"] if outline is not None else "the box", theme)
     if made.get("truncated"):
@@ -1710,11 +1792,10 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             made["_note"] = (f"The call's time ran out with {payload.get('unread_boxes', 0)} of the "
                              f"{payload.get('boxes', 0)} clips covering the area not asked for: this layer covers "
                              "part of it, and the rest is missing from the map, not empty.")
-        made["suggestion"] = ("For the rest: a smaller box around the part that matters, or, if the user's own "
-                              "words ask for the whole place, the same call with full_extent.")
+        _say(made, hint="overture_truncated", features=len(features), unread_boxes=payload.get("unread_boxes", 0))
         if payload.get("unread_boxes"):
             made["unread_boxes"] = payload["unread_boxes"]
     elif forced_clip:
-        made["_note"] = ('mode "stream" opens whole tiles, which cannot be clipped to an outline or to one '
-                         'division, so this came back clipped instead.')
+        made["_note"] = 'mode "stream" was asked and this came back clipped instead.'
+        _say(made, hint="overture_stream_clipped", mode="stream")
     return made

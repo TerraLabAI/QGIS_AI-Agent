@@ -40,6 +40,7 @@ from ..core.policy import AGENT_TMP_DIR, create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.serialization import cut_string
+from ..core.tool_registry import coded_fact, tool_error
 from . import processing_child
 from .layer_io_tools import _release_layers_at_path, _same_file
 from .layer_lookup import _find_layer
@@ -467,7 +468,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                  for key, (_layer_id, count, total, name, only_selected, expression) in selected.items()]
     dropped = ignored_parameters(alg, parameters)
 
-    in_degrees = _geographic_distance_check(alg, parameters, bool(args.get("confirm_large")))
+    in_degrees, ground_note = _geographic_distance_check(alg, parameters, bool(args.get("confirm_large")))
     if in_degrees:
         return in_degrees
 
@@ -486,6 +487,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
     fill_warning = unfilled_dem_warning(alg, algorithm_id, parameters, bool(args.get("confirm_large")))
+    warning = " ".join(part for part in (ground_note, fill_warning) if part)
     undeclared_nodata = _undeclared_nodata_check(algorithm_id, parameters, bool(args.get("confirm_large")))
     if undeclared_nodata:
         return undeclared_nodata
@@ -644,8 +646,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         if overwritten:
             return {"_error": (f"{name} is {overwritten}, which {algorithm_id} also reads: writing there replaces "
                                f"the input before it is read, and its data would be lost. Nothing was run."),
-                    "code": "INVALID_ARGS",
-                    "suggestion": "A new file or a new table name avoids overwriting the input."}
+                    "code": "INVALID_ARGS", "hint": "output_overwrites_input",
+                    "algorithm": algorithm_id, "destination": overwritten}
 
 
 
@@ -764,12 +766,9 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         if managed_output_dir is not None:
             remove_tree(managed_output_dir)
         names = ", ".join(dict.fromkeys(modified_outputs))
-        return {
-            "_error": (
-                f"Cannot replace the Processing destination while {names} has unsaved edits. "
-                "Nothing was run; saving or rolling back those edits frees it."
-            )
-        }
+        return tool_error(
+            f"Cannot replace the Processing destination while {names} has unsaved edits. Nothing was run.",
+            hint="destination_has_unsaved_edits", layers=names)
 
 
 
@@ -846,7 +845,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
         entry = _PROCESSING_TASKS.get(started.get("task_id"))
         for key, value in (("repairs", repairs), ("selection", selection), ("defaults", defaults),
-                           ("measurement", measurement.get("measurement")), ("warning", fill_warning)):
+                           ("measurement", measurement.get("measurement")), ("warning", warning)):
             if value:
                 started[key] = value
                 if entry is not None:
@@ -877,11 +876,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             clash = _FIELD_EXISTS_RE.search(str(e)).group("field")
             failure = _processing_error(
                 algorithm_id,
-                f"The output already carries a field named '{clash}', so it cannot be created again. "
-                f"A GeoPackage compares field names without case, which makes 'Population' and "
-                f"'population' the same field.", alg)
-            failure["suggestion"] = (f"Another field name avoids it; native:fieldcalculator on '{clash}' "
-                                     f"overwrites it in place.")
+                f"The output already carries a field named '{clash}', so it cannot be created again.", alg)
+            failure.update(hint="output_field_exists", field=clash)
             return failure
         elif "already exists" not in str(e):
             failure = _processing_error(algorithm_id, f"Processing failed: {str(e)}", alg)
@@ -909,13 +905,13 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 except Exception as retry_error:
                     last_error = retry_error
             if result is None:
-                return _processing_error(
+                failure = _processing_error(
                     algorithm_id,
-                    f"The output file is still held by another process (on Windows, a "
-                    f"GeoPackage open in QGIS or another program). Last error: {last_error}. "
-                    f"A new output file name is free of that lock.",
+                    f"The output file is still held by another process. Last error: {last_error}.",
                     alg,
                 )
+                failure.update(hint="output_file_locked")
+                return failure
 
     if path_aliases is not None:
 
@@ -937,9 +933,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             failed["files_written"] = written
         external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
         if external and not failed.get("suggestion"):
-            failed["suggestion"] = ("This external provider wrote nothing; its log is in the message. The "
-                                    "native: or gdal: algorithm for the same operation (list_algorithms finds "
-                                    "it) runs inside QGIS.")
+            failed.update(hint="external_provider_wrote_nothing", provider=algorithm_id.split(":", 1)[0])
         return failed
 
     provenance = _record_history(alg, sanitized_parameters, context)
@@ -976,8 +970,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         out["selection"] = selection
     if defaults:
         out["defaults"] = defaults
-    if fill_warning:
-        out["warning"] = fill_warning
+    if warning:
+        out["warning"] = warning
     out.update(measurement)
     if managed_output_dir is not None:
         out["outputs_note"] = f"unspecified outputs were written to a managed temp dir: {managed_output_dir}"
@@ -1157,9 +1151,7 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
             layer, problem = _output_layer(value, context, _output_hint(algorithm_id, key, algorithm), built)
             if problem:
                 output[key] = {"path": value, "readable": False, "unreadable": problem[:300],
-                               "warning": "GDAL cannot read this file to its last row: it was written "
-                                          "incompletely and was not loaded; another folder "
-                                          "may take a whole copy."}
+                               **coded_fact(hint="output_unreadable_to_last_row")}
             elif layer is not None and layer.isValid():
                 _declare_raster_crs(layer)
                 place(key, layer, value)
@@ -1180,7 +1172,7 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
 
 
                 output[key] = {"path": value, "readable": False, "missing": True,
-                               "warning": "the algorithm finished without writing this file; read log"}
+                               **coded_fact(hint="output_file_not_written")}
             else:
 
 
@@ -1442,7 +1434,7 @@ def _layer_summary(layer, path: str | None = None, in_project: bool = True) -> d
     if in_project:
         out = {"layer_id": layer.id(), "layer_name": layer.name(), **out}
     else:
-        out["note"] = "Not added to the project: this path is the next step's input."
+        out.update(coded_fact(hint="output_not_in_project"))
     if isinstance(layer, QgsVectorLayer):
         out["feature_count"] = layer.featureCount()
         out["geometry_type"] = QgsWkbTypes.displayString(layer.wkbType())
@@ -1855,12 +1847,11 @@ def _on_proc_terminated(task_id: str):
     feedback = entry.get("feedback")
     captured = "; ".join(getattr(feedback, "errors", [])[-5:]) if feedback else ""
     entry["status"] = "error"
-    entry["error"] = (
-        f"The algorithm stopped before it produced anything: {captured}"
-        if captured
-        else ("The algorithm stopped before it produced anything, most often an input that names no "
-              "layer. list_layers gives the names the project actually holds.")
-    )
+    if captured:
+        entry["error"] = f"The algorithm stopped before it produced anything: {captured}"
+    else:
+        entry["error"] = "The algorithm stopped before it produced anything."
+        entry["hint"] = "async_run_stopped_silently"
     _let_go(entry)
 
 
@@ -1918,11 +1909,11 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
         entry["status"] = "error"
         feedback = entry.get("feedback")
         captured = "; ".join(getattr(feedback, "errors", [])[-5:]) if feedback else ""
-        entry["error"] = (
-            f"Algorithm reported failure: {captured}"
-            if captured
-            else "Algorithm reported failure, check get_message_log for details."
-        )
+        if captured:
+            entry["error"] = f"Algorithm reported failure: {captured}"
+        else:
+            entry["error"] = "Algorithm reported failure and no log was captured."
+            entry["hint"] = "async_run_failed_no_log"
         entry.update(invalid_geometry.facts(entry.get("parameters"), context))
     _let_go(entry)
 
@@ -2302,11 +2293,7 @@ def _get_task_status(args: dict) -> dict:
     _sync_with_qgis(task_id)
     entry = _PROCESSING_TASKS.get(task_id)
     if entry is None:
-        return {
-            "_error": f"Unknown task_id: {task_id}",
-            "_code": "INVALID_ARGS",
-            "_suggestion": "Start one with run_processing(async=true), which returns a task_id.",
-        }
+        return tool_error(f"Unknown task_id: {task_id}", "INVALID_ARGS", hint="unknown_task_id", task_id=task_id)
     out = {
         "task_id": task_id,
         "status": entry["status"],
@@ -2366,8 +2353,7 @@ def _get_task_status(args: dict) -> dict:
             out["destination_unchanged"] = entry["staged_for"]
         if entry.get("partial_file"):
             out["partial_file"] = entry["partial_file"]
-            out["note"] = (f"The write was stopped. {entry['partial_file']} is the incomplete file it was "
-                           f"writing, not the export; it can be deleted. The destination was not touched.")
+            out.update(coded_fact(hint="export_stopped_partial_file", partial_file=entry["partial_file"]))
         elif entry.get("note"):
             out["note"] = entry["note"]
 
@@ -2394,7 +2380,7 @@ def _list_tasks(args: dict) -> dict:
     return {
         "tasks": tasks,
         "count": len(tasks),
-        "_hint": "get_task_status(task_id) gives progress/outputs; cancel_task(task_id) stops a running one.",
+        **coded_fact(hint="task_list"),
     }
 
 

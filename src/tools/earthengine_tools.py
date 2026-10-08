@@ -1,32 +1,32 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
-"""Google Earth Engine tools, server-side global EO data and compute.
+from datetime import datetime, timedelta, timezone
 
-Conditional: registers nothing unless the ``ee`` (earthengine-api) package is
-importable. Kept import-safe by never importing ``ee`` at module top level; every
-handler imports it lazily inside the function so the module compiles and loads on a
-machine without earthengine-api installed.
+from qgis.core import QgsProject, QgsRasterLayer
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-The load trick: an ee.Image is turned into an XYZ tile URL via Earth Engine, then
-added to QGIS as an XYZ raster layer (same path add_xyz_layer uses). The layer
-renders in QGIS and survives in a saved .qgs project, until the EE session token in
-the tile URL expires, after which the tiles stop loading and the dataset must be
-re-added.
-
-The catalog search (search_gee_catalog) is answered by the server: the community
-catalog is tens of megabytes and every session used to download it to match a
-keyword. The tools here are the ones that need the ee library on this machine.
-"""
-from datetime import datetime, timedelta, timezone  # noqa: E402
-
-from qgis.core import QgsProject, QgsRasterLayer  # noqa: E402
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP  # noqa: E402
-
-from ..core import limits  # noqa: E402
-from ..core.provider_uri import encode_uri_url  # noqa: E402
-from ..core.tool_registry import Tool, ToolRegistry  # noqa: E402
+from ..core import limits
+from ..core.provider_uri import encode_uri_url
+from ..core.tool_registry import Tool, ToolRegistry
 
 
 

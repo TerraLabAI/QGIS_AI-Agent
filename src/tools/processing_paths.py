@@ -353,13 +353,17 @@ def alias_fragile_paths(algorithm_id: str, parameters: dict, destination_names) 
                 reason = aliases.problem or ("its alias would pass the 260 characters Windows opens"
                                              if built else "no short name or link of its folder could be made")
                 aliases.remove()
-                where = "C:\\GIS\\data" if IS_WINDOWS else "~/gis/data"
                 return parameters, [], None, {
                     "_error": (f"{key} is {real}, and {provider} cannot open a path with {_what_breaks()} in it; "
                                f"no safe alias of it could be made here: {reason}. Nothing was run."),
                     "code": "INVALID_ARGS",
-                    "suggestion": (f"A folder whose whole path has no spaces or accents (for example {where}) "
-                                   f"works, and so does the native: or gdal: algorithm for the same job."),
+                    "suggestion": "",
+                    "hint": "processing_path_unsafe",
+                    "parameter": key,
+                    "provider": provider,
+                    "path": real,
+                    "reason": reason,
+                    **({"variant": "windows"} if IS_WINDOWS else {}),
                 }
             items[index] = built
             changed = True

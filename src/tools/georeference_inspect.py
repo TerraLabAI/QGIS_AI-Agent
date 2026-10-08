@@ -78,6 +78,7 @@ from ..core import limits, net, output_paths, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
+from ..core.serialization import CodedText, coded_like
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._images import image_to_base64
 from .data_common import _DOWNLOAD_TOTAL_TIMEOUT, _MAX_DOWNLOAD_SIZE, _download_timeout, _safe_filename
@@ -326,8 +327,8 @@ def _download(url: str, cancelled) -> dict:
                           "INVALID_ARGS" if 400 <= exc.code < 500 else "EXECUTION_FAILED",
                           "The address may be wrong; the file itself is another route.")
     except (net.LocalUrlRefused, net.FetchWithdrawn) as exc:
-        return tool_error(f"This address is not fetched: {exc.reason}", "PERMISSION_DENIED",
-                          "The file itself, with a local path, is needed.")
+        return tool_error(coded_like(f"This address is not fetched: {exc.reason}", exc.reason), "PERMISSION_DENIED",
+                          "" if isinstance(exc.reason, CodedText) else "The file itself, with a local path, is needed.")
     except net.FetchTooLarge:
         return tool_error(f"The file at {host} is over the {_MAX_DOWNLOAD_SIZE // (1024 * 1024)} MB this tool "
                           "downloads.", "INVALID_ARGS",
@@ -1102,40 +1103,22 @@ def _grid_preview(base, width: int, height: int):
 
 
 
-def _needs_points_suggestion(matching: bool, photo: dict | None) -> tuple[str, dict]:
-
+def _needs_points_fact(matching: bool, photo: dict | None) -> dict:
 
 
     variant = "match" if matching else "no_match"
     if photo and photo.get("width_m") and "rotation_deg" in photo:
-        text = (("The photo's GPS and camera give a rough footprint; match_georeference with center, width_m "
-                "and rotation_deg (kind photo) places it precisely. Points are that footprint's corners, "
-                "tens of metres off, usable with georeference_raster if matching fails.") if matching else
-                ("The photo's GPS and camera give a rough footprint (tens of metres off); georeference_raster "
-                "with these points and crs EPSG:4326 gives an approximate result."))
-        return text, coded_fact(hint="georef_photo_footprint", variant=variant)
+        return coded_fact(hint="georef_photo_footprint", variant=variant)
     if photo:
-        text = ("The photo gives its position only; the preview and an estimated ground width feed "
-                "match_georeference with center and width_m (kind photo)." if matching
-                else "The photo gives its position only; the preview and 3 or more places read on it "
-                "feed georeference_raster.")
-        return text, coded_fact(hint="georef_photo_position", variant=variant)
-    if matching:
-        text = ("No coordinates in the file. match_georeference takes 2 to 4 recognisable places far apart (names, "
-                "crossroads, bridges, coastline, grid ticks) as rough points, each with its pixel, line, place "
-                "name and town (it looks them up; kind map or photo).")
-    else:
-        text = ("No coordinates in the file. georeference_raster takes 3 or more recognisable places far apart "
-                "(names, crossroads, bridges, grid ticks), each geocoded with its pixel and line on the grid.")
-    return text, coded_fact(hint="georef_no_coords", variant=variant)
+        return coded_fact(hint="georef_photo_position", variant=variant)
+    return coded_fact(hint="georef_no_coords", variant=variant)
 
 
 def _inspect_georeference(args: dict) -> dict:
     try:
         from osgeo import gdal, osr
     except ImportError as exc:  # pragma: no cover
-        return tool_error(f"GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED",
-                          "QGIS's Georeferencer (Layer > Georeferencer) still works.")
+        return tool_error(f"GDAL is missing from this QGIS: {exc}", "EXECUTION_FAILED", hint="georef_gdal_missing")
     gdal.UseExceptions()
     page = args.get("page")
     if page is not None and (not isinstance(page, int) or isinstance(page, bool) or page < 1):
@@ -1182,8 +1165,10 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
                                  + ("." if placed.get("crs") else ", then set its CRS."))
             return result
         image = pdf["image"]
-        lead = (f"Page {result['pdf']['page']} was rasterized to {image} at {result['pdf']['dpi']:g} DPI: "
-                "that file is now the raster. ")
+
+        result["rasterized"] = (f"Page {result['pdf']['page']} was rasterized to {image} at "
+                                f"{result['pdf']['dpi']:g} DPI: that file is now the raster.")
+        lead = result["rasterized"]
     result["raster"] = image
     try:
         dataset = gdal.Open(image, gdal.GA_ReadOnly)
@@ -1243,13 +1228,8 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         result["_match_image_base64"] = encoded
         result["_match_image"] = {"scale": round(copy.width() / width, 6), "width": copy.width(),
                                   "height": copy.height(), **names}
-    text, fact = _needs_points_suggestion(matching, photo)
-    result["suggest"] = lead + text
-    if not lead:
 
-
-
-        result.update(fact)
+    result.update(_needs_points_fact(matching, photo))
     return result
 
 

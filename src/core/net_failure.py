@@ -130,9 +130,10 @@ def _transient(exc: BaseException) -> bool:
 
 
 NETWORK_ERROR = "NETWORK_ERROR"
-NETWORK_SUGGESTION = ("Nothing from this call was used. The message's own terms say what broke: their "
-                      "connection, not the data service, unless the message says a service answered. "
-                      "One retry of the same call is usual; a second failure points to their connection.")
+
+
+NETWORK_HINT = "network_failed"
+NETWORK_SUGGESTION = ""
 
 
 def describe_failure(exc: BaseException) -> str | None:

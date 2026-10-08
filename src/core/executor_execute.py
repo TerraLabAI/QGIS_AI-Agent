@@ -9,27 +9,46 @@ from __future__ import annotations
 import time
 import traceback
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from . import background, crash_note, security, stalls
+from . import background, crash_note, protocol, security, stalls, tuning
 from . import code_effects as ce
 from .executor_code import CODE_TOOL
 from .logger import log, log_warning
 from .protocol import ClientErrorCode as Err
 from .protocol import Danger
+from .serialization import error_details
+from .tool_registry import coded_fact
 
 try:
+    from ..tools import code_runtime
     from ..tools._layers import pinned_layer_gone
 except ImportError:
+    code_runtime = None
+
     def pinned_layer_gone(_args, _pins):
         return None
+
+
+
+
+
+
+
+
+CODE_CALL_CLOCK_S = 160.0
+
+CODE_MIN_RUN_S = 20.0
 
 
 def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
 
-_BACKUP_FACT = "Nothing was changed. The next call that changes data tries the copy again."
+def _phase(call: dict, key: str, since: float) -> None:
+
+    phases = call.setdefault("phase_ms", {})
+    phases[key] = phases.get(key, 0) + max(0, int(round((time.monotonic() - since) * 1000)))
 
 
 class _ExecutorExecute:
@@ -42,6 +61,10 @@ class _ExecutorExecute:
 
 
         self._executing.add(tool_call_id)
+
+
+
+        call.setdefault("clock_from", time.monotonic())
         try:
             self._prepare_and_execute(call)
         except Exception as exc:  # noqa: BLE001
@@ -71,7 +94,7 @@ class _ExecutorExecute:
         name, args, danger = str(call.get("name")), call.get("args") or {}, call.get("danger", Danger.READ)
         guard = self._crs_guard(name, args)
         if guard is not None:
-            self._fail(call, Err.CRS_GUARD, guard[0], guard[1])
+            self._fail(call, Err.CRS_GUARD, guard[0], guard[1], details=error_details(guard[2]))
             return
 
         fresh = not getattr(self._snapshots.get(run_id), "captured", False)
@@ -85,7 +108,7 @@ class _ExecutorExecute:
 
 
                 self._fail(call, Err.EXECUTION_FAILED, f"The backup failed; the operation was not started. {exc}",
-                           _BACKUP_FACT)
+                           "", details=error_details(coded_fact(hint="backup_failed")))
                 return
             if name == CODE_TOOL and not self._code_restore_point(call, fresh):
                 self._code_no_point(call)
@@ -100,34 +123,80 @@ class _ExecutorExecute:
         name = str(call.get("name") or "")
         tool_call_id = str(call.get("tool_call_id"))
         run_id = str(call.get("run_id") or "")
+        copy_from = time.monotonic()
 
         def done(_result, error_text: str):
             self._background.pop(tool_call_id, None)
             self._inflight.pop(tool_call_id, None)
             snapshot.adopt_copies()
+            snapshot.forget_unmade(taken)
             if self._closed or tool_call_id in self._answered:
                 return
+            _phase(call, "backup_ms", copy_from)
             if error_text:
                 cause = error_text.split(chr(10), 1)[0]
                 log_warning(f"Backup before {name} failed: {cause}")
                 if not self._closed:
                     self._fail(call, Err.EXECUTION_FAILED,
-                               f"The backup failed; the operation was not started. {cause}", _BACKUP_FACT)
+                               f"The backup failed; the operation was not started. {cause}", "",
+                               details=error_details(coded_fact(hint="backup_failed")))
                 return
             try:
                 self._run_prepared(call)
             except Exception as exc:  # noqa: BLE001
                 self._fail_unanswered(call, exc)
 
-        task = background.run_off_thread(f"AI Agent: backup before {name}", snapshot.run_pending_copies,
+
+        taken = snapshot.take_pending_copies()
+        task = background.run_off_thread(f"AI Agent: backup before {name}",
+                                         lambda: snapshot.run_pending_copies(taken),
                                          self._main_callback(call, done))
         if task is None:
-            snapshot.run_pending_copies()
+            snapshot.run_pending_copies(taken)
+            _phase(call, "backup_ms", copy_from)
             return False
         self._background[tool_call_id] = (run_id, task, call)
         self._inflight[tool_call_id] = (run_id, name, time.monotonic(), True)
         stalls.mark(f"backup off-thread before {name}")
+        if name == CODE_TOOL:
+            left = self._code_clock_left(call) - tuning.ceiling("execute_code_min_run_s", CODE_MIN_RUN_S, 10.0)
+            QTimer.singleShot(int(max(0.0, left) * 1000),
+                              lambda: self._backup_overdue(call, task, snapshot, copy_from))
         return True
+
+    @staticmethod
+    def _code_clock_left(call: dict) -> float:
+
+        clock = tuning.ceiling("execute_code_call_clock_s", CODE_CALL_CLOCK_S, 60.0)
+        return clock - (time.monotonic() - float(call.get("clock_from") or time.monotonic()))
+
+    def _backup_overdue(self, call: dict, task, snapshot, copy_from: float) -> None:
+
+
+
+
+
+        tool_call_id = str(call.get("tool_call_id"))
+        try:
+            entry = self._background.get(tool_call_id)
+            if self._closed or entry is None or entry[1] is not task or tool_call_id in self._answered:
+                return
+            self._inflight.pop(tool_call_id, None)
+            _phase(call, "backup_ms", copy_from)
+            done, listed = (list(snapshot.copy_progress) + [0, 0])[:2]
+            seconds = round(time.monotonic() - copy_from)
+            log_warning(f"Backup before execute_code still running after {seconds}s ({done} of {listed}); "
+                        "the snippet was not run")
+            protocol.note_phases(tool_call_id, call.get("phase_ms") or {})
+            self._fail(call, Err.EXECUTION_FAILED,
+                       f"The copy of the project's files this snippet may change was still running after "
+                       f"{seconds} s ({done} of {listed} files done); the snippet did not run. The copy goes "
+                       "on, and the next snippet that may change files starts once it is done.", "",
+                       details=error_details(coded_fact(hint="backup_failed", backup_s=seconds,
+                                                        files_done=done, files_listed=listed)))
+            self._answer_once(tool_call_id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Backup deadline for {tool_call_id} not handled: {type(exc).__name__}: {exc}")
 
     def _run_prepared(self, call: dict) -> None:
 
@@ -153,10 +222,12 @@ class _ExecutorExecute:
             return
         tool_call_id = str(call.get("tool_call_id"))
         run_id = str(call.get("run_id") or "")
+        prepare_from = time.monotonic()
 
         def done(finish, error_text: str):
             self._background.pop(tool_call_id, None)
             self._inflight.pop(tool_call_id, None)
+            _phase(call, "prepare_ms", prepare_from)
             try:
                 if self._closed or tool_call_id in self._answered:
                     return
@@ -243,16 +314,43 @@ class _ExecutorExecute:
 
 
         crash_note.write(run_id, tool_call_id, getattr(self._session, "session_id", "") or "", name, args)
+        early: list = []
+
+        def answer_now(result) -> bool:
+
+
+            if early or self._closed or tool_call_id in self._answered:
+                return False
+            early.append(True)
+            self._deliver(call, result, started)
+            self._answer_once(tool_call_id)
+            return True
+
         try:
-            with stalls.probe(f"tool.{name}"), self._code_context(call), background.calling(tool_call_id):
+            with stalls.probe(f"tool.{name}"), self._code_context(call), background.calling(tool_call_id), \
+                    background.answerable(tool_call_id, answer_now):
+                self._share_clock(call)
                 result = self._registry.execute(name, args)
         except Exception as exc:  # noqa: BLE001
             result = {"_error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()[-2000:]}
         finally:
             crash_note.clear()
+            _phase(call, "handler_ms", started)
+        if early:
+            return
         if self._hold(call, result, started):
             return
         self._deliver(call, result, started)
+
+    def _share_clock(self, call: dict) -> None:
+
+
+        if code_runtime is None or str(call.get("name") or "") != CODE_TOOL:
+            return
+        context = code_runtime.current()
+        left = max(tuning.ceiling("execute_code_min_run_s", CODE_MIN_RUN_S, 10.0), self._code_clock_left(call))
+        if left < context.timeout_s:
+            context.timeout_s = left
 
     def _start_background(self, call: dict, name: str, args: dict, started: float) -> bool:
 
@@ -276,10 +374,12 @@ class _ExecutorExecute:
 
         def work():
             with context, background.calling(tool_call_id):
+                self._share_clock(call)
                 return self._registry.execute(name, args)
 
         def done(result, error_text: str):
             self._background.pop(tool_call_id, None)
+            _phase(call, "handler_ms", started)
             if error_text:
                 result = {"_error": error_text.split("\n", 1)[0], "traceback": error_text}
             try:

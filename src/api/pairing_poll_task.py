@@ -47,6 +47,8 @@ class PairingPollTask(QgsTask):
 
     pairing_link_back = pyqtSignal()
 
+    pairing_confirmed = pyqtSignal()
+
     STALL_BROWSER_NOT_SEEN = "browser_not_seen"
     STALL_CODE_EXPIRED = "code_expired"
     STALL_OFFLINE = "offline"
@@ -122,6 +124,7 @@ class PairingPollTask(QgsTask):
         offline_said = False
         last_logged_detail = ""
         offline_streak = 0
+        confirmed_said = False
         while not self.isCanceled() and time.monotonic() < deadline:
             try:
                 result = self._client.poll_pairing(self._code)
@@ -166,7 +169,10 @@ class PairingPollTask(QgsTask):
 
 
             waited_s = time.monotonic() - started
-            if status == "pending" and not browser_seen:
+            if status == "confirmed" and not confirmed_said:
+                confirmed_said = True
+                self.pairing_confirmed.emit()
+            if status in ("pending", "confirmed") and not browser_seen:
                 browser_seen = True
                 self.pairing_browser_seen.emit()
             elif (not browser_seen and not stall_hinted and not offline_streak

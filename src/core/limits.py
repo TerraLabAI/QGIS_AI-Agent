@@ -556,13 +556,29 @@ def _with_machine(advice: str) -> str:
     return f"{advice} {note}".strip() if note else advice
 
 
-def refusal(subject: str, measured: str, allowed: str, advice: str, code: str = CEILING_CODE) -> dict:
+def refusal(subject: str, measured: str, allowed: str, advice: str, code: str = CEILING_CODE, hint: str = "",
+            **facts) -> dict:
 
 
 
 
 
 
+
+
+
+    if hint:
+        from . import machine
+
+        note = machine.note()
+        return {
+            "error": f"{subject} is {measured}, over the limit of {allowed}." + (f" {note}" if note else ""),
+            "suggestion": "",
+            "code": code,
+            "isError": True,
+            "hint": hint,
+            **facts,
+        }
     return {
         "error": f"{subject} is {measured}, over the limit of {allowed}.",
         "suggestion": _with_machine(advice),

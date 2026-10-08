@@ -10,8 +10,26 @@
 
 from __future__ import annotations
 
+import weakref
+
 from qgis.core import QgsProject
 from qgis.PyQt.QtGui import QIcon
+
+
+
+
+
+_followers: weakref.WeakSet = weakref.WeakSet()
+
+
+def follows_layers(widget) -> None:
+
+    _followers.add(widget)
+
+
+def layer_followers() -> list:
+
+    return list(_followers)
 
 
 def resolve_layer(layer_or_id):

@@ -17,6 +17,7 @@ from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.serialization import CodedText
 from ..core.tool_registry import ServedValueMissing
 from .data_common import _canvas_viewbox_4326, _fold, _is_number, _service, _viewbox_bounds
 from .data_geocoding import (
@@ -114,15 +115,12 @@ def _outline_of_layer(name: str):
             return footprint
         selected = layer.selectedFeatureCount()
         count = selected or layer.featureCount()
-        if count > _CLIP_MAX_PARTS:
-            return {"_error": f"{layer.name()!r} holds {count:,} polygons, which is a map and not one outline.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "A selected feature, or the place name instead, clips to it."}
         xform = None
         if layer.crs().isValid() and layer.crs() != target:
             xform = QgsCoordinateTransform(layer.crs(), target, QgsProject.instance())
         polys: list = []
         budget = VertexBudget()
+        simplified: list = []
 
         outline_request = feature_request(attributes=[])
         for feature in (layer.getSelectedFeatures(outline_request) if selected
@@ -131,13 +129,21 @@ def _outline_of_layer(name: str):
             if geometry is None or geometry.isEmpty():
                 continue
             too_big = budget.oversize(geometry)
-            if too_big or budget.exhausted():
-                return {"_error": f"{layer.name()!r} is too detailed to clip to on this machine: "
-                                  + (f"one polygon of {too_big:,} vertices" if too_big
-                                     else f"more than {budget.total:,} vertices in total") + ".",
-                        "code": "INVALID_ARGS",
-                        "suggestion": "native:simplifygeometries through run_processing, one selected "
-                                      "feature, or a bbox instead of clip_to, all fit."}
+            if too_big:
+
+
+                geometry, tolerance = _within_vertices(geometry, budget)
+                if geometry is None or budget.oversize(geometry):
+                    return {"_error": f"{layer.name()!r} is too detailed to clip to on this machine: one polygon "
+                                      f"of {too_big:,} vertices.",
+                            "code": "INVALID_ARGS", "suggestion": "",
+                            "hint": "clip_layer_too_detailed", "layer": layer.name(), "vertices": too_big}
+                simplified.append((too_big, tolerance))
+            if budget.exhausted():
+                return {"_error": f"{layer.name()!r} is too detailed to clip to on this machine: more than "
+                                  f"{budget.total:,} vertices in total.",
+                        "code": "INVALID_ARGS", "suggestion": "",
+                        "hint": "clip_layer_too_detailed", "layer": layer.name(), "vertices": budget.total}
             if xform is not None:
                 moved = QgsGeometry(geometry)
                 if moved.transform(xform) != 0:
@@ -146,12 +152,84 @@ def _outline_of_layer(name: str):
             polys.extend(_rings_of(json.loads(geometry.asJson(7))))
         if not polys:
             return {"_error": f"{layer.name()!r} holds no polygon to clip to.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "A boundary layer with features, or the place name, is needed."}
-        return {"polys": polys, "label": layer.name(), "outline_source": f"layer {layer.name()}",
+                    "code": "INVALID_ARGS", "suggestion": "",
+                    "hint": "clip_layer_no_polygon", "layer": layer.name()}
+        made = {"polys": polys, "label": layer.name(), "outline_source": f"layer {layer.name()}",
                 "selected_only": bool(selected)}
+        if simplified:
+            metres = _ground_metres(layer, max(tolerance for _n, tolerance in simplified))
+            made["note"] = (f"{len(simplified)} polygon(s) of {layer.name()!r} had more vertices than this machine "
+                            f"checks at once ({budget.per_geometry:,}; the largest {max(n for n, _t in simplified):,})"
+                            f" and were simplified for the clip" + (f", to about {metres:,.0f} m" if metres else "")
+                            + ".")
+        if count > _CLIP_MAX_PARTS:
+
+            made["parts"] = count
+        return made
 
     return run_on_main_thread(_read, timeout=30)
+
+
+def _within_vertices(geometry, budget):
+
+
+
+
+    import math
+
+    from ..core.geometry_budget import vertex_count
+
+    cap = budget.per_geometry
+    box = geometry.boundingBox()
+    tolerance = math.hypot(box.width(), box.height()) / max(1, cap)
+    for _ in range(12):
+        if not tolerance > 0 or budget.exhausted() == "time":
+            break
+        fitted = geometry.simplify(tolerance)
+        if fitted is not None and not fitted.isEmpty() and 0 < vertex_count(fitted) <= cap:
+            return fitted, tolerance
+        tolerance *= 2
+    return None, 0.0
+
+
+def _ground_metres(layer, units: float) -> float:
+
+    from ..core import ground
+
+    if layer.crs().isGeographic():
+        return units * 111_320.0
+    return units * (ground.layer_metres_per_unit(layer) or 0.0)
+
+
+def _merge_parts(made: dict) -> None:
+
+
+
+
+
+
+
+
+    from osgeo import ogr
+
+    coordinates = [[[list(point) for point in exterior]] + [[list(point) for point in hole] for hole in holes]
+                   for exterior, holes in made.get("polys") or []]
+    try:
+        shape = ogr.CreateGeometryFromJson(json.dumps({"type": "MultiPolygon", "coordinates": coordinates}))
+        merged = shape.UnionCascaded() if shape is not None else None
+        if shape is not None and (merged is None or merged.IsEmpty()):
+
+            merged = shape.Buffer(0)
+        polys = _rings_of(json.loads(merged.ExportToJson())) if merged is not None and not merged.IsEmpty() else []
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Merging the {made.get('parts')} polygons of {made.get('label')!r} failed: {exc}")
+        return
+    if not polys:
+        return
+    made["polys"] = polys
+    made["note"] = ((made.get("note") + " ") if made.get("note") else "") + (
+        f"The {made['parts']:,} polygons of {made['label']!r} were merged into one outline of "
+        f"{len(polys):,} part{'s' if len(polys) != 1 else ''}.")
 
 
 def _place_tier(hit: dict) -> int:
@@ -323,8 +401,8 @@ def _outline_of_place(name: str):
         return found
     if not hits:
         return {"_error": f"No place was found under the name {name!r}.",
-                "code": "INVALID_ARGS",
-                "suggestion": "The spelling, the country added, or a bbox instead of clip_to, may fit."}
+                "code": "INVALID_ARGS", "suggestion": "",
+                "hint": "clip_place_not_found", "place": str(name)}
     hit = _place_hit(name, hits)
     lon, lat = float(hit["lon"]), float(hit["lat"])
 
@@ -442,11 +520,10 @@ def _outline_of_place(name: str):
 
 
         asked = str(name).split(",")[0].strip()
-        fallback["note"] = (
+        fallback["note"] = CodedText(
             f"No division within about 1 km of the geocoded point carries the name {asked!r}, at any "
-            f"level from neighbourhood up, so the clip used "
-            f"the smallest division covering it, {fallback['label']}. For the place itself, a "
-            f"bbox about 2 km around the geocoded point, instead of clip_to, fits.")
+            f"level from neighbourhood up, so the clip used the smallest division covering it, "
+            f"{fallback['label']}.", "clip_division_fallback", asked_name=asked, division_label=fallback["label"])
         return fallback
 
     return dict(_error=f"{name!r} was found, but no administrative outline covers it.",  # noqa: C408
@@ -578,9 +655,11 @@ def _outline_around(hit: dict, name: str) -> dict:
     kind = str(hit.get("type") or hit.get("osm_value") or "place")
     return {"polys": [(ring, [])], "label": label,
             "outline_source": f"box around the geocoded {kind} (no administrative outline)",
-            "note": (f"{label!r} is a {kind}, which has no administrative outline: the clip is {how}, "
-                     f"{(east - west) * 111 * squash:.1f} by {(north - south) * 111:.1f} km, never the town "
-                     "around it. For another size, a bbox instead of clip_to fits.")}
+            "note": CodedText(
+                f"{label!r} is a {kind}, which has no administrative outline: the clip is {how}, "
+                f"{(east - west) * 111 * squash:.1f} by {(north - south) * 111:.1f} km, never the town "
+                "around it.", "clip_box_around_place", outline_label=label, place_kind=kind, clip_how=how,
+                clip_width_km=round((east - west) * 111 * squash, 1), clip_height_km=round((north - south) * 111, 1))}
 
 
 def _one_side_of_antimeridian(made: dict) -> None:
@@ -619,12 +698,14 @@ def _resolve_outline(clip_to: str, layers: bool = True):
         made = _outline_of_place(clip_to)
     if not isinstance(made, dict) or made.get("_error"):
         return None, (made if isinstance(made, dict) else {"_error": f"Could not resolve {clip_to!r}."})
+    if made.get("parts"):
+        _merge_parts(made)
     bounds = _polys_bbox(made.get("polys") or [])
     if bounds and bounds[2] - bounds[0] > 180.0:
         _one_side_of_antimeridian(made)
         bounds = _polys_bbox(made.get("polys") or [])
     if not bounds:
         return None, {"_error": f"{clip_to!r} resolved to an empty outline.", "code": "INVALID_ARGS",
-                      "suggestion": "bbox works instead of clip_to."}
+                      "suggestion": "", "hint": "clip_outline_empty", "place": str(clip_to)}
     made["bbox"] = bounds
     return made, None

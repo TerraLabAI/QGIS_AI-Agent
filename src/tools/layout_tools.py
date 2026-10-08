@@ -454,9 +454,7 @@ def _resolve_layout(name: str, allow_report: bool = False):
     if layout and not allow_report and getattr(layout, "pageCollection", None) is None:
         return None, {"_error": f"'{name}' is a report, not a print layout: its pages are copies of print "
                                 "layouts made when it was built.",
-                      "code": "INVALID_ARGS",
-                      "suggestion": "create_report with replace:true rebuilds it from the print layout its "
-                                    "sections came from; get_layout_info reads it."}
+                      "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_is_report", "layout": name}
     if layout:
         return layout, None
     existing = [lyt.name() for lyt in manager.layouts()]
@@ -555,8 +553,8 @@ def _map_for(layout, map_id):
         if item.uuid().strip("{}").casefold() == bare or (item.id() and item.id().casefold() == bare):
             return item, None
     return None, {"_error": f"No map {wanted!r} on layout {layout.name()!r}.", "code": "INVALID_ARGS",
-                  "suggestion": (f"Map items there: {[item.uuid() for item in maps]}. Without map_id it "
-                                 "links to the main map." if maps else "add_layout_map adds one.")}
+                  "suggestion": "", "hint": "layout_map_not_found", "variant": "" if maps else "none",
+                  "map_items": [item.uuid() for item in maps]}
 
 
 def _is_tile_basemap(layer) -> bool:
@@ -1098,8 +1096,8 @@ def _default_curation(legend, args: dict) -> dict:
     if rounded:
         out["ramp_labels_rounded"] = rounded
     if out:
-        out["note"] = ("Done on the legend only. layers naming a basemap keeps it; labels sets another name; "
-                       "labels with class and an empty label drops a class.")
+        out["note"] = "Done on the legend only."
+        out["note_hint"] = "layout_legend_labels"
     return out
 
 
@@ -1116,8 +1114,7 @@ def _find_legend(layout, ref: str):
         return titled[0], None
     listing = [{"uuid": legend.uuid(), "title": legend.title()} for legend in legends]
     return None, {"_error": f"No legend {wanted!r} on layout {layout.name()!r}. Legends there: {listing}",
-                  "code": "INVALID_ARGS",
-                  "suggestion": "legend_id takes one of those uuids; left out, a new legend is added."}
+                  "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_legend_not_found"}
 
 
 def _legend_pick_layers(legend, keep, drop) -> list:
@@ -1239,8 +1236,8 @@ def _missing(args: dict, keys, noun: str):
     if not missing:
         return None
     return {"_error": f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} needed to add a {noun}.",
-            "code": "INVALID_ARGS",
-            "suggestion": f"item_id changes a {noun} already on the layout; without it, a new one is added."}
+            "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_item_args_missing", "noun": noun,
+            "missing": list(missing)}
 
 
 def _find_item(layout, ref, kind, noun: str):
@@ -1263,8 +1260,7 @@ def _find_item(layout, ref, kind, noun: str):
     else:
         message = f"No {noun} {wanted!r} on layout {layout.name()!r}."
     return None, {"_error": f"{message} {noun.capitalize()} items there: {same}",
-                  "code": "INVALID_ARGS",
-                  "suggestion": "item_id takes one of those uuids; get_layout_info lists every item."}
+                  "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_item_not_found", "noun": noun}
 
 
 def _edit_geometry(layout, item, args: dict, resizable: bool = True, inset: bool = False) -> dict:
@@ -1315,7 +1311,7 @@ def _apply_box_style(item, args: dict, text: bool = False):
             colours[key] = qcolor_from_text(str(args[key]))
             if not colours[key].isValid():
                 return None, {"_error": f"{key} {args[key]!r} is not a colour.", "code": "INVALID_ARGS",
-                              "suggestion": "A colour is written #rrggbb."}
+                              "suggestion": "", "hint": "layout_colour_format", "field": key}
     applied = {}
     if args.get("frame") is not None:
         item.setFrameEnabled(bool(args["frame"]))
@@ -1372,7 +1368,7 @@ def _lock_layout_item(args) -> dict:
                  if isinstance(candidate, QgsLayoutItem) and candidate.uuid() == args["item_uuid"]), None)
     if item is None:
         return {"_error": f"Layout item not found: {args['item_uuid']}", "code": "INVALID_ARGS",
-                "suggestion": "get_layout_info lists each item's uuid."}
+                "suggestion": "", "hint": "layout_item_uuid_unknown"}
 
     lock_item = bool(args.get("lock_item", True))
     lock_layers = bool(args.get("lock_layers", False))
@@ -1382,16 +1378,13 @@ def _lock_layout_item(args) -> dict:
         return {"_error": "lock_layers, lock_style and map_theme apply only to a map item.", "code": "INVALID_ARGS"}
     if map_theme and (lock_layers or args.get("layers")):
         return {"_error": "map_theme and layers/lock_layers both set what this map draws: not both.",
-                "code": "INVALID_ARGS",
-                "suggestion": "map_theme follows a saved theme's layers and styles; layers/lock_layers freeze "
-                              "an explicit list instead."}
+                "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_theme_and_layers"}
     if map_theme:
         themes = QgsProject.instance().mapThemeCollection()
         if not themes.hasMapTheme(map_theme):
             return {"_error": f"Map theme not found: {map_theme!r}. Existing themes: {themes.mapThemes()}",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "get_map_themes gives the exact names; add_map_theme creates one from "
-                                  "the current layer visibility."}
+                    "code": "INVALID_ARGS", "suggestion": "", "hint": "layout_theme_not_found",
+                    "theme": map_theme}
     if lock_layers or args.get("layers"):
         layers, layer_error = _map_layers_for_lock(args)
         if layer_error:
@@ -1649,6 +1642,7 @@ def place_item(layout, item, requested=None, resizable: bool = False, inset: boo
 
 
     warnings, reasons = [], []
+    crowded = ""
     try:
         rect = _settle(layout, item, force_content_size)
         page_rect = _containing_page_rect(layout, rect)
@@ -1705,8 +1699,8 @@ def place_item(layout, item, requested=None, resizable: bool = False, inset: boo
                         item.attemptResize(_mm_size(width * scale, height * scale))
                         break
             if spot is None:
-                warnings.append(f"{_item_name(item)} covers {names}: no free place on the page holds it. "
-                                "Smaller items fit; execute_code moves one.")
+                warnings.append(f"{_item_name(item)} covers {names}: no free place on the page holds it.")
+                crowded = _item_name(item)
             else:
                 item.attemptMove(_mm_point(spot[0], spot[1]))
                 reasons.append(f"moved clear of {names}" if scale == 1.0
@@ -1731,6 +1725,9 @@ def place_item(layout, item, requested=None, resizable: bool = False, inset: boo
         }
     if warnings:
         fields["placement_warnings"] = warnings
+    if crowded:
+        fields["placement_advice_hint"] = "layout_no_free_place"
+        fields["placement_advice_item"] = crowded
     return fields
 
 
@@ -1941,7 +1938,7 @@ def _layout_from_template(name: str, args: dict) -> dict:
         return {"_error": path_error}
     if not os.path.isfile(path):
         return {"_error": f"Template not found: {path}", "code": "INVALID_ARGS",
-                "suggestion": "template_path needs a .qpt file's full path, from export_layout(format='qpt') or QGIS."}
+                "suggestion": "", "hint": "layout_template_missing"}
     rect = None
     if args.get("layer") or args.get("extent"):
         rect, _source, error = _subject(args)
@@ -1964,7 +1961,7 @@ def _layout_from_template(name: str, args: dict) -> dict:
     items, ok = loaded if isinstance(loaded, tuple) else (loaded, True)
     if not ok or layout.pageCollection().pageCount() == 0:
         return {"_error": f"{os.path.basename(path)} holds no print layout QGIS can read.", "code": "INVALID_ARGS",
-                "suggestion": "The file may not be a print layout template (.qpt)."}
+                "suggestion": "", "hint": "layout_template_unreadable"}
     layout.setName(name)
     if args.get("page_size") or args.get("orientation"):
         orientation = args.get("orientation") or _page_summary(layout)["orientation"] or "landscape"
@@ -2025,11 +2022,10 @@ def _add_layout_map(args: dict) -> dict:
         if main_map is None:
             known = [item.uuid() for item in layout.items() if isinstance(item, QgsLayoutItemMap)]
             return {
-                "_error": f"Map item not found for overview_of: {overview_of}",
+                "_error": f"Map item not found for overview_of: {overview_of}. Nothing was added.",
                 "code": "INVALID_ARGS",
-                "suggestion": (f"Map items on this layout: {known}. Nothing was added."
-                               if known else "This layout has no map yet; add_layout_map without "
-                                             "overview_of makes one. Nothing was added."),
+                "suggestion": "", "hint": "layout_overview_map_missing", "variant": "" if known else "none",
+                "map_items": known,
             }
 
 
@@ -2040,7 +2036,7 @@ def _add_layout_map(args: dict) -> dict:
         map_crs = QgsCoordinateReferenceSystem(crs_text)
         if not map_crs.isValid():
             return {"_error": f"Invalid map CRS: {crs_text}. Nothing was added.", "code": "INVALID_ARGS",
-                    "suggestion": "An authority id, e.g. EPSG:2154 or EPSG:32631."}
+                    "suggestion": "", "hint": "layout_crs_invalid", "crs": crs_text}
         project = QgsProject.instance()
         if project.crs().isValid() and map_crs != project.crs():
             try:
@@ -2397,8 +2393,8 @@ def _add_layout_label(args: dict) -> dict:
             return result
         result["new_item_uuid"] = existing.uuid()
         result["reused_existing_label"] = True
-        result["note"] = ("This label was already on the layout at this spot with this text, so it was "
-                          "changed in place rather than drawn a second time over itself.")
+        result["note"] = "This label was already on the layout at this spot with this text."
+        result["note_hint"] = "layout_label_reused"
         return result
 
     label = QgsLayoutItemLabel(layout)
@@ -2600,7 +2596,7 @@ def _add_layout_legend(args: dict) -> dict:
     has_position = args.get("x") is not None and args.get("y") is not None
     if args.get("background_color") is not None and not qcolor_from_text(str(args["background_color"])).isValid():
         return {"_error": f"background_color {args['background_color']!r} is not a colour.", "code": "INVALID_ARGS",
-                "suggestion": "A colour is written #rrggbb."}
+                "suggestion": "", "hint": "layout_colour_format", "field": "background_color"}
     editing = bool(str(args.get("legend_id") or "").strip())
     if editing:
         legend, error = _find_legend(layout, args["legend_id"])
@@ -2621,7 +2617,7 @@ def _add_layout_legend(args: dict) -> dict:
     else:
         if not has_position:
             return {"_error": "x and y are needed to add a legend.", "code": "INVALID_ARGS",
-                    "suggestion": "x and y in mm add one; legend_id changes one already on the layout."}
+                    "suggestion": "", "hint": "layout_legend_position_missing"}
         linked = args.get("linked_to_map", True)
         map_item = None
         if linked:
@@ -2762,7 +2758,7 @@ def _add_layout_scalebar(args: dict) -> dict:
         if error:
             return error
         if not map_item:
-            return {"_error": "A scale bar must be linked to a map; add_layout_map adds one."}
+            return {"_error": "A scale bar must be linked to a map.", "hint": "layout_no_map"}
         scalebar = QgsLayoutItemScaleBar(layout)
         scalebar.setStyle(args.get("style", "Single Box"))
         scalebar.setLinkedMap(map_item)
@@ -2972,7 +2968,7 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
     elif maps:
         map_item = max(maps, key=lambda item: item.rect().width() * item.rect().height())
     else:
-        return {"_error": "This layout has no map item; add_layout_map adds one.", "code": "INVALID_ARGS"}
+        return {"_error": "This layout has no map item.", "code": "INVALID_ARGS", "hint": "layout_no_map"}
 
     stack = map_item.grids()
     grid = QgsLayoutItemMapGrid("Coordinate grid", map_item)
@@ -2986,7 +2982,7 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
         crs = QgsCoordinateReferenceSystem(crs_text)
         if not crs.isValid():
             return {"_error": f"Invalid grid CRS: {crs_text}", "code": "INVALID_ARGS",
-                    "suggestion": "An authority id, e.g. EPSG:4326 or EPSG:2154."}
+                    "suggestion": "", "hint": "layout_crs_invalid", "crs": str(crs_text)}
         grid.setCrs(crs)
     else:
         grid.setCrs(map_item.crs())

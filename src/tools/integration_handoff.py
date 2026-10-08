@@ -9,8 +9,23 @@ from __future__ import annotations
 
 from qgis.core import QgsProject, QgsRasterLayer
 
+from ..core.tool_registry import tool_error
 from . import sibling_setup
 from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
+
+
+class HandoffRefused(ValueError):
+
+
+    def __init__(self, message: str, hint: str, **facts):
+        super().__init__(message)
+        self.hint = hint
+        self.facts = facts
+
+
+def refusal(exc: ValueError) -> dict:
+
+    return tool_error(str(exc), "INVALID_ARGS", hint=getattr(exc, "hint", ""), **getattr(exc, "facts", {}))
 
 
 def raster_layer(value):
@@ -19,7 +34,8 @@ def raster_layer(value):
     layer = project.mapLayer(value)
     matches = [layer] if layer is not None else list(project.mapLayersByName(value))
     if len(matches) != 1:
-        raise ValueError("The imagery is missing or its name is ambiguous; use its project layer ID.")
+        raise HandoffRefused("The imagery is missing or its name is ambiguous.", "imagery_not_unique",
+                             layer=str(value), matches=len(matches))
     if not isinstance(matches[0], QgsRasterLayer) or not matches[0].isValid():
         raise ValueError("The input must be a valid raster layer in this project.")
     return matches[0]
@@ -34,7 +50,7 @@ def edit_prompt(args, state):
 
     value = args.get("prompt") if "prompt" in args else (state or {}).get("prompt")
     if not isinstance(value, str) or not value.strip():
-        raise ValueError("Write the intended edit in AI Edit, or supply a nonempty prompt.")
+        raise HandoffRefused("No prompt was supplied and the AI Edit panel holds none.", "ai_edit_prompt_missing")
     return value.strip()
 
 
@@ -52,12 +68,13 @@ def segmentation_arguments(plugin, args):
     if not isinstance(state, dict) or not state.get("zone_wkt"):
         return args
     if state.get("exemplars") and state.get("examples_match_source") is False:
-        raise ValueError("The drawn examples belong to another image; remove or redraw them in the panel.")
+        raise HandoffRefused("The drawn examples belong to another image.", "ai_segment_examples_other_image")
     source = state.get("source") or {}
     source_id = source.get("id") or source.get("layer_id")
     wanted = args.get("layer_name")
     if wanted and raster_layer(wanted).id() != source_id:
-        raise ValueError("The prepared zone and examples belong to another image; prepare its zone first.")
+        raise HandoffRefused("The prepared zone and examples belong to another image.",
+                             "ai_segment_zone_other_image", layer=str(wanted))
     out = dict(args, zone_wkt=state["zone_wkt"])
     if source_id:
         out["layer_name"] = source_id
@@ -78,9 +95,8 @@ def prepare(which, args):
     api = getattr(plugin, "mcp_api", None)
     fn = getattr(api, "prepare_interactive", None)
     if not callable(fn):
-        return {"_error": "This plugin version has no guided map preparation.",
-                "code": "PLUGIN_OUTDATED",
-                "suggestion": f"{which} action setup opens the plugin; its native controls remain available."}
+        return tool_error("This plugin version has no guided map preparation.", "PLUGIN_OUTDATED",
+                          hint="sibling_setup_action", which=which)
     try:
         kwargs = {"interaction": args.get("interaction") or "review"}
         source = args.get("layer_name")
@@ -95,7 +111,7 @@ def prepare(which, args):
             if args.get("use_zone"):
                 from ..core import zone_of_interest
                 if zone_of_interest.read_zone() is None:
-                    raise ValueError("The project has no area of interest; draw one or set it from a layer.")
+                    raise HandoffRefused("The project has no area of interest.", "zone_of_interest_missing")
             if which == "ai_segment":
                 from .integration_tools import _aiseg_zone_wkt
                 kwargs["zone_wkt"] = _aiseg_zone_wkt(plugin, args)
@@ -112,7 +128,7 @@ def prepare(which, args):
             result["panel_opened"] = True
         return result
     except (ValueError, RuntimeError, TypeError) as exc:
-        return {"_error": str(exc), "code": "INVALID_ARGS"}
+        return refusal(exc)
 
 
 def _api_state(api, method):
@@ -168,7 +184,7 @@ def spending_inputs(label, args, geometry):
     api = getattr(plugin, "mcp_api", None)
     state = _api_state(api, "get_interactive_state")
     if state.get("drawing"):
-        raise ValueError("Finish or cancel the current drawing in the native panel before approving the run.")
+        raise HandoffRefused("A drawing is still open in the native panel.", "native_drawing_open")
     wkt = geometry.asWkt() if callable(getattr(geometry, "asWkt", None)) else None
     crs = cost_guard._canvas_crs()
     out = {"zone_wkt": wkt, "zone_crs": crs.authid() or crs.toWkt()}

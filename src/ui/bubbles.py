@@ -41,6 +41,7 @@ from .file_preview import can_open, open_file_preview
 from .icons import icon_for
 from .image_preview import ClickableThumb, open_image_preview
 from .layer_card import LayerCard
+from .layer_icons import follows_layers
 from .layer_links import LAYER_URL, follow_layer_links
 from .loader import GAP_PX, LINE_PX, DotsLoader, ElapsedClock, ShimmerLabel
 from .markdown_view import MarkdownView
@@ -398,6 +399,7 @@ class AgentBubble(QWidget):
         self._later = 0
         actions.addWidget(self._restore, 0, Qt.AlignmentFlag.AlignVCenter)
         self._actions.hide()
+        follows_layers(self)
         self._col.addWidget(self._actions)
         self._fade = None
         self._text = ""

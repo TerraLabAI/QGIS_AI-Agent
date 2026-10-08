@@ -32,7 +32,7 @@ from ..core.context import layer_geometry_label
 from ..core.layer_mime import card_kind_line, cheap_feature_count
 from .attach_card import TILE_GLYPH, AttachCard
 from .font_scale import widget_pixel_ratio
-from .layer_icons import layer_icon, layer_name, resolve_layer
+from .layer_icons import follows_layers, layer_icon, layer_name, resolve_layer
 
 _KIND_GLYPHS = {
     "layer": "layers",
@@ -95,6 +95,7 @@ class LayerCard(AttachCard):
         self.clicked.connect(self._on_click)
         if kind == "layer":
             self.follow_project()
+            follows_layers(self)
         else:
             self.set_kind(self._kind_word())
             self.set_tooltip(self._tooltip(None))

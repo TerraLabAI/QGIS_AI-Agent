@@ -996,8 +996,13 @@ def _stream_capabilities(final_url: str, payload_text: str) -> dict | None:
 
     parser = ET.XMLPullParser(("start", "end"))
     root_name = ""
-    names: list[str] = []
+    path: list[str] = []
+
+    open_items: list[list[str]] = []
+    names: list[list[str]] = []
+    seen: set[str] = set()
     wanted = ogc_inspect.MAX_LAYERS + ogc_inspect.MAX_OTHER_NAMES
+    whole = True
     try:
         for start in range(0, len(payload_text), _STREAM_CHUNK):
             parser.feed(payload_text[start:start + _STREAM_CHUNK])
@@ -1008,19 +1013,38 @@ def _stream_capabilities(final_url: str, payload_text: str) -> dict | None:
                         root_name = tag.lower()
                         if root_name not in ("wms_capabilities", "wmt_ms_capabilities", "wfs_capabilities"):
                             return None
+                    path.append(tag)
+                    if tag in _STREAM_ITEMS:
+                        open_items.append(["", ""])
                     continue
-                if tag == "Name" and element.text:
-                    text = element.text.strip()
-                    if text and text not in names:
-                        names.append(text)
+                path.pop()
+                if tag in _STREAM_ITEMS:
+                    open_items.pop()
+                elif open_items and path and path[-1] in _STREAM_ITEMS and tag in ("Name", "Title"):
+                    item, text = open_items[-1], (element.text or "").strip()
+                    if tag == "Title":
+                        item[1] = text
+                    elif text and text not in seen:
+                        item[0] = text
+                        seen.add(text)
+                        names.append(item)
                 element.clear()
             if len(names) >= wanted:
+                whole = False
                 break
     except ET.ParseError:
         if not names:
             return None
+        whole = False
     family = "wfs_capabilities" if root_name == "wfs_capabilities" else "wms_capabilities"
-    return ogc_inspect.names_listing(family, final_url, names[:wanted])
+    count = len(names) if whole else len(_STREAM_COUNT_RE.findall(payload_text))
+    return ogc_inspect.names_listing(family, final_url, [tuple(item) for item in names[:wanted]], count)
+
+
+
+_STREAM_ITEMS = frozenset({"FeatureType", "Layer"})
+
+_STREAM_COUNT_RE = re.compile(r"<(?:\w+:)?(?:FeatureType|Layer)[\s>]")
 
 
 def _wfs_hits_result(final_url: str, attrib: dict) -> dict:

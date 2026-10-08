@@ -91,6 +91,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     welcome_dismissed = pyqtSignal()
     pairing_reopen_requested = pyqtSignal()
     pairing_cancel_requested = pyqtSignal()
+    pairing_code_submitted = pyqtSignal(str)
     dashboard_requested = pyqtSignal()
 
 

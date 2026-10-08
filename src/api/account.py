@@ -38,6 +38,7 @@ from ..core import sibling_sign_in
 from ..core.logger import log, log_warning
 from ..core.settings import KEY_RE, Settings, key_prefix
 from .pairing_poll_task import PairingPollTask
+from .pairing_v2 import PairingV2
 from .terralab_client import HARD_CONNECTIVITY_CODES, PRODUCT_ID, TerraLabClient
 
 _UTM = f"utm_source=qgis&utm_medium=plugin&utm_campaign={PRODUCT_ID}"
@@ -202,6 +203,7 @@ class Account(QObject):
     pairing_link_back = pyqtSignal()
     pairing_failed = pyqtSignal(str, str)
     pairing_timeout = pyqtSignal()
+    pairing_code_needed = pyqtSignal()
     usage_refreshed = pyqtSignal(object)
     account_loaded = pyqtSignal(object)
     account_failed = pyqtSignal(str, str)
@@ -223,6 +225,8 @@ class Account(QObject):
         self._pending_code = ""
         self._pairing_url = ""
         self._pairing_t0 = 0.0
+
+        self._v2: PairingV2 | None = None
         self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
@@ -304,15 +308,58 @@ class Account(QObject):
 
     def start_pairing(self) -> None:
 
+
         self.cancel_pairing()
+        v2 = PairingV2(self._client, self)
+        v2.started.connect(self._on_v2_started)
+        v2.legacy.connect(self._on_v2_legacy)
+        v2.code_needed.connect(self.pairing_code_needed)
+        v2.code_refused.connect(lambda message: self.pairing_address.emit(message, "warning"))
+        v2.claimed.connect(self._on_pairing_succeeded)
+        v2.failed.connect(self._on_pairing_failed)
+        self._v2 = v2
+        self._set_state(self.PAIRING, tr("Waiting for the sign-in page in your browser..."))
+        self.pairing_started.emit("")
+        v2.begin()
+
+    def _on_v2_started(self, url: str, expires_in: int) -> None:
+        v2 = self._v2
+        if v2 is None or self.sender() is not v2:
+            return
+        self._pending_code = v2.code
+        self._pairing_url = url
+        self._start_pairing_poll(v2.code, float(expires_in))
+        if not QDesktopServices.openUrl(QUrl(url)):
+            self._show_pairing_address(url)
+
+    def _on_v2_legacy(self, _reason: str) -> None:
+        if self._v2 is None or self.sender() is not self._v2:
+            return
+        self._v2 = None
         self._pending_code = secrets.token_urlsafe(32)
         self._open_pairing_page(self._pending_code)
+
+    def submit_pairing_code(self, text: str) -> None:
+
+        if self._v2 is not None:
+            self._v2.submit_code(text)
+
+    def _end_v2(self) -> None:
+        v2, self._v2 = self._v2, None
+        if v2 is not None:
+            v2.end()
 
     def reopen_pairing_page(self) -> None:
 
 
 
 
+        if self._v2 is not None:
+            if self._pairing_url:
+                QDesktopServices.openUrl(QUrl(self._pairing_url))
+                if self._copy_to_clipboard(self._pairing_url):
+                    self.pairing_address.emit(tr("Link copied: paste it in your browser."), "info")
+            return
         if self._pending_code:
             self._open_pairing_page(self._pending_code)
             if self._copy_to_clipboard(self._pairing_url):
@@ -342,13 +389,14 @@ class Account(QObject):
         if not QDesktopServices.openUrl(QUrl(url)):
             self._show_pairing_address(url)
 
-    def _start_pairing_poll(self, code: str) -> None:
+    def _start_pairing_poll(self, code: str, total_timeout_s: float | None = None) -> None:
         worker = self._pairing_worker
         if worker is not None and worker.is_active():
             if worker.pairing_code == code:
                 return
             for signal_name in ("pairing_succeeded", "pairing_failed", "pairing_timeout",
-                                "pairing_stalled", "pairing_browser_seen", "pairing_link_back"):
+                                "pairing_stalled", "pairing_browser_seen", "pairing_link_back",
+                                "pairing_confirmed"):
                 try:
                     getattr(worker, signal_name).disconnect()
                 except (TypeError, RuntimeError):
@@ -357,7 +405,9 @@ class Account(QObject):
                 worker.cancel()
             except RuntimeError:
                 pass
-        worker = PairingPollTask(self._client, code)
+        worker = PairingPollTask(self._client, code, total_timeout_s=total_timeout_s)
+        if self._v2 is not None:
+            worker.pairing_confirmed.connect(self._v2.on_confirmed)
         worker.pairing_succeeded.connect(self._on_pairing_succeeded)
         worker.pairing_failed.connect(self._on_pairing_failed)
         worker.pairing_timeout.connect(self._on_pairing_timeout)
@@ -383,6 +433,8 @@ class Account(QObject):
             self._on_pairing_failed(tr("Unexpected response from the server. Please try again."),
                                     "BAD_KEY")
             return
+        self._end_v2()
+        self._stop_poll()
         self._settings.set_activation_key(key)
         self._pending_code = ""
         self._pairing_url = ""
@@ -416,13 +468,24 @@ class Account(QObject):
         self.paired.emit(key_prefix(key))
         log(f"Signed in with the account of {label}")
 
+    def _stop_poll(self) -> None:
+        worker = self._pairing_worker
+        if worker is not None and worker.is_active():
+            try:
+                worker.cancel()
+            except RuntimeError:
+                pass
+
     def _on_pairing_failed(self, message: str, code: str) -> None:
+        self._end_v2()
+        self._stop_poll()
         self._pending_code = ""
         self._set_state(self.SIGNED_OUT, message)
         self.pairing_failed.emit(message, code)
         log_warning(f"Pairing failed ({code})")
 
     def _on_pairing_timeout(self) -> None:
+        self._end_v2()
         self._pending_code = ""
         message = tr("Sign-in timed out. Click Sign in to try again.")
         self._set_state(self.SIGNED_OUT, message)
@@ -441,6 +504,7 @@ class Account(QObject):
         self.pairing_stalled.emit(reason, message)
 
     def cancel_pairing(self) -> None:
+        self._end_v2()
         code, self._pending_code = self._pending_code, ""
         self._pairing_url = ""
         worker = self._pairing_worker

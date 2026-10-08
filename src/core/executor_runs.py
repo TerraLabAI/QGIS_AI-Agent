@@ -20,7 +20,9 @@ from .logger import log_warning
 from .protocol import ClientErrorCode as Err
 from .protocol import Decision
 from .run_report import build_report
+from .serialization import error_details
 from .snapshot import RunSnapshot, changed_layer_items, diff_changed
+from .tool_registry import coded_fact
 
 try:
     from ..tools import guards
@@ -181,9 +183,10 @@ class _ExecutorRuns:
                        f"{name} ran for {spent:.0f} seconds without answering, over the "
                        f"{budget:.0f} second budget for one tool call on this computer, and was "
                        "cancelled.",
-                       "A smaller area, fewer features or one layer instead of the whole catalogue fits "
-                       "the budget; the same call unchanged times out again.",
-                       spent)
+                       "",
+                       spent,
+                       details=error_details(coded_fact(hint="tool_call_timeout", tool=name, spent_s=round(spent),
+                                                        budget_s=round(budget))))
 
     def _note_dialog_waits(self, now: float) -> None:
 

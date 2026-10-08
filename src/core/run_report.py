@@ -168,8 +168,10 @@ def _in_view(layer, extent, view) -> bool | None:
 
 
 
+
+
     try:
-        if extent is None or extent.isEmpty():
+        if extent is None or extent.isNull():
             return None
         view_extent, view_crs = view
         layer_crs = layer.crs()
@@ -233,7 +235,8 @@ def _added_layer(project, raw: dict, orphans: set, view, hidden: frozenset = fro
     extent = None
     try:
         extent = layer.extent()
-        if extent is not None and extent.isEmpty():
+
+        if extent is not None and extent.isNull():
             extent = None
     except Exception:  # noqa: BLE001
         extent = None

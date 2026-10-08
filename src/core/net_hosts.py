@@ -114,13 +114,13 @@ DEFAULT_POLICY = _Policy(rate=2.0, burst=4, concurrency=2)
 
 
 
+
+
 OWN_HOSTS = frozenset({
     "overpass.terra-lab.ai",
     "geocode.terra-lab.ai",
     "agent.terra-lab.ai",
     "terra-lab.ai",
-    "aca-terralab-opendata.proudsky-7d379d48.westeurope.azurecontainerapps.io",
-    "stterralabopendata.blob.core.windows.net",
     "data.terra-lab.ai",
 })
 

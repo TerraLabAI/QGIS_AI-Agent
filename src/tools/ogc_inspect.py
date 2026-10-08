@@ -16,12 +16,18 @@ import html
 import re
 import urllib.parse
 
+from ..core.tool_registry import coded_fact
+
+
+
+
+
 
 
 
 
 MAX_LAYERS = 12
-MAX_OTHER_NAMES = 50
+MAX_OTHER_NAMES = 1000
 _OTHER_TITLE_CHARS = 50
 _TITLE_CHARS = 80
 _CRS_SHOWN = 8
@@ -77,9 +83,6 @@ RECOGNIZED_FAMILIES = frozenset({
     "arcgis_services", "arcgis_mapserver", "arcgis_featureserver", "arcgis_imageserver", "arcgis_layer",
     "ogc_api_collections", "ogc_api_tilesets",
 })
-
-_PICTURES_NOT_VALUES = ("A WMS or WMTS layer is a picture: it cannot give heights or values. A WCS "
-                        "coverage (or a DEM file) of the same data gives those.")
 
 
 def _local(tag: str) -> str:
@@ -273,16 +276,15 @@ def attach_layer_in_link(answer: dict, pasted: str, request: dict) -> dict:
     out["import_arguments"] = entry["add"]["args"]
     listed = found is not None or listed_other
     recognized = out.get("source_family") in RECOGNIZED_FAMILIES
-    said = (f"The link is a {service} {request['request']} request for {wanted}, not the service itself; "
-            f"layer_in_link carries the add_data call that loads that layer from the service, with every "
-            "access parameter the link carried.")
-    partial = bool(out.get("truncated")) or len(out.get("other_layers") or []) >= MAX_OTHER_NAMES
+    said = f"The link is a {service} {request['request']} request for {wanted}, not the service itself."
+    out["layer_in_link_note"] = coded_fact(hint="ogc_link_layer_call")
+    partial = int(out.get("layer_count") or 0) > len(layers) + len(out.get("other_layers") or [])
     if recognized and not listed and partial:
         said += (" The listing below is cut before this layer's name, so the call uses the name the link "
                  "carries.")
     elif recognized and not listed:
-        said += (" The service's capabilities do not list this layer to this request: if the link carried a key, "
-                 "it is in the call already; otherwise the layer may need an account.")
+        said += " The service's capabilities do not list this layer to this request."
+        out["unlisted_note"] = coded_fact(hint="ogc_layer_unlisted")
     elif not recognized:
         said += " The service did not describe itself, so the layer name is the link's and unchecked."
     bbox = next((value for key, value in urllib.parse.parse_qsl(urllib.parse.urlsplit(pasted).query,
@@ -293,11 +295,12 @@ def attach_layer_in_link(answer: dict, pasted: str, request: dict) -> dict:
 
         out["bbox_in_link"] = bbox
         said += (" bbox_in_link is the area the link asked for, in the CRS it names (EPSG:4326 in a WFS 2.0 "
-                 "or WMS 1.3.0 link is lat,lon): usable as the zoom extent or as a filter.")
+                 "or WMS 1.3.0 link is lat,lon).")
+        out["bbox_note"] = coded_fact(hint="ogc_link_bbox_use")
     if service == "WFS" and request["request"].lower() == "getfeature":
         out["direct_download"] = {"tool": "add_vector_from_url", "args": {"url": pasted}}
-        said += (" The link itself is a feature download: direct_download loads exactly what it asks for as "
-                 "a file, while layer_in_link loads the layer from the service through add_data.")
+        said += " The link itself is a feature download."
+        out["download_note"] = coded_fact(hint="ogc_link_direct_download")
     out["message"] = said + (" " + str(answer.get("message")) if answer.get("message") and recognized else "")
     return out
 
@@ -568,10 +571,9 @@ def _wmts(final_url: str, root, text: str) -> dict:
     formats = _unique(f for row in described.values() for f in row["formats"])
     return _listing("wmts_capabilities", "WMTS", final_url, endpoint, root, entries,
                     [(layer_id, row["title"]) for layer_id, row in described.items()],
-                    formats=formats,
-                    message=("WMTS capabilities read. Each layer carries the add_data call that loads it; the "
-                             "tile matrix set is chosen from the layer's own, Web Mercator first. "
-                             + _PICTURES_NOT_VALUES))
+                    formats=formats, message="WMTS capabilities read.",
+                    notes={"layer_calls": coded_fact(hint="ogc_wmts_layer_calls"),
+                           "picture_only": coded_fact(hint="ogc_picture_only")})
 
 
 
@@ -633,9 +635,9 @@ def _wms(final_url: str, root) -> dict:
                         "add": {"tool": "add_data", "args": args}})
     out = _listing("wms_capabilities", "WMS", final_url, endpoint, root, entries, [(n, t) for n, t, _ in named],
                    crs=service_crs, formats=formats,
-                   message=("WMS capabilities read. Each layer carries the add_data call that loads it, with the "
-                            "CRS chosen from the ones it is served in (EPSG:3857 when offered; crs lists the "
-                            "others). " + _PICTURES_NOT_VALUES))
+                   message="WMS capabilities read.",
+                   notes={"layer_calls": coded_fact(hint="ogc_wms_layer_calls"),
+                          "picture_only": coded_fact(hint="ogc_picture_only")})
 
 
 
@@ -679,14 +681,13 @@ def _wfs(final_url: str, root) -> dict:
                         **({"crs": epsg_of(default) or default} if default else {}),
                         "add": {"tool": "add_data", "args": {"source": endpoint, "kind": "wfs", "layer": name}}})
     page = _wfs_page_size(root)
-    message = ("WFS capabilities read. Each feature type carries the add_data call that loads it as "
-               "vector features. It loads 1,000 features at most, and a type holding more is fetched for "
-               "the map view only: zoom to the area first.")
+    message = "WFS capabilities read."
+    notes = {"layer_calls": coded_fact(hint="ogc_wfs_layer_calls", feature_limit=1000)}
     if page:
-        message += (f" The service answers at most {page:,} features per request (CountDefault) and says "
-                    "nothing when it stops there.")
+        message += f" The service answers at most {page:,} features per request (CountDefault)."
+        notes["page_note"] = coded_fact(hint="ogc_wfs_count_default", page_size=page)
     out = _listing("wfs_capabilities", "WFS", final_url, endpoint, root, entries, [n for n in names if n[0]],
-                   message=message)
+                   message=message, notes=notes)
     if page:
         out["page_size"] = page
     return out
@@ -732,10 +733,7 @@ def _wcs_entry(endpoint: str, coverage: str, title: str, bbox: list | None, crs:
     return entry
 
 
-_WCS_MESSAGE = ("WCS capabilities read: coverages of real values (heights, temperatures), not pictures. Each "
-                "carries the add_data call that streams it. bbox [west, south, east, north] in EPSG:4326 "
-                "on that call downloads the box as a local GeoTIFF, which slope, contours, hillshade and "
-                "zonal statistics need.")
+_WCS_MESSAGE = "WCS capabilities read."
 
 
 def _wcs10(final_url: str, root) -> dict:
@@ -748,6 +746,7 @@ def _wcs10(final_url: str, root) -> dict:
                for b in briefs[:MAX_LAYERS] if _text(_child(b, "name"))]
     return _listing("wcs_capabilities", "WCS", final_url, endpoint, root, entries,
                     [(_text(_child(b, "name")), _text(_child(b, "label"))) for b in briefs], message=_WCS_MESSAGE,
+                    notes={"coverage_calls": coded_fact(hint="ogc_wcs_coverage_calls")},
                     local_copy=_local_copy(entries))
 
 
@@ -772,6 +771,7 @@ def _wcs_ows(final_url: str, root) -> dict:
                                   _envelope(_child(summary, "WGS84BoundingBox")), crs))
     return _listing("wcs_capabilities", "WCS", final_url, endpoint, root, entries, names,
                     crs=service_crs, formats=_unique(formats), message=_WCS_MESSAGE,
+                    notes={"coverage_calls": coded_fact(hint="ogc_wcs_coverage_calls")},
                     local_copy=_local_copy(entries))
 
 
@@ -838,7 +838,7 @@ def _service_title(root) -> str:
 
 def _listing(family: str, service: str, final_url: str, endpoint: str, root, entries: list, names: list,
              message: str, crs: list | None = None, formats: list | None = None,
-             local_copy: dict | None = None) -> dict:
+             local_copy: dict | None = None, notes: dict | None = None, count: int = 0) -> dict:
     out: dict = {"source_family": family, "service": service}
     version = root.get("version") if root is not None else ""
     if version:
@@ -855,7 +855,7 @@ def _listing(family: str, service: str, final_url: str, endpoint: str, root, ent
             out["crs_count"] = len(crs)
     if formats:
         out["formats"] = _unique(formats)[:_FORMATS_SHOWN]
-    out["layer_count"] = len(names)
+    out["layer_count"] = max(count, len(names))
     out["layers"] = entries
     listed = {entry["name"] for entry in entries}
     others = []
@@ -866,9 +866,13 @@ def _listing(family: str, service: str, final_url: str, endpoint: str, root, ent
             others.append(f"{name}: {title}" if title and title != name else name)
     if others:
         out["other_layers"] = others[:MAX_OTHER_NAMES]
-        message += (f" {len(names)} layers: the first {len(entries)} carry their call, the next "
-                    f"{min(len(others), MAX_OTHER_NAMES)} are in other_layers as name: title, and load with the "
-                    "same call with that name as layer.")
+        message += (f" {out['layer_count']} layers: {len(entries)} with their call, "
+                    f"{min(len(others), MAX_OTHER_NAMES)} more in other_layers as name: title.")
+        out["other_layers_note"] = coded_fact(hint="ogc_other_layers", total=out["layer_count"],
+                                              shown=len(entries), others=min(len(others), MAX_OTHER_NAMES))
+    unnamed = out["layer_count"] - len(entries) - len(out.get("other_layers") or [])
+    if unnamed > 0:
+        message += f" The other {unnamed} are not named here."
     if local_copy:
         out["local_copy"] = local_copy
     if len(entries) == 1:
@@ -877,21 +881,22 @@ def _listing(family: str, service: str, final_url: str, endpoint: str, root, ent
     if not endpoint:
         message += (" The document does not name its own address: nothing loads from it until the "
                     "service URL is known.")
+    out.update(notes or {})
     out["message"] = message
     return out
 
 
-def names_listing(family: str, final_url: str, names: list) -> dict:
+def names_listing(family: str, final_url: str, names: list, count: int = 0) -> dict:
+
 
     endpoint = service_base(final_url)
     service, kind = ("WFS", "wfs") if family == "wfs_capabilities" else ("WMS", "wms")
-    entries = [{"name": name, "add": {"tool": "add_data", "args": {"source": endpoint, "kind": kind, "layer": name}}}
-               for name in names[:MAX_LAYERS]]
-    out = _listing(family, service, final_url, endpoint, None, entries, names,
+    entries = [{"name": name, **({"title": _short(title)} if title else {}),
+                "add": {"tool": "add_data", "args": {"source": endpoint, "kind": kind, "layer": name}}}
+               for name, title in names[:MAX_LAYERS]]
+    return _listing(family, service, final_url, endpoint, None, entries, names, count=count,
                    message=(f"{service} capabilities read in one pass: the document is too large for a tree, so "
-                            "titles and CRS are not listed. Each name carries the add_data call that loads it."))
-    out["truncated"] = True
-    return out
+                            "CRS and formats are not listed. Each name carries the add_data call that loads it."))
 
 
 def exception_report(final_url: str, root) -> dict:
@@ -994,10 +999,10 @@ def _arcgis(final_url: str, payload: dict) -> dict | None:
             out["folders"] = folders[:MAX_OTHER_NAMES]
             out["folder_call"] = {"tool": "inspect_data_source",
                                   "args": {"url": f"{root}/{{FOLDER}}" + (f"?{access}" if access else "")}}
-        out["message"] = ("ArcGIS REST directory. A MapServer or ImageServer loads as an image with its add call; "
-                          "inspecting a FeatureServer lists its layers, and a folder its services."
+        out["message"] = ("ArcGIS REST directory."
                           + (f" {skipped} services of other types (geocoding, geoprocessing) are left out."
                              if skipped else ""))
+        out["directory_note"] = coded_fact(hint="arcgis_directory_routing")
         return out
     match = _ARCGIS_SERVICE_RE.match(path)
     if not match:
@@ -1021,18 +1026,20 @@ def _arcgis(final_url: str, payload: dict) -> dict | None:
         if vector:
             out["import_method"] = "add_data"
             out["import_arguments"] = {"source": layer_url, "kind": "vector"}
-            out["message"] = "An ArcGIS feature layer: it loads as vector features with the import call."
+            out["message"] = "An ArcGIS feature layer."
+            out["load_note"] = coded_fact(hint="arcgis_feature_layer_load")
         else:
             out["import_method"] = "add_data"
             out["import_arguments"] = {"source": url, "kind": "raster"}
-            out["message"] = "Not a feature layer: the service it belongs to loads as an image."
+            out["message"] = "Not a feature layer."
+            out["load_note"] = coded_fact(hint="arcgis_not_feature_layer")
         return out
     if kind == "imageserver":
         out = {"source_family": "arcgis_imageserver", "service": "ArcGIS REST", "final_url": final_url,
                "service_url": url, "name": _short(payload.get("name") or ""), **({"crs": crs} if crs else {}),
                "band_count": payload.get("bandCount"), "pixel_type": payload.get("pixelType"),
                "import_method": "add_data", "import_arguments": {"source": url, "kind": "raster"},
-               "message": "An ArcGIS image service: it loads as a raster layer with the import call."}
+               "message": "An ArcGIS image service.", "load_note": coded_fact(hint="arcgis_image_service_load")}
         if payload.get("pixelSizeX"):
             out["pixel_size"] = payload.get("pixelSizeX")
         return out
@@ -1059,10 +1066,11 @@ def _arcgis(final_url: str, payload: dict) -> dict | None:
            **({"crs": crs} if crs else {}), "layer_count": len(names), "layers": entries}
     if kind == "mapserver":
         out["add_whole_service"] = {"tool": "add_data", "args": {"source": url, "kind": "raster"}}
-    out["message"] = ("ArcGIS REST service. " + (
-        "add_whole_service draws every layer as one image; each layer's add call loads its features."
-        if kind == "mapserver" else "Each layer's add call loads its features.")
-        + ("" if queryable else " This service does not allow queries, so its layers draw as an image only."))
+    out["message"] = "ArcGIS REST service." + ("" if queryable else " This service does not allow queries.")
+    out["load_note"] = (coded_fact(hint="arcgis_service_calls", variant="mapserver") if kind == "mapserver"
+                        else coded_fact(hint="arcgis_service_calls"))
+    if not queryable:
+        out["query_note"] = coded_fact(hint="arcgis_not_queryable")
     return out
 
 
@@ -1101,11 +1109,11 @@ def _tilesets(final_url: str, payload: dict) -> dict:
         elif matrix_set == "WebMercatorQuad" and own:
             entry["add"] = {"tool": "inspect_data_source", "args": {"url": own}}
         else:
-            entry["note"] = "Not in Web Mercator: QGIS reads only WebMercatorQuad tiles as XYZ."
+            entry["note"] = coded_fact(hint="tileset_not_web_mercator", matrix_set=matrix_set or "tileset")
         entries.append(entry)
     return {"source_family": "ogc_api_tilesets", "service": "OGC API - Tiles", "final_url": final_url,
             "layer_count": len(entries), "layers": entries[:MAX_LAYERS],
-            "message": "OGC API tilesets. The WebMercatorQuad one loads as a tile layer with its add call."}
+            "message": "OGC API tilesets.", "load_note": coded_fact(hint="ogc_api_tilesets_load")}
 
 
 def _collections(final_url: str, payload: dict) -> dict:
@@ -1154,11 +1162,10 @@ def _collections(final_url: str, payload: dict) -> dict:
               for name, title in names[len(entries):]]
     if others:
         out["other_layers"] = others[:MAX_OTHER_NAMES]
-    out["message"] = ("OGC API collections. A features collection loads with its add call, paged by the OGC API "
-                      "driver rather than read as one page; records are a catalogue, read with fetch_json; tiles "
-                      "are listed by inspecting the tiles URL."
+    out["message"] = ("OGC API collections."
                       + (" Coverage and map collections have no loader here." if kinds & {"coverage", "map"}
                          else ""))
+    out["load_note"] = coded_fact(hint="ogc_api_collections_load")
     return out
 
 
@@ -1182,7 +1189,7 @@ def json_service(final_url: str, payload) -> dict | None:
         if "code" in error and "message" in error and _ARCGIS_RE.search(urllib.parse.urlsplit(final_url).path):
             return {"source_family": "arcgis_error", "final_url": final_url,
                     "status": error.get("code"), "exception": _short(error.get("message") or "", 240),
-                    "message": "The ArcGIS service refused: a token-protected service is not open data."}
+                    "message": "The ArcGIS service refused.", "refusal_note": coded_fact(hint="arcgis_token_protected")}
     arcgis = _arcgis(final_url, payload)
     if arcgis is not None:
         return arcgis

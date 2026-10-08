@@ -237,7 +237,7 @@ def _error_shaped(body: dict, fallback_code: str, fallback_msg: str) -> dict:
 
 
     answer = {}
-    for key in ("code", "error", "message", "detail", "retry_after", "purge_after"):
+    for key in ("code", "error", "message", "detail", "retry_after", "purge_after", "status"):
         value = body.get(key)
         if isinstance(value, str):
             answer[key] = value[:400]
@@ -476,8 +476,35 @@ class TerraLabClient:
         code = str(code or "").strip()
         if not code or len(code) > 256:
             return {"error": "Invalid pairing code", "code": "CLIENT_ERROR"}
-        return self._request("GET", f"/api/plugin/pair/poll?code={quote(code, safe='')}",
-                             timeout_ms=timeout_ms, require_body=True)
+        answer = self._request("GET", f"/api/plugin/pair/poll?code={quote(code, safe='')}",
+                               timeout_ms=timeout_ms, require_body=True)
+        if isinstance(answer, dict) and "error" in answer:
+            answer.pop("status", None)
+        return answer
+
+    def start_pairing_v2(self, secret_hash: str, loopback_port: int | None,
+                         ttl: int = 1800) -> tuple[dict, int | None]:
+
+
+        body = json.dumps({"product": PRODUCT_ID, "secret_hash": secret_hash,
+                           "loopback_port": loopback_port, "ttl": int(ttl)}).encode("utf-8")
+        answer, http_status, _ = self._request_once("POST", "/api/plugin/pair/start", None, body,
+                                                    10_000, False, True)
+        return (answer if isinstance(answer, dict) else {}), http_status
+
+    def claim_pairing(self, code: str, secret: str, grant: str = "", user_code: str = "",
+                      timeout_ms: int = 10_000) -> tuple[dict, int | None]:
+
+
+        payload = {"code": str(code or ""), "secret": str(secret or "")}
+        if grant:
+            payload["grant"] = str(grant)
+        else:
+            payload["user_code"] = str(user_code or "")
+        answer, http_status, _ = self._request_once("POST", "/api/plugin/pair/claim", None,
+                                                    json.dumps(payload).encode("utf-8"),
+                                                    timeout_ms, False, True)
+        return (answer if isinstance(answer, dict) else {}), http_status
 
     def cancel_pairing(self, code: str) -> dict:
         code = str(code or "").strip()
