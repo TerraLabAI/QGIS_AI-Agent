@@ -789,6 +789,20 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                 "_code": "EXECUTION_FAILED",
                 **(coded_fact(hint="download_empty_one_shot", url=url) if one_shot
                    else coded_fact(hint="download_empty", url=url))}
+    if body is not None:
+        head = body
+    else:
+        with open(downloaded, "rb") as handle:
+            head = handle.read(256)
+            if vsi.looks_like_xml(head):
+                head += handle.read(2 * 1024 * 1024)
+    refused = vsi.xml_dataset_refusal(head, url)
+    if refused:
+        if downloaded is not None:
+            with contextlib.suppress(OSError):
+                os.remove(downloaded)
+        return {"_error": f"This raster is not opened: {refused}.", "_code": "PERMISSION_DENIED",
+                **coded_fact(hint="asset_address_refused", url=url)}
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
 
     path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}.tif")
@@ -911,6 +925,11 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         return {"_error": f"This asset address is not fetched: {exc}", "_code": "PERMISSION_DENIED",
                 **coded_fact(hint="asset_address_refused", url=final_url)}
     local = _localise_one_shot(final_url, name)
+    if local is None:
+        refused = vsi.remote_dataset_refusal(final_url)
+        if refused:
+            return {"_error": f"This asset is not opened: {refused}.", "_code": "PERMISSION_DENIED",
+                    **coded_fact(hint="asset_address_refused", url=final_url)}
     if local is not None:
         if note and not local.get("_error"):
             local["_note"] = f"{note} {local.get('_note', '')}".strip()

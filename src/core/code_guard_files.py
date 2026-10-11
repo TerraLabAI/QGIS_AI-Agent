@@ -251,12 +251,21 @@ def _zip_file(file, mode="r", compression=_zipfile.ZIP_STORED, allowZip64=True, 
     for name in ("namelist", "infolist", "getinfo", "read", "testzip", "printdir", "close"):
         setattr(archive, name, getattr(real, name))
 
+    def _members_land(target, members) -> None:
+
+
+        for member in members:
+            name = member.filename if isinstance(member, _zipfile.ZipInfo) else str(member)
+            _check(os.path.join(target, name), write=True)
+
     def extract(member, path=None, pwd=None):
         target = _check(path or "", write=True)
+        _members_land(target, [member])
         return real.extract(member, target, pwd)
 
     def extractall(path=None, members=None, pwd=None):
         target = _check(path or "", write=True)
+        _members_land(target, real.infolist() if members is None else members)
         return real.extractall(target, members, pwd)
 
     def write(filename, arcname=None, compress_type=None, compresslevel=None):

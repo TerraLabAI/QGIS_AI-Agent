@@ -276,13 +276,6 @@ class _ExecutorCalls:
         if unvouched:
             always = True
         asks = always or self._asks(approval, danger)
-        if asks and name == CODE_TOOL and not unvouched and self._code_run_granted(call):
-
-
-            log(f"ALLOW {name} (the user allowed code for this run)")
-            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
-            self._execute(call)
-            return
 
 
 
@@ -862,15 +855,13 @@ class _ExecutorCalls:
             return
         run_id = str(call.get("run_id") or "")
         name = str(call.get("name") or "")
-        if decision == Decision.ALLOW_RUN and name != CODE_TOOL:
-            decision = Decision.ALLOW
-        if decision not in (Decision.ALLOW, Decision.ALLOW_PROJECT, Decision.ALLOW_RUN, Decision.DENY):
+        if decision not in (Decision.ALLOW, Decision.DENY):
 
 
 
 
             log_warning(f"Permission decision {decision!r} for {name} is not one of "
-                        "allow/allow_project/deny; the card is left open.")
+                        "allow/deny; the card is left open.")
             self._pending[tool_call_id] = call
             return
         if call.get("costly") and executor_guards.cost_guard is not None:
@@ -918,23 +909,8 @@ class _ExecutorCalls:
 
 
             security.vouch_for_urls(call["unvouched"])
-        if decision == Decision.ALLOW_PROJECT:
-
-
-
-
-            if name == CODE_TOOL and not edits and not call.get("unvouched"):
-
-                decision = self._code_decided(call, decision)
-            elif edits or name == CODE_TOOL or call.get("unvouched"):
-                decision = Decision.ALLOW
-            else:
-                self._settings.allow(self._project_path(), name)
-        else:
-            if name == CODE_TOOL:
-                self._code_decided(call, Decision.ALLOW_RUN if decision == Decision.ALLOW_RUN and not edits
-                                   else Decision.ALLOW)
-            decision = Decision.ALLOW
+        if name == CODE_TOOL:
+            self._code_decided(call)
         self._session.send_permission_response(tool_call_id, run_id, decision)
 
 

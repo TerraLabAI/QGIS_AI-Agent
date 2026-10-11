@@ -28,6 +28,7 @@ from ..core.follow import hold_view
 from ..core.layer_order import is_remote_vector
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import vector_write
 from .feature_tools import _find_vector_layer
 from .layer_lookup import _find_layer, _layer_not_found_error
 
@@ -403,6 +404,9 @@ def _update_feature_geometry(args: dict) -> dict:
     layer = _find_vector_layer(args["layer_name"])
     if not layer:
         return _layer_not_found_error(args["layer_name"])
+    kmz = vector_write.kmz_in_place_error(layer, "change geometries")
+    if kmz is not None:
+        return kmz
 
     shapes = {}
     for position, update in enumerate(args["updates"]):

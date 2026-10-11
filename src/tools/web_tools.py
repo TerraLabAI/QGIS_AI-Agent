@@ -417,6 +417,8 @@ _PDF_ARRAY_PART_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)|(-?\d+(?:\.\d+)?)")
 _PDF_TOKEN_RE = re.compile(rb"\(((?:\\.|[^\\)])*)\)\s*(?:Tj|'|\")|\[((?:\\.|[^\\\]])*)\]\s*TJ|\b(?:Td|TD|T\*|Tm)\b")
 _PDF_TITLE_RE = re.compile(rb"/Title\s*\(((?:\\.|[^\\)]){1,300})\)")
 _PDF_ESCAPES = {b"n": b"\n", b"r": b"\r", b"t": b"\t", b"b": b"", b"f": b"", b"(": b"(", b")": b")", b"\\": b"\\"}
+_PDF_MAX_INFLATED_BYTES = 64 * 1024 * 1024
+_PDF_MAX_TEXT_CHARS = 2_000_000
 _PDF_MAX_STREAMS = 2000
 
 
@@ -439,13 +441,18 @@ def _pdf_text(raw: bytes) -> tuple[str, str]:
     title_match = _PDF_TITLE_RE.search(raw)
     title = " ".join(_pdf_string(title_match.group(1)).split()) if title_match else ""
     pieces: list[str] = []
-    for index, stream in enumerate(_PDF_STREAM_RE.findall(raw)):
-        if index >= _PDF_MAX_STREAMS:
+
+
+    inflate_left, chars_left = _PDF_MAX_INFLATED_BYTES, _PDF_MAX_TEXT_CHARS
+    for index, found in enumerate(_PDF_STREAM_RE.finditer(raw)):
+        if index >= _PDF_MAX_STREAMS or inflate_left <= 0 or chars_left <= 0:
             break
+        stream = found.group(1)
         try:
-            data = zlib.decompress(stream)
+            data = zlib.decompressobj().decompress(stream, inflate_left)
         except zlib.error:
-            data = stream
+            data = stream[:inflate_left]
+        inflate_left -= len(data)
         if b"BT" not in data:
             continue
         for block in re.findall(rb"BT(.*?)ET", data, re.DOTALL):
@@ -465,7 +472,10 @@ def _pdf_text(raw: bytes) -> tuple[str, str]:
                     line.append("\n")
             joined = "\n".join(" ".join(part.split()) for part in "".join(line).split("\n") if part.strip())
             if joined:
-                pieces.append(joined)
+                pieces.append(joined[:chars_left])
+                chars_left -= len(joined)
+                if chars_left <= 0:
+                    break
     text = re.sub(r"(?m)^([A-Z])\n(?=[A-Z])", r"\1", "\n".join(pieces))
     letters = sum(ch.isalpha() for ch in text)
 

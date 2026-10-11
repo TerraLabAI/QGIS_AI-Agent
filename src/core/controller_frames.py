@@ -62,6 +62,12 @@ class _ControllerFrames:
         props["in_run"] = self._run is not None
         telemetry.track(ev.CONNECTION_FAILED, props)
 
+    def _on_connection_ready(self, facts) -> None:
+
+
+        if isinstance(facts, dict):
+            telemetry.track(ev.CONNECTION_ESTABLISHED, facts)
+
     def _connection_facts(self) -> dict:
 
         facts = getattr(self._session, "failure_facts", None)
@@ -455,11 +461,8 @@ class _ControllerFrames:
 
         addresses = self._executor.unvouched_for(tool_call_id)
 
-        grant = self._executor.grant_for(tool_call_id)
-        if self._executor.covers_answer(tool_call_id):
 
-
-            grant = f"{grant} answer".strip()
+        grant = "answer" if self._executor.covers_answer(tool_call_id) else ""
 
         group = self._executor.card_group(tool_call_id)
         extra = [addresses or None, grant, group]

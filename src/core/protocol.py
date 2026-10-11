@@ -35,6 +35,9 @@ class FrameType:
 
     UPLOAD = "upload"
 
+
+    MANIFEST = "manifest"
+
     SESSION = "session"
     TOKEN = "token"  # nosec B105
     PLAN = "plan"
@@ -73,11 +76,14 @@ class FrameType:
 
     EFFORT = "effort"
 
+
+    SEND_MANIFEST = "send_manifest"
+
     CLIENT = frozenset({HELLO, USER_MESSAGE, TOOL_RESULT, TOOL_ERROR, PERMISSION_RESPONSE, CANCEL, PING, FEEDBACK,
-                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT})
+                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, MANIFEST})
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
-         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK}
+         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST}
     )
 
 
@@ -143,9 +149,6 @@ class Decision:
     ALL = frozenset({ALLOW, ALLOW_PROJECT, DENY, PENDING})
 
 
-    ALLOW_RUN = "allow_run"
-
-
 class Mode:
     ASK = "ask"
     AGENT = "agent"
@@ -208,7 +211,8 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
           tool_manifest: list | None = None, resume_session_id: str | None = None,
           telemetry: bool = True, improve: bool = True, last_seq: int | None = None,
           python_version: str = "", libraries: list | None = None,
-          crash: dict | None = None, catalog_tag: str = "", last_drop: dict | None = None) -> dict:
+          crash: dict | None = None, catalog_tag: str = "", last_drop: dict | None = None,
+          sends_on_ask: list | None = None) -> dict:
     frame = {
         "type": FrameType.HELLO,
         "activation_key": activation_key,
@@ -276,7 +280,17 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
         frame["catalog_tag"] = str(catalog_tag)
+    if sends_on_ask:
+
+
+
+        frame["sends_on_ask"] = [str(item) for item in sends_on_ask]
     return frame
+
+
+def manifest_upload(tool_manifest_hash: str, tool_manifest: list) -> dict:
+
+    return {"type": FrameType.MANIFEST, "tool_manifest_hash": tool_manifest_hash, "tool_manifest": tool_manifest}
 
 
 

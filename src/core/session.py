@@ -35,7 +35,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 from . import crash_note, data_access, protocol, tuning
 from .logger import log, log_warning
 from .protocol import ProtocolError, ServerErrorCode
-from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_PING_S, WsClient
+from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_PING_S, QUIET_DNS_RETRIES_S, WsClient
 
 
 
@@ -306,6 +306,10 @@ class AgentSession(QObject):
 
     connection_failed = pyqtSignal(object)
 
+
+
+    connection_ready = pyqtSignal(object)
+
     def __init__(self, settings, account, identity_provider: Callable[[], dict],
                  manifest_provider: Callable[[], tuple], parent=None):
         super().__init__(parent)
@@ -319,6 +323,10 @@ class AgentSession(QObject):
         self._ws.frame_received.connect(self._on_frame)
         self._ws.error_occurred.connect(self._on_ws_error)
         self._ws.connect_failed.connect(self._on_ws_failed)
+        self.session_started.connect(self._on_connect_done)
+        self._dial_host = ""
+        self._dial_failures = 0
+        self._ready_reported = False
         self._run_open = False
         self._heartbeat = QTimer(self)
         self._heartbeat.setInterval(int(socket_clocks()["heartbeat_s"] * 1000))
@@ -361,6 +369,10 @@ class AgentSession(QObject):
 
         self._catalog_tag = ""
         self._disk_tag: str | None = None
+
+
+
+        self._disk_catalogs: dict | None = None
         self._applied_tag = ""
         self._catalog_writer: threading.Thread | None = None
         self._catalogs_came = False
@@ -731,10 +743,53 @@ class AgentSession(QObject):
         clocks = socket_clocks()
         transport = {name: clocks[name] for name in ("connect_timeout_s", "send_timeout_s", "idle_ping_s",
                                                      "dead_after_s")}
-        if not self._ws.open(url, headers, clocks=transport):
+
+
+        self._dial_host, self._dial_failures = _host_of(url), self._failed_streak
+        dial = {"last_good": self._last_good_addresses().get(self._dial_host, ""),
+                "dns_retries": () if self._failed_streak else QUIET_DNS_RETRIES_S}
+        if not self._ws.open(url, headers, clocks=transport, dial=dial):
             log_warning("WebSocket open refused: a connection is already in progress")
         elif self._ws.proxy_label:
             log(f"Connecting through the HTTP proxy {self._ws.proxy_label}")
+
+    def _last_good_addresses(self) -> dict:
+        try:
+            held = getattr(self._settings, "last_good_addresses", None)
+        except Exception:  # noqa: BLE001
+            return {}
+        return held if isinstance(held, dict) else {}
+
+    def _on_connect_done(self, _frame) -> None:
+
+
+        report = dict(getattr(self._ws, "connect_report", None) or {})
+        peer = str(report.pop("peer", "") or "")
+        if peer and report.get("route") == "direct" and self._dial_host:
+            held = self._last_good_addresses()
+            if held.get(self._dial_host) != peer:
+                kept = {h: a for h, a in held.items() if h != self._dial_host}
+                kept = dict(list(kept.items())[-3:])
+                kept[self._dial_host] = peer
+                try:
+                    self._settings.last_good_addresses = kept
+                except Exception as exc:  # noqa: BLE001
+                    log_warning(f"Could not keep the server address: {exc}")
+        if report.get("used_last_good") or report.get("dns_retries"):
+            log(f"Connected after {report.get('dns_retries', 0)} quiet DNS retries"
+                + (", through the last good address" if report.get("used_last_good") else ""))
+        failures, first = int(self._dial_failures), not self._ready_reported
+        if not (first or failures):
+            return
+        self._ready_reported = True
+        facts = {k: report[k] for k in ("dns_ms", "tcp_ms", "tls_ms", "upgrade_ms", "ip_family", "route",
+                                        "used_last_good", "dns_retries") if k in report}
+        facts.update(hello_ms=self._connect_facts.get("connect_ms"), failures_before=failures,
+                     first_connect=first, resuming=bool(self._resume_asked))
+        try:
+            self.connection_ready.emit(facts)
+        except (AttributeError, RuntimeError):
+            pass
 
     def _pick_server_url(self) -> str:
 
@@ -850,7 +905,9 @@ class AgentSession(QObject):
             if self._crash_note is None:
                 self._crash_note = crash_note.take(str(identity.get("plugin_version", ""))) or {}
             if self._disk_tag is None:
-                self._disk_tag = _held_catalog_tag()
+                tag = _held_catalog_tag()
+                self._disk_catalogs = _held_catalogs(tag) if tag else None
+                self._disk_tag = tag if self._disk_catalogs is not None else ""
                 self._catalog_tag = self._catalog_tag or self._disk_tag
             frame = protocol.hello(
                 activation_key=self._account.activation_key,
@@ -870,6 +927,9 @@ class AgentSession(QObject):
                 crash=self._crash_note or None,
                 catalog_tag=self._catalog_tag,
                 last_drop=self._drop_report() if self._session_id else None,
+
+
+                sends_on_ask=["manifest"],
             )
         except Exception as exc:  # noqa: BLE001
             log_warning(f"hello could not be built: {exc}")
@@ -1348,7 +1408,7 @@ class AgentSession(QObject):
         elif tag and tag != self._applied_tag:
 
 
-            held = _held_catalogs(tag)
+            held = self._disk_catalogs if tag == self._disk_tag else None
             if held is None:
                 log_warning("Catalogs left out by the server are not on disk, asking for them whole")
                 self._catalog_tag = self._disk_tag = ""
@@ -1356,8 +1416,34 @@ class AgentSession(QObject):
                 return False
             frame.update(held)
             self._applied_tag = tag
+        self._disk_catalogs = None
         self._catalog_tag = tag
         return True
+
+    def _on_send_manifest(self, frame: dict) -> None:
+
+
+
+
+
+
+
+        if self._state == "online" or self._manifest_included:
+            return
+        try:
+            manifest_hash, manifest = self._manifest_provider()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"manifest could not be built: {exc}")
+            self._ws.close(1000, "hello failed")
+            return
+        self._remember_manifest(self._last_manifest_hash, False)
+        log("Server does not hold the tool manifest, sending it on this connection")
+        self._last_manifest_hash = manifest_hash
+        self._manifest_included = True
+        self._send(protocol.manifest_upload(manifest_hash, manifest))
+
+        self._hello_checked_at = time.monotonic()
+        self._hello_deadline.start()
 
     def _on_policy(self, frame: dict) -> None:
 

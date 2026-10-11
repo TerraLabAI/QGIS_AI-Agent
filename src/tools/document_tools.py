@@ -21,6 +21,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import output_paths, security
 from ..core.feature_requests import feature_request
 from ..core.host_platform import retry_file_op
+from ..core.provider_uri import scrub_uri_secrets
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 MAX_ROWS = 1000
@@ -129,7 +130,8 @@ def _prepare(args: dict) -> dict:
         "Provider": layer.providerType(),
         "Geometry": str(layer.geometryType()),
         "CRS": layer.crs().authid() or layer.crs().description() or "unknown",
-        "Source": layer.source(),
+
+        "Source": scrub_uri_secrets(layer.source()),
     }
     return {"layer": layer.name(), "fields": [name for name, _index in selected],
             "rows": rows, "row_count": layer.featureCount(), "shown_rows": len(rows),

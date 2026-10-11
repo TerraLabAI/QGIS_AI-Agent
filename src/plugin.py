@@ -745,7 +745,8 @@ class AIAgentPlugin:
 
 
         for module, name in (("net", "clear_cache"), ("net", "politeness_reset"),
-                             ("net", "forget_link_state"), ("security", "forget_resolved_hosts")):
+                             ("net", "forget_link_state"), ("net", "close_idle_connections"),
+                             ("security", "forget_resolved_hosts")):
             try:
                 target = __import__(f"{__package__}.core.{module}", fromlist=[name])
                 getattr(target, name)()

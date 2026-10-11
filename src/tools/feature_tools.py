@@ -305,6 +305,9 @@ def _add_features(args: dict) -> dict:
 
 
 
+    kmz = vector_write.kmz_in_place_error(layer, "add features")
+    if kmz is not None:
+        return kmz
     if layer.isEditable():
 
 

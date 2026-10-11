@@ -20,6 +20,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.tool_registry import Tool, ToolRegistry
+from . import vector_write
 from ._compat import QVAR_STRING
 from .layer_lookup import _find_layer
 
@@ -132,6 +133,9 @@ def _create_coordinate_feature(args: dict) -> dict:
         created = True
     else:
         layer = target_layer
+        kmz = vector_write.kmz_in_place_error(layer, "add features")
+        if kmz is not None:
+            return kmz
     feature = QgsFeature(layer.fields())
     feature.setGeometry(geometry)
     for name, value in (args.get("fields") or {}).items():

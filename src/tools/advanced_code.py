@@ -259,7 +259,7 @@ def _run_code_in_qgis(args: dict) -> dict:
             "_error": f"execute_code stopped: the snippet {trip.reason}. Nothing after that call ran.",
             "stdout": _cap(stdout_capture.getvalue()),
             "suggestion": "",
-            "hint": "code_permission_refused",
+            "hint": trip.hint or "code_permission_refused",
             "reason": trip.reason,
         }
 

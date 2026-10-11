@@ -6,8 +6,12 @@ from __future__ import annotations
 
 import contextlib
 import http.client
+import ipaddress
+import select
 import socket
+import ssl
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -171,8 +175,6 @@ def _ssl_context():
 
     global _SSL_CONTEXT
     if _SSL_CONTEXT is None:
-        import ssl
-
         _SSL_CONTEXT = ssl.create_default_context()
         if _SSL_CA_PEM:
             try:
@@ -207,7 +209,8 @@ def set_trust(ca_pem: bytes | None) -> bool:
 
 
 
-        _OPENER = None
+        old, _OPENER = _OPENER, None
+    _drop_pool(old)
     return True
 
 
@@ -336,9 +339,263 @@ class _GuardedHTTPHandler(urllib.request.HTTPHandler):
         return self.do_open(_GuardedHTTP, req)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+POOL_IDLE_S = 60.0
+POOL_PER_HOST = 4
+POOL_TOTAL = 32
+
+
+
+
+POOL_UNSAFE_IDLE_S = 2.0
+_RETRIED_METHODS = frozenset({"GET", "HEAD"})
+
+
+
+_STALE = (http.client.BadStatusLine, http.client.ImproperConnectionState, ConnectionError,
+          ssl.SSLEOFError, ssl.SSLZeroReturnError)
+
+
+def _ip(text):
+    try:
+        return ipaddress.ip_address(str(text or "").split("%", 1)[0])
+    except ValueError:
+        return None
+
+
+class _PooledResponse(http.client.HTTPResponse):
+
+
+    _on_done = None
+    _trailer_read = False
+
+    def _read_and_discard_trailer(self):
+        super()._read_and_discard_trailer()
+        self._trailer_read = True
+
+    def _finished(self) -> bool:
+        if self.will_close:
+            return False
+        if self._method == "HEAD":
+            return True
+        if self.chunked:
+            return self._trailer_read
+        return self.length == 0
+
+    def _close_conn(self):
+        done, self._on_done = self._on_done, None
+        super()._close_conn()
+        if done is not None:
+            done(self._finished())
+
+
+class _PooledHTTPS(_GuardedHTTPS):
+    response_class = _PooledResponse
+
+
+class _Pool:
+
+
+
+
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._idle: dict = {}
+        self._closed = False
+
+    def _expired(self, now: float) -> list:
+        gone = []
+        for key in list(self._idle):
+            keep = []
+            for since, conn in self._idle[key]:
+                (keep if now - since < POOL_IDLE_S else gone).append((since, conn))
+            if keep:
+                self._idle[key] = keep
+            else:
+                del self._idle[key]
+        return [conn for _, conn in gone]
+
+    def take(self, key: tuple, method: str):
+
+        now = time.monotonic()
+        limit = POOL_IDLE_S if method in _RETRIED_METHODS else POOL_UNSAFE_IDLE_S
+        found = None
+        with self._lock:
+            gone = self._expired(now)
+            entries = self._idle.get(key) or []
+            while entries and found is None:
+                since, conn = entries.pop()
+                if now - since < limit and _peer_allowed(conn, key[0]):
+                    found = conn
+                else:
+                    gone.append(conn)
+            if not entries:
+                self._idle.pop(key, None)
+        for conn in gone:
+            _close_quietly(conn)
+        if found is not None and not _still_quiet(found):
+            _close_quietly(found)
+            found = None
+        return found
+
+    def give(self, key: tuple, conn) -> None:
+        now = time.monotonic()
+        with self._lock:
+            if self._closed or conn.sock is None:
+                gone = [conn]
+            else:
+                gone = self._expired(now)
+                entries = self._idle.setdefault(key, [])
+                entries.append((now, conn))
+                while len(entries) > POOL_PER_HOST:
+                    gone.append(entries.pop(0)[1])
+                total = sum(len(v) for v in self._idle.values())
+                while total > POOL_TOTAL:
+                    oldest = min(self._idle, key=lambda k: self._idle[k][0][0])
+                    gone.append(self._idle[oldest].pop(0)[1])
+                    if not self._idle[oldest]:
+                        del self._idle[oldest]
+                    total -= 1
+        for each in gone:
+            _close_quietly(each)
+
+    def close(self, final: bool = False) -> None:
+        with self._lock:
+            self._closed = self._closed or final
+            gone = [conn for entries in self._idle.values() for _, conn in entries]
+            self._idle.clear()
+        for conn in gone:
+            _close_quietly(conn)
+
+
+def _close_quietly(conn) -> None:
+    with contextlib.suppress(Exception):
+        conn.close()
+
+
+def _still_quiet(conn) -> bool:
+
+
+    sock = conn.sock
+    if sock is None:
+        return False
+    try:
+        if getattr(sock, "pending", None) and sock.pending():
+            return False
+        readable, _, _ = select.select([sock], [], [], 0)
+    except (OSError, ValueError):
+        return False
+    return not readable
+
+
+def _peer_allowed(conn, host: str) -> bool:
+
+    pinned = _pinned_for(host)
+    if pinned == _RESOLVE_AT_CONNECT:
+        return False
+    if not pinned:
+        return _ip(host) is not None and _ip(host) == getattr(conn, "_peer_ip", None)
+    return getattr(conn, "_peer_ip", None) in {_ip(address) for address in pinned}
+
+
 class _GuardedHTTPSHandler(urllib.request.HTTPSHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pool = _Pool()
+
     def https_open(self, req):
-        return self.do_open(_GuardedHTTPS, req, context=self._context)
+        if getattr(req, "_tunnel_host", None):
+            return self.do_open(_GuardedHTTPS, req, context=self._context)
+        return self._pooled_open(req)
+
+    def _pooled_open(self, req):
+
+        if not req.host:
+            raise urllib.error.URLError("no host given")
+        method = req.get_method().upper()
+        headers = dict(req.unredirected_hdrs)
+        headers.update({k: v for k, v in req.headers.items() if k not in headers})
+        headers = {name.title(): value for name, value in headers.items()}
+        fresh = _PooledHTTPS(req.host, timeout=req.timeout, context=self._context)
+        fresh.set_debuglevel(self._debuglevel)
+        key = (str(fresh.host or "").strip("[]").lower(), fresh.port)
+        reused = self.pool.take(key, method)
+        while True:
+            conn = reused or fresh
+            if reused is not None:
+                conn.timeout = req.timeout
+                with contextlib.suppress(OSError):
+                    conn.sock.settimeout(req.timeout)
+            try:
+                try:
+                    conn.request(method, req.selector, req.data, headers,
+                                 encode_chunked=req.has_header("Transfer-encoding"))
+                except OSError as err:
+                    if reused is not None and method in _RETRIED_METHODS and isinstance(err, _STALE):
+                        raise
+                    raise urllib.error.URLError(err) from err
+                response = conn.getresponse()
+            except _STALE:
+                _close_quietly(conn)
+                if reused is None or method not in _RETRIED_METHODS:
+                    raise
+                reused = None
+                continue
+            except BaseException:
+                _close_quietly(conn)
+                raise
+            break
+        if conn.sock is not None and getattr(conn, "_peer_ip", None) is None:
+            with contextlib.suppress(OSError, IndexError, TypeError):
+                conn._peer_ip = _ip(conn.sock.getpeername()[0])
+        pool = self.pool
+
+        def done(finished: bool, _conn=conn, _key=key) -> None:
+            if finished and _conn.sock is not None:
+                pool.give(_key, _conn)
+            else:
+                _close_quietly(_conn)
+
+        response._on_done = done
+        response.url = req.get_full_url()
+        response.msg = response.reason
+        return response
+
+
+def _drop_pool(opener) -> None:
+
+    for handler in getattr(opener, "handlers", None) or ():
+        if isinstance(handler, _GuardedHTTPSHandler):
+            handler.pool.close(final=True)
+
+
+def close_idle_connections() -> None:
+
+    for handler in getattr(_OPENER, "handlers", None) or ():
+        if isinstance(handler, _GuardedHTTPSHandler):
+            handler.pool.close()
 
 
 def _build_opener(*handlers):
@@ -402,8 +659,9 @@ def set_proxy(address: str | None) -> bool:
     with _PROXY_LOCK:
         if address == _PROXY_URL:
             return False
-        _OPENER = _build_opener(*_handlers(address))
+        old, _OPENER = _OPENER, _build_opener(*_handlers(address))
         _PROXY_URL = address
+    _drop_pool(old)
     log_warning(f"Tool fetches now go through {_redact_proxy(address)}." if address
                 else "Tool fetches now go out directly (no QGIS proxy).")
     return True

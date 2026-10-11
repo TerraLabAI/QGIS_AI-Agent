@@ -119,8 +119,15 @@ def _validity(layer: QgsVectorLayer, fid) -> dict:
     return out
 
 
-def _require_editable(layer: QgsVectorLayer):
+def _require_editable(layer: QgsVectorLayer, writes: bool = True):
 
+
+
+
+
+    kmz = vector_write.kmz_in_place_error(layer, "edit") if writes else None
+    if kmz is not None:
+        return kmz
     if not layer.isEditable():
         return tool_error(f"Layer '{layer.name()}' has no open edit session.",
                           hint="edit_session_required", layer=layer.name())
@@ -541,7 +548,7 @@ def _edit_rollback(args: dict) -> dict:
     layer, err = _resolve_vector(args["layer_name"])
     if err:
         return err
-    err = _require_editable(layer)
+    err = _require_editable(layer, writes=False)
     if err:
         return err
 

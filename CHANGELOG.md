@@ -9,6 +9,36 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-10-11
+
+### Changed
+
+- Permission cards offer two buttons, Allow and Deny. The run-wide and project-wide grants are gone
+  from the cards; Autopilot is where a user stops being asked. Grants saved by earlier versions
+  still apply.
+- When the agent looks at the QGIS window with a 3D view open, each 3D view is drawn from its own
+  scene, so the agent no longer reports a working 3D view as blank.
+- Connecting is quicker: the plugin tries every server address at once, falls back to the last one
+  that worked when name lookup fails, and keeps web connections open so a later request takes one
+  round trip instead of three.
+- When the server lacks the plugin's session details it asks for them on the open connection
+  instead of closing it and connecting again.
+- Place searches send their follow-up lookups together and are often answered on the server,
+  saving one to five seconds outside Europe.
+
+### Fixed
+
+- Code the agent runs asks first before unpickling data, and a Python formula given to a processing
+  tool shows the code card. A report's own code cannot send its data to an unknown site.
+- File reads stay inside the resolved project and attachment folders; XML datasets have their
+  sources checked before they open.
+- Editing a KMZ in place is refused, since saving it would empty the file. A project whose Area of
+  interest is a file-backed layer never empties that file.
+- Sign-in reads the activation key AI Edit stored on Windows. Result rows with a cached site logo
+  display again, and the Pro price groups its thousands.
+- The Word layer report leaves out passwords from a layer's source; PDFs read from the web share
+  one size budget.
+
 ## [1.7.0] - 2026-10-10
 
 ### Added

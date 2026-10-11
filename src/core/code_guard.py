@@ -127,6 +127,8 @@ DENIED_NAMES = frozenset({
     "QgsNetworkAccessManager", "QNetworkAccessManager", "QNetworkRequest", "QProcess", "QFile", "QDir",
     "QSaveFile", "QTemporaryFile",
 
+    "QLibrary", "QPluginLoader",
+
 
 
     "QgsBlockingNetworkRequest", "QgsNetworkContentFetcher", "QgsFileDownloader", "QgsFileDownloaderDialog",

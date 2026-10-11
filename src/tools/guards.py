@@ -483,7 +483,13 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
     listed = {str(u) for u in (listed or ()) if isinstance(u, str)}
     found: list[str] = []
     catalog_hosts: set[str] | None = None
-    for text in _string_leaves(args):
+    texts = list(_string_leaves(args))
+    if name == "write_html_report":
+
+        from ..core.report_page import active_urls
+
+        texts += active_urls(args.get("html"))
+    for text in texts:
         stripped = text.strip()
         kind, rest = security.unwrap_vsi(stripped)
         stripped = rest if kind == "remote" else stripped
@@ -1132,10 +1138,44 @@ def check_size(name: str, args: dict) -> dict | None:
 
 
 
-_SQL_BLOCK_COMMENT = _re.compile(r"/\*.*?\*/", _re.DOTALL)
-_SQL_LINE_COMMENT = _re.compile(r"--[^\n]*")
-_SQL_STRING = _re.compile(r"'(?:[^']|'')*'")
-_SQL_QUOTED_IDENT = _re.compile(r'"(?:[^"]|"")*"|\[[^\]]*\]|`[^`]*`')
+_SQL_CLOSERS = {"'": "'", '"': '"', "`": "`", "[": "]"}
+
+
+def _sql_body(text: str) -> str:
+
+
+
+
+
+
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "-" and text.startswith("--", i):
+            end = text.find("\n", i)
+            i = n if end < 0 else end
+            out.append(" ")
+        elif ch == "/" and text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            i = n if end < 0 else end + 2
+            out.append(" ")
+        elif ch in _SQL_CLOSERS:
+            close = _SQL_CLOSERS[ch]
+            j = i + 1
+            while j < n:
+                if text[j] == close:
+                    if close in "'\"`" and j + 1 < n and text[j + 1] == close:
+                        j += 2
+                        continue
+                    break
+                j += 1
+            out.append("''" if ch == "'" else '""')
+            i = j + 1
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
 _SQL_WORD = _re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 _SQL_QUERY_STARTS = frozenset({"select", "with", "values", "table"})
@@ -1168,11 +1208,7 @@ def _sql_finding(query: object) -> tuple[str, str, dict] | None:
 
 
     text = str(query or "")
-    body = _SQL_BLOCK_COMMENT.sub(" ", text)
-    body = _SQL_LINE_COMMENT.sub(" ", body)
-    body = _SQL_STRING.sub("''", body)
-    body = _SQL_QUOTED_IDENT.sub('""', body)
-    body = body.strip()
+    body = _sql_body(text).strip()
     while body.endswith(";"):
         body = body[:-1].strip()
     if not body:

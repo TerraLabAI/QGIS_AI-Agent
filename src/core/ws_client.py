@@ -13,6 +13,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import base64
@@ -61,7 +63,23 @@ from .ws_protocol import (
 __all__ = ["WsConnection", "WsError", "WsHandshakeError", "WsConnectionLost", "WsClosing", "WsProtocolError",
            "parse_ws_url", "resolve_proxy", "resolve_tls"]
 
-_CONNECT_TIMEOUT_S = 20.0
+
+
+
+
+
+_CONNECT_TIMEOUT_S = 10.0
+
+
+
+
+_ATTEMPT_DELAY_S = 0.25
+
+
+
+
+QUIET_DNS_RETRIES_S = (1.0, 2.0)
+_LAST_GOOD_BUDGET_S = 3.0
 _CLOSE_WAIT_S = 3.0
 _POLL_S = 1.0
 _SEND_TIMEOUT_S = 120.0
@@ -95,6 +113,34 @@ def _tuned(kind: str, key: str, shipped, *bounds):
     except ImportError:
         return shipped
     return getattr(tuning, kind)(key, shipped, *bounds)
+def _ms_since(started: float) -> int:
+    return int(round((time.monotonic() - started) * 1000))
+
+
+def _addresses(host: str, port: int, prefer: str = "") -> list:
+
+
+
+
+    seen = set()
+    found = []
+    for family, _type, _proto, _name, sockaddr in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+        if family in (socket.AF_INET, socket.AF_INET6) and (family, sockaddr[0]) not in seen:
+            seen.add((family, sockaddr[0]))
+            found.append((family, sockaddr))
+    if not found:
+        raise socket.gaierror(f"no IPv4 or IPv6 address for {host}")
+    if prefer:
+        found.sort(key=lambda info: info[1][0] != prefer)
+    first = [info for info in found if info[0] == found[0][0]]
+    other = [info for info in found if info[0] != found[0][0]]
+    ordered = []
+    for pair in zip(first, other):
+        ordered.extend(pair)
+    longer = first if len(first) > len(other) else other
+    return ordered + longer[min(len(first), len(other)):]
+
+
 
 
 
@@ -223,8 +269,17 @@ class WsConnection:
                  insecure: bool = False, connect_timeout: float = _CONNECT_TIMEOUT_S,
                  ca_pem: bytes | None = None, idle_ping_s: float = IDLE_PING_S,
                  dead_after_s: float = DEAD_AFTER_S, send_timeout: float = _SEND_TIMEOUT_S,
-                 compress: bool = True):
+                 compress: bool = True, last_good: str = "", dns_retries: tuple = ()):
         self.url = url
+
+
+        self.last_good = str(last_good or "")
+        self.dns_retries = tuple(float(w) for w in dns_retries or ())
+
+
+
+
+        self.report: dict = {}
         self.compress = compress
         self._deflate: Deflate | None = None
         self.headers = dict(headers or {})
@@ -264,17 +319,31 @@ class WsConnection:
 
     def connect(self) -> None:
         secure, host, port, path = parse_ws_url(self.url)
+        self.report = {"used_last_good": False, "dns_retries": 0}
         sock = self._open_tcp(host, port)
         self._sock = sock
         try:
             self._check_not_closed()
             if secure:
+                started = time.monotonic()
                 sock = self._wrap_tls(sock, host)
+                self.report["tls_ms"] = _ms_since(started)
                 self._sock = sock
                 self._check_not_closed()
             sock.settimeout(self._poll_s())
             self._reader = SocketReader(sock, self._stop.is_set, self._on_idle)
+            started = time.monotonic()
             self._handshake(host, port, path)
+            self.report["upgrade_ms"] = _ms_since(started)
+        except WsError as exc:
+            self._close_socket()
+            if self.report.get("used_last_good") and not self._stop.is_set():
+
+
+
+                raise WsConnectionLost(f"cannot resolve {host}, and its last address failed: {exc}",
+                                       "dns") from exc
+            raise
         except Exception:
             self._close_socket()
             raise
@@ -323,9 +392,14 @@ class WsConnection:
     def _open_tcp(self, host: str, port: int):
         proxy = self.proxy
         if proxy:
+            self.report["route"] = "proxy"
             target = f"{proxy['host']}:{proxy['port']}"
             try:
-                sock = socket.create_connection((proxy["host"], int(proxy["port"])), self.connect_timeout)
+                started = time.monotonic()
+                infos = _addresses(proxy["host"], int(proxy["port"]))
+                self.report["dns_ms"] = _ms_since(started)
+                started = time.monotonic()
+                sock = self._race(infos)
             except socket.gaierror as exc:
                 raise WsConnectionLost(f"proxy {target} not found: {exc}", "proxy_unreachable") from exc
             except OSError as exc:
@@ -337,12 +411,12 @@ class WsConnection:
             except Exception:
                 sock.close()
                 raise
+            self.report["tcp_ms"] = _ms_since(started)
             sock.settimeout(self.connect_timeout)
             return sock
+        self.report["route"] = "direct"
         try:
-            sock = socket.create_connection((host, port), self.connect_timeout)
-        except socket.gaierror as exc:
-            raise WsConnectionLost(f"cannot resolve {host}: {exc}", "dns") from exc
+            sock = self._dial(host, port)
         except socket.timeout as exc:
             raise WsConnectionLost(f"timed out connecting to {host}:{port}", "timeout") from exc
         except OSError as exc:
@@ -352,6 +426,111 @@ class WsConnection:
             raise WsConnectionLost(f"cannot reach {host}:{port}: {exc}", kind) from exc
         self._no_delay(sock)
         sock.settimeout(self.connect_timeout)
+        return sock
+
+    def _dial(self, host: str, port: int):
+
+
+        waits = (0.0,) + self.dns_retries
+        last_good = self.last_good
+        for tried, wait in enumerate(waits):
+            if wait and self._stop.wait(wait):
+                raise WsConnectionLost("closed while connecting")
+            self.report["dns_retries"] = tried
+            started = time.monotonic()
+            try:
+                infos = _addresses(host, port, self.last_good)
+            except socket.gaierror as exc:
+                failure = exc
+                if not last_good:
+                    continue
+                try:
+                    infos = _addresses(last_good, port)
+                    started = time.monotonic()
+
+
+                    sock = self._race(infos, budget=min(self.connect_timeout, _LAST_GOOD_BUDGET_S))
+                except socket.timeout:
+                    last_good = ""
+                    continue
+                except OSError:
+                    continue
+                self.report.update(used_last_good=True, tcp_ms=_ms_since(started))
+                return sock
+            self.report["dns_ms"] = _ms_since(started)
+            started = time.monotonic()
+            sock = self._race(infos)
+            self.report["tcp_ms"] = _ms_since(started)
+            return sock
+        raise WsConnectionLost(f"cannot resolve {host}: {failure}", "dns") from failure
+
+    def _race(self, infos: list, budget: float | None = None):
+
+
+
+
+
+
+
+
+        deadline = time.monotonic() + (self.connect_timeout if budget is None else budget)
+        pending: dict = {}
+        error: OSError | None = None
+        winner = None
+        next_at = 0.0
+        index = 0
+        selector = selectors.DefaultSelector()
+        try:
+            while winner is None:
+                self._check_not_closed()
+                now = time.monotonic()
+                if index < len(infos) and (now >= next_at or not pending):
+                    family, sockaddr = infos[index]
+                    index += 1
+                    try:
+                        sock = socket.socket(family, socket.SOCK_STREAM)
+                    except OSError as exc:
+                        error = exc
+                        continue
+                    try:
+                        sock.setblocking(False)
+                        sock.connect(sockaddr)
+                    except BlockingIOError:
+                        selector.register(sock, selectors.EVENT_WRITE, family)
+                        pending[sock] = family
+                        next_at = now + _ATTEMPT_DELAY_S
+                    except OSError as exc:
+                        sock.close()
+                        error = exc
+                    else:
+                        winner = sock, family
+                    continue
+                if not pending:
+                    raise error or OSError("no address to connect to")
+                if now >= deadline:
+                    raise socket.timeout("timed out")
+                wake = min(deadline, now + _POLL_S, next_at if index < len(infos) else deadline)
+                for key, _ in selector.select(max(0.0, wake - now)):
+                    sock = key.fileobj
+                    selector.unregister(sock)
+                    family = pending.pop(sock)
+                    code = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+                    if code == 0:
+                        winner = sock, family
+                        break
+                    sock.close()
+                    error = OSError(code, f"{os.strerror(code)} ({code})")
+        finally:
+            for sock in pending:
+                sock.close()
+            selector.close()
+        sock, family = winner
+        sock.setblocking(True)
+        self.report["ip_family"] = "ipv6" if family == socket.AF_INET6 else "ipv4"
+        try:
+            self.report["peer"] = str(sock.getpeername()[0])
+        except OSError:
+            pass
         return sock
 
     def _proxy_connect(self, sock, host: str, port: int, proxy: dict) -> None:
@@ -1139,6 +1318,8 @@ if _QT_AVAILABLE:
 
             self.arrived_at = 0.0
 
+            self.connect_report: dict = {}
+
         @property
         def state(self) -> str:
             return self._state
@@ -1153,7 +1334,9 @@ if _QT_AVAILABLE:
                 self._state = state
                 self.state_changed.emit(state)
 
-        def open(self, url: str, headers: dict | None = None, clocks: dict | None = None) -> bool:
+        def open(self, url: str, headers: dict | None = None, clocks: dict | None = None,
+                 dial: dict | None = None) -> bool:
+
 
 
 
@@ -1174,12 +1357,16 @@ if _QT_AVAILABLE:
             self.proxy_label = f"{proxy['host']}:{proxy['port']}" if proxy else ""
             ca_pem, insecure = resolve_tls(host, port) if secure else (None, False)
             clocks = clocks or {}
+            dial = dial or {}
+            self.connect_report = {}
             thread = _WsThread(WsConnection(
                 url, headers or {}, proxy, insecure, ca_pem=ca_pem,
                 connect_timeout=float(clocks.get("connect_timeout_s", _CONNECT_TIMEOUT_S)),
                 idle_ping_s=float(clocks.get("idle_ping_s", IDLE_PING_S)),
                 dead_after_s=float(clocks.get("dead_after_s", DEAD_AFTER_S)),
-                send_timeout=float(clocks.get("send_timeout_s", _SEND_TIMEOUT_S))))
+                send_timeout=float(clocks.get("send_timeout_s", _SEND_TIMEOUT_S)),
+                last_good="" if proxy else str(dial.get("last_good") or ""),
+                dns_retries=tuple(dial.get("dns_retries") or ())))
             thread.connected.connect(lambda t=thread: self._on_connected(t))
             thread.disconnected.connect(lambda code, reason, t=thread: self._on_disconnected(t, code, reason))
             thread.frame_received.connect(lambda text, at, t=thread: self._on_frame(t, text, at))
@@ -1252,6 +1439,7 @@ if _QT_AVAILABLE:
         def _on_connected(self, thread):
             if thread is not self._thread:
                 return
+            self.connect_report = dict(thread.conn.report)
             self._set_state("open")
             self.connected.emit()
 

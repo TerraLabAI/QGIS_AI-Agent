@@ -694,7 +694,9 @@ def _scope_problem(expanded: str, real: str) -> str | None:
     if any(_norm(c) in _own_paths for c in candidates) or any(_sidecar_of_attached(c) for c in candidates):
         return None
     roots = read_roots()
-    if any(_under(c, root) for c in candidates for root in roots):
+
+
+    if any(_under(real, root) for root in roots):
         return None
     if os.path.lexists(expanded) and any(
             _under(_in_agent_spelling(c), work) for c in candidates for work in _AGENT_WORK_DIRS):
@@ -1131,7 +1133,7 @@ def safe_open(path: str, mode: str = "r", *args, **kwargs):
 
 
 def safe_read_text(path: str, encoding: str = "utf-8", max_chars: int = 200_000) -> str:
-    error = validate_path(path)
+    error = validate_read(path)
     if error:
         raise PermissionError(error)
     with open(expand_path(path), encoding=encoding, errors="replace") as handle:

@@ -594,6 +594,36 @@ def _wms_capabilities(url: str) -> tuple[bytes, str, bool]:
     return answer.body or b"", "", True
 
 
+_WMS_HREF_RE = re.compile(rb'(?i)xlink:href\s*=\s*["\']([^"\']+)["\']')
+
+
+def _wms_advertises_refused_host(body: bytes, service_url: str) -> bool:
+
+
+
+
+
+
+
+    from ..core import security
+
+    service_host = urllib.parse.urlsplit(service_url).hostname or ""
+    seen: set = set()
+    for found in _WMS_HREF_RE.finditer(body or b""):
+        href = found.group(1).decode("utf-8", "replace").strip()
+        try:
+            parts = urllib.parse.urlsplit(href)
+            host = (parts.hostname or "", parts.port)
+        except ValueError:
+            continue
+        if parts.scheme.lower() not in ("http", "https") or not host[0] or host in seen:
+            continue
+        seen.add(host)
+        if host[0] != service_host and security.validate_url(href):
+            return True
+    return False
+
+
 def _wms_layer_names(body: bytes) -> list[str]:
 
     names: list[str] = []
@@ -687,6 +717,9 @@ def _add_wms_layer(args: dict) -> dict:
     if not answered:
         return tool_error(f"The WMS at {url} did not load: {silent_why}.",
                           code=net.NETWORK_ERROR, suggestion=net.NETWORK_SUGGESTION)
+    if _wms_advertises_refused_host(body, url):
+
+        uri += ("" if dimensions else "&IgnoreGetMapUrl=1") + "&IgnoreGetFeatureInfoUrl=1"
     ready = _wms_built_here(uri, name)
 
     def _create():

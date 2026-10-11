@@ -355,6 +355,10 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
 
 
     net.check_url(url)
+    refused = vsi.remote_dataset_refusal(url)
+    if refused:
+        return tool_error(f"This file is not opened: {refused}.", "PERMISSION_DENIED",
+                          hint="asset_address_refused")
     _tune_gdal_for_range_reads()
     name = layer_name or os.path.splitext(posixpath.basename(urllib.parse.urlparse(url).path))[0] or "layer"
     size = _remote_size(url)

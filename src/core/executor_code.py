@@ -33,26 +33,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from __future__ import annotations
 
 import contextlib
@@ -155,27 +135,13 @@ def _declared(call: dict) -> str | None:
     return _DECLARED.get(str(call.get("served_effect") or ""))
 
 
-def _libraries(unknown: list) -> list:
-
-    names = {str(item)[len("import "):].split(".")[0] for item in unknown or []
-             if str(item).startswith("import ")}
-    return sorted(n for n in names if n)
-
-
-def _unknown_items(unknown: list) -> list:
-
-    return [f"import {name}" for name in _libraries(unknown)] + [
-        str(item) for item in unknown or [] if not str(item).startswith("import ")]
-
-
 class _ExecutorCode:
 
 
     def _code_plan(self, call: dict, args: dict, danger: str) -> str:
 
         if not _classes_on():
-            call["code_plan"] = {"cls": ce.ASK, "granted": ce.D, "reasons": [], "libraries": [],
-                                 "floor": ce.D, "doors": True}
+            call["code_plan"] = {"cls": ce.ASK, "granted": ce.D, "reasons": []}
             return danger
         code = str(args.get("code") or "")
         verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=self._commit_class)
@@ -186,14 +152,8 @@ class _ExecutorCode:
         remembered = self._code_escalated.get(_fingerprint(code))
         if remembered and ce.RANK[remembered] > ce.RANK[cls]:
             cls = remembered
-
-
-
         call["code_plan"] = {"cls": cls, "granted": cls if cls != ce.ASK else ce.FW,
-                             "reasons": verdict.reasons, "proven": cls != ce.ASK and verdict.cls != ce.ASK,
-                             "libraries": _libraries(verdict.unknown),
-                             "floor": verdict.floor if verdict.cls == ce.ASK else verdict.cls,
-                             "doors": verdict.unprovable}
+                             "reasons": verdict.reasons}
         if cls == ce.FW and _ceiling(call) == ce.FW:
             return ce.DANGER[ce.FP]
         return ce.DANGER[cls]
@@ -421,10 +381,7 @@ class _ExecutorCode:
                        "", details=error_details(coded_fact(hint="question_mode_read_only", reason=reason)))
             return
         approval = self._approval_now()
-        if ((not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]))
-                or self._code_run_granted(call)):
-            if self._code_run_granted(call):
-                log("ALLOW execute_code after a trip (the user allowed code for this run)")
+        if not self._code_always(call, False, approval) and not self._asks(approval, call["danger"]):
             self._execute(call)
             return
         self._code_card(call)
@@ -442,96 +399,7 @@ class _ExecutorCode:
         self.permission_needed.emit(tool_call_id, run_id, str(call.get("sentence") or tr("Run Python code")),
                                     call.get("args") or {})
 
-    def grant_for(self, tool_call_id: str) -> str:
-
-
-
-
-
-
-
-
-        call = self._pending.get(str(tool_call_id or "")) or {}
-        if call.get("name") != CODE_TOOL or call.get("costly") or call.get("unvouched"):
-            return ""
-        plan = call.get("code_plan") or {}
-        offers = ["file_writes"] if plan.get("cls") == ce.FW else []
-        if self._run_grant_offered(call):
-            offers.append("run")
-            if not plan.get("proven"):
-                held = self._code_run_unknown.get(str(call.get("run_id") or ""), set())
-                libraries = sorted(set(plan.get("libraries") or []) | {
-                    item[len("import "):] for item in held if item.startswith("import ")})
-                offers.append("libs:" + ",".join(libraries) if libraries else "calls")
-        return " ".join(offers)
-
-    def _run_grant_offered(self, call: dict) -> bool:
-
-
-
-
-
-        plan = call.get("code_plan") or {}
-        if not plan.get("proven") and (plan.get("doors", True) or plan.get("floor", ce.D) == ce.D):
-            return False
-        return (self._approval_now() == Approval.ASK and _classes_on()
-                and plan.get("cls", ce.ASK) != ce.D and plan.get("granted", ce.D) != ce.D)
-
-    def _code_unknown(self, call: dict, run_id: str) -> ce.Verdict:
-
-
-
-        plan = call.get("code_plan") or {}
-        held = {item[len("import "):] for item in self._code_run_unknown.get(run_id, set())
-                if item.startswith("import ")}
-        return ce.classify(str((call.get("args") or {}).get("code") or ""), tool_class=self._code_tool_class,
-                           commit_class=self._commit_class,
-                           libraries=frozenset(held | set(plan.get("libraries") or [])))
-
-    def drop_run_grant(self, run_id: str) -> None:
-
-        self._code_run_grants.discard(str(run_id or ""))
-        self._code_run_unknown.pop(str(run_id or ""), None)
-
-    def _code_run_granted(self, call: dict) -> bool:
-
-
-
-
-
-
-
-
-
-        run_id = str(call.get("run_id") or "")
-        if not (run_id and run_id in self._code_run_grants and run_id not in self._cancelled
-                and self._run_grant_offered(call)):
-            return False
-        plan = call.get("code_plan") or {}
-        if plan.get("proven"):
-            return True
-        verdict = self._code_unknown(call, run_id)
-        if verdict.cls != ce.ASK:
-            return verdict.cls != ce.D
-        if verdict.unprovable or verdict.floor == ce.D:
-            return False
-        return set(_unknown_items(verdict.unknown)) <= self._code_run_unknown.get(run_id, set())
-
-    def _code_decided(self, call: dict, decision: str) -> str:
+    @staticmethod
+    def _code_decided(call: dict) -> None:
 
         call["carded"] = True
-        plan = call.get("code_plan") or {}
-        if decision == Decision.ALLOW_RUN:
-
-            if self._run_grant_offered(call):
-                run_id = str(call.get("run_id") or "")
-                self._code_run_grants.add(run_id)
-                if not plan.get("proven"):
-                    held = self._code_run_unknown.setdefault(run_id, set())
-                    held.update(_unknown_items(self._code_unknown(call, run_id).unknown))
-            return Decision.ALLOW
-        if decision == Decision.ALLOW_PROJECT and plan.get("cls") == ce.FW:
-            self._settings.allow(self._project_path(), FILE_WRITES_GRANT)
-            return Decision.ALLOW_PROJECT
-        return Decision.ALLOW
-

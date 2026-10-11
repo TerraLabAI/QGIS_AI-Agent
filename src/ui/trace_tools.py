@@ -298,7 +298,7 @@ class _ResultRow(QWidget):
             path = store().want_file(self._logo_url)
             chip = logo_pixmap(path, _RESULT_MARK_PX, ratio) if path else None
             if chip is not None:
-                self._mark.setPixmap(clipped_mark(chip, _RESULT_MARK_PX, ratio))
+                self._mark.setPixmap(clipped_mark(chip, _RESULT_MARK_PX, ratio, True))
                 return
         self._mark.setPixmap(source_mark_pixmap(self._key, _RESULT_MARK_PX, ratio))
 

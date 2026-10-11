@@ -32,7 +32,7 @@ from ..core.crs_ref import crs_ref
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import raster_overviews
+from . import raster_overviews, vector_write
 from ._compat import (
     CONTRAST_CLIP_MINMAX,
     CONTRAST_NONE,
@@ -1291,6 +1291,9 @@ def _delete_field(args: dict) -> dict:
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
             hint="layer_edit_session_open", layer=layer.name(),
         )
+    kmz = vector_write.kmz_in_place_error(layer, "delete a field")
+    if kmz is not None:
+        return kmz
     if not layer.dataProvider().deleteAttributes([idx]):
         return tool_error(
             f"The provider refused to delete field {field_name!r}.",
@@ -1341,6 +1344,9 @@ def _rename_field(args: dict) -> dict:
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
             hint="layer_edit_session_open", layer=layer.name(),
         )
+    kmz = vector_write.kmz_in_place_error(layer, "rename a field")
+    if kmz is not None:
+        return kmz
 
 
 

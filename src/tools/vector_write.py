@@ -226,12 +226,48 @@ def _capability_names(layer) -> set:
 
 
 
+def kmz_in_place_error(layer, action: str = "edit") -> dict | None:
+
+
+
+
+
+
+
+
+
+    try:
+        if str(layer.providerType() or "").lower() != "ogr":
+            return None
+        source = str(layer.source() or "")
+    except Exception:  # noqa: BLE001
+        return None
+    path = source.split("|", 1)[0].strip().strip('"')
+    if not path.lower().endswith(".kmz"):
+        return None
+    try:
+        name = layer.name()
+    except Exception:  # noqa: BLE001
+        name = "this layer"
+    return {
+        "_error": (f"{name!r} is read from the KMZ file {path}, and saving any edit into a KMZ rebuilds the "
+                   "archive empty: every feature in it would be lost while QGIS reports the save as done. "
+                   f"Nothing was changed. To {action}, export it to a GeoPackage with export_layer and edit "
+                   "that copy."),
+        "code": "EXECUTION_FAILED", "reason": "kmz_rebuilt_on_save", "layer": name, "path": path,
+        **coded_fact(hint="edit_blocked", variant="kmz_rebuilt_on_save"),
+    }
+
+
 def cannot_edit_error(layer, action: str = "edit") -> dict:
 
 
 
 
 
+    kmz = kmz_in_place_error(layer, action)
+    if kmz is not None:
+        return kmz
     facts = storage_facts(layer)
     name = ""
     try:
@@ -303,6 +339,11 @@ def open_edit(layer, action: str = "edit") -> tuple[bool, dict | None]:
 
 
 
+
+
+    kmz = kmz_in_place_error(layer, action)
+    if kmz is not None:
+        return False, kmz
     try:
         if layer.isEditable():
             return False, None

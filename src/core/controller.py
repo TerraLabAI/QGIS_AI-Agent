@@ -481,6 +481,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             s.server_tool.connect(self._on_server_tool)
         if hasattr(s, "connection_failed"):
             s.connection_failed.connect(self._on_connection_failed)
+        if hasattr(s, "connection_ready"):
+            s.connection_ready.connect(self._on_connection_ready)
 
     def _wire_executor(self) -> None:
         e = self._executor

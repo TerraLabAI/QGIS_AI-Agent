@@ -319,8 +319,6 @@ class _ExecutorRuns:
         self._cancelled[run_id] = None
         self._cancelled.move_to_end(run_id)
         _stop_snippet_algorithm(run_id)
-        self._code_run_grants.discard(run_id)
-        self._code_run_unknown.pop(run_id, None)
         while len(self._cancelled) > CANCELLED_KEEP:
             self._cancelled.popitem(last=False)
         if halt:
@@ -467,8 +465,6 @@ class _ExecutorRuns:
         warnings = self._call_warnings.pop(run_id, None)
         outputs = self._output_files.pop(run_id, None)
         self._run_allowed.pop(run_id, None)
-        self._code_run_grants.discard(run_id)
-        self._code_run_unknown.pop(run_id, None)
         self._run_denied.pop(run_id, None)
         self._task_ids.pop(run_id, None)
         snapshot = self._snapshots.pop(run_id, None)

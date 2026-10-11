@@ -29,6 +29,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import base64
@@ -155,9 +157,40 @@ def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str
     return _IMG_SRC.sub(_swap, page), report
 
 
+_META_REFRESH = re.compile(r"<meta\b[^>]*\bhttp-equiv\s*=\s*[\"']?refresh\b[^>]*>", re.IGNORECASE)
+_SCRIPT_BODY = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.IGNORECASE | re.DOTALL)
+_HANDLER_ATTR = re.compile(r"""\son[a-z]+\s*=\s*(["'])(.*?)\1""", re.IGNORECASE | re.DOTALL)
+_JS_URL_ATTR = re.compile(r"""\b(?:href|src|action)\s*=\s*(["'])\s*javascript:(.*?)\1""", re.IGNORECASE | re.DOTALL)
+_ADDRESS = re.compile(r"""https?://[^\s"'`<>\\)]+""", re.IGNORECASE)
+
+
+def active_urls(page: str) -> list[str]:
+
+
+
+
+
+
+    text = str(page or "")
+    code = [m.group(1) for m in _SCRIPT_BODY.finditer(text)]
+    code += [m.group(2) for m in _HANDLER_ATTR.finditer(text)]
+    code += [m.group(2) for m in _JS_URL_ATTR.finditer(text)]
+    found: list[str] = []
+    for chunk in code:
+        for match in _ADDRESS.finditer(_html.unescape(chunk)):
+            url = match.group(0).rstrip(".,;")
+            if url not in found:
+                found.append(url)
+    return found
+
+
 def as_document(page: str, title: str) -> str:
 
-    text = page.lstrip("﻿")
+
+
+
+
+    text = _META_REFRESH.sub("", page.lstrip("\ufeff"))
     if not _HAS_HTML.search(text):
         text = (f'<html lang="en"><head><title>{_html.escape(title)}</title></head>'
                 f"<body>{text}</body></html>")

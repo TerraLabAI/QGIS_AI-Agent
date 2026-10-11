@@ -965,7 +965,8 @@ def get_pro_price() -> str:
     currency = str(pricing.get("currency") or "").strip().upper()
     if minor <= 0 or not re.fullmatch(r"[A-Z]{3}", currency):
         return ""
-    amount = f"{minor // 100}" if minor % 100 == 0 else f"{minor / 100:.2f}"
+
+    amount = f"{minor // 100:,}" if minor % 100 == 0 else f"{minor / 100:,.2f}"
 
     return f"{amount} {currency}"
 

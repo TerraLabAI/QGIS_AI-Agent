@@ -139,13 +139,20 @@ def _take_qgis_window_screenshot(args: dict) -> dict:
 
     canvas = iface.mapCanvas()
     still_drawing = canvas is not None and _wait_for_canvas(canvas)
-    picture, overlays = _window_picture(main_window)
+    views_3d = {"drawn": [], "not_drawn": []}
+    picture, overlays = _window_picture(main_window, views_3d)
     result = _grab_widget(main_window, max_width, args.get("save_path", ""), fmt, quality, pixmap=picture)
     if "_error" not in result:
         result["widget"] = _widget_ident(main_window)
         result["capture"] = "qgis_main_window"
         if overlays:
             result["windows_on_top"] = overlays
+        if views_3d["drawn"]:
+
+            result["3d_views_rendered_in"] = views_3d["drawn"]
+        if views_3d["not_drawn"]:
+
+            result["3d_views_not_in_picture"] = views_3d["not_drawn"]
         if still_drawing:
             result["canvas_still_drawing"] = True
     return result
@@ -175,7 +182,14 @@ def _wait_for_canvas(canvas) -> bool:
     return canvas.isDrawing()
 
 
-def _window_picture(main_window):
+def _window_picture(main_window, views_3d=None):
+
+
+
+
+
+
+
 
 
 
@@ -204,15 +218,71 @@ def _window_picture(main_window):
         above.append((rank, window, top_left - origin))
     above.sort(key=lambda item: item[0])
     overlays = []
-    if above:
+    views = _exposed_3d_views()
+    if above or views:
         painter = QPainter(pixmap)
         try:
+            _paint_3d_views(painter, main_window, origin, views, views_3d)
             for _rank, window, offset in above:
                 painter.drawPixmap(offset, window.grab())
+                _paint_3d_views(painter, window, origin, views, views_3d)
                 overlays.append(window.windowTitle() or window.objectName() or window.metaObject().className())
         finally:
             painter.end()
     return pixmap, overlays
+
+
+def _exposed_3d_views() -> list:
+
+    from ..map_3d import open_3d_views
+
+    return [(index, canvas) for index, canvas in enumerate(open_3d_views() or []) if canvas.isExposed()]
+
+
+def _paint_3d_views(painter, host, origin, views, views_3d) -> None:
+
+
+
+    import os
+    import tempfile
+    import uuid
+
+    from qgis.PyQt.QtCore import QPoint, QRect
+    from qgis.PyQt.QtGui import QImage
+    from qgis.utils import iface
+
+    from ...core import limits
+    from ..harvest_layout import _CAPTURE_PAGE_MM, _export_failed, _render_3d_page
+    from ..layout_elevation import snapshot_3d_view
+
+    holder = host.windowHandle()
+    for index, canvas in views:
+        if holder is None or canvas.parent() is not holder:
+            continue
+        title = "" if host is iface.mainWindow() else host.windowTitle()
+        name = f"{title} (view_index {index})" if title else f"view_index {index}"
+        view, error = snapshot_3d_view({"view_index": index})
+        picture = None
+        if not error:
+            pixels = canvas.width() * canvas.devicePixelRatio()
+            dpi = max(10, min(round(pixels * 25.4 / _CAPTURE_PAGE_MM), int(limits.current("MAX_RENDER_DPI"))))
+            png_path = os.path.join(tempfile.gettempdir(), f"agent_3d_{uuid.uuid4().hex[:8]}.png")
+            try:
+                code = _render_3d_page(view, dpi, png_path)
+                if not _export_failed(code) and os.path.exists(png_path):
+                    picture = QImage(png_path)
+            finally:
+                try:
+                    os.remove(png_path)
+                except OSError:
+                    pass
+        if picture is None or picture.isNull():
+            if views_3d is not None:
+                views_3d["not_drawn"].append(name)
+            continue
+        painter.drawImage(QRect(canvas.mapToGlobal(QPoint(0, 0)) - origin, canvas.size()), picture)
+        if views_3d is not None:
+            views_3d["drawn"].append(name)
 
 
 def _take_widget_screenshot(args: dict) -> dict:

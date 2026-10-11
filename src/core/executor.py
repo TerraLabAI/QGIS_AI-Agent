@@ -151,10 +151,6 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
         self._run_allowed: dict[str, set[str]] = {}
 
-        self._code_run_grants: set[str] = set()
-
-        self._code_run_unknown: dict[str, set[str]] = {}
-
 
 
 

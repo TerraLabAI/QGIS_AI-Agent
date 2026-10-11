@@ -40,9 +40,15 @@
 
 
 
+
+
 from __future__ import annotations
 
 import contextlib
+import html
+import os
+import re
+import urllib.parse
 
 
 
@@ -327,3 +333,80 @@ def scoped_read(gdal=None, **overrides: str):
     finally:
         for key, value in previous.items():
             gdal.SetConfigOption(key, value)
+
+
+
+
+
+
+
+
+
+
+_XML_DATASET_MAX_BYTES = 2 * 1024 * 1024
+_XML_SOURCE_RE = re.compile(
+    rb"(?is)<(SourceFilename|SrcDataSource|SourceDataset)\b([^>]*)>(.*?)</\1\s*>")
+
+
+def looks_like_xml(head: bytes) -> bool:
+    return bytes(head or b"").lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<")
+
+
+def xml_dataset_refusal(body: bytes, base_url: str) -> str | None:
+
+    if not looks_like_xml(body):
+        return None
+    from . import net
+
+    for _tag, attrs, raw in _XML_SOURCE_RE.findall(body):
+        text = html.unescape(raw.decode("utf-8", "replace")).strip()
+        if text.lower().startswith("/vsicurl/"):
+            text = text[len("/vsicurl/"):]
+        elif b'relativetovrt="1"' in attrs.lower().replace(b" ", b"") and "://" not in text \
+                and not text.startswith(("/", "\\")):
+            text = urllib.parse.urljoin(base_url, text)
+        if not text.lower().startswith(("http://", "https://")):
+            return f"the dataset at {base_url} reads a source this plugin does not open ({text[:120]})"
+        try:
+            net.check_url(text)
+        except Exception as exc:  # noqa: BLE001
+            return f"the dataset at {base_url} reads {text[:120]}, which is not fetched: {exc}"
+    return None
+
+
+def remote_dataset_refusal(url: str) -> str | None:
+
+
+
+
+
+
+
+    from . import net, security
+
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return None
+    ext = os.path.splitext(parts.path)[1].lower()
+    if ext not in ("", ".vrt") or security._routed_public_host(parts.hostname or ""):
+        return None
+    try:
+        response = net.open_url(url, timeout=15)
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        reader = getattr(response, "read1", None) or response.read
+        head = reader(256)
+        if not looks_like_xml(head):
+            return None
+        try:
+            rest = net.read_bounded(response, _XML_DATASET_MAX_BYTES, deadline=None)
+        except net.FetchTooLarge:
+            return f"the XML dataset at {url} is too large to check its sources"
+        except Exception:  # noqa: BLE001
+            return None
+        return xml_dataset_refusal(head + rest, url)
+    finally:
+        with contextlib.suppress(Exception):
+            response.close()

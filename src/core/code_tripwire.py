@@ -69,9 +69,10 @@ class NeedsPermission(BaseException):
 class Refused(BaseException):
 
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, hint: str = ""):
         super().__init__(reason)
         self.reason = reason
+        self.hint = hint
 
 
 class _State:
@@ -299,7 +300,11 @@ def file_class(path, creating: bool = True) -> tuple[str, str]:
     if os.path.exists(full):
         return ce.FW, f"replaces the file {shown}"
     roots = [security.project_dir(), security._output_root] + list(security._allowed_roots)
-    if creating and any(security._under(full, root) for root in roots if root):
+
+    real = os.path.realpath(full)
+    if creating and security.validate_path(full, write=True) is None and any(
+            security._under(full, root) for root in roots if root) and any(
+            security._under(real, os.path.realpath(root)) for root in roots if root):
         return ce.FP, f"writes the new file {shown}"
     return ce.FW, f"writes {full}"
 
@@ -337,6 +342,45 @@ def _outside_scope(source, provider: str = "") -> str:
     return security.validate_read(path) or ""
 
 
+_BYTECODE_EVENTS = frozenset({"open", "os.mkdir", "os.rename", "os.replace"})
+
+
+def _bytecode_cache_write(event: str, args) -> bool:
+
+
+
+
+
+
+    if event not in _BYTECODE_EVENTS or not args:
+        return False
+    try:
+        frame = sys._getframe(1)
+    except ValueError:
+        return False
+    here = __file__
+    while frame is not None and frame.f_code.co_filename == here:
+        frame = frame.f_back
+    if frame is None or not frame.f_code.co_filename.startswith("<frozen importlib._bootstrap"):
+        return False
+    targets = [args[0]] + ([args[1]] if event in ("os.rename", "os.replace") and len(args) > 1 else [])
+    for target in targets:
+        try:
+            text = os.fsdecode(target)
+        except TypeError:
+            return False
+        real = os.path.realpath(text)
+        if event == "os.mkdir":
+            if os.path.basename(real) != "__pycache__":
+                return False
+            continue
+        name = os.path.basename(real)
+        if os.path.basename(os.path.dirname(real)) != "__pycache__" or not (
+                name.endswith(".pyc") or ".pyc." in name):
+            return False
+    return True
+
+
 
 
 class _Arm:
@@ -355,8 +399,8 @@ class _Arm:
             self.trip = exc
         raise exc
 
-    def refuse(self, reason: str) -> None:
-        exc = Refused(reason)
+    def refuse(self, reason: str, hint: str = "") -> None:
+        exc = Refused(reason, hint)
         if self.trip is None:
             self.trip = exc
         raise exc
@@ -379,7 +423,7 @@ class _Arm:
         kind = _event_kind(event)
         if not kind:
             return
-        if args and "__pycache__" in str(args[0]):
+        if _bytecode_cache_write(event, args):
 
             return
         if event == "open":
@@ -595,9 +639,22 @@ def _file_of(layer) -> str:
         return _layer_name(layer)
 
 
+
+
+_KMZ = ("saves into the KMZ file {file}, which GDAL rebuilds empty on save, losing every feature in it; "
+        "export_layer to a GeoPackage gives a copy to edit")
+
+
+def _refuse_kmz(arm, provider: str, source: str) -> None:
+    path = str(source or "").split("|", 1)[0].strip().strip('"')
+    if str(provider or "").lower() == "ogr" and path.lower().endswith(".kmz"):
+        arm.refuse(_KMZ.format(file=os.path.basename(path)), hint="code_kmz_in_place")
+
+
 def _commit(arm, layer, *args, **kwargs):
     if layer.providerType() == "memory":
         return
+    _refuse_kmz(arm, layer.providerType(), layer.source())
     buffer = layer.editBuffer()
     deletes = bool(buffer is not None and (buffer.deletedFeatureIds() or buffer.deletedAttributeIds()))
     if deletes:
@@ -610,6 +667,7 @@ def _provider_write(deletes: bool):
         try:
             if provider.name() == "memory":
                 return
+            _refuse_kmz(arm, provider.name(), provider.dataSourceUri())
         except Exception:  # nosec B110
             pass
         try:

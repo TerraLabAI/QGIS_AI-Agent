@@ -363,15 +363,47 @@ def _open_writes(node: ast.Call) -> bool:
     return any(flag in mode.value for flag in "wax+")
 
 
-def _local_functions(tree: ast.AST) -> set[str]:
+def _rebound_names(tree: ast.AST) -> set[str]:
+
 
     names = set()
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names.update(str(a.asname or a.name or "").split(".")[0] for a in node.names)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            names.add(node.id)
+        elif isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
             names.add(node.name)
-        elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
-            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
+    for node in ast.walk(tree):
+
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
+            lambdas = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            for name in lambdas:
+                stores = sum(1 for n in ast.walk(tree) if isinstance(n, ast.Name) and n.id == name
+                             and isinstance(n.ctx, (ast.Store, ast.Del)))
+                if stores == 1:
+                    names.discard(name)
     return names
+
+
+def _local_functions(tree: ast.AST) -> set[str]:
+
+
+
+
+
+    names: dict[str, int] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+            names[node.name] = names.get(node.name, 0) + 1
+        elif isinstance(node, ast.Assign) and isinstance(node.value, ast.Lambda):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names[target.id] = names.get(target.id, 0) + 1
+    rebound = _rebound_names(tree)
+    return {name for name, count in names.items() if count == 1 and name not in rebound}
 
 
 def _local_classes_methods(tree: ast.AST) -> set[str]:
@@ -379,6 +411,17 @@ def _local_classes_methods(tree: ast.AST) -> set[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.ClassDef):
             names.update(item.name for item in node.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)))
+    return names
+
+
+def _local_instances(tree: ast.AST, classes: set[str]) -> set[str]:
+
+
+    names = {"self", "cls"} | set(classes)
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Assign) and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name) and node.value.func.id in classes):
+            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
     return names
 
 
@@ -409,7 +452,12 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
     unknown: list[str] = []
     doors = False
     t = tables()
-    locals_ = _local_functions(tree) | _local_classes_methods(tree)
+    locals_ = _local_functions(tree)
+
+
+    local_methods = _local_classes_methods(tree)
+    local_classes = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)} & locals_
+    instances = _local_instances(tree, local_classes)
     libraries = _library_names(tree, frozenset(t.get("library_modules") or ()) | frozenset(libraries))
     commits = False
 
@@ -450,7 +498,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             reach(FW, "writes over a file")
         elif name == "commitChanges":
             commits = True
-        elif name in t["r_attrs"] or name in locals_:
+        elif name in t["r_attrs"] or (name in local_methods and root in instances):
             pass
         elif name in t["p_attrs"]:
             reach(P, _words(name))
@@ -484,6 +532,10 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                 unknown.append(f"import {module}")
         elif isinstance(node, ast.Call):
             kind, callee = _callee(node)
+            if any(k.arg == "allow_pickle" and not (isinstance(k.value, ast.Constant) and k.value.value is False)
+                   for k in node.keywords) or callee == "read_pickle":
+
+                unknown.append("unpickles a file")
             if kind == "expr":
 
                 unknown.append("a call through an expression")

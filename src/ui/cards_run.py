@@ -327,10 +327,6 @@ class PermissionCard(_Card, FoldMixin):
 
     _DECISION_TEXT = {
         "allow": QT_TRANSLATE_NOOP("PermissionCard", "Allowed"),
-
-        "allow_project": QT_TRANSLATE_NOOP("PermissionCard", "Allowed for this project"),
-
-        "allow_run": QT_TRANSLATE_NOOP("PermissionCard", "Allowed for this run"),
         "deny": QT_TRANSLATE_NOOP("PermissionCard", "Denied"),
     }
 
@@ -509,20 +505,6 @@ class PermissionCard(_Card, FoldMixin):
         offers = str(self._grant or "").split()
         if "answer" in offers:
             notes.append(self.tr("Your answer also counts for the next calls of this kind in this answer."))
-        libs = next((o[len("libs:"):] for o in offers if o.startswith("libs:")), "")
-        if "run" in offers and not grouped:
-
-            if libs:
-
-
-
-
-                notes.append(self.tr("Allow for this run also covers later scripts using {libs}, including "
-                                     "files they write or delete. Removing layers or features still asks.")
-                             .format(libs=", ".join(libs.split(","))))
-            elif "calls" in offers:
-                notes.append(self.tr("Allow for this run also covers later scripts that make the same calls. "
-                                     "Removing layers or features still asks."))
         for note in notes:
             line = ChatLabel(note, self._body, wrap=True, selectable=True)
             line.setObjectName("permissionReason")
@@ -566,29 +548,14 @@ class PermissionCard(_Card, FoldMixin):
             body.addWidget(self._form)
 
         footer = AnswerFooter(self._body)
-        if "file_writes" in offers and not grouped:
-
-
-
-            self._edit_btn = self._button(self.tr("Allow file writes in this project"), _BTN_QUIET_LINK,
-                                          lambda: self._decide("allow_project"))
-            self._edit_btn.setObjectName("agentPermissionAllowProject")
-        elif self._fields:
+        if self._fields:
             self._edit_btn = self._button(self.tr("Edit values"), _BTN_QUIET_LINK,
                                           self._toggle_form)
         deny = _pill(self._button(self.tr("Deny"), _BTN_GHOST_PILL,
                                   lambda: self._decide("deny")))
         self._allow_btn = _pill(self._button(self.tr("Allow"), _BTN_PRIMARY_PILL,
                                              lambda: self._decide("allow")))
-        answers = [(deny, "deny")]
-        self._run_btn = None
-        if "run" in offers and not grouped:
-
-
-            self._run_btn = _pill(self._button(self.tr("Allow for this run"), _BTN_GHOST_PILL,
-                                               lambda: self._decide("allow_run")))
-            answers.append((self._run_btn, "allow_run"))
-        answers.append((self._allow_btn, "allow"))
+        answers = [(deny, "deny"), (self._allow_btn, "allow")]
         for button, action in answers:
             button.setObjectName("agentPermission" + "".join(p.capitalize() for p in action.split("_")))
             button.setProperty("agentAction", action)

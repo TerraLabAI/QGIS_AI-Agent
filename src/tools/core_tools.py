@@ -54,13 +54,84 @@ from .style_tools import (
 )
 
 
+_PYTHON_ALGORITHMS = frozenset({"qgis:advancedpythonfieldcalculator"})
+
+_FORMULA_FILE_NAMES = frozenset({
+    "load", "loads", "save", "savez", "savez_compressed", "savetxt", "loadtxt", "genfromtxt", "fromfile",
+    "tofile", "memmap", "fromregex", "DataSource", "ctypeslib", "lib", "f2py", "testing", "distutils",
+    "info", "source", "dump", "dumps",
+})
+
+
+def _plain_formula(formula: object) -> bool:
+
+
+
+
+
+
+    import ast
+
+    try:
+        tree = ast.parse(str(formula or ""), mode="eval")
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return False
+    try:
+        import numpy
+    except ImportError:
+        numpy = None
+
+    def numpy_name(name: str) -> bool:
+        return (not name.startswith("_") and name not in _FORMULA_FILE_NAMES
+                and (numpy is None or hasattr(numpy, name)))
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Expression, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp,
+                             ast.Constant, ast.Load, ast.operator, ast.unaryop, ast.boolop, ast.cmpop,
+                             ast.Tuple, ast.List, ast.Subscript, ast.Slice, ast.keyword)):
+            continue
+        if isinstance(node, ast.Name):
+            if node.id.startswith("_"):
+                return False
+            continue
+        if isinstance(node, ast.Attribute):
+            if not (isinstance(node.value, ast.Name) and node.value.id in ("numpy", "np")
+                    and numpy_name(node.attr)):
+                if node.attr.startswith("_") or node.attr in _FORMULA_FILE_NAMES or not (
+                        isinstance(node.value, ast.Name) and len(node.value.id) == 1):
+                    return False
+            continue
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and not numpy_name(func.id):
+                return False
+            if not isinstance(func, (ast.Name, ast.Attribute)):
+                return False
+            continue
+        return False
+    return True
+
+
+def _formula_is_code(args: dict) -> bool:
+    if str(args.get("algorithm_id") or "").strip().lower() != "gdal:rastercalculator":
+        return False
+    params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
+    upper = {str(k).upper(): v for k, v in params.items()}
+    extra = str(upper.get("EXTRA") or "")
+    return not _plain_formula(upper.get("FORMULA")) or "calc" in extra.lower()
+
+
 def _runs_a_script(args: dict) -> bool:
 
 
 
 
 
-    return str(args.get("algorithm_id") or "").strip().lower().startswith(("script:", "model:"))
+
+
+    algorithm = str(args.get("algorithm_id") or "").strip().lower()
+    return (algorithm.startswith(("script:", "model:")) or algorithm in _PYTHON_ALGORITHMS
+            or _formula_is_code(args))
 
 
 def _processing_plan(args: dict) -> tuple[str, list]:

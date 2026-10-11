@@ -2,8 +2,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 
+
+
+
+
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import re
 import urllib.error
@@ -164,21 +169,75 @@ def _in_local_view(hit: dict, viewbox) -> bool:
     return bounds[0] <= float(hit["lon"]) <= bounds[2] and bounds[1] <= float(hit["lat"]) <= bounds[3]
 
 
+def _place_filters() -> list:
+
+    return [[("osm_tag", tag) for tag in _PLACE_TAGS], [("layer", layer) for layer in _PLACE_AREA_LAYERS]]
+
+
+def _photon_place_hits_by(base: str, query: str, viewbox, lang: str, filters: list) -> list:
+
+    extra = filters + ([("lang", lang)] if lang else [])
+    try:
+        payload = _geocode_fetch(_photon_forward_url(base, query, _PLACE_CANDIDATES, None, viewbox, extra=extra))
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        log_warning(f"Place lookup by kind failed for {query!r}: {exc}")
+        return []
+    return [hit for hit in (_parse_photon_forward(payload, True) or []) if _is_number(hit.get("lon"))]
+
+
 def _photon_place_hits(base: str, query: str, viewbox, lang: str) -> list:
 
     found: list = []
-    for filters in ([("osm_tag", tag) for tag in _PLACE_TAGS], [("layer", layer) for layer in _PLACE_AREA_LAYERS]):
-        extra = filters + ([("lang", lang)] if lang else [])
-        try:
-            payload = _geocode_fetch(_photon_forward_url(base, query, _PLACE_CANDIDATES, None, viewbox, extra=extra))
-        except (urllib.error.URLError, OSError, ValueError) as exc:
-            log_warning(f"Place lookup by kind failed for {query!r}: {exc}")
-            continue
-        found.extend(hit for hit in (_parse_photon_forward(payload, True) or []) if _is_number(hit.get("lon")))
+    for filters in _place_filters():
+        found.extend(_photon_place_hits_by(base, query, viewbox, lang, filters))
     return found
 
 
-def _rank_places(query: str, hits: list, viewbox, base: str) -> list:
+def _start_place_lookups(pool, base: str, query: str, viewbox):
+
+
+
+
+
+
+
+    cancel = net.current_cancel_check()
+
+    def ask(lang: str, filters: list) -> list:
+        net.set_cancel_check(cancel)
+        try:
+            return _photon_place_hits_by(base, query, viewbox, lang, filters)
+        finally:
+            net.set_cancel_check(None)
+
+    asked = {lang: [pool.submit(ask, lang, filters) for filters in _place_filters()] for lang in ("en", "")}
+    return lambda lang: [hit for future in asked[lang] for hit in future.result()]
+
+
+def _better_among(query: str, hits: list):
+
+    asked = query.split(",")[0]
+    one_name = "," not in query
+
+
+
+    return next((hit for hit in hits[1:]
+                 if _geo_tier(hit) >= 3 and not _natural_place(hit)
+                 and (_named_as(asked, hit, exact=True) or (one_name and _big_place(hit)))), None)
+
+
+def _needs_place_lookups(query: str, hits: list, viewbox) -> bool:
+
+    if not hits or re.search(r"\d", query):
+        return False
+    first = hits[0]
+    tier = _geo_tier(first)
+    if tier >= 3 or (tier >= 1 and _in_local_view(first, viewbox)):
+        return False
+    return _better_among(query, hits) is None
+
+
+def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None) -> list:
 
 
 
@@ -195,17 +254,14 @@ def _rank_places(query: str, hits: list, viewbox, base: str) -> list:
     tier = _geo_tier(first)
     if tier >= 3 or (tier >= 1 and _in_local_view(first, viewbox)):
         return hits
-
-
-
-    one_name = "," not in query
-    better = next((hit for hit in hits[1:]
-                   if _geo_tier(hit) >= 3 and not _natural_place(hit)
-                   and (_named_as(asked, hit, exact=True) or (one_name and _big_place(hit)))), None)
+    better = _better_among(query, hits)
+    if place_hits is None:
+        def place_hits(lang):
+            return _photon_place_hits(base, query, viewbox, lang)
     for lang in ("en", ""):
         if better is not None:
             break
-        better = next((hit for hit in _photon_place_hits(base, query, viewbox, lang)
+        better = next((hit for hit in place_hits(lang)
                        if _geo_tier(hit) > max(tier, 2) and _named_as(asked, hit, exact=True)), None)
     if better is None:
         return hits
@@ -991,20 +1047,35 @@ def _geocode(args: dict) -> dict:
 
 
 
-    if viewbox and results and not fell_back and not _answers_by_name(query, results):
-        try:
-            plain = provider["parse_forward"](
-                _geocode_fetch(provider["forward_url"](base, query, fetched, country_codes, None)),
-                bool(args.get("verbose", False)))
-        except (urllib.error.URLError, OSError, ValueError):
-            plain = None
-        if plain and _answers_by_name(query, _keep_wanted(plain)):
-            results = _keep_wanted(plain)
-
-    if provider_id == "photon" and results and not fell_back:
+    check_plain = bool(viewbox and results and not fell_back and not _answers_by_name(query, results))
+    ranks = provider_id == "photon" and bool(results) and not fell_back
 
 
-        results = _rank_places(query, results, viewbox, base)
+
+    pool = None
+    place_hits = None
+    if ranks and (check_plain or _needs_place_lookups(query, results, viewbox)):
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=2 * len(_place_filters()),
+                                                     thread_name_prefix="geocode-kinds")
+        place_hits = _start_place_lookups(pool, base, query, viewbox)
+    try:
+        if check_plain:
+            try:
+                plain = provider["parse_forward"](
+                    _geocode_fetch(provider["forward_url"](base, query, fetched, country_codes, None)),
+                    bool(args.get("verbose", False)))
+            except (urllib.error.URLError, OSError, ValueError):
+                plain = None
+            if plain and _answers_by_name(query, _keep_wanted(plain)):
+                results = _keep_wanted(plain)
+
+        if ranks:
+
+
+            results = _rank_places(query, results, viewbox, base, place_hits)
+    finally:
+        if pool is not None:
+            pool.shutdown(wait=False)
 
     if fell_back:
 

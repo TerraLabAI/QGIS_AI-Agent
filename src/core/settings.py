@@ -1034,6 +1034,20 @@ class Settings:
     def saved_session(self, value: str) -> None:
         self._set("saved_session", value or "")
 
+    @property
+    def last_good_addresses(self) -> dict:
+
+
+        try:
+            held = json.loads(self._get("last_good_addresses", "") or "{}")
+        except ValueError:
+            return {}
+        return {str(h): str(a) for h, a in held.items() if h and a} if isinstance(held, dict) else {}
+
+    @last_good_addresses.setter
+    def last_good_addresses(self, value: dict) -> None:
+        self._set("last_good_addresses", json.dumps(value or {}, sort_keys=True))
+
 
 
 

@@ -104,6 +104,7 @@ from .net_opener import (
     _pin_table,
     _pinned_for,
     check_url,
+    close_idle_connections,
     proxy_in_use,
     set_proxy,
     set_trust,
@@ -131,6 +132,7 @@ __all__ = [
     "check_url",
     "CHUNK",
     "clear_cache",
+    "close_idle_connections",
     "current_cancel_check",
     "is_cancelled",
     "DEFAULT_CONNECT_TIMEOUT_S",
@@ -539,6 +541,23 @@ _REFUSAL_WIRE_BYTES = 64 * 1024
 _REFUSAL_TEXT_BYTES = 256 * 1024
 
 
+def _refusal_drained(exc: urllib.error.HTTPError, headers) -> urllib.error.HTTPError:
+
+
+
+
+    promised = _declared_length(headers) if headers is not None else None
+    if promised is None or promised > _REFUSAL_WIRE_BYTES or getattr(exc, "fp", None) is None:
+        return exc
+    try:
+        raw = exc.read(promised) or b""
+    except Exception:  # noqa: BLE001
+        raw = b""
+    with contextlib.suppress(Exception):
+        exc.close()
+    return urllib.error.HTTPError(exc.url, exc.code, exc.msg, headers, io.BytesIO(raw))
+
+
 def _refusal_readable(exc: urllib.error.HTTPError) -> urllib.error.HTTPError:
 
 
@@ -556,7 +575,7 @@ def _refusal_readable(exc: urllib.error.HTTPError) -> urllib.error.HTTPError:
         return exc
     kind = encoding.strip().lower().split(",")[0].strip()
     if kind not in ("gzip", "x-gzip", "deflate"):
-        return exc
+        return _refusal_drained(exc, headers)
     try:
         raw = exc.read(_REFUSAL_WIRE_BYTES) or b""
     except Exception:  # noqa: BLE001
