@@ -72,6 +72,10 @@ class CallContext:
     restore_previous: object = None
 
 
+    run_id: str = ""
+    stop: object = None
+
+
 
 
 _LOCAL = threading.local()

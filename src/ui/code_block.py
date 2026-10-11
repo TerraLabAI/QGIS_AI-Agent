@@ -315,6 +315,7 @@ class _Body(QPlainTextEdit):
         self.document().setDocumentMargin(0)
         self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse
                                      | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+        self.setCursorWidth(0)
         self._gutter = _Gutter(self)
         self._gutter_font = mono_font(FONT_HINT)
         self._diff = False

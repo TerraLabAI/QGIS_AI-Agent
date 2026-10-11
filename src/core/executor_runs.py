@@ -41,13 +41,40 @@ def tr(text: str) -> str:
 
 def _open_dialog() -> str | None:
 
+
+
+
+
     try:
         from qgis.PyQt.QtWidgets import QApplication
+
+        from .code_processing import WINDOW_NAME
 
         dialog = QApplication.activeModalWidget()
     except Exception:  # noqa: BLE001
         return None
-    return None if dialog is None else str(dialog.windowTitle())
+    if dialog is None or dialog.objectName() == WINDOW_NAME:
+        return None
+    return str(dialog.windowTitle())
+
+
+def _stop_snippet_algorithm(run_id: str) -> None:
+
+    try:
+        from .code_processing import stop
+    except ImportError:
+        return
+    stop(run_id)
+
+
+def _snippet_waiting() -> bool:
+
+    try:
+        from .code_processing import _WAITS
+    except ImportError:
+        return False
+    return bool(_WAITS)
+
 
 class _ExecutorRuns:
     @staticmethod
@@ -199,20 +226,25 @@ class _ExecutorRuns:
 
 
 
+
+
         last, self._dialog_tick = self._dialog_tick, now
         title = _open_dialog() if self._inflight else None
 
         if title is None:
             code_guard.WAITING_ON_USER.clear()
-            return
-        code_guard.WAITING_ON_USER.set()
+        else:
+            code_guard.WAITING_ON_USER.set()
         if last is None:
             return
         step = min(now - last, 2.0)
+        if title is None and not _snippet_waiting():
+            return
         for tool_call_id, (_run_id, _name, _started, in_background) in self._inflight.items():
             if not in_background:
-                seconds, _title = self._dialog_waits.get(tool_call_id, (0.0, ""))
-                self._dialog_waits[tool_call_id] = (seconds + step, title)
+                looped, on_dialog, seen = self._dialog_waits.get(tool_call_id, (0.0, 0.0, ""))
+                self._dialog_waits[tool_call_id] = (looped + step, on_dialog + (step if title is not None else 0.0),
+                                                    title if title is not None else seen)
 
     def _answer_once(self, tool_call_id: str) -> None:
 
@@ -286,6 +318,7 @@ class _ExecutorRuns:
 
         self._cancelled[run_id] = None
         self._cancelled.move_to_end(run_id)
+        _stop_snippet_algorithm(run_id)
         self._code_run_grants.discard(run_id)
         self._code_run_unknown.pop(run_id, None)
         while len(self._cancelled) > CANCELLED_KEEP:
@@ -308,6 +341,7 @@ class _ExecutorRuns:
         for tool_call_id, call in list(self._pending.items()):
             if call.get("run_id") == run_id:
                 self._pending.pop(tool_call_id, None)
+                self._card_closed_unallowed(call)
                 self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
                 self._table.put(tool_call_id, "deny", {})
                 self.permission_resolved.emit(tool_call_id, Decision.DENY)
@@ -344,6 +378,11 @@ class _ExecutorRuns:
 
 
         self._replaced.add(run_id)
+        for call in self._pending.values():
+            if call.get("run_id") == run_id:
+
+                call.pop("_prior_zone", None)
+                call.pop("_zone_proposed", None)
         self.cancel_run(run_id)
         if run_id in self._touched:
             self._touched[run_id] = set()
@@ -358,6 +397,8 @@ class _ExecutorRuns:
 
 
         self._closed = True
+
+        _stop_snippet_algorithm("")
         self._waiting_for_history.clear()
         self._executing.clear()
         self._background.clear()
@@ -406,6 +447,7 @@ class _ExecutorRuns:
             return self._end_run(run_id)
 
     def _end_run(self, run_id: str) -> RunSnapshot | None:
+        _stop_snippet_algorithm(run_id)
 
         if (any(c.get("run_id") == run_id for c in [*self._pending.values(), *self._questions.values()])
                 or any(c.get("run_id") == run_id for c in self._waiting_for_history.values())

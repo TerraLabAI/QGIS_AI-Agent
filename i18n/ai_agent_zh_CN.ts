@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>另外 1 列</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>另外 1 行</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>另外 {0} 列</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>另外 {0} 行</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>正在准备摘要…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>“{query}” 的结果</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>AI Segmentation 审阅[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>保存 AI Segmentation 审阅结果</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n 个示例</translation>
@@ -3112,6 +3144,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>更改前</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>中间过程</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>易读</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>图层名称</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>问题</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>回复语言</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>回复风格</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>单位</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>正在运行。请停止运行或等待其完成。</translation>
@@ -3804,6 +3872,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>已将 {0} 改为 {1}</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>已从记忆中删除</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>设置已恢复</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>许可证和条款</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>在浏览器中打开 {host}</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>显示更多</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>%n 条代理可运行的命令</translation>
@@ -4882,6 +4974,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> 以及 {n} 个现成数据集</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>无需设置：直接在聊天中提问即可。智能体会自行访问这些{reach}，免费，无需账户或密钥。</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Click to open its page.</source>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>这些数据来自智能体所知来源之外的一个网站。</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>这些数据来自智能体所知来源之外的网站。</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>允许</translation>
@@ -6005,6 +6113,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>免费版 AI Agent 已被这台电脑上的其他账户使用过。</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>升级到 Pro 即可继续使用。共用电脑，或是误判？请联系 {email}，我们会为您解锁。</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Click to open its page.</source>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>删除所有笔记</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>要删除全部 {n} 条笔记吗？AI 不会再把它们加回来。</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>允许我们仅在修复故障时阅读对话。对话保留 30 天。</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>AI 自行保存笔记</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>您可以在此查看或删除这些笔记。</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>对话保留 30 天，以便更新后仍能保留对话。关闭后，团队永远不会阅读对话。保留 0 天则不存储任何历史记录。</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Click to open its page.</source>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>'{layer}' 图层（{area}）</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>在{zone}上运行{label}。这将消耗你的{label}积分。</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> 分辨率为{resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> 按面板中选择的分辨率</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>每次生成{price}积分</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>运行 AI Edit{size}：{cost}。图像范围：{zone}；按每次生成计费。</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>每次生成约{price}积分（2K 价格；无法获取实时价格）</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7981,6 +8161,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>选择所有适用项</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>撰写我自己的回答…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8898,6 +9086,27 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>代码错误，请检查后重试。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>正在运行 {name}...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>推荐</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>已跳过</translation>
         </message>
     </context>
 </TS>

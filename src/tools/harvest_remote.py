@@ -431,7 +431,13 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     def _feature_layer(options):
         uri = QgsDataSourceUri()
         uri.setParam("url", url)
-        uri.setParam("crs", crs or _arcgis_wkid(info or {}) or "EPSG:4326")
+
+
+
+
+        known = crs or _arcgis_wkid(info or {})
+        if known:
+            uri.setParam("crs", known)
         if box is not None:
 
 

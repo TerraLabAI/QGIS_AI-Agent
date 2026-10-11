@@ -412,7 +412,8 @@ class _ChatPanelLayout:
         if left <= 0:
             self._runs_host.hide()
             self.quota_card.show_exhausted(is_subscriber, limit, format_reset_date(period_end),
-                                           None if is_subscriber else self.trial_offer())
+                                           None if is_subscriber else self.trial_offer(),
+                                           getattr(self, "_account_cap", None))
             self.composer.set_blocked(True, self.tr("More runs next month") if is_subscriber
                                       else self.tr("Keep working with Pro"))
             self._quota_host.show()
@@ -638,6 +639,17 @@ class _ChatPanelLayout:
         set_pro_offer(bool(offer))
         self._apply_quota()
         self._sync_pro_pill()
+
+    def set_account_cap(self, cap) -> None:
+
+
+        blocked = isinstance(cap, dict) and bool(cap.get("blocked"))
+        text = cap.get("message") if blocked else None
+        value = (text if isinstance(text, str) and text.strip() else "") if blocked else None
+        if value == getattr(self, "_account_cap", None):
+            return
+        self._account_cap = value
+        self._apply_quota()
 
     def trial_offer(self) -> tuple | None:
 

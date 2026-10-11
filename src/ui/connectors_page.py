@@ -38,9 +38,14 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -54,10 +59,11 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core import catalog
 from ..core.connector_locale import sort_by_locale
+from .card_base import reduced_motion
 from .library import common as C
 from .library.cards import has_picture
-from .library.parts import EmptyState, PageHeader, label, search_pill
-from .library.pictures import watch_scroll
+from .library.parts import EmptyState, PageHeader, label, search_pill, section_title
+from .library.pictures import Tween, watch_scroll
 from .library.pressable import Pressable, labels_through
 
 
@@ -84,6 +90,10 @@ _MARK_PX = 40
 _CARD_H = 64
 
 _COLUMNS = 2
+
+_POPULAR_COUNT = 6
+
+_GLIDE_MS = 250
 
 
 def accent_of(category: str) -> str:
@@ -191,6 +201,7 @@ class ConnectorsPage(QWidget):
 
     ask_requested = pyqtSignal(str)
 
+
     shelf_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -201,6 +212,11 @@ class ConnectorsPage(QWidget):
         self._filter = ""
         self._cards: list = []
         self._keep_scroll = -1
+
+        self._groups: list = []
+        self._painted = False
+
+        self._before_search = -1
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -223,13 +239,15 @@ class ConnectorsPage(QWidget):
         self._list = QWidget(body)
         self._list_col = QVBoxLayout(self._list)
         self._list_col.setContentsMargins(0, 0, 0, 0)
-        self._list_col.setSpacing(0)
+        self._list_col.setSpacing(C.px(C.SPACE_4))
         self._page.addWidget(self._list)
         self._page.addStretch(1)
         self._scroll.setWidget(body)
         outer.addWidget(self._scroll, 1)
         self._scroll.viewport().installEventFilter(self)
         watch_scroll(self, self._scroll.verticalScrollBar())
+        self._glide = Tween(self, _GLIDE_MS, lambda v: self._scroll.verticalScrollBar().setValue(int(v)))
+        self._scroll.verticalScrollBar().valueChanged.connect(self._follow_scroll)
 
 
 
@@ -237,37 +255,91 @@ class ConnectorsPage(QWidget):
 
 
 
-        self._sources = [dict(r) for r in list(sources or [])[:500]
-                         if isinstance(r, dict) and r.get("id")]
-        self._cases = list(cases or [])
-        self._header.set_text(self._title, self._tally())
-        if shelf is not None:
-            self._filter = str(shelf)
+        rows = [dict(r) for r in list(sources or [])[:500]
+                if isinstance(r, dict) and r.get("id")]
+        cases = list(cases or [])
+        changed = not self._painted or rows != self._sources or cases != self._cases
+        self._sources, self._cases = rows, cases
+        if shelf is not None and self._query():
+
+            self._search.blockSignals(True)
+            self._search.clear()
+            self._search.blockSignals(False)
+            self._before_search = -1
+            changed = True
+        if changed:
+            self._header.set_text(self._title, self._tally())
+            self._paint()
         keys = [key for key, _ in shelves(self._sources)]
-        if self._filter not in keys:
-            self._filter = keys[0] if keys else ""
-        self._paint()
         if shelf is not None:
-            self._scroll.verticalScrollBar().setValue(0)
+            self._filter = str(shelf) if str(shelf) in keys else (keys[0] if keys else "")
+
+            if changed:
+                QTimer.singleShot(0, lambda k=self._filter: self.scroll_to(k, animate=False))
+            else:
+                self.scroll_to(self._filter)
+        elif self._filter not in keys:
+            self._filter = keys[0] if keys else ""
 
     def _tally(self) -> str:
+
 
         total = len(self._sources)
         if not total:
             return ""
         datasets = sum(int(row.get("datasets") or 0) for row in self._sources)
-        return self.tr("%n data sources", "", total) + (
-            self.tr(", {n} ready datasets").format(n=datasets) if datasets else "") + (
-            self.tr(", free with no account or key"))
+        reach = self.tr("%n data sources", "", total) + (
+            self.tr(" and {n} ready datasets").format(n=f"{datasets:,}") if datasets else "")
+        return self.tr("Nothing to set up: just ask in the chat. The agent reaches these {reach} "
+                       "by itself, free, with no account or key.").format(reach=reach)
 
 
 
-    def _on_filter(self, key: str) -> None:
+    def scroll_to(self, key: str, animate: bool = True) -> None:
+
+
         self._filter = str(key)
-        self._paint()
-        self._scroll.verticalScrollBar().setValue(0)
+        bar = self._scroll.verticalScrollBar()
+        target = 0
+        for index, (group, holder) in enumerate(self._groups):
+            if group == key:
+                target = 0 if index == 0 else self._group_y(holder)
+                break
+        target = max(0, min(target, bar.maximum()))
+        self._glide.stop()
+        if not animate or reduced_motion(self) or abs(target - bar.value()) < 8:
+            bar.setValue(target)
+        else:
+            self._glide.run(bar.value(), target)
+
+    def _group_y(self, holder: QWidget) -> int:
+
+        return holder.mapTo(self._body, holder.rect().topLeft()).y() - C.px(C.SPACE_3)
+
+    def _follow_scroll(self, value: int) -> None:
+
+
+
+        if self._glide.running() or self._query() or not self._groups:
+            return
+        bar = self._scroll.verticalScrollBar()
+        current = self._groups[0][0]
+        if value >= bar.maximum() > 0:
+            current = self._groups[-1][0]
+        else:
+            for key, holder in self._groups:
+                if self._group_y(holder) <= value + C.px(C.SPACE_3):
+                    current = key
+        if current != self._filter:
+            self._filter = current
+            self.shelf_changed.emit(current)
 
     def _on_search(self, _text: str) -> None:
+        query = bool(self._query())
+        if query and self._before_search < 0 and self._groups:
+            self._before_search = int(self._scroll.verticalScrollBar().value())
+        elif not query and self._before_search >= 0:
+            self._keep_scroll, self._before_search = self._before_search, -1
         self._paint()
 
     def shelf(self) -> str:
@@ -291,20 +363,24 @@ class ConnectorsPage(QWidget):
         self._list.setUpdatesEnabled(False)
         try:
             self._clear()
+            self._painted = True
             query = self._query()
-            want = self._filter
+            groups = shelves(self._sources)
             if query:
                 rows = [r for r in self._sources if self._matches(r, query)]
                 if rows:
-                    self._grid(rows)
+                    self._list_col.addWidget(self._grid(rows, self._list))
                 else:
                     self._no_hit(self._search.text().strip())
-            elif want == POPULAR_KEY:
-                self._grid(sorted((r for r in self._sources if int(r.get("popular") or 0)),
-                                  key=lambda r: int(r["popular"])))
-            elif want:
-                rows = [r for r in self._sources if str(r.get("category") or "") == want]
-                self._grid(self._shelf_order(want, rows))
+            elif groups:
+                for key, text in groups:
+                    if key == POPULAR_KEY:
+                        rows = sorted((r for r in self._sources if int(r.get("popular") or 0)),
+                                      key=lambda r: int(r["popular"]))[:_POPULAR_COUNT]
+                    else:
+                        rows = self._shelf_order(key, [
+                            r for r in self._sources if str(r.get("category") or "") == key])
+                    self._group(key, text, rows)
             else:
                 self._empty(self.tr("The list arrives when the panel connects."))
         finally:
@@ -338,7 +414,9 @@ class ConnectorsPage(QWidget):
         self._search.blockSignals(True)
         self._search.clear()
         self._search.blockSignals(False)
-        self._on_filter(POPULAR_KEY)
+        self._before_search = -1
+        self._paint()
+        self.scroll_to(POPULAR_KEY, animate=False)
         self.shelf_changed.emit(POPULAR_KEY)
 
     def clear_search(self) -> bool:
@@ -351,8 +429,19 @@ class ConnectorsPage(QWidget):
     def search_field(self):
         return self._search
 
-    def _grid(self, rows: list) -> None:
-        host = QWidget(self._list)
+    def _group(self, key: str, text: str, rows: list) -> None:
+
+        holder = QWidget(self._list)
+        col = QVBoxLayout(holder)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(C.px(12))
+        col.addWidget(section_title(holder, text))
+        col.addWidget(self._grid(rows, holder))
+        self._groups.append((key, holder))
+        self._list_col.addWidget(holder)
+
+    def _grid(self, rows: list, parent: QWidget) -> QWidget:
+        host = QWidget(parent)
         grid = QGridLayout(host)
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(C.px(C.TILE_GAP))
@@ -362,7 +451,7 @@ class ConnectorsPage(QWidget):
             card = self._card(row, host)
             grid.addWidget(card, index // _COLUMNS, index % _COLUMNS)
             self._cards.append(card)
-        self._list_col.addWidget(host)
+        return host
 
     def _card(self, row: dict, parent: QWidget) -> SourceCard:
         key = str(row.get("id") or "")
@@ -372,6 +461,7 @@ class ConnectorsPage(QWidget):
 
     def _clear(self) -> None:
         self._cards = []
+        self._groups = []
         while self._list_col.count():
             item = self._list_col.takeAt(0)
             widget = item.widget()
@@ -404,7 +494,9 @@ class ConnectorsPage(QWidget):
         if value < 0:
             return
         bar = self._scroll.verticalScrollBar()
-        bar.setValue(min(value, bar.maximum()))
+
+
+        QTimer.singleShot(0, lambda: bar.setValue(min(value, bar.maximum())))
 
 
 
@@ -418,6 +510,13 @@ class ConnectorsPage(QWidget):
         card_w = max(1, (width - (_COLUMNS - 1) * gap) // _COLUMNS)
         for card in self._cards:
             card.set_card_width(card_w)
+
+    def hideEvent(self, event):  # noqa: N802
+
+        if self._glide.running():
+            self._glide.stop()
+            self.scroll_to(self._filter, animate=False)
+        super().hideEvent(event)
 
     def eventFilter(self, obj, event):  # noqa: N802
         if obj is self._scroll.viewport() and event.type() == QEvent.Type.Resize:

@@ -729,8 +729,14 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
     written = {os.path.normcase(security.expand_path(target)) for target in writes}
     inside = _source_on_disk(args)
+    remote = _source_is_remote(args)
     for value in _leaves_outside(args, skip):
         if not (looks_like_disk_path(value) or value.startswith("~") or os.path.isabs(value)):
+            continue
+
+
+
+        if remote and value == args.get("layer"):
             continue
 
 
@@ -761,6 +767,21 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         if error:
             return _refusal(error, "", "PERMISSION_DENIED")
     return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates}
+
+
+def _source_is_remote(args: dict) -> bool:
+
+    for key in ("source", "url"):
+        value = args.get(key)
+        if not isinstance(value, str) or not value.strip():
+            continue
+        text = value.strip()
+        scheme = _scheme_of(text)
+        low = text.lower()
+        if (scheme and scheme != "file") or (
+                low.startswith("/vsi") and any(handler in low for handler in ("/vsicurl",) + _VSI_CLOUD)):
+            return True
+    return False
 
 
 def _source_on_disk(args: dict) -> str:

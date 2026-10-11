@@ -47,7 +47,9 @@ from __future__ import annotations
 
 import ast
 import builtins as py_builtins
+import contextlib
 import ctypes
+import errno
 import functools
 import io
 import os
@@ -312,6 +314,20 @@ class CodeTimeout(BaseException):
 
 
 WAITING_ON_USER = threading.Event()
+
+
+TASK_WAITS: list = []
+
+
+
+
+CLOCK_OUT: list = []
+CLOCK_LOCK = threading.Lock()
+
+
+def clock_ran_out() -> bool:
+
+    return bool(CLOCK_OUT) and CLOCK_OUT[-1].is_set()
 
 
 
@@ -639,7 +655,9 @@ def safe_processing_module() -> types.ModuleType | None:
         import processing as source
     except ImportError:
         return None
-    extra = {name: _checked_runner(getattr(source, name), name)
+    from .code_processing import threaded
+
+    extra = {name: _checked_runner(threaded(source.run) if name == "run" else getattr(source, name), name)
              for name in _PROCESSING_RUNNERS if hasattr(source, name)}
     return _trimmed_module("processing", source, ("algorithmHelp",), extra)
 
@@ -718,6 +736,57 @@ def take_written() -> list[str]:
     return out
 
 
+def read_refusal(path, error: str) -> OSError:
+
+
+
+
+
+
+
+
+    from .security import validate_path
+
+    text = os.fspath(path)
+    if validate_path(str(text)) is None and not os.path.lexists(text):
+        missing = FileNotFoundError(error)
+        missing.errno = errno.ENOENT
+        return missing
+    return PermissionError(error)
+
+
+@contextlib.contextmanager
+def workspace_cwd():
+
+
+
+
+
+
+
+
+
+
+    from .security import workspace_dir
+
+    try:
+        previous = os.getcwd()
+    except OSError:
+        previous = ""
+    moved = False
+    try:
+        os.chdir(workspace_dir())
+        moved = True
+    except OSError:
+        pass
+    try:
+        yield
+    finally:
+        if moved and previous:
+            with contextlib.suppress(OSError):
+                os.chdir(previous)
+
+
 def _guarded_open(file, mode="r", *args, **kwargs):
     from .security import anchor, validate_path
 
@@ -733,7 +802,7 @@ def _guarded_open(file, mode="r", *args, **kwargs):
     error = validate_path(os.fspath(file), write=writing, overwrite=False if writing else None,
                            overwrite_remedy=remedy, scoped=not writing)
     if error:
-        raise PermissionError(error)
+        raise PermissionError(error) if writing else read_refusal(file, error)
     if writing:
         note_written(file)
 
@@ -767,7 +836,7 @@ def _guarded_reader(reader: Callable, scoped: bool = True):
         path = anchor(path)
         error = validate_path(os.fspath(path), scoped=scoped)
         if error:
-            raise PermissionError(error)
+            raise read_refusal(path, error)
         return reader(path, *args, **kwargs)
 
     _read.__name__ = reader.__name__
@@ -787,7 +856,13 @@ def _guarded_walk(top=".", topdown=True, onerror=None, followlinks=False):
     top = anchor(top)
     error = validate_read(str(top))
     if error:
-        raise PermissionError(error)
+        refused = read_refusal(top, error)
+        if not isinstance(refused, FileNotFoundError):
+            raise refused
+
+        if onerror is not None:
+            onerror(refused)
+        return iter(())
 
     def pruned():
         for root, dirs, files in os.walk(top, True, onerror, followlinks):
@@ -1356,8 +1431,8 @@ def run_with_timeout(fn: Callable[[], Any], seconds: float) -> Any:
 
 
     thread_id = threading.get_ident()
-    lock = threading.Lock()
     done = threading.Event()
+    expired = threading.Event()
 
     def _watch() -> None:
         remaining = seconds
@@ -1367,19 +1442,34 @@ def run_with_timeout(fn: Callable[[], Any], seconds: float) -> Any:
                 return
             if not WAITING_ON_USER.is_set():
                 remaining -= time.monotonic() - started
-        with lock:
-            if done.is_set():
+        expired.set()
+
+
+
+        while True:
+            with CLOCK_LOCK:
+                if done.is_set():
+                    return
+                if not TASK_WAITS:
+
+
+                    armed = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(thread_id),
+                                                                       ctypes.py_object(CodeTimeout))
+                    if armed > 1:
+                        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(thread_id), None)
+                    return
+                TASK_WAITS[-1]()
+            if done.wait(0.5):
                 return
 
-
-            armed = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(thread_id), ctypes.py_object(CodeTimeout))
-            if armed > 1:
-                ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(thread_id), None)
-
+    with CLOCK_LOCK:
+        CLOCK_OUT.append(expired)
     watchdog = threading.Thread(target=_watch, name="execute_code-watchdog", daemon=True)
     watchdog.start()
     try:
         return fn()
     finally:
-        with lock:
+        with CLOCK_LOCK:
             done.set()
+            if expired in CLOCK_OUT:
+                CLOCK_OUT.remove(expired)

@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>+1 kolom meer</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>+1 rij meer</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>+{0} kolommen meer</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>+{0} rijen meer</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>Samenvatting wordt voorbereid…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>Resultaten voor “{query}”</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>Controle van AI Segmentation[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>De controle van AI Segmentation opslaan</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n voorbeelden</translation>
@@ -3112,6 +3144,42 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>Voor wijzigingen</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>Tussentijds</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>Leesbaar</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>laagnamen</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>vragen</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>antwoordtaal</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>antwoordstijl</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>eenheden</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>Er loopt een uitvoering. Stop die of wacht tot ze klaar is.</translation>
@@ -3804,6 +3872,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>{0} gewijzigd in {1}</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>Uit het geheugen verwijderd</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>Instelling teruggezet</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>Licentie en voorwaarden</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>Open {host} in je browser</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>Meer tonen</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>%n opdrachten die de agent kan uitvoeren</translation>
@@ -4882,6 +4974,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> en {n} datasets die klaarstaan</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>Niets in te stellen: stel gewoon je vraag in de chat. De agent bereikt deze {reach} zelf, gratis, zonder account of sleutel.</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Klik om de pagina te openen.</translation>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>Deze gegevens komen van een site buiten de bronnen die de agent kent.</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>Deze gegevens komen van sites buiten de bronnen die de agent kent.</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>Toestaan</translation>
@@ -6005,6 +6113,14 @@ Klik om de pagina te openen.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>Gratis AI Agent is al gebruikt door andere accounts op deze computer.</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>Upgrade naar Pro om door te gaan. Gedeelde computer, of een fout? Neem contact op met {email}, dan ontgrendelen we het.</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Klik om de pagina te openen.</translation>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>Alle notities verwijderen</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>Alle {n} notities verwijderen? De AI voegt ze niet terug toe.</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>Hiermee kunnen we een chat alleen lezen om een bug te verhelpen. Chats worden 30 dagen bewaard.</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>De AI slaat notities zelf op</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>Je kunt ze hier bekijken of verwijderen.</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>Je chats worden 30 dagen bewaard, zodat een gesprek een update overleeft. Uit: het team leest ze nooit. 0 dagen geschiedenis slaat niets op.</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Klik om de pagina te openen.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>de laag '{layer}' ({area})</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>Voer {label} uit op {zone}. Dit gebruikt je {label}-credits.</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> bij {resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> bij de resolutie die in het paneel is gekozen</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>{price} credits per generatie</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>AI Edit uitvoeren{size}: {cost}. Beeldgebied: {zone}; er wordt per generatie gerekend.</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>ongeveer {price} credits per generatie (de prijs voor 2K; de actuele prijs was niet beschikbaar)</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7981,6 +8161,14 @@ Klik om de pagina te openen.</translation>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>Selecteer alles wat van toepassing is</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>Schrijf mijn eigen antwoord…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8898,6 +9086,27 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>Foutieve code. Controleer ze en probeer het opnieuw.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>{name} wordt uitgevoerd...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>Aanbevolen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>Overgeslagen</translation>
         </message>
     </context>
 </TS>

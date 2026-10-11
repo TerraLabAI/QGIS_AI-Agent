@@ -19,6 +19,7 @@ from .external_links import open_local_path
 from .file_card import FileCardStack
 from .file_links import gis_data_path, is_safe_to_open, path_from_url, reveal_target
 from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_layers
+from .loader import user_waiting, waited_between
 from .plan_card import PlanCard
 from .trace import RunTrace
 
@@ -146,8 +147,6 @@ class _ChatPanelRuns:
         if not run_id:
             return
         self._run(run_id).started = time.monotonic()
-
-        self.drop_memory_proposal()
         self._current_run = run_id
         self._last_run = run_id
         self._changed_layers = []
@@ -386,7 +385,9 @@ class _ChatPanelRuns:
         except (TypeError, ValueError, OverflowError):
             seconds = time.monotonic() - run.started if run is not None else 0.0
         if run is not None and seconds is not None:
-            seconds = max(0.0, float(seconds) - run.waited)
+
+            user_waiting(False)
+            seconds = max(0.0, float(seconds) - waited_between(run.started))
         blocks = self.message_list.traces_of(run_id)
         streamed = run.bubble.text().strip() if run is not None and run.bubble is not None else ""
         summary = (summary or "").strip()
@@ -543,9 +544,8 @@ class _ChatPanelRuns:
 
 
 
-
         data = changes if isinstance(changes, dict) else {}
-        stack = FileCardStack(data.get("files"), data.get("working_files"))
+        stack = FileCardStack(data.get("files"))
         row = RunChangesRow(data)
         if row.is_empty() and stack.is_empty():
             row.deleteLater()
@@ -553,6 +553,8 @@ class _ChatPanelRuns:
             return
         run = self._runs.get(run_id)
         bubble = run.bubble if run is not None else None
+        if run is not None:
+            run.produced = True
         if row.layers():
 
 

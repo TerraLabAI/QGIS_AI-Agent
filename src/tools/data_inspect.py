@@ -140,7 +140,25 @@ class _NoSuchLayer(Exception):
     pass
 
 
-def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
+def _given_srs(crs):
+
+    from osgeo import osr
+
+    if not crs:
+        return None
+    srs = osr.SpatialReference()
+    try:
+        if srs.SetFromUserInput(str(crs)) != 0:
+            return None
+    except RuntimeError:
+        return None
+    srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    return srs
+
+
+def _features_in_box(source: str, sublayer: str | None, bbox, given=None) -> tuple[int | None, object]:
+
+
 
 
 
@@ -148,6 +166,7 @@ def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
 
     west, south, east, north = bbox
     dataset = layer = None
+    declared = None
     try:
         try:
             dataset = ogr.Open(source)
@@ -159,7 +178,10 @@ def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
         if layer is None:
             raise _NoSuchLayer([dataset.GetLayer(i).GetName() for i in range(dataset.GetLayerCount())])
         box = (west, south, east, north)
-        layer_srs = layer.GetSpatialRef()
+        declared = layer.GetSpatialRef()
+        if declared is not None:
+            declared = declared.Clone()
+        layer_srs = declared or given
         if layer_srs is not None:
             wgs84 = osr.SpatialReference()
             wgs84.ImportFromEPSG(4326)
@@ -171,11 +193,11 @@ def _features_in_box(source: str, sublayer: str | None, bbox) -> int | None:
                 box = (min(c[0] for c in corners), min(c[1] for c in corners),
                        max(c[0] for c in corners), max(c[1] for c in corners))
         layer.SetSpatialFilterRect(*box)
-        return int(layer.GetFeatureCount(1))
+        return int(layer.GetFeatureCount(1)), declared
     except (OSError, _NoSuchLayer):
         raise
     except Exception:  # noqa: BLE001
-        return None
+        return None, declared
     finally:
         del layer
         del dataset
@@ -211,8 +233,13 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     west, south, east, north = bbox
     file_name = posixpath.basename(urllib.parse.urlparse(url).path)
     started = time.monotonic()
+
+
+
+    given_crs = (args or {}).get("crs")
+    given = _given_srs(given_crs)
     try:
-        count = _features_in_box(source, sublayer, bbox)
+        count, declared = _features_in_box(source, sublayer, bbox, given)
     except _NoSuchLayer as exc:
         layers = list(exc.args[0])
         return tool_error(f"{file_name} holds no layer named {sublayer!r}; its layers: {', '.join(layers)}.",
@@ -262,6 +289,16 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     path = os.path.join(directory, f"{_safe_extract_stem(name)}.gpkg")
     kwargs = {"format": "GPKG", "spatFilter": [west, south, east, north],
               "spatSRS": "EPSG:4326", "dstSRS": "EPSG:4326"}
+    crs_note = ""
+    if declared is None and given is not None:
+        kwargs["srcSRS"] = str(given_crs)
+        crs_note = f"{file_name} declares no CRS; it was read as {given_crs}, the crs of this call."
+    elif declared is not None and given is not None and not declared.IsSame(given):
+        name_of = declared.GetAuthorityCode(None)
+        declared_name = (f"{declared.GetAuthorityName(None)}:{name_of}" if name_of
+                         else (declared.GetName() or "its own CRS"))
+        crs_note = (f"{file_name} declares {declared_name}, which was kept; the crs of this call, "
+                    f"{given_crs}, was not applied.")
     if sublayer:
         kwargs["layers"] = [str(sublayer)]
 
@@ -286,7 +323,10 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     layer_in_file = out_layer.GetName() if out_layer is not None else None
     del out_layer
     del written
-    return {"path": path, "feature_count": count, "layer_in_file": layer_in_file}
+    out = {"path": path, "feature_count": count, "layer_in_file": layer_in_file}
+    if crs_note:
+        out["crs_note"] = crs_note
+    return out
 
 
 def _safe_extract_stem(text: str) -> str:
@@ -359,6 +399,7 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
                 "_note": ("The box was cut out of the remote file through its spatial index and written "
                           "locally, so this layer holds only the area asked for and every read of it is "
                           "local. The whole file was not downloaded."),
+                **({"crs_note": cut["crs_note"]} if cut.get("crs_note") else {}),
             }
 
         return run_on_main_thread(_create_local, timeout=_VSICURL_TIMEOUT_S)
@@ -386,6 +427,12 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
             return {"_error": f"QGIS could not read {url} over HTTP range requests.",
                     "_code": "INVALID_ARGS",
                     **coded_fact(hint="range_requests_unsupported")}
+        given_crs = (args or {}).get("crs")
+        if given_crs and not layer.crs().isValid():
+
+            assumed = QgsCoordinateReferenceSystem(str(given_crs))
+            if assumed.isValid():
+                layer.setCrs(assumed)
         QgsProject.instance().addMapLayer(layer)
         out = {
             "layer_name": layer.name(),
@@ -462,7 +509,6 @@ def _sublayers_of(layer) -> list:
         return []
 
 
-_ARCHIVE_VECTOR_EXTENSIONS = (".shp", ".gpkg", ".geojson", ".csv")
 
 _ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc")
 
@@ -473,27 +519,6 @@ def _archive_entries(root: str) -> list:
     for folder, _dirs, files in os.walk(root):
         names.extend(os.path.join(folder, f) for f in files)
     return names
-
-
-def _archive_vector_files(root: str) -> dict:
-
-
-
-
-
-
-
-
-    out = {ext: [] for ext in _ARCHIVE_VECTOR_EXTENSIONS}
-    for path in _archive_entries(root):
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".json":
-            ext = ".geojson"
-        if ext in out:
-            out[ext].append(path)
-    for ext in out:
-        out[ext].sort(key=lambda f: (f.count(os.sep), f.lower()))
-    return out
 
 
 
@@ -513,11 +538,6 @@ def _discard_download(tmp_dir: str, result: dict) -> dict:
 
     remove_tree(tmp_dir)
     return result
-
-
-
-
-_SHAPEFILE_COMPANIONS = (".dbf", ".shx")
 
 
 def _extract_member(zf, member, tmp_dir: str) -> None:
@@ -550,20 +570,6 @@ def _extract_member(zf, member, tmp_dir: str) -> None:
     os.makedirs(os.path.dirname(target), exist_ok=True)
     with zf.open(member) as source, open(target, "wb") as sink:
         shutil.copyfileobj(source, sink)
-
-
-def _shapefile_is_complete(path: str) -> bool:
-
-    stem = os.path.splitext(path)[0]
-    siblings = {}
-    try:
-        directory = os.path.dirname(path) or "."
-        for name in os.listdir(directory):
-            siblings[name.lower()] = True
-    except OSError:
-        return False
-    base = os.path.basename(stem).lower()
-    return all(f"{base}{ext}" in siblings for ext in _SHAPEFILE_COMPANIONS)
 
 
 
@@ -855,27 +861,30 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                     _extract_member(zf, member, tmp_dir)
 
 
+            from .layer_io_tools import (
+                _add_vector_layer,
+                archive_datasets,
+                container_layers,
+                gdb_folders,
+                members_matching,
+            )
 
-
-
-            found = _archive_vector_files(tmp_dir)
-
-
-
-            readable = ([f for f in found[".shp"] if _shapefile_is_complete(f)]
-                        + found[".gpkg"] + found[".geojson"])
-
-
-            from .layer_io_tools import _add_vector_layer, gdb_folders, members_matching
 
 
             entries = [os.path.relpath(f, tmp_dir).replace(os.sep, "/") for f in _archive_entries(tmp_dir)
                        if f != filepath]
-            gdbs = [os.path.join(tmp_dir, *folder.split("/"))
-                    for folder in gdb_folders(entries)]
+
+            def unpacked(name: str) -> str:
+                return os.path.join(tmp_dir, *name.split("/"))
 
 
-            tables = found[".csv"]
+
+            vectors, tables = archive_datasets(entries, unpacked)
+            readable = [unpacked(name) for name in vectors]
+            gdbs = [unpacked(folder) for folder in gdb_folders(entries)]
+
+
+            tables = [unpacked(name) for name in tables]
             if not readable and not gdbs:
                 readable, tables = tables, []
 
@@ -939,11 +948,20 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                     "_note": f"The archive holds {len(listed)} vector sources, none added yet.",
                     "load_note": coded_fact(hint="archive_vectors_load", count=len(listed)),
                 }
+            if readable and len(container_layers(readable[0]) or []) > 1:
+
+
+                loaded = _add_vector_layer({"path": readable[0], "layer": None, "name": layer_name})
+                if isinstance(loaded, dict) and loaded.get("_error") is not None:
+                    return _discard_download(tmp_dir, loaded)
+                if isinstance(loaded, dict) and loaded.get("layers") and not loaded.get("layer_id"):
+                    loaded["url"] = url
+                return loaded
             if readable:
                 filepath = readable[0]
             else:
                 return _discard_download(tmp_dir, tool_error(
-                    "The ZIP archive holds no .shp, .gpkg, .geojson or .csv file.", "INVALID_ARGS",
+                    "The ZIP archive holds no file GDAL reads as vector data or a table.", "INVALID_ARGS",
                     hint="archive_no_vector", files=entries[:_ARCHIVE_LIST_MAX], file_count=len(entries)))
         except zipfile.BadZipFile:
             return _discard_download(tmp_dir, tool_error(
@@ -1394,6 +1412,21 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
     return result
 
 
+def _landing_url(url: str) -> str:
+
+
+
+
+
+
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": _USER_AGENT})
+    try:
+        answer = net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=1024, total_timeout=_PORTAL_TIMEOUT)
+    except (urllib.error.URLError, OSError):
+        return ""
+    return answer.url or ""
+
+
 
 
 
@@ -1665,7 +1698,7 @@ def _link_inspect_answer(link: dict) -> dict | None:
     return out
 
 
-def _inspect_remote_url(url: str) -> dict:
+def _inspect_remote_url(url: str, landed: bool = False) -> dict:
     path = urllib.parse.urlparse(url).path
     streamed = os.path.splitext(path.lower())[1]
     name = os.path.splitext(os.path.basename(path))[0] or "dataset"
@@ -1723,6 +1756,18 @@ def _inspect_remote_url(url: str) -> dict:
         answer = _inspect_follow(probe, answer)
         answer["asked_for_capabilities"] = probe
         return ogc_inspect.attach_layer_in_link(answer, url, request)
+
+
+
+
+
+
+    if not landed:
+        landing = _landing_url(url)
+        if landing and landing != url:
+            result = _inspect_remote_url(landing, landed=True)
+            result.setdefault("resolved_from", url)
+            return result
 
 
     url = ogc_inspect.arcgis_json_url(url)

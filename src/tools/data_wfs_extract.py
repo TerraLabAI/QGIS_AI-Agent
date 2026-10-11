@@ -186,6 +186,7 @@ def _write(state: dict, layer, path: str, name: str, halted: threading.Event) ->
                     out.SetGeometry(shape)
             table.CreateFeature(out)
             written += 1
+            state["written"] = written
 
 
             background.breathe(written)
@@ -319,7 +320,9 @@ def misses_the_view(layer) -> tuple[str, str]:
 
 
 def extract(url: str, typename: str, name: str, uri: str, count_at: int | None = None,
-            view: tuple[str, int] | None = None) -> dict:
+            view: tuple[str, int] | None = None, budget_s: float | None = None) -> dict:
+
+
 
 
 
@@ -375,6 +378,10 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
             drop()
             return {"_error": "Stopped while the WFS was being written to disk; nothing was added.",
                     "code": "CANCELLED", "suggestion": "The user stopped the run."}
+        if budget_s is not None and time.monotonic() > started + budget_s and not halted.is_set():
+            written_by_then = int(state.get("written") or 0)
+            drop()
+            return {"_over_budget": True, "_written": written_by_then}
         if time.monotonic() > deadline and not halted.is_set():
             state["ended_by"] = "clock"
             halted.set()

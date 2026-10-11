@@ -29,6 +29,7 @@
 
 from __future__ import annotations
 
+from . import tokens
 from .font_scale import scale_qss_font_px
 from .styles import BRAND_GREEN_TEXT, BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
 
@@ -55,41 +56,22 @@ def is_dark() -> bool:
 
 
 
-_LIGHT = {
-    "page": "#f7f8fa", "canvas": "#eef0f3", "surface": "#ffffff", "inset": "#f4f6f8",
-    "hover": "#eff1f4", "hover_2": "#e2e5ea", "field": "#eef0f3",
-    "ink": "#1f2124", "ink_2": "#5b5f66", "ink_3": "#868b93",
-    "ink_hover": "#33363b",
-    "line": "#e2e5ea", "line_strong": "#cdd2d9", "line_soft": "#eef0f3",
-    "stripe": "rgba(73, 73, 73, 0.075)", "stripe_bg": "#f5f5f5",
-    "green": "#199a4d", "green_tint": "#e8f5ed",
-    "orange": "#ef720d", "orange_tint": "#fdf1e5",
-    "red": "#e3474c", "red_tint": "#fcecec",
-    "tooltip_bg": "#25272b", "tooltip_fg": "#f6f7f8", "tooltip_muted": "#a5a8ad",
-    "tooltip_border": "#3a3c40",
 
-    "accent_ink": BRAND_GREEN_TEXT,
-    "accent_tint": "rgba(67, 160, 71, 0.10)",
-    "accent_tint_on": "rgba(67, 160, 71, 0.20)",
-    "shadow_alpha": 0.10,
+
+_SITE_NAMES = {
+    "page": "surface_page", "canvas": "surface_canvas", "surface": "surface_raised",
+    "inset": "surface_sunk", "hover": "surface_hover", "hover_2": "surface_pressed",
+    "field": "surface_field", "ink": "text_primary", "ink_2": "text_secondary",
+    "ink_3": "text_tertiary", "ink_hover": "text_hover", "line": "border_default",
+    "line_strong": "border_strong", "line_soft": "border_weak", "stripe": "surface_stripe",
+    "stripe_bg": "surface_stripe_bg", "green": "success", "green_tint": "success_tint",
+    "orange": "alert", "orange_tint": "alert_tint", "red": "danger", "red_tint": "danger_tint",
+    "tooltip_bg": "tooltip_bg", "tooltip_fg": "tooltip_text", "tooltip_muted": "tooltip_muted",
+    "tooltip_border": "tooltip_border", "accent_ink": "accent_text", "accent_tint": "accent_tint",
+    "accent_tint_on": "accent_tint_on", "shadow_alpha": "shadow_alpha",
 }
-_DARK = {
-    "page": "#17181a", "canvas": "#1c1d1f", "surface": "#232427", "inset": "#1f2022",
-    "hover": "#2a2b2e", "hover_2": "#313236", "field": "#2b2c2f",
-    "ink": "#f2f3f4", "ink_2": "#a5a8ad", "ink_3": "#6c6f75",
-    "ink_hover": "#d7dade",
-    "line": "#2e3033", "line_strong": "#3a3c40", "line_soft": "#27282b",
-    "stripe": "rgba(255, 255, 255, 0.055)", "stripe_bg": "#1b1c1e",
-    "green": "#3cbb72", "green_tint": "rgba(60, 187, 114, 0.14)",
-    "orange": "#f68f3c", "orange_tint": "rgba(246, 143, 60, 0.14)",
-    "red": "#ee5c61", "red_tint": "rgba(238, 92, 97, 0.14)",
-    "tooltip_bg": "#111214", "tooltip_fg": "#f2f3f4", "tooltip_muted": "#a5a8ad",
-    "tooltip_border": "#2e3033",
-    "accent_ink": "#66bb6a",
-    "accent_tint": "rgba(67, 160, 71, 0.16)",
-    "accent_tint_on": "rgba(67, 160, 71, 0.26)",
-    "shadow_alpha": 0.34,
-}
+_LIGHT = {name: tokens.LIGHT[role] for name, role in _SITE_NAMES.items()}
+_DARK = {name: tokens.DARK[role] for name, role in _SITE_NAMES.items()}
 
 DARK = is_dark()
 T = _DARK if DARK else _LIGHT
@@ -158,34 +140,38 @@ _FILE_BADGES_DARK = {
 }
 FILE_BADGES = _FILE_BADGES_DARK if DARK else _FILE_BADGES_LIGHT
 
+TAGS = tokens.TAGS_DARK if DARK else tokens.TAGS_LIGHT
+
+OVERLAY = tokens.OVERLAY
 
 
 
 
 
-FONT_PROSE = 14
-FONT_BASE = 13
-FONT_BODY = 12
-FONT_HINT = 11
-FONT_MICRO = 10
-LETTER_SPACING = -0.14
+
+FONT_PROSE = tokens.FONT_PROSE
+FONT_BASE = tokens.FONT_BASE
+FONT_BODY = tokens.FONT_BODY
+FONT_HINT = tokens.FONT_HINT
+FONT_MICRO = tokens.FONT_MICRO
+LETTER_SPACING = tokens.LETTER_SPACING
 
 
 
-SPACE_OUTER = 8
-SPACE_CARD = 6
-SPACE_TIGHT = 4
-SPACE_STAGE = 12
+SPACE_OUTER = tokens.SPACE_OUTER
+SPACE_CARD = tokens.SPACE_CARD
+SPACE_TIGHT = tokens.SPACE_TIGHT
+SPACE_STAGE = tokens.SPACE_STAGE
 
 
 
 
-RADIUS_CHIP = 6
-RADIUS_CONTROL = 8
+RADIUS_CHIP = tokens.RADIUS_CHIP
+RADIUS_CONTROL = tokens.RADIUS_CONTROL
 RADIUS_ROW = RADIUS_CONTROL
-RADIUS_CARD = 10
+RADIUS_CARD = tokens.RADIUS_CARD
 RADIUS_BOX = 12
-RADIUS_PANEL = 14
+RADIUS_PANEL = tokens.RADIUS_SHEET
 RADIUS_WINDOW = RADIUS_PANEL
 RADIUS_COMPOSER = 14
 
@@ -226,17 +212,20 @@ ACCENT = BTN_GREEN
 ACCENT_DARK = BTN_GREEN_HOVER
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
+
+ACCENT_TINT_SOFT = T["accent_tint"]
+ACCENT_TINT_STRONG = T["accent_tint_on"]
 ACCENT_BORDER_SOFT = "rgba(67, 160, 71, 0.24)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
 
 
 ACCENT_INK_LIGHT = BRAND_GREEN_TEXT
-ACCENT_INK_DARK = "#66bb6a"
+ACCENT_INK_DARK = tokens.DARK["accent_text"]
 ACCENT_INK = T["accent_ink"]
 
 
-ON_ACCENT = "#000000"
+ON_ACCENT = tokens.LIGHT["on_accent"]
 
 
 
@@ -526,15 +515,7 @@ def panel_qss() -> str:
         'QFrame#fileRow[gone="true"]:hover { background: transparent; }'
         f"QLabel#fileName {{ font-size: {FONT_BODY}px; color: {INK};"
         " background: transparent; border: none; }"
-        f'QLabel#fileName[working="true"] {{ color: {INK_2}; }}'
         f'QLabel#fileName[gone="true"] {{ color: {INK_3}; }}'
-        f"QLabel#fileSize {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px; color: {INK_2};"
-        " background: transparent; border: none; }"
-        f'QLabel#fileSize[gone="true"] {{ color: {INK_3}; }}'
-
-        f"QLabel#fileWorkingLabel {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {INK_2};"
-        " background: transparent; border: none; padding: 6px 8px 2px 8px; }"
-        f"QLabel#fileDot {{ color: {INK_3}; font-size: {FONT_BODY}px; background: transparent; }}"
 
         f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; }}"

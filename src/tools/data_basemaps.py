@@ -724,9 +724,15 @@ def _oapif_local_copy(collection: str, name: str, box: list | None = None) -> di
     cancel = net.current_cancel_check()
     path = os.path.join(create_managed_temp_dir("extract"), f"{_safe_extract_stem(name)}.gpkg")
     try:
-        written = gdal.VectorTranslate(
-            path, source, format="GPKG", options=["-limit", str(ceiling + 1), *spat],
+
+
+
+
+        opened = gdal.OpenEx(source, gdal.OF_VECTOR, open_options=["CRS=OGC:CRS84"])
+        written = None if opened is None else gdal.VectorTranslate(
+            path, opened, format="GPKG", options=["-limit", str(ceiling + 1), *spat],
             callback=lambda _done, _message, _data: 0 if (cancel is not None and cancel()) else 1)
+        opened = None
     except Exception as exc:  # noqa: BLE001
         log_warning(f"OGC API - Features copy of {collection} failed: {exc}")
         written = None

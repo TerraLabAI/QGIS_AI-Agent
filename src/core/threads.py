@@ -55,6 +55,7 @@ from datetime import datetime, timezone
 
 from .host_platform import retry_file_op
 from .logger import log, log_warning
+from .serialization import cut_string
 from .settings import account_dir, account_tag
 from .writeback import WriteBehind
 
@@ -67,6 +68,11 @@ RECENT_PROMPTS = 20
 RECENT_PROMPT_CHARS = 300
 RECENT_PROMPTS_CHARS = 3000
 MAX_THREAD_BYTES = 32 * 1024 * 1024
+
+
+EARLIER_TURNS = 20
+EARLIER_TURN_CHARS = 3900
+EARLIER_TURNS_CHARS = 40000
 
 
 def now_iso() -> str:
@@ -429,13 +435,6 @@ class ThreadStore:
         rows = [r for r in snapshot if not r.get("_empty") and not r.get("driven")]
         return sorted(rows, key=lambda r: r["mtime"], reverse=True)[:MAX_KEPT_FILES]
 
-    def conversations_since(self, since_iso: str) -> int:
-
-        since = str(since_iso or "")
-        if not since:
-            return 0
-        return sum(1 for r in self._person_rows() if str(r.get("last_prompt") or "") > since)
-
     @staticmethod
     def _fallback_title(thread: dict) -> str:
         for msg in thread.get("messages", []):
@@ -546,6 +545,34 @@ class ThreadStore:
         thread["messages"] = kept
         thread["updated_at"] = now_iso()
         self._save(thread)
+
+    def earlier_turns(self, thread_id: str, skip: tuple = ()) -> list:
+
+
+
+
+        messages = [m for m in self.messages(thread_id) if isinstance(m, dict)]
+        answers = {m.get("run_id"): m for m in messages if m.get("role") == "agent"}
+        turns: list = []
+        used = 0
+        for msg in reversed(messages):
+            if len(turns) >= EARLIER_TURNS:
+                break
+            run_id = msg.get("run_id")
+            if msg.get("role") != "user" or not run_id or run_id in skip or not str(msg.get("text") or "").strip():
+                continue
+            agent = answers.get(run_id) or {}
+            user = cut_string(str(msg["text"]), EARLIER_TURN_CHARS)
+            answer = cut_string(str(agent.get("text") or ""), EARLIER_TURN_CHARS)
+            if used + len(user) + len(answer) > EARLIER_TURNS_CHARS:
+                break
+            used += len(user) + len(answer)
+            status = str(agent.get("status") or "")
+
+            turns.append({"run_id": run_id, "user": user, "answer": answer,
+                          "status": "interrupted" if status == "running" else status})
+        turns.reverse()
+        return turns
 
     def layer_roots(self, thread_id: str) -> list:
 

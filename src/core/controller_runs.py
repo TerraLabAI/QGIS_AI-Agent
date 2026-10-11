@@ -143,16 +143,6 @@ class _ControllerRuns:
                 recent = []
             if recent:
                 user["recent_prompts"] = recent
-            if user.get("declined"):
-
-
-                try:
-                    since = self._store.conversations_since
-                    user["declined"] = [{"text": d["text"], "later_conversations": since(d["at"]) if d["at"] else 0}
-                                        for d in user["declined"]]
-                except Exception as exc:  # noqa: BLE001
-                    log_warning(f"Declined notes not counted: {exc}")
-                    user.pop("declined", None)
             if driven_session():
                 user["driven"] = True
         if user:
@@ -203,7 +193,8 @@ class _ControllerRuns:
             self._store.append_message(self._thread_id, record)
             self._store.update_agent_message(self._thread_id, run_id, {"status": "running"})
             sent = self._session.send_user_message(
-                run_id, self._thread_id, text, attachments, context, mode, approval, effort, example, replaces)
+                run_id, self._thread_id, text, attachments, context, mode, approval, effort, example, replaces,
+                self._earlier_turns(self._thread_id, run_id, replaces))
         except Exception as exc:  # noqa: BLE001
             self._fail_unsent_run(run_id, exc, began, dict(record, chips=asked_chips, attachments=sent_attachments))
             return
@@ -225,6 +216,17 @@ class _ControllerRuns:
             self._touch_watchdog()
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
         self._panel_call("set_current_thread", self._thread_id)
+
+    def _earlier_turns(self, thread_id: str, run_id: str, replaces: str = ""):
+
+
+        def read() -> list:
+            try:
+                return self._store.earlier_turns(thread_id, skip=(run_id, replaces))
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Earlier turns not read: {exc}")
+                return []
+        return read
 
     def _example_sent(self, text: str) -> str:
 
@@ -466,7 +468,9 @@ class _ControllerRuns:
         try:
             sent = self._session.send_user_message(run["run_id"], run["thread_id"], run["text"], attachments,
                                                    context, run["mode"], run["approval"], run["effort"],
-                                                   run.get("example", ""), run.get("replaces", ""))
+                                                   run.get("example", ""), run.get("replaces", ""),
+                                                   self._earlier_turns(run["thread_id"], run["run_id"],
+                                                                       run.get("replaces", "")))
         except Exception as exc:  # noqa: BLE001
             self._fail_unsent_run(run["run_id"], exc, True, self._runs.record(run["run_id"]) or dict(  # noqa: C408
                 text=run["text"], mode=run["mode"], approval=run["approval"], chips=[], attachments=[]))

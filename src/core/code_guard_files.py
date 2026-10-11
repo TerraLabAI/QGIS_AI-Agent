@@ -40,7 +40,7 @@ def _check(path, write: bool = False, overwrite: bool | None = None, scoped: boo
 
 
 
-    from .code_guard import note_written
+    from .code_guard import note_written, read_refusal
     from .security import anchor, validate_path
 
     if isinstance(path, int):
@@ -54,7 +54,8 @@ def _check(path, write: bool = False, overwrite: bool | None = None, scoped: boo
     error = validate_path(str(text), write=write, overwrite=overwrite, overwrite_remedy=remedy,
                           scoped=scoped and not write)
     if error:
-        raise PermissionError(error)
+
+        raise PermissionError(error) if write else read_refusal(text, error)
     if write:
 
 
@@ -83,7 +84,10 @@ def safe_glob(pathname, *, root_dir=None, recursive=False):
 
     pattern = os.fspath(pathname)
     if root_dir is not None:
-        base = _check(root_dir)
+        try:
+            base = _check(root_dir)
+        except FileNotFoundError:
+            return []
         found = _matches(os.path.join(base, pattern), recursive)
         return [os.path.relpath(p, base) for p in found]
     return _matches(anchor(pattern), recursive)
@@ -154,7 +158,10 @@ def _matches(pattern: str, recursive: bool) -> list:
     rest = parts[start:]
     if not rest:
         return [root] if os.path.lexists(root) and _allowed(root) else []
-    _check(root or os.curdir)
+    try:
+        _check(root or os.curdir)
+    except FileNotFoundError:
+        return []
     found: list = []
 
     def step(folder: str, index: int) -> None:
@@ -297,6 +304,7 @@ class Path(_PureNative):
 
 
 
+
     __slots__ = ()
 
     @classmethod
@@ -324,13 +332,13 @@ class Path(_PureNative):
         return type(self)(os.path.realpath(anchor(str(self))))
 
     def exists(self):
-        return os.path.exists(_check(self, scoped=False))
+        return _probe(self, os.path.exists)
 
     def is_file(self):
-        return os.path.isfile(_check(self, scoped=False))
+        return _probe(self, os.path.isfile)
 
     def is_dir(self):
-        return os.path.isdir(_check(self, scoped=False))
+        return _probe(self, os.path.isdir)
 
     def stat(self):
         return os.stat(_check(self, scoped=False))
@@ -380,6 +388,36 @@ class Path(_PureNative):
             os.makedirs(path, mode, exist_ok=exist_ok)
         elif not (exist_ok and os.path.isdir(path)):
             os.mkdir(path, mode)
+
+
+def _probe(path, test) -> bool:
+
+
+
+
+    from .security import _windows_path_problem, anchor
+
+    text = anchor(path)
+    if "\x00" in text or (IS_WINDOWS and _windows_path_problem(text)):
+        return False
+    return test(_check(text, scoped=False))
+
+
+def _no_file_change(name: str):
+    def refused(self, *args, **kwargs):
+        from .code_guard import _NO_FILE_CHANGE
+
+        raise PermissionError(f"execute_code's Path has no {name}: {_NO_FILE_CHANGE}")
+
+    refused.__name__ = name
+    return refused
+
+
+
+
+for _name in ("touch", "unlink", "rmdir", "rename", "replace", "symlink_to", "hardlink_to", "chmod", "lchmod",
+              "move", "move_into"):
+    setattr(Path, _name, _no_file_change(_name))
 
 
 def safe_pathlib_module() -> types.ModuleType:

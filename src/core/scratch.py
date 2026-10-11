@@ -47,6 +47,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.core import QgsLayerTree, QgsProject
@@ -274,6 +275,14 @@ class ScratchLedger:
         if name in KEEP_TOOLS:
             self._kept.update(self._referenced(args, list(self._order)))
             return
+
+
+
+
+        changed = result.get("changed") if isinstance(result, dict) else None
+        restyled = changed.get("restyled") if isinstance(changed, dict) else None
+        if restyled:
+            self._kept.update(self._referenced({"restyled": restyled}, list(self._order)))
         referenced = self._referenced(args, pool)
         if made and referenced:
             self._consume(referenced, made)

@@ -28,12 +28,15 @@
 
 
 
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
@@ -43,21 +46,26 @@ from qgis.PyQt.QtWidgets import (
 
 from .connectors_page import accent_of
 from .external_links import open_external_url
+from .icons import icon_for
 from .library import common as C
 from .library.common import link_html
 from .library.parts import Breadcrumb, InfoTable, PageHeader, label, primary_button, section_title
 from .library.pictures import watch_scroll
 
-_MARK_PX = 56
+_MARK_PX = 52
+
+_NARROW_W = 460
 
 _EXAMPLES = 6
+
+_ABOUT_CHARS = 220
 
 
 class ConnectorPage(QWidget):
 
 
 
-    back_requested = pyqtSignal()
+    crumb_requested = pyqtSignal(int)
 
     prompt_chosen = pyqtSignal(str, object)
     example_opened = pyqtSignal(object)
@@ -71,6 +79,9 @@ class ConnectorPage(QWidget):
         self._tiles: list = []
         self._cases: list = []
         self._examples_host: QWidget | None = None
+        self._head_row: QHBoxLayout | None = None
+        self._head_words: QVBoxLayout | None = None
+        self._head_button: QPushButton | None = None
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -84,7 +95,7 @@ class ConnectorPage(QWidget):
         self._page = QVBoxLayout(self._body)
         self._page.setSpacing(0)
         self._crumbs = Breadcrumb(self._body)
-        self._crumbs.crumb.connect(lambda _i: self.back_requested.emit())
+        self._crumbs.crumb.connect(self.crumb_requested.emit)
         self._page.addWidget(self._crumbs)
         self._page.addSpacing(C.px(C.SPACE_3))
         self._column = QWidget(self._body)
@@ -123,6 +134,26 @@ class ConnectorPage(QWidget):
             tile_w = max(1, (width - gap) // 2)
             for tile in self._tiles:
                 tile.set_tile_width(tile_w)
+        self._place_button(width < C.px(_NARROW_W))
+
+    def _place_button(self, narrow: bool) -> None:
+
+        button, row, words = self._head_button, self._head_row, self._head_words
+        if button is None or row is None or words is None:
+            return
+        under = words.indexOf(button) >= 0
+        if narrow == under:
+            return
+        (words if under else row).removeWidget(button)
+        if narrow:
+            words.addSpacing(C.px(C.SPACE_2))
+            words.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft)
+        else:
+
+            last = words.itemAt(words.count() - 1)
+            if last is not None and last.spacerItem() is not None:
+                words.removeItem(last)
+            row.addWidget(button, 0, Qt.AlignmentFlag.AlignTop)
 
 
 
@@ -130,6 +161,7 @@ class ConnectorPage(QWidget):
         self._tiles = []
         self._cases = []
         self._examples_host = None
+        self._head_row = self._head_words = self._head_button = None
         while self._col.count():
             item = self._col.takeAt(0)
             widget = item.widget()
@@ -152,11 +184,64 @@ class ConnectorPage(QWidget):
         return mark
 
     def _head(self, detail: dict, subtitle: str, button: QPushButton | None) -> None:
+
+
         name = str(detail.get("name") or detail.get("id") or "")
         self._crumbs.set_trail([self.tr("Data sources"), name])
-        self._col.addWidget(self._mark(detail))
-        self._gap(C.SPACE_2)
-        self._col.addWidget(PageHeader(self._column, name, subtitle, button))
+        box = QWidget(self._column)
+        row = QHBoxLayout(box)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(C.px(C.SPACE_3))
+        row.addWidget(self._mark(detail), 0, Qt.AlignmentFlag.AlignTop)
+        words = QVBoxLayout()
+        words.setContentsMargins(0, 0, 0, 0)
+        words.setSpacing(C.px(4))
+        header = PageHeader(box, name, subtitle, None)
+        words.addWidget(header)
+        site = self._site(detail)
+        if site:
+
+            line = QHBoxLayout()
+            line.setContentsMargins(0, 0, 0, 0)
+            line.addWidget(self._site_button(site))
+            line.addStretch(1)
+            words.addLayout(line)
+        row.addLayout(words, 1)
+        if button is not None:
+            button.setParent(box)
+            row.addWidget(button, 0, Qt.AlignmentFlag.AlignTop)
+        self._head_row, self._head_words, self._head_button = row, words, button
+        self._col.addWidget(box)
+
+    def _site(self, detail: dict) -> str:
+
+        for key in ("homepage", "url"):
+            value = str(detail.get(key) or "")
+            if value.startswith("https://"):
+                return value
+        return ""
+
+    def _site_button(self, site: str) -> QPushButton:
+
+        host = _host(site)
+        button = QPushButton(host[4:] if host.startswith("www.") else host)
+        button.setFlat(True)
+        button.setIcon(icon_for(button, "external", 14, QColor(C.T.text_2)))
+        button.setIconSize(QSize(C.px(14), C.px(14)))
+        button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setAutoDefault(False)
+        button.setToolTip(self.tr("Open {host} in your browser").format(host=_host(site)))
+        button.setStyleSheet(
+            f"QPushButton {{ border: none; background: transparent; padding: 0;"
+            f" color: {C.T.text_2}; font-size: {C.px(C.BODY_PX)}px; text-align: left; }}"
+            f"QPushButton:hover {{ color: {C.T.text}; text-decoration: underline; }}")
+        button.clicked.connect(lambda _c=False, url=site: self._open_link(url))
+        return button
+
+    def set_trail(self, names: list) -> None:
+
+        self._crumbs.set_trail(names)
 
     def _chip_for(self, detail: dict) -> dict:
         value = str(detail.get("id") or "")
@@ -178,6 +263,34 @@ class ConnectorPage(QWidget):
 
     def _paragraph(self, text: str) -> QLabel:
         return label(self._column, text, C.BODY_PX, C.T.text_2, wrap=True)
+
+    def _about(self, summary: str) -> QWidget:
+
+        short = _lead(summary, _ABOUT_CHARS)
+        if short == summary:
+            return self._paragraph(summary)
+        host = QWidget(self._column)
+        box = QVBoxLayout(host)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(C.px(C.SPACE_2))
+        text = self._paragraph(short)
+        text.setParent(host)
+        box.addWidget(text)
+        toggle = QPushButton(self.tr("Show more"), host)
+        toggle.setObjectName("connectorAboutMore")
+        toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        toggle.setStyleSheet(C.ghost_qss())
+        toggle.setAutoDefault(False)
+        box.addWidget(toggle, 0, Qt.AlignmentFlag.AlignLeft)
+
+        def flip(_checked=False):
+            showing = toggle.text() == self.tr("Show more")
+            text.setText(summary if showing else short)
+            toggle.setText(self.tr("Show less") if showing else self.tr("Show more"))
+            self._fit()
+
+        toggle.clicked.connect(flip)
+        return host
 
     def set_connector(self, detail: dict, cases: list | None = None) -> None:
 
@@ -219,16 +332,11 @@ class ConnectorPage(QWidget):
             self._gap(C.SPACE_5)
             self._col.addWidget(section_title(self._column, self.tr("About")))
             self._gap(12)
-            self._col.addWidget(self._paragraph(summary))
+            self._col.addWidget(self._about(summary))
         self._gap(C.SPACE_5)
         self._col.addWidget(section_title(self._column, self.tr("Information")))
         self._gap(12)
         self._col.addWidget(self._information(detail))
-        if str(detail.get("logo_url") or "").strip():
-            self._gap(C.SPACE_1)
-            self._col.addWidget(label(
-                self._column, self.tr("The logo belongs to its owner, who does not endorse "
-                                      "AI Agent."), C.SMALL_PX, C.T.text_2, wrap=True))
         self._fit()
 
     def _show_all_examples(self) -> None:
@@ -289,11 +397,10 @@ class ConnectorPage(QWidget):
         ):
             if str(value).strip():
                 more.add(name, str(value))
-        if self._url.startswith("https://"):
-            more.add(self.tr("Website"), link_html(self._url, _host(self._url)), rich=True)
         terms = str(detail.get("terms_url") or "")
-        if terms.startswith("https://") and terms != self._url:
-            more.add(self.tr("Terms"), link_html(terms, _host(terms)), rich=True)
+        if terms.startswith("https://") and terms.rstrip("/") not in {
+                self._url.rstrip("/"), self._site(detail).rstrip("/")}:
+            more.add(self.tr("Licence and terms"), link_html(terms, _host(terms)), rich=True)
         if not first.rows():
 
             first.hide()
@@ -372,3 +479,15 @@ def _host(url: str) -> str:
 
 
 __all__ = ["ConnectorPage"]
+
+
+def _lead(text: str, limit: int) -> str:
+
+
+    if len(text) <= limit:
+        return text
+    ends = [i + 1 for i, ch in enumerate(text[:-1]) if ch in ".!?" and text[i + 1] == " "]
+    fitting = [i for i in ends if i <= limit]
+    if fitting:
+        return text[:fitting[-1]]
+    return text[:ends[0]] if ends else text

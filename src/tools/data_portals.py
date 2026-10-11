@@ -140,13 +140,16 @@ def _search_open_data(args: dict) -> dict:
     if portal_url:
         custom_portal = _build_custom_portal(portal_url, portal_type)
         if custom_portal is None:
-            return {"_error": f"Unsupported portal_type '{portal_type}' for custom portal_url"}
+            return {"_error": f"Unsupported portal_type '{portal_type}' for custom portal_url", "_code": "INVALID_ARGS"}
         portals_to_search = [custom_portal]
     elif portal_id:
         portal = _portal_by_name(portal_id)
         if not portal:
             named = ", ".join(f"{key} ({p['name']})" for key, p in _open_data_portals().items())
-            return {"_error": f"Unknown portal '{portal_id}'. Available: {named}"}
+
+
+
+            return {"_error": f"Unknown portal '{portal_id}'. Available: {named}", "_code": "INVALID_ARGS"}
         portals_to_search = [portal]
     else:
         portals_to_search = list(_open_data_portals().values())
@@ -709,8 +712,12 @@ def _build_direct_import_result(url: str, title: str, source_family: str, fmt: s
 
 def _build_import_strategy(url: str, title: str, fmt: str) -> dict:
 
+
+
+
+
     fmt_lower = (fmt or "").lower()
-    if "wms" in fmt_lower or "wfs" in fmt_lower:
+    if "wms" in fmt_lower or "wfs" in fmt_lower or ogc_inspect.ogc_request(url) is not None:
         return {
             "service_url": url,
             "import_method": "inspect_data_source",

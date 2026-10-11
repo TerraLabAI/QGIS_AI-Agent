@@ -16,8 +16,9 @@ from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import cost_guard
 from . import sibling_setup as _setup
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_plugin
+from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_api_version, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as AIEDIT
+from .aiseg_review import AISEG_REVIEW_API
 
 AISEG_KEYS = list(AI_SEGMENT_KEYS)
 
@@ -122,6 +123,10 @@ def register_integration_tools(registry: ToolRegistry):
     _register_aiedit_generate(registry)
     _register_aiedit_actions(registry)
     _try_register_aiseg_auto(registry)
+
+
+    from . import aiseg_review
+    aiseg_review.sync(registry)
 
 
 def _register_aiedit_actions(registry: ToolRegistry):
@@ -589,18 +594,58 @@ def _aiseg_set_zone(args: dict) -> dict:
             return _aiseg_outdated(plugin, "set_auto_zone")
         if args.get("layer_name") and callable(getattr(api, "prepare_interactive", None)):
             from .integration_handoff import prepare
-            return prepare("ai_segment", args)
+            result = prepare("ai_segment", args)
+            zone_wkt = None
+        else:
 
 
 
 
-
-        zone_wkt = _aiseg_zone_wkt(plugin, args) or None
-        _show_sibling("ai_segment")
-        return fn(zone_wkt=zone_wkt)
+            zone_wkt = _aiseg_zone_wkt(plugin, args) or None
+            _show_sibling("ai_segment")
+            result = fn(zone_wkt=zone_wkt)
+        if isinstance(result, dict) and not result.get("_error"):
+            try:
+                _show_zone_layer(plugin, args, zone_wkt, result)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"AI Segmentation set_zone: the zone could not be shown: {exc}")
+        return result
     except Exception as e:
         log_warning(f"AI Segmentation set_auto_zone failed: {e}")
         return {"_error": f"AI Segmentation set_auto_zone failed: {str(e)}"}
+
+
+def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> None:
+
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsGeometry
+
+    from ..core import zone_of_interest
+    from ..core.layer_order import keep_place
+    from .zone_tools import _zoom_to
+    canvas = cost_guard._canvas_crs()
+    geom = cost_guard.plugin_zone()
+    if geom is None and zone_wkt and not result.get("free_fit"):
+        geom = QgsGeometry.fromWkt(zone_wkt)
+        source = _aiseg_raster_layer(plugin, args.get("layer_name"))
+        if source is not None:
+            geom = zone_of_interest.to_crs(geom, source.crs(), canvas)
+    if geom is None or geom.isEmpty():
+        return
+    layer = zone_of_interest.write_zone(geom, canvas)
+    if layer is None:
+        log_warning("AI Segmentation set_zone: the Area of interest layer could not be written")
+        return
+    keep_place(layer)
+    _zoom_to(layer)
 
 
 def _aiseg_detect_points(args: dict) -> dict:
@@ -875,6 +920,12 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
 
     if args.get("action") != "detect_auto":
         return None
+
+
+    from . import aiseg_review
+    if aiseg_review.review_open():
+        return {"error": "A detection review is open in the AI Segmentation panel and unsaved.",
+                "code": "BUSY", **coded_fact(hint="aiseg_review_open")}
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         from .integration_handoff import segmentation_arguments
@@ -965,6 +1016,10 @@ def _aiseg_detect_auto(args: dict) -> dict:
             kwargs["wait"] = False
 
 
+        if detached and "keep_review" in params and (sibling_api_version(plugin) or 0) >= AISEG_REVIEW_API:
+            kwargs["keep_review"] = True
+
+
 
 
         detail = args.get("detail")
@@ -1019,6 +1074,10 @@ def _aiseg_detect_auto(args: dict) -> dict:
             result["tell_user"] = ("The sweep is running in the AI Segmentation panel, showing "
                                    "the tiles, progress and cost. Its result is available after "
                                    "processing and saving finish; another run would spend credits again.")
+            if result.get("keep_review"):
+                result["tell_user"] = ("The sweep is running in the AI Segmentation panel, showing "
+                                       "the tiles, progress and cost. It ends on the panel's review "
+                                       "step with nothing saved; another run would spend credits again.")
         return result
     except Exception as e:
         log_warning(f"AI Segmentation detect_auto failed: {e}")

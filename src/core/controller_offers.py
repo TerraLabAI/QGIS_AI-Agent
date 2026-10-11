@@ -10,7 +10,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from .controller_shared import PROPOSAL_MAX_ROWS
 from .logger import log, log_warning
-from .profile import add_memory_note, load_memory_notes, record_declined
+from .profile import REPLY_LANGUAGES, add_memory_note, load_memory_notes, record_forgotten, remove_memory_note
 from .protocol import ClientErrorCode, Decision, RunStatus
 from .scratch import MIN_TO_OFFER
 from .scratch import group as group_scratch
@@ -26,6 +26,23 @@ def tr(text: str) -> str:
 
 _CARD_SLOTS = {"propose_action": "ask_recommendation", "propose_edits": "show_diff_table"}
 _DIFF_TABLE = "show_diff_table"
+
+
+def _setting_label(setting: str) -> str:
+
+    return {"reply_language": tr("reply language"), "reply_style": tr("response style"),
+            "question_policy": tr("questions"), "expertise": tr("GIS experience"),
+            "units": tr("units"), "layer_naming": tr("layer names")}.get(setting, "")
+
+
+def _value_label(setting: str, value: str) -> str:
+
+    if setting == "reply_language":
+        return next((name for code, name in REPLY_LANGUAGES if code == value), value)
+    return {"concise": tr("Concise"), "balanced": tr("Balanced"), "detailed": tr("Detailed"),
+            "minimal": tr("Rarely"), "confirm": tr("Before changes"), "beginner": tr("Beginner"),
+            "intermediate": tr("Intermediate"), "expert": tr("Expert"), "metric": tr("Metric"),
+            "imperial": tr("Imperial"), "human": tr("Readable"), "snake_case": tr("snake_case")}.get(value, value)
 
 
 def _has_change(rows) -> bool:
@@ -187,7 +204,8 @@ class _ControllerOffers:
         if moved:
             log(f"Grouped {moved} working layers of run {str(run_id or '')[:8]}")
 
-    def _on_memory_note(self, text: str, kind: str, scope: str, run_id: str = "", replaces: str = "") -> None:
+    def _on_memory_note(self, text: str, kind: str, scope: str, run_id: str = "", replaces: str = "",
+                        setting: str = "", value: str = "") -> None:
 
 
 
@@ -199,54 +217,61 @@ class _ControllerOffers:
             return
         if not bool(getattr(self._settings, "memory_enabled", True)):
             return
-        project = self._run_projects.get(str(run_id or ""))
+        run_id = str(run_id or "")
+        project = self._run_projects.get(run_id)
         if project is None:
 
 
 
-            log_warning(f"Memory note dropped: run {str(run_id)[:8] or '?'} is not one of ours")
+            log_warning(f"Memory note dropped: run {run_id[:8] or '?'} is not one of ours")
             return
-        if hasattr(self._panel, "propose_memory"):
-
-            key = f"{str(run_id or '')}:{len(text)}"
-            old = ""
-            if replaces:
-                try:
-                    old = next((n["text"] for n in load_memory_notes(self._settings) if n["id"] == replaces), "")
-                except Exception:  # noqa: BLE001
-                    old = ""
-            self._memory_proposal = {"key": key, "text": text, "kind": kind, "scope": scope,
-                                     "project": project, "replaces": replaces}
-            self._panel_call("propose_memory", key, text, old)
+        undo = getattr(self, "_memory_undo", None)
+        if undo is None:
+            undo = self._memory_undo = {}
+        key = f"{run_id}:{len(undo)}"
+        if _setting_label(setting):
+            before = str(getattr(self._settings, setting, "") or "")
+            try:
+                setattr(self._settings, setting, value)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Setting from memory not applied: {exc}")
+                return
+            after = str(getattr(self._settings, setting, "") or "")
+            if after == before:
+                return
+            undo[key] = {"setting": setting, "before": before}
+            self._panel_optional("note_setting", _setting_label(setting), _value_label(setting, after), key)
             return
-        self._store_memory_note(text, kind, scope, project, replaces)
-
-    def _store_memory_note(self, text: str, kind: str, scope: str, project: str, replaces: str = "") -> dict | None:
+        old = None
+        if replaces:
+            old = next((n for n in load_memory_notes(self._settings) if n["id"] == replaces), None)
         try:
             note = add_memory_note(self._settings, text, "ai", kind, scope, project, replaces)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Memory note not stored: {exc}")
-            return None
-        if note is not None and not hasattr(self._panel, "propose_memory"):
-            self._panel_call("note_memory", note["text"])
-        return note
-
-    def _on_memory_decided(self, key: str, add: bool) -> None:
-
-
-        proposal = getattr(self, "_memory_proposal", None) or {}
-        if proposal.get("key") != key:
             return
-        self._memory_proposal = None
-        if not add:
-            try:
-                record_declined(self._settings, proposal["text"])
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Declined note not recorded: {exc}")
-            return
-        note = self._store_memory_note(proposal["text"], proposal["kind"], proposal["scope"],
-                                       proposal["project"], proposal["replaces"])
-
-        self._panel_optional("confirm_memory", key)
         if note is None:
-            log("Memory note accepted but already stored")
+            return
+        undo[key] = {"id": note["id"], "text": note["text"], "old": old}
+        self._panel_call("note_memory", note["text"], key)
+
+    def _on_memory_undo(self, key: str) -> None:
+
+
+
+        entry = (getattr(self, "_memory_undo", None) or {}).pop(str(key or ""), None)
+        if not entry:
+            return
+        try:
+            if "setting" in entry:
+                setattr(self._settings, entry["setting"], entry["before"])
+                return
+            old = entry.get("old")
+            if old:
+                add_memory_note(self._settings, old["text"], old.get("source") or "ai", old["kind"],
+                                old["scope"], old.get("project") or "", entry["id"])
+                record_forgotten(self._settings, entry["text"])
+            else:
+                remove_memory_note(self._settings, entry["id"])
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Memory undo failed: {exc}")

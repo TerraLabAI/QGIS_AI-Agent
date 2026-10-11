@@ -152,7 +152,6 @@ def run_change_items(report, touched=None, answer: str = "") -> dict:
 
 
 
-
     try:
         return _run_change_items(report if isinstance(report, dict) else {},
                                  [x for x in touched if isinstance(x, dict)]
@@ -235,14 +234,6 @@ def _run_change_items(report: dict, touched: list, answer: str = "") -> dict:
     files = [entry for entry in files if entry]
     if files:
         out["files"] = files
-
-
-    shown = {entry["path"] for entry in files}
-    working = [_made_file(entry) for entry in listed("files_written")
-               if entry.get("exists") and entry.get("path") not in shown]
-    working = [entry for entry in working if entry]
-    if working:
-        out["working_files"] = working
     return out
 
 

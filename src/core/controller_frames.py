@@ -248,6 +248,8 @@ class _ControllerFrames:
 
         if not isinstance(payload, dict):
             return
+
+        self._panel_optional("set_account_cap", payload.get("free_account_cap"))
         self._on_usage(usage_to_runs(payload))
 
     def _on_token(self, run_id: str, text: str) -> None:
@@ -391,7 +393,10 @@ class _ControllerFrames:
         if ok:
             result = frame.get("result") if isinstance(frame.get("result"), dict) else {}
             listed = result.get("results") if isinstance(result.get("results"), list) else None
-            rows = [{"title": str(r.get("title") or "")[:300], "url": str(r.get("url") or "")[:500]}
+
+
+            rows = [{"title": str(r.get("title") or "")[:300], "url": str(r.get("url") or "")[:500],
+                     **{k: str(r[k])[:500] for k in ("connector_id", "logo_url") if isinstance(r.get(k), str) and r[k]}}
                     for r in (listed or [])[:20] if isinstance(r, dict)]
             if rows:
                 detail = json.dumps({"results": rows}, ensure_ascii=False)
@@ -471,10 +476,15 @@ class _ControllerFrames:
 
 
 
-        multiple = bool(self._question_args.pop(tool_call_id, {}).get("multiple"))
-        extra = (multiple,) if multiple else ()
+
+        args = self._question_args.pop(tool_call_id, {})
+        multiple = bool(args.get("multiple"))
+        details = [str(d) for d in args.get("details") or []] if isinstance(args.get("details"), list) else []
+        header = str(args.get("header") or "")
+        extra = ((multiple, details, header) if header
+                 else (multiple, details) if any(details) else ((multiple,) if multiple else ()))
         self._panel_call("ask_question", tool_call_id, run_id, question, options, allow_free_text,
-                         int(recommended), str(why or ""), self._settings.question_timeout_s, *extra)
+                         int(recommended), str(why or ""), *extra)
         self._approval_pending(tool_call_id, True)
 
     def _on_question_answered(self, tool_call_id: str, answer: str) -> None:
@@ -483,11 +493,6 @@ class _ControllerFrames:
         self._approval_pending(tool_call_id, False)
         self._touch_watchdog()
         self._executor.on_question_answered(tool_call_id, answer)
-
-    def _on_question_auto_answered(self, tool_call_id: str, seconds: int) -> None:
-
-        telemetry.track(ev.AGENT_QUESTION_AUTO_ANSWERED, {
-            "run_id": self._call_runs.get(tool_call_id, ""), "seconds": int(seconds)})
 
     def _on_permission_decided(self, tool_call_id: str, decision: str, edits: object = None) -> None:
 
@@ -628,6 +633,8 @@ class _ControllerFrames:
 
 
         QTimer.singleShot(0, self._record_after_point)
+
+        QTimer.singleShot(0, self._resync_sibling_tools_when_idle)
         if closing:
 
             self._restore_after_run(run_id)
@@ -797,6 +804,9 @@ class _ControllerFrames:
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
             self._quota_tracked_run = run_id if isinstance(run_id, str) else None
             telemetry.track(ev.QUOTA_EXHAUSTED, {"run_id": self._quota_tracked_run, "source": "server_error"})
+        if code == ServerErrorCode.QUOTA_EXHAUSTED and error.get("reason") == "account_cap":
+
+            self._panel_optional("set_account_cap", {"blocked": True})
         if code == ServerErrorCode.QUOTA_EXHAUSTED and self._run:
             self._panel_call("show_quota_pause", self._run["run_id"], message)
         if (self._run and isinstance(run_id, str) and run_id == self._run["run_id"]

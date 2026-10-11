@@ -36,6 +36,9 @@ _CLOUD_VSI = ("vsis3", "vsigs", "vsiaz", "vsiadls", "vsioss", "vsiswift", "vsihd
 _URL_VSI = ("vsicurl", "vsicurl_streaming")
 _ARCHIVE_EXT = (".zip", ".gz", ".tar", ".tgz", ".7z", ".kmz", ".gpkg.zip")
 _VSI = re.compile(r"^/(vsi[a-z0-9_]+)/")
+
+
+_CLOUD_URL = re.compile(r"^(s3|gs|gcs|az|abfss?|wasbs?|oss|swift)://", re.IGNORECASE)
 _DRIVE = re.compile(r"^[A-Za-z]:[\\/]")
 
 _DRIVER = re.compile(r'^([A-Za-z][A-Za-z0-9_]+):(?:"([^"]*)"(.*)|(.*))$', re.DOTALL)
@@ -178,7 +181,7 @@ def plain_source(text) -> str:
     if found:
         return _vsi(found.group(1), text[found.end():])
     lowered = text.lower()
-    if lowered.startswith(("http://", "https://")):
+    if lowered.startswith(("http://", "https://")) or _CLOUD_URL.match(text):
         return _url(text)
     if lowered.startswith("file:"):
         from qgis.PyQt.QtCore import QUrl

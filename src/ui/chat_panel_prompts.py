@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import contextlib
 import os
-import time
 
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -23,7 +22,7 @@ from .cards import (
     QuotaPauseCard,
 )
 from .confirm_dialog import ConfirmDialog
-from .loader import ElapsedClock, ShimmerLabel
+from .loader import ElapsedClock, ShimmerLabel, user_waiting
 from .widgets import Spinner
 
 
@@ -76,7 +75,6 @@ class _ChatPanelPrompts:
         card.quiet = tool is not None
         card.decided.connect(self.permission_decided.emit)
         self._wait_on_user(run_id, self.tr("Waiting for your approval"))
-        run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
@@ -102,6 +100,7 @@ class _ChatPanelPrompts:
 
 
 
+        user_waiting(True)
         self.set_status_line(run_id, text)
         if self._status is not None:
             self._status.stop()
@@ -130,6 +129,7 @@ class _ChatPanelPrompts:
                 held.append(clock)
 
     def _release_motion(self) -> None:
+        user_waiting(False)
         for part in self.__dict__.pop("_held_motion", []):
             try:
                 if isinstance(part, ElapsedClock):
@@ -176,7 +176,9 @@ class _ChatPanelPrompts:
 
     def ask_question(self, tool_call_id: str, run_id: str, question: str, options,
                      allow_free_text: bool, recommended: int = -1, why: str = "",
-                     timeout_s: int = 0, multiple: bool = False) -> None:
+                     multiple: bool = False, details=None,
+                     header: str = "") -> None:
+
 
 
 
@@ -200,17 +202,15 @@ class _ChatPanelPrompts:
                           if isinstance(c, QuestionCard) and c.is_open()), None)
         if open_card is not None:
             open_card.add_page(tool_call_id, question, list(options or []), allow_free_text,
-                               recommended=recommended, why=why, timeout_s=timeout_s,
-                               multiple=multiple)
+                               recommended=recommended, why=why,
+                               multiple=multiple, details=details, header=header)
             self.message_list.register_permission_card(tool_call_id, open_card)
             return
         card = QuestionCard(tool_call_id, question, list(options or []), allow_free_text,
-                            recommended=recommended, why=why, timeout_s=timeout_s,
-                            multiple=multiple)
+                            recommended=recommended, why=why,
+                            multiple=multiple, details=details, header=header)
         card.answered.connect(self.question_answered.emit)
-        card.auto_answered.connect(self.question_auto_answered.emit)
         self._wait_on_user(run_id, self.tr("Waiting for your answer"))
-        run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
@@ -239,7 +239,6 @@ class _ChatPanelPrompts:
                                   confidence, list(alternatives or []))
         card.decided.connect(self._on_recommendation_decided)
         self._wait_on_user(run_id, self.tr("Waiting for your answer"))
-        run.wait_started = time.monotonic()
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
@@ -256,9 +255,6 @@ class _ChatPanelPrompts:
         for run in self._runs.values():
             if card is not None and card in run.permissions:
                 run_id = run.run_id
-                if run.wait_started:
-                    run.waited += time.monotonic() - run.wait_started
-                    run.wait_started = 0.0
                 break
         self._resume_line(run_id or self._current_run)
 
@@ -301,9 +297,6 @@ class _ChatPanelPrompts:
         for run in self._runs.values():
             if card in run.permissions:
                 run_id = run.run_id
-                if run.wait_started:
-                    run.waited += time.monotonic() - run.wait_started
-                    run.wait_started = 0.0
                 break
         self._resume_line(run_id or self._current_run)
 
@@ -323,9 +316,6 @@ class _ChatPanelPrompts:
         for run in self._runs.values():
             if card in run.permissions:
                 run_id = run.run_id
-                if run.wait_started:
-                    run.waited += time.monotonic() - run.wait_started
-                    run.wait_started = 0.0
                 break
         if reason == "denied":
 

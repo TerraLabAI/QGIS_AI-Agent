@@ -42,8 +42,9 @@ OPTIONAL_DEPENDENCIES = {
         "import_name": "ee",
         "unlocks": (
             "Google Earth Engine tools (add_gee_dataset, gee_compute_index, gee_zonal_stats, "
-            "initialize_earth_engine). search_gee_catalog is answered by the server and needs "
-            "no install."
+            "initialize_earth_engine), on the user's own Earth Engine account: they appear once "
+            "this computer is signed in (ee.Authenticate() in the QGIS Python console) and the "
+            "plugin reloads. search_gee_catalog is answered by the server and needs no install."
         ),
     },
 

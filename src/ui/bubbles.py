@@ -34,8 +34,10 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import openui
 from .attach_card import AttachCard
 from .attachments import attachment_caption, attachment_kind, card_art, is_picture, tile_pixmap
+from .blocks import BlockPlaceholder, BlockView
 from .file_links import linkify_paths
 from .file_preview import can_open, open_file_preview
 from .icons import icon_for
@@ -50,6 +52,7 @@ from .style import (
     _BTN_QUIET,
     INK_2,
     MOTION_FADE_UP_MS,
+    SPACE_OUTER,
     SPACE_TIGHT,
 )
 from .widgets import FlowLayout
@@ -375,9 +378,18 @@ class AgentBubble(QWidget):
         self._view.height_changed.connect(self._on_text_height)
         self._col.addWidget(self._view)
 
+
+        self._parts = QWidget(self)
+        self._parts_col = QVBoxLayout(self._parts)
+        self._parts_col.setContentsMargins(0, 0, 0, 0)
+        self._parts_col.setSpacing(0)
+        self._parts.hide()
+        self._part_widgets: list = []
+        self._col.addWidget(self._parts)
+
         self._actions = QWidget(self)
         actions = QHBoxLayout(self._actions)
-        actions.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        actions.setContentsMargins(0, SPACE_OUTER, 0, 0)
         actions.setSpacing(4)
         self._sources = SourcesButton(self._actions)
         self._sources.hide()
@@ -462,7 +474,7 @@ class AgentBubble(QWidget):
     def set_linked_text(self, text: str) -> None:
 
 
-        written = self.copy_text()
+        written = self._raw_text()
         self.set_text(text)
         self._written = written
 
@@ -478,24 +490,88 @@ class AgentBubble(QWidget):
 
 
         started = time.perf_counter()
+        parts = openui.split(self._text) if openui.FENCE_TAG in self._text else [("md", self._text)]
+        if not streaming:
+
+            parts = [(p[0], p[1], True) if p[0] == "block" else p for p in parts]
+        first = parts[0][1] if parts[0][0] == "md" else ""
         if streaming:
-            self._view.stream_markdown(self._text)
+            self._view.stream_markdown(first)
         else:
 
             self._followed = follow_layer_links(self._text, gone)
-            self._view.set_markdown(linkify_paths(self._followed))
+            self._view.set_markdown(linkify_paths(follow_layer_links(first, gone)))
+        self._view.setVisible(bool(first.strip()) or len(parts) == 1)
+        self._render_parts(parts[1:] if parts[0][0] == "md" else parts, streaming, gone)
         self._linked = not streaming
         if streaming:
             spent_ms = (time.perf_counter() - started) * 1000.0
             interval = int(min(_STREAM_INTERVAL_MAX_MS, max(_STREAM_INTERVAL_MS, spent_ms * _STREAM_DUTY)))
             self._timer.setInterval(interval)
 
+    def _render_parts(self, parts: list, streaming: bool, gone) -> None:
+
+
+
+
+        keep = 0
+        for index, part in enumerate(parts):
+            if index >= len(self._part_widgets):
+                break
+            signature, _widget = self._part_widgets[index]
+            if part[0] != signature[0] or (part[0] == "block" and part[1:] != signature[1:]):
+                break
+            keep = index + 1
+        for _signature, widget in self._part_widgets[keep:]:
+            self._parts_col.removeWidget(widget)
+            widget.hide()
+            widget.deleteLater()
+        del self._part_widgets[keep:]
+        for index, part in enumerate(parts):
+            if index < keep:
+                widget = self._part_widgets[index][1]
+            else:
+                widget = self._part_widget(part)
+                self._parts_col.addWidget(widget)
+                self._part_widgets.append((part, widget))
+            if part[0] == "md":
+                if streaming:
+                    widget.stream_markdown(part[1])
+                else:
+                    widget.set_markdown(linkify_paths(follow_layer_links(part[1], gone)))
+                widget.setVisible(bool(part[1].strip()))
+        self._parts.setVisible(bool(parts))
+        if keep < len(parts):
+            self._on_text_height(0)
+
+    def _part_widget(self, part: tuple) -> QWidget:
+        if part[0] == "md":
+            view = MarkdownView(self._parts)
+            view.link_activated.connect(self.link_activated.emit)
+            view.height_changed.connect(self._on_text_height)
+            return view
+        if not part[2]:
+            return BlockPlaceholder(self._parts)
+        block = openui.parse(part[1])
+        if block is not None:
+            return BlockView(block, self._parts)
+
+        view = MarkdownView(self._parts)
+        view.set_plain_text(part[1])
+        view.height_changed.connect(self._on_text_height)
+        return view
+
     def text(self) -> str:
         return self._text + "".join(self._pending)
 
-    def copy_text(self) -> str:
+    def _raw_text(self) -> str:
 
         return self.text() if self._written is None else self._written
+
+    def copy_text(self) -> str:
+
+
+        return openui.readable(self._raw_text())
 
     def follow_project(self, gone=frozenset()) -> None:
 
@@ -568,7 +644,15 @@ class AgentBubble(QWidget):
 
     def set_changes(self, row: QWidget, animate: bool = True) -> None:
 
-        self._col.insertWidget(self._col.indexOf(self._actions), row)
+
+
+        holder = QWidget(self)
+        box = QVBoxLayout(holder)
+        box.setContentsMargins(0, SPACE_OUTER, 0, 0)
+        box.setSpacing(0)
+        box.addWidget(row)
+        row.destroyed.connect(holder.deleteLater)
+        self._col.insertWidget(self._col.indexOf(self._actions), holder)
         row.show()
         if animate:
             self._fade_up(row)
@@ -638,6 +722,9 @@ class AgentBubble(QWidget):
         self._timer.stop()
         self._stop_fade()
         self._view.set_streaming(False)
+        for _signature, widget in self._part_widgets:
+            if isinstance(widget, MarkdownView):
+                widget.set_streaming(False)
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)

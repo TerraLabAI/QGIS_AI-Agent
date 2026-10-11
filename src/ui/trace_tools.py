@@ -50,7 +50,8 @@ from .card_base import format_duration
 from .cards_tool import ToolCard
 from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
-from .source_marks import source_host, source_mark_pixmap
+from .source_marks import _clipped as clipped_mark
+from .source_marks import connector_row, family_pixmap, source_host, source_mark_pixmap
 from .style import _BTN_QUIET, INK_2, INK_3, SPACE_TIGHT, qcolor
 from .tool_describe import (
     _with_layer_names,
@@ -119,7 +120,11 @@ def is_code_tool(name: str) -> bool:
     return name in CODE_TOOLS
 
 
-def search_results(detail: str) -> list[tuple[str, str]]:
+def search_results(detail: str) -> list[tuple[str, str, dict]]:
+
+
+
+
 
     text = str(detail or "").strip()
     if not text or text[0] not in "[{":
@@ -139,7 +144,7 @@ def search_results(detail: str) -> list[tuple[str, str]]:
     rows = []
     for item in items:
         if isinstance(item, str):
-            rows.append((item.strip(), ""))
+            rows.append((item.strip(), "", {}))
             continue
         if not isinstance(item, dict):
             continue
@@ -149,7 +154,14 @@ def search_results(detail: str) -> list[tuple[str, str]]:
         source = next((source_host(item.get(k) or props.get(k)) for k in _SOURCE_KEYS
                        if isinstance(item.get(k) or props.get(k), str)), "")
         if name.strip():
-            rows.append((" ".join(name.split()), source))
+            owners = ("provider", "publisher", "organisation", "organization")
+            provider = next((str(item.get(k) or props.get(k)) for k in owners if item.get(k) or props.get(k)), "")
+            family = connector_row(str(item.get("connector_id") or item.get("family") or ""), source, provider)
+            logo = str(item.get("logo_url") or "")
+            if not family and logo.startswith("https://"):
+
+                family = {"logo_url": logo}
+            rows.append((" ".join(name.split()), source, family))
     return rows
 
 
@@ -239,16 +251,24 @@ class _ResultRow(QWidget):
 
 
 
-    def __init__(self, name: str, host: str, parent=None):
+    def __init__(self, name: str, host: str, family: dict | None = None, parent=None):
         super().__init__(parent)
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
-        mark = QLabel(self)
-        mark.setFixedSize(GLYPH_SLOT_PX, GLYPH_SLOT_PX)
-        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setPixmap(source_mark_pixmap(host or name, _RESULT_MARK_PX, widget_pixel_ratio(self)))
-        row.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._mark = QLabel(self)
+        self._mark.setFixedSize(GLYPH_SLOT_PX, GLYPH_SLOT_PX)
+        self._mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._key = host or name
+        self._family = family or {}
+        self._logo_url = str(self._family.get("logo_url") or "")
+        self._paint_mark()
+        if self._logo_url:
+
+            from .library.pictures import store
+
+            store().ready.connect(self._on_logo_ready)
+        row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
         title = ElidedLabel(name, self)
         title.setObjectName("resultName")
         title.setStyleSheet(_LABEL_QSS)
@@ -263,6 +283,29 @@ class _ResultRow(QWidget):
         row.addStretch(1)
         self.setFixedHeight(24)
 
+    def _paint_mark(self) -> None:
+        ratio = widget_pixel_ratio(self)
+
+
+        if self._family.get("id"):
+            self._mark.setPixmap(family_pixmap(self._family, _RESULT_MARK_PX, ratio))
+            return
+        if self._logo_url:
+
+            from .library.pictures import store
+            from .logo_tile import logo_pixmap
+
+            path = store().want_file(self._logo_url)
+            chip = logo_pixmap(path, _RESULT_MARK_PX, ratio) if path else None
+            if chip is not None:
+                self._mark.setPixmap(clipped_mark(chip, _RESULT_MARK_PX, ratio))
+                return
+        self._mark.setPixmap(source_mark_pixmap(self._key, _RESULT_MARK_PX, ratio))
+
+    def _on_logo_ready(self, url: str) -> None:
+        if url == self._logo_url:
+            self._paint_mark()
+
 
 class ActivityRow(QWidget):
 
@@ -273,7 +316,9 @@ class ActivityRow(QWidget):
         self.key = card.stack_key()
         self._open = False
         self._opens = False
-        self._results: list[tuple[str, str]] = []
+        self._results: list[tuple[str, str, str]] = []
+        self._icon_logo = ""
+        self._logo_hooked = False
 
 
         self._job_over = False
@@ -572,7 +617,15 @@ class ActivityRow(QWidget):
             mark = "lu.x" if failed else "lu.minus"
             self._icon.setPixmap(pixmap_for(self, mark, GLYPH_PX, qcolor(INK_3)))
         else:
-            self._icon.setPixmap(pixmap_for(self, str(first.glyph or "lu.cog"), GLYPH_PX, colour))
+            logo = self._logo_url(first)
+            if logo != self._icon_logo:
+                self._icon_logo = logo
+                if logo and not self._logo_hooked:
+                    from .library.pictures import store
+
+                    store().ready.connect(self._on_logo_ready)
+                    self._logo_hooked = True
+            self._paint_icon(first, colour)
         n = self.repeats
         self._count.setText(f"\u00d7 {n}")
         self._count.setVisible(n > 1)
@@ -608,10 +661,33 @@ class ActivityRow(QWidget):
         self._sync_open()
 
     @staticmethod
+    def _logo_url(card: ToolCard) -> str:
+
+        connector = getattr(card, "connector", None)
+        url = str(connector.get("logo_url") or "") if isinstance(connector, dict) else ""
+        return url if url.startswith("https://") else ""
+
+    def _paint_icon(self, card: ToolCard, colour) -> None:
+
+
+        connector = getattr(card, "connector", None)
+        if isinstance(connector, dict) and connector.get("id"):
+            self._icon.setPixmap(family_pixmap(connector, GLYPH_SLOT_PX, widget_pixel_ratio(self), False))
+            return
+        self._icon.setPixmap(pixmap_for(self, str(card.glyph or "lu.cog"), GLYPH_PX, colour))
+
+    def _on_logo_ready(self, url: str) -> None:
+        if url and url == self._icon_logo and self.cards and self._icon.isVisible():
+            self.refresh()
+
+    @staticmethod
     def _search_results(card: ToolCard) -> list:
         if not is_search_tool(card.name) or not card.ok:
             return []
-        return search_results(card.detail)
+
+        connector = getattr(card, "connector", None)
+        own = connector if isinstance(connector, dict) and connector.get("id") else {}
+        return [(name, host, family or own) for name, host, family in search_results(card.detail)]
 
     def _sync_results(self) -> None:
         while self._results_col.count():
@@ -621,8 +697,8 @@ class ActivityRow(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
-        for name, host in self._results[:_RESULTS_SHOWN]:
-            self._results_col.addWidget(_ResultRow(name, host, self._results_host))
+        for name, host, family in self._results[:_RESULTS_SHOWN]:
+            self._results_col.addWidget(_ResultRow(name, host, family, self._results_host))
         more = len(self._results) - _RESULTS_SHOWN
         if more > 0:
             label = QLabel(self.tr("+{n} more").format(n=more), self._results_host)
@@ -735,6 +811,13 @@ class ActivityRow(QWidget):
 
     def cleanup(self) -> None:
         self._spinner.finish()
+        if self._logo_hooked:
+            from .library.pictures import store
+
+            try:
+                store().ready.disconnect(self._on_logo_ready)
+            except (RuntimeError, TypeError):
+                pass
         self._chevron.cleanup()
         for card in self.cards:
 

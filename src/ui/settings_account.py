@@ -54,7 +54,6 @@ from .settings_pages import (
     SettingGroup,
     SettingRow,
     Switch,
-    set_section_locked,
 )
 from .shared import (
     PRODUCT_ID,
@@ -569,20 +568,19 @@ class AccountPageMixin:
     def _improve_note(self, subscriber: bool) -> str:
 
         if subscriber:
-            return self.tr("Off on your plan: chats are never read to improve it.")
+            return self.tr("Lets us read a chat only to fix a bug. Chats are kept 30 days.")
         return self.tr("Lets us read a chat only to fix a wrong answer or a bug.")
 
     def _improve_tip(self, subscriber: bool) -> str:
         if subscriber:
-            return self.tr("What you write is never read to improve the product, no matter "
-                           "how this switch is set.")
+            return self.tr("Your chats are kept 30 days so a conversation survives an update. "
+                           "Off, the team never reads them. 0 days of history stores nothing.")
         return self.tr("Turn it off any time, with no other effect.")
 
     def _sync_improve_plan(self, info: dict) -> None:
 
         row = getattr(self, "_improve_row", None)
-        switch = getattr(self, "_improve_switch", None)
-        if row is None or switch is None:
+        if row is None:
             return
         if info.get("loading") or info.get("error") or info.get("error_code"):
             return
@@ -590,14 +588,6 @@ class AccountPageMixin:
         try:
             row.set_note(self._improve_note(subscriber))
             row.setToolTip(self._improve_tip(subscriber))
-            if subscriber:
-
-
-
-                switch.blockSignals(True)
-                switch.setChecked(False)
-                switch.blockSignals(False)
-                set_section_locked(switch)
         except RuntimeError:
             pass
 

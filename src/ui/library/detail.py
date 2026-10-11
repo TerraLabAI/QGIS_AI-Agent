@@ -148,6 +148,10 @@ class ExampleDetail(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
+    def set_trail(self, names: list) -> None:
+
+        self._crumbs.set_trail(names)
+
     def set_case(self, case, group_label: str = "", root: str = "") -> None:
 
 

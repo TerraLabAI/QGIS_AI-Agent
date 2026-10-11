@@ -854,28 +854,6 @@ class Settings:
     def show_tool_details(self, value: bool) -> None:
         self._set("show_tool_details", "1" if value else "0")
 
-    QUESTION_TIMEOUTS = (0, 30, 60, 120)
-
-    @property
-    def question_timeout_s(self) -> int:
-
-
-
-
-        try:
-            value = int(self._get("question_timeout_s", "0") or 0)
-        except ValueError:
-            return 0
-        return max(0, value)
-
-    @question_timeout_s.setter
-    def question_timeout_s(self, value: int) -> None:
-        try:
-            seconds = max(0, int(value))
-        except (TypeError, ValueError):
-            seconds = 0
-        self._set("question_timeout_s", str(seconds))
-
 
 
     @property
@@ -1001,20 +979,6 @@ class Settings:
     def memory_forgotten(self, texts: list) -> None:
         self._set("memory_forgotten", json.dumps(list(texts or []), ensure_ascii=False))
 
-    @property
-    def memory_declined(self) -> list:
-
-
-        try:
-            data = json.loads(self._get("memory_declined", "") or "[]")
-        except ValueError:
-            return []
-        return [t for t in data if isinstance(t, (str, dict))] if isinstance(data, list) else []
-
-    @memory_declined.setter
-    def memory_declined(self, texts: list) -> None:
-        self._set("memory_declined", json.dumps(list(texts or []), ensure_ascii=False))
-
 
 
 
@@ -1022,6 +986,7 @@ class Settings:
     PREFERENCE_KEYS = (
         "mode", "approval", "effort", "effort_pro", "model_mode", "reply_language", "reply_style", "explain_runs",
         "show_tool_details",
+
         "question_timeout_s", "question_policy", "follow_edits", "send_shortcut",
         "expertise", "units", "layer_naming",
         "profile_name", "profile_role", "profile_about", "profile_instructions", "memory_enabled",

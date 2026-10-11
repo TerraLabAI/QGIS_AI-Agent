@@ -376,13 +376,8 @@ class _LayerChip(_Chip):
             parts.append((f"~{self.changed}", INK_2, self._count_font))
         if len(parts) == 1 and self.what == "added":
 
-            if self.in_project:
-                if self.features is not None:
-                    from qgis.PyQt.QtCore import QLocale
-
-                    parts.append((QLocale().toString(int(self.features)), INK_3, self._count_font))
-                else:
-                    parts.append((self.tr("new"), INK_3, self._font))
+            if self.in_project and self.features is None:
+                parts.append((self.tr("new"), INK_3, self._font))
         elif len(parts) == 1:
             word = self._what_word()
             if word:

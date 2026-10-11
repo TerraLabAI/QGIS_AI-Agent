@@ -127,25 +127,126 @@ def _sublayer_names(path: str) -> list:
         return []
 
 
+def container_layers(source: str) -> list | None:
 
 
-_ZIP_VECTOR_EXTENSIONS = (".shp", ".gpkg", ".geojson", ".kml", ".kmz", ".gml", ".gpx", ".fgb", ".tab",
-                          ".mif", ".dxf", ".sqlite", ".vrt")
 
 
-def _zip_listing(path: str) -> tuple[list, list, str]:
+
+
+    from .data_inspect import _SINGLE_LAYER_EXTENSIONS
+
+    low = source.lower()
+    if "|" in source:
+        return None
+    if low.endswith(_CONTAINER_EXTENSIONS):
+        return _sublayer_names(source)
+    if low.endswith(_SINGLE_LAYER_EXTENSIONS):
+        return None
+    names = _sublayer_names(source)
+    return names if len(names) > 1 else None
+
+
+def _zip_names(path: str) -> tuple[list, str]:
 
     import zipfile
 
     try:
         with zipfile.ZipFile(path) as archive:
-            names = archive.namelist()
+            return archive.namelist(), ""
     except (OSError, zipfile.BadZipFile) as exc:
-        return [], [], str(exc) or type(exc).__name__
-    members = [entry for entry in names
-               if entry.lower().endswith(_ZIP_VECTOR_EXTENSIONS)
-               and not entry.startswith("__MACOSX/") and not os.path.basename(entry).startswith("._")]
-    return members, names, ""
+        return [], str(exc) or type(exc).__name__
+
+
+def _is_sidecar(name: str, lowered: set) -> bool:
+
+    stem = name.lower()
+    while True:
+        stem, ext = os.path.splitext(stem)
+        if not ext:
+            return False
+        if stem in lowered:
+            return True
+
+
+
+_SAME_FORMAT_PROOF = 20
+
+
+def _vector_driver(gdal, path: str) -> str:
+
+    try:
+        driver = gdal.IdentifyDriverEx(path, gdal.OF_VECTOR)
+        if driver is None:
+            return ""
+        if gdal.IdentifyDriverEx(path, gdal.OF_RASTER) is not None:
+            opened = gdal.OpenEx(path, gdal.OF_VECTOR)
+            if opened is None or not opened.GetLayerCount():
+                return ""
+        return str(driver.ShortName)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    try:
+        from osgeo import gdal
+    except ImportError:
+        return [], []
+    files = [name for name in names
+             if not name.endswith("/") and not name.startswith("__MACOSX/")
+             and not os.path.basename(name).startswith("._")
+             and not any(part.lower().endswith(".gdb") for part in name.split("/")[:-1])]
+    lowered = {name.lower() for name in files}
+    found: dict = {}
+    verdicts: dict = {}
+
+    readdir = gdal.GetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", None)
+    gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+    gdal.PushErrorHandler("CPLQuietErrorHandler")
+    try:
+        for name in files:
+            if _is_sidecar(name, lowered):
+                continue
+            ext = os.path.splitext(name)[1].lower()
+            seen = verdicts.get(ext, [])
+            if len(seen) >= _SAME_FORMAT_PROOF and len(set(seen)) == 1:
+
+
+                driver_name = seen[0]
+            else:
+                driver_name = _vector_driver(gdal, gdal_path(name))
+                verdicts.setdefault(ext, []).append(driver_name)
+            if driver_name:
+                found.setdefault((os.path.splitext(name)[0].lower(), driver_name), []).append(name)
+    finally:
+        gdal.PopErrorHandler()
+        gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", readdir)
+    vectors, tables = [], []
+    for (_stem, driver_name), members in found.items():
+        own = "." + str(gdal.GetDriverByName(driver_name).GetMetadataItem("DMD_EXTENSION") or "").lower()
+        member = next((m for m in members if m.lower().endswith(own)), min(members))
+        (tables if driver_name == "CSV" else vectors).append(member)
+
+    def order(name: str) -> tuple:
+        return name.count("/"), name.lower()
+
+    return sorted(vectors, key=order), sorted(tables, key=order)
 
 
 def _zip_member_uri(path: str, member: str) -> str:
@@ -653,10 +754,13 @@ def _add_vector_layer(args: dict) -> dict:
     wanted = str(args.get("layer") or "").strip()
     archive_members: list = []
     if path.lower().endswith(".zip"):
-        members, names, problem = _zip_listing(path)
+        names, problem = _zip_names(path)
         if problem:
             return tool_error(f"Could not read the archive {os.path.basename(path)}: {problem}",
                               hint="archive_unreadable")
+
+
+        members, tables = archive_datasets(names, lambda name: _zip_member_uri(path, name))
         gdbs = gdb_folders(names)
         if gdbs and not members and len(gdbs) == 1:
 
@@ -669,7 +773,6 @@ def _add_vector_layer(args: dict) -> dict:
 
 
 
-        tables = [n for n in names if n.lower().endswith((".csv", ".tsv")) and not n.startswith("__MACOSX/")]
         if wanted:
             table = [n for n in tables if wanted.casefold() in (n.casefold(), os.path.basename(n).casefold())][:1]
         else:
@@ -687,7 +790,8 @@ def _add_vector_layer(args: dict) -> dict:
         if wanted:
             picked = members_matching(members, wanted)
 
-            if not picked and len(members) == 1 and members[0].lower().endswith(_CONTAINER_EXTENSIONS):
+            if (not picked and len(members) == 1
+                    and container_layers(_zip_member_uri(path, members[0])) is not None):
                 picked, sublayer = members, wanted
             if not picked:
                 return tool_error(f"No file named {wanted!r} in {os.path.basename(path)}.",
@@ -717,10 +821,11 @@ def _add_vector_layer(args: dict) -> dict:
             name = os.path.splitext(os.path.basename(members[0]))[0]
         wanted = sublayer
     elif path.startswith("/vsizip/"):
-        archive_members = _zip_listing(real_path)[0]
+        archive_members = archive_datasets(_zip_names(real_path)[0],
+                                           lambda name: _zip_member_uri(real_path, name))[0]
     source = uri
-    if source.lower().endswith(_CONTAINER_EXTENSIONS):
-        names = _sublayer_names(source)
+    names = container_layers(source)
+    if names is not None:
         if wanted:
             if names and wanted not in names:
                 return {"_error": f"No layer named {wanted!r} in {os.path.basename(source)}.",
@@ -901,7 +1006,7 @@ def _add_raster_layer(args: dict) -> dict:
 
 
 
-        _vectors, names, problem = _zip_listing(path)
+        names, problem = _zip_names(path)
         picked = members_matching([n for n in names if not n.endswith("/")], subdataset)
         if problem or len(picked) != 1:
             return {"_error": (f"{path} could not be read: {problem}" if problem else

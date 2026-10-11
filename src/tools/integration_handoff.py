@@ -86,6 +86,14 @@ def segmentation_arguments(plugin, args):
     return out
 
 
+_EDIT_SETTINGS = ("index", "template_id", "resolution", "reference_layers", "markup_wkt")
+
+
+def _edit_settings(args):
+
+    return any(args.get(name) not in (None, "", []) for name in _EDIT_SETTINGS)
+
+
 def prepare(which, args):
 
     presence = sibling_setup.presence(AI_EDIT_KEYS if which == "ai_edit" else AI_SEGMENT_KEYS)
@@ -119,13 +127,25 @@ def prepare(which, args):
                 geometry = cost_guard.zone_from_args(args)
                 if geometry is None:
                     raise ValueError("The requested zone could not be read.")
-                kwargs["zone_wkt"] = geometry.asWkt()
-            if not kwargs.get("zone_wkt"):
+                from .adapters.ai_edit_access import ACCESS
+                if not ACCESS._holds_zone(geometry.boundingBox(), geometry):
+
+
+                    kwargs["zone_wkt"] = geometry.asWkt()
+            if which == "ai_segment" and not kwargs.get("zone_wkt"):
                 raise ValueError("The requested zone could not be expressed in the image CRS.")
+        settings = which == "ai_edit" and _edit_settings(args)
         result = fn(**kwargs)
         if isinstance(result, dict) and not result.get("_error"):
             result["inference_started"] = False
             result["panel_opened"] = True
+            if settings:
+
+                from .adapters.ai_edit_access import ACCESS
+                applied = ACCESS.apply_panel_settings(args)
+                result["settings_applied"] = applied.get("applied", {})
+                if applied.get("failed") or applied.get("_error"):
+                    result["settings_failed"] = applied.get("failed") or {"all": applied["_error"]}
         return result
     except (ValueError, RuntimeError, TypeError) as exc:
         return refusal(exc)
@@ -203,6 +223,13 @@ def spending_inputs(label, args, geometry):
         if not resolutions and plugin is not None:
             resolutions = ACCESS.resolutions()
         resolution = args.get("resolution") or resolutions.get("current")
+
+
+        offered = resolutions.get("allowed") or resolutions.get("resolutions")
+        if args.get("resolution") and isinstance(offered, list) and offered and resolution not in offered:
+            raise HandoffRefused(f"AI Edit does not run resolution '{resolution}' for this account; it runs "
+                                 f"{', '.join(map(str, offered))}.", "ai_edit_resolution_unavailable",
+                                 resolutions=list(offered))
         out["resolution"] = resolution
         price = (resolutions.get("credit_costs") or {}).get(resolution)
         out["generation_credits"] = (price if isinstance(price, (int, float)) and not isinstance(price, bool)

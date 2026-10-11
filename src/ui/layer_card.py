@@ -87,6 +87,8 @@ class LayerCard(AttachCard):
                          glyph=_KIND_GLYPHS.get(kind, "pin"))
         if layer is not None:
             self._set_layer_icon(layer_icon(layer))
+        elif kind == "source" and value:
+            self._set_source_mark(value)
         self.chip = chip
         self.kind = kind
         self.value = value
@@ -105,6 +107,22 @@ class LayerCard(AttachCard):
             self.source_clicked.emit(self.value)
         else:
             self.layer_clicked.emit(self.value)
+
+    def _set_source_mark(self, connector_id: str) -> None:
+
+
+        from .connectors_page import accent_of
+        from .library.pictures import _MarkWatcher, cached_on_disk, source_pixmap, usable
+        from .source_marks import connector_row
+
+        row = connector_row(connector_id)
+        if not row:
+            return
+        accent = accent_of(row.get("category"))
+        self._tile.setPixmap(source_pixmap(row, accent, TILE_GLYPH, widget_pixel_ratio(self)))
+        url = str(row.get("logo_url") or "")
+        if usable(url) and not cached_on_disk(url):
+            _MarkWatcher(self._tile, row, accent, TILE_GLYPH)
 
     def _set_layer_icon(self, icon) -> None:
 

@@ -37,11 +37,17 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QKeySequence
-from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 
 from ..connector_page import ConnectorPage
 from ..connectors_page import POPULAR_KEY, ConnectorsPage, accent_of, cases_of, shelves, sources_by_id
@@ -102,7 +108,11 @@ class ExamplesDialog(QDialog):
         self._focus = -1
         self._focus_tiles: list = []
 
+
         self._history: list = []
+
+        self._crumb_actions: list = []
+        self._app = None
         self._state = (_GRID_PAGE, None)
         self._connectors = sources_by_id()
 
@@ -131,7 +141,7 @@ class ExamplesDialog(QDialog):
         self._home.ask_requested.connect(self._on_ask)
         self._pages.addWidget(self._home)
         self._detail = ExampleDetail(right)
-        self._detail.crumb_requested.connect(self._on_detail_crumb)
+        self._detail.crumb_requested.connect(self._on_crumb)
         self._detail.prompt_chosen.connect(self._on_prompt)
         self._detail.connector_requested.connect(self.open_connector)
         self._pages.addWidget(self._detail)
@@ -139,7 +149,7 @@ class ExamplesDialog(QDialog):
 
         self._directory: ConnectorsPage | None = None
         self._source = ConnectorPage(right)
-        self._source.back_requested.connect(self._to_directory)
+        self._source.crumb_requested.connect(self._on_crumb)
         self._source.prompt_chosen.connect(self._on_source_prompt)
         self._source.example_opened.connect(self.open_case)
         self._pages.addWidget(QWidget(right))
@@ -156,10 +166,21 @@ class ExamplesDialog(QDialog):
 
         find = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
         find.activated.connect(self._focus_search)
+        back = QShortcut(QKeySequence(QKeySequence.StandardKey.Back), self)
+        back.activated.connect(self._back_key)
+
+        self._app = QApplication.instance()
+        if self._app is not None:
+            self._app.installEventFilter(self)
 
     def eventFilter(self, watched, event):  # noqa: N802
 
 
+        if event.type() == QEvent.Type.MouseButtonPress and \
+                event.button() == Qt.MouseButton.BackButton and \
+                isinstance(watched, QWidget) and watched.window() is self:
+            self._back_key()
+            return True
         if event.type() == QEvent.Type.KeyPress and event.key() in (
                 Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Escape):
             self.keyPressEvent(event)
@@ -191,7 +212,7 @@ class ExamplesDialog(QDialog):
     def _go(self, page: int, payload=None, push: bool = True) -> None:
 
         if push and self._state != (page, payload):
-            self._history.append(self._state)
+            self._history.append((*self._state, self._snapshot()))
         self._state = (page, payload)
 
         self._drop_focus()
@@ -199,6 +220,114 @@ class ExamplesDialog(QDialog):
         if page == _GRID_PAGE:
             self._home.search_field().setFocus()
         self._mark_rail()
+        self._paint_trail()
+
+    def _scroll_bar(self):
+        area = getattr(self._pages.currentWidget(), "_scroll", None)
+        return area.verticalScrollBar() if area is not None else None
+
+    def _snapshot(self) -> tuple:
+
+        bar = self._scroll_bar()
+        field = self._search_field()
+        page = self._pages.currentIndex()
+        return (bar.value() if bar is not None else 0,
+                field.text() if field is not None else "",
+                self._home.group() if page == _GRID_PAGE else "")
+
+    def _restore(self, page: int, payload, snap: tuple) -> None:
+
+        scroll, query, group = snap
+        if page == _DETAIL_PAGE and payload is not None:
+            self._show_case(payload)
+        elif page == _SOURCE_PAGE and payload is not None:
+            self._show_source(payload)
+        elif page == _SOURCES_PAGE:
+            self._ensure_directory()
+            self._paint_directory()
+            if self._directory.search_field().text() != query:
+                self._directory.search_field().setText(query)
+        elif page == _GRID_PAGE:
+            field = self._home.search_field()
+            self._home.set_group(group)
+            if query:
+                field.blockSignals(True)
+                field.setText(query)
+                field.blockSignals(False)
+                self._home.repaint_tiles()
+        self._go(page, payload, push=False)
+        bar = self._scroll_bar()
+        if bar is not None:
+
+
+            QTimer.singleShot(0, lambda: bar.setValue(min(scroll, bar.maximum())))
+
+
+
+    def _name_of(self, page: int, payload, snap: tuple) -> str:
+        if page == _DETAIL_PAGE:
+            return str(getattr(payload, "title", "") or "")
+        if page == _SOURCE_PAGE:
+            return str((self._connectors.get(str(payload)) or {}).get("name") or payload)
+        if page == _SOURCES_PAGE:
+            return tr("Data sources")
+        if snap[1].strip():
+            return tr("Results for \u201c{query}\u201d").format(query=snap[1].strip())
+        return self._group_label(snap[2]) if snap[2] else tr("Examples")
+
+    def _roots(self, page: int, payload) -> list:
+
+
+
+        if page == _SOURCE_PAGE:
+            return [(tr("Data sources"), ("rail", SOURCES_KEY))]
+        if page == _GRID_PAGE and payload:
+            return [(tr("Examples"), ("rail", HOME_KEY))]
+        if page != _DETAIL_PAGE or payload is None:
+            return []
+        if getattr(payload, "listed", True):
+            group = str(getattr(payload, "group", "") or "")
+            return [(tr("Examples"), ("rail", HOME_KEY))] + (
+                [(self._group_label(group), ("rail", group))] if group else [])
+        source = self._source_of(payload)
+        return [(tr("Data sources"), ("rail", SOURCES_KEY))] + (
+            [(self._name_of(_SOURCE_PAGE, source, ()), ("source", source))] if source else [])
+
+    def _paint_trail(self) -> None:
+
+        page, payload = self._state
+        if page not in (_DETAIL_PAGE, _SOURCE_PAGE):
+            return
+        path = [*self._history, (page, payload, ("", "", ""))]
+        first = path[0]
+        crumbs = self._roots(first[0], first[2][2] if first[0] == _GRID_PAGE else first[1])
+        crumbs += [(self._name_of(*entry), ("back", index)) for index, entry in enumerate(path)]
+        self._crumb_actions = [action for _name, action in crumbs]
+        names = [name for name, _action in crumbs]
+        (self._detail if page == _DETAIL_PAGE else self._source).set_trail(names)
+
+    def _on_crumb(self, index: int) -> None:
+
+
+        if not 0 <= index < len(self._crumb_actions):
+            return
+        kind, target = self._crumb_actions[index]
+        if kind == "back":
+            if target >= len(self._history):
+                return
+            del self._history[target + 1:]
+            self._restore(*self._history.pop())
+        elif kind == "source":
+            self._history = []
+            self._show_source(str(target))
+            self._go(_SOURCE_PAGE, str(target), push=False)
+        else:
+            self._on_rail(str(target))
+
+    def _back_key(self) -> None:
+
+        if self._history or self._pages.currentIndex() != _GRID_PAGE:
+            self._back()
 
     def _mark_rail(self) -> None:
 
@@ -232,23 +361,22 @@ class ExamplesDialog(QDialog):
 
     def done(self, result: int) -> None:  # noqa: N802
         self._unwatch()
+        if self._app is not None:
+            self._app.removeEventFilter(self)
+            self._app = None
         super().done(result)
 
     def _back(self) -> None:
 
-        if not self._history:
+
+
+        if self._history:
+            self._restore(*self._history.pop())
+        elif len(self._crumb_actions) > 1 and self._pages.currentIndex() in (
+                _DETAIL_PAGE, _SOURCE_PAGE):
+            self._on_crumb(len(self._crumb_actions) - 2)
+        else:
             self._go(_GRID_PAGE, push=False)
-            return
-        page, payload = self._history.pop()
-        if page == _DETAIL_PAGE and payload is not None:
-            self._show_case(payload)
-        elif page == _SOURCE_PAGE and payload is not None:
-            self._show_source(payload)
-        elif page == _SOURCES_PAGE:
-            self._ensure_directory()
-            self._directory.remember_scroll()
-            self._paint_directory()
-        self._go(page, payload, push=False)
 
     def _set_shelves(self) -> None:
 
@@ -279,20 +407,6 @@ class ExamplesDialog(QDialog):
         self._paint_directory(shelf)
         self._history = []
         self._go(_SOURCES_PAGE, push=False)
-
-    def _on_detail_crumb(self, index: int) -> None:
-
-
-        case = self._detail.case
-        if case is not None and not case.listed:
-            source = self._source_of(case)
-            if index == 1 and source:
-                self.open_connector(source)
-            else:
-                self._to_directory()
-            return
-        self._on_rail(str(getattr(case, "group", "")) if index == 1 and case is not None
-                      else HOME_KEY)
 
     def _source_of(self, case) -> str:
         return next((str(k) for k in (case.connectors or ()) if str(k) in self._connectors), "")
@@ -325,7 +439,8 @@ class ExamplesDialog(QDialog):
         if str(key) not in self._connectors:
             return
         self._show_source(str(key))
-        self._go(_SOURCE_PAGE, str(key))
+
+        self._go(_SOURCE_PAGE, str(key), push=self.isVisible())
 
     def _show_source(self, key: str) -> None:
         row = self._connectors.get(key)
@@ -461,6 +576,9 @@ class ExamplesDialog(QDialog):
             field.insert(text)
             return
         if page != _GRID_PAGE:
+            if key == Qt.Key.Key_Backspace:
+                self._back_key()
+                return
             if key == Qt.Key.Key_Escape:
                 if page == _SOURCES_PAGE and self._directory is not None and \
                         self._directory.clear_search():
@@ -471,6 +589,9 @@ class ExamplesDialog(QDialog):
                     self._back()
                 return
             super().keyPressEvent(event)
+            return
+        if key == Qt.Key.Key_Backspace and self._history:
+            self._back_key()
             return
         if key == Qt.Key.Key_Escape:
             if self._home.clear_search():

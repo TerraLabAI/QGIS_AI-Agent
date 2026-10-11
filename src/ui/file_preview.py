@@ -208,6 +208,29 @@ def _office_text(path: str) -> tuple[str, bool] | None:
     return text[:PREVIEW_TEXT_BYTES], cut
 
 
+def size_words(size_bytes) -> str:
+
+
+
+
+
+    try:
+        value = float(size_bytes)
+    except (TypeError, ValueError):
+        return ""
+    if value < 0:
+        return ""
+    if value < 1024:
+        return f"{int(value)} B"
+    for unit in ("KB", "MB", "GB"):
+        value /= 1024.0
+        if value < 1024 or unit == "GB":
+
+            number = f"{value:.1f}" if value < 10 else f"{value:.0f}"
+            return f"{number} {unit}"
+    return ""
+
+
 class _Pdf:
 
 
@@ -407,7 +430,6 @@ class FilePreview(QDialog):
 
     def _meta_words(self, pages: int = 0) -> str:
         from .attachments import file_type
-        from .file_card import size_words
 
         parts = [file_type({"name": self.name})]
         if pages == 1:
@@ -472,6 +494,7 @@ class FilePreview(QDialog):
         view.setReadOnly(True)
         view.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse
                                      | Qt.TextInteractionFlag.TextSelectableByKeyboard)
+        view.setCursorWidth(0)
         if self.family == "code" or _suffix(self.name) in ("csv", "tsv"):
             view.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
             view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)

@@ -17,6 +17,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -48,9 +52,26 @@ _EE_NOT_AUTHENTICATED_SUGGESTION = (
 )
 
 
+def _has_credentials() -> bool:
+
+
+
+
+
+
+    import os
+    home = os.path.expanduser("~")
+    paths = [os.path.join(home, ".config", "earthengine", "credentials"),
+             os.path.join(home, ".config", "gcloud", "application_default_credentials.json"),
+             os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or ""]
+    if os.environ.get("APPDATA"):
+        paths.append(os.path.join(os.environ["APPDATA"], "gcloud", "application_default_credentials.json"))
+    return any(p and os.path.isfile(p) for p in paths)
+
+
 def register_earthengine_tools(registry: ToolRegistry):
     import importlib.util
-    if importlib.util.find_spec("ee") is None:
+    if importlib.util.find_spec("ee") is None or not _has_credentials():
         return
 
     registry.register(Tool(

@@ -61,7 +61,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     permission_decided = pyqtSignal(str, str, object)
     question_answered = pyqtSignal(str, str)
-    question_auto_answered = pyqtSignal(str, int)
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
     undo_requested = pyqtSignal()
@@ -108,7 +107,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     pro_pill_requested = pyqtSignal()
     reconnect_requested = pyqtSignal()
 
-    memory_decided = pyqtSignal(str, bool)
+    memory_undo_requested = pyqtSignal(str)
     help_requested = pyqtSignal(str)
     update_clicked = pyqtSignal(str)
     update_dismissed = pyqtSignal(str)

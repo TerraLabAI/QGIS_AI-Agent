@@ -606,6 +606,7 @@ class PermissionCard(_Card, FoldMixin):
 
 
 
+
         host = QWidget(self._body)
         col = QVBoxLayout(host)
         col.setContentsMargins(0, 0, 0, 0)
@@ -616,15 +617,15 @@ class PermissionCard(_Card, FoldMixin):
             if name not in hosts:
                 hosts.append(name)
         if len(hosts) == 1:
-            reason = self.tr("{host}: a site you did not name, in no known catalog").format(host=hosts[0])
+            reason = self.tr("This data comes from a site outside the sources the agent knows.")
         else:
-            reason = self.tr("{hosts}: sites you did not name, in no known catalog").format(
-                hosts=", ".join(hosts))
-        line = ChatLabel(reason, host, wrap=True, selectable=True)
+            reason = self.tr("This data comes from sites outside the sources the agent knows.")
+        line = ChatLabel(reason, host, wrap=True)
         line.setObjectName("permissionReason")
         line.setStyleSheet(_REASON_QSS)
         col.addWidget(line)
-        self._address_well = ChatLabel("\n".join(self.addresses), host, wrap=True, selectable=True)
+        self._address_well = ChatLabel("\n".join(hosts + ["", *self.addresses]), host,
+                                       wrap=True, selectable=True)
         self._address_well.setObjectName("permissionAddress")
         self._address_well.setFont(mono_font(FONT_HINT))
         self._address_well.setStyleSheet(_ADDRESS_QSS)

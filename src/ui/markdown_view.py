@@ -55,17 +55,33 @@ from qgis.PyQt.QtWidgets import QFrame, QMessageBox, QSizePolicy, QTextBrowser, 
 from ..core.links import URL_STOP, open_data_hosts, open_data_label
 from .font_scale import widget_pixel_ratio
 from .shared import exec_dialog, qt_enum_int, resolve_qt_enum, tr
-from .source_marks import MARK_PX, item_mark_pixmap, source_host, source_mark_pixmap
-from .style import FIELD, FONT_HINT, FONT_PROSE, INK_2, INK_3, MONO_FAMILY, accent_color, qcolor
+from .source_marks import MARK_PX, connector_row, family_pixmap, item_mark_pixmap, source_host, source_mark_pixmap
+from .style import (
+    FIELD,
+    FONT_HINT,
+    FONT_PROSE,
+    INK_2,
+    INK_3,
+    INSET,
+    LINE_SOFT,
+    MONO_FAMILY,
+    OVERLAY,
+    accent_color,
+    qcolor,
+)
 
 
 
-_CODE_BG = QColor(128, 128, 128, 31)
-_CODE_BLOCK_BG = QColor(128, 128, 128, 26)
-_CODE_BLOCK_BORDER = QColor(128, 128, 128, 50)
-_QUOTE_BAR = QColor(128, 128, 128, 110)
-_RULE = QColor(128, 128, 128, 70)
-_TABLE_BORDER = QColor(128, 128, 128, 60)
+_CODE_BG = QColor(*OVERLAY["code_bg"])
+_CODE_BLOCK_BG = QColor(*OVERLAY["code_block_bg"])
+_CODE_BLOCK_BORDER = QColor(*OVERLAY["code_block_border"])
+_QUOTE_BAR = QColor(*OVERLAY["quote_bar"])
+_RULE = QColor(*OVERLAY["rule"])
+
+
+_NUMERIC_CELL = re.compile(
+    "^[~\u2248<>+\\-\u2212]?\\s?[$\u20ac\u00a3]?\\s?\\d[\\d\\s.,\u00a0\u202f']*"
+    "(?:\\s?[%\u2030]|\\s?[A-Za-z\u00b5\u00b0\u00b2\u00b3/]{1,6})?$")
 
 
 def _format_property(name: str):
@@ -198,6 +214,9 @@ class MarkdownView(QTextBrowser):
             | Qt.TextInteractionFlag.TextSelectableByKeyboard
             | Qt.TextInteractionFlag.LinksAccessibleByMouse
             | Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
+
+
+        self.setCursorWidth(0)
         self.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
 
         self.setWordWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
@@ -217,7 +236,7 @@ class MarkdownView(QTextBrowser):
 
 
 
-        self._panels: tuple = ([], [], [])
+        self._panels: tuple = ([], [], [], [])
         self._panels_key: tuple | None = None
         if mono:
             doc.setDefaultFont(_fixed_font())
@@ -613,8 +632,15 @@ class MarkdownView(QTextBrowser):
             cursor.insertText(_CHIP_PAD, chip)
             name = f"source-mark:{host}"
 
-            pixmap = item_mark_pixmap({"url": url, "key": host, "glyph": ""}, MARK_PX, ratio) \
-                if open_data_label(url) else source_mark_pixmap(host, MARK_PX, ratio)
+
+
+            family = {} if open_data_label(url) else connector_row(host=host)
+            if open_data_label(url):
+                pixmap = item_mark_pixmap({"url": url, "key": host, "glyph": ""}, MARK_PX, ratio)
+            elif family:
+                pixmap = family_pixmap(family, MARK_PX, ratio)
+            else:
+                pixmap = source_mark_pixmap(host, MARK_PX, ratio)
             doc.addResource(image_kind, QUrl(name), pixmap)
             mark = QTextImageFormat()
             mark.setName(name)
@@ -631,20 +657,22 @@ class MarkdownView(QTextBrowser):
 
     def _decorate_tables(self, start: int = 0) -> None:
 
+
+
+
         doc = self.document()
         for frame in _frames(doc.rootFrame()):
             if not hasattr(frame, "columns") or frame.lastPosition() < start:
                 continue
             fmt = QTextTableFormat(frame.format())
-            fmt.setBorder(1)
-            fmt.setBorderBrush(QBrush(_TABLE_BORDER))
+            fmt.setBorder(0)
             fmt.setCellPadding(_TABLE_CELL_PAD)
             fmt.setCellSpacing(0)
-            if hasattr(fmt, "setBorderCollapse"):
-                fmt.setBorderCollapse(True)
             fmt.setTopMargin(2)
             fmt.setBottomMargin(_PARAGRAPH_GAP)
+            fmt.setWidth(QTextLength(QTextLength.Type.PercentageLength, 100))
             frame.setFormat(fmt)
+            _style_table(frame)
 
 
 
@@ -683,8 +711,8 @@ class MarkdownView(QTextBrowser):
 
 
         if not self._mono:
-            code, quotes, rules = self._panel_rects()
-            if code or quotes or rules:
+            code, quotes, rules, rows = self._panel_rects()
+            if code or quotes or rules or rows:
                 painter = QPainter(self.viewport())
                 try:
                     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -698,6 +726,9 @@ class MarkdownView(QTextBrowser):
                         painter.drawRoundedRect(rect, 1.5, 1.5)
                     painter.setBrush(QBrush(_RULE))
                     for rect in rules:
+                        painter.drawRect(rect)
+                    painter.setBrush(QBrush(qcolor(LINE_SOFT)))
+                    for rect in rows:
                         painter.drawRect(rect)
                 finally:
                     painter.end()
@@ -811,7 +842,7 @@ class MarkdownView(QTextBrowser):
                                          quote_run[1] - quote_run[0]))
                     quote_run = None
             block = block.next()
-        self._panels = (code, quotes, rules)
+        self._panels = (code, quotes, rules, _row_lines(doc))
         self._panels_key = key
         return self._panels
 
@@ -988,6 +1019,81 @@ def _is_filler(block) -> bool:
 
 
     return not block.text() and block.textList() is None and not _is_rule(block)
+
+
+def _style_table(table) -> None:
+
+
+    rows, cols = table.rows(), table.columns()
+    if rows <= 0 or cols <= 0:
+        return
+    right = resolve_qt_enum(Qt, "AlignmentFlag", "AlignRight")
+    numeric = []
+    for col in range(cols):
+        body = [_cell_text(table.cellAt(row, col)) for row in range(1, rows)]
+        body = [text for text in body if text]
+        numeric.append(bool(body) and all(_NUMERIC_CELL.match(text) for text in body))
+    head_chars = QTextCharFormat()
+    _set_pixel_size(head_chars, FONT_HINT)
+    head_chars.setFontWeight(_weight(False))
+    head_chars.setForeground(QBrush(qcolor(INK_2)))
+    figures = QTextCharFormat()
+    tabular = _tabular_figures(figures)
+    for col in range(cols):
+        for row in range(rows):
+            cell = table.cellAt(row, col)
+            cursor = _cell_cursor(cell)
+            if row == 0:
+                cell_format = cell.format()
+                cell_format.setBackground(QBrush(qcolor(INSET)))
+                cell.setFormat(cell_format)
+                cursor.mergeCharFormat(head_chars)
+            elif numeric[col] and tabular:
+                cursor.mergeCharFormat(figures)
+            if numeric[col]:
+                block_format = QTextBlockFormat()
+                block_format.setAlignment(right)
+                cursor.mergeBlockFormat(block_format)
+
+
+def _cell_cursor(cell) -> QTextCursor:
+    cursor = cell.firstCursorPosition()
+    cursor.setPosition(cell.lastCursorPosition().position(), QTextCursor.MoveMode.KeepAnchor)
+    return cursor
+
+
+def _cell_text(cell) -> str:
+    return _cell_cursor(cell).selectedText().strip()
+
+
+def _tabular_figures(fmt: QTextCharFormat) -> bool:
+
+
+    tag = getattr(QFont, "Tag", None)
+    font = QFont()
+    if tag is None or not hasattr(font, "setFeature"):
+        return False
+    try:
+        font.setFeature(tag("tnum"), 1)
+        fmt.setFont(font, QTextCharFormat.FontPropertiesInheritanceBehavior.FontPropertiesSpecifiedOnly)
+    except (TypeError, AttributeError, ValueError):
+        return False
+    return True
+
+
+def _row_lines(doc) -> list:
+
+    layout = doc.documentLayout()
+    lines = []
+    for table in _frames(doc.rootFrame()):
+        if not hasattr(table, "columns") or table.rows() < 2:
+            continue
+        box = layout.frameBoundingRect(table)
+        for row in range(1, table.rows()):
+            top = min(layout.blockBoundingRect(table.cellAt(row, col).firstCursorPosition().block()).top()
+                      for col in range(table.columns()))
+            lines.append(QRectF(box.left(), top - _TABLE_CELL_PAD - 0.5, max(1.0, box.width()), 1))
+    return lines
 
 
 def _in_table(doc, position: int) -> bool:

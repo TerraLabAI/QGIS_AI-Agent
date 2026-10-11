@@ -40,7 +40,7 @@ class _Run:
 
 
     __slots__ = ("run_id", "bubble", "trace", "plan", "tools", "permissions", "started",
-                 "segment_break", "waited", "wait_started")
+                 "segment_break", "produced")
 
     def __init__(self, run_id: str):
         self.run_id = run_id
@@ -55,8 +55,7 @@ class _Run:
 
         self.started = time.monotonic()
 
-        self.waited = 0.0
-        self.wait_started = 0.0
+        self.produced = False
 
 
 def _wrap(widget: QWidget, margins: tuple, parent=None) -> QWidget:

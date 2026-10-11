@@ -292,7 +292,7 @@ class AgentSession(QObject):
 
 
 
-    memory_note = pyqtSignal(str, str, str, str, str)
+    memory_note = pyqtSignal(str, str, str, str, str, str, str)
     status_line = pyqtSignal(str, str)
     state_changed = pyqtSignal(str, str)
 
@@ -339,6 +339,9 @@ class AgentSession(QObject):
 
 
         self._crash_note: dict | None = None
+
+
+        self._threads_told: set = set()
         self._hello_sent_at = 0.0
         self._hello_checked_at = 0.0
         self._attempt = 0
@@ -583,7 +586,12 @@ class AgentSession(QObject):
 
     def send_user_message(self, run_id: str, thread_id: str, text: str, attachments: list,
                           context: dict, mode: str, approval: str, effort: str = "low",
-                          example: str = "", replaces_run_id: str = "") -> bool:
+                          example: str = "", replaces_run_id: str = "",
+                          earlier_turns: Callable[[], list] | None = None) -> bool:
+
+
+
+
 
 
 
@@ -596,9 +604,13 @@ class AgentSession(QObject):
         attachments = [self._upload_pieces(att) for att in (attachments or [])]
 
         crash_note.record_run(run_id, self._session_id or "")
-        return self._send(protocol.user_message(
+        turns = earlier_turns() if earlier_turns is not None and thread_id not in self._threads_told else None
+        sent = self._send(protocol.user_message(
             run_id, thread_id, text, attachments, context, mode, approval, effort, example,
-            replaces_run_id if self.edit_last_available else ""))
+            replaces_run_id if self.edit_last_available else "", turns))
+        if sent:
+            self._threads_told.add(thread_id)
+        return sent
 
     def _upload_pieces(self, att) -> object:
         if not isinstance(att, dict) or att.get("kind") != "document" or att.get("data_base64"):
@@ -1248,6 +1260,7 @@ class AgentSession(QObject):
 
             self._last_seq = 0
             self._replays_dropped = 0
+            self._threads_told.clear()
 
 
 
@@ -1423,7 +1436,8 @@ class AgentSession(QObject):
     def _on_memory_note(self, frame: dict) -> None:
         self.memory_note.emit(str(frame.get("text") or ""), str(frame.get("kind") or ""),
                               str(frame.get("scope") or ""), str(frame.get("run_id") or ""),
-                              str(frame.get("replaces") or ""))
+                              str(frame.get("replaces") or ""), str(frame.get("setting") or ""),
+                              str(frame.get("value") or ""))
 
     def _on_sources(self, frame: dict) -> None:
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []

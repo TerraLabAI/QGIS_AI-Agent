@@ -220,15 +220,19 @@ def _run_code_in_qgis(args: dict) -> dict:
     error = None
     edits = code_namespace.EditWatch(project)
     try:
-        with wire if wire is not None else contextlib.nullcontext() as arm:
+
+        with code_guard.workspace_cwd(), wire if wire is not None else contextlib.nullcontext() as arm:
             code_guard.run_with_timeout(
                 lambda: exec(compiled, namespace),  # nosec B102
                 context.timeout_s,
             )
     except (code_tripwire.NeedsPermission, code_tripwire.Refused):
         pass
-    except code_guard.CodeTimeout:
-        error = "timeout"
+    except code_guard.CodeTimeout as exc:
+
+        from ..core.code_processing import Stopped
+
+        error = "stopped" if isinstance(exc, Stopped) else "timeout"
     except Exception as exc:  # noqa: BLE001
         error = exc
         tb = exc.__traceback__
@@ -260,6 +264,11 @@ def _run_code_in_qgis(args: dict) -> dict:
         }
 
 
+        _partial_state(out, code_namespace.changed(before, project, edits))
+        return out
+    if error == "stopped":
+        out = {"executed": False, "_error": "execute_code was stopped.", "_code": "CANCELLED",
+               "stdout": _cap(stdout_capture.getvalue())}
         _partial_state(out, code_namespace.changed(before, project, edits))
         return out
     if error == "timeout":

@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
@@ -31,6 +32,7 @@ from ..core.profile import (
     PROFILE_MAX_CHARS,
     REPLY_LANGUAGES,
     add_memory_note,
+    clear_memory_notes,
     load_memory_notes,
     normalize_expertise,
     normalize_layer_naming,
@@ -134,18 +136,6 @@ class PersonalisationPageMixin:
         group.add_row(self._answers_more)
         answers, group = group, more
 
-        self._timeout_combo = QComboBox(group)
-        self._timeout_combo.setStyleSheet(combo_qss(self))
-        self._timeout_combo.setCursor(Qt.CursorShape.PointingHandCursor)
-        for seconds, name in self._timeout_texts():
-            self._timeout_combo.addItem(name, seconds)
-        self._timeout_combo.setMinimumWidth(scale_px_length(180))
-        self._timeout_combo.currentIndexChanged.connect(self._on_timeout_picked)
-        group.add_row(SettingRow(
-            self.tr("Answer a question for me after"),
-            self.tr("The AI takes the option it recommended and carries on."),
-            self._timeout_combo, group))
-
         self._explain_switch = Switch(group, self._store.explain_runs)
         self._explain_switch.toggled.connect(self._on_explain_toggled)
         group.add_row(SettingRow(self.tr("Explain what it did after each run"),
@@ -171,31 +161,6 @@ class PersonalisationPageMixin:
             self.tr("The view goes to each edit as it happens. Off keeps your view where you put it."),
             self._follow_switch, group))
         return answers
-
-    def _timeout_texts(self) -> tuple:
-
-        return (
-            (0, self.tr("Always wait for me")),
-            (30, self.tr("30 seconds")),
-            (60, self.tr("1 minute")),
-            (120, self.tr("2 minutes")),
-        )
-
-    def _sync_timeout_combo(self) -> None:
-        current = self._store.question_timeout_s
-        index = self._timeout_combo.findData(current)
-        if index < 0:
-            index = max(0, self._timeout_combo.findData(0))
-        self._timeout_combo.blockSignals(True)
-        self._timeout_combo.setCurrentIndex(index)
-        self._timeout_combo.blockSignals(False)
-
-    def _on_timeout_picked(self, index: int) -> None:
-        seconds = self._timeout_combo.itemData(index)
-        if not isinstance(seconds, int) or seconds == self._store.question_timeout_s:
-            return
-        self._store.question_timeout_s = seconds
-        self._show_saved()
 
     def _sync_language_combo(self) -> None:
         code = normalize_reply_language(self._store.reply_language)
@@ -309,7 +274,6 @@ class PersonalisationPageMixin:
         page.add_group_title(self.tr("Answers"))
         page.add(self._build_answers(page))
         self._sync_language_combo()
-        self._sync_timeout_combo()
         self._build_memory(page)
         return page
 
@@ -414,26 +378,29 @@ class PersonalisationPageMixin:
         page.add_group_title(title)
 
 
-        card = SectionCard(page)
-        page.add(card)
 
 
 
-        pro = self._pro_card(card, pro_note) if pro_note else None
+        pro = self._pro_card(page, pro_note) if pro_note else None
         if pro is not None:
             pro.setVisible(bool(pro_only))
-        edit = QPlainTextEdit(card)
+        box = QWidget(page)
+        col = QVBoxLayout(box)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(4)
+        page.add(box)
+        edit = QPlainTextEdit(box)
         edit.setStyleSheet(TEXTAREA_QSS)
         edit.setPlaceholderText(placeholder)
         edit.setPlainText(text or "")
         edit.setFixedHeight(scale_px_length(_TEXTAREA_H))
         edit.setTabChangesFocus(True)
-        card.add(edit)
-        count = QLabel(card)
+        col.addWidget(edit)
+        count = QLabel(box)
         count.setStyleSheet(ROW_NOTE_QSS)
         count.setAlignment(Qt.AlignmentFlag.AlignRight)
         count.setContentsMargins(0, 0, 4, 0)
-        card.add(count)
+        col.addWidget(count)
         self._update_count(edit, count)
         edit.textChanged.connect(lambda: self._on_profile_text_changed(edit, count, key))
         self._plan_sections.append((pro, (edit, count)))
@@ -495,7 +462,8 @@ class PersonalisationPageMixin:
         group = SettingGroup(card, flat=True)
         self._memory_switch = Switch(group, self._store.memory_enabled)
         self._memory_switch.toggled.connect(self._on_memory_toggled)
-        group.add_row(SettingRow(self.tr("The AI can suggest notes"), self.tr("It asks before adding one."),
+        group.add_row(SettingRow(self.tr("The AI saves notes on its own"),
+                                 self.tr("You can review or remove them here."),
                                  self._memory_switch, group))
         card.add(group)
 
@@ -521,7 +489,22 @@ class PersonalisationPageMixin:
         self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_note_btn.setAutoDefault(False)
         self._add_note_btn.clicked.connect(self._open_add_note)
-        add_col.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
+
+        note_actions = QHBoxLayout()
+        note_actions.setContentsMargins(0, 0, 0, 0)
+        note_actions.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        note_actions.addStretch(1)
+        self._clear_notes_btn = QPushButton(self.tr("Delete all notes"), add_host)
+        self._clear_notes_btn.setObjectName("memoryClearNotes")
+        self._clear_notes_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; border: none; color: {MUTED};"
+            " font-size: 12px; padding: 4px 2px; } QPushButton:hover { color: palette(text); }")
+        self._clear_notes_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._clear_notes_btn.setAutoDefault(False)
+        self._clear_notes_btn.clicked.connect(self._on_clear_notes)
+        note_actions.addWidget(self._clear_notes_btn, 0, Qt.AlignmentFlag.AlignRight)
+        add_col.addLayout(note_actions)
         self._add_row = QWidget(add_host)
         add_lay = QHBoxLayout(self._add_row)
         add_lay.setContentsMargins(0, 0, 0, 0)
@@ -572,6 +555,7 @@ class PersonalisationPageMixin:
         folder_btn.setEnabled(bool(memory_dir()))
         folder_lay.addWidget(folder_btn)
         folder_lay.addStretch(1)
+
         card.add(folder)
         self._fill_notes()
 
@@ -593,6 +577,8 @@ class PersonalisationPageMixin:
         self._notes_group.clear()
         notes = load_memory_notes(self._store)
         self._notes_label.setText(self.tr("SAVED NOTES · {n}").format(n=len(notes)))
+        if getattr(self, "_clear_notes_btn", None) is not None:
+            self._clear_notes_btn.setVisible(bool(notes))
         if not notes:
             empty = QLabel(self.tr("No notes yet."), self._notes_group)
             empty.setStyleSheet(ROW_NOTE_QSS)
@@ -659,6 +645,23 @@ class PersonalisationPageMixin:
             self._show_saved()
             self._emit_profile()
 
+    def _on_clear_notes(self) -> None:
+
+        count = len(load_memory_notes(self._store))
+        if not count:
+            return
+        answer = QMessageBox.question(
+            self, self.tr("Delete all notes"),
+            self.tr("Delete all {n} notes? The AI will not add them back.").format(n=count),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        clear_memory_notes(self._store)
+        self._fill_notes()
+        self._show_saved()
+        self._emit_profile()
+
     def _on_edit_note(self, note_id: str, text: str) -> None:
 
 
@@ -702,7 +705,6 @@ class PersonalisationPageMixin:
         self._expertise_segments.set_value(self._store.expertise)
         self._units_segments.set_value(self._store.units)
         self._naming_segments.set_value(self._store.layer_naming)
-        self._sync_timeout_combo()
         self._values["send_shortcut"] = self._store.send_shortcut
         for edit, value in ((self._name_edit, self._store.profile_name),
                             (self._role_edit, self._store.profile_role)):

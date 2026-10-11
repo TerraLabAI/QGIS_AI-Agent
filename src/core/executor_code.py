@@ -283,7 +283,7 @@ class _ExecutorCode:
             granted=granted, chat=self._threads.get(run_id, "") or run_id,
             timeout_s=(tuning.ceiling("execute_code_card_budget_s", CARD_BUDGET_S, 30.0) if carded
                        else tuning.ceiling("execute_code_no_card_budget_s", NO_CARD_BUDGET_S, 20.0)),
-            registry=self._registry))
+            registry=self._registry, run_id=run_id, stop=lambda: self.stop_requested.emit(run_id)))
 
 
 

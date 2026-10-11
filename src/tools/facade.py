@@ -220,6 +220,7 @@ def register_facade_tools(registry: ToolRegistry):
                 },
                 "exit": {"type": "boolean"},
                 "interaction": {"type": "string", "enum": ["review", "draw_zone", "markup"]},
+                "markup_wkt": {"type": "string"},
             },
             "required": ["action"],
             "x-interactive-prepare": True,
@@ -330,8 +331,12 @@ def register_facade_tools(registry: ToolRegistry):
                 "why": {
                     "type": "string",
                 },
-                "allow_free_text": {
+                "multiple": {
                     "type": "boolean",
+                },
+                "details": {
+                    "type": "array",
+                    "items": {"type": "string"},
                 },
             },
             "required": ["question"],

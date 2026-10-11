@@ -196,6 +196,23 @@ def service_base(url: str) -> str:
     return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "&".join(kept), ""))
 
 
+def wms_dimensions(url: str) -> str:
+
+
+
+
+
+
+
+    parts = urllib.parse.urlsplit(str(url or "").strip())
+    kept = []
+    for pair in parts.query.split("&"):
+        key = urllib.parse.unquote_plus(pair.split("=", 1)[0]).strip().lower()
+        if key == "time" or key.startswith("dim_"):
+            kept.append(pair)
+    return "&".join(kept)
+
+
 def with_path(url: str, suffix: str) -> str:
 
     parts = urllib.parse.urlsplit(url)
@@ -390,16 +407,29 @@ _WMTS_TITLE_RE = re.compile(rb"<ows:Title[^>]*>\s*([^<]*?)\s*</ows:Title>")
 _WMTS_SET_RE = re.compile(rb"<TileMatrixSet>\s*([^<\s][^<]*?)\s*</TileMatrixSet>")
 _WMTS_FORMAT_RE = re.compile(rb"<Format>\s*([^<\s][^<]*?)\s*</Format>")
 _WMTS_STYLE_RE = re.compile(rb"<Style[^>]*>.*?<ows:Identifier>\s*([^<\s][^<]*?)\s*</ows:Identifier>", re.DOTALL)
-_WMTS_SET_DEF_RE = re.compile(
-    rb"<TileMatrixSet>\s*<ows:Identifier>\s*([^<\s][^<]*?)\s*</ows:Identifier>.*?"
-    rb"<ows:SupportedCRS>\s*([^<\s][^<]*?)\s*</ows:SupportedCRS>", re.DOTALL)
+
+
+def _wmts_set_crs(body: bytes) -> dict[str, str]:
+
+
+
+
+
+
+    root = _service_root(body)
+    out: dict[str, str] = {}
+    for element in (root.iter() if root is not None else ()):
+        if _local(element.tag) == "TileMatrixSet":
+            name = _text(_child(element, "Identifier"))
+            if name:
+                out.setdefault(name, _text(_child(element, "SupportedCRS")))
+    return out
 
 
 def wmts_layers(body: bytes) -> dict[str, dict]:
 
     body = body or b""
-    crs_of = {name.decode("utf-8", "replace"): crs.decode("utf-8", "replace")
-              for name, crs in _WMTS_SET_DEF_RE.findall(body)}
+    crs_of = _wmts_set_crs(body)
     out: dict[str, dict] = {}
     for block in _WMTS_LAYER_RE.findall(body):
         found = _WMTS_IDENTIFIER_RE.search(block)

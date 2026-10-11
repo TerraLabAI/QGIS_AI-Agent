@@ -396,7 +396,9 @@ class QuotaCard(QWidget):
 
 
     def show_exhausted(self, is_subscriber: bool, limit: int, reset_text: str = "",
-                       trial: tuple | None = None) -> None:
+                       trial: tuple | None = None, account_cap: str | None = None) -> None:
+
+
 
 
 
@@ -428,11 +430,17 @@ class QuotaCard(QWidget):
                 self._more.set_open(False)
             self.state = "free_out"
 
-            self._title.setText(self.tr("Your free runs are used up"))
             for w in (self._body, self._ghost, self._escape):
                 w.hide()
-            self._note.setText(self.tr("Free runs come back on {date}.").format(date=reset_text) if reset_text
-                               else self.tr("Free runs come back at your monthly reset."))
+            if account_cap is not None:
+                self._title.setText(self.tr("Free AI Agent was already used by other accounts on this computer."))
+                self._note.setText(account_cap or self.tr(
+                    "Upgrade to Pro to keep going. Shared computer, or a mistake? "
+                    "Contact {email} and we will unlock it.").format(email=get_support_email()))
+            else:
+                self._title.setText(self.tr("Your free runs are used up"))
+                self._note.setText(self.tr("Free runs come back on {date}.").format(date=reset_text) if reset_text
+                                   else self.tr("Free runs come back at your monthly reset."))
             self._note.show()
             self._pitch.setText(self.tr("Pro: more and better"))
             lines = (

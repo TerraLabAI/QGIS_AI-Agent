@@ -40,11 +40,17 @@ from qgis.core import (
     QgsProject,
     QgsRectangle,
 )
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
 from qgis.utils import iface
 
 from ..core import limits, zone_of_interest
+from ..core.logger import log, log_warning
 
 CONFIRM_KM2 = 1.0
+
+
+def _tr(text: str) -> str:
+    return QCoreApplication.translate("ToolExecutor", text)
 
 
 
@@ -245,6 +251,199 @@ def _balance_sentence(label: str, area: float) -> str:
             f"{left - area:,.1f} km² once this run is paid for.")
 
 
+def _zone_name_on_card(args: dict) -> str:
+
+
+    held = zone_of_interest.read_zone() if args.get("use_zone") else None
+    layer = QgsProject.instance().mapLayer(held.layer_id) if held is not None else zone_of_interest.zone_layer()
+    return layer.name() if layer is not None else zone_of_interest.zone_layer_name()
+
+
+def show_outline(args: dict, costly: dict):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    wkt = costly.get("outline_wkt")
+    if not wkt:
+        return None
+    geom = QgsGeometry.fromWkt(wkt)
+    held = zone_of_interest.read_zone() if args.get("use_zone") else None
+    prior = None
+    if held is None:
+        prior = zone_of_interest.read_zone()
+        layer = zone_of_interest.write_zone(geom, _canvas_crs())
+        clear_declined()
+        costly["zone_proposed"] = prior is None
+        if layer is None:
+            log_warning("The zone of interest layer could not be written before the credits card.")
+            _frame(geom.boundingBox())
+            return None
+        from ..core.layer_order import keep_place
+        keep_place(layer)
+        if zone_from_args(args) is not None:
+
+
+            for key in ("zone_wkt", "bbox", "use_canvas_extent"):
+                args.pop(key, None)
+            args["use_zone"] = True
+
+    _frame(geom.boundingBox())
+    return prior
+
+
+DECLINED_PROPERTY = "terralab/zone_declined"
+
+
+def mark_declined() -> None:
+
+
+
+    held = zone_of_interest.read_zone()
+    layer = zone_of_interest.zone_layer()
+    if held is not None and layer is not None:
+        layer.setCustomProperty(DECLINED_PROPERTY, held.geometry.asWkt())
+        log("Credits card refused: the proposed zone stays on the map, marked as declined.")
+
+
+def clear_declined() -> None:
+    layer = zone_of_interest.zone_layer()
+    if layer is not None:
+        layer.removeCustomProperty(DECLINED_PROPERTY)
+
+
+def zone_declined() -> bool:
+
+    layer = zone_of_interest.zone_layer()
+    held = zone_of_interest.read_zone()
+    marked = layer.customProperty(DECLINED_PROPERTY) if layer is not None else None
+    if not marked or held is None:
+        return False
+    try:
+        return bool(held.geometry.equals(QgsGeometry.fromWkt(str(marked))))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def restore_zone(prior) -> None:
+
+    if prior is None:
+        return
+    try:
+        if zone_of_interest.write_zone(prior.geometry, prior.crs, label=prior.label or "") is not None:
+            log("Credits card refused: the zone of interest is back to the one the project held before.")
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"The previous zone of interest could not be put back: {exc}")
+
+
+
+
+_REFRAME_MS = (0, 1500)
+
+
+_FRAMING = 0
+
+
+def stop_framing() -> None:
+
+    global _FRAMING
+    _FRAMING += 1
+
+
+def _same_box(a, b) -> bool:
+    tol = max(b.width(), b.height(), 1e-9) * 1e-6
+    return all(abs(x - y) <= tol for x, y in ((a.xMinimum(), b.xMinimum()), (a.yMinimum(), b.yMinimum()),
+                                             (a.xMaximum(), b.xMaximum()), (a.yMaximum(), b.yMaximum())))
+
+
+def _frame(box: QgsRectangle) -> None:
+
+
+
+
+
+
+
+
+    from ..core.follow import hold_view
+
+    global _FRAMING
+    _FRAMING += 1
+    framing = _FRAMING
+    box = QgsRectangle(box)
+    box.scale(1.1)
+    crs = _canvas_crs()
+    try:
+        before = QgsRectangle(iface.mapCanvas().extent())
+    except Exception:  # noqa: BLE001
+        before = None
+
+    def put(again: bool, last: bool) -> None:
+        try:
+            canvas = iface.mapCanvas()
+            if again and framing != _FRAMING:
+
+                return
+            if again and (before is None or not _same_box(canvas.extent(), before)):
+
+
+                if last:
+                    log("Credits card: the map is left where it is; a pan from now on stays.")
+                return
+            if again and crs is not None and _canvas_crs() != crs:
+
+                return
+            if again and canvas.extent().intersects(box):
+                if last:
+                    log("Credits card: the map shows the zone; it is left where it is, and a pan from "
+                        "now on stays.")
+                return
+
+            moved = hold_view(canvas, target=(box, crs)) if crs is not None else None
+            if moved is None:
+                canvas.setExtent(box)
+                canvas.refresh()
+            log(("Credits card: the map had left the zone and is moved back onto it"
+                 if again else "Credits card: the map is moved onto the zone")
+                + (f" (project CRS {moved['from']} -> {moved['to']})" if moved else "") + ".")
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"The map could not be moved onto the zone before the credits card: {exc}")
+
+    put(False, False)
+    final = len(_REFRAME_MS) - 1
+    for i, delay in enumerate(_REFRAME_MS):
+        QTimer.singleShot(delay, lambda last=(i == final): put(True, last))
+
+
+def _number(value) -> float | None:
+    try:
+        return float(value) if value is not None and not isinstance(value, bool) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def area_text(area: float) -> str:
+
+
+    if area >= 1:
+        return _tr("{area} km²").format(area=f"{area:.1f}")
+    if area >= 0.1:
+        return _tr("{area} km²").format(area=f"{area:.2f}")
+    if area >= 0.0001:
+        return _tr("{area} ha").format(area=f"{area * 100:.2f}")
+    return _tr("{area} m²").format(area=f"{area * 1e6:.0f}")
+
+
 def detaches(args: dict, label: str = SEGMENTATION) -> bool:
 
     area = zone_area_km2(args, label)
@@ -260,6 +459,13 @@ def check(name: str, args: dict) -> dict:
     label = costly_label(name, args)
     if label is None:
         return {}
+    if args.get("use_zone") and zone_declined():
+
+        return {
+            "error": (f"{label} was not run: the Area of interest holds the zone the user declined on the "
+                      "last card."),
+            "suggestion": "", "code": limits.CEILING_CODE, "hint": "zone_declined", "label": label,
+        }
 
 
 
@@ -277,6 +483,17 @@ def check(name: str, args: dict) -> dict:
             "code": limits.CEILING_CODE,
             "hint": "zone_unmeasurable", "label": label, "confirm_km2": CONFIRM_KM2,
         }
+    said = _number(args.get("confirm_area_km2"))
+    if said is not None and said > 0 and not (0.5 <= area / said <= 2) and area_text(area) != area_text(said):
+
+        where = "the Area of interest holds" if args.get("use_zone") else "this call's zone covers"
+        return {
+            "error": (f"{label} was not run: {where} {area_text(area)}, and confirm_area_km2 says "
+                      f"{area_text(said)}. The zone is what was last set, not the area named since."),
+            "suggestion": "", "code": limits.CEILING_CODE, "hint": "zone_not_the_area_said",
+            "label": label, "area_km2": round(area, 4), "said_km2": said,
+        }
+    zone_name = _zone_name_on_card(args)
     try:
         from .integration_handoff import spending_inputs
         inputs = spending_inputs(label, args, geom)
@@ -302,19 +519,24 @@ def check(name: str, args: dict) -> dict:
                 "hint": "area_confirmation_needed", "variant": "segmentation" if label == SEGMENTATION else "edit",
                 "label": label, "area_km2": round(area, 1),
             }
-    shown = f"{area:.2f} km²" if area < 1 else f"{area:.1f} km²"
+    shown = area_text(area)
+    if zone_name:
+        shown = _tr("the '{layer}' layer ({area})").format(layer=zone_name, area=shown)
     if label == SEGMENTATION:
-        sentence = f"Run {label} on {shown} of imagery. This spends your {label} credits."
+        sentence = _tr("Run {label} on {zone}. This spends your {label} credits.").format(label=label, zone=shown)
     else:
         resolution = inputs.get("resolution")
-        size = f" at {resolution}" if resolution else " at the panel's selected resolution"
+        size = (_tr(" at {resolution}").format(resolution=resolution) if resolution
+                else _tr(" at the panel's selected resolution"))
         price = inputs.get("generation_credits")
         if price is not None:
-            cost = f"{price:g} credits per generation"
+            cost = _tr("{price} credits per generation").format(price=f"{price:g}")
         else:
 
 
-            cost = (f"about {EDIT_FALLBACK_CREDITS_2K:g} credits per generation"
-                    " (the 2K price; the live price was unavailable)")
-        sentence = f"Run AI Edit{size}: {cost}. Image footprint: {shown}; billing is per generation."
-    return {"label": label, "area_km2": round(area, 3), "sentence": sentence, "inputs": inputs}
+            cost = _tr("about {price} credits per generation (the 2K price; the live price was unavailable)"
+                       ).format(price=f"{EDIT_FALLBACK_CREDITS_2K:g}")
+        sentence = _tr("Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation."
+                       ).format(size=size, cost=cost, zone=shown)
+    return {"label": label, "area_km2": round(area, 3), "sentence": sentence, "inputs": inputs,
+            "outline_wkt": geom.asWkt()}

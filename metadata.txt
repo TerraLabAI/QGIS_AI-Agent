@@ -3,15 +3,15 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 285+ tools and 60 open data connectors.
+description=Your AI agent for QGIS. Hand it the work and it finds the data, runs the analysis, styles the map and builds the layout. 253 tools and 73 open data connectors.
 about=
     It works on your own layers, in the project you already have open, and shows each step as it goes.
 
-    • 285+ tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
+    • 253 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
 
-    • 60 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 53 more
+    • 73 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 66 more
 
-    • A catalog of 530+ ready datasets, from national sources in 97 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 843 ready datasets, from national sources in 174 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -24,7 +24,7 @@ about=
     • Answers come from an AI model. It can be wrong; review what it changes
 
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
-version=1.6.0
+version=1.7.0
 author=TerraLab
 email=yvann.barbot@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent
@@ -32,6 +32,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.7.0
+    - Questions come one at a time: pick an option or write your own answer, then send them together
+    - Answers show clean tables, figures and short charts; memory notes save at once, with Undo
+    - Data sources on one page with logos; AI Segmentation and AI Edit runs show their zone before paying
+    - Processing run from code no longer freezes QGIS and Stop ends it; Pro chats survive a restart
+
     1.6.0
     - Safer sign-in: the key reaches only the QGIS that started it, with a 6-character code as backup
     - QGIS stays responsive while rasters are read over the network, and the plugin starts faster
@@ -56,11 +62,6 @@ changelog=
     - A plainer chat: short cards, sources with licence and credits, Billing folded into Account
     - Print layouts take frame, background and font colours; all 11 languages read naturally
 
-    1.5.3
-    - Updates install in one click from the chat, with no QGIS restart and no empty dependency window
-    - Code cards in Balanced mode offer "Allow for this run"; deleting data still asks
-    - When the server cannot be reached, the panel says why after about a minute
-    - HTML reports load nothing from unknown sites; Autopilot asks before sending to one
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
 icon=icons/icon.png

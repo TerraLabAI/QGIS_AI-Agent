@@ -22,6 +22,7 @@
 
 
 
+
 from __future__ import annotations
 
 import base64
@@ -136,7 +137,7 @@ def _write_html_report(args: dict) -> dict:
                           hint="report_write_failed", path=target)
 
     opened = False
-    if args.get("open", True):
+    if args.get("open") is True:
         opened = bool(run_on_main_thread(_open_in_browser, target, timeout=15))
 
     result = {

@@ -1633,6 +1633,7 @@ def _start_async_processing(
     if child_job is not None:
         _PROCESSING_TASKS[task_id]["separate_qgis"] = True
     task.progressChanged.connect(lambda p, tid=task_id: _on_proc_progress(tid, p))
+    watch_removals()
 
 
 
@@ -1924,6 +1925,7 @@ def _let_go(entry: dict) -> None:
     for heavy in ("task", "context", "feedback", "alg", "parameters"):
         entry.pop(heavy, None)
     _release_held(entry)
+    unwatch_if_idle()
 
 
 
@@ -1958,7 +1960,8 @@ def remove_layers(layers) -> list:
                     continue
                 taken = True
                 for entry in readers:
-                    entry.setdefault("held_layers", []).append(held)
+                    if not any(other is held for other in entry.get("held_layers") or ()):
+                        entry.setdefault("held_layers", []).append(held)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"A layer was not removed from the project: {exc}")
             continue
@@ -1966,6 +1969,54 @@ def remove_layers(layers) -> list:
     if taken:
         _canvas_follows_tree()
     return gone
+
+
+def hold_on_removal(removed) -> None:
+
+
+
+
+
+
+    project = QgsProject.instance()
+    for item in removed or ():
+        try:
+            layer = project.mapLayer(item) if isinstance(item, str) else item
+            if layer is None or sip.isdeleted(layer):
+                continue
+            readers = _readers_of(layer)
+            if not readers:
+                continue
+            layer.setParent(None)
+            for entry in readers:
+                if not any(held is layer for held in entry.get("held_layers") or ()):
+                    entry.setdefault("held_layers", []).append(layer)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"A removed layer was not kept for its task: {exc}")
+
+
+_WATCHING = False
+
+
+def watch_removals() -> None:
+
+    global _WATCHING
+    if _WATCHING:
+        return
+    QgsProject.instance().layersWillBeRemoved.connect(hold_on_removal)
+    _WATCHING = True
+
+
+def unwatch_if_idle() -> None:
+
+    global _WATCHING
+    if not _WATCHING or any(entry.get("task") is not None for entry in _PROCESSING_TASKS.values()):
+        return
+    try:
+        QgsProject.instance().layersWillBeRemoved.disconnect(hold_on_removal)
+    except (TypeError, RuntimeError):
+        pass
+    _WATCHING = False
 
 
 def _canvas_follows_tree() -> None:
@@ -2455,4 +2506,5 @@ def shutdown() -> int:
     for entry in _PROCESSING_TASKS.values():
         _release_held(entry)
     _PROCESSING_TASKS.clear()
+    unwatch_if_idle()
     return asked

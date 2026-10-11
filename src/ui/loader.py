@@ -230,7 +230,33 @@ class ShimmerLabel(_Ticker):
             return
 
 
+
+
+
+_USER_WAITS: list = []
+_USER_WAIT_SINCE: list = []
+
+
+def user_waiting(waiting: bool) -> None:
+
+
+    now = time.monotonic()
+    if waiting and not _USER_WAIT_SINCE:
+        _USER_WAIT_SINCE.append(now)
+    elif not waiting and _USER_WAIT_SINCE:
+        _USER_WAITS.append((_USER_WAIT_SINCE.pop(), now))
+        del _USER_WAITS[:-200]
+
+
+def waited_between(start: float, end: float | None = None) -> float:
+
+    end = time.monotonic() if end is None else float(end)
+    spans = list(_USER_WAITS) + [(_USER_WAIT_SINCE[0], end)] if _USER_WAIT_SINCE else list(_USER_WAITS)
+    return sum(max(0.0, min(b, end) - max(a, start)) for a, b in spans)
+
+
 class ElapsedClock(QWidget):
+
 
 
     def __init__(self, started: float | None = None, parent=None):
@@ -251,7 +277,8 @@ class ElapsedClock(QWidget):
         self._tick()
 
     def elapsed(self) -> float:
-        return max(0.0, time.monotonic() - self._started)
+        now = time.monotonic()
+        return max(0.0, now - self._started - waited_between(self._started, now))
 
     def _tick(self) -> None:
         self._label.setText(format_elapsed(self.elapsed()))
@@ -294,4 +321,4 @@ def _mono_label(parent):
 
 
 __all__ = ["DotsLoader", "ElapsedClock", "GAP_PX", "LINE_PX", "ShimmerLabel",
-           "format_elapsed", "pixel_on"]
+           "format_elapsed", "pixel_on", "user_waiting", "waited_between"]

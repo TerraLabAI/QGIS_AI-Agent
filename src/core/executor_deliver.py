@@ -169,7 +169,8 @@ class _ExecutorDeliver:
         in_background = self._inflight.pop(tool_call_id, (None, None, None, False))[3]
 
 
-        on_dialog, dialog_title = self._dialog_waits.pop(tool_call_id, (0.0, ""))
+
+        looped, on_dialog, dialog_title = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, ""))
 
 
 
@@ -194,8 +195,8 @@ class _ExecutorDeliver:
 
             log_warning(f"{name} answered after its deadline ({duration:.0f}s); the late result is dropped.")
             return
-        if not (in_background or held) and duration - on_dialog > limits.main_budget(name):
-            self._note_slow_main_thread(run_id, name, duration - on_dialog)
+        if not (in_background or held) and duration - looped > limits.main_budget(name):
+            self._note_slow_main_thread(run_id, name, duration - looped)
         if on_dialog >= 1.0 and isinstance(result, dict):
             result["waited_on_dialog"] = {"title": dialog_title, "seconds": round(on_dialog)}
 

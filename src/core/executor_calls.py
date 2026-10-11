@@ -16,7 +16,7 @@ from collections import deque
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from . import background, code_guard, security, stalls
+from . import background, code_guard, executor_guards, security, stalls
 from .executor_guards import CODE_TOOL
 from .log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
 from .logger import log, log_warning
@@ -248,7 +248,11 @@ class _ExecutorCalls:
             self._fail(call, costly.get("code") or Err.EXECUTION_FAILED,
                        costly["error"], costly.get("suggestion", ""), details=_coded(costly))
             return
-        if costly and self._call_key(name, args) in self._refused_costly.get(run_id, ()):
+        if costly:
+
+
+            call["_refused_key"] = self._costly_key(name, args, costly.get("inputs"))
+        if costly and call["_refused_key"] in self._refused_costly.get(run_id, ()):
             self._fail(call, Err.PERMISSION_DENIED,
                        f"The user already refused this exact {costly['label']} run in this answer.", "",
                        details=error_details(coded_fact(hint="costly_run_refused_again", label=costly["label"])))
@@ -541,6 +545,23 @@ class _ExecutorCalls:
         call["sentence"] = costly["sentence"]
         call["costly"] = True
         call.pop("_costly_inputs", None)
+        guard = executor_guards.cost_guard
+        if guard is not None and costly.get("outline_wkt"):
+
+
+            try:
+
+                follower = getattr(self, "follower", None)
+                if follower is not None:
+                    follower.chose_view()
+                prior = guard.show_outline(call.setdefault("args", {}), costly)
+                if "_prior_zone" not in call:
+
+
+                    call["_prior_zone"] = prior
+                    call["_zone_proposed"] = bool(costly.get("zone_proposed"))
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"cost_guard could not draw the zone for {call.get('name')}: {exc}")
         if "inputs" in costly:
 
 
@@ -548,6 +569,30 @@ class _ExecutorCalls:
         self._pending[tool_call_id] = call
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
         self.permission_needed.emit(tool_call_id, run_id, costly["sentence"], call.get("args") or {})
+
+    def _card_closed_unallowed(self, call: dict) -> None:
+
+
+
+        if call.get("costly") and executor_guards.cost_guard is not None:
+            executor_guards.cost_guard.stop_framing()
+        proposed = call.pop("_zone_proposed", False) and "_prior_zone" in call
+        prior = call.pop("_prior_zone", None)
+        if prior is not None and executor_guards.cost_guard is not None:
+            executor_guards.cost_guard.restore_zone(prior)
+        elif proposed and executor_guards.cost_guard is not None:
+
+            executor_guards.cost_guard.mark_declined()
+
+    def _costly_key(self, name: str, args: dict, inputs) -> str:
+
+
+
+
+
+
+        ground = (inputs or {}).get("zone_wkt") if isinstance(inputs, dict) else None
+        return self._call_key(name, {**args, "_ground": ground})
 
     def _hold_changed_costly_inputs(self, call: dict) -> bool:
 
@@ -670,8 +715,16 @@ class _ExecutorCalls:
                        details=error_details(coded_fact(hint="ask_user_question_missing", missing="question")))
             return
         raw = args.get("options") if isinstance(args.get("options"), list) else []
-        options = [str(o).strip() for o in raw if str(o).strip()][:4]
-        free_text = bool(args.get("allow_free_text", True)) or not options
+        raw_details = args.get("details") if isinstance(args.get("details"), list) else []
+        pairs = [(str(o).strip(), " ".join(str(raw_details[i]).split())[:120] if i < len(raw_details) else "")
+                 for i, o in enumerate(raw) if str(o).strip()][:6]
+        options = [option for option, _ in pairs]
+
+
+        args["details"] = [detail for _, detail in pairs]
+        args["header"] = " ".join(str(args.get("header") or "").split())[:12].strip()
+
+        free_text = True
         recommended = recommended_index(args.get("recommended"), options)
         why = " ".join(str(args.get("why") or "").split())[:120]
         call["sentence"] = question
@@ -679,6 +732,41 @@ class _ExecutorCalls:
 
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
         self.question_needed.emit(tool_call_id, run_id, question, options, free_text, recommended, why)
+        self._watch_segmentation_review(tool_call_id)
+
+    def _watch_segmentation_review(self, tool_call_id: str) -> None:
+
+
+
+        try:
+            from ..tools import aiseg_review
+            if not aiseg_review.review_open():
+                return
+        except Exception:  # noqa: BLE001
+            return
+        timer = QTimer(self)
+        timer.setInterval(1000)
+
+        def _tick():
+            if tool_call_id not in self._questions:
+                timer.stop()
+                timer.deleteLater()
+                return
+            try:
+                still_open = aiseg_review.review_open()
+            except Exception:  # noqa: BLE001
+                still_open = False
+            if still_open:
+                return
+            timer.stop()
+            timer.deleteLater()
+            layer = aiseg_review.last_saved_layer()
+            answer = (f"The user saved the result from the AI Segmentation panel as layer '{layer}'."
+                      if layer else "The user closed the AI Segmentation review from its panel.")
+            self.question_answered_elsewhere.emit(tool_call_id, answer)
+
+        timer.timeout.connect(_tick)
+        timer.start()
 
     def on_question_answered(self, tool_call_id: str, answer: str) -> None:
         call = self._questions.pop(tool_call_id, None)
@@ -785,18 +873,24 @@ class _ExecutorCalls:
                         "allow/allow_project/deny; the card is left open.")
             self._pending[tool_call_id] = call
             return
+        if call.get("costly") and executor_guards.cost_guard is not None:
+
+            executor_guards.cost_guard.stop_framing()
         if decision == Decision.DENY:
             self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
             self._table.put(tool_call_id, "deny", {})
             if call.get("costly"):
                 self._refused_costly.setdefault(run_id, set()).add(
-                    self._call_key(name, call.get("args") or {}))
+                    call.get("_refused_key")
+                    or self._costly_key(name, call.get("args") or {}, call.get("_costly_inputs")))
             elif run_id and name and not call.get("always"):
                 self._run_denied.setdefault(run_id, set()).add(name)
+            self._card_closed_unallowed(call)
             log(f"DENY {name} (user)")
             return
         problem = self._apply_edits(call, edits)
         if problem is not None:
+            self._card_closed_unallowed(call)
             self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
 
             edited = {"edited_by_user": {"values": call["user_edits"]}} if call.get("user_edits") else {}

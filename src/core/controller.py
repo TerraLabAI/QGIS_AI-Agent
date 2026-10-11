@@ -314,10 +314,34 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
                 "libraries": list(importable_libraries())}
 
     def _manifest(self) -> tuple:
+
+        self._sync_sibling_tools()
         if self._manifest_cache is None:
             manifest = self._registry.manifest()
             self._manifest_cache = (self._registry.manifest_hash(manifest), manifest)
         return self._manifest_cache
+
+    def _sync_sibling_tools(self) -> bool:
+
+
+        try:
+            from ..tools import aiseg_review
+            changed = aiseg_review.sync(self._registry)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Sibling tools not re-checked: {exc}")
+            return False
+        if changed:
+            self._manifest_cache = None
+        return changed
+
+    def _resync_sibling_tools_when_idle(self) -> None:
+
+
+        if not self._sync_sibling_tools() or self._run is not None or not self._session.is_online:
+            return
+        log("Sibling plugin tools changed; reconnecting so the server reads the new manifest")
+        self._session.disconnect_from_server()
+        self._session.connect_to_server()
 
 
 
@@ -389,7 +413,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect_optional("undo_retry_requested", self._on_undo_retry)
         self._connect("permission_decided", self._on_permission_decided)
         self._connect("question_answered", self._on_question_answered)
-        self._connect("question_auto_answered", self._on_question_auto_answered)
         self._connect("retry_requested", self._on_retry)
         self._connect("continue_requested", self._on_continue)
         self._connect("undo_requested", self._on_undo)
@@ -433,7 +456,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("sign_in_requested", self._on_sign_in)
 
         self._connect_optional("recommendation_decided", self._on_recommendation_decided)
-        self._connect_optional("memory_decided", self._on_memory_decided)
+        self._connect_optional("memory_undo_requested", self._on_memory_undo)
         self._connect_optional("diff_applied", self._on_diff_applied)
 
     def _wire_session(self) -> None:
@@ -466,8 +489,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         e.permission_needed.connect(self._on_permission_needed)
         e.permission_resolved.connect(self._on_permission_resolved)
         e.question_needed.connect(self._on_question_needed)
+        e.question_answered_elsewhere.connect(self._on_question_answered)
         e.question_resolved.connect(lambda cid, answer: self._panel_call("resolve_question", cid, answer))
         e.project_changed.connect(self._on_project_changed)
+        e.stop_requested.connect(self._on_stop)
 
     def _wire_account(self) -> None:
         a = self._account

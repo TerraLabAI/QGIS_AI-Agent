@@ -716,6 +716,15 @@ def still_awaited() -> bool:
     return _WAITS[-1].commit() if _WAITS else True
 
 
+def marshalled() -> bool:
+
+
+
+
+
+    return bool(_WAITS)
+
+
 def _task_flags(task_cls, hidden: bool):
 
 

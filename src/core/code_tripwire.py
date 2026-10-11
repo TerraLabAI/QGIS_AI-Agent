@@ -504,7 +504,10 @@ def _with_overrides(base, name: str) -> list:
 def _wrap(arm: _Arm, original, judge, static: bool):
     def trapped(*args, **kwargs):
         if _from_snippet(2):
-            judge(arm, *args, **kwargs)
+
+            replaced = judge(arm, *args, **kwargs)
+            if replaced is not None:
+                args, kwargs = replaced
         if static or not args or not hasattr(original, "__get__"):
             return original(*args, **kwargs)
 
@@ -696,7 +699,8 @@ def _add_layers(arm, project, value=None, *args, **kwargs):
 _SOURCE_KEYWORDS = ("path", "uri", "dataSource", "source")
 
 
-def _builds_remote(index: int):
+def _builds_remote(index: int, provider_at: int = 0, provider_keys: tuple = (), provider: str = ""):
+
 
 
 
@@ -705,20 +709,59 @@ def _builds_remote(index: int):
 
 
     def judge(arm, *args, **kwargs):
-        source = args[index] if len(args) > index else next(
-            (kwargs[key] for key in _SOURCE_KEYWORDS if key in kwargs), "")
-        if isinstance(source, str) and _remote(source):
+        key = next((k for k in _SOURCE_KEYWORDS if k in kwargs), None)
+        source = kwargs[key] if key else (args[index] if len(args) > index else "")
+        if not isinstance(source, str):
+            return None
+        if _remote(source):
             arm.refuse("builds a layer read from the network; add_data carries the address card")
+        return _with_whole_source(source, index, key, args, kwargs,
+                                  _provider_of(args, kwargs, provider_at, provider_keys, provider))
     return judge
 
 
-def _add_by_uri(arm, iface, uri=None, *args, **kwargs):
-    if _remote(uri):
-        arm.refuse("adds a layer read from the network; add_data carries the address card")
-    provider = args[1] if len(args) > 1 and isinstance(args[1], str) else str(kwargs.get("providerKey") or "")
-    reason = _outside_scope(uri, provider)
-    if reason:
-        arm.refuse(f"adds a layer from outside the read scope: {reason}")
+def _provider_of(args, kwargs, at: int, keys: tuple, default: str) -> str:
+    if at and len(args) > at and isinstance(args[at], str):
+        return args[at]
+    return next((str(kwargs[k]) for k in keys if k in kwargs), default)
+
+
+def _whole_source(source: str, provider: str) -> str:
+
+
+
+
+
+
+
+    if str(provider).lower() not in ("ogr", "gdal"):
+        return source
+    path, sep, rest = source.partition("|")
+    if not path or ":" in path or os.path.isabs(path) or not os.path.exists(path):
+        return source
+    return os.path.abspath(path) + sep + rest
+
+
+def _with_whole_source(source: str, index: int, key, args, kwargs, provider: str):
+    whole = _whole_source(source, provider)
+    if whole == source:
+        return None
+    if key:
+        return args, {**kwargs, key: whole}
+    return args[:index] + (whole,) + args[index + 1:], kwargs
+
+
+def _add_by_uri(provider: str):
+    def judge(arm, iface, uri=None, *args, **kwargs):
+        if _remote(uri):
+            arm.refuse("adds a layer read from the network; add_data carries the address card")
+        key = args[1] if len(args) > 1 and isinstance(args[1], str) else str(kwargs.get("providerKey") or provider)
+        whole = _whole_source(uri, key) if isinstance(uri, str) else uri
+        reason = _outside_scope(whole, key)
+        if reason:
+            arm.refuse(f"adds a layer from outside the read scope: {reason}")
+        return None if whole == uri else ((iface, whole) + args, kwargs)
+    return judge
 
 
 def _layer_read(arm, layer, *args, **kwargs):
@@ -747,12 +790,30 @@ def _judge_source(arm, source, provider: str) -> None:
         arm.refuse(f"reads a layer from outside the read scope: {reason}")
 
 
-def _path_arg(index: int):
+def _path_arg(index: int, keyword: str):
     def judge(arm, *args, **kwargs):
         values = [a for a in args if isinstance(a, str)]
-        target = args[index] if len(args) > index and isinstance(args[index], str) else (values[0] if values else "")
+        target = args[index] if len(args) > index and isinstance(args[index], str) else (
+            kwargs.get(keyword) if isinstance(kwargs.get(keyword), str) else (values[0] if values else ""))
         arm.need(*file_class(target))
+        _written(target)
     return judge
+
+
+def _written(target) -> None:
+
+
+
+
+
+
+
+    text = str(target or "").split("|", 1)[0].strip()
+    if not text or text.startswith(("memory:", "TEMPORARY_OUTPUT", "/vsi")) or "://" in text:
+        return
+    from .code_guard import note_written
+
+    note_written(os.path.abspath(os.path.expanduser(text)))
 
 
 def _deletes(reason: str):
@@ -773,6 +834,7 @@ def _raster_write(arm, writer, *args, **kwargs):
     except Exception:  # noqa: BLE001
         target = ""
     arm.need(*file_class(target))
+    _written(target)
 
 
 _NETWORK = "reaches the network; code reads layers and local files, and the fetch tools carry the address card"
@@ -801,12 +863,12 @@ def _traps():
         (get("QgsProject"), "read", _project_read, False),
         (get("QgsProject"), "addMapLayer", _add_layers, False),
         (get("QgsProject"), "addMapLayers", _add_layers, False),
-        (get("QgsMapLayer"), "saveNamedStyle", _path_arg(1), False),
-        (get("QgsMapLayer"), "saveSldStyle", _path_arg(1), False),
+        (get("QgsMapLayer"), "saveNamedStyle", _path_arg(1, "uri"), False),
+        (get("QgsMapLayer"), "saveSldStyle", _path_arg(1, "uri"), False),
         (get("QgsMapLayer"), "saveDefaultStyle", _deletes("replaces the layer's default style file"), False),
-        (get("QgsLayoutExporter"), "exportToImage", _path_arg(1), False),
-        (get("QgsLayoutExporter"), "exportToPdf", _path_arg(1), False),
-        (get("QgsLayoutExporter"), "exportToSvg", _path_arg(1), False),
+        (get("QgsLayoutExporter"), "exportToImage", _path_arg(1, "filePath"), False),
+        (get("QgsLayoutExporter"), "exportToPdf", _path_arg(1, "filePath"), False),
+        (get("QgsLayoutExporter"), "exportToSvg", _path_arg(1, "filePath"), False),
         (get("QgsCoordinateReferenceSystem"), "saveAsUserCrs", _refuses(_SETTING), False),
         (get("QgsExpressionContextUtils"), "setGlobalVariable", _refuses(_SETTING), True),
         (get("QgsExpressionContextUtils"), "setGlobalVariables", _refuses(_SETTING), True),
@@ -821,11 +883,11 @@ def _traps():
     out.extend(_child_write_traps())
     out.extend(_read_traps())
     if gui is not None:
-        out.append((getattr(gui, "QgsMapCanvas", None), "saveAsImage", _path_arg(1), False))
+        out.append((getattr(gui, "QgsMapCanvas", None), "saveAsImage", _path_arg(1, "fileName"), False))
         iface_type = getattr(gui, "QgisInterface", None)
-        for name in ("addVectorLayer", "addRasterLayer", "addMeshLayer", "addVectorTileLayer",
-                     "addPointCloudLayer"):
-            out.append((iface_type, name, _add_by_uri, False))
+        for name, provider in (("addVectorLayer", ""), ("addRasterLayer", "gdal"), ("addMeshLayer", ""),
+                               ("addVectorTileLayer", ""), ("addPointCloudLayer", "")):
+            out.append((iface_type, name, _add_by_uri(provider), False))
     return out
 
 
@@ -883,17 +945,24 @@ def _child_write_traps() -> list:
     import qgis.core as core
 
     get = lambda name: getattr(core, name, None)  # noqa: E731
-    out = [(get("QgsVectorFileWriter"), name, _path_arg(index), True)
+    out = [(get("QgsVectorFileWriter"), name, _path_arg(index, "fileName"), True)
            for name, index in (("writeAsVectorFormat", 1), ("writeAsVectorFormatV2", 1),
                                ("writeAsVectorFormatV3", 1), ("create", 0))]
     out.append((get("QgsVectorFileWriter"), "deleteShapeFile", _deletes("deletes a shapefile"), True))
     out.append((get("QgsRasterFileWriter"), "writeRaster", _raster_write, False))
 
-    for cls in ("QgsVectorLayer", "QgsRasterLayer", "QgsMeshLayer", "QgsVectorTileLayer", "QgsPointCloudLayer",
-                "QgsTiledSceneLayer"):
+    try:
+        import qgis.analysis as analysis
+    except ImportError:
+        analysis = None
+    out.append((getattr(analysis, "QgsRasterCalculator", None), "__init__", _path_arg(2, "outputFile"), False))
+
+    out.append((get("QgsVectorLayer"), "__init__", _builds_remote(1, 3, ("providerLib",), "ogr"), False))
+    out.append((get("QgsRasterLayer"), "__init__", _builds_remote(1, 3, ("providerType",), "gdal"), False))
+    for cls in ("QgsMeshLayer", "QgsVectorTileLayer", "QgsPointCloudLayer", "QgsTiledSceneLayer"):
         out.append((get(cls), "__init__", _builds_remote(1), False))
-    out.append((get("QgsMapLayer"), "setDataSource", _builds_remote(1), False))
-    out.append((get("QgsProviderRegistry"), "createProvider", _builds_remote(2), False))
+    out.append((get("QgsMapLayer"), "setDataSource", _builds_remote(1, 3, ("provider",)), False))
+    out.append((get("QgsProviderRegistry"), "createProvider", _builds_remote(2, 1, ("providerKey",)), False))
     for cls in ("QgsNetworkAccessManager", "QgsBlockingNetworkRequest"):
         for name in ("get", "post", "put", "head", "deleteResource", "sendCustomRequest", "blockingGet",
                      "blockingPost"):
@@ -911,6 +980,7 @@ def judge_outputs(parameters) -> None:
         if isinstance(value, str) and ("/" in value or "\\" in value) and os.path.splitext(value.split("|", 1)[0])[1]:
             if not os.path.exists(value.split("|", 1)[0]):
                 arm.need(*file_class(value))
+                _written(value)
 
 
 def judge_write(path) -> None:

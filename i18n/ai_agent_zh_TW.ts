@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>+1 欄</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>+1 列</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>+{0} 欄</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>+{0} 列</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>正在整理摘要…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>“{query}” 的結果</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>AI Segmentation 結果檢視[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>儲存 AI Segmentation 結果檢視</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n 個範例</translation>
@@ -3112,6 +3144,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>變更前</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>中間結果</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>易讀</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>圖層名稱</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>提問</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>回覆語言</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>回覆風格</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>單位</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>執行正在進行。請停止執行或等待其完成。</translation>
@@ -3804,6 +3872,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>已將 {0} 改為 {1}</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>已從記憶中移除</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>已還原設定</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>授權與條款</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>在瀏覽器中開啟 {host}</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>顯示更多</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>%n 個代理可執行的指令</translation>
@@ -4882,6 +4974,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> 及 {n} 個可直接使用的資料集</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>不需要設定，直接在對話中提問即可。代理程式會自行連線這些{reach}，免費，不需要帳號或金鑰。</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Click to open its page.</source>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>這份資料來自代理程式已知來源以外的網站。</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>這些資料來自代理程式已知來源以外的網站。</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>允許</translation>
@@ -6005,6 +6113,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>這台電腦上的其他帳號已經用過免費版 AI Agent。</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>升級到 Pro 即可繼續使用。是共用電腦，還是發生錯誤？請聯絡 {email}，我們會幫你解鎖。</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Click to open its page.</source>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>刪除所有筆記</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>要刪除全部 {n} 則筆記嗎？AI 不會再把它們加回來。</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>允許我們僅為修正錯誤而讀取對話。對話會保留 30 天。</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>AI 會自行儲存筆記</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>你可以在這裡檢視或移除。</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>你的對話會保留 30 天，讓對話在更新後仍可接續。關閉時，團隊永遠不會讀取這些對話。保留天數設為 0 天時，不會儲存任何紀錄。</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Click to open its page.</source>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>'{layer}' 圖層（{area}）</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>在 {zone} 上執行 {label}。這會用掉你的 {label} 點數。</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> 解析度 {resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> 使用面板所選的解析度</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>每次生成 {price} 點數</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>執行 AI Edit{size}：{cost}。影像範圍：{zone}；依每次生成計費。</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>每次生成約 {price} 點數（2K 價格；無法取得即時價格）</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7981,6 +8161,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>可複選</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>自行輸入答案…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8898,6 +9086,27 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>代碼錯誤。請檢查後再試一次。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>正在執行 {name}...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>推薦</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>已略過</translation>
         </message>
     </context>
 </TS>

@@ -33,10 +33,6 @@
 
 
 
-
-
-
-
 from __future__ import annotations
 
 import os
@@ -135,29 +131,6 @@ def file_family(path: str) -> str:
     return _FAMILY.get(suffix_of(path), "other")
 
 
-def size_words(size_bytes) -> str:
-
-
-
-
-
-    try:
-        value = float(size_bytes)
-    except (TypeError, ValueError):
-        return ""
-    if value < 0:
-        return ""
-    if value < 1024:
-        return f"{int(value)} B"
-    for unit in ("KB", "MB", "GB"):
-        value /= 1024.0
-        if value < 1024 or unit == "GB":
-
-            number = f"{value:.1f}" if value < 10 else f"{value:.0f}"
-            return f"{number} {unit}"
-    return ""
-
-
 def _loadable(path: str, kind: str) -> bool:
     if kind not in _LOADABLE:
         return False
@@ -211,7 +184,7 @@ class FileOutputCard(QWidget):
 
     action_requested = pyqtSignal(str, str)
 
-    def __init__(self, entry: dict, parent=None, working: bool = False):
+    def __init__(self, entry: dict, parent=None):
         super().__init__(parent)
         self.setObjectName("fileRowHost")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
@@ -220,7 +193,6 @@ class FileOutputCard(QWidget):
         self.kind = file_kind(self.path, str(data.get("kind") or ""))
         self.family = file_family(self.path)
         self._name = os.path.basename(self.path.rstrip("/\\")) or self.path
-        self._size = data.get("size_bytes")
 
 
         self.on_disk = self._exists()
@@ -262,18 +234,11 @@ class FileOutputCard(QWidget):
         self._name_label = ElidedLabel(self._name, self._frame, Qt.TextElideMode.ElideMiddle)
         self._name_label.setObjectName("fileName")
         self._name_label.setProperty("gone", not self.on_disk)
-
-        self._name_label.setProperty("working", bool(working))
         self._name_label.setMinimumWidth(NAME_MIN_WIDTH)
         row.addWidget(self._name_label, 1)
-        self._size_label = QLabel(self._size_words(), self._frame)
-        self._size_label.setObjectName("fileSize")
-        self._size_label.setProperty("gone", not self.on_disk)
-        self._size_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        row.addWidget(self._size_label, 0)
 
 
-        for label in (self._badge, self._name_label, self._size_label):
+        for label in (self._badge, self._name_label):
             label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
 
@@ -366,23 +331,12 @@ class FileOutputCard(QWidget):
             return self.tr("Open in the browser")
         return self.tr("Open")
 
-    def _size_words(self) -> str:
-        if not self.on_disk:
-            return self.tr("Not on disk any more")
-        return size_words(self._size if self._size is not None else self._read_size())
-
-    def _read_size(self):
-        try:
-            return os.path.getsize(self.path)
-        except (OSError, ValueError):
-            return None
-
     def _set_tooltip(self) -> None:
 
         tip = self.path if self.on_disk else self.tr(
             "{path}\nThis file is no longer where the run wrote it.").format(path=self.path)
         self.setAccessibleDescription(tip)
-        for widget in (self, self._frame, self._name_label, self._size_label, self._badge):
+        for widget in (self, self._frame, self._name_label, self._badge):
             widget.setToolTip(tip)
 
 
@@ -394,11 +348,9 @@ class FileOutputCard(QWidget):
         if now == self.on_disk:
             return
         self.on_disk = now
-        for widget in (self._frame, self._name_label, self._size_label):
+        for widget in (self._frame, self._name_label):
             widget.setProperty("gone", not now)
             repolish(widget)
-        self._size = self._read_size()
-        self._size_label.setText(self._size_words())
         self._paint_badge()
         self._actions.setEnabled(now)
         if now:
@@ -461,19 +413,7 @@ class _FilesMore(_MoreChip):
         super().keyPressEvent(event)
 
 
-class _WorkingMore(_FilesMore):
-
-
-    def _label(self, count: int) -> str:
-        if not count:
-            return self.tr("Show less")
-        if int(count) == 1:
-            return self.tr("1 working file")
-        return self.tr("{n} working files").format(n=int(count))
-
-
 class FileCardStack(QWidget):
-
 
 
 
@@ -482,7 +422,7 @@ class FileCardStack(QWidget):
 
     action_requested = pyqtSignal(str, str)
 
-    def __init__(self, files, working=None, parent=None):
+    def __init__(self, files, parent=None):
         super().__init__(parent)
         self.setObjectName("fileCardStack")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
@@ -491,8 +431,6 @@ class FileCardStack(QWidget):
             return [x for x in (value or ()) if isinstance(x, dict) and x.get("path")]
 
         listed = entries(files)
-        shown = {x["path"] for x in listed}
-        held = [x for x in entries(working) if x["path"] not in shown]
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(4)
@@ -504,22 +442,11 @@ class FileCardStack(QWidget):
         rows.setSpacing(0)
         column.addWidget(self._group)
         self._cards: list[FileOutputCard] = []
-        self._working: list[FileOutputCard] = []
-        self._working_label = None
         for entry in listed:
-            self._add_card(rows, entry, self._cards, False)
-        if held:
-
-            self._working_label = QLabel(self.tr("Working files"), self._group)
-            self._working_label.setObjectName("fileWorkingLabel")
-            rows.addWidget(self._working_label)
-        for entry in held:
-            self._add_card(rows, entry, self._working, True)
+            self._add_card(rows, entry)
 
         self._more = None
-        self._working_more = None
         self._all = False
-        self._open_working = False
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)
         footer.setSpacing(2)
@@ -528,16 +455,6 @@ class FileCardStack(QWidget):
             self._more.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             self._more.clicked.connect(self._toggle)
             footer.addWidget(self._more)
-        self._dot = None
-        if self._working:
-            if self._more is not None:
-                self._dot = QLabel("·", self)
-                self._dot.setObjectName("fileDot")
-                footer.addWidget(self._dot)
-            self._working_more = _WorkingMore(self)
-            self._working_more.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-            self._working_more.clicked.connect(self._toggle_working)
-            footer.addWidget(self._working_more)
         if footer.count():
             footer.addStretch(1)
             column.addLayout(footer)
@@ -549,64 +466,35 @@ class FileCardStack(QWidget):
         self.setVisible(not self.is_empty())
 
     def is_empty(self) -> bool:
-        return not self._cards and not self._working
+        return not self._cards
 
     def cards(self) -> list:
         return list(self._cards)
-
-    def working_cards(self) -> list:
-        return list(self._working)
 
     def show_all(self) -> None:
 
         self._all = True
         self._fold()
 
-    def show_working(self) -> None:
-
-        self._open_working = True
-        self._fold()
-
-    def _add_card(self, rows, entry: dict, into: list, working: bool) -> None:
-        card = FileOutputCard(entry, self._group, working)
+    def _add_card(self, rows, entry: dict) -> None:
+        card = FileOutputCard(entry, self._group)
         card.action_requested.connect(self.action_requested.emit)
-        into.append(card)
+        self._cards.append(card)
         rows.addWidget(card)
 
     def _toggle(self) -> None:
-        if self._all and self._open_working:
-
-            self._all = self._open_working = False
-        else:
-            self._all = not self._all
-        self._fold()
-
-    def _toggle_working(self) -> None:
-        self._open_working = not self._open_working
+        self._all = not self._all
         self._fold()
 
     def _fold(self) -> None:
         for index, card in enumerate(self._cards):
             card.setVisible(self._all or index < FOLD_AT)
-        for card in self._working:
-            card.setVisible(self._open_working)
-        if self._working_label is not None:
-            self._working_label.setVisible(self._open_working)
-        self._group.setVisible(bool(self._cards) or self._open_working)
-        both = self._all and self._open_working and self._more is not None
         if self._more is not None:
             self._more.set_count(0 if self._all else len(self._cards) - FOLD_AT)
             self._more.updateGeometry()
-        if self._working_more is not None:
-            self._working_more.set_count(0 if self._open_working else len(self._working))
-
-            self._working_more.setVisible(not both)
-            self._working_more.updateGeometry()
-        if self._dot is not None:
-            self._dot.setVisible(not both)
         self.updateGeometry()
 
     def follow_disk(self) -> None:
 
-        for card in self._cards + self._working:
+        for card in self._cards:
             card.follow_disk()

@@ -59,6 +59,12 @@ BUFFER_PROJ = ("+proj=aeqd +lat_0={lat:.6f} +lon_0={lon:.6f} +x_0=0 +y_0=0 "
                "+datum=WGS84 +units=m +no_defs")
 
 
+
+def _area_text(area: float) -> str:
+
+    from .cost_guard import area_text
+    return area_text(area)
+
 def register_zone_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="zone",
@@ -169,11 +175,13 @@ def _zone_set(args: dict) -> dict:
 
     label = str(args.get("label") or "").strip() or None
     layer = zoi.write_zone(geom, crs, label=label, approximate=approximate)
+    from .cost_guard import clear_declined
+    clear_declined()
     if layer is None:
         return tool_error("The zone of interest layer could not be created.", "EXECUTION_FAILED",
                           "zone action set tries again once the project accepts new layers.")
     keep_place(layer)
-    log(f"Area of interest set from {source} ({zoi.area_km2(geom, crs):.2f} km2)")
+    log(f"Area of interest set from {source} ({_area_text(zoi.area_km2(geom, crs))})")
 
     if args.get("zoom", True):
         _zoom_to(layer)
@@ -458,7 +466,7 @@ def _zone_result(held: zoi.Zone, source: str) -> dict:
         out["note"] = ("This zone is a box around what was asked for, not its outline: the source "
                        "had no polygons, or more than the outline budget.")
     out["tell_user"] = (
-        f"The zone of interest is set: {area:.1f} km2, drawn on the map as \"{out['layer_name']}\". "
+        f"The zone of interest is set: {_area_text(area)}, drawn on the map as \"{out['layer_name']}\". "
         "AI Edit and AI Segmentation offer it instead of asking for a fresh draw.")
     out["next_step"] = ("use_zone true makes ai_segment or ai_edit run on this shape. The area "
                         "belongs in the answer before anything spends credits.")

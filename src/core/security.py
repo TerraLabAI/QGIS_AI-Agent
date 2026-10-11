@@ -505,7 +505,8 @@ def set_read_roots(roots) -> None:
 
 def write_roots() -> dict:
 
-    return {"project_dir": project_dir(), "output_root": _output_root, "allowed": list(_allowed_roots)}
+    return {"project_dir": project_dir(), "output_root": _output_root, "allowed": list(_allowed_roots),
+            "shares": _shares_in_use()}
 
 
 def set_write_roots(roots) -> None:
@@ -516,6 +517,7 @@ def set_write_roots(roots) -> None:
 
     if not isinstance(roots, dict):
         return
+    _shares_override[0] = [str(root) for root in roots.get("shares") or [] if root]
     set_output_folder(roots.get("output_root") or None)
     for root in list(roots.get("allowed") or []) + [roots.get("project_dir") or ""]:
         if not root:
@@ -895,7 +897,35 @@ def refused_share(path: str) -> bool:
 
 
 
-    return isinstance(path, str) and _is_remote_share(path) and not _in_own_share_folder(path)
+    return (isinstance(path, str) and _is_remote_share(path) and not _in_own_share_folder(path)
+            and not _in_used_share(path))
+
+
+
+
+_shares_override: list = [None]
+
+
+def _shares_in_use() -> list[str]:
+
+    if _shares_override[0] is not None:
+        return list(_shares_override[0])
+    if "qgis.core" not in sys.modules:
+        return []
+    return [root for root in [project_dir()] + _layer_folders() if root and _is_remote_share(root)]
+
+
+def _in_used_share(path: str) -> bool:
+
+
+
+
+
+
+
+
+
+    return any(_under(path, root) for root in _shares_in_use())
 
 
 
@@ -999,6 +1029,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
         path = inner.split("|", 1)[0] or inner
     if refused_share(path):
+
 
 
 

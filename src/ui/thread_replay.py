@@ -172,6 +172,8 @@ def _agent_steps(panel, m: dict, run_id: str) -> list:
 
 
     steers = [s for s in m.get("steers") or [] if isinstance(s, dict) and str(s.get("text") or "").strip()]
+
+    steps.append(lambda: setattr(panel, "_replay_round", None))
     for index, call in enumerate(calls):
         steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) == index)
         if isinstance(call, dict):
@@ -263,11 +265,24 @@ def _replay_tool(panel, run_id: str, call: dict) -> None:
     tool_id = str(call.get("tool_call_id") or call.get("id") or "")
     if getattr(spec(str(call.get("name") or "")), "waits_on_user", False):
         args = call.get("args") if isinstance(call.get("args"), dict) else {}
-        card = QuestionCard(tool_id, str(args.get("question") or call.get("sentence") or ""),
-                            args.get("options") or [], True)
-        card.collapse(str(call.get("summary") or "") if call.get("ok") else "")
+        question = str(args.get("question") or call.get("sentence") or "")
+        answer = str(call.get("summary") or "") if call.get("ok") else ""
+        header = str(args.get("header") or "")
+
+
+        last = getattr(panel, "_replay_round", None)
+        if last is not None and last[0] == run_id:
+            try:
+                last[1].add_answered(question, answer, header)
+                return
+            except RuntimeError:
+                pass
+        card = QuestionCard(tool_id, question, args.get("options") or [], True, header=header)
+        card.collapse(answer)
         panel._add(card, animate=False)
+        panel._replay_round = (run_id, card)
         return
+    panel._replay_round = None
     card = ToolCard(tool_id, str(call.get("name") or ""), call.get("args") or {},
                     str(call.get("danger") or "read"), str(call.get("sentence") or ""))
     if call.get("ok") is not None:

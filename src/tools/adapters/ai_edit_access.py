@@ -371,6 +371,20 @@ class AiEditAccess:
 
 
         label = (label or DEFAULT_RESOLUTION).strip()
+
+
+
+        api = self._mcp_api(inst)
+        setter = getattr(api, "set_resolution", None) if api is not None else None
+        if callable(setter):
+            try:
+                answer = setter(label)
+            except Exception as err:  # noqa: BLE001
+                return {"_error": f"Failed to set resolution: {err}"}
+            if not isinstance(answer, dict) or answer.get("_error") or answer.get("error"):
+                why = (answer.get("_error") or answer.get("error")) if isinstance(answer, dict) else answer
+                return {"_error": str(why or f"Resolution '{label}' was not applied.")}
+            return {"resolution": answer.get("resolution") or label, "applied": bool(answer.get("applied", True))}
         if label not in RESOLUTION_LABELS:
             return {"_error": f"Unknown resolution '{label}'. Allowed: {', '.join(RESOLUTION_LABELS)}."}
 
@@ -563,6 +577,11 @@ class AiEditAccess:
 
 
         outline = self._zone_of_interest() if params.get("use_zone") else None
+        if not reuse_zone and self._holds_zone(extent, outline):
+
+
+
+            reuse_zone = True
 
 
 
@@ -817,7 +836,30 @@ class AiEditAccess:
             return
         self._overlay_idle_ticks += 1
         if self._overlay_idle_ticks >= OVERLAY_IDLE_TICKS:
+            self._hand_over_review(inst)
+
+    def _hand_over_review(self, inst) -> None:
+
+
+
+
+
+
+
+
+
+        self._overlay_armed = False
+        self._stop_overlay_watch()
+        if _attr(inst, "_last_generation_error"):
             self.clear_zone_overlay(inst)
+            return
+        activate = _attr(inst, "_activate_selection_tool")
+        if callable(activate):
+            try:
+                activate()
+            except Exception as err:
+                log_warning(f"AI Edit review tool activation failed: {err}")
+        process_events()
 
     def _stop_overlay_watch(self) -> None:
         timer, self._overlay_timer = self._overlay_timer, None
@@ -901,6 +943,29 @@ class AiEditAccess:
             crs = QgsProject.instance().crs()
         return geometry, crs
 
+    def _holds_zone(self, extent, outline) -> bool:
+
+
+        try:
+            held = self.current_zone()
+            if held is None:
+                return False
+            from ..cost_guard import _to_canvas_crs
+            geometry = _to_canvas_crs(*held)
+            if geometry is None:
+                return False
+            box = geometry.boundingBox()
+            tolerance = max(box.width(), box.height(), 1e-9) * 1e-6
+            if any(abs(a - b) > tolerance for a, b in (
+                    (box.xMinimum(), extent.xMinimum()), (box.yMinimum(), extent.yMinimum()),
+                    (box.xMaximum(), extent.xMaximum()), (box.yMaximum(), extent.yMaximum()))):
+                return False
+            if outline is None:
+                return True
+            return abs(geometry.area() - outline.area()) <= max(geometry.area(), 1e-9) * 1e-6
+        except Exception:  # noqa: BLE001
+            return False
+
     @staticmethod
     def _zone_of_interest():
 
@@ -952,7 +1017,7 @@ class AiEditAccess:
 
 
         if not busy and self._overlay_armed:
-            self.clear_zone_overlay(inst)
+            self._hand_over_review(inst)
 
 
 
@@ -988,6 +1053,10 @@ class AiEditAccess:
             "current_resolution": current_resolution,
             "last_completed_request_id": last_request_id,
         }
+        ran = getattr(inst, "_last_suggested_res", None)
+        if ran:
+
+            out["last_run_resolution"] = str(ran)
         if state == "failed":
             out["error"] = err
             if err_code:
@@ -1119,9 +1188,16 @@ class AiEditAccess:
 
     def list_versions(self) -> dict:
 
+
+
+
+
         key, inst = _find_plugin()
         if inst is None:
             return {"_error": "AI Edit plugin is not installed."}
+        own = getattr(self._mcp_api(inst), "list_versions", None)
+        if callable(own):
+            return own()
         strip = self._version_strip(inst)
         if strip is None:
             return tool_error("AI Edit version strip not available.", hint="ai_edit_no_versions")
@@ -1151,6 +1227,10 @@ class AiEditAccess:
         key, inst = _find_plugin()
         if inst is None:
             return {"_error": "AI Edit plugin is not installed."}
+
+        own = getattr(self._mcp_api(inst), "select_version", None)
+        if callable(own):
+            return own(index)
         dock = self.dock(inst)
         strip = self._version_strip(inst)
         if dock is None or strip is None:
@@ -1290,6 +1370,132 @@ class AiEditAccess:
         }
 
 
+
+    def _load_preset(self, inst, api, template_id: str) -> dict:
+
+
+
+
+
+        preset = getattr(api, "apply_preset", None)
+        if callable(preset):
+            return preset(template_id)
+        reader = getattr(api, "get_preset", None)
+        found = reader(template_id) if callable(reader) else None
+        if not isinstance(found, dict) or not found.get("found"):
+            return {"_error": (found or {}).get("note") or f"No AI Edit preset with id {template_id}."}
+        dock = self.dock(inst)
+        primer = getattr(dock, "prime_prompt_from_preset", None) if dock is not None else None
+        if not callable(primer):
+            return {"_error": "This AI Edit version cannot load a preset into its prompt box."}
+        try:
+            primer(found["preset"])
+        except Exception as err:  # noqa: BLE001
+            return {"_error": f"Loading the preset failed: {err}"}
+        return {"applied": True, "preset_id": template_id}
+
+    def apply_panel_settings(self, params: dict) -> dict:
+
+
+
+
+
+
+
+
+
+        _, inst = _find_plugin()
+        if inst is None:
+            return {"_error": "AI Edit plugin is not installed."}
+        api = self._mcp_api(inst)
+        applied: dict = {}
+        failed: dict = {}
+
+        def keep(name, result) -> bool:
+
+            if isinstance(result, dict):
+                if result.get("_error"):
+                    failed[name] = result["_error"]
+                    return False
+                if result.get("already_attached"):
+
+                    applied[name] = result
+                    return True
+                if any(result.get(key) is False for key in ("ok", "added", "applied")):
+                    failed[name] = str(result.get("note") or result.get("reason") or "AI Edit did not apply it.")
+                    return False
+            applied[name] = result
+            return True
+
+        if params.get("index") is not None:
+            keep("version", self.select_version(params["index"]))
+        if params.get("template_id"):
+            keep("template", self._load_preset(inst, api, str(params["template_id"])))
+            if params.get("prompt") and callable(getattr(api, "prepare_interactive", None)):
+                api.prepare_interactive(prompt=params["prompt"], interaction="review")
+        if params.get("resolution"):
+            listed = self.resolutions()
+            api_only = listed.get("api_only_resolutions") if isinstance(listed, dict) else None
+            if isinstance(api_only, list) and params["resolution"] in api_only:
+
+
+                failed["resolution"] = (f"{params['resolution']} is not in the panel's picker; a generate "
+                                        "that names it runs at it after its card is allowed.")
+            else:
+                keep("resolution", self.apply_resolution(inst, params["resolution"]))
+        names = params.get("reference_layers")
+        if names:
+            attach = getattr(api, "attach_reference", None)
+            if not callable(attach):
+                failed["reference_layers"] = "This AI Edit version cannot attach references from the agent."
+            else:
+                from qgis.core import QgsProject
+
+                lister = getattr(api, "list_references", None)
+                listed = lister() if callable(lister) else {}
+                held = {str(row.get("name")): row.get("id") for row in (listed.get("references") or [])
+                        if isinstance(row, dict) and row.get("kind") == "layer"} if isinstance(listed, dict) else {}
+                for name in [names] if isinstance(names, str) else names:
+                    layer = QgsProject.instance().mapLayer(str(name))
+                    shown = layer.name() if layer is not None else str(name)
+                    if shown in held:
+
+                        applied[f"reference:{name}"] = {"already_attached": True, "reference_id": held[shown]}
+                        continue
+                    keep(f"reference:{name}", attach(layer_name=name))
+        if params.get("markup_wkt"):
+            draw = getattr(api, "markup", None)
+
+            if callable(draw):
+                if keep("markup", draw("draw", geometry_wkt=params["markup_wkt"])):
+                    draw("done")
+            elif keep("markup", self.markup("draw", params["markup_wkt"])):
+                self.markup("done")
+        process_events()
+
+        if "version" in applied:
+            selected = self.list_versions().get("selected_index")
+            if selected != int(params["index"]):
+                applied.pop("version")
+                failed["version"] = f"The panel shows version {selected}, not {params['index']}."
+        if "resolution" in applied:
+            shown = self.current_resolution(inst)
+
+            held = getattr(self.dock(inst), "_api_resolution", None)
+            if shown and params["resolution"] not in (shown, held):
+                applied.pop("resolution")
+                failed["resolution"] = f"The panel shows {shown}, not {params['resolution']}."
+        if "template" in applied:
+            dock = self.dock(inst)
+            reader = getattr(dock, "get_active_template", None) if dock is not None else None
+            active = reader() if callable(reader) else None
+            if not active or str(active[0]) != str(params["template_id"]):
+                applied.pop("template")
+                failed["template"] = "The panel holds no such active preset after the prompt and zone were set."
+        out = {"applied": applied}
+        if failed:
+            out["failed"] = failed
+        return out
 
     def markup(self, action: str, geometry_wkt: str | None = None,
                color: str | None = None) -> dict:

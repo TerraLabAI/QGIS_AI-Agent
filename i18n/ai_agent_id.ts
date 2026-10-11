@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>+1 kolom lagi</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>+1 baris lagi</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>+{0} kolom lagi</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>+{0} baris lagi</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>Menyiapkan ringkasan…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>Hasil untuk “{query}”</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>Tinjauan AI Segmentation[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>Simpan tinjauan AI Segmentation</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n contoh</translation>
@@ -3112,6 +3144,42 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>Sebelum perubahan</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>Antara</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>Mudah dibaca</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>nama layer</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>pertanyaan</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>bahasa balasan</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>gaya jawaban</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>satuan</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>Proses sedang berjalan. Hentikan atau tunggu hingga selesai.</translation>
@@ -3804,6 +3872,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>Diubah {0} menjadi {1}</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>Dihapus dari memori</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>Pengaturan dikembalikan</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>Lisensi dan ketentuan</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>Buka {host} di browser Anda</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>Tampilkan lebih banyak</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>%n perintah yang bisa dijalankan agen</translation>
@@ -4882,6 +4974,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> dan {n} dataset siap pakai</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>Tidak perlu diatur: cukup tanya di chat. Agen menjangkau {reach} ini sendiri, gratis, tanpa akun atau kunci.</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Klik untuk membuka halamannya.</translation>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>Data ini berasal dari situs di luar sumber yang diketahui agen.</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>Data ini berasal dari beberapa situs di luar sumber yang diketahui agen.</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>Izinkan</translation>
@@ -6005,6 +6113,14 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>AI Agent gratis sudah dipakai oleh akun lain di komputer ini.</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>Tingkatkan ke Pro untuk melanjutkan. Komputer dipakai bersama, atau ini kesalahan? Hubungi {email} dan kami akan membukanya.</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>Hapus semua catatan</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>Hapus semua {n} catatan? AI tidak akan menambahkannya lagi.</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>Memungkinkan kami membaca chat hanya untuk memperbaiki bug. Chat disimpan 30 hari.</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>AI menyimpan catatan sendiri</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>Anda dapat meninjau atau menghapusnya di sini.</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>Chat Anda disimpan 30 hari agar percakapan tetap ada setelah pembaruan. Jika dimatikan, tim tidak pernah membacanya. Riwayat 0 hari tidak menyimpan apa pun.</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>layer '{layer}' ({area})</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>Jalankan {label} pada {zone}. Ini memakai kredit {label} Anda.</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> pada {resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> pada resolusi yang dipilih di panel</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>{price} kredit per generasi</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>Jalankan AI Edit{size}: {cost}. Area gambar: {zone}; penagihan per generasi.</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>sekitar {price} kredit per generasi (harga 2K; harga langsung tidak tersedia)</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7981,6 +8161,14 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>Pilih semua yang sesuai</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>Tulis jawaban sendiri…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8898,6 +9086,27 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>Kode salah. Periksa lalu coba lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>Menjalankan {name}...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>Disarankan</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>Dilewati</translation>
         </message>
     </context>
 </TS>

@@ -32,6 +32,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import hashlib
@@ -65,7 +69,6 @@ from .style import (
     INK,
     INK_2,
     INK_3,
-    INSET,
     LINE,
     LINE_SOFT,
     LINE_STRONG,
@@ -86,17 +89,18 @@ STACK_OVERLAP = 6
 _MAX_STACKED = 3
 
 
-ROW_PX = 48
-SHEET_MARK_PX = 28
+
+ROW_PX = 40
+SHEET_MARK_PX = 18
 _POPOVER_WIDTH = 300
 _POPOVER_MAX_WIDTH = 480
 _POPOVER_PAD = 6
-_MAX_ROWS_SHOWN = 8
+_MAX_ROWS_SHOWN = 10
 _LINK_PX = 12
 _CHEVRON_PX = 16
 
-_ROW_PAD = 10
-_ROW_GAP = 12
+_ROW_PAD = 8
+_ROW_GAP = 10
 
 _MAX_DATES = 31
 
@@ -158,19 +162,19 @@ def readable_host(url: str) -> str:
 
 
 
+
     text = str(url or "").strip()
     own = open_data_label(text)
     if own:
         return own
     host = source_host(text).lower()
-    for suffix, store in _STORES:
+    for suffix, _store in _STORES:
         if host.endswith(suffix):
             bucket = host[:-len(suffix)].split(".")[0]
             if bucket == "s3" or bucket.startswith("s3-") or not bucket:
                 path = QUrl(text).path() if "://" in text else ""
-                bucket = path.strip("/").split("/")[0]
-            words = " ".join(bucket.replace("_", "-").split("-")).strip()
-            return f"{words[:1].upper()}{words[1:]} ({store})" if words else store
+                first = path.strip("/").split("/")[0]
+                return f"{host}/{first}" if first else host
     return source_host(text)
 
 
@@ -301,6 +305,7 @@ def _logo_path(item: dict) -> str:
 
 def item_mark_pixmap(item: dict, size: int, ratio: float = 1.0, round_: bool = True) -> QPixmap:
 
+
     path = _logo_path(item)
     if path:
         from .logo_tile import logo_pixmap
@@ -308,7 +313,75 @@ def item_mark_pixmap(item: dict, size: int, ratio: float = 1.0, round_: bool = T
         chip = logo_pixmap(path, size, ratio)
         if chip is not None:
             return _clipped(chip, size, ratio, round_)
+    if item.get("family"):
+        return family_pixmap(item["family"], size, ratio, round_)
     return source_mark_pixmap(item["key"], size, ratio, round_=round_, glyph=item["glyph"], tinted=not round_)
+
+
+def family_pixmap(row: dict, size: int, ratio: float = 1.0, round_: bool = True) -> QPixmap:
+
+
+    from .connectors_page import accent_of
+    from .library.pictures import source_pixmap
+
+    chip = source_pixmap(row, accent_of(row.get("category")), size, ratio)
+    if not round_ and not str(row.get("logo_url") or ""):
+        return chip
+    return _clipped(chip, size, ratio, round_)
+
+
+def _registrable(host: str) -> str:
+
+    labels = host.split(".")
+    if len(labels) >= 3 and labels[-2] in ("co", "com", "gov", "gouv", "ac", "org", "net", "govt"):
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:])
+
+
+def connector_row(cid: str = "", host: str = "", name: str = "") -> dict:
+
+
+
+
+
+
+
+    from .shared import get_connectors
+
+    cid = str(cid or "").strip().lower()
+    host = source_host(str(host or "")).lower().strip(".")
+    name = " ".join(str(name or "").split()).lower()
+    if not (cid or host or name):
+        return {}
+    rows = [r for r in get_connectors() if isinstance(r, dict) and r.get("id")]
+    if cid:
+        hit = next((r for r in rows if str(r.get("id") or "").lower() == cid), None)
+        if hit:
+            return hit
+    if host and "." in host:
+        tail = _registrable(host)
+        for row in rows:
+            home = source_host(str(row.get("url") or "")).lower()
+            if not home:
+                continue
+            if host == home or host.endswith("." + home) or (tail == _registrable(home) and len(tail) > 6):
+                return row
+        for row in rows:
+
+            if any(host == h or host.endswith("." + h) for h in row.get("hosts") or [] if isinstance(h, str) and h):
+                return row
+    if name:
+        hit = next((r for r in rows if name in (str(r.get("name") or "").lower(), str(r.get("id") or "").lower())),
+                   None)
+        if hit:
+            return hit
+    return {}
+
+
+def connector_logo(cid: str = "", host: str = "", name: str = "") -> str:
+
+    url = str(connector_row(cid, host, name).get("logo_url") or "")
+    return url if url.startswith("https://") else ""
 
 
 def _clipped(chip: QPixmap, size: int, ratio: float, round_: bool) -> QPixmap:
@@ -384,6 +457,11 @@ def _clean(items) -> list:
             entry[key] = value
         logo = str(item.get("logo_url") or "").strip()
         entry["logo_url"] = logo if logo.startswith("https://") else ""
+        if not entry["logo_url"] and not open_data_label(url):
+
+            family = connector_row(cid, source_host(url))
+            entry["family"] = family
+            entry["logo_url"] = connector_logo(str(family.get("id") or "")) if family else ""
         entry["via"] = str(item.get("via") or "").strip()
         for key in ("kind", "resolution", "attribution"):
             entry[key] = str(item.get(key) or "").strip()
@@ -660,11 +738,15 @@ def _detail_fields(widget, item: dict) -> list:
             ("attribution", QCoreApplication.translate("SourcesPopover", "Credit"))):
         if item.get(key):
             fields.append((label, item[key]))
-    vias = [_via_text(widget, v.strip()) for v in str(item.get("via") or "").split(", ") if v.strip()]
+
+    shown = {str(item.get("host") or "").lower(), str(item.get("name") or "").lower()}
+    vias = [_via_text(widget, v.strip()) for v in str(item.get("via") or "").split(", ")
+            if v.strip() and v.strip().lower() not in shown]
     if vias:
         fields.append((QCoreApplication.translate("SourcesPopover", "Access"), ", ".join(vias)))
+
     files = item.get("files", 0)
-    if files:
+    if files > 1:
         fields.append((QCoreApplication.translate("SourcesPopover", "Files"), str(files)))
     if open_data_label(item.get("url")):
 
@@ -737,18 +819,18 @@ class _SourceRow(QWidget):
 
         self.setMinimumHeight(ROW_PX)
         row = QHBoxLayout(self)
-        row.setContentsMargins(_ROW_PAD, 8, _ROW_PAD, 8)
+        row.setContentsMargins(_ROW_PAD, 4, _ROW_PAD, 4)
         row.setSpacing(_ROW_GAP)
         self._item = item
         self._mark = QLabel(self)
         self._mark.setFixedSize(SHEET_MARK_PX, SHEET_MARK_PX)
         self._paint_mark()
         _logo_watch(self, [item])
-        row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignTop)
+        row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
         words = QWidget(self)
         col = QVBoxLayout(words)
         col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(2)
+        col.setSpacing(0)
 
 
 
@@ -757,9 +839,8 @@ class _SourceRow(QWidget):
         self._maker = item["name"] if product and not product.lower().startswith(item["name"].lower()) else ""
 
 
-        name = ChatLabel(top, words, wrap=True)
+        name = ElidedLabel(top, words, mode=Qt.TextElideMode.ElideRight)
         name.setStyleSheet(_NAME_QSS)
-        name.setMaximumHeight(2 * name.fontMetrics().lineSpacing() + 2)
         name.setToolTip(top)
         col.addWidget(name)
         self._fact_text = self._fact(item)
@@ -776,7 +857,7 @@ class _SourceRow(QWidget):
         self._chevron.setFixedSize(_CHEVRON_PX, _CHEVRON_PX)
         self._chevron.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._chevron.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignTop)
+        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
         if self.expandable:
             self._paint_chevron()
         else:
@@ -896,7 +977,6 @@ class _SourceItem(QWidget):
 
 
 
-
     def __init__(self, item: dict, parent=None):
         super().__init__(parent)
         col = QVBoxLayout(self)
@@ -911,15 +991,14 @@ class _SourceItem(QWidget):
             col.addWidget(self.details)
 
     def paintEvent(self, event):  # noqa: N802
-        open_ = self.row.is_open()
         lit = self.row.lit()
-        if not (open_ or lit):
+        if not lit:
             return
         painter = QPainter(self)
         try:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(hover_pill() if lit else qcolor(INSET))
+            painter.setBrush(hover_pill())
             painter.drawRoundedRect(QRectF(self.rect()), RADIUS_CONTROL, RADIUS_CONTROL)
         finally:
             painter.end()
@@ -954,7 +1033,7 @@ class SourcesPopover(QFrame):
         self._list = QWidget(self)
         rows_col = QVBoxLayout(self._list)
         rows_col.setContentsMargins(0, 0, 0, 0)
-        rows_col.setSpacing(2)
+        rows_col.setSpacing(0)
         self._rows: list = []
         self._anchor = None
         for item in items:

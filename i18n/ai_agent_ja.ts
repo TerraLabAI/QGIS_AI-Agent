@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>ほか1列</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>ほか1行</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>ほか{0}列</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>ほか{0}行</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>要約を準備しています…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>“{query}” の結果</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>AI Segmentation のレビュー[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>AI Segmentation のレビューを保存</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n件の作例</translation>
@@ -3112,6 +3144,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>変更前</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>中間</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>読みやすい</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>レイヤ名</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>質問</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>返信の言語</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>回答のスタイル</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>単位</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>実行中です。停止するか、完了するまで待ってください。</translation>
@@ -3804,6 +3872,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>{0} を {1} に変更しました</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>メモから削除しました</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>設定を元に戻しました</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>ライセンスと利用規約</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>ブラウザで {host} を開く</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>もっと見る</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>エージェントが実行できるコマンド %n 件</translation>
@@ -4882,6 +4974,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> ほか{n}件の準備済みデータセット</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>設定は不要です。チャットで聞くだけで使えます。エージェントはこれらの{reach}に自分で接続します。無料で、アカウントもキーも要りません。</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Click to open its page.</source>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>このデータは、エージェントが把握している情報源の外にあるサイトから来ています。</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>このデータは、エージェントが把握している情報源の外にある複数のサイトから来ています。</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>許可</translation>
@@ -6005,6 +6113,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>この端末では、無料の AI Agent はすでに他のアカウントで使われています。</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>続けるには Pro にアップグレードしてください。共有のコンピュータか、間違いでしょうか？ {email} に連絡いただければ解除します。</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Click to open its page.</source>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>すべてのメモを削除</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>{n} 件のメモをすべて削除しますか？ AI が再び追加することはありません。</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>バグ修正の目的に限り、チャットを読むことを許可します。チャットは30日間保存されます。</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>AI がメモを自動で保存します</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>ここで確認や削除ができます。</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>アップデート後も会話を残せるよう、チャットは30日間保存されます。オフにすると、チームがチャットを読むことはありません。保存期間を0日にすると、履歴は何も保存されません。</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Click to open its page.</source>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>'{layer}' レイヤ ({area})</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>{zone} で {label} を実行します。{label} のクレジットを消費します。</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> 解像度 {resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> パネルで選んだ解像度</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>生成 1 回あたり {price} クレジット</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>AI Edit{size} を実行: {cost}。画像の範囲: {zone}。課金は生成 1 回ごとです。</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>生成 1 回あたり約 {price} クレジット（2K の価格。現在の価格を取得できませんでした）</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7981,6 +8161,14 @@ Click to open its page.</source>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>当てはまるものをすべて選択</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>自分で回答を書く…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8898,6 +9086,27 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>コードが正しくありません。確認して、もう一度お試しください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>{name} を実行中...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>おすすめ</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>スキップ</translation>
         </message>
     </context>
 </TS>

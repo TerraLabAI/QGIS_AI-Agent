@@ -235,6 +235,14 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
         "improve": bool(improve),
+
+
+
+
+
+
+
+        "renders": ["openui", "memory_silent", "ask_round"],
     }
     if tool_manifest is not None:
         frame["tool_manifest"] = tool_manifest
@@ -322,10 +330,10 @@ def normalize_attachment(item: Any) -> dict | None:
 
 def user_message(run_id: str, thread_id: str, text: str, attachments: list | None,
                  context: dict, mode: str, approval: str, effort: str = Effort.LOW, example: str = "",
-                 replaces_run_id: str = "") -> dict:
+                 replaces_run_id: str = "", earlier_turns: list | None = None) -> dict:
     clean = [a for a in (normalize_attachment(x) for x in (attachments or [])) if a]
     effort = effort if effort in Effort.ALL else Effort.LOW
-    return {
+    frame = {
         "type": FrameType.USER_MESSAGE,
         "run_id": run_id,
         "thread_id": thread_id,
@@ -351,6 +359,11 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
 
         "replaces_run_id": str(replaces_run_id or ""),
     }
+    if earlier_turns:
+
+
+        frame["earlier_turns"] = earlier_turns
+    return frame
 
 
 def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "") -> dict:

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import contextlib
+import html
 
 from qgis.PyQt.QtCore import QEvent, Qt
 from qgis.PyQt.QtGui import QKeyEvent, QKeySequence
@@ -26,6 +27,7 @@ from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
 from .checkpoint_sheet import affected_layers, history_rows, long_reason, not_restored_line, row_target, usable
 from .shared import CHECKPOINTS_KEYS, STEP_BACK_KEYS, STEP_FORWARD_KEYS
+from .style import MUTED
 from .thread_replay import replay_steps
 from .trace import RunFootnote
 
@@ -447,8 +449,7 @@ class _ChatPanelThreads:
         if checkpoint_id and self._current_run is None:
             self.restore_requested.emit(checkpoint_id, False)
 
-    def note_memory(self, text: str) -> None:
-
+    def note_memory(self, text: str, key: str = "") -> None:
 
 
 
@@ -460,11 +461,35 @@ class _ChatPanelThreads:
         text = str(text or "").strip()
         if not text:
             return
+
+        self._memory_line(self.tr("Added to memory: {0}").format(text.rstrip(" .!?;,")), key,
+                          self.tr("Removed from memory"))
+
+    def note_setting(self, setting: str, value: str, key: str = "") -> None:
+
+        if not str(setting or "").strip():
+            return
+        self._memory_line(self.tr("Changed {0} to {1}").format(setting, value), key,
+                          self.tr("Setting put back"))
+
+    def _memory_line(self, sentence: str, key: str, undone: str) -> None:
         note = RunFootnote()
         note.setWordWrap(True)
+        if key:
+            note.setTextFormat(Qt.TextFormat.RichText)
+            link = f"<a href=\"undo\" style=\"color: {MUTED};\">{html.escape(self.tr('Undo'))}</a>"
+            note.setText(f"{html.escape(sentence)} · {link}")
+            note.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse
+                                         | Qt.TextInteractionFlag.TextSelectableByMouse)
 
+            def _undo(_href: str, line=note, wanted=str(key)) -> None:
+                line.setTextFormat(Qt.TextFormat.PlainText)
+                line.setText(undone)
+                self.memory_undo_requested.emit(wanted)
 
-        note.setText(self.tr("Added to memory: {0}").format(text.rstrip(" .!?;,")))
+            note.linkActivated.connect(_undo)
+        else:
+            note.setText(sentence)
         note.show()
 
 
@@ -472,48 +497,6 @@ class _ChatPanelThreads:
         self._add(note)
         if follow:
             self.message_list.scroll_to_bottom()
-
-    def propose_memory(self, key: str, text: str, replaces_text: str = "") -> None:
-
-
-
-        text = str(text or "").strip()
-        if not text:
-            return
-        self.drop_memory_proposal()
-        from .cards_memory import MemoryCard
-        card = MemoryCard(str(key or ""), text.rstrip(" ;,"), str(replaces_text or ""), self.message_list)
-        card.decided.connect(self._on_memory_decided)
-        card.settings_requested.connect(self.open_settings_requested.emit)
-        self._memory_card = card
-        follow = self.message_list.at_bottom()
-        self._add(card)
-        if follow:
-            self.message_list.scroll_to_bottom()
-
-    def _on_memory_decided(self, key: str, add: bool) -> None:
-        if not add:
-            self.drop_memory_proposal()
-        self.memory_decided.emit(key, add)
-
-    def confirm_memory(self, key: str) -> None:
-
-        card = getattr(self, "_memory_card", None)
-        if card is None or card.key != str(key or ""):
-            return
-        self._memory_card = None
-        with contextlib.suppress(RuntimeError):
-            card.confirm()
-
-    def drop_memory_proposal(self) -> None:
-
-        card = getattr(self, "_memory_card", None)
-        self._memory_card = None
-        if card is None:
-            return
-        with contextlib.suppress(RuntimeError):
-            if card.decision is not True:
-                self.message_list.remove_widget(card)
 
 
 

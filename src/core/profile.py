@@ -471,27 +471,11 @@ def _remember_removed(settings, before: list, after: list) -> None:
         return
 
 
-def record_declined(settings, text: str) -> None:
+def record_forgotten(settings, text: str) -> None:
 
 
-    clean = clean_note_text(text)[:FORGOTTEN_MAX_CHARS]
-    if not clean:
-        return
-    from .threads import now_iso
 
-    known = [_declined_item(t) for t in (getattr(settings, "memory_declined", []) or [])]
-    key = _note_key(clean)
-    kept = [t for t in known if t and _note_key(t["text"]) != key]
-    settings.memory_declined = (kept + [{"text": clean, "at": now_iso()}])[-FORGOTTEN_MAX:]
-
-
-def _declined_item(raw) -> dict | None:
-
-    if isinstance(raw, str):
-        return {"text": raw, "at": ""} if raw.strip() else None
-    if isinstance(raw, dict) and str(raw.get("text") or "").strip():
-        return {"text": str(raw["text"]), "at": str(raw.get("at") or "")}
-    return None
+    _remember_removed(settings, [{"id": "_", "text": text}], [])
 
 
 def _unforget(settings, text: str) -> None:
@@ -620,9 +604,4 @@ def profile_context(settings, project_path: str = "") -> dict:
         if forgotten:
 
             context["forgotten"] = forgotten[-FORGOTTEN_MAX:]
-        declined = [d for d in map(_declined_item, getattr(settings, "memory_declined", None) or []) if d]
-        if declined:
-
-
-            context["declined"] = declined[-FORGOTTEN_MAX:]
     return context

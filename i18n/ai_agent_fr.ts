@@ -3,6 +3,38 @@
     <context>
         <name>AIAgent</name>
         <message>
+            <source>+1 more column</source>
+            <translation>+1 colonne de plus</translation>
+        </message>
+        <message>
+            <source>+1 more row</source>
+            <translation>+1 ligne de plus</translation>
+        </message>
+        <message>
+            <source>+{0} more columns</source>
+            <translation>+{0} colonnes de plus</translation>
+        </message>
+        <message>
+            <source>+{0} more rows</source>
+            <translation>+{0} lignes de plus</translation>
+        </message>
+        <message>
+            <source>Preparing a summary…</source>
+            <translation>Préparation d’un résumé…</translation>
+        </message>
+        <message>
+            <source>Results for “{query}”</source>
+            <translation>Résultats pour « {query} »</translation>
+        </message>
+    <message>
+        <source>AI Segmentation review[ ({action})]</source>
+        <translation>Revue AI Segmentation[ ({action})]</translation>
+    </message>
+    <message>
+        <source>Save the AI Segmentation review</source>
+        <translation>Enregistrer la revue AI Segmentation</translation>
+    </message>
+        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
             <translation>%n exemples</translation>
@@ -3112,6 +3144,42 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
     <context>
         <name>AgentController</name>
         <message>
+            <source>Before changes</source>
+            <translation>Avant les modifications</translation>
+        </message>
+        <message>
+            <source>Intermediate</source>
+            <translation>Intermédiaire</translation>
+        </message>
+        <message>
+            <source>Readable</source>
+            <translation>Lisible</translation>
+        </message>
+        <message>
+            <source>layer names</source>
+            <translation>noms des couches</translation>
+        </message>
+        <message>
+            <source>questions</source>
+            <translation>questions</translation>
+        </message>
+        <message>
+            <source>reply language</source>
+            <translation>langue des réponses</translation>
+        </message>
+        <message>
+            <source>response style</source>
+            <translation>style des réponses</translation>
+        </message>
+        <message>
+            <source>snake_case</source>
+            <translation>snake_case</translation>
+        </message>
+        <message>
+            <source>units</source>
+            <translation>unités</translation>
+        </message>
+        <message>
             <location filename="src/core/controller.py" />
             <source>A run is in progress. Stop it or wait for it to finish.</source>
             <translation>Une exécution est en cours. Arrêtez-la ou attendez sa fin.</translation>
@@ -3804,6 +3872,18 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Changed {0} to {1}</source>
+            <translation>{0} changé en {1}</translation>
+        </message>
+        <message>
+            <source>Removed from memory</source>
+            <translation>Supprimé de la mémoire</translation>
+        </message>
+        <message>
+            <source>Setting put back</source>
+            <translation>Réglage rétabli</translation>
+        </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
             <source>Give the AI agent a task in QGIS...</source>
@@ -4585,6 +4665,18 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
     <context>
         <name>ConnectorPage</name>
         <message>
+            <source>Licence and terms</source>
+            <translation>Licence et conditions</translation>
+        </message>
+        <message>
+            <source>Open {host} in your browser</source>
+            <translation>Ouvrir {host} dans votre navigateur</translation>
+        </message>
+        <message>
+            <source>Show more</source>
+            <translation>Afficher plus</translation>
+        </message>
+        <message>
             <location filename="src/ui/connector_page.py" />
             <source>%n commands the agent can run</source>
             <translation>%n commandes que l'agent peut exécuter</translation>
@@ -4882,6 +4974,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
     </context>
     <context>
         <name>ConnectorsPage</name>
+        <message>
+            <source> and {n} ready datasets</source>
+            <translation> et {n} jeux de données prêts</translation>
+        </message>
+        <message>
+            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
+            <translation>Rien à configurer : posez simplement votre question dans le chat. L’agent accède à ces {reach} tout seul, gratuitement, sans compte ni clé.</translation>
+        </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
             <source>All</source>
@@ -5633,6 +5733,14 @@ Cliquez pour ouvrir sa page.</translation>
     <context>
         <name>PermissionCard</name>
         <message>
+            <source>This data comes from a site outside the sources the agent knows.</source>
+            <translation>Ces données viennent d’un site qui ne fait pas partie des sources connues de l’agent.</translation>
+        </message>
+        <message>
+            <source>This data comes from sites outside the sources the agent knows.</source>
+            <translation>Ces données viennent de sites qui ne font pas partie des sources connues de l’agent.</translation>
+        </message>
+        <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
             <translation>Autoriser</translation>
@@ -6005,6 +6113,14 @@ Cliquez pour ouvrir sa page.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Free AI Agent was already used by other accounts on this computer.</source>
+            <translation>L’AI Agent gratuit a déjà été utilisé par d’autres comptes sur cet ordinateur.</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro to keep going. Shared computer, or a mistake? Contact {email} and we will unlock it.</source>
+            <translation>Passez à Pro pour continuer. Ordinateur partagé, ou erreur ? Contactez {email} et nous le débloquerons.</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
@@ -6434,6 +6550,30 @@ Cliquez pour ouvrir sa page.</translation>
     </context>
     <context>
         <name>SettingsDialog</name>
+        <message>
+            <source>Delete all notes</source>
+            <translation>Supprimer toutes les notes</translation>
+        </message>
+        <message>
+            <source>Delete all {n} notes? The AI will not add them back.</source>
+            <translation>Supprimer toutes les {n} notes ? L’IA ne les rajoutera pas.</translation>
+        </message>
+        <message>
+            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
+            <translation>Permet à l’équipe de lire une conversation uniquement pour corriger un bug. Les conversations sont conservées 30 jours.</translation>
+        </message>
+        <message>
+            <source>The AI saves notes on its own</source>
+            <translation>L’IA enregistre des notes toute seule</translation>
+        </message>
+        <message>
+            <source>You can review or remove them here.</source>
+            <translation>Vous pouvez les consulter ou les supprimer ici.</translation>
+        </message>
+        <message>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
+            <translation>Vos conversations sont conservées 30 jours pour qu’une discussion survive à une mise à jour. Désactivé, l’équipe ne les lit jamais. Avec 0 jour d’historique, rien n’est conservé.</translation>
+        </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
             <source>1 minute</source>
@@ -7645,6 +7785,46 @@ Cliquez pour ouvrir sa page.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
+    <message>
+        <source>{area} km²</source>
+        <translation>{area} km²</translation>
+    </message>
+    <message>
+        <source>{area} ha</source>
+        <translation>{area} ha</translation>
+    </message>
+    <message>
+        <source>{area} m²</source>
+        <translation>{area} m²</translation>
+    </message>
+    <message>
+        <source>the '{layer}' layer ({area})</source>
+        <translation>la couche '{layer}' ({area})</translation>
+    </message>
+    <message>
+        <source>Run {label} on {zone}. This spends your {label} credits.</source>
+        <translation>Lancer {label} sur {zone}. Cela consomme vos crédits {label}.</translation>
+    </message>
+    <message>
+        <source> at {resolution}</source>
+        <translation> à {resolution}</translation>
+    </message>
+    <message>
+        <source> at the panel's selected resolution</source>
+        <translation> à la résolution choisie dans le panneau</translation>
+    </message>
+    <message>
+        <source>{price} credits per generation</source>
+        <translation>{price} crédits par génération</translation>
+    </message>
+    <message>
+        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+        <translation>Lancer AI Edit{size} : {cost}. Emprise de l'image : {zone} ; facturation par génération.</translation>
+    </message>
+    <message>
+        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+        <translation>environ {price} crédits par génération (le prix 2K ; le prix en direct n'était pas disponible)</translation>
+    </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7987,6 +8167,14 @@ Cliquez pour ouvrir sa page.</translation>
     </context>
     <context>
         <name>_Page</name>
+        <message>
+            <source>Select all that apply</source>
+            <translation>Cochez toutes les réponses qui conviennent</translation>
+        </message>
+        <message>
+            <source>Write my own answer…</source>
+            <translation>Écrire ma propre réponse…</translation>
+        </message>
         <message>
             <location filename="src/ui/cards_question.py" />
             <source>Skip</source>
@@ -8906,6 +9094,27 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
         <message>
             <source>Wrong code. Check it and try again.</source>
             <translation>Code erroné. Vérifiez-le et réessayez.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeProcessing</name>
+        <message>
+            <source>Running {name}...</source>
+            <translation>Exécution de {name}...</translation>
+        </message>
+    </context>
+    <context>
+        <name>_OptionRow</name>
+        <message>
+            <source>Recommended</source>
+            <translation>Recommandé</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RoundSummary</name>
+        <message>
+            <source>Skipped</source>
+            <translation>Ignoré</translation>
         </message>
     </context>
 </TS>

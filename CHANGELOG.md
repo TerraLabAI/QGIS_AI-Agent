@@ -9,6 +9,46 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-10
+
+### Added
+
+- Question cards: when the agent needs a choice, it asks one question at a time. Pick an option
+  (the recommended one is tagged), tick several where it says so, or write your own answer. Skip
+  leaves a question open, and every answer goes together when you press Send.
+- Answers can carry clean tables, key figures, bar charts, callouts and step lists, drawn as
+  native widgets. Plain tables lose their grid lines and align numbers on the right.
+- Memory notes are saved at once and shown as "Added to memory" with an Undo link. A note that is
+  a setting (units, reply language, layer names) changes that setting. Settings can switch this
+  off and delete all notes.
+- Data sources sit on one page in the example library: the six most used first, then every
+  category. Each source page shows its logo, a short description with Show more, its website and
+  its licence and terms.
+- Before a paid AI Segmentation or AI Edit run, the area it will cover is drawn on the map as the
+  shared Area of interest layer, with its size on the card. After the result, a card lets you keep
+  it, open the tool's panel or adjust it.
+
+### Changed
+
+- Permission cards ask in plain words, with the web address behind Show the address. A card says
+  when data comes from a site outside the sources the agent knows.
+- Search results and sources in a run's steps show the provider's logo.
+- The report button under answers is gone: the agent makes a report when you ask for one.
+- Run clocks leave out the time a card waits for your answer.
+- On paid plans the switch that lets us read a chat to fix a bug can be turned on or off.
+
+### Fixed
+
+- A Processing algorithm run from code no longer freezes QGIS: the window answers, Stop ends it,
+  and removing its layer during the run is safe.
+- Pro chats keep their context after a QGIS restart or a server update.
+- WMS layers keep their date and dimensions; heavy WFS layers fall back to the view's box; a
+  feature link behind a redirect loads as WFS; zipped files are read by member; a file with no
+  CRS takes the one asked for.
+- WMTS tile sets, ArcGIS layers without a known CRS and relative paths in code work.
+- The free-run limit says when other accounts on this computer used the free runs, with a
+  contact address.
+
 ## [1.6.0] - 2026-10-08
 
 ### Added

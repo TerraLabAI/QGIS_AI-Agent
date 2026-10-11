@@ -320,7 +320,7 @@ _CONNECTOR_FIELDS = ("id", "name", "glyph", "url", "datasets", "kinds", "licence
                      "coverage", "attribution", "highlights", "summary", "terms_url",
                      "status", "status_label", "caveat", "prompts",
                      "tagline", "category", "category_label", "popular",
-                     "country", "also_covers", "languages", "tools", "logo_url")
+                     "country", "also_covers", "languages", "tools", "logo_url", "hosts")
 
 
 def _connector_store():
@@ -434,7 +434,7 @@ def _bump_connectors() -> None:
 
 
 _CONNECTOR_ARG_KEYS = ("url", "provider", "source", "collection", "portal",
-                       "endpoint", "catalog", "service", "dataset")
+                       "endpoint", "catalog", "service", "dataset", "stac_url")
 
 
 
@@ -530,18 +530,38 @@ def _url_within(value: str, host: str, path: str) -> bool:
     return not path or got_path == path or got_path.startswith(path + "/")
 
 
+def _served_hosts(connector) -> list:
+
+    return [str(h).lower() for h in (connector.get("hosts") or []) if isinstance(h, str) and h]
+
+
+def _at_connector(value: str, connector) -> bool:
+
+    host, path = _host_and_path(str(connector.get("url") or ""))
+    if host and _url_within(value, host, path):
+        return True
+    return any(_url_within(value, h, "") for h in _served_hosts(connector))
+
+
 def _match_connector(connectors, tool: str, values: list) -> dict | None:
+    addresses = [v for v in values if v.startswith(("https://", "http://"))]
+
+
+
+    for value in addresses:
+        for connector in connectors:
+            if _at_connector(value, connector):
+                return dict(connector)
     for connector in connectors:
-        if tool and tool in _tools_of(connector):
+        if tool and tool in _tools_of(connector) and not addresses:
             return dict(connector)
     for connector in connectors:
         cid = str(connector.get("id") or "").strip().lower()
         cname = str(connector.get("name") or "").strip().lower()
-        host, path = _host_and_path(str(connector.get("url") or ""))
         if cid and len(cid) >= 4 and cid in tool:
             return dict(connector)
         for value in values:
-            if host and _url_within(value, host, path):
+            if _at_connector(value, connector):
                 return dict(connector)
             if cid and (value == cid or value.startswith(cid + ":") or value.startswith(cid + "/")):
                 return dict(connector)
@@ -785,7 +805,7 @@ LEARN_ITEMS = (
         "title": QT_TRANSLATE_NOOP("AIAgent", "The complete AI Agent guide"),
         "note": QT_TRANSLATE_NOOP("AIAgent", "The panel from the first prompt to the finished map."),
         "url": TUTORIAL_URL,
-        "thumbnail_url": "",
+        "thumbnail_url": f"{SITE_URL}/blog/ai-agent-complete-guide/og.jpg",
         "translate": ("title", "note"),
     },
     {

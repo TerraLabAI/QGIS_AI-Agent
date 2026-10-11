@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QPainter, QPixmap
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPixmap
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -160,6 +160,10 @@ class PageHeader(QWidget):
         self.subtitle.setVisible(bool(subtitle))
 
 
+
+_CRUMB_W = 200
+
+
 class Breadcrumb(QWidget):
 
 
@@ -191,7 +195,9 @@ class Breadcrumb(QWidget):
                 self._row.addWidget(label(self, name, C.BODY_PX, C.T.text), 0,
                                     Qt.AlignmentFlag.AlignVCenter)
                 continue
-            link = QPushButton(name, self)
+            link = QPushButton(self._elided(name), self)
+            if link.text() != name:
+                link.setToolTip(name)
             link.setCursor(Qt.CursorShape.PointingHandCursor)
             link.setAutoDefault(False)
             link.setStyleSheet(C.qss(
@@ -202,6 +208,12 @@ class Breadcrumb(QWidget):
             link.clicked.connect(lambda _c=False, i=index: self.crumb.emit(i))
             self._row.addWidget(link, 0, Qt.AlignmentFlag.AlignVCenter)
         self._row.addStretch(1)
+
+    def _elided(self, name: str) -> str:
+
+        font = QFont(self.font())
+        font.setPixelSize(C.px(C.BODY_PX))
+        return QFontMetrics(font).elidedText(name, Qt.TextElideMode.ElideRight, C.px(_CRUMB_W))
 
 
 def text_button(parent: QWidget, text: str) -> QPushButton:

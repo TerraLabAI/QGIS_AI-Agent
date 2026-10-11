@@ -650,7 +650,15 @@ def _add_wms_layer(args: dict) -> dict:
 
 
 
-    url = ogc_inspect.service_base(links.clean(url))
+
+
+
+
+    pasted = links.clean(url)
+    url = ogc_inspect.service_base(pasted)
+    dimensions = ogc_inspect.wms_dimensions(pasted)
+    base, _, query = url.partition("?")
+    layer_url = f"{base}?{'&'.join(part for part in (query, dimensions) if part)}" if dimensions else url
 
 
 
@@ -661,10 +669,11 @@ def _add_wms_layer(args: dict) -> dict:
 
     names = [part.strip() for part in str(layers).split(",") if part.strip()] or [str(layers)]
     uri = (
-        f"url={encode_uri_url(url)}"
+        f"url={encode_uri_url(layer_url)}"
         + "".join(f"&layers={encode_uri_url(part)}&styles=" for part in names)
         + f"&crs={crs}"
         f"&format={encode_uri_url(img_format)}"
+        + ("&IgnoreGetMapUrl=1" if dimensions else "")
     )
 
 
@@ -736,6 +745,10 @@ WFS_WIRE_BYTES_PER_FEATURE = 150
 
 
 
+WFS_WHOLE_BUDGET_S = 30.0
+
+
+
 
 
 WFS_SILENT_PAGES = (100, 500, 1_000, 2_000, 5_000, 10_000, 25_000)
@@ -757,7 +770,10 @@ _WFS_HITS_TTL_S = 300
 _WFS_MATCHED_RE = re.compile(rb'numberMatched\s*=\s*"(\d+)"')
 
 
-_WFS_TYPENAME_RE = re.compile(rb"<(?:\w+:)?Name>\s*([^<\s][^<]*?)\s*</(?:\w+:)?Name>")
+
+
+
+_WFS_TYPENAME_RE = re.compile(rb"<(?:\w+:)?Name\b[^>]*>\s*([^<\s][^<]*?)\s*</(?:\w+:)?Name>")
 
 
 
@@ -902,7 +918,8 @@ def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
             + "inspect_data_source checks the URL.")
 
 
-def _wfs_hits(url: str, typename: str, crs: str) -> int | None:
+def _wfs_hits(url: str, typename: str) -> int | None:
+
 
 
 
@@ -911,7 +928,7 @@ def _wfs_hits(url: str, typename: str, crs: str) -> int | None:
 
 
     query = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
-             "TYPENAMES": typename, "RESULTTYPE": "hits", "SRSNAME": crs}
+             "TYPENAMES": typename, "RESULTTYPE": "hits"}
     probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
     try:
         answer = net.fetch(probe, timeout=20, max_bytes=_WFS_HITS_MAX_BYTES,
@@ -1104,7 +1121,7 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
     net.check_url(url)
-    hits = _wfs_hits(url, typename, crs)
+    hits = _wfs_hits(url, typename)
     whole = hits
     if area or where:
 
@@ -1151,12 +1168,29 @@ def _add_wfs_layer(args: dict) -> dict:
 
     from .data_wfs_extract import extract
 
+
+
+    whole_read = not lifted and not area and not where and not view_filter and whole is not None
+    over_budget = None
+
     def _copy() -> dict:
         return extract(url, typename, name, source.uri(False),
                        count_at=max_features if hits is None and not lifted else None,
-                       view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None)
+                       view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None,
+                       budget_s=WFS_WHOLE_BUDGET_S if whole_read and not view_filter else None)
 
     out = _copy()
+    if out.get("_over_budget"):
+        over_budget = out
+        canvas_box = run_on_main_thread(_canvas_extent_in, crs, timeout=10)
+        if isinstance(canvas_box, list) and canvas_box[0] < canvas_box[2] and canvas_box[1] < canvas_box[3]:
+            view_filter = _bbox_ring_filter(*canvas_box)
+            source.removeParam("filter")
+            source.setParam("filter", view_filter)
+            out = _copy()
+        else:
+            whole_read = False
+            out = _copy()
     if out.get("_invalid"):
 
 
@@ -1223,6 +1257,10 @@ def _add_wfs_layer(args: dict) -> dict:
     else:
         warning, suggestion = _capped_words(out, url, typename, crs, count, hits, max_features, ceiling,
                                             view_filter, where)
+    if over_budget is not None and view_filter:
+        warning = (f"The whole type was read first and {over_budget['_written']:,} of its {whole:,} features "
+                   f"had arrived after {WFS_WHOLE_BUDGET_S:.0f} s, so the map view's box was read instead. "
+                   + warning).strip()
     if where and count == 0 and not warning:
         place = " inside the box" if area else (" under the map view" if view_filter else "")
         warning = f"The service returned no feature of {typename} matching the where{place}; the layer is empty."

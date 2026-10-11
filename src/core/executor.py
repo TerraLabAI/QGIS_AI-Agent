@@ -53,7 +53,13 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
     question_needed = pyqtSignal(str, str, str, object, bool, int, str)
     question_resolved = pyqtSignal(str, str)
+
+
+    question_answered_elsewhere = pyqtSignal(str, str)
     project_changed = pyqtSignal(int)
+
+
+    stop_requested = pyqtSignal(str)
 
     def __init__(self, registry, session, settings, parent=None):
         super().__init__(parent)
@@ -122,7 +128,7 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
         self._inflight: dict[str, tuple[str, str, float, bool]] = {}
 
 
-        self._dialog_waits: dict[str, tuple[float, str]] = {}
+        self._dialog_waits: dict[str, tuple[float, float, str]] = {}
         self._dialog_tick: float | None = None
 
 
