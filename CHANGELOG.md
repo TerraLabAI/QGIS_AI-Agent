@@ -9,6 +9,19 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-10-16
+
+### Added
+
+- A Pro card shows in the panel when the plan turns Pro, with the monthly tasks or the trial's end
+  date.
+
+### Fixed
+
+- A free account lands on an effort level it can run after sign-in.
+- The plugins.qgis.org Qt6 check passes: the 3D terrain warp and the processing number checks read
+  their QGIS enums by name, on QGIS 3 and QGIS 4 alike.
+
 ## [1.8.0] - 2026-10-16
 
 ### Added

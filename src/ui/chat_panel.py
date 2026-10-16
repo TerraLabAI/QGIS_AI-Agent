@@ -146,6 +146,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
         self._checkout_return = False
         self._return_view_pending = False
+
+        self._pro_welcome = None
         self._limit_said = False
         self._attachment_count = 0
 

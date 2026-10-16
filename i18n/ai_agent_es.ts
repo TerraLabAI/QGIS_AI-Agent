@@ -6523,6 +6523,22 @@ Haz clic para abrir su página.</translation>
             <source>What Pro includes</source>
             <translation>Qué incluye Pro</translation>
         </message>
+        <message>
+            <source>Free trial until {date}.</source>
+            <translation>Prueba gratuita hasta el {date}.</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>OK</translation>
+        </message>
+        <message>
+            <source>You're on Pro</source>
+            <translation>Tienes el plan Pro</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month.</source>
+            <translation>{n} tareas al mes.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>

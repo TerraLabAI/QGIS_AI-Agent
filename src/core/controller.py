@@ -37,7 +37,7 @@ from .controller_shared import (
 from .executor import ToolExecutor
 from .host_platform import os_label, qgis_version
 from .logger import log, log_warning
-from .plan import autopilot_allowed, effort_allowed
+from .plan import autopilot_allowed, effort_allowed, efforts_stated
 from .protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
 from .run_state import RunMachine
 from .session import AgentSession
@@ -168,7 +168,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
         self._panel_call("set_paid_plan", self._settings.last_paid)
-        self._panel_call("set_effort", self._settings.effort)
+        self._panel_call("set_effort", self._landing_effort())
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
         self._watch_project()
         telemetry.set_auth_provider(self._account.get_auth_header)
@@ -192,6 +192,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             self._panel_call("set_connection_state", "signed_out", "")
 
         self._account.try_sibling_sign_in()
+
+
+        if hasattr(self._account, "watch_focus"):
+            self._account.watch_focus()
 
     def open_stamps(self, facts: dict, began: float) -> None:
 
@@ -228,6 +232,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
     def shutdown(self) -> None:
         self._unwatch_project()
+        if hasattr(self._account, "unwatch_focus"):
+            self._account.unwatch_focus()
 
         self._set_report_provider(None)
 
@@ -332,9 +338,14 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def _resync_sibling_tools_when_idle(self) -> None:
 
 
-        if not self._sync_sibling_tools() or self._run is not None or not self._session.is_online:
+
+
+        tools = self._sync_sibling_tools()
+        plan = getattr(self, "_plan_resync", False)
+        if not (tools or plan) or self._run is not None or not self._session.is_online:
             return
-        log("Sibling plugin tools changed; reconnecting so the server reads the new manifest")
+        self._plan_resync = False
+        log("Plan or sibling plugin tools changed; reconnecting so the server sends the new session")
         self._session.disconnect_from_server()
         self._session.connect_to_server()
 
@@ -527,6 +538,16 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         effort = self._settings.effort
         return effort if (effort in Effort.ALL and effort_allowed(effort)) else Effort.LOW
+
+    def _landing_effort(self) -> str:
+
+
+
+
+
+        if not efforts_stated() and not self._settings.last_paid:
+            return Effort.LOW
+        return self._effort()
 
 
 

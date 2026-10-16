@@ -5289,6 +5289,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
+            <source>Free trial until {date}.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py"/>
             <source>Get Pro</source>
             <translation type="unfinished"/>
         </message>
@@ -5320,6 +5325,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/quota_card.py"/>
             <source>No commitment, cancel in one click</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py"/>
+            <source>OK</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5364,6 +5374,11 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
+            <source>You're on Pro</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py"/>
             <source>Your free tasks for this month are used</source>
             <translation type="unfinished"/>
         </message>
@@ -5390,6 +5405,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/quota_card.py"/>
             <source>{n} tasks a month</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py"/>
+            <source>{n} tasks a month.</source>
             <translation type="unfinished"/>
         </message>
         <message>

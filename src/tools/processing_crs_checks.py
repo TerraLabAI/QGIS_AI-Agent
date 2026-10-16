@@ -24,6 +24,7 @@ from qgis.core import (
 )
 
 from ..core import ground, tuning
+from ._compat import enum_value
 from .layer_lookup import _find_layer
 
 _DISTANCE_NAMES = ("DISTANCE", "RADIUS", "TOLERANCE", "BUFFER", "MAX_DISTANCE", "SEARCH_DISTANCE",
@@ -37,9 +38,7 @@ _PERCENTAGE_PARAMETERS = frozenset({("native:voronoipolygons", "BUFFER"), ("gdal
 
 
 
-_INTEGER = getattr(getattr(Qgis, "ProcessingNumberParameterType", None), "Integer", None)
-if _INTEGER is None:
-    _INTEGER = QgsProcessingParameterNumber.Integer
+_INTEGER = enum_value((Qgis, "ProcessingNumberParameterType.Integer"), (QgsProcessingParameterNumber, "Integer"))
 
 _DEGREES_ALLOWED = 0.01
 

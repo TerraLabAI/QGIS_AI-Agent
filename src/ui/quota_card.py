@@ -255,6 +255,8 @@ class QuotaCard(QWidget):
 
     return_closed = pyqtSignal()
 
+    welcome_closed = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.state = ""
@@ -470,6 +472,7 @@ class QuotaCard(QWidget):
             self._details.setVisible(self._more.is_open())
             self._more.show()
             self._route_button(lambda: self.plans_requested.emit("exhausted_card"))
+            self._invoice.show()
             self._plan.show()
         self.show()
 
@@ -486,8 +489,28 @@ class QuotaCard(QWidget):
         self._button.setText(self.tr("Back to the Pro page"))
         self._route_button(lambda: self.plans_requested.emit("checkout_return"))
         self._invoice.setText(self.tr("My company pays by quote"))
+        self._invoice.show()
         self._contact.show()
         self._close.show()
+        self._plan.show()
+        self.show()
+
+    def show_pro_welcome(self, limit: int, trial_until: str = "") -> None:
+
+
+        self.state = "pro_welcome"
+        self._title.setText(self.tr("You're on Pro"))
+        self._title.show()
+        lines = [self.tr("{n} tasks a month.").format(n=limit)] if limit > 0 else []
+        if trial_until:
+            lines.append(self.tr("Free trial until {date}.").format(date=trial_until))
+        self._note.setText("\n".join(lines))
+        self._note.setVisible(bool(lines))
+        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
+                  self._invoice, self._contact, self._close):
+            w.hide()
+        self._button.setText(self.tr("OK"))
+        self._route_button(self.welcome_closed.emit)
         self._plan.show()
         self.show()
 

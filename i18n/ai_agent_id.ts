@@ -6523,6 +6523,22 @@ Klik untuk membuka halamannya.</translation>
             <source>What Pro includes</source>
             <translation>Yang termasuk dalam Pro</translation>
         </message>
+        <message>
+            <source>Free trial until {date}.</source>
+            <translation>Uji coba gratis sampai {date}.</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>OK</translation>
+        </message>
+        <message>
+            <source>You're on Pro</source>
+            <translation>Anda menggunakan Pro</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month.</source>
+            <translation>{n} tugas per bulan.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>

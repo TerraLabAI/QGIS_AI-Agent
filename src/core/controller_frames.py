@@ -34,6 +34,7 @@ from .protocol import Decision, RunStatus, ServerErrorCode
 from .run_report import VERIFY_RUN
 from .run_state import AWAIT_OUTCOME, AWAIT_RESUME, RESEND
 from .security import vouch_for_urls
+from .settings import account_tag
 from .snapshot import changed_layer_items, describe_diff
 from .snapshot_report import run_change_items
 from .telemetry_errors import report_exception, track_plugin_error
@@ -155,13 +156,14 @@ class _ControllerFrames:
         if "is_free_tier" in session:
             paid = not bool(session.get("is_free_tier"))
             self._settings.last_paid = paid
+            self._note_plan_seen(paid)
         self._panel_call("set_paid_plan", paid)
 
 
 
 
 
-        self._panel_call("set_effort", self._settings.effort)
+        self._panel_call("set_effort", self._landing_effort())
 
 
         self._panel_call("show_notice", session.get("notice") if isinstance(session.get("notice"), dict) else {})
@@ -255,7 +257,36 @@ class _ControllerFrames:
             return
 
         self._panel_optional("set_account_cap", payload.get("free_account_cap"))
-        self._on_usage(usage_to_runs(payload))
+        usage = usage_to_runs(payload)
+        self._on_usage(usage)
+        paid = usage.get("is_subscriber")
+        if isinstance(paid, bool):
+
+            self._settings.last_paid = paid
+            self._panel_call("set_paid_plan", paid)
+            self._note_plan_seen(paid, usage)
+
+    def _note_plan_seen(self, paid: bool, usage: dict | None = None) -> None:
+
+
+
+
+
+
+        tag = account_tag()
+        if tag == "signed-out":
+            return
+        before = self._settings.plan_seen(tag)
+        if usage is None and paid and before == "free":
+            self._account.refresh_activation_async(force=True)
+            return
+        self._settings.set_plan_seen(tag, "pro" if paid else "free")
+        if usage is not None and paid and before == "free":
+            self._panel_optional("show_pro_welcome", usage.get("runs_limit"), usage.get("plan_trial_ends_on"))
+
+
+            self._plan_resync = True
+            self._resync_sibling_tools_when_idle()
 
     def _on_token(self, run_id: str, text: str) -> None:
         if run_id not in self._agent_text:

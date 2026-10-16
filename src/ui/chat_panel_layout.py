@@ -90,6 +90,7 @@ class _ChatPanelLayout:
         self.quota_card.invoice_requested.connect(self.invoice_requested.emit)
         self.quota_card.contact_requested.connect(self._on_return_contact)
         self.quota_card.return_closed.connect(self._close_checkout_return)
+        self.quota_card.welcome_closed.connect(self._close_pro_welcome)
         self.runs_line.requested.connect(self.plans_requested.emit)
         c = self.composer
         c.send_clicked.connect(self._on_send)
@@ -400,6 +401,14 @@ class _ChatPanelLayout:
         left = max(0, limit - used)
         if is_subscriber:
             self._checkout_return = False
+        welcome = getattr(self, "_pro_welcome", None)
+        if welcome is not None and is_subscriber and left > 0:
+            self._runs_host.hide()
+            self.quota_card.show_pro_welcome(*welcome)
+            self._quota_host.show()
+            self.composer.set_blocked(False)
+            self._low_balance_visible = False
+            return
         if getattr(self, "_checkout_return", False):
 
 
@@ -467,6 +476,26 @@ class _ChatPanelLayout:
                 and self.isVisible() and self.quota_card.state == "checkout_return"):
             self._return_view_pending = False
             self.upsell_shown.emit("checkout_return")
+
+    def show_pro_welcome(self, limit=None, trial_ends_on=None) -> None:
+
+
+        try:
+            limit = int(limit if limit is not None else self._usage[1])
+        except (TypeError, ValueError, OverflowError):
+            limit = 0
+        self._checkout_return = False
+        self._return_view_pending = False
+        self._pro_welcome = (limit, format_reset_date(str(trial_ends_on or "")))
+        if not self._usage[3]:
+
+            used, old_limit, end, _paid = self._usage
+            self._usage = (used, limit or old_limit, end, True)
+        self._apply_quota()
+
+    def _close_pro_welcome(self) -> None:
+        self._pro_welcome = None
+        self._apply_quota()
 
     def _close_checkout_return(self) -> None:
         self._checkout_return = False
@@ -560,6 +589,7 @@ class _ChatPanelLayout:
             self._signed_in = False
             self._checkout_return = False
             self._return_view_pending = False
+            self._pro_welcome = None
             self.header.clear_account()
 
             self._plan_known = False

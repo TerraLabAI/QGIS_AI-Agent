@@ -6523,6 +6523,22 @@ Klik om de pagina te openen.</translation>
             <source>What Pro includes</source>
             <translation>Wat Pro omvat</translation>
         </message>
+        <message>
+            <source>Free trial until {date}.</source>
+            <translation>Gratis proefperiode tot {date}.</translation>
+        </message>
+        <message>
+            <source>OK</source>
+            <translation>OK</translation>
+        </message>
+        <message>
+            <source>You're on Pro</source>
+            <translation>Je hebt Pro</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month.</source>
+            <translation>{n} taken per maand.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>

@@ -47,7 +47,8 @@ PLANS_URL_FALLBACK = "https://terra-lab.ai/pricing"
 _REVALIDATE_EVERY_S = 900.0
 
 
-_UPGRADE_WATCH_S = 1800.0
+_FOCUS_CHECK_GAP_S = 300.0
+_UPGRADE_WATCH_S = 7200.0
 _UPGRADE_CHECK_GAP_S = 10.0
 
 
@@ -90,7 +91,9 @@ def usage_to_runs(payload: dict) -> dict:
             "is_subscriber": payload.get("is_subscriber"),
 
             "trial_days_available": payload.get("trial_days_available"),
-            "trial_ends_on": payload.get("trial_ends_on")}
+            "trial_ends_on": payload.get("trial_ends_on"),
+
+            "plan_trial_ends_on": payload.get("plan_trial_ends_on")}
 
 
 def get_dashboard_url() -> str:
@@ -861,6 +864,10 @@ class Account(QObject):
         if not self.has_activation_key:
             return
         self._upgrade_watch_since = time.monotonic()
+        self.watch_focus()
+
+    def watch_focus(self) -> None:
+
         if self._upgrade_watching:
             return
         app = QGuiApplication.instance()
@@ -872,7 +879,8 @@ class Account(QObject):
             return
         self._upgrade_watching = True
 
-    def stop_upgrade_watch(self) -> None:
+    def unwatch_focus(self) -> None:
+
         self._upgrade_watch_since = 0.0
         if not self._upgrade_watching:
             return
@@ -884,19 +892,24 @@ class Account(QObject):
             except (TypeError, RuntimeError):
                 pass  # nosec B110
 
+    def stop_upgrade_watch(self) -> None:
+
+        self._upgrade_watch_since = 0.0
+
     def _on_application_state(self, state) -> None:
-        if state != Qt.ApplicationState.ApplicationActive:
+        if state != Qt.ApplicationState.ApplicationActive or not self.has_activation_key:
             return
         now = time.monotonic()
-        if not self._upgrade_watch_since or now - self._upgrade_watch_since > _UPGRADE_WATCH_S:
-            self.stop_upgrade_watch()
-            return
-        if now - self._upgrade_checked_at < _UPGRADE_CHECK_GAP_S:
+        upgrading = bool(self._upgrade_watch_since) and now - self._upgrade_watch_since <= _UPGRADE_WATCH_S
+        if not upgrading:
+            self._upgrade_watch_since = 0.0
+        if now - self._upgrade_checked_at < (_UPGRADE_CHECK_GAP_S if upgrading else _FOCUS_CHECK_GAP_S):
             return
         self._upgrade_checked_at = now
-        log("QGIS is back after a Pro offer: checking the plan")
+        if upgrading:
+            log("QGIS is back after a Pro offer: checking the plan")
 
-        self._return_check_pending = not self._return_confirming
+            self._return_check_pending = not self._return_confirming
         self.refresh_activation_async(force=True)
 
     def open_website(self, target: str, cta_source: str, fallback_url: str,

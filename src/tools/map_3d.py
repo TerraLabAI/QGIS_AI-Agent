@@ -67,6 +67,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._compat import enum_value
 from .layer_lookup import _find_layer
 
 TOOL = "configure_3d_map_view"
@@ -380,8 +381,8 @@ def _terrain_in_project_crs(dem):
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, f"terrain-{uuid.uuid4().hex[:8]}.vrt")
     source = dem.dataProvider().dataSourceUri() if dem.dataProvider() is not None else dem.source()
-    variant = getattr(getattr(Qgis, "CrsWktVariant", None), "PreferredGdal", None)
-    wkt = target.toWkt(variant if variant is not None else QgsCoordinateReferenceSystem.WKT_PREFERRED_GDAL)
+    wkt = target.toWkt(enum_value((Qgis, "CrsWktVariant.PreferredGdal"),
+                                  (QgsCoordinateReferenceSystem, "WKT_PREFERRED_GDAL")))
     read = _with_virtual_overviews(gdal, source, path[:-4] + ".base.vrt")
     warped = gdal.Warp(path, read, format="VRT", dstSRS=wkt, resampleAlg="bilinear")
     if warped is None:

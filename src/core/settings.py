@@ -445,6 +445,14 @@ class Settings:
     def last_paid(self, value: bool) -> None:
         self._set("last_paid", "1" if value else "0")
 
+    def plan_seen(self, tag: str) -> str:
+
+
+        return self._get(f"plan_seen/{tag}", "")
+
+    def set_plan_seen(self, tag: str, plan: str) -> None:
+        self._set(f"plan_seen/{tag}", plan)
+
 
 
     @property
