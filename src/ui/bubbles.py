@@ -434,8 +434,6 @@ class AgentBubble(QWidget):
 
         if not text or self._finished:
             return
-        if not self._finished:
-            self._view.set_streaming(True)
         self._pending.append(text)
         if not self._timer.isActive():
             self._timer.start()
@@ -450,7 +448,6 @@ class AgentBubble(QWidget):
 
         self._timer.stop()
         self._flush_pending(final=True)
-        self._view.set_streaming(False)
 
     def finish_streaming(self) -> None:
 
@@ -458,7 +455,6 @@ class AgentBubble(QWidget):
         self._timer.stop()
         self._finished = True
         self._flush_pending(final=True)
-        self._view.set_streaming(False)
         self._sync_actions()
 
     def is_finished(self) -> bool:
@@ -721,10 +717,6 @@ class AgentBubble(QWidget):
 
         self._timer.stop()
         self._stop_fade()
-        self._view.set_streaming(False)
-        for _signature, widget in self._part_widgets:
-            if isinstance(widget, MarkdownView):
-                widget.set_streaming(False)
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)

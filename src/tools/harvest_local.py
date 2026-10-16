@@ -37,11 +37,10 @@ from qgis.core import QgsTask
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import security
+from ..core.context_layers import canvas_bbox_4326
 from ..core.logger import log, log_warning
 from ..core.settings import state_dir
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import regions
-from . import stac_tools as _stac
 
 INDEX_FILE = "local_index.sqlite"
 _VECTOR_EXT = {".shp", ".gpkg", ".fgb", ".geojson", ".json", ".kml"}
@@ -611,14 +610,8 @@ def _row_dict(row: tuple) -> dict:
         "bbox_4326": None,
     }
     if minx is not None:
+
         out["bbox_4326"] = [round(minx, 5), round(miny, 5), round(maxx, 5), round(maxy, 5)]
-
-
-
-
-        region = regions.region_of(out["bbox_4326"])
-        if region:
-            out["region"] = region
     if crs:
         out["crs"] = crs
     if detail:
@@ -711,7 +704,7 @@ def _find_local_data(args: dict) -> dict:
 
     canvas_bbox = None
     if within_canvas:
-        canvas_bbox = _stac._canvas_bbox_4326()
+        canvas_bbox = canvas_bbox_4326()
         if canvas_bbox is None:
             return tool_error(
                 "Could not read the canvas extent in EPSG:4326.",

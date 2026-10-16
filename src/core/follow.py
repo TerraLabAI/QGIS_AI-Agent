@@ -50,7 +50,7 @@ from qgis.PyQt.QtCore import QTimer
 from . import ground, tuning
 from .layer_order import is_backdrop, reading_back
 from .logger import log_warning
-from .qt_compat import enum_member
+from .qt_compat import enum_member, qgis_iface
 from .tool_registry import NAMED_LAYER, spec
 from .vsi import streamed_in_place
 
@@ -116,17 +116,8 @@ def _refresh_feel() -> None:
 tuning.subscribe(_refresh_feel)
 
 
-def _iface():
-
-    try:
-        from qgis.utils import iface
-    except ImportError:
-        return None
-    return iface
-
-
 def _canvas():
-    iface = _iface()
+    iface = qgis_iface()
     if iface is None:
         return None
     try:

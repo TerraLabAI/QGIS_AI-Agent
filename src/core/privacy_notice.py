@@ -74,12 +74,6 @@ PRIVACY_NOTICE_KEY = "AIAgent/privacy_notice_accepted_version"
 _accepted_memo: bool | None = None
 
 
-def _profile_settings():
-    from qgis.core import QgsSettings
-
-    return QgsSettings()
-
-
 def _read_version(settings) -> int:
     try:
         return int(settings.value(PRIVACY_NOTICE_KEY, 0, type=int))
@@ -96,7 +90,9 @@ def has_accepted_privacy_notice(settings=None) -> bool:
         return _read_version(settings) >= current_notice_version()
     if _accepted_memo is None:
         try:
-            _accepted_memo = _read_version(_profile_settings()) >= current_notice_version()
+            from .settings import profile_settings
+
+            _accepted_memo = _read_version(profile_settings()) >= current_notice_version()
         except Exception:  # nosec B110
             return False
     return _accepted_memo
@@ -109,7 +105,9 @@ def save_privacy_notice_accepted(settings=None) -> None:
         settings.setValue(PRIVACY_NOTICE_KEY, current_notice_version())
         _accepted_memo = True
         return
-    _profile_settings().setValue(PRIVACY_NOTICE_KEY, current_notice_version())
+    from .settings import profile_settings
+
+    profile_settings().setValue(PRIVACY_NOTICE_KEY, current_notice_version())
     _accepted_memo = True
 
 

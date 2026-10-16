@@ -25,7 +25,7 @@ import uuid
 
 from qgis.core import QgsProject
 
-from .host_platform import retry_file_op
+from .host_platform import resolved, retry_file_op
 from .logger import log_warning
 from .snapshot import (
     MAX_HASH_FILE_BYTES,
@@ -105,12 +105,7 @@ def _resolved(path: str) -> str:
 
 
 
-
-
-    try:
-        return os.path.normcase(os.path.realpath(path))
-    except (OSError, ValueError):
-        return os.path.normcase(os.path.normpath(path))
+    return os.path.normcase(resolved(path))
 
 
 def _same_file(a: str, b: str) -> bool:

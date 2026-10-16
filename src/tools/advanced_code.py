@@ -24,15 +24,8 @@ from ..core.serialization import carried_code, cut_string
 from ..core.tool_registry import coded_fact
 from . import code_runtime, isolated_code
 
-_QT_CORE_NAMES = ("QVariant", "Qt", "QSize", "QSizeF", "QPointF", "QPoint", "QRectF", "QRect",
-                  "QDate", "QTime", "QDateTime", "QUrl")
-_QT_GUI_NAMES = ("QColor", "QFont", "QImage", "QPainter", "QBrush", "QPen", "QTransform")
 
-
-_QGIS_CORE_NAMESPACE_CACHE: dict | None = None
-
-
-def _qgis_core_namespace() -> dict:
+def _changed(before, project, edits) -> dict:
 
 
 
@@ -40,42 +33,18 @@ def _qgis_core_namespace() -> dict:
 
 
 
-
-    global _QGIS_CORE_NAMESPACE_CACHE
-    if _QGIS_CORE_NAMESPACE_CACHE is None:
-        _QGIS_CORE_NAMESPACE_CACHE = {k: v for k, v in vars(qgis.core).items()
-                                      if (k.startswith("Qgs") or k in ("NULL", "Qgis"))
-                                      and k not in code_guard.DENIED_NAMES}
-    return _QGIS_CORE_NAMESPACE_CACHE
-
-
-_QT_NAMES_CACHE: dict | None = None
-
-
-def _qt_names() -> dict:
-
-
-
-
-
-
-    global _QT_NAMES_CACHE
-    if _QT_NAMES_CACHE is not None:
-        return _QT_NAMES_CACHE
-    out: dict = {}
-    for module, wanted in (("QtCore", _QT_CORE_NAMES), ("QtGui", _QT_GUI_NAMES)):
-        try:
-            mod = __import__(f"qgis.PyQt.{module}", fromlist=["*"])
-        except ImportError:
-            continue
-        for name in wanted:
-            if name in code_guard.DENIED_NAMES:
-                continue
-            value = getattr(mod, name, None)
-            if value is not None:
-                out[name] = value
-    _QT_NAMES_CACHE = out
-    return out
+    noted = code_namespace.changed(before, project, edits)
+    view = iface.layerTreeView() if iface is not None else None
+    for name in (noted or {}).get("restyled") or ():
+        for layer in project.mapLayersByName(name):
+            try:
+                layer.emitStyleChanged()
+                layer.triggerRepaint()
+                if view is not None:
+                    view.refreshLayerSymbology(layer.id())
+            except Exception as exc:  # noqa: BLE001
+                log_debug(f"execute_code: legend of {name} not refreshed: {exc}")
+    return noted
 
 
 def _execute_code(args: dict) -> dict:
@@ -175,12 +144,10 @@ def _run_code_in_qgis(args: dict) -> dict:
 
 
 
+
+
     namespace = code_runtime.kept(context.chat)
-    namespace.update(_qgis_core_namespace())
-
-
-
-    namespace.update(_qt_names())
+    namespace.update(code_namespace.console_names(code_guard.DENIED_NAMES))
     _processing = code_guard.safe_processing_module()
     if _processing is not None:
         namespace["processing"] = _processing
@@ -264,12 +231,12 @@ def _run_code_in_qgis(args: dict) -> dict:
         }
 
 
-        _partial_state(out, code_namespace.changed(before, project, edits))
+        _partial_state(out, _changed(before, project, edits))
         return out
     if error == "stopped":
         out = {"executed": False, "_error": "execute_code was stopped.", "_code": "CANCELLED",
                "stdout": _cap(stdout_capture.getvalue())}
-        _partial_state(out, code_namespace.changed(before, project, edits))
+        _partial_state(out, _changed(before, project, edits))
         return out
     if error == "timeout":
         out = {
@@ -281,7 +248,7 @@ def _run_code_in_qgis(args: dict) -> dict:
             "hint": "code_timeout",
             "timeout_s": int(context.timeout_s),
         }
-        _partial_state(out, code_namespace.changed(before, project, edits))
+        _partial_state(out, _changed(before, project, edits))
         return out
     if error is not None:
 
@@ -317,7 +284,7 @@ def _run_code_in_qgis(args: dict) -> dict:
         help_text = help_text or _api_help(error)
         if help_text:
             out["api"] = help_text
-        _partial_state(out, code_namespace.changed(before, project, edits))
+        _partial_state(out, _changed(before, project, edits))
         return out
 
 
@@ -334,9 +301,10 @@ def _run_code_in_qgis(args: dict) -> dict:
         out["result_type"] = kind
     else:
         out["result_set"] = False
-    noted = code_namespace.changed(before, project, edits)
+    noted = _changed(before, project, edits)
     if noted:
         out["changed"] = noted
+
 
 
 
@@ -346,6 +314,7 @@ def _run_code_in_qgis(args: dict) -> dict:
     if made:
         out["files_written"] = made
     shown = code_namespace.shown_files(namespace)
+    shown += [path for path in code_namespace.take_pages(made) if path not in shown]
     if shown:
         out["files"] = [{"path": path} for path in shown]
     return out

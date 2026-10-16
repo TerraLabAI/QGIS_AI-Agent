@@ -50,7 +50,7 @@ from ..core.security import fits_path, validate_path
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import csv_loader
 from .layer_lookup import _find_layer, _layer_not_found_error
-from .processing_guards import _utm_authid
+from .processing_crs_checks import _utm_authid
 
 
 

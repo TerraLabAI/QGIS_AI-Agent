@@ -356,7 +356,6 @@ def add_memory_note(settings, text: str, source: str = "ai", kind: str = "",
 
 
 
-
     clean = clean_note_text(text)
     if not clean:
         return None
@@ -420,31 +419,6 @@ def add_memory_note(settings, text: str, source: str = "ai", kind: str = "",
     if source == "user":
         _unforget(settings, clean)
     return note
-
-
-def memory_note_conflict(settings, text: str, scope: str = "", project: str = "") -> dict | None:
-
-
-
-
-
-
-
-
-
-
-    clean = clean_note_text(text)
-    if not clean:
-        return None
-    notes = load_memory_notes(settings)
-    if scope in MEMORY_SCOPES:
-        here = "" if scope == "user" else str(project or "").strip()[:32]
-        notes = [n for n in notes if _same_scope(n, scope, here)]
-    key = _note_key(clean)
-    for note in notes:
-        if _note_key(note["text"]) == key:
-            return note
-    return similar_note(notes, clean)
 
 
 

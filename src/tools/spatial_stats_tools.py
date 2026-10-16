@@ -274,7 +274,7 @@ def _plan(args: dict) -> dict:
     plan["work_crs"] = crs
     metric = method == "standard_deviational_ellipse" or neighbours in ("distance_band", "k_nearest")
     if metric and crs.isValid() and crs.isGeographic():
-        from .processing_guards import _centre_lonlat, _utm_authid
+        from .processing_crs_checks import _centre_lonlat, _utm_authid
 
         centre = _centre_lonlat(layer)
         if centre is None:

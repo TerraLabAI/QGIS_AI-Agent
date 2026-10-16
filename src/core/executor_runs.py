@@ -81,7 +81,7 @@ class _ExecutorRuns:
     def _refresh_proxy() -> None:
 
         try:
-            from .security import apply_qgis_proxy
+            from .net_proxy import apply_qgis_proxy
             apply_qgis_proxy()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"QGIS proxy not applied to tool fetches: {exc}")
@@ -455,6 +455,7 @@ class _ExecutorRuns:
                 or any((call or {}).get("run_id") == run_id for _kind, call, _start in self._main_line)):
             self.cancel_run(run_id, halt=False)
         layer_egress.end_run(run_id)
+        licence.note_project_run(run_id)
         self._run_mode.pop(run_id, None)
         self._touched.pop(run_id, None)
         self._budgets.pop(run_id, None)
@@ -484,7 +485,6 @@ class _ExecutorRuns:
         self._ended_run = (("", (), (), ()) if replaced
                            else (run_id, tuple(written or ()), tuple(warnings or ()), tuple(outputs or ())))
         if snapshot is not None and snapshot.captured and not replaced:
-            self.last_snapshot = snapshot
             self._record_after(run_id, thread_id, run_index, snapshot, prompt)
 
         if not replaced:
@@ -508,6 +508,17 @@ class _ExecutorRuns:
         self.follower.end()
 
         self.scratch.end()
+        if getattr(self, "durable_after_run", False) and not replaced:
+
+
+            self.durable_after_run = False
+            try:
+                from qgis.core import QgsProject
+
+                from ..tools.layer_tools import _agent_layers_made_durable
+                _agent_layers_made_durable(QgsProject.instance(), save=False)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Agent layers not stored beside the project after the run: {exc}")
         return None if replaced else snapshot
 
     def _record_after(self, run_id: str, thread_id: str, run_index: int, snapshot: RunSnapshot,

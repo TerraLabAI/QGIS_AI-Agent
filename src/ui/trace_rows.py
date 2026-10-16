@@ -12,13 +12,7 @@
 
 
 
-
-
-
-
 from __future__ import annotations
-
-from html import escape
 
 from qgis.PyQt.QtCore import (
     QAbstractAnimation,
@@ -29,7 +23,7 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
 )
 from qgis.PyQt.QtGui import QPainter
-from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QWidget
 
 from .cards_click import _ClickRow
 from .font_scale import scale_qss_font_px
@@ -47,7 +41,6 @@ from .style import (
     accent_color,
     qcolor,
 )
-from .widgets import break_anywhere
 
 
 GLYPH_PX = 13
@@ -247,32 +240,5 @@ def _row_layout(row: QWidget, height: int | None = None) -> QHBoxLayout:
     return lay
 
 
-
-
-
-
-class ThoughtRow(QWidget):
-
-
-
-    def __init__(self, text: str, parent=None):
-        super().__init__(parent)
-        self._full = text
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y + 2, _ROW_PAD_X, _ROW_PAD_Y + 2)
-        lay.setSpacing(0)
-        self._text = QLabel(self)
-        self._text.setObjectName("thought")
-        self._text.setStyleSheet(_SECOND_QSS)
-        self._text.setTextFormat(Qt.TextFormat.RichText)
-        self._text.setText(f'<p style="line-height:150%; margin:0">{escape(break_anywhere(text))}</p>')
-        self._text.setWordWrap(True)
-        self._text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        lay.addWidget(self._text)
-
-    def text(self) -> str:
-        return self._full
-
-
 __all__ = ["Chevron", "GLYPH_PX", "GLYPH_SLOT_PX", "HoverRow", "ROW_MIN_PX",
-           "ThoughtRow", "_LABEL_QSS", "fade_up"]
+           "_LABEL_QSS", "fade_up"]

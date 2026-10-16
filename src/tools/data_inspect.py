@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import posixpath
@@ -783,13 +784,16 @@ def _download_name(url: str, headers, head: bytes) -> tuple[str, str]:
 
 
 
-    filename = _safe_filename(posixpath.basename(parsed.path))
+
+
+
+    filename = _safe_filename(urllib.parse.unquote(posixpath.basename(parsed.path)).replace("%", "_"))
 
 
     named = _disposition_filename(headers.get("content-disposition") or "")
     if named and (not os.path.splitext(filename)[1]
                   or os.path.splitext(filename)[1].lower() in _ENDPOINT_EXTENSIONS):
-        filename = _safe_filename(named)
+        filename = _safe_filename(named.replace("%", "_"))
     ext = _extension_of_download(filename, headers, head)
     if ext and not filename.lower().endswith(ext):
         filename += ext
@@ -817,9 +821,34 @@ def _load_unpacked_raster(tmp_dir: str, url: str, paths: list, layer_name) -> di
     return loaded
 
 
+def _service_exception(filepath: str) -> str:
+
+
+
+
+
+    try:
+        if os.path.getsize(filepath) > _REASON_BYTES * 16:
+            return ""
+        with open(filepath, "rb") as handle:
+            body = handle.read(_REASON_BYTES * 16)
+    except OSError:
+        return ""
+    if not body.lstrip().startswith(b"<") or not re.search(rb"<(?:\w+:)?(?:Service)?ExceptionReport\b", body[:2048]):
+        return ""
+    found = _OWS_EXCEPTION_RE.search(body)
+    text = html.unescape(found.group(1).decode("utf-8", errors="replace")) if found else ""
+    return " ".join(text.split())[:_REASON_CHARS] or "no reason given"
+
+
 def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str, ext: str,
                    extracted_cap: int) -> dict:
 
+    refused = _service_exception(filepath)
+    if refused:
+        return _discard_download(tmp_dir, tool_error(
+            f"The service answered with an exception report, not data: {refused}",
+            "INVALID_ARGS", hint="service_exception", url=url))
     if ext == ".zip":
         try:
             with zipfile.ZipFile(filepath, "r") as zf:
@@ -1241,9 +1270,31 @@ def _inspect_local_file(path: str) -> dict:
         out.update({"import_method": "load_project", "import_arguments": {"path": path},
                     "message": "A QGIS project, not a dataset.", "load_note": coded_fact(hint="qgis_project_file")})
         return out
+    if ext in (".dxf", ".dwg"):
+
+
+
+
+        if _gdal_reads_vector(path):
+            out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
+                        "message": "A CAD drawing.", "load_note": coded_fact(hint="cad_file")})
+        else:
+            out.update({"message": "A CAD drawing this GDAL cannot read.",
+                        "load_note": coded_fact(hint="cad_unreadable_file")})
+        return out
     out["message"] = "Unknown extension."
     out["load_note"] = coded_fact(hint="unknown_extension_file")
     return out
+
+
+def _gdal_reads_vector(path: str) -> bool:
+
+    try:
+        from osgeo import gdal
+
+        return gdal.IdentifyDriverEx(path, gdal.OF_VECTOR) is not None
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _geopdf(path: str) -> dict | None:

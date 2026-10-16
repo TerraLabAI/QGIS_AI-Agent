@@ -458,7 +458,7 @@ def _field_source(layer, name: str) -> dict:
     return source
 
 
-def _expression_source(layer, text: str, context) -> dict:
+def _expression_source(text: str, context) -> dict:
     expression = QgsExpression(text)
     if expression.hasParserError():
         return tool_error(f"The expression {text[:120]!r} does not parse: {expression.parserErrorString()[:160]}",
@@ -515,12 +515,12 @@ def _open(args: dict, plan: dict) -> dict:
         request.setSubsetOfAttributes([start["index"]] + ([end["index"]] if end else []))
     else:
         context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
-        start = _expression_source(layer, plan["start_expression"], context)
+        start = _expression_source(plan["start_expression"], context)
         if "_error" in start:
             return start
         end = None
         if plan["end_expression"]:
-            end = _expression_source(layer, plan["end_expression"], context)
+            end = _expression_source(plan["end_expression"], context)
             if "_error" in end:
                 return end
         expressions = [start["expression"]] + ([end["expression"]] if end else [])

@@ -55,9 +55,13 @@ def _unique(values) -> list:
     return list(dict.fromkeys(values))
 
 
-def layer_state(layer) -> dict:
+def layer_state(layer, files: bool = True) -> dict:
 
-    from .snapshot import _sidecars, _stamp, layer_file_path
+
+
+
+
+    from .snapshot import _sidecars, _stamp, layer_file_path, source_path
 
     state: dict = {"name": _text(layer.name())}
     try:
@@ -65,11 +69,12 @@ def layer_state(layer) -> dict:
     except Exception:  # noqa: BLE001
         state["provider"] = ""
     try:
-        path = layer_file_path(layer)
+        path = layer_file_path(layer) if files else source_path(layer)
     except Exception:  # noqa: BLE001
         path = None
     if path:
         state["path"] = path
+    if path and files:
 
 
         stamps = [_stamp(name) for name in _sidecars(path)]
@@ -147,7 +152,7 @@ def backup_check(snapshot):
     return backed_up
 
 
-def watched_layer_ids(project) -> list:
+def watched_layer_ids(project, files: bool = True) -> list:
 
 
 
@@ -155,19 +160,24 @@ def watched_layer_ids(project) -> list:
 
 
 
-    from .snapshot import layer_file_path
+    from .snapshot import layer_file_path, source_path
 
+    has_file = layer_file_path if files else source_path
     ids = []
     for lid, layer in project.mapLayers().items():
         try:
-            if layer.providerType() == "memory" or layer_file_path(layer):
+            if layer.providerType() == "memory" or has_file(layer):
                 ids.append(lid)
         except Exception:  # noqa: BLE001  # nosec B112
             continue
     return ids
 
 
-def before_call(project, layer_ids, paths, snapshot=None) -> dict:
+def before_call(project, layer_ids, paths, snapshot=None, files: bool = True) -> dict:
+
+
+
+
 
 
 
@@ -180,11 +190,11 @@ def before_call(project, layer_ids, paths, snapshot=None) -> dict:
     for lid in _unique(layer_ids):
         layer = layers.get(lid)
         if layer is not None:
-            state = layer_state(layer)
-            state["backup"] = backed_up(lid, state.get("path") or "")
+            state = layer_state(layer, files)
+            state["backup"] = backed_up(lid, state.get("path") or "") if files else False
             named[lid] = state
     return {"ids": {lid: _text(layer.name()) for lid, layer in layers.items()},
-            "layers": named,
+            "layers": named, "files_read": files,
             "files": {path: {"existed": os.path.isfile(path), "backup": backed_up("", path)}
                       for path in _unique(paths)[:_items()]}}
 
@@ -210,7 +220,7 @@ def after_call(project, tool: str, args, before: dict, layer_ids, paths, ok: boo
         then = (before.get("layers") or {}).get(lid)
         if then is None or lid not in layers:
             continue
-        now = layer_state(layers[lid])
+        now = layer_state(layers[lid], before.get("files_read", True))
         item = {"id": lid, "name": now["name"], "what": "changed", "provider": now.get("provider", ""),
                 "path": now.get("path") or ""}
         if then.get("count") is not None and now.get("count") is not None and then["count"] != now["count"]:

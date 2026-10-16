@@ -268,12 +268,15 @@ def _row_extras(row: dict) -> dict:
 
 
 
-    page_url = str(row.get("page_url") or "").strip()
-    if not page_url.startswith(("https://", "http://")) or len(page_url) > 500:
-        page_url = ""
+    def _address(key: str) -> str:
+        value = str(row.get(key) or "").strip()
+        return value if value.startswith(("https://", "http://")) and len(value) <= 500 else ""
+
+
     return {"title": str(row.get("title") or "").strip()[:200],
             "data_date": data_date.clean(row.get("data_date")),
-            "page_url": page_url}
+            "page_url": _address("page_url"), "date_note": str(row.get("date_note") or "").strip()[:120],
+            "licence_url": _address("licence_url")}
 
 
 def set_source_licences(rows) -> None:
@@ -420,7 +423,9 @@ def names_host(host: str) -> bool:
 def _answer(row: dict) -> dict:
 
     return {"licence": row["licence"], "attribution": row["attribution"], "title": row.get("title", ""),
-            "data_date": row.get("data_date", ""), "page_url": row.get("page_url", "")}
+            "data_date": row.get("data_date", ""), "page_url": row.get("page_url", ""),
+            "date_note": row.get("date_note", ""),
+            "licence_url": row.get("licence_url", "")}
 
 
 def apply_session(session: dict) -> None:

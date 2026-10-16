@@ -498,7 +498,6 @@ class CheckpointSheet(QFrame):
         self._rows: list[_VersionRow] = []
         self._focus = -1
         self._running = False
-        self._running_request = ""
 
         self._outer = QVBoxLayout(self)
         self._outer.setContentsMargins(6, 6, 6, 6)
@@ -561,10 +560,9 @@ class CheckpointSheet(QFrame):
         if self.isVisible():
             self._rebuild()
 
-    def set_running(self, running: bool, request: str = "") -> None:
+    def set_running(self, running: bool) -> None:
 
         self._running = bool(running)
-        self._running_request = _one_line(request) if running else ""
         self._stale = True
         if self.isVisible():
             self._rebuild()
@@ -765,7 +763,6 @@ class CheckpointSheet(QFrame):
             else Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
     def _natural_height(self) -> int:
-
 
 
 

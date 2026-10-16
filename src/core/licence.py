@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import catalog, data_date
+from . import browser_connections, catalog, data_date
 from .logger import log_warning
 from .provenance import plain_source
 
@@ -157,6 +157,8 @@ def date_text(value) -> str:
     kind, first, last = parsed
     if kind == data_date.LIVE:
         return tr("Live, loaded {day}").format(day=_locale_date(first, day_pattern()))
+    if kind == data_date.SINCE:
+        return tr("Since {year}, live").format(year=first.year)
     if kind == "year":
         return str(first.year)
     if kind == "span":
@@ -208,7 +210,7 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
 
 
 
-    from qgis.core import QgsAbstractMetadataBase, QgsDateTimeRange
+    from qgis.core import QgsDateTimeRange
     from qgis.PyQt.QtCore import QDate, QDateTime, QTime
 
     metadata = layer.metadata()
@@ -220,13 +222,8 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
         changed = True
     provider = provider_of(attribution, page_url)
     if provider:
-        contacts = list(metadata.contacts() or [])
-        if not any(str(contact.organization or "") == provider for contact in contacts):
-            contact = QgsAbstractMetadataBase.Contact()
-            contact.organization = provider
-            contact.role = "distributor"
-            metadata.setContacts(contacts + [contact])
-            changed = True
+
+        changed = _add_contact(metadata, provider, "originator") or changed
     parsed = data_date.parse(facts.get("data_date"))
     if parsed is not None:
         extent = metadata.extent()
@@ -238,32 +235,213 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
             metadata.setExtent(extent)
             changed = True
     if page_url:
-        links = list(metadata.links() or [])
-        if not any(str(link.url or "") == page_url for link in links):
-            link = QgsAbstractMetadataBase.Link()
-            link.name = tr("Dataset page and licence terms")
-            link.type = "WWW:LINK"
-            link.url = page_url
-            metadata.setLinks(links + [link])
-            changed = True
+        changed = _add_link(metadata, tr("Dataset page and licence terms"), page_url) or changed
     shown_licence = licence if licence and licence != UNKNOWN else ""
-    head = _SEP.join(part for part in (provider, title, date_text(facts.get("data_date")), shown_licence) if part)
+    when = date_text(facts.get("data_date"))
+    note = str(facts.get("date_note") or "").strip()
+    if note:
+
+        when = f"{when} ({note})"
+    head = _SEP.join(part for part in (provider, title, when, shown_licence) if part)
     changed = _prepend_head(metadata, head) or changed
     if changed:
         layer.setMetadata(metadata)
     _tooltip_on_older_qgis(layer, head)
 
 
-def write_own_source(layer, address: str) -> None:
+def where_from(address: str) -> str:
 
-    host = ""
     if address.startswith(("http://", "https://")):
         host = urlsplit(address).hostname or ""
-    head = tr("Your own source") + _SEP + host if host else tr("Your own file") if address else tr("Your own source")
+        return host[4:] if host.startswith("www.") else host
+    return plain_source(address).split("|", 1)[0] if address else ""
+
+
+def write_unverified(layer, address: str) -> None:
+
+    place = where_from(address)
+    head = tr("Source not verified") + (_SEP + place if place else "")
     metadata = layer.metadata()
     if _prepend_head(metadata, head):
         layer.setMetadata(metadata)
     _tooltip_on_older_qgis(layer, head)
+
+
+PROCESSOR = "TerraLab AI Agent"
+
+
+_MODIFIED = (("Copernicus Sentinel data", "Contains modified Copernicus Sentinel data"),)
+
+
+def modified_rights(rights) -> list:
+
+    out = []
+    for text in rights or ():
+        text = str(text or "").strip()
+        for plain, modified in _MODIFIED:
+            if text.startswith(plain) and "modified" not in text.lower():
+                text = modified + text[len(plain):]
+        if text and text not in out:
+            out.append(text)
+    return out
+
+
+def _qdatetime(day):
+    from qgis.PyQt.QtCore import QDate, QDateTime, QTime
+
+    return QDateTime(QDate(day.year, day.month, day.day), QTime(0, 0, 0))
+
+
+def _set_date(metadata, kind: str, day) -> bool:
+
+    try:
+        from qgis.core import Qgis
+
+        types = getattr(Qgis, "MetadataDateType", None)
+        if types is None or not hasattr(metadata, "setDateTime"):
+            return False
+        which = getattr(types, kind)
+        current = metadata.dateTime(which)
+        if current is not None and current.isValid():
+            return False
+        metadata.setDateTime(which, _qdatetime(day))
+        return True
+    except Exception:  # noqa: BLE001  # nosec B110
+        return False
+
+
+def _add_contact(metadata, organisation: str, role: str) -> bool:
+    from qgis.core import QgsAbstractMetadataBase
+
+    contacts = list(metadata.contacts() or [])
+    if not organisation or any(str(c.organization or "") == organisation and str(c.role or "") == role
+                               for c in contacts):
+        return False
+    contact = QgsAbstractMetadataBase.Contact()
+    contact.organization = organisation
+    contact.role = role
+    metadata.setContacts(contacts + [contact])
+    return True
+
+
+def _add_link(metadata, name: str, url: str) -> bool:
+    from qgis.core import QgsAbstractMetadataBase
+
+    links = list(metadata.links() or [])
+    if not url or any(str(link.url or "") == url for link in links):
+        return False
+    link = QgsAbstractMetadataBase.Link()
+    link.name = name
+    link.type = "WWW:LINK"
+    link.url = url
+    metadata.setLinks(links + [link])
+    return True
+
+
+def write_record(layer, data_date_value: str, address: str, derived: bool) -> None:
+
+
+
+
+
+
+
+
+    from datetime import date
+
+    metadata = layer.metadata()
+    changed = False
+    if not str(metadata.identifier() or "").strip():
+        metadata.setIdentifier(layer.id())
+        changed = True
+    if not str(metadata.type() or "").strip():
+        metadata.setType("dataset")
+        changed = True
+    web = address.startswith(("http://", "https://"))
+    host = where_from(address) if web else ""
+    if host:
+        changed = _add_contact(metadata, host, "distributor") or changed
+    if derived:
+        changed = _add_contact(metadata, PROCESSOR, "processor") or changed
+    parsed = data_date.parse(data_date_value)
+    if parsed is not None and parsed[0] not in (data_date.LIVE, data_date.SINCE):
+        changed = _set_date(metadata, "Published", parsed[1]) or changed
+    elif parsed is not None:
+        changed = _set_date(metadata, "Revised", date.today()) or changed
+    if host:
+        line = tr("Accessed {day} via {host}").format(day=date.today().isoformat(), host=host)
+        if line not in list(metadata.history() or []):
+            metadata.addHistoryItem(line)
+            changed = True
+        changed = _add_link(metadata, tr("Original address"), plain_source(address)) or changed
+    if changed:
+        layer.setMetadata(metadata)
+
+
+def parent_facts(layer) -> dict:
+
+
+
+
+
+
+    metadata = layer.metadata()
+    title = str(metadata.title() or "").strip() or str(layer.name() or "")
+    rights = [str(text).strip() for text in metadata.rights() if str(text).strip()]
+    attribution = layer_attribution(layer)
+    if attribution and attribution not in rights:
+        rights.append(attribution)
+    provider = provider_of(rights[0] if rights else "")
+    extent = ()
+    temporal = list(metadata.extent().temporalExtents() or [])
+    if temporal and temporal[0].begin().isValid():
+        extent = (temporal[0].begin().date().toString("yyyy-MM-dd"), temporal[0].end().date().toString("yyyy-MM-dd"))
+    year = data_date.name_label(data_date.from_range(*extent)) if extent else ""
+    inside = ", ".join(part for part in (provider, year) if part)
+    return {"id": str(metadata.identifier() or "").strip() or layer.id(),
+            "label": f"{title} ({inside})" if inside else title,
+            "licences": [str(text).strip() for text in metadata.licenses() if str(text).strip()],
+            "rights": rights,
+            "links": [(str(link.name or ""), str(link.url or "")) for link in metadata.links() or []
+                      if str(link.url or "").startswith(("http://", "https://"))],
+            "extent": extent}
+
+
+def write_derived(layer, parents: list) -> None:
+
+
+
+
+
+
+    try:
+        from qgis.core import QgsDateTimeRange
+        from qgis.PyQt.QtCore import QDateTime
+
+        if not parents:
+            return
+        metadata = layer.metadata()
+        history = list(metadata.history() or [])
+        for parent in parents:
+            line = tr("Derived from: {label}").format(label=parent["label"])
+            if line not in history:
+                metadata.addHistoryItem(line)
+        if not str(metadata.parentIdentifier() or "").strip():
+            metadata.setParentIdentifier(parents[0]["id"])
+        for parent in parents:
+            for name, url in parent.get("links") or ():
+                _add_link(metadata, name, url)
+        extent = metadata.extent()
+        dated = next((parent["extent"] for parent in parents if parent.get("extent")), ())
+        if dated and not extent.temporalExtents():
+            stamp = "yyyy-MM-ddTHH:mm:ss"
+            extent.setTemporalExtents([QgsDateTimeRange(QDateTime.fromString(dated[0] + "T00:00:00", stamp),
+                                                        QDateTime.fromString(dated[1] + "T23:59:59", stamp))])
+            metadata.setExtent(extent)
+        _add_contact(metadata, PROCESSOR, "processor")
+        layer.setMetadata(metadata)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Lineage not written on a layer: {exc}")
 
 
 def dated_name(layer, value) -> str:
@@ -277,18 +455,92 @@ def dated_name(layer, value) -> str:
     return renamed
 
 
-def literal_label_text(text) -> str:
+def credit_line(layer) -> str:
 
 
 
 
 
 
+    metadata = layer.metadata()
+    text = layer_attribution(layer) or next(
+        (str(entry).strip() for entry in metadata.rights() if str(entry).strip()), "")
+    if not text:
+        return ""
+    temporal = list(metadata.extent().temporalExtents() or [])
+    year = ""
+    if temporal and temporal[0].begin().isValid():
+        year = data_date.name_label(data_date.from_range(temporal[0].begin().date().toString("yyyy-MM-dd"),
+                                                         temporal[0].end().date().toString("yyyy-MM-dd")))
+    terms = next((str(entry).strip() for entry in metadata.licenses()
+                  if str(entry).strip() and not str(entry).strip().startswith(("http://", "https://"))), "")
+    line = text.rstrip(" .;")
+    if year and year not in line:
+        line += f" ({year})"
+    if terms and terms.lower() not in line.lower():
+
+        short = re.split(r"[(:;]", terms, maxsplit=1)[0].strip(" ,.") or terms
+        line += f", {short[:80]}"
+    return line
 
 
-    text = str(text or "")
-    text = text.replace("[%", "[% '[%' %]")
-    return text.replace("$CURRENT_DATE", "$[% 'CURRENT_DATE' %]")
+def _record_parts(layer) -> dict:
+
+    metadata = layer.metadata()
+    abstract = str(metadata.abstract() or "")
+    licences = [str(text).strip() for text in metadata.licenses()
+                if str(text).strip() and not str(text).strip().startswith(("http://", "https://"))]
+    credit = layer_attribution(layer) or next((str(t).strip() for t in metadata.rights() if str(t).strip()), "")
+    producer = next((str(c.organization or "").strip() for c in metadata.contacts() or []
+                     if str(c.role or "") == "originator" and str(c.organization or "").strip()), "")
+    temporal = list(metadata.extent().temporalExtents() or [])
+    when = ""
+    if temporal and temporal[0].begin().isValid():
+        when = data_date.from_range(temporal[0].begin().date().toString("yyyy-MM-dd"),
+                                    temporal[0].end().date().toString("yyyy-MM-dd"))
+    return {"metadata": metadata, "abstract": abstract, "licence": licences[0] if licences else "",
+            "credit": credit, "provider": producer or provider_of(credit), "when": when}
+
+
+def source_line(layer) -> str:
+
+    parts = _record_parts(layer)
+    head = parts["abstract"].split("\n", 1)[0].strip()
+    if head.startswith(tr("Source not verified")):
+        return head
+    if not (parts["provider"] or parts["licence"]):
+        return ""
+
+    live = tr("Live, loaded {day}").split("{", 1)[0]
+    since = tr("Since {year}, live").split("{", 1)[0]
+    pieces = head.split(_SEP)
+    year = next((tr("Live") if piece.startswith(live) else piece for piece in pieces
+                 if (live and piece.startswith(live)) or (since and piece.startswith(since))), "")
+    year = year or data_date.name_label(parts["when"])
+    return _SEP.join(part for part in (parts["provider"], year or tr("Date unknown"), parts["licence"]) if part)
+
+
+def source_details(layer) -> dict:
+
+    parts = _record_parts(layer)
+    metadata = parts["metadata"]
+    history = [str(line) for line in metadata.history() or [] if str(line).strip()]
+    derived_mark = tr("Derived from: {label}").split("{", 1)[0]
+    accessed_mark = tr("Accessed {day} via {host}").split("{", 1)[0]
+    parents = [line[len(derived_mark):] for line in history if line.startswith(derived_mark)]
+    loaded = next(
+        (line[len(accessed_mark):].split(" ", 1)[0] for line in history if line.startswith(accessed_mark)), "")
+    if not loaded:
+        loaded = next((line[:10] for line in history if re.match(r"^\d{4}-\d{2}-\d{2}", line)), "")
+    steps = [line for line in history if not line.startswith((derived_mark, accessed_mark))][-5:]
+    page = next((str(link.url or "") for link in metadata.links() or []
+                 if str(link.url or "").startswith(("http://", "https://"))
+                 and str(link.name or "") != tr("Original address")), "")
+    if not page:
+        page = next((str(link.url or "") for link in metadata.links() or []
+                     if str(link.url or "").startswith(("http://", "https://"))), "")
+    return {"title": str(metadata.title() or "").strip(), "licence": parts["licence"], "credit": parts["credit"],
+            "loaded": loaded, "steps": steps, "derived_from": parents, "page_url": page}
 
 
 def source_of(layer) -> tuple[str, str]:
@@ -335,6 +587,9 @@ def _entry_for(result, layer_id: str, name: str) -> dict | None:
     rows = result.get("layers")
     if isinstance(rows, list):
         candidates.extend(row for row in rows if isinstance(row, dict))
+    if isinstance(result.get("layer"), dict):
+
+        candidates.append(result["layer"])
     for entry in candidates:
         if entry.get("layer_id") == layer_id:
             return entry
@@ -383,7 +638,79 @@ def _file_metadata(layer) -> None:
         log_warning(f"Metadata beside the layer's file not read: {exc}")
 
 
-def credit_added(layers, result, tool: str = "", args=None) -> None:
+def _fallback_row(facts) -> dict | None:
+
+
+
+
+
+
+    if not isinstance(facts, dict):
+        return None
+    row = {"licence": str(facts.get("licence") or facts.get("license") or "").strip()[:300],
+           "attribution": str(facts.get("attribution") or "").strip()[:500],
+           **catalog._row_extras(facts)}  # noqa: SLF001
+    return row if any(row.values()) else None
+
+
+def _code_names(code) -> set:
+
+    import ast
+
+    try:
+        tree = ast.parse(str(code or ""))
+    except (SyntaxError, ValueError):
+        return set()
+    return {node.value for node in ast.walk(tree) if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+
+
+def _project_layers(skip) -> tuple[dict, dict]:
+    from qgis.core import QgsProject
+
+    layers = {lid: other for lid, other in QgsProject.instance().mapLayers().items() if lid not in skip}
+    by_name = {}
+    for other in layers.values():
+        by_name.setdefault(str(other.name()), other)
+    return layers, by_name
+
+
+def code_layers(args, skip) -> list:
+
+
+
+
+
+
+    if not isinstance(args, dict) or not args.get("code"):
+        return []
+    layers, by_name = _project_layers(skip)
+    names = []
+    for item in sorted(_code_names(args["code"])):
+        other = layers.get(item) or by_name.get(item)
+        if other is not None and str(other.name()) not in names:
+            names.append(str(other.name()))
+    return names[:20]
+
+
+def parents_of(args, tool: str, skip) -> list:
+
+
+    if not isinstance(args, dict):
+        return []
+    layers, by_name = _project_layers(skip)
+    wanted = []
+    for key, value in args.items():
+        if key != "code" and _layer_parameter(key, tool):
+            wanted.extend(item for item in (value if isinstance(value, list) else [value]) if isinstance(item, str))
+    found = []
+    for item in wanted:
+        other = layers.get(item) or by_name.get(item)
+        if other is not None and other not in found:
+            found.append(other)
+    return found[:20]
+
+
+def credit_added(layers, result, tool: str = "", args=None, facts=None) -> None:
 
 
 
@@ -396,6 +723,11 @@ def credit_added(layers, result, tool: str = "", args=None) -> None:
 
 
 
+
+
+
+
+    added_ids = {layer.id() for layer in layers or () if layer is not None}
     for layer in layers or ():
         if layer is None:
             continue
@@ -431,6 +763,9 @@ def credit_added(layers, result, tool: str = "", args=None) -> None:
                 if value:
                     row = (catalog.source_licence(prefix + value) if prefix == "stac:"
                            else catalog.theme_licence(prefix + value))
+            if row is None and entry is not None:
+                row = _fallback_row(facts) or next(
+                    (found for found in (_fallback_row(h.get("source_facts")) for h in holders) if found), None)
             if row is not None:
                 row_licence = str(row.get("licence") or "").strip()
                 if not licence and not attribution:
@@ -442,7 +777,17 @@ def credit_added(layers, result, tool: str = "", args=None) -> None:
 
                     licence = row_licence
                     attribution = attribution or str(row.get("attribution") or "").strip()
+            parents = []
+            stamped = bool(layer.customProperty(ORIGIN_PROPERTY, False))
+            if not licence and not attribution and row is None and not stamped:
+
+
+                parents = [parent_facts(other) for other in parents_of(args, tool, added_ids)]
+                licence = [text for parent in parents for text in parent["licences"]]
+                attribution = modified_rights([text for parent in parents for text in parent["rights"]])
             credit = credit_layer(layer, licence, attribution)
+            if row is not None and row.get("licence_url") and credit["licence"] == str(row.get("licence") or ""):
+                _licence_page(layer, str(row["licence_url"]))
             failed = not isinstance(result, dict) or "_error" in result
             if entry is not None and not failed:
                 entry.setdefault("licence", credit["licence"])
@@ -455,20 +800,176 @@ def credit_added(layers, result, tool: str = "", args=None) -> None:
 
 
             own = holders if entry is not None else []
-            _sheet_and_name(layer, name, row, own, credit, tool, _address_of(holders, url))
+            address = _address_of(holders, url)
+            derived = bool(parents) or stamped
+            dated = _sheet_and_name(layer, name, row, own, credit, tool, address, derived)
+            write_record(layer, dated, address, derived)
+            write_derived(layer, parents)
+            if isinstance(args, dict) and args.get("code") and credit["licence"] == UNKNOWN \
+                    and not credit.get("attribution") and not derived:
+
+
+                _made_by_code(layer, code_layers(args, added_ids))
+            write_reprojection(layer)
+            if tool and entry is not None:
+
+                browser_connections.save_service(layer, holders, provider_of(credit.get("attribution", "")))
             write_origin(layer, tool, args)
+            if not derived:
+                note_project_source(layer)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Licence and attribution not written on a layer: {exc}")
 
 
-def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: str, address: str) -> None:
+def _made_by_code(layer, named: list) -> None:
+
+
+    try:
+        head = tr("Source not verified") + _SEP + tr("made by code")
+        metadata = layer.metadata()
+        line = tr("Made by code") + (": " + tr("project layers the code names: {names}").format(
+            names=", ".join(named)) if named else "")
+
+        changed = (not str(metadata.abstract() or "").startswith(tr("Source not verified"))
+                   and _prepend_head(metadata, head))
+        if line not in list(metadata.history() or []):
+            metadata.addHistoryItem(line)
+            changed = True
+        if changed:
+            layer.setMetadata(metadata)
+        _tooltip_on_older_qgis(layer, head)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Code origin not written on a layer: {exc}")
+
+
+def write_reprojection(layer) -> None:
+
+
+
+
+
+
+    try:
+        from qgis.core import QgsCoordinateTransform, QgsProject
+
+        metadata = layer.metadata()
+        parent_id = str(metadata.parentIdentifier() or "")
+        project = QgsProject.instance()
+        parent = project.mapLayer(parent_id) if parent_id else None
+        if parent is None:
+            return
+        source, target = parent.crs(), layer.crs()
+        if not (source.isValid() and target.isValid()) or source == target:
+            return
+        transform = QgsCoordinateTransform(source, target, project.transformContext())
+        extent = parent.extent()
+        if not extent.isEmpty():
+            transform.transform(extent.center())
+        operation = str(transform.coordinateOperation() or "")
+        grids = []
+        try:
+            details = transform.instantiatedCoordinateOperationDetails()
+            operation = operation or str(details.proj or details.name or "")
+            grids = [str(grid.shortName or grid.fullName) for grid in details.grids]
+        except (AttributeError, RuntimeError):
+            pass
+        line = tr("Reprojected from {source} to {target}; operation: {operation}").format(
+            source=source.authid() or source.description(), target=target.authid() or target.description(),
+            operation=operation or tr("QGIS default operation"))
+        if grids:
+            line += "; " + tr("grids: {grids}").format(grids=", ".join(grids))
+        if line not in list(metadata.history() or []):
+            metadata.addHistoryItem(line)
+            layer.setMetadata(metadata)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Reprojection not written on a layer: {exc}")
+
+
+_PROJECT_MARK = "Data sources (AI Agent by TerraLab):"
+_RUN_LAYERS: list = []
+
+
+def note_project_source(layer) -> None:
+
+
+
+
+
+    try:
+        from qgis.core import QgsProject
+
+        line = source_line(layer)
+        if not line or line.startswith(tr("Source not verified")):
+            return
+        title = str(layer.metadata().title() or "").strip() or str(layer.name() or "")
+        parts = line.split(_SEP)
+        text = _SEP.join([parts[0], title, *parts[1:]]) if title and title not in line else line
+        _RUN_LAYERS.append(str(layer.name() or ""))
+        project = QgsProject.instance()
+        metadata = project.metadata()
+        abstract = str(metadata.abstract() or "")
+        own, mark, block = abstract.partition(_PROJECT_MARK)
+        lines = [row[2:] for row in block.strip().splitlines() if row.startswith("- ")] if mark else []
+        if text in lines:
+            return
+        lines.append(text)
+        summary = _PROJECT_MARK + "\n" + "\n".join(f"- {row}" for row in lines)
+        metadata.setAbstract(f"{own.rstrip()}\n\n{summary}" if own.strip() else summary)
+        project.setMetadata(metadata)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Project sources summary not written: {exc}")
+
+
+def note_project_run(run_id: str) -> None:
+
+    try:
+        from datetime import datetime, timezone
+
+        from qgis.core import QgsProject
+
+        if not _RUN_LAYERS:
+            return
+        names = list(dict.fromkeys(_RUN_LAYERS))
+        _RUN_LAYERS.clear()
+        project = QgsProject.instance()
+        metadata = project.metadata()
+        metadata.addHistoryItem(tr("{day} UTC, AI Agent run {run}: added {layers}").format(
+            day=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"), run=str(run_id)[:8],
+            layers=", ".join(names[:20]) + (" ..." if len(names) > 20 else "")))
+        project.setMetadata(metadata)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Project history not written: {exc}")
+
+
+def _licence_page(layer, url: str) -> None:
+
+    metadata = layer.metadata()
+    licences = [str(text) for text in metadata.licenses()]
+    if url not in licences:
+        metadata.setLicenses(licences + [url])
+        layer.setMetadata(metadata)
+
+
+def _loaded_date(holders: list) -> str:
+
+    loaded = data_date.clean(next((h.get("data_date") for h in holders if h.get("data_date")), ""))
+    if not loaded:
+        release = next((str(h.get("release")) for h in holders if h.get("release")), "")
+        loaded = data_date.from_range(release[:10]) if release else ""
+    return loaded
+
+
+def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: str, address: str,
+                    derived: bool = False) -> str:
 
     try:
         row = row or {}
-        loaded = data_date.clean(next((h.get("data_date") for h in holders if h.get("data_date")), ""))
+        loaded = _loaded_date(holders)
         facts = {"title": str(row.get("title") or ""), "data_date": loaded or str(row.get("data_date") or ""),
-                 "page_url": str(row.get("page_url") or "")}
-        if any(facts.values()):
+                 "page_url": str(row.get("page_url") or ""),
+                 "date_note": "" if loaded else str(row.get("date_note") or "")}
+        known = credit["licence"] != UNKNOWN or bool(credit.get("attribution"))
+        if any(facts.values()) or (known and not derived):
             write_source_sheet(layer, facts, credit["licence"], credit.get("attribution", ""))
             renamed = dated_name(layer, facts["data_date"])
             if renamed:
@@ -479,10 +980,14 @@ def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: st
                             holder[key] = renamed
             if holders:
                 holders[0].setdefault("data_date", facts["data_date"] or UNKNOWN)
-        elif tool in LOADER_TOOLS and not row and credit["licence"] == UNKNOWN and not credit.get("attribution"):
-            write_own_source(layer, address)
+        elif not known and not row and not derived and (address or tool in LOADER_TOOLS):
+            write_unverified(layer, address)
+            if holders:
+                holders[0]["source_verified"] = False
+        return facts["data_date"]
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Source sheet not written on a layer: {exc}")
+        return ""
 
 
 

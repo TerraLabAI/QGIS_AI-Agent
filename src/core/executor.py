@@ -32,6 +32,7 @@ from .executor_execute import _ExecutorExecute
 from .executor_guards import _ExecutorGuards
 from .executor_hold import _ExecutorHold
 from .executor_idempotency import IdempotencyTable
+from .executor_install_wait import _ExecutorInstallWait
 from .executor_runs import _ExecutorRuns
 from .executor_undo import _ExecutorUndo
 from .snapshot import RunSnapshot
@@ -41,7 +42,7 @@ from .watchdog import MainThreadWatchdog
 __all__ = ["ToolExecutor", "background"]
 
 
-class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, _ExecutorExecute,
+class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, _ExecutorExecute,
                    _ExecutorDeliver, _ExecutorGuards, _ExecutorHold, QObject):
     tool_started = pyqtSignal(object)
 
@@ -56,10 +57,13 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
 
     question_answered_elsewhere = pyqtSignal(str, str)
+    install_wait_needed = pyqtSignal(str, str, str)
     project_changed = pyqtSignal(int)
 
 
     stop_requested = pyqtSignal(str)
+
+    call_progress = pyqtSignal(str, object, object)
 
     def __init__(self, registry, session, settings, parent=None):
         super().__init__(parent)
@@ -148,7 +152,6 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
 
 
-
         self._run_allowed: dict[str, set[str]] = {}
 
 
@@ -165,7 +168,6 @@ class ToolExecutor(_ExecutorRuns, _ExecutorCalls, _ExecutorCode, _ExecutorUndo, 
 
         self._held: dict[str, tuple] = {}
         self._hold_listening = False
-        self.last_snapshot: RunSnapshot | None = None
 
 
         self._after_pending: tuple | None = None

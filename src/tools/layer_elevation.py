@@ -27,8 +27,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import math
@@ -59,7 +57,7 @@ from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
 from .query_tools import STATS_CHUNK
-from .style_3d import material_access, paint, polygon_symbol, vector_renderer
+from .style_3d import SYMBOL_CLASSES, kept_renderer, line_width_px, material_access, paint, painted_renderer
 
 _RASTER_MODES = {"surface": "RepresentsElevationSurface", "fixed_range": "FixedElevationRange",
                  "range_per_band": "FixedRangePerBand"}
@@ -68,7 +66,8 @@ _MESH_MODES = {"from_vertices": "FromVertices", "fixed_range": "FixedElevationRa
 _MODES = ("surface", "fixed_range", "range_per_band", "from_vertices", "range_per_group", "off")
 _CLAMPING = {"terrain": "Terrain", "relative": "Relative", "absolute": "Absolute"}
 _BINDING = {"vertex": "Vertex", "centroid": "Centroid"}
-_VECTOR_KEYS = ("clamping", "binding", "z_from", "extrusion", "extrusion_height", "height_from", "default_height")
+_VECTOR_KEYS = ("clamping", "binding", "z_from", "extrusion", "extrusion_height", "height_from", "default_height",
+                "size")
 _LEVEL_KEYS = ("mode", "band", "elevation_range", "level_ranges")
 _POINTCLOUD_TOOL = "configure_pointcloud_style"
 _RANGE = {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
@@ -104,6 +103,7 @@ def register_layer_elevation_tools(registry: ToolRegistry):
                 "extrusion_height": {"type": "number", "exclusiveMinimum": 0},
                 "height_from": {"type": "string", "minLength": 1},
                 "default_height": {"type": "number", "exclusiveMinimum": 0},
+                "size": {"type": "number", "exclusiveMinimum": 0},
             },
             "required": ["layer_name"],
 
@@ -112,22 +112,6 @@ def register_layer_elevation_tools(registry: ToolRegistry):
         },
         handler=_set_layer_elevation,
         background=True,
-    ))
-    registry.register(Tool(
-        name="configure_elevation_controller",
-        danger="write",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Filter the map by elevation"),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "elevation_range": _RANGE,
-                "step": {"type": "number", "exclusiveMinimum": 0},
-                "invert": {"type": "boolean"},
-                "current_range": _RANGE,
-                "enabled": {"type": "boolean"},
-            },
-        },
-        handler=_configure_elevation_controller,
     ))
 
 
@@ -194,7 +178,7 @@ def _plan(args: dict) -> dict:
         return tool_error(f"mode {plan['mode']!r} is not one of {', '.join(_MODES)}.", "INVALID_ARGS",
                           "Rasters take surface, fixed_range, range_per_band or off; meshes from_vertices, "
                           "fixed_range or range_per_group.")
-    for key in ("z_offset", "z_scale", "extrusion_height", "default_height"):
+    for key in ("z_offset", "z_scale", "extrusion_height", "default_height", "size"):
         if args.get(key) is not None:
             try:
                 value = float(args[key])
@@ -310,10 +294,9 @@ def _open(plan: dict) -> dict:
         return _open_raster(layer, props, plan, state)
     if kind == "mesh":
         return _open_mesh(layer, props, plan, state)
-    polygon = _member(Qgis, "GeometryType", "Polygon")
-    if polygon is None:
-        polygon = enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
-    state["polygon"] = layer.geometryType() == polygon
+    state["geometry"] = _geometry_kind(layer)
+    if state["geometry"] == "polygon" and "size" in plan["given"]:
+        state["not_applied"]["size"] = "point or line only"
     state["has_z"] = QgsWkbTypes.hasZ(layer.wkbType())
     context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
     for key, positive in (("height_from", True), ("z_from", False)):
@@ -339,6 +322,18 @@ def _open(plan: dict) -> dict:
     state.update(context=context, features=layer.getFeatures(request), total=layer.featureCount(),
                  read=0, cap=int(limits.current("MAX_FEATURES_MATERIALISED")))
     return state
+
+
+def _geometry_kind(layer) -> str | None:
+
+    for kind, member, before in (("point", "Point", "PointGeometry"), ("line", "Line", "LineGeometry"),
+                                 ("polygon", "Polygon", "PolygonGeometry")):
+        found = _member(Qgis, "GeometryType", member)
+        if found is None:
+            found = enum_member(QgsWkbTypes, "GeometryType", before, None)
+        if found is not None and layer.geometryType() == found:
+            return kind
+    return None
 
 
 def _version_error(what: str) -> dict:
@@ -384,7 +379,7 @@ def _open_mesh(layer, props, plan: dict, state: dict) -> dict:
                           "Meshes take from_vertices, fixed_range or range_per_group.")
     if plan.get("band") is not None:
         return tool_error("band applies to a raster; a mesh has dataset groups.", "INVALID_ARGS",
-                          "level_ranges takes the dataset group indices configure_mesh_layer lists.")
+                          "level_ranges takes the dataset group indices of the mesh, numbered from 0.")
     if mode is not None and not hasattr(props, "setMode"):
         return _version_error(f"A mesh {mode.replace('_', ' ')}")
     if mode == "fixed_range" and not plan.get("elevation_range"):
@@ -401,7 +396,7 @@ def _open_mesh(layer, props, plan: dict, state: dict) -> dict:
         wrong = [index for index, _, _ in levels if not 0 <= index < count]
         if wrong:
             return tool_error(f"Dataset group {wrong[0]} is not a group of {layer.name()} (0 to {count - 1}).",
-                              "INVALID_ARGS", "configure_mesh_layer action inspect lists the group indices.")
+                              "INVALID_ARGS")
     state["mode"] = mode
     return state
 
@@ -498,7 +493,7 @@ def _apply(state: dict, decided: dict) -> dict:
         if plan.get("z_scale") is not None:
             props.setZScale(plan["z_scale"])
         if state["kind"] == "raster":
-            _apply_raster(layer, props, plan, state["mode"])
+            _apply_raster(props, plan, state["mode"])
         elif state["kind"] == "mesh":
             _apply_mesh(props, plan, state["mode"])
         else:
@@ -516,7 +511,7 @@ def _apply(state: dict, decided: dict) -> dict:
     return result
 
 
-def _apply_raster(layer, props, plan: dict, mode: str) -> None:
+def _apply_raster(props, plan: dict, mode: str) -> None:
     if mode == "off":
         props.setEnabled(False)
         return
@@ -579,13 +574,19 @@ def _apply_vector(layer, props, plan: dict, state: dict, decided: dict) -> None:
         elif plan.get("extrusion_height") is not None or not extrusion:
             collection.setProperty(_property_key("ExtrusionHeight"), QgsProperty())
     props.setDataDefinedProperties(collection)
-    if state["polygon"] and (extrusion or polygon_symbol(layer) is not None):
-        decided["renderer_3d"] = _set_renderer_3d(layer, props, extrusion is not None)
-    elif extrusion and not state["polygon"]:
-        decided["notes"].append("The 3D view extrudes polygons only; the elevation profile uses the extrusion.")
+    kind = state["geometry"]
+    if kind is None:
+        return
 
 
-def _set_renderer_3d(layer, props, extrusion_asked: bool) -> dict | str:
+    if kept_renderer(layer, kind)[0] is not None or extrusion or (kind != "polygon" and (
+            plan.get("size") is not None or not hasattr(layer, "renderer3D") or layer.renderer3D() is None)):
+        decided["renderer_3d"] = _set_renderer_3d(layer, props, kind, extrusion is not None, plan.get("size"))
+
+
+def _set_renderer_3d(layer, props, kind: str, extrusion_asked: bool, size: float | None) -> dict | str:
+
+
 
 
 
@@ -595,52 +596,150 @@ def _set_renderer_3d(layer, props, extrusion_asked: bool) -> dict | str:
 
 
     try:
-        from qgis._3d import QgsPolygon3DSymbol, QgsVectorLayer3DRenderer
+        import qgis._3d as q3d
     except ImportError:
         return "unavailable: this QGIS build has no 3D support"
-    height_key = _symbol_key("ExtrusionHeight")
+    old, symbols = kept_renderer(layer, kind)
 
-    old = vector_renderer(layer).clone() if polygon_symbol(layer) is not None else None
+    new = getattr(q3d, SYMBOL_CLASSES[kind])() if old is None else None
+    out = {"symbol": kind}
+    for index, symbol in enumerate(symbols or [new]):
+        facts = _follow_layer(symbol, layer, props, kind, old is None or extrusion_asked, size,
+                              keep_extrusion=old is not None and not extrusion_asked)
+        if index == 0:
+            out.update(facts)
+    painted = None
     if old is not None:
-        from qgis.PyQt import sip
+        kept = material_access(symbols[0])[0]()
+        color = kept.diffuse() if hasattr(kept, "diffuse") else None
+        layer.setRenderer3D(old)
+    elif kind == "polygon":
 
-
-        symbol = sip.cast(old.symbol(), QgsPolygon3DSymbol)
-        kept_height = symbol.extrusionHeight()
-        kept_expression = _property_of(symbol, height_key)
+        painted, color = paint(new, layer), None
+        layer.setRenderer3D(q3d.QgsVectorLayer3DRenderer(new))
     else:
-        symbol = QgsPolygon3DSymbol()
+        renderer, painted = painted_renderer(new, layer)
+        color = None
+        layer.setRenderer3D(renderer)
+    out["kept_style"] = old is not None
+    if color is not None:
+        out["color"] = color.name()
+    if painted:
+        out.update(painted)
+    return out
+
+
+def _follow_layer(symbol, layer, props, kind: str, reshape: bool, size: float | None,
+                  keep_extrusion: bool) -> dict:
+
+    height_key = _symbol_key("ExtrusionHeight")
+    if kind != "point":
+        kept_height, kept_expression = symbol.extrusionHeight(), _property_of(symbol, height_key)
     symbol.setDefaultPropertiesFromLayer(layer)
     collection = QgsPropertyCollection(symbol.dataDefinedProperties())
-    if old is not None and not extrusion_asked:
+    if kind == "point":
+
+        collection.setProperty(height_key, QgsProperty())
+    elif keep_extrusion:
         symbol.setExtrusionHeight(kept_height)
         collection.setProperty(height_key, kept_expression)
     elif not props.extrusionEnabled():
 
         collection.setProperty(height_key, QgsProperty())
     symbol.setDataDefinedProperties(collection)
-    painted = None
-    if old is not None:
-        kept = material_access(symbol)[0]()
-        color = kept.diffuse() if hasattr(kept, "diffuse") else None
+    out = {}
+    if kind == "point":
+        out.update(_point_shape(symbol, props, reshape, size))
     else:
-
-        painted = paint(symbol, layer)
-        color = None
-    if old is not None:
-        layer.setRenderer3D(old)
-    else:
-        layer.setRenderer3D(QgsVectorLayer3DRenderer(symbol))
-    dd = symbol.dataDefinedProperties()
-    extrusion = ("data-defined" if dd.isActive(height_key) else _num(symbol.extrusionHeight()))
-    out = {"symbol": "polygon", "extrusion": extrusion, "clamping": _clamping_word(symbol.altitudeClamping()),
-           "kept_style": old is not None}
-    if dd.isActive(_symbol_key("Height")):
+        if kind == "line":
+            out.update(_line_look(symbol, layer, props, reshape, size))
+        dd = QgsPropertyCollection(symbol.dataDefinedProperties())
+        out["extrusion"] = "data-defined" if dd.isActive(height_key) else _num(symbol.extrusionHeight())
+    out["clamping"] = _clamping_word(symbol.altitudeClamping())
+    if QgsPropertyCollection(symbol.dataDefinedProperties()).isActive(_symbol_key("Height")):
         out["z"] = "data-defined"
-    if color is not None:
-        out["color"] = color.name()
-    if painted:
-        out.update(painted)
+    return out
+
+
+def _line_look(symbol, layer, props, reshape: bool, size: float | None) -> dict:
+
+
+
+
+    if reshape or size is not None:
+        if props.extrusionEnabled() or size is not None:
+            symbol.setRenderAsSimpleLines(False)
+            if size is not None:
+                symbol.setWidth(float(size))
+            if not props.extrusionEnabled():
+                symbol.setExtrusionHeight(float(size))
+        else:
+            symbol.setRenderAsSimpleLines(True)
+            symbol.setWidth(line_width_px(layer))
+    if symbol.renderAsSimpleLines():
+        return {"look": "line", "width_px": _num(symbol.width())}
+    return {"look": "wall" if props.extrusionEnabled() else "tube", "width": _num(symbol.width())}
+
+
+def _point_shape(symbol, props, reshape: bool, size: float | None) -> dict:
+
+
+
+
+
+    from qgis._3d import QgsPoint3DSymbol
+    from qgis.PyQt.QtGui import QMatrix4x4
+
+    shapes = getattr(QgsPoint3DSymbol, "Shape", QgsPoint3DSymbol)
+    if reshape:
+        symbol.setShape(shapes.Cylinder if props.extrusionEnabled() else shapes.Sphere)
+    cylinder = symbol.shape() == shapes.Cylinder
+    held = dict(symbol.shapeProperties())
+    radius = float(size) / 2 if size is not None else float(held.get("radius") or 10.0)
+    held = {"radius": radius} if not cylinder else {"radius": radius, "length": float(held.get("length") or 10.0)}
+    collection = QgsPropertyCollection(symbol.dataDefinedProperties())
+    scale, lift = (getattr(QgsPoint3DSymbol, name, None) for name in ("ScaleZ", "TranslationZ"))
+    for key in (scale, lift):
+        if key is not None:
+            collection.setProperty(key, QgsProperty())
+    z = _property_of(props, _property_key("ZOffset"))
+    z_text = (z.expressionString() or QgsExpression.quotedColumnRef(z.field())) if z.isActive() else None
+    height = _property_of(props, _property_key("ExtrusionHeight"))
+    height_text = None
+    if cylinder and props.extrusionEnabled():
+        held["length"] = float(props.extrusionHeight() or 10.0)
+        if height.isActive() and scale is not None:
+            height_text = height.expressionString() or QgsExpression.quotedColumnRef(height.field())
+            collection.setProperty(scale, QgsProperty.fromExpression(height_text))
+            held["length"] = 1.0
+
+    half = f"({height_text}) / 2" if height_text else (repr(held["length"] / 2) if cylinder else None)
+    offset = float(props.zOffset())
+    out = {}
+    symbol.setTransform(QMatrix4x4())
+    if lift is not None:
+        parts = [part for part in (f"({z_text})" if z_text else None, repr(offset) if offset else None, half) if part]
+        if parts:
+            collection.setProperty(lift, QgsProperty.fromExpression(" + ".join(parts)))
+    else:
+        rise = offset + (held["length"] / 2 if cylinder else 0.0)
+        if rise:
+
+
+            lifted = QMatrix4x4()
+            z_up = int(Qgis.QGIS_VERSION_INT) >= 34400
+            lifted.translate(0, 0 if z_up else rise, rise if z_up else 0)
+            symbol.setTransform(lifted)
+        if z_text:
+            out["z_not_drawn"] = ("this QGIS draws a point's 3D shape at the point's own z: the shape has no "
+                                  "data-defined lift before QGIS 4")
+    symbol.setShapeProperties(held)
+    symbol.setDataDefinedProperties(collection)
+    out.update(shape=QgsPoint3DSymbol.shapeToString(symbol.shape()), size=_num(2 * radius))
+    if cylinder:
+        out["height"] = "data-defined" if height_text else _num(held["length"])
+    if z_text and lift is not None:
+        out["z"] = "data-defined"
     return out
 
 
@@ -735,152 +834,6 @@ def _set_layer_elevation(args: dict) -> dict:
         return run_on_main_thread(_apply, state, decided, timeout=60)
     except InterruptedError:
         return _stopped()
-
-
-
-
-def _layer_levels(layer) -> list:
-
-
-
-    props = layer.elevationProperties()
-    if props is None or not hasattr(props, "mode") or not props.hasElevation():
-        return []
-    kind, mode = _kind(layer), props.mode()
-    if kind == "raster":
-        if mode == _member(Qgis, "RasterElevationMode", "FixedElevationRange"):
-            ranges = [props.fixedRange()]
-        elif mode == _member(Qgis, "RasterElevationMode", "FixedRangePerBand"):
-            ranges = list(props.fixedRangePerBand().values())
-        else:
-            return []
-    elif kind == "mesh":
-        if mode == _member(Qgis, "MeshElevationMode", "FixedElevationRange"):
-            ranges = [props.fixedRange()]
-        elif mode == _member(Qgis, "MeshElevationMode", "FixedRangePerGroup"):
-            ranges = list(props.fixedRangePerGroup().values())
-        else:
-            return []
-    else:
-        return []
-    return [(r.lower(), r.upper(), r.includeLower(), r.includeUpper()) for r in ranges if not r.isInfinite()]
-
-
-def _derived_step(levels: list) -> float | None:
-
-
-    widths = [level[1] - level[0] for level in levels if level[1] > level[0]]
-    if widths:
-        return statistics.median(widths)
-    heights = sorted({level[0] for level in levels})
-    gaps = [b - a for a, b in zip(heights, heights[1:]) if b > a]
-    return min(gaps) if gaps else None
-
-
-def _controller_widget(canvas):
-    try:
-        from qgis.gui import QgsElevationControllerWidget
-    except ImportError:
-        return None
-    return canvas.findChild(QgsElevationControllerWidget) if canvas is not None else None
-
-
-def _shows(layer, current: QgsDoubleRange) -> str:
-    props = layer.elevationProperties()
-    if _kind(layer) == "raster" and hasattr(props, "bandForElevationRange") and \
-            props.mode() == _member(Qgis, "RasterElevationMode", "FixedRangePerBand"):
-        band = props.bandForElevationRange(layer, current)
-        return f"band {band}" if band > 0 else "nothing"
-    return "shown" if props.isVisibleInZRange(current, layer) else "hidden"
-
-
-def _temporal_state(canvas) -> str | None:
-    controller = canvas.temporalController() if canvas is not None else None
-    mode = getattr(controller, "navigationMode", None)
-    if mode is None:
-        return None
-    for word, member in (("animated", "Animated"), ("fixed range", "FixedRange"), ("movie", "Movie")):
-        found = _member(Qgis, "TemporalNavigationMode", member)
-        if found is not None and mode() == found:
-            return word
-    return "off"
-
-
-def _configure_elevation_controller(args: dict) -> dict:
-    from qgis.utils import iface
-
-    project = QgsProject.instance()
-    props = project.elevationProperties()
-    if not hasattr(props, "setElevationRange"):
-        return _version_error("The elevation controller")
-    canvas = iface.mapCanvas() if iface is not None else None
-    if canvas is None:
-        return tool_error("There is no map canvas to filter.", "EXECUTION_FAILED", "Needs the main window.")
-    widget = _controller_widget(canvas)
-    if args.get("enabled") is False:
-        canvas.setZRange(QgsDoubleRange())
-        return {"enabled": False, "canvas_z_range": None,
-                "controller": "open" if widget is not None else "closed",
-                "note": "The map shows every height again. The slider, when open, filters again once moved; "
-                        "View > Elevation Controller hides it."}
-    explicit = {}
-    for key in ("elevation_range", "current_range"):
-        if args.get(key) is not None:
-            pair, error = _pair(args[key], key)
-            if error:
-                return error
-            explicit[key] = pair
-    layers, levels = [], []
-    for layer in project.mapLayers().values():
-        own = _layer_levels(layer)
-        if own:
-            layers.append(layer)
-            levels.extend(own)
-    levels.sort()
-    if "elevation_range" in explicit:
-        low, high = explicit["elevation_range"]
-        range_from = "elevation_range"
-    elif levels:
-        low, high = min(level[0] for level in levels), max(level[1] for level in levels)
-        range_from = "the layers' levels"
-    else:
-        return tool_error("No layer of the project stands for fixed heights, so there is no range to derive.",
-                          "INVALID_ARGS", "set_layer_elevation sets a range per band or dataset group, or "
-                          "elevation_range [lower, upper] here.")
-    step = float(args["step"]) if args.get("step") is not None else _derived_step(levels)
-    step_from = "step" if args.get("step") is not None else ("the layers' levels" if step else None)
-    if "current_range" in explicit:
-        current = QgsDoubleRange(*explicit["current_range"])
-    elif levels:
-        current = QgsDoubleRange(*levels[0])
-    else:
-        current = QgsDoubleRange(low, min(high, low + step) if step else high)
-    props.setElevationRange(QgsDoubleRange(low, high))
-    props.setElevationFilterRangeSize(step or -1.0)
-    if args.get("invert") is not None:
-        props.setInvertElevationFilter(bool(args["invert"]))
-    if widget is not None:
-
-        widget.setFixedRangeSize(step or -1.0)
-        widget.setInverted(bool(props.invertElevationFilter()))
-        widget.setRange(current)
-
-        current = widget.range()
-    canvas.setZRange(current)
-    canvas.refresh()
-    result = {"elevation_range": [_num(low), _num(high)], "range_from": range_from,
-              "step": _num(step) if step else None, "step_from": step_from,
-              "inverted": bool(props.invertElevationFilter()), "canvas_z_range": _range_list(current),
-              "levels": len(levels),
-              "layers": [{"layer_name": layer.name(), "now": _shows(layer, current)} for layer in layers[:20]],
-              "controller": "open" if widget is not None else "closed"}
-    if widget is None:
-        result["note"] = ("The map is filtered to canvas_z_range now. The slider to move through the heights is "
-                          "under View > Elevation Controller; it opens with this range, step and direction.")
-    temporal = _temporal_state(canvas)
-    if temporal and temporal != "off":
-        result["temporal_controller"] = temporal
-    return result
 
 
 __all__ = ["register_layer_elevation_tools"]

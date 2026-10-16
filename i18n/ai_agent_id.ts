@@ -26,14 +26,14 @@
             <source>Results for “{query}”</source>
             <translation>Hasil untuk “{query}”</translation>
         </message>
-    <message>
-        <source>AI Segmentation review[ ({action})]</source>
-        <translation>Tinjauan AI Segmentation[ ({action})]</translation>
-    </message>
-    <message>
-        <source>Save the AI Segmentation review</source>
-        <translation>Simpan tinjauan AI Segmentation</translation>
-    </message>
+        <message>
+            <source>AI Segmentation review[ ({action})]</source>
+            <translation>Tinjauan AI Segmentation[ ({action})]</translation>
+        </message>
+        <message>
+            <source>Save the AI Segmentation review</source>
+            <translation>Simpan tinjauan AI Segmentation</translation>
+        </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
@@ -2286,6 +2286,110 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Open</source>
             <translation>Buka</translation>
         </message>
+        <message>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Permintaan yang lebih ringan (lebih sedikit layer, area lebih kecil, resolusi lebih rendah) lebih mungkin selesai daripada mengulang permintaan yang sama.</translation>
+        </message>
+        <message>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation>Permintaan yang lebih singkat atau lebih tepat akan dijawab lebih cepat.</translation>
+        </message>
+        <message>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation>Area yang lebih kecil, atau satu tugas dalam satu waktu, akan selesai lebih cepat.</translation>
+        </message>
+        <message>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation>Selesai. Hanya pratinjau peta yang tidak tergambar.</translation>
+        </message>
+        <message>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
+            <translation>Mungkin masih mengerjakan langkah sebelumnya. Setelah QGIS merespons lagi, permintaan yang lebih ringan (lebih sedikit layer, area lebih kecil, resolusi lebih rendah) lebih mungkin selesai.</translation>
+        </message>
+        <message>
+            <source>No answer came back. Try again.</source>
+            <translation>Tidak ada jawaban. Coba lagi.</translation>
+        </message>
+        <message>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation>QGIS tertutup saat satu langkah berjalan. Pekerjaan Anda yang sudah disimpan aman.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation>QGIS berhenti merespons saat menggambar pratinjau. Hasilnya sudah ada di peta.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding during a step.</source>
+            <translation>QGIS berhenti merespons saat satu langkah berjalan.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation>QGIS berhenti merespons saat sebuah kartu menunggu.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
+            <translation>QGIS berhenti merespons. Langkah-langkah sebelumnya tetap tersimpan.</translation>
+        </message>
+        <message>
+            <source>Set up AI Edit</source>
+            <translation>Siapkan AI Edit</translation>
+        </message>
+        <message>
+            <source>Set up AI Segmentation</source>
+            <translation>Siapkan AI Segmentation</translation>
+        </message>
+        <message>
+            <source>Something went wrong on our side. Try again.</source>
+            <translation>Terjadi masalah di sisi kami. Coba lagi.</translation>
+        </message>
+        <message>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation>Langkah itu tidak selesai. File yang sudah ditulis oleh proses tetap ada di disk. Layer yang ditambahkannya hanya kembali jika proyek disimpan setelahnya, dan layer sementara hilang. Langkah yang sama bisa menutup QGIS lagi: minta sesuatu yang lebih ringan (area lebih kecil, lebih sedikit layer).</translation>
+        </message>
+        <message>
+            <source>The agent got stuck on the same step.</source>
+            <translation>Agen macet di langkah yang sama.</translation>
+        </message>
+        <message>
+            <source>The agent service restarted twice during a step.</source>
+            <translation>Layanan agen dimulai ulang dua kali saat satu langkah berjalan.</translation>
+        </message>
+        <message>
+            <source>The answer was cut off. Ask again to carry on.</source>
+            <translation>Jawaban terpotong. Tanya lagi untuk melanjutkan.</translation>
+        </message>
+        <message>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
+            <translation>Koneksi ke QGIS terputus dan tidak pulih, jadi langkah itu tidak selesai. Jika QGIS masih terbuka, proyek berada dalam keadaan terakhir dari proses tadi. Jika QGIS tertutup, file yang ditulis proses tetap ada di disk, dan layernya hanya kembali jika proyek disimpan setelahnya. Buka kembali QGIS jika tertutup, lalu tekan Coba lagi.</translation>
+        </message>
+        <message>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation>Model terus mengirim langkah yang tidak bisa dibaca agen. Langkah-langkah sebelumnya tetap tersimpan.</translation>
+        </message>
+        <message>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
+            <translation>Langkah pada kartu itu belum dijalankan, kecuali baru saja diklik. Langkah-langkah sebelumnya tetap tersimpan; mengirim pesan yang sama lagi akan memunculkan kartu itu kembali.</translation>
+        </message>
+        <message>
+            <source>This conversation is too long.</source>
+            <translation>Percakapan ini terlalu panjang.</translation>
+        </message>
+        <message>
+            <source>Too many requests right now. Try again in a minute.</source>
+            <translation>Terlalu banyak permintaan saat ini. Coba lagi dalam semenit.</translation>
+        </message>
+        <message>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation>Apa yang sudah dikerjakan sebelumnya tetap tersimpan. Susun ulang permintaan atau tambahkan detail (layer, tempat, nilai), lalu kirim lagi.</translation>
+        </message>
+        <message>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation>Apa yang sudah dikerjakan proses sebelumnya tetap tersimpan. Laporkan mengirimkan detailnya kepada kami.</translation>
+        </message>
+        <message>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Apa yang dikerjakan proses sebelum langkah itu tetap tersimpan. Permintaan yang lebih ringan (area lebih kecil, resolusi lebih rendah) lebih mungkin selesai daripada mengulang permintaan yang sama.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2918,8 +3022,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>{used} proses bulan ini</translation>
+            <source>{used} tasks this month</source>
+            <translation>{used} tugas bulan ini</translation>
         </message>
     </context>
     <context>
@@ -3091,6 +3195,26 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Show the {n} tries that did not work</source>
             <translation>Tampilkan {n} percobaan yang gagal</translation>
+        </message>
+        <message>
+            <source>Blocked to protect your credentials</source>
+            <translation>Diblokir untuk melindungi kredensial Anda</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>sekitar {n} menit lagi</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>sekitar {n} detik lagi</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} dari {total} MB</translation>
         </message>
     </context>
     <context>
@@ -3326,8 +3450,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>You have used every run of this period.</source>
-            <translation>Anda telah menggunakan semua proses untuk periode ini.</translation>
+            <source>You have used every task of this period.</source>
+            <translation>Anda telah menggunakan semua tugas untuk periode ini.</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
@@ -3705,6 +3829,46 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Print layouts changed</source>
             <translation>Tata letak cetak diubah</translation>
         </message>
+        <message>
+            <source>Balanced</source>
+            <translation>Seimbang</translation>
+        </message>
+        <message>
+            <source>Beginner</source>
+            <translation>Pemula</translation>
+        </message>
+        <message>
+            <source>Concise</source>
+            <translation>Ringkas</translation>
+        </message>
+        <message>
+            <source>Detailed</source>
+            <translation>Terperinci</translation>
+        </message>
+        <message>
+            <source>Expert</source>
+            <translation>Ahli</translation>
+        </message>
+        <message>
+            <source>GIS experience</source>
+            <translation>Pengalaman GIS</translation>
+        </message>
+        <message>
+            <source>Imperial</source>
+            <translation>Imperial</translation>
+        </message>
+        <message>
+            <source>Metric</source>
+            <translation>Metrik</translation>
+        </message>
+        <message>
+            <source>Rarely</source>
+            <translation>Jarang</translation>
+        </message>
+        <message>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation>File sementara di folder kerja sementara AI Agent. Menyimpan proyek akan menyimpannya di samping proyek.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3901,8 +4065,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
-            <source>More runs next month</source>
-            <translation>Lebih banyak proses bulan depan</translation>
+            <source>More tasks next month</source>
+            <translation>Lebih banyak tugas bulan depan</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4165,6 +4329,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>{n} layers couldn't be restored</source>
             <translation>{n} layer tidak dapat dipulihkan</translation>
+        </message>
+        <message>
+            <source>Reply to the question...</source>
+            <translation>Balas pertanyaan...</translation>
+        </message>
+        <message>
+            <source>Waiting for the install</source>
+            <translation>Menunggu instalasi</translation>
         </message>
     </context>
     <context>
@@ -4971,6 +5143,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>More details</source>
             <translation>Detail selengkapnya</translation>
         </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5345,6 +5521,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Undo and retry</source>
             <translation>Urungkan dan coba lagi</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Detail</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Sembunyikan detail</translation>
+        </message>
+        <message>
+            <source>New chat</source>
+            <translation>Obrolan baru</translation>
         </message>
     </context>
     <context>
@@ -6218,13 +6406,13 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your free runs are used up</source>
-            <translation>Proses gratis Anda habis</translation>
+            <source>Your free tasks for this month are used</source>
+            <translation>Tugas gratis Anda untuk bulan ini habis</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your runs are used up</source>
-            <translation>Proses Anda habis</translation>
+            <source>Your tasks for this month are used</source>
+            <translation>Tugas Anda untuk bulan ini habis</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6237,12 +6425,12 @@ Klik untuk membuka halamannya.</translation>
             <translation>Tersisa {n} proses gratis.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month.</source>
-            <translation>Anda telah menggunakan semua {n} proses bulan ini.</translation>
+            <source>You used all {n} tasks this month.</source>
+            <translation>Anda telah menggunakan semua {n} tugas bulan ini.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>Anda telah menggunakan semua {n} proses bulan ini. Proses tersedia lagi pada {date}.</translation>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
+            <translation>Anda telah menggunakan semua {n} tugas bulan ini. Tugas tersedia lagi pada {date}.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6292,12 +6480,12 @@ Klik untuk membuka halamannya.</translation>
             <translation>Free cocok untuk penggunaan pribadi dan studi. Pro mencakup pekerjaan untuk klien dan pemberi kerja.</translation>
         </message>
         <message>
-            <source>Free runs come back at your monthly reset.</source>
-            <translation>Proses gratis kembali saat reset bulanan Anda.</translation>
+            <source>Free tasks come back at your monthly reset.</source>
+            <translation>Tugas gratis kembali saat reset bulanan Anda.</translation>
         </message>
         <message>
-            <source>Free runs come back on {date}.</source>
-            <translation>Proses gratis kembali pada {date}.</translation>
+            <source>Free tasks come back on {date}.</source>
+            <translation>Tugas gratis kembali pada {date}.</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
@@ -6324,8 +6512,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>{amount}/bulan belum termasuk PPN</translation>
         </message>
         <message>
-            <source>{n} runs a month</source>
-            <translation>{n} proses per bulan</translation>
+            <source>{n} tasks a month</source>
+            <translation>{n} tugas per bulan</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
@@ -6546,6 +6734,22 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{step} and {n} more</source>
             <translation>{step} dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>Waiting for you</source>
+            <translation>Menunggu Anda</translation>
+        </message>
+        <message>
+            <source>Worked for {time}</source>
+            <translation>Bekerja selama {time}</translation>
+        </message>
+        <message>
+            <source>blocked</source>
+            <translation>diblokir</translation>
+        </message>
+        <message>
+            <source>{n} steps</source>
+            <translation>{n} langkah</translation>
         </message>
     </context>
     <context>
@@ -6841,8 +7045,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>Butuh lebih dari {n} proses per bulan? Tulis ke {email}.</translation>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
+            <translation>Butuh lebih dari {n} tugas per bulan? Tulis ke {email}.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7166,7 +7370,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>{used} runs this month</source>
+            <source>{used} tasks this month</source>
             <translation>{used} proses bulan ini</translation>
         </message>
         <message>
@@ -7402,8 +7606,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>{left} of {limit} runs left</source>
-            <translation>{left} dari {limit} proses tersisa</translation>
+            <source>{left} of {limit} tasks left</source>
+            <translation>{left} dari {limit} tugas tersisa</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -7419,8 +7623,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>Upgrade</translation>
         </message>
         <message>
-            <source>Commercial use and more runs with Pro</source>
-            <translation>Penggunaan komersial dan lebih banyak proses dengan Pro</translation>
+            <source>Commercial use and more tasks with Pro</source>
+            <translation>Penggunaan komersial dan lebih banyak tugas dengan Pro</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -7471,8 +7675,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>Paket, metode pembayaran, dan faktur Anda, di situs web TerraLab. Pembayaran tidak pernah dilakukan di dalam QGIS.</translation>
         </message>
         <message>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
-            <translation>Paket, proses, dan pengaturan Anda muncul di sini setelah Anda masuk.</translation>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
+            <translation>Paket, tugas, dan pengaturan Anda muncul di sini setelah Anda masuk.</translation>
         </message>
         <message>
             <source>Your profile and instructions, read before every run</source>
@@ -7785,46 +7989,46 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
-    <message>
-        <source>{area} km²</source>
-        <translation>{area} km²</translation>
-    </message>
-    <message>
-        <source>{area} ha</source>
-        <translation>{area} ha</translation>
-    </message>
-    <message>
-        <source>{area} m²</source>
-        <translation>{area} m²</translation>
-    </message>
-    <message>
-        <source>the '{layer}' layer ({area})</source>
-        <translation>layer '{layer}' ({area})</translation>
-    </message>
-    <message>
-        <source>Run {label} on {zone}. This spends your {label} credits.</source>
-        <translation>Jalankan {label} pada {zone}. Ini memakai kredit {label} Anda.</translation>
-    </message>
-    <message>
-        <source> at {resolution}</source>
-        <translation> pada {resolution}</translation>
-    </message>
-    <message>
-        <source> at the panel's selected resolution</source>
-        <translation> pada resolusi yang dipilih di panel</translation>
-    </message>
-    <message>
-        <source>{price} credits per generation</source>
-        <translation>{price} kredit per generasi</translation>
-    </message>
-    <message>
-        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-        <translation>Jalankan AI Edit{size}: {cost}. Area gambar: {zone}; penagihan per generasi.</translation>
-    </message>
-    <message>
-        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-        <translation>sekitar {price} kredit per generasi (harga 2K; harga langsung tidak tersedia)</translation>
-    </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
+        </message>
+        <message>
+            <source>the '{layer}' layer ({area})</source>
+            <translation>layer '{layer}' ({area})</translation>
+        </message>
+        <message>
+            <source>Run {label} on {zone}. This spends your {label} credits.</source>
+            <translation>Jalankan {label} pada {zone}. Ini memakai kredit {label} Anda.</translation>
+        </message>
+        <message>
+            <source> at {resolution}</source>
+            <translation> pada {resolution}</translation>
+        </message>
+        <message>
+            <source> at the panel's selected resolution</source>
+            <translation> pada resolusi yang dipilih di panel</translation>
+        </message>
+        <message>
+            <source>{price} credits per generation</source>
+            <translation>{price} kredit per generasi</translation>
+        </message>
+        <message>
+            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+            <translation>Jalankan AI Edit{size}: {cost}. Area gambar: {zone}; penagihan per generasi.</translation>
+        </message>
+        <message>
+            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+            <translation>sekitar {price} kredit per generasi (harga 2K; harga langsung tidak tersedia)</translation>
+        </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7923,6 +8127,26 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Run Python code ({what}).</source>
             <translation>Jalankan kode Python ({what}).</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>Menunggu {name} terpasang</translation>
+        </message>
+        <message>
+            <source>changes a layer you had before this run</source>
+            <translation>mengubah layer yang Anda miliki sebelum proses ini</translation>
+        </message>
+        <message>
+            <source>changes your layer {name}</source>
+            <translation>mengubah layer Anda {name}</translation>
+        </message>
+        <message>
+            <source>changes your layers {names}</source>
+            <translation>mengubah layer Anda {names}</translation>
+        </message>
+        <message>
+            <source>{name} is installed</source>
+            <translation>{name} sudah terpasang</translation>
         </message>
     </context>
     <context>
@@ -8149,6 +8373,34 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Layer baru, 1 fitur. Klik untuk memilihnya di panel Layer.</translation>
+        </message>
+        <message>
+            <source>Credit: {value}</source>
+            <translation>Kredit: {value}</translation>
+        </message>
+        <message>
+            <source>Dataset: {value}</source>
+            <translation>Dataset: {value}</translation>
+        </message>
+        <message>
+            <source>Derived from: {value}</source>
+            <translation>Diturunkan dari: {value}</translation>
+        </message>
+        <message>
+            <source>Licence: {value}</source>
+            <translation>Lisensi: {value}</translation>
+        </message>
+        <message>
+            <source>Loaded: {value}</source>
+            <translation>Dimuat: {value}</translation>
+        </message>
+        <message>
+            <source>Open the source page</source>
+            <translation>Buka halaman sumber</translation>
+        </message>
+        <message>
+            <source>Source details</source>
+            <translation>Detail sumber</translation>
         </message>
     </context>
     <context>
@@ -8461,8 +8713,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>Gagal</translation>
         </message>
         <message>
-            <source>Out of runs</source>
-            <translation>Proses habis</translation>
+            <source>Out of tasks</source>
+            <translation>Tugas habis</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -8557,6 +8809,58 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
             <translation>{day} UTC, ditambahkan oleh AI Agent by TerraLab</translation>
+        </message>
+        <message>
+            <source>Accessed {day} via {host}</source>
+            <translation>Diakses {day} melalui {host}</translation>
+        </message>
+        <message>
+            <source>Derived from: {label}</source>
+            <translation>Diturunkan dari: {label}</translation>
+        </message>
+        <message>
+            <source>Live</source>
+            <translation>Langsung</translation>
+        </message>
+        <message>
+            <source>Made by code</source>
+            <translation>Dibuat oleh kode</translation>
+        </message>
+        <message>
+            <source>Original address</source>
+            <translation>Alamat asli</translation>
+        </message>
+        <message>
+            <source>QGIS default operation</source>
+            <translation>Operasi bawaan QGIS</translation>
+        </message>
+        <message>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation>Diproyeksikan ulang dari {source} ke {target}; operasi: {operation}</translation>
+        </message>
+        <message>
+            <source>Since {year}, live</source>
+            <translation>Sejak {year}, langsung</translation>
+        </message>
+        <message>
+            <source>Source not verified</source>
+            <translation>Sumber belum diverifikasi</translation>
+        </message>
+        <message>
+            <source>grids: {grids}</source>
+            <translation>grid: {grids}</translation>
+        </message>
+        <message>
+            <source>made by code</source>
+            <translation>dibuat oleh kode</translation>
+        </message>
+        <message>
+            <source>project layers the code names: {names}</source>
+            <translation>layer proyek yang disebut kode: {names}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
+            <translation>{day} UTC, proses AI Agent {run}: menambahkan {layers}</translation>
         </message>
     </context>
     <context>
@@ -8691,8 +8995,8 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
     <context>
         <name>RunsLeftLine</name>
         <message>
-            <source>1 free run left</source>
-            <translation>Sisa 1 proses gratis</translation>
+            <source>1 free task left</source>
+            <translation>Sisa 1 tugas gratis</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -8703,8 +9007,8 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <translation>Dapatkan lebih banyak proses</translation>
         </message>
         <message>
-            <source>{n} free runs left</source>
-            <translation>Sisa {n} proses gratis</translation>
+            <source>{n} free tasks left</source>
+            <translation>Sisa {n} tugas gratis</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -8715,12 +9019,12 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <translation>Dapatkan Pro untuk upaya High</translation>
         </message>
         <message>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro: {n} proses per bulan, upaya Medium dan High untuk tugas yang lebih sulit, Autopilot</translation>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
+            <translation>Pro: {n} tugas per bulan, upaya Medium dan High untuk pekerjaan yang lebih sulit, Autopilot</translation>
         </message>
         <message>
-            <source>Get more runs with Pro</source>
-            <translation>Dapatkan lebih banyak proses dengan Pro</translation>
+            <source>Get more tasks with Pro</source>
+            <translation>Dapatkan lebih banyak tugas dengan Pro</translation>
         </message>
     </context>
     <context>
@@ -9094,6 +9398,18 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>Running {name}...</source>
             <translation>Menjalankan {name}...</translation>
         </message>
+        <message>
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Berhenti</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Menghentikan...</translation>
+        </message>
     </context>
     <context>
         <name>_OptionRow</name>
@@ -9107,6 +9423,21 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Skipped</source>
             <translation>Dilewati</translation>
+        </message>
+    </context>
+    <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <source>Open Plugin Manager</source>
+            <translation>Buka Plugin Manager</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Lewati</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>Menunggu {name} terpasang</translation>
         </message>
     </context>
 </TS>

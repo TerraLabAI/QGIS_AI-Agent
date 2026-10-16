@@ -142,10 +142,18 @@ def _canvas_held():
 
 
 
+
+
+
+
+
+
     canvas = _map_canvas()
     rendering = True
+    view = None
     if canvas is not None:
         try:
+            view = (canvas.extent(), canvas.mapSettings().destinationCrs())
             rendering = bool(canvas.renderFlag())
             canvas.stopRendering()
             canvas.setRenderFlag(False)
@@ -166,6 +174,7 @@ def _canvas_held():
         yield
     finally:
         if canvas is not None:
+            _view_back(canvas, view)
             try:
                 canvas.setRenderFlag(rendering)
             except Exception:  # nosec B110
@@ -177,6 +186,25 @@ def _canvas_held():
                 QApplication.restoreOverrideCursor()
             except Exception:  # nosec B110
                 pass
+
+
+def _view_back(canvas, view) -> None:
+
+    if view is None:
+        return
+    extent, crs = view
+    try:
+        now = canvas.mapSettings().destinationCrs()
+        if not crs.isValid() or not now.isValid() or now == crs:
+            return
+        from qgis.core import QgsCoordinateTransform, QgsProject
+
+        canvas.setExtent(QgsCoordinateTransform(crs, now, QgsProject.instance()).transformBoundingBox(extent))
+    except Exception:  # noqa: BLE001
+        try:
+            canvas.zoomToFullExtent()
+        except Exception:  # nosec B110
+            pass
 
 
 def _stamp(path: str) -> tuple[int, ...] | None:

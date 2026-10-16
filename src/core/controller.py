@@ -13,7 +13,6 @@ from __future__ import annotations
 import sys
 import time
 
-from qgis.core import Qgis
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 from ..api.account import Account
@@ -36,7 +35,7 @@ from .controller_shared import (
     tr,
 )
 from .executor import ToolExecutor
-from .host_platform import os_label
+from .host_platform import os_label, qgis_version
 from .logger import log, log_warning
 from .plan import autopilot_allowed, effort_allowed
 from .protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
@@ -296,10 +295,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
     def _identity(self) -> dict:
-        try:
-            qgis_version = str(Qgis.QGIS_VERSION).split("-")[0]
-        except Exception:
-            qgis_version = ""
 
 
 
@@ -308,7 +303,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         from ..tools.deps_tools import importable_libraries
 
-        return {"plugin_version": plugin_version(), "qgis_version": qgis_version,
+        return {"plugin_version": plugin_version(), "qgis_version": qgis_version(),
                 "os": os_label(), "locale": self._settings.locale,
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
                 "libraries": list(importable_libraries())}
@@ -413,6 +408,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect_optional("undo_retry_requested", self._on_undo_retry)
         self._connect("permission_decided", self._on_permission_decided)
         self._connect("question_answered", self._on_question_answered)
+        self._connect_optional("question_reply", self._on_question_answered)
         self._connect("retry_requested", self._on_retry)
         self._connect("continue_requested", self._on_continue)
         self._connect("undo_requested", self._on_undo)
@@ -431,11 +427,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("context_add_requested", self._on_context_add)
         self._connect("mode_changed", self._on_mode_changed)
         self._connect("effort_changed", self._on_effort_changed)
-        self._connect("welcome_dismissed", self._on_welcome_dismissed)
         self._connect("pairing_reopen_requested", self._account.reopen_pairing_page)
         self._connect("pairing_cancel_requested", self._account.cancel_pairing)
         self._connect("pairing_code_submitted", self._account.submit_pairing_code)
-        self._connect("thread_exported", lambda path: log(f"Thread exported to {path}"))
         self._connect("update_dismissed", self._on_update_dismissed)
         self._connect("low_balance_shown", self._on_low_balance_shown)
         self._connect("example_chosen", self._on_example_chosen)
@@ -488,10 +482,12 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         e = self._executor
         e.tool_started.connect(self._on_tool_started)
         e.tool_finished.connect(self._on_tool_finished)
+        e.call_progress.connect(self._on_call_progress)
         e.permission_needed.connect(self._on_permission_needed)
         e.permission_resolved.connect(self._on_permission_resolved)
         e.question_needed.connect(self._on_question_needed)
         e.question_answered_elsewhere.connect(self._on_question_answered)
+        e.install_wait_needed.connect(self._on_install_wait_needed)
         e.question_resolved.connect(lambda cid, answer: self._panel_call("resolve_question", cid, answer))
         e.project_changed.connect(self._on_project_changed)
         e.stop_requested.connect(self._on_stop)

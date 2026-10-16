@@ -29,7 +29,6 @@
 
 
 
-
 from __future__ import annotations
 
 import math
@@ -221,9 +220,6 @@ class LibraryRail(QFrame):
         head = self._rows.get(place)
         if head is not None and getattr(head, "chevron", None) is not None:
             head.chevron.set_open(self._open[place])
-
-    def groups_open(self, place: str = "") -> bool:
-        return self._open.get(place or (self._places[0] if self._places else ""), False)
 
     def keys(self) -> list:
         return list(self._rows)

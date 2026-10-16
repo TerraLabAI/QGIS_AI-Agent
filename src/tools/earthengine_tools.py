@@ -28,7 +28,6 @@ from datetime import datetime, timedelta, timezone
 from qgis.core import QgsProject, QgsRasterLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import limits
 from ..core.provider_uri import encode_uri_url
 from ..core.tool_registry import Tool, ToolRegistry
 
@@ -69,10 +68,25 @@ def _has_credentials() -> bool:
     return any(p and os.path.isfile(p) for p in paths)
 
 
+
+
+_LOADED = False
+
+
+def session_state() -> dict:
+
+
+
+
+    return {"signed_in": _has_credentials(), "tools_loaded": _LOADED}
+
+
 def register_earthengine_tools(registry: ToolRegistry):
+    global _LOADED
     import importlib.util
     if importlib.util.find_spec("ee") is None or not _has_credentials():
         return
+    _LOADED = True
 
     registry.register(Tool(
         name="initialize_earth_engine",
@@ -164,45 +178,6 @@ def register_earthengine_tools(registry: ToolRegistry):
         },
         handler=_gee_compute_index,
 
-        background=True,
-    ))
-
-    registry.register(Tool(
-        name="gee_zonal_stats",
-        danger="read",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Zonal statistics with Earth Engine"),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "layer_name": {
-                    "type": "string",
-                },
-                "ee_id": {
-                    "type": "string",
-                },
-                "bbox": {
-                    "type": "object",
-                    "properties": {
-                        "xmin": {"type": "number"},
-                        "ymin": {"type": "number"},
-                        "xmax": {"type": "number"},
-                        "ymax": {"type": "number"},
-                    },
-
-
-
-                    "required": ["xmin", "ymin", "xmax", "ymax"],
-                },
-                "reducer": {
-                    "type": "string",
-                    "enum": ["mean", "median", "min", "max", "sum", "stdDev"],
-                },
-                "scale": {"type": "integer", "minimum": 1, "maximum": 1000000},
-                "band": {"type": "string"},
-            },
-            "required": [],
-        },
-        handler=_gee_zonal_stats,
         background=True,
     ))
 
@@ -512,109 +487,3 @@ def _gee_compute_index(args: dict) -> dict:
     }
 
 
-
-
-
-class _BadBbox(ValueError):
-    pass
-
-
-def _bbox_to_wsen(args: dict) -> tuple | None:
-
-
-
-
-
-
-    bbox = args.get("bbox")
-    if bbox not in (None, {}, ""):
-        if not isinstance(bbox, dict):
-            raise _BadBbox("bbox must be an object {xmin, ymin, xmax, ymax} in EPSG:4326")
-        corners = ("xmin", "ymin", "xmax", "ymax")
-        missing = [k for k in corners if k not in bbox]
-        if missing:
-            raise _BadBbox(f"bbox is missing {missing}; it needs all four of {list(corners)}")
-        try:
-            w, s, e, n = (float(bbox[k]) for k in corners)
-        except (TypeError, ValueError):
-            raise _BadBbox("bbox corners must be numbers in EPSG:4326 degrees") from None
-        if w >= e or s >= n:
-            raise _BadBbox("bbox is empty: xmin must be < xmax and ymin < ymax")
-        return w, s, e, n
-    from ..core.background import run_on_main_thread
-    from .data_tools import _canvas_viewbox_4326
-
-    viewbox = run_on_main_thread(_canvas_viewbox_4326)
-    if not viewbox:
-        return None
-    try:
-        w, s, e, n = (float(v) for v in viewbox.split(","))
-        return w, s, e, n
-    except (ValueError, TypeError):
-        return None
-
-
-def _gee_zonal_stats(args: dict) -> dict:
-    ee, err = _ensure_initialized()
-    if err:
-        return err
-
-    image, src_err = _resolve_source_image(args, ee)
-    if src_err:
-        return src_err
-
-    try:
-        wsen = _bbox_to_wsen(args)
-    except _BadBbox as bad:
-        return {
-            "_error": str(bad),
-            "_code": "INVALID_ARGS",
-            "_suggestion": "bbox is {xmin, ymin, xmax, ymax} in EPSG:4326 degrees; omitted, "
-                           "the canvas extent is used.",
-        }
-    if wsen is None:
-        return {
-            "_error": "No region given and the current canvas extent could not be read",
-            "_code": "INVALID_ARGS",
-            "_suggestion": "bbox is {xmin,ymin,xmax,ymax} in EPSG:4326.",
-        }
-    w, s, e, n = wsen
-
-    reducer_name = args.get("reducer", "mean")
-    scale = int(args.get("scale", 30))
-    band = args.get("band")
-
-    reducer_map = {
-        "mean": ee.Reducer.mean,
-        "median": ee.Reducer.median,
-        "min": ee.Reducer.min,
-        "max": ee.Reducer.max,
-        "sum": ee.Reducer.sum,
-        "stdDev": ee.Reducer.stdDev,
-    }
-    if reducer_name not in reducer_map:
-        return {"_error": f"Unknown reducer '{reducer_name}'", "_code": "INVALID_ARGS"}
-
-    try:
-        region = ee.Geometry.Rectangle([w, s, e, n])
-        target = image.select(band) if band else image
-        stats = target.reduceRegion(
-            reducer=reducer_map[reducer_name](),
-            geometry=region,
-            scale=scale,
-            maxPixels=int(limits.current("GEE_MAX_PIXELS")),
-        ).getInfo()
-    except Exception as exc:
-        return {
-            "_error": f"Earth Engine reduceRegion failed: {exc}",
-            "_code": "EE_STATS_FAILED",
-            "_suggestion": "A smaller bbox or larger scale (meters per pixel) avoids timeout on large regions.",
-        }
-
-    return {
-        "stats": stats,
-        "reducer": reducer_name,
-        "scale": scale,
-        "band": band,
-        "region_4326": {"xmin": w, "ymin": s, "xmax": e, "ymax": n},
-    }

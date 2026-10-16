@@ -33,6 +33,7 @@ CONTACT_OPENED = "contact_opened"
 TUTORIAL_OPENED = "tutorial_opened"
 REVIEW_OPENED = "review_opened"
 ACCOUNT_SIGNED_OUT = "account_signed_out"
+
 WELCOME_DISMISSED = "welcome_dismissed"
 SUBSCRIBE_LINK_CLICKED = "subscribe_link_clicked"
 

@@ -105,9 +105,6 @@ class Toast(QFrame):
         self._link.setEnabled(bool(enabled))
         self._link.setToolTip("" if enabled else self.tr("Available when the agent finishes"))
 
-    def link_text(self) -> str:
-        return self._link.text() if not self._link.isHidden() else ""
-
     def dismiss(self) -> None:
         if self.isHidden() or self._fading_out:
             return

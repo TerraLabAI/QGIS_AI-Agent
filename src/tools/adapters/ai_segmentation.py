@@ -1,10 +1,6 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-
-
-
-
 from __future__ import annotations
 
 from typing import Any
@@ -19,12 +15,6 @@ class AiSegmentationAdapter(PluginAdapter):
 
     def display_name(self) -> str:
         return "AI Segmentation"
-
-    def log_tags(self) -> tuple[str, ...]:
-        return ("AI Segmentation",)
-
-    def flows(self) -> dict[str, str]:
-        return {}
 
 
 

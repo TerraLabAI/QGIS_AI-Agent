@@ -46,6 +46,13 @@ from .layer_io_tools import _release_layers_at_path, _same_file
 from .layer_lookup import _find_layer
 from .postconditions import joined_input_fields, read_ahead_memory, report_checks
 from .postconditions import read_ahead as read_checks_ahead
+from .processing_crs_checks import (
+    _flow_in_degrees_check,
+    _geographic_distance_check,
+    _metric_grid_on_degrees_check,
+    _terrain_on_degrees_check,
+    unfilled_dem_warning,
+)
 from .processing_decisions import (
     _FIELD_EXISTS_RE,
     _goes_to_task,
@@ -76,31 +83,23 @@ from .processing_destinations import (
 from .processing_guards import (
     _distance_sanity,
     _empty_input_check,
-    _flow_in_degrees_check,
-    _gdal_format_options,
-    _geographic_distance_check,
     _grid_sanity,
     _ground_measure_repair,
     _hillshade_input_check,
-    _metric_grid_on_degrees_check,
     _parameter_sanity,
     _raster_size_sanity,
     _resolve_layer_inputs,
-    _stamp_provenance,
-    _terrain_on_degrees_check,
     _undeclared_nodata_check,
     _unresolved_input_check,
-    _window_degrees_repair,
-    _window_order_repair,
     _window_sanity,
     ignored_parameters,
     localise_streamed_rasters,
     selected_sources,
     source_definition,
     streamed_raster_addresses,
-    unfilled_dem_warning,
 )
 from .processing_paths import alias_fragile_paths, safe_output_name
+from .processing_stamp import _stamp_provenance
 from .stac_tools import normalise_crs
 
 
@@ -505,8 +504,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
     parameters, streamed_copies, not_copied = localise_streamed_rasters(algorithm_id, parameters)
     if not_copied:
         return not_copied
-    window_repairs = (_window_degrees_repair(parameters) + _window_order_repair(parameters)
-                      + _ground_measure_repair(alg, parameters))
+    ground_repairs = _ground_measure_repair(alg, parameters)
     off_raster = _window_sanity(parameters)
     if off_raster:
         return off_raster
@@ -718,12 +716,11 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-    repairs: list[str] = (renamed_outputs + list(window_repairs) + streamed_copies + renamed_for_provider
+    repairs: list[str] = (renamed_outputs + ground_repairs + streamed_copies + renamed_for_provider
                           + streamed_addresses)
     if algorithm_id.startswith("gdal:"):
         _ensure_proj_env()
         _inject_gdal_crs(alg, sanitized_parameters)
-        repairs += _gdal_format_options(algorithm_id, sanitized_parameters)
 
     try:
         valid, detail = alg.checkParameterValues(_with_prepared_inputs(sanitized_parameters), context)
@@ -731,7 +728,6 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         if managed_output_dir is not None:
             remove_tree(managed_output_dir)
         return _processing_error(
-            algorithm_id,
             f"Processing parameter validation failed before the run: {exc}. "
             "Nothing was run and no destination was replaced.",
             alg,
@@ -741,7 +737,6 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             remove_tree(managed_output_dir)
         native_detail = " ".join(str(detail).split()) or "provider validation failed"
         failure = _processing_error(
-            algorithm_id,
             f"Processing parameters are invalid: {native_detail}. "
             "Nothing was run and no destination was replaced.",
             alg,
@@ -866,7 +861,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 if path_aliases is None:
                     sanitized_parameters = by_object
             except Exception as retry_error:
-                return _processing_error(algorithm_id, f"Processing failed: {retry_error}", alg)
+                return _processing_error(f"Processing failed: {retry_error}", alg)
 
 
 
@@ -875,12 +870,11 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         elif _FIELD_EXISTS_RE.search(str(e)):
             clash = _FIELD_EXISTS_RE.search(str(e)).group("field")
             failure = _processing_error(
-                algorithm_id,
                 f"The output already carries a field named '{clash}', so it cannot be created again.", alg)
             failure.update(hint="output_field_exists", field=clash)
             return failure
         elif "already exists" not in str(e):
-            failure = _processing_error(algorithm_id, f"Processing failed: {str(e)}", alg)
+            failure = _processing_error(f"Processing failed: {str(e)}", alg)
             failure.update(invalid_geometry.facts(run_parameters, context))
             return failure
         else:
@@ -906,7 +900,6 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                     last_error = retry_error
             if result is None:
                 failure = _processing_error(
-                    algorithm_id,
                     f"The output file is still held by another process. Last error: {last_error}.",
                     alg,
                 )
@@ -928,7 +921,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         log_lines = feedback.errors[:3] or feedback.console_tail()
         if log_lines:
             detail += " Log: " + " | ".join(" ".join(e.split())[:300] for e in log_lines)
-        failed = _processing_error(algorithm_id, detail, alg)
+        failed = _processing_error(detail, alg)
         if written:
             failed["files_written"] = written
         external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
@@ -944,7 +937,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                                        add_to_project=in_project)}
     unreadable = output_evidence_problem(alg, sanitized_parameters, out["outputs"])
     if unreadable:
-        failed = _processing_error(algorithm_id, f"Processing finished, but {unreadable}", alg)
+        failed = _processing_error(f"Processing finished, but {unreadable}", alg)
         if written:
             failed["files_written"] = written
         return failed
@@ -1349,7 +1342,6 @@ def _output_layer(value: str, context, hint: str, built=None) -> tuple:
 
 
 def _native_output_layer(value: str, context=None, hint: str = ""):
-
 
 
 
@@ -1893,7 +1885,7 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
 
 
 
-        explained = _processing_error(entry.get("algorithm") or "", detail, entry.get("alg"))
+        explained = _processing_error(detail, entry.get("alg"))
         entry["error"] = explained.get("_error") or detail
         if explained.get("suggestion"):
             entry["suggestion"] = explained["suggestion"]
@@ -2104,8 +2096,7 @@ def _finish_outputs(entry: dict, results, context, built=None) -> None:
             entry["alg"], entry.get("parameters") or {}, entry.get("outputs") or {})
         if unreadable:
             entry["status"] = "error"
-            explained = _processing_error(
-                entry.get("algorithm") or "", f"Processing finished, but {unreadable}", entry.get("alg"))
+            explained = _processing_error(f"Processing finished, but {unreadable}", entry.get("alg"))
             entry["error"] = explained.get("_error") or unreadable
             if explained.get("suggestion"):
                 entry["suggestion"] = explained["suggestion"]
@@ -2337,6 +2328,24 @@ def _sync_with_qgis(task_id: str) -> None:
         over = True
     if over:
         _on_proc_terminated(task_id)
+
+
+def task_state(task_id: str):
+
+
+
+
+    if task_id not in _PROCESSING_TASKS:
+        return None
+    _sync_with_qgis(task_id)
+    entry = _PROCESSING_TASKS.get(task_id)
+    if entry is None:
+        return None
+    try:
+        percent = int(round(float(entry.get("progress") or 0)))
+    except (TypeError, ValueError):
+        percent = None
+    return str(entry.get("status") or ""), percent
 
 
 def _get_task_status(args: dict) -> dict:

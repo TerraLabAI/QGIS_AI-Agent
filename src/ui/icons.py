@@ -150,29 +150,12 @@ def _draw_plus(p: QPainter, c: QColor) -> None:
     p.drawLine(QPointF(4.5, 10), QPointF(15.5, 10))
 
 
-def _draw_plus_circle(p: QPainter, c: QColor) -> None:
-
-    p.setPen(_pen(c, 1.6))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawEllipse(QRectF(2.5, 2.5, 15, 15))
-    p.drawLine(QPointF(10, 6.5), QPointF(10, 13.5))
-    p.drawLine(QPointF(6.5, 10), QPointF(13.5, 10))
-
-
 def _draw_clock(p: QPainter, c: QColor) -> None:
 
     p.setPen(_pen(c, 1.6))
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.drawEllipse(QRectF(2.5, 2.5, 15, 15))
     p.drawPolyline(QPolygonF([QPointF(10, 5.5), QPointF(10, 10.5), QPointF(13.5, 12.5)]))
-
-
-def _draw_kebab(p: QPainter, c: QColor) -> None:
-
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QBrush(c))
-    for y in (4.5, 10.0, 15.5):
-        p.drawEllipse(QPointF(10, y), 1.7, 1.7)
 
 
 def _draw_lock(p: QPainter, c: QColor) -> None:
@@ -445,21 +428,6 @@ def _draw_file_vector(p: QPainter, c: QColor) -> None:
     p.setBrush(QBrush(c))
     for point in shape:
         p.drawEllipse(point, 1.0, 1.0)
-
-
-def _draw_file_raster(p: QPainter, c: QColor) -> None:
-
-    _sheet(p, c)
-    p.setPen(_pen(c, 1.1))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRect(QRectF(6.7, 10.3, 6.6, 4.8))
-    p.drawLine(QPointF(8.9, 10.3), QPointF(8.9, 15.1))
-    p.drawLine(QPointF(11.1, 10.3), QPointF(11.1, 15.1))
-    p.drawLine(QPointF(6.7, 12.7), QPointF(13.3, 12.7))
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QBrush(c))
-    p.drawRect(QRectF(6.7, 10.3, 2.2, 2.4))
-    p.drawRect(QRectF(11.1, 12.7, 2.2, 2.4))
 
 
 def _draw_folder(p: QPainter, c: QColor) -> None:
@@ -1181,19 +1149,6 @@ def _draw_cluster(p: QPainter, c: QColor) -> None:
         p.drawEllipse(QPointF(x, y), 1.5, 1.5)
 
 
-def _draw_mic(p: QPainter, c: QColor) -> None:
-
-    p.setPen(_pen(c, 1.6))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRoundedRect(QRectF(7.2, 2.8, 5.6, 9.4), 2.8, 2.8)
-    arc = QPainterPath()
-    arc.moveTo(4.6, 9.6)
-    arc.cubicTo(4.6, 13.2, 7.0, 15.2, 10, 15.2)
-    arc.cubicTo(13.0, 15.2, 15.4, 13.2, 15.4, 9.6)
-    p.drawPath(arc)
-    p.drawLine(QPointF(10, 15.2), QPointF(10, 17.6))
-
-
 def _draw_home(p: QPainter, c: QColor) -> None:
 
     p.setPen(_pen(c, 1.5))
@@ -1275,74 +1230,12 @@ def _draw_puzzle(p: QPainter, c: QColor) -> None:
     p.drawPath(path)
 
 
-def _draw_thumbs_up(p: QPainter, c: QColor) -> None:
-
-    p.setPen(_pen(c, 1.5))
-    p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRoundedRect(QRectF(3.0, 9.5, 3.4, 7.0), 1.0, 1.0)
-    path = QPainterPath()
-    path.moveTo(7.4, 16.5)
-    path.lineTo(7.4, 10.2)
-    path.lineTo(10.3, 4.2)
-    path.cubicTo(11.6, 3.5, 12.8, 4.6, 12.3, 6.0)
-    path.lineTo(11.2, 9.2)
-    path.lineTo(15.6, 9.2)
-    path.cubicTo(16.7, 9.2, 17.3, 10.4, 16.7, 11.3)
-    path.lineTo(14.7, 15.3)
-    path.cubicTo(14.3, 16.1, 13.5, 16.5, 12.7, 16.5)
-    path.closeSubpath()
-    p.drawPath(path)
-
-
-def _draw_thumbs_down(p: QPainter, c: QColor) -> None:
-
-    p.save()
-    p.translate(10.0, 10.0)
-    p.rotate(180)
-    p.translate(-10.0, -10.0)
-    _draw_thumbs_up(p, c)
-    p.restore()
-
-
-def _draw_thumbs_up_filled(p: QPainter, c: QColor) -> None:
-
-
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(c)
-    p.drawRoundedRect(QRectF(2.6, 9.2, 3.4, 7.7), 1.0, 1.0)
-    path = QPainterPath()
-    path.moveTo(7.4, 16.5)
-    path.lineTo(7.4, 10.2)
-    path.lineTo(10.3, 4.2)
-    path.cubicTo(11.6, 3.5, 12.8, 4.6, 12.3, 6.0)
-    path.lineTo(11.2, 9.2)
-    path.lineTo(15.6, 9.2)
-    path.cubicTo(16.7, 9.2, 17.3, 10.4, 16.7, 11.3)
-    path.lineTo(14.7, 15.3)
-    path.cubicTo(14.3, 16.1, 13.5, 16.5, 12.7, 16.5)
-    path.closeSubpath()
-    p.setPen(_pen(c, 1.1))
-    p.drawPath(path)
-
-
-def _draw_thumbs_down_filled(p: QPainter, c: QColor) -> None:
-
-    p.save()
-    p.translate(10.0, 10.0)
-    p.rotate(180)
-    p.translate(-10.0, -10.0)
-    _draw_thumbs_up_filled(p, c)
-    p.restore()
-
-
 _GLYPHS = {
     "send": _draw_send,
     "bolt": _draw_bolt,
     "stop": _draw_stop,
     "plus": _draw_plus,
-    "plus_circle": _draw_plus_circle,
     "clock": _draw_clock,
-    "kebab": _draw_kebab,
     "chevron_down": _draw_chevron_down,
     "chevron_up": _draw_chevron_up,
     "chevron_right": _draw_chevron_right,
@@ -1368,7 +1261,6 @@ _GLYPHS = {
     "file_html": _draw_file_html,
     "file_table": _draw_file_table,
     "file_vector": _draw_file_vector,
-    "file_raster": _draw_file_raster,
     "folder": _draw_folder,
     "external": _draw_external,
     "image": _draw_image,
@@ -1422,19 +1314,12 @@ _GLYPHS = {
     "package": _draw_package,
     "server": _draw_server,
     "cluster": _draw_cluster,
-    "mic": _draw_mic,
     "home": _draw_home,
     "sidebar": _draw_sidebar,
     "sparkles": _draw_sparkles,
     "polyline": _draw_polyline,
     "puzzle": _draw_puzzle,
-    "thumbs_up": _draw_thumbs_up,
-    "thumbs_down": _draw_thumbs_down,
-    "thumbs_up_filled": _draw_thumbs_up_filled,
-    "thumbs_down_filled": _draw_thumbs_down_filled,
 }
-
-ICON_NAMES = tuple(_GLYPHS)
 
 
 
@@ -1631,9 +1516,3 @@ def _draw_float_window(p: QPainter, c: QColor) -> None:
 
 
 _GLYPHS["float_window"] = _draw_float_window
-
-ICON_NAMES = tuple(_GLYPHS)
-
-LUCIDE_NAMES = tuple(lucide.PREFIX + key for key in (*lucide.SHAPES, "sparkle"))
-
-

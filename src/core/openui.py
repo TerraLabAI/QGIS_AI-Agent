@@ -380,7 +380,7 @@ def parse(source: str) -> Block | None:
 
     table = statements(source)
     names = ["root"] if "root" in table else []
-    names += [name for name, value in table.items() if name != "root" and isinstance(value, Call)]
+    names += [key for key, value in table.items() if key != "root" and isinstance(value, Call)]
     for name in names:
         block = _block(_Resolver(table).name(name))
         if block is not None:

@@ -44,16 +44,11 @@
 
 
 
-
-
-
 from __future__ import annotations
 
 import contextlib
 import re
 from dataclasses import dataclass
-
-from .shared import tr
 
 
 
@@ -106,7 +101,6 @@ class UseCase:
     steps: tuple = ()
     uses: tuple = ()
     connectors: tuple = ()
-    scene: str = ""
     caveat: str = ""
     image: str = ""
     samples: tuple = ()
@@ -128,17 +122,6 @@ class UseCase:
         return (self.before, self.after)
 
 
-def _builtin_groups() -> list:
-
-    return [
-        ("explore", tr("Explore")),
-        ("map", tr("Map")),
-        ("analyse", tr("Analyse")),
-        ("terrain", tr("Terrain and imagery")),
-        ("share", tr("Report and share")),
-    ]
-
-
 def _group_rows() -> list:
 
 
@@ -155,15 +138,12 @@ def _group_rows() -> list:
             _served_groups = _clean_groups(Settings().known_use_case_groups)
         except Exception:  # noqa: BLE001
             _served_groups = []
-    rows = [dict(g) for g in _served_groups] or [
-        {"key": key, "label": label, "glyph": "", "accent": ""} for key, label in _builtin_groups()]
+    rows = [dict(g) for g in _served_groups]
     known = {row["key"] for row in rows}
-    builtin = dict(_builtin_groups())
     for case in use_cases():
         if case.group not in known:
             known.add(case.group)
-            rows.append({"key": case.group, "label": builtin.get(case.group, case.group),
-                         "glyph": "", "accent": ""})
+            rows.append({"key": case.group, "label": case.group, "glyph": "", "accent": ""})
     return rows
 
 
@@ -282,7 +262,6 @@ def _clean_case(row):
         steps=_strings(row.get("steps"), _MAX_STEP)[:_MAX_STEPS],
         uses=_strings(row.get("uses"), _MAX_ITEM),
         connectors=_strings(row.get("connectors"), _MAX_ITEM),
-        scene=_text(row.get("scene"), _MAX_NAME),
         caveat=_text(row.get("caveat"), _MAX_CAVEAT),
         image=_https(row.get("image")),
         samples=_samples(row.get("samples")),

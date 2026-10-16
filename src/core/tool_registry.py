@@ -380,6 +380,10 @@ class Tool:
 
     builds_layout_at: str = ""
     removes_layout_at: str = ""
+
+
+
+    writes_page: str = ""
     always_confirm: bool | Callable[[dict], bool] = False
     argument_check: Callable[[dict], dict | None] | None = None
     action_danger: dict | None = None

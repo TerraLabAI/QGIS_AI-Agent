@@ -3,15 +3,15 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=AI agent for QGIS 3.28 to 4 on Windows, macOS and Linux. Free tier, no card. Hand it the work: it finds the data, runs the analysis, styles the map and builds the layout. 253 tools, 73 open data connectors.
+description=AI Agent by TerraLab: an AI agent for QGIS 3.28 to 4 on Windows, macOS and Linux. Free tier, no card. Hand it the work: it finds the data, runs the analysis, styles the map and builds the layout. 227 tools, 72 open data connectors.
 about=
     AI Agent by TerraLab is an AI agent for QGIS. It works on your own layers, in the project you already have open, and shows each step as it goes.
 
-    • 253 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
+    • 227 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
 
-    • 73 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 66 more
+    • 72 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 65 more
 
-    • A catalog of 843 ready datasets, from national sources in 174 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 1,276 ready datasets, from national sources in 174 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -30,14 +30,20 @@ about=
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
 
     By TerraLab, terra-lab.ai
-version=1.7.1
+version=1.8.0
 author=TerraLab
-email=yvann.barbot@terra-lab.ai
+email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
 repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.8.0
+    - Paid accounts and the trial start on the Low level; your allowance now counts in tasks
+    - 3D views: points and lines get 3D symbols, the camera can look from under the ground
+    - Long steps show time left and size; layouts and saved projects keep each result's sources
+    - Reopened 3D projects and broken layers no longer close QGIS; Spanish addresses land in place
+
     1.7.1
     - Permission cards ask only Allow or Deny; Autopilot is the way to stop being asked
     - The agent sees an open 3D view as it is drawn, instead of a blank window
@@ -62,14 +68,8 @@ changelog=
     - Files a run writes show as compact rows; its working files fold under them
     - 3D views keep the 2D colours and heights; the effort level can change during a run
 
-    1.5.6
-    - Undo changes and Redo changes under each answer, with a Map history sheet of the versions kept
-    - The memory note at the end of a run is a card you add or decline; Settings lists saved notes
-    - Example library with category badges and a foldable rail; our open data reads as TerraLab Open Data
-    - QGIS no longer freezes at the start of a run or while a large Overture or OSM building layer loads
 
-
-tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation
+tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation,geoai,pyqgis
 icon=icons/icon.png
 experimental=False
 deprecated=False

@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import json
 
-from qgis.core import Qgis, QgsNetworkAccessManager
+from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import QCoreApplication, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
+from .host_platform import qgis_version
 from .versions import read_version
 
 RELEASES_URL = "https://plugins.qgis.org/plugins/AI_Agent/json"
@@ -38,12 +39,6 @@ def put_off_update(version: str) -> None:
     app = QCoreApplication.instance()
     if app is not None and version:
         app.setProperty(_PUT_OFF_PROPERTY, str(version))
-
-
-def qgis_version() -> str:
-
-    number = int(Qgis.QGIS_VERSION_INT)
-    return f"{number // 10000}.{number // 100 % 100}.{number % 100}"
 
 
 def newest_release(doc: object, running_qgis: str = "") -> str:

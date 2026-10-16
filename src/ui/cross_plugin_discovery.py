@@ -15,11 +15,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from qgis.PyQt.QtGui import QIcon
-
 from ..core import catalog
 from .external_links import open_external_url
-from .shared import PRODUCT_ID, SITE_URL, QAction
+from .shared import PRODUCT_ID, SITE_URL
 
 
 
@@ -197,13 +195,6 @@ def _activate_dock(plugin) -> bool:
             except Exception:  # noqa: BLE001
                 continue  # nosec B112
     return False
-
-
-def open_sibling_page(product_id: str) -> None:
-
-    sibling = SIBLINGS.get(product_id)
-    if sibling and sibling["url"]:
-        open_external_url(sibling["url"])
 
 
 def open_sibling_tutorial(product_id: str) -> None:
@@ -435,16 +426,4 @@ def reveal_in_open_manager(plugin_name: str, tab: int = -1, filter_text: bool = 
 def _reveal_plugin(plugin_name: str) -> None:
 
     reveal_in_open_manager(plugin_name, tab=0, filter_text=True)
-
-
-def make_sibling_action(parent, iface, product_id: str, label: str, tooltip: str,
-                        icon: QIcon | None = None) -> QAction:
-
-
-    del iface
-    action = QAction(icon or QIcon(), label, parent)
-    action.setToolTip(tooltip)
-    action.triggered.connect(lambda: open_sibling(product_id))
-    return action
-
 

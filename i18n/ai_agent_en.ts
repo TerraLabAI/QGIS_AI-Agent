@@ -84,6 +84,21 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/privacy_notice_dialog.py"/>
             <source>AI Agent and your data</source>
             <translation type="unfinished"/>
@@ -149,11 +164,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/layout_elevation.py"/>
-            <source>Add an elevation profile to the layout</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/tools/feature_tools.py"/>
             <source>Add features to {layer_name}</source>
             <translation type="unfinished"/>
@@ -186,11 +196,6 @@
         <message>
             <location filename="src/tools/data_tools.py"/>
             <source>Add the basemap[ {name}]</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/harvest_project.py"/>
-            <source>Add the bookmark {name}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -231,11 +236,6 @@
         <message>
             <location filename="src/ui/library/pictures.py"/>
             <source>After</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py"/>
-            <source>Analyse</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -619,6 +619,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/tools/harvest_layers.py"/>
             <source>Duplicate {layer_name}[ as {new_name}]</source>
             <translation type="unfinished"/>
@@ -656,11 +661,6 @@
         <message>
             <location filename="src/ui/library/detail.py"/>
             <source>Examples</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py"/>
-            <source>Explore</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -724,18 +724,8 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/layer_elevation.py"/>
-            <source>Filter the map by elevation</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/tools/harvest_view.py"/>
             <source>Filter {layer_name}[: {filter}]</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/layer_duplicate_tools.py"/>
-            <source>Find duplicate project layers</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -814,11 +804,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/crs_raster_tools.py"/>
-            <source>Identify a CRS from WKT or a .prj file</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/tools/harvest_analysis.py"/>
             <source>Identify features at a point</source>
             <translation type="unfinished"/>
@@ -846,11 +831,6 @@
         <message>
             <location filename="src/ui/library/detail.py"/>
             <source>Information</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/mesh_tools.py"/>
-            <source>Inspect or configure a mesh layer</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -896,6 +876,11 @@
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>It creates the file {path}.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -984,11 +969,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/debug/ui_tools.py"/>
-            <source>Look at the interface</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>Look for data on the web[ for {query}]</source>
             <translation type="unfinished"/>
@@ -1011,11 +991,6 @@
         <message>
             <location filename="src/tools/persist_tools.py"/>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py"/>
-            <source>Map</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1066,6 +1041,11 @@
         <message>
             <location filename="src/ui/library/home.py"/>
             <source>Next</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>No answer came back. Try again.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1174,6 +1154,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/external_links.py"/>
             <source>QGIS could not open a browser.</source>
             <translation type="unfinished"/>
@@ -1186,6 +1171,26 @@
         <message>
             <location filename="src/ui/external_links.py"/>
             <source>QGIS could not open your email app.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>QGIS stopped responding during a step.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1214,11 +1219,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/coordinate_picker.py"/>
-            <source>Read a coordinate from the map</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/tools/web_tools.py"/>
             <source>Read a web page</source>
             <translation type="unfinished"/>
@@ -1244,11 +1244,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/debug/errors.py"/>
-            <source>Read the Python errors</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>Read the QGIS documentation[ on {query}]</source>
             <translation type="unfinished"/>
@@ -1261,11 +1256,6 @@
         <message>
             <location filename="src/tools/core_tools.py"/>
             <source>Read the help of {algorithm_id}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/debug/snapshot.py"/>
-            <source>Read the interface</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1286,11 +1276,6 @@
         <message>
             <location filename="src/tools/layer_tools.py"/>
             <source>Read the map view</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/debug/network.py"/>
-            <source>Read the network log</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1351,11 +1336,6 @@
         <message>
             <location filename="src/ui/error_report_dialog.py"/>
             <source>Report a problem</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py"/>
-            <source>Report and share</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1544,11 +1524,6 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/layer_tools.py"/>
-            <source>Select {layer_name} in the layer panel</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py"/>
             <source>Send the message</source>
             <translation type="unfinished"/>
@@ -1589,8 +1564,13 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/raster_style_tools.py"/>
-            <source>Set the raster attribute table on {layer_name}</source>
+            <location filename="src/tools/facade.py"/>
+            <source>Set up AI Edit</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/tools/facade.py"/>
+            <source>Set up AI Segmentation</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1626,6 +1606,11 @@
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>Smooth {INPUT}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Something went wrong on our side. Try again.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1699,18 +1684,23 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py"/>
-            <source>Terrain and imagery</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>That file is also its input: the original is overwritten.</source>
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/external_links.py"/>
             <source>The address is copied to your clipboard: paste it into a browser to continue.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>The agent got stuck on the same step.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1720,12 +1710,27 @@
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
+            <source>The agent service restarted twice during a step.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
             <source>The agent wants to run this action.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>The answer was cut off. Ask again to carry on.</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/shared.py"/>
             <source>The complete AI Agent guide</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1744,6 +1749,11 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/ui/shared.py"/>
             <source>The panel from the first prompt to the finished map.</source>
             <translation type="unfinished"/>
@@ -1756,6 +1766,11 @@
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>The result is a new temporary layer; no file is written.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1776,6 +1791,11 @@
         <message>
             <location filename="src/ui/tool_describe.py"/>
             <source>This algorithm has no output of its own: it changes its input in place.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>This conversation is too long.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1804,8 +1824,8 @@
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/tools/edit_tools.py"/>
-            <source>Trim or extend a line endpoint</source>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Too many requests right now. Try again in a minute.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -1869,6 +1889,21 @@
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/tools/html_report_tools.py"/>
             <source>Write the report {title}</source>
             <translation type="unfinished"/>
@@ -1893,11 +1928,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/tools/harvest_processing.py"/>
             <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/tools/earthengine_tools.py"/>
-            <source>Zonal statistics with Earth Engine</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2179,6 +2209,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>AIAgentLicence</name>
         <message>
             <location filename="src/core/licence.py"/>
+            <source>Accessed {day} via {host}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
             <source>Dataset page and licence terms</source>
             <translation type="unfinished"/>
         </message>
@@ -2189,17 +2224,47 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/licence.py"/>
+            <source>Derived from: {label}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>Live</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
             <source>Live, loaded {day}</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/core/licence.py"/>
-            <source>Your own file</source>
+            <source>Made by code</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/core/licence.py"/>
-            <source>Your own source</source>
+            <source>Original address</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>QGIS default operation</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>Since {year}, live</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>Source not verified</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2209,12 +2274,27 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/licence.py"/>
+            <source>grids: {grids}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
             <source>inputs: {names}</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/core/licence.py"/>
+            <source>made by code</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
             <source>parameters: {params}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>project layers the code names: {names}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2225,6 +2305,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/core/licence.py"/>
             <source>tool: {tool}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/licence.py"/>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2322,7 +2407,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
-            <location filename="src/plugin.py"/>
+            <location filename="src/plugin_settings.py"/>
             <source>Sign in to see your account.</source>
             <translation type="unfinished"/>
         </message>
@@ -2633,6 +2718,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/trace_tools.py"/>
+            <source>Blocked to protect your credentials</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
             <source>Hide the try that did not work</source>
             <translation type="unfinished"/>
         </message>
@@ -2653,6 +2743,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/trace_tools.py"/>
+            <source>about {n} min left</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>about {n} s left</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
             <source>denied</source>
             <translation type="unfinished"/>
         </message>
@@ -2664,6 +2764,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/trace_tools.py"/>
             <source>stopped</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>{done} MB</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace_tools.py"/>
+            <source>{done} of {total} MB</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -2933,6 +3043,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/core/controller_projects.py"/>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/core/controller_frames.py"/>
             <source>TerraLab is restarting. Your task will resume.</source>
             <translation type="unfinished"/>
@@ -3034,7 +3149,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller_frames.py"/>
-            <source>You have used every run of this period.</source>
+            <source>You have used every task of this period.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3332,7 +3447,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel_layout.py"/>
-            <source>More runs next month</source>
+            <source>More tasks next month</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3383,6 +3498,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel_threads.py"/>
             <source>Removes: {layers}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Reply to the question...</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -3453,6 +3573,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/chat_panel_prompts.py"/>
             <source>Undo {n} requests?</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/chat_panel_prompts.py"/>
+            <source>Waiting for the install</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4221,7 +4346,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
+            <source>Details</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
             <source>Error</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Hide details</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>New chat</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -4502,6 +4642,24 @@ This file is no longer where the run wrote it.</source>
         </message>
     </context>
     <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Open Plugin Manager</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Skip</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/cards_run.py"/>
+            <source>Waiting for {name} to install</source>
+            <translation type="unfinished"/>
+        </message>
+    </context>
+    <context>
         <name>LayerCard</name>
         <message>
             <location filename="src/ui/layer_card.py"/>
@@ -4768,37 +4926,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
-            <source>Allow file writes in this project</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Allow for this run</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Allow for this run also covers later scripts that make the same calls. Removing layers or features still asks.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
             <source>Allowed</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Allowed for this project</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py"/>
-            <source>Allowed for this run</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5151,12 +5279,12 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Free runs come back at your monthly reset.</source>
+            <source>Free tasks come back at your monthly reset.</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Free runs come back on {date}.</source>
+            <source>Free tasks come back on {date}.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5226,17 +5354,17 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>You used all {n} runs this month.</source>
+            <source>You used all {n} tasks this month.</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Your free runs are used up</source>
+            <source>Your free tasks for this month are used</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5246,7 +5374,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Your runs are used up</source>
+            <source>Your tasks for this month are used</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5261,7 +5389,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>{n} runs a month</source>
+            <source>{n} tasks a month</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5473,7 +5601,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/cards_run.py"/>
-            <source>Out of runs</source>
+            <source>Out of tasks</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5531,12 +5659,27 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/trace.py"/>
+            <source>Waiting for you</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py"/>
+            <source>Worked for {time}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py"/>
+            <source>blocked</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/trace.py"/>
             <source>denied</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/trace.py"/>
-            <source>{step} and {n} more</source>
+            <source>{n} steps</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -5544,22 +5687,22 @@ Click to show it in the Layers panel.</source>
         <name>RunsLeftLine</name>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>1 free run left</source>
+            <source>1 free task left</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Get more runs with Pro</source>
+            <source>Get more tasks with Pro</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
             <translation type="unfinished"/>
         </message>
         <message>
             <location filename="src/ui/quota_card.py"/>
-            <source>{n} free runs left</source>
+            <source>{n} free tasks left</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -5657,7 +5800,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py"/>
-            <source>Commercial use and more runs with Pro</source>
+            <source>Commercial use and more tasks with Pro</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -5887,7 +6030,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py"/>
-            <source>Need more than {n} runs a month? Write to {email}.</source>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6227,7 +6370,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py"/>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6257,7 +6400,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py"/>
-            <source>{left} of {limit} runs left</source>
+            <source>{left} of {limit} tasks left</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6267,7 +6410,7 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py"/>
-            <source>{used} runs this month</source>
+            <source>{used} tasks this month</source>
             <translation type="unfinished"/>
         </message>
     </context>
@@ -6658,6 +6801,26 @@ Click to show it in the Layers panel.</source>
             <translation type="unfinished"/>
         </message>
         <message>
+            <location filename="src/core/executor_install_wait.py"/>
+            <source>Waiting for {name} to install</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/executor_code.py"/>
+            <source>changes a layer you had before this run</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/executor_code.py"/>
+            <source>changes your layer {name}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/executor_code.py"/>
+            <source>changes your layers {names}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
             <location filename="src/core/executor_code.py"/>
             <source>could not be saved first, so Undo could not take it back</source>
             <translation type="unfinished"/>
@@ -6700,6 +6863,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/core/executor_code.py"/>
             <source>saves an edit into {files}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/core/executor_install_wait.py"/>
+            <source>{name} is installed</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6827,7 +6995,17 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/layer_links.py"/>
-            <source>Credit: {credit}</source>
+            <source>Credit: {value}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py"/>
+            <source>Dataset: {value}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py"/>
+            <source>Derived from: {value}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6852,7 +7030,12 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/layer_links.py"/>
-            <source>Licence: {licence}</source>
+            <source>Licence: {value}</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py"/>
+            <source>Loaded: {value}</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -6877,7 +7060,17 @@ Click to show it in the Layers panel.</source>
         </message>
         <message>
             <location filename="src/ui/layer_links.py"/>
+            <source>Open the source page</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py"/>
             <source>Show in Layers panel</source>
+            <translation type="unfinished"/>
+        </message>
+        <message>
+            <location filename="src/ui/layer_links.py"/>
+            <source>Source details</source>
             <translation type="unfinished"/>
         </message>
         <message>
@@ -7023,11 +7216,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <location filename="src/ui/cards_question.py"/>
             <source>Write my own answer…</source>
-            <translation type="unfinished"/>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py"/>
-            <source>skipped</source>
             <translation type="unfinished"/>
         </message>
     </context>

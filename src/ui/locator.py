@@ -15,17 +15,11 @@ from qgis.core import QgsLocatorFilter, QgsLocatorResult
 from qgis.PyQt.QtCore import QCoreApplication
 
 from ..core.logger import log_warning
+from ..core.qt_compat import enum_member
 
 
 def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentLocatorFilter", text)
-
-
-def _enum(owner, scope: str, member: str):
-
-    scoped = getattr(owner, scope, None)
-    value = getattr(scoped, member, None) if scoped is not None else None
-    return value if value is not None else getattr(owner, member)
 
 
 class AIAgentLocatorFilter(QgsLocatorFilter):
@@ -51,10 +45,10 @@ class AIAgentLocatorFilter(QgsLocatorFilter):
         return self.PREFIX
 
     def priority(self):
-        return _enum(QgsLocatorFilter, "Priority", "Low")
+        return enum_member(QgsLocatorFilter, "Priority", "Low")
 
     def flags(self):
-        return _enum(QgsLocatorFilter, "Flag", "FlagFast")
+        return enum_member(QgsLocatorFilter, "Flag", "FlagFast")
 
     def fetchResults(self, string, _context, _feedback):
         text = (string or "").strip()

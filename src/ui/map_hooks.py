@@ -29,13 +29,6 @@ def tr(text: str) -> str:
 MAX_TREE_CHIPS = 8
 
 
-def _enum(owner, scope: str, member: str):
-
-    scoped = getattr(owner, scope, None)
-    value = getattr(scoped, member, None) if scoped is not None else None
-    return value if value is not None else getattr(owner, member)
-
-
 class MapHooks:
 
 
@@ -78,9 +71,10 @@ class MapHooks:
         try:
             from qgis.gui import QgsGui, QgsMapLayerAction
 
-            single = _enum(QgsMapLayerAction, "Target", "SingleFeature")
+            single = enum_member(QgsMapLayerAction, "Target", "SingleFeature")
             try:
-                targets = QgsMapLayerAction.Targets(single | _enum(QgsMapLayerAction, "Target", "MultipleFeatures"))
+                multiple = enum_member(QgsMapLayerAction, "Target", "MultipleFeatures")
+                targets = QgsMapLayerAction.Targets(single | multiple)
             except Exception:  # noqa: BLE001
                 targets = single
             action = QgsMapLayerAction(tr("Ask AI Agent about this feature"), self._iface.mainWindow(), targets)

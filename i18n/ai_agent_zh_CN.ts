@@ -26,14 +26,14 @@
             <source>Results for “{query}”</source>
             <translation>“{query}” 的结果</translation>
         </message>
-    <message>
-        <source>AI Segmentation review[ ({action})]</source>
-        <translation>AI Segmentation 审阅[ ({action})]</translation>
-    </message>
-    <message>
-        <source>Save the AI Segmentation review</source>
-        <translation>保存 AI Segmentation 审阅结果</translation>
-    </message>
+        <message>
+            <source>AI Segmentation review[ ({action})]</source>
+            <translation>AI Segmentation 审阅[ ({action})]</translation>
+        </message>
+        <message>
+            <source>Save the AI Segmentation review</source>
+            <translation>保存 AI Segmentation 审阅结果</translation>
+        </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
@@ -2286,6 +2286,110 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Open</source>
             <translation>打开</translation>
         </message>
+        <message>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>更轻量的请求（更少的图层、更小的区域、更低的分辨率）比再发一次同样的请求更有可能完成。</translation>
+        </message>
+        <message>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation>更短或更明确的请求能更快得到答复。</translation>
+        </message>
+        <message>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation>更小的区域，或一次只做一项任务，能更快完成。</translation>
+        </message>
+        <message>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation>已完成。只有地图预览没有绘制出来。</translation>
+        </message>
+        <message>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
+            <translation>它可能仍在处理之前的某个步骤。QGIS 恢复响应后，更轻量的请求（更少的图层、更小的区域、更低的分辨率）更有可能完成。</translation>
+        </message>
+        <message>
+            <source>No answer came back. Try again.</source>
+            <translation>没有收到答复。请重试。</translation>
+        </message>
+        <message>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation>QGIS 在某个步骤中关闭了。已保存的工作是安全的。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation>QGIS 在绘制预览时停止了响应。结果已在地图上。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding during a step.</source>
+            <translation>QGIS 在某个步骤中停止了响应。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation>卡片等待期间，QGIS 停止了响应。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
+            <translation>QGIS 停止了响应。之前的步骤已保留。</translation>
+        </message>
+        <message>
+            <source>Set up AI Edit</source>
+            <translation>设置 AI Edit</translation>
+        </message>
+        <message>
+            <source>Set up AI Segmentation</source>
+            <translation>设置 AI Segmentation</translation>
+        </message>
+        <message>
+            <source>Something went wrong on our side. Try again.</source>
+            <translation>我们这边出了点问题。请重试。</translation>
+        </message>
+        <message>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation>该步骤未完成。运行已写入的文件仍保留在磁盘上。它添加的图层只有在其后保存过项目时才会恢复，临时图层则已消失。同一步骤可能再次导致 QGIS 关闭：请换一个更轻量的请求（更小的区域、更少的图层）。</translation>
+        </message>
+        <message>
+            <source>The agent got stuck on the same step.</source>
+            <translation>智能体卡在了同一个步骤上。</translation>
+        </message>
+        <message>
+            <source>The agent service restarted twice during a step.</source>
+            <translation>智能体服务在某个步骤中重启了两次。</translation>
+        </message>
+        <message>
+            <source>The answer was cut off. Ask again to carry on.</source>
+            <translation>回答被截断了。再问一次即可继续。</translation>
+        </message>
+        <message>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
+            <translation>与 QGIS 的连接中断且未恢复，因此该步骤未完成。如果 QGIS 仍处于打开状态，项目保持在运行结束时的状态。如果它已关闭，运行写入的文件仍保留在磁盘上，其图层只有在其后保存过项目时才会恢复。如果 QGIS 已关闭，请重新打开，然后点击“重试”。</translation>
+        </message>
+        <message>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation>模型一直发送智能体无法读取的步骤。之前的步骤已保留。</translation>
+        </message>
+        <message>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
+            <translation>该卡片上的步骤尚未运行，除非刚刚点击过。之前的步骤已保留；再次发送同一条消息即可让卡片重新出现。</translation>
+        </message>
+        <message>
+            <source>This conversation is too long.</source>
+            <translation>此对话太长了。</translation>
+        </message>
+        <message>
+            <source>Too many requests right now. Try again in a minute.</source>
+            <translation>现在请求过多。请一分钟后重试。</translation>
+        </message>
+        <message>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation>之前完成的内容已保留。请换种说法，或补充一个细节（图层、地点或数值），然后重新发送。</translation>
+        </message>
+        <message>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation>本次运行之前完成的内容已保留。“报告”会把详细信息发送给我们。</translation>
+        </message>
+        <message>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>该步骤之前完成的内容已保留。更轻量的请求（更小的区域、更低的分辨率）比再发一次同样的请求更有可能完成。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2918,8 +3022,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>本月已运行 {used} 次</translation>
+            <source>{used} tasks this month</source>
+            <translation>本月已使用 {used} 个任务</translation>
         </message>
     </context>
     <context>
@@ -3091,6 +3195,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Show the {n} tries that did not work</source>
             <translation>显示 {n} 次未成功的尝试</translation>
+        </message>
+        <message>
+            <source>Blocked to protect your credentials</source>
+            <translation>为保护您的凭据已被拦截</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>约剩 {n} 分钟</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>约剩 {n} 秒</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} MB，共 {total} MB</translation>
         </message>
     </context>
     <context>
@@ -3326,8 +3450,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>You have used every run of this period.</source>
-            <translation>您已用完此期间的所有运行次数。</translation>
+            <source>You have used every task of this period.</source>
+            <translation>您已用完此期间的所有任务。</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
@@ -3705,6 +3829,46 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Print layouts changed</source>
             <translation>打印布局已更改</translation>
         </message>
+        <message>
+            <source>Balanced</source>
+            <translation>均衡</translation>
+        </message>
+        <message>
+            <source>Beginner</source>
+            <translation>初学者</translation>
+        </message>
+        <message>
+            <source>Concise</source>
+            <translation>简洁</translation>
+        </message>
+        <message>
+            <source>Detailed</source>
+            <translation>详细</translation>
+        </message>
+        <message>
+            <source>Expert</source>
+            <translation>专家</translation>
+        </message>
+        <message>
+            <source>GIS experience</source>
+            <translation>GIS 经验</translation>
+        </message>
+        <message>
+            <source>Imperial</source>
+            <translation>英制</translation>
+        </message>
+        <message>
+            <source>Metric</source>
+            <translation>公制</translation>
+        </message>
+        <message>
+            <source>Rarely</source>
+            <translation>很少</translation>
+        </message>
+        <message>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation>AI Agent 暂存文件夹中的临时文件。保存项目后会将其存放在项目旁边。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3901,8 +4065,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
-            <source>More runs next month</source>
-            <translation>下月获得更多运行次数</translation>
+            <source>More tasks next month</source>
+            <translation>下月获得更多任务</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4165,6 +4329,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>{n} layers couldn't be restored</source>
             <translation>有 {n} 个图层无法恢复</translation>
+        </message>
+        <message>
+            <source>Reply to the question...</source>
+            <translation>回复该问题...</translation>
+        </message>
+        <message>
+            <source>Waiting for the install</source>
+            <translation>正在等待安装</translation>
         </message>
     </context>
     <context>
@@ -4971,6 +5143,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>More details</source>
             <translation>更多详情</translation>
         </message>
+        <message>
+            <source>Show less</source>
+            <translation>收起</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5345,6 +5521,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo and retry</source>
             <translation>撤销并重试</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>详情</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>隐藏详情</translation>
+        </message>
+        <message>
+            <source>New chat</source>
+            <translation>新对话</translation>
         </message>
     </context>
     <context>
@@ -6218,13 +6406,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your free runs are used up</source>
-            <translation>免费运行次数已用完</translation>
+            <source>Your free tasks for this month are used</source>
+            <translation>本月免费任务次数已用完</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your runs are used up</source>
-            <translation>运行次数已用完</translation>
+            <source>Your tasks for this month are used</source>
+            <translation>本月任务次数已用完</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6237,12 +6425,12 @@ Click to open its page.</source>
             <translation>还剩 {n} 次免费运行。</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month.</source>
-            <translation>您本月已用完全部 {n} 次运行。</translation>
+            <source>You used all {n} tasks this month.</source>
+            <translation>您本月已用完全部 {n} 个任务。</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>您本月已用完全部 {n} 次运行，将于 {date} 恢复。</translation>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
+            <translation>您本月已用完全部 {n} 个任务，将于 {date} 恢复。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6292,12 +6480,12 @@ Click to open its page.</source>
             <translation>Free 套餐用于个人和学习。Pro 套餐涵盖为客户和雇主所做的工作。</translation>
         </message>
         <message>
-            <source>Free runs come back at your monthly reset.</source>
-            <translation>免费运行次数会在您每月重置时恢复。</translation>
+            <source>Free tasks come back at your monthly reset.</source>
+            <translation>免费任务次数会在您每月重置时恢复。</translation>
         </message>
         <message>
-            <source>Free runs come back on {date}.</source>
-            <translation>免费运行次数会在 {date} 恢复。</translation>
+            <source>Free tasks come back on {date}.</source>
+            <translation>免费任务次数会在 {date} 恢复。</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
@@ -6324,8 +6512,8 @@ Click to open its page.</source>
             <translation>{amount}/月（不含增值税）</translation>
         </message>
         <message>
-            <source>{n} runs a month</source>
-            <translation>每月 {n} 次运行</translation>
+            <source>{n} tasks a month</source>
+            <translation>每月 {n} 个任务</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
@@ -6546,6 +6734,22 @@ Click to open its page.</source>
         <message>
             <source>{step} and {n} more</source>
             <translation>{step} 及另外 {n} 项</translation>
+        </message>
+        <message>
+            <source>Waiting for you</source>
+            <translation>等待您操作</translation>
+        </message>
+        <message>
+            <source>Worked for {time}</source>
+            <translation>已运行 {time}</translation>
+        </message>
+        <message>
+            <source>blocked</source>
+            <translation>已拦截</translation>
+        </message>
+        <message>
+            <source>{n} steps</source>
+            <translation>{n} 个步骤</translation>
         </message>
     </context>
     <context>
@@ -6841,8 +7045,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>每月需要超过 {n} 次运行？请联系 {email}。</translation>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
+            <translation>每月需要超过 {n} 个任务？请联系 {email}。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7166,7 +7370,7 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>{used} runs this month</source>
+            <source>{used} tasks this month</source>
             <translation>本月已运行 {used} 次</translation>
         </message>
         <message>
@@ -7402,8 +7606,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>{left} of {limit} runs left</source>
-            <translation>剩余 {left} 次运行，共 {limit} 次</translation>
+            <source>{left} of {limit} tasks left</source>
+            <translation>剩余 {left} 个任务，共 {limit} 个</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -7419,8 +7623,8 @@ Click to open its page.</source>
             <translation>升级</translation>
         </message>
         <message>
-            <source>Commercial use and more runs with Pro</source>
-            <translation>Pro 提供商业使用和更多运行次数</translation>
+            <source>Commercial use and more tasks with Pro</source>
+            <translation>Pro 提供商业使用和更多任务</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -7471,8 +7675,8 @@ Click to open its page.</source>
             <translation>你的套餐、付款方式和发票都在 TerraLab 网站上。付款绝不会在 QGIS 内进行。</translation>
         </message>
         <message>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
-            <translation>登录后，你的套餐、运行次数和设置会显示在这里。</translation>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
+            <translation>登录后，你的套餐、任务和设置会显示在这里。</translation>
         </message>
         <message>
             <source>Your profile and instructions, read before every run</source>
@@ -7785,46 +7989,46 @@ Click to open its page.</source>
     </context>
     <context>
         <name>ToolExecutor</name>
-    <message>
-        <source>{area} km²</source>
-        <translation>{area} km²</translation>
-    </message>
-    <message>
-        <source>{area} ha</source>
-        <translation>{area} ha</translation>
-    </message>
-    <message>
-        <source>{area} m²</source>
-        <translation>{area} m²</translation>
-    </message>
-    <message>
-        <source>the '{layer}' layer ({area})</source>
-        <translation>'{layer}' 图层（{area}）</translation>
-    </message>
-    <message>
-        <source>Run {label} on {zone}. This spends your {label} credits.</source>
-        <translation>在{zone}上运行{label}。这将消耗你的{label}积分。</translation>
-    </message>
-    <message>
-        <source> at {resolution}</source>
-        <translation> 分辨率为{resolution}</translation>
-    </message>
-    <message>
-        <source> at the panel's selected resolution</source>
-        <translation> 按面板中选择的分辨率</translation>
-    </message>
-    <message>
-        <source>{price} credits per generation</source>
-        <translation>每次生成{price}积分</translation>
-    </message>
-    <message>
-        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-        <translation>运行 AI Edit{size}：{cost}。图像范围：{zone}；按每次生成计费。</translation>
-    </message>
-    <message>
-        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-        <translation>每次生成约{price}积分（2K 价格；无法获取实时价格）</translation>
-    </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
+        </message>
+        <message>
+            <source>the '{layer}' layer ({area})</source>
+            <translation>'{layer}' 图层（{area}）</translation>
+        </message>
+        <message>
+            <source>Run {label} on {zone}. This spends your {label} credits.</source>
+            <translation>在{zone}上运行{label}。这将消耗你的{label}积分。</translation>
+        </message>
+        <message>
+            <source> at {resolution}</source>
+            <translation> 分辨率为{resolution}</translation>
+        </message>
+        <message>
+            <source> at the panel's selected resolution</source>
+            <translation> 按面板中选择的分辨率</translation>
+        </message>
+        <message>
+            <source>{price} credits per generation</source>
+            <translation>每次生成{price}积分</translation>
+        </message>
+        <message>
+            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+            <translation>运行 AI Edit{size}：{cost}。图像范围：{zone}；按每次生成计费。</translation>
+        </message>
+        <message>
+            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+            <translation>每次生成约{price}积分（2K 价格；无法获取实时价格）</translation>
+        </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7923,6 +8127,26 @@ Click to open its page.</source>
         <message>
             <source>Run Python code ({what}).</source>
             <translation>运行 Python 代码（{what}）。</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>正在等待 {name} 安装</translation>
+        </message>
+        <message>
+            <source>changes a layer you had before this run</source>
+            <translation>会更改本次运行之前就已存在的图层</translation>
+        </message>
+        <message>
+            <source>changes your layer {name}</source>
+            <translation>会更改您的图层 {name}</translation>
+        </message>
+        <message>
+            <source>changes your layers {names}</source>
+            <translation>会更改您的图层 {names}</translation>
+        </message>
+        <message>
+            <source>{name} is installed</source>
+            <translation>{name} 已安装</translation>
         </message>
     </context>
     <context>
@@ -8149,6 +8373,34 @@ Click to open its page.</source>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>新图层，1 个要素。点击可在“图层”面板中选中它。</translation>
+        </message>
+        <message>
+            <source>Credit: {value}</source>
+            <translation>署名：{value}</translation>
+        </message>
+        <message>
+            <source>Dataset: {value}</source>
+            <translation>数据集：{value}</translation>
+        </message>
+        <message>
+            <source>Derived from: {value}</source>
+            <translation>衍生自：{value}</translation>
+        </message>
+        <message>
+            <source>Licence: {value}</source>
+            <translation>许可：{value}</translation>
+        </message>
+        <message>
+            <source>Loaded: {value}</source>
+            <translation>加载时间：{value}</translation>
+        </message>
+        <message>
+            <source>Open the source page</source>
+            <translation>打开来源页面</translation>
+        </message>
+        <message>
+            <source>Source details</source>
+            <translation>来源详情</translation>
         </message>
     </context>
     <context>
@@ -8461,8 +8713,8 @@ Click to open its page.</source>
             <translation>失败</translation>
         </message>
         <message>
-            <source>Out of runs</source>
-            <translation>运行次数用尽</translation>
+            <source>Out of tasks</source>
+            <translation>任务次数用尽</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -8557,6 +8809,58 @@ Click to open its page.</source>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
             <translation>{day} UTC，由 AI Agent by TerraLab 添加</translation>
+        </message>
+        <message>
+            <source>Accessed {day} via {host}</source>
+            <translation>于 {day} 通过 {host} 访问</translation>
+        </message>
+        <message>
+            <source>Derived from: {label}</source>
+            <translation>衍生自：{label}</translation>
+        </message>
+        <message>
+            <source>Live</source>
+            <translation>实时</translation>
+        </message>
+        <message>
+            <source>Made by code</source>
+            <translation>由代码生成</translation>
+        </message>
+        <message>
+            <source>Original address</source>
+            <translation>原始地址</translation>
+        </message>
+        <message>
+            <source>QGIS default operation</source>
+            <translation>QGIS 默认操作</translation>
+        </message>
+        <message>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation>已从 {source} 重投影到 {target}；操作：{operation}</translation>
+        </message>
+        <message>
+            <source>Since {year}, live</source>
+            <translation>自 {year} 年起实时</translation>
+        </message>
+        <message>
+            <source>Source not verified</source>
+            <translation>来源未验证</translation>
+        </message>
+        <message>
+            <source>grids: {grids}</source>
+            <translation>网格：{grids}</translation>
+        </message>
+        <message>
+            <source>made by code</source>
+            <translation>由代码生成</translation>
+        </message>
+        <message>
+            <source>project layers the code names: {names}</source>
+            <translation>代码指定的项目图层：{names}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
+            <translation>{day} UTC，AI Agent 运行 {run}：已添加 {layers}</translation>
         </message>
     </context>
     <context>
@@ -8691,8 +8995,8 @@ This file is no longer where the run wrote it.</source>
     <context>
         <name>RunsLeftLine</name>
         <message>
-            <source>1 free run left</source>
-            <translation>还剩 1 次免费运行</translation>
+            <source>1 free task left</source>
+            <translation>还剩 1 个免费任务</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -8703,8 +9007,8 @@ This file is no longer where the run wrote it.</source>
             <translation>获取更多运行次数</translation>
         </message>
         <message>
-            <source>{n} free runs left</source>
-            <translation>还剩 {n} 次免费运行</translation>
+            <source>{n} free tasks left</source>
+            <translation>还剩 {n} 个免费任务</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -8715,12 +9019,12 @@ This file is no longer where the run wrote it.</source>
             <translation>获取 Pro 以使用 High 强度</translation>
         </message>
         <message>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro：每月 {n} 次运行，适用于更难任务的 Medium 和 High 强度，自动驾驶</translation>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
+            <translation>Pro：每月 {n} 个任务，适用于更难任务的 Medium 和 High 强度，自动驾驶</translation>
         </message>
         <message>
-            <source>Get more runs with Pro</source>
-            <translation>升级 Pro 获得更多运行次数</translation>
+            <source>Get more tasks with Pro</source>
+            <translation>升级 Pro 获得更多任务</translation>
         </message>
     </context>
     <context>
@@ -9094,6 +9398,18 @@ This file is no longer where the run wrote it.</source>
             <source>Running {name}...</source>
             <translation>正在运行 {name}...</translation>
         </message>
+        <message>
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>正在停止...</translation>
+        </message>
     </context>
     <context>
         <name>_OptionRow</name>
@@ -9107,6 +9423,21 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Skipped</source>
             <translation>已跳过</translation>
+        </message>
+    </context>
+    <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <source>Open Plugin Manager</source>
+            <translation>打开插件管理器</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>跳过</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>正在等待 {name} 安装</translation>
         </message>
     </context>
 </TS>

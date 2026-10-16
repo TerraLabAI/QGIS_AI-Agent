@@ -318,7 +318,13 @@ def _resolve_menu_action(root_menu, action_path: str):
 
         return re.sub(r"\s*/\s*", "/", str(text or "").replace("&", "")).strip().lower()
 
-    parts = [p.strip() for p in action_path.split("/")]
+
+
+
+    if re.search(r"\s>\s|[\u203a\u2023]", action_path):
+        parts = [p.strip() for p in re.split(r"\s+>\s+|\s*[\u203a\u2023]\s*", action_path)]
+    else:
+        parts = [p.strip() for p in action_path.split("/")]
     current_menu = root_menu
     i = 0
     while i < len(parts):
@@ -622,6 +628,11 @@ def _open_plugin_manager(args: dict) -> dict:
     out = {"installed": False, "plugin": name, "opened": opened,
            "manager_path": _MANAGER_PATH,
            "tell_user_hint": "plugin_not_installed", "next_step_hint": "plugin_not_installed_next"}
+    if opened and row.get("id"):
+
+        out["wait_for_plugin"] = {"keys": [str(row["id"])], "name": name,
+                                  "then": {"enabled": True, "folder": str(row["id"]),
+                                           "next_step_hint": "plugin_already_running"}}
     if not row:
         out["note"] = "QGIS has not listed a plugin by that exact name."
         out["note_hint"] = "plugin_not_listed"

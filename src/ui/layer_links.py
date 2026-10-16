@@ -49,9 +49,11 @@ from qgis.PyQt.QtCore import QPoint, QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QPainter, QPainterPath
 from qgis.PyQt.QtWidgets import QMenu, QSizePolicy, QWidget
 
-from ..core.licence import layer_attribution
+from ..core.host_platform import resolved
+from ..core.licence import source_details, source_line
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
+from .external_links import open_external_url
 from .file_links import escape_markdown_label
 from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
@@ -89,6 +91,12 @@ _LINE_GAP_PX = SPACE_TIGHT
 _FOLDED_LINES = 1
 
 _MIN_FIRST_PX = 72
+
+
+def _short(text, limit: int = 120) -> str:
+
+    text = " ".join(str(text or "").split())
+    return text if len(text) <= limit else text[:limit - 3].rstrip() + "..."
 
 
 def _counts(item: dict) -> tuple[int, int, int]:
@@ -439,6 +447,11 @@ class _LayerChip(_Chip):
             return self.tr("Its file was written on disk. Click to select it in the Layers panel.")
         return self.tr("Click to select it in the Layers panel.")
 
+    def _chip_layer(self):
+        if self.what == "removed" or not self.layer_id or not self.in_project:
+            return None
+        return resolve_layer(self.layer_id)
+
     def _credit_line(self) -> str:
 
 
@@ -446,38 +459,49 @@ class _LayerChip(_Chip):
 
 
 
-        if self.what == "removed" or not self.layer_id or not self.in_project:
-            return ""
-        layer = resolve_layer(self.layer_id)
+        layer = self._chip_layer()
         if layer is None:
             return ""
         try:
-            metadata = layer.metadata()
-            licence = ""
-            for entry in metadata.licenses():
-                value = str(entry or "").strip()
-                if value:
-                    licence = value
-                    break
-            credit = layer_attribution(layer)
-            if not credit:
-                for entry in metadata.rights():
-                    value = str(entry or "").strip()
-                    if value:
-                        credit = value
-                        break
+            return source_line(layer)
         except (RuntimeError, AttributeError, TypeError):
             return ""
-        if len(licence) > 120:
-            licence = licence[:117].rstrip() + "..."
-        if len(credit) > 160:
-            credit = credit[:157].rstrip() + "..."
+
+    def _add_source_menu(self, menu) -> None:
+
+        layer = self._chip_layer()
+        if layer is None:
+            return
+        try:
+            details = source_details(layer)
+        except (RuntimeError, AttributeError, TypeError):
+            return
         lines = []
-        if licence:
-            lines.append(self.tr("Licence: {licence}").format(licence=licence))
-        if credit:
-            lines.append(self.tr("Credit: {credit}").format(credit=credit))
-        return "\n".join(lines)
+        if details.get("title"):
+            lines.append(self.tr("Dataset: {value}").format(value=_short(details["title"])))
+        if details.get("loaded"):
+            lines.append(self.tr("Loaded: {value}").format(value=details["loaded"]))
+        if details.get("licence"):
+            lines.append(self.tr("Licence: {value}").format(value=_short(details["licence"])))
+        if details.get("credit"):
+            lines.append(self.tr("Credit: {value}").format(value=_short(details["credit"])))
+        for parent in details.get("derived_from") or []:
+            lines.append(self.tr("Derived from: {value}").format(value=_short(parent)))
+        steps = [_short(step) for step in details.get("steps") or []]
+        page = details.get("page_url") or ""
+        if not lines and not steps and not page:
+            return
+        sub = menu.addMenu(self.tr("Source details"))
+        for line in lines:
+            sub.addAction(line).setEnabled(False)
+        if steps:
+            sub.addSeparator()
+            for step in steps:
+                sub.addAction(step).setEnabled(False)
+        if page:
+            sub.addSeparator()
+            act = sub.addAction(self.tr("Open the source page"))
+            act.triggered.connect(lambda _=False, url=page: open_external_url(url, self))
 
 
 
@@ -498,6 +522,8 @@ class _LayerChip(_Chip):
         for action, glyph, label in entries:
             act = menu.addAction(icon_for(menu, glyph, 16), label)
             act.triggered.connect(lambda _=False, a=action: self.action_requested.emit(self.layer_id, a))
+
+        self._add_source_menu(menu)
         exec_menu(menu, self.mapToGlobal(QPoint(0, self.height() + 2)))
         menu.deleteLater()
 
@@ -744,10 +770,7 @@ def layer_id_from_url(url: str) -> str:
 
 def _path_key(value: str) -> str:
 
-    try:
-        return os.path.normcase(os.path.realpath(value))
-    except (OSError, ValueError):
-        return os.path.normcase(os.path.normpath(os.path.abspath(value)))
+    return os.path.normcase(resolved(value))
 
 
 def layer_of_file(path: str, layername: str = "") -> str:

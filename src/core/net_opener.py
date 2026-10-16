@@ -18,7 +18,7 @@ import urllib.request
 
 from .logger import log_warning
 from .net_failure import LocalUrlRefused, _transient
-from .security import _as_address, refused_addresses, validate_url, vetted_addresses
+from .security_urls import _as_address, refused_addresses, validate_url, vetted_addresses
 from .serialization import coded_like
 
 

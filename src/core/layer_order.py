@@ -646,7 +646,6 @@ def keeps_place(layer) -> bool:
 
 
 
-
 TRUNCATED_COUNT_PROPERTY = "ai_agent/truncated_feature_count"
 
 
@@ -936,11 +935,6 @@ def recent_layer_ids(project=None) -> list:
     except Exception:  # noqa: BLE001
         return []
     return [layer_id for layer_id in reversed(_RECENT_IDS) if layer_id in present]
-
-
-def forget_recent() -> None:
-
-    del _RECENT_IDS[:]
 
 
 def current_run():

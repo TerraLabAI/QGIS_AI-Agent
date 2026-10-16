@@ -78,7 +78,6 @@ class ActivationCard(QWidget):
         super().__init__(parent)
         self.state = "signed_out"
         self.pairing_code = ""
-        self.pairing_url = ""
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, _TOP_MARGIN, 12, SPACE_OUTER)
         outer.setSpacing(0)
@@ -313,7 +312,6 @@ class ActivationCard(QWidget):
 
     def show_pairing_waiting(self, code: str = "", url: str = "") -> None:
         self.pairing_code = code or ""
-        self.pairing_url = url or ""
         if self.state != "pairing" or not url:
             self._hide_code_input()
         self.state = "pairing"

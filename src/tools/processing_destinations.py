@@ -10,6 +10,7 @@ from qgis.core import QgsApplication, QgsProject
 
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from .danger import _OGR_DBNAME_PATTERN
 from .layer_io_tools import _same_file
 from .layer_lookup import _find_layer
 from .processing_decisions import _LAYER_ERROR_RE
@@ -17,13 +18,13 @@ from .processing_decisions import _LAYER_ERROR_RE
 
 
 _GPKG_TABLE_RE = re.compile(r"^(?P<path>.+\.gpkg)\|layername=(?P<table>[^|]+)$", re.IGNORECASE)
-_OGR_DBNAME_RE = re.compile(r"^ogr:dbname='(?P<path>[^']+)'\s+table=\"(?P<table>[^\"]+)\"", re.IGNORECASE)
+_OGR_DBNAME_TABLE_RE = re.compile(_OGR_DBNAME_PATTERN + r"\s+table=\"(?P<table>[^\"]+)\"", re.IGNORECASE)
 
 
 def _gpkg_table_target(value: str):
 
     text = (value or "").strip()
-    match = _GPKG_TABLE_RE.match(text) or _OGR_DBNAME_RE.match(text)
+    match = _GPKG_TABLE_RE.match(text) or _OGR_DBNAME_TABLE_RE.match(text)
     if not match:
         return None
     return match.group("path"), match.group("table").strip()
@@ -516,7 +517,6 @@ _SIBLING_EXTENSIONS = (".sdat", ".sgrd", ".tif", ".tiff", ".vrt", ".asc", ".img"
 
 
 def written_path_for(path: str) -> str:
-
 
 
 

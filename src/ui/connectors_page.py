@@ -41,8 +41,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QTimer, pyqtSignal
@@ -481,13 +479,6 @@ class ConnectorsPage(QWidget):
             return sort_by_locale(rows)
         except Exception:  # noqa: BLE001
             return rows
-
-    def remember_scroll(self) -> None:
-
-        try:
-            self._keep_scroll = int(self._scroll.verticalScrollBar().value())
-        except (AttributeError, RuntimeError):
-            self._keep_scroll = -1
 
     def _restore_scroll(self) -> None:
         value, self._keep_scroll = self._keep_scroll, -1

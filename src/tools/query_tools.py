@@ -29,6 +29,7 @@ from qgis.core import (
 
 from ..core import background, ground, limits, net
 from ..core.background import run_on_main_thread
+from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request, first_feature
 from ..core.geometry_budget import VertexBudget
@@ -38,7 +39,15 @@ from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
 from ..core.vsi import PERSISTENT_OPTIONS, streamed_in_place, streamed_size
 from ._layers import loaded_feature_count
-from .layer_lookup import _field_not_found_error, _find_layer, _jsonable_value, _layer_not_found_error
+from .layer_lookup import (
+    _field_not_found_error,
+    _find_layer,
+    _jsonable_value,
+    _layer_not_found_error,
+    extent_block,
+    require_raster,
+    require_vector,
+)
 from .project_tools import _is_remote_vector, filter_facts
 
 
@@ -171,9 +180,7 @@ def _swapped_predicate(expression: str, before: str, after: str):
     return None if QgsExpression(swapped).hasParserError() else swapped
 
 
-def _spatial_criterion(layer, expression: str, expr, exact: bool) -> dict:
-
-
+def _spatial_rule(expression: str, expr) -> tuple:
 
 
 
@@ -181,18 +188,33 @@ def _spatial_criterion(layer, expression: str, expr, exact: bool) -> dict:
     try:
         used = _SPATIAL_PREDICATES.intersection(name.lower() for name in expr.referencedFunctions())
     except Exception:  # noqa: BLE001
-        return {}
+        return None, None, None
     if not used:
-        return {}
+        return None, None, None
     predicate = next((name for name in ("within", "intersects", "contains", "overlaps",
                                         "touches", "crosses", "disjoint") if name in used), min(used))
+    other = _PREDICATE_ALTERNATIVE.get(predicate) if len(used) == 1 else None
+    swapped = _swapped_predicate(expression, predicate, other) if other else None
+    return predicate, other, swapped
+
+
+def _spatial_criterion(layer, expression: str, expr, exact: bool, count_other=None) -> dict:
+
+
+
+
+
+
+
+    predicate, other, swapped = _spatial_rule(expression, expr)
+    if predicate is None:
+        return {}
     criterion = {"predicate": predicate, "counts": predicate,
                  **_PREDICATE_HINT.get(predicate, {})}
-    other = _PREDICATE_ALTERNATIVE.get(predicate) if len(used) == 1 else None
     if other and exact:
-        swapped = _swapped_predicate(expression, predicate, other)
         if swapped:
-            alternative, alternative_exact = _count_matching(layer, swapped)
+            counter = count_other or (lambda text: _count_matching(layer, text))
+            alternative, alternative_exact = counter(swapped)
             if alternative_exact:
                 criterion["under_" + other] = alternative
                 criterion["under_" + other + "_counts"] = other
@@ -209,14 +231,16 @@ def _spatial_criterion(layer, expression: str, expr, exact: bool) -> dict:
 _SCAN_WHOLE_BYTES = 16 * int(PERSISTENT_OPTIONS["CPL_VSIL_CURL_CHUNK_SIZE"])
 
 
-def _get_features_is_remote(layer_args: dict) -> bool:
+def _get_features_off_main(layer_args: dict) -> bool:
+
+
 
 
 
 
 
     layer = _find_layer(str((layer_args or {}).get("layer_name") or ""))
-    return isinstance(layer, QgsVectorLayer) and _is_remote_vector(layer)
+    return isinstance(layer, QgsVectorLayer)
 
 
 def _features_plan(args: dict, for_worker: bool = False) -> dict:
@@ -226,12 +250,9 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
 
 
 
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-
-    if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a vector layer"}
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
 
     limit = max(int(args.get("limit", 100) or 100), 1)
     offset = max(int(args.get("offset", 0) or 0), 0)
@@ -320,6 +341,13 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
         needed = None if "*" in columns else needed + columns
         needs_geometry = needs_geometry or expr.needsGeometry()
         plan["count_request"] = _count_request(layer, expression, request.expressionContext(), expr)
+        swapped = _spatial_rule(expression, expr)[2] if not _is_remote_vector(layer) else None
+        if swapped:
+            plan["other_count_request"] = _count_request(layer, swapped, request.expressionContext(),
+                                                         QgsExpression(swapped))
+    if not _is_remote_vector(layer):
+
+        plan["total"] = loaded_feature_count(layer, layer.featureCount())
     if order_expr is not None:
         columns = list(order_expr.referencedColumns())
         needed = None if needed is None or "*" in columns else needed + columns
@@ -467,6 +495,9 @@ def _get_features_off_thread(args: dict) -> dict:
                     features.close()
                 if count_request is not None and not halted.is_set():
                     out["count"] = _count_source(source, count_request, halted)
+                    other = plan.get("other_count_request")
+                    if other is not None and out["count"][1] and not halted.is_set():
+                        out["other"] = _count_source(source, other, halted)
         finally:
             over.set()
 
@@ -482,8 +513,13 @@ def _get_features_off_thread(args: dict) -> dict:
         raise failure[0]
     collected, over_budget = out.get("page", ([], False))
 
-    criterion = _spatial_criterion(None, plan["expression"], plan["expr"], False) if plan["expression"] else {}
-    return _features_result(plan, collected, over_budget, None, out.get("count"), criterion)
+
+    criterion = {}
+    if plan["expression"]:
+        exact = "other" in out
+        criterion = _spatial_criterion(None, plan["expression"], plan["expr"], exact,
+                                       count_other=lambda _text: out["other"])
+    return _features_result(plan, collected, over_budget, plan.get("total"), out.get("count"), criterion)
 
 
 def _count_source(source, request, halted) -> tuple:
@@ -1177,11 +1213,9 @@ def _symbol_info(symbol, budget: dict, depth: int = 0):
 
 
 def _get_renderer_info(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a vector layer"}
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
 
     renderer = layer.renderer()
     if renderer is None:
@@ -1293,11 +1327,9 @@ def _class_page(renderer, rtype: str, args: dict, colour_of, budget: dict) -> di
 def _raster_sample(args: dict) -> dict:
     from qgis.core import QgsCoordinateTransform, QgsPointXY
 
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsRasterLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a raster layer"}
+    layer, error = require_raster(args["layer_name"])
+    if error:
+        return error
 
 
 
@@ -1343,42 +1375,12 @@ def _raster_sample(args: dict) -> dict:
 
     out = {"layer": layer.name(), "band": band, "value": value, "x": point.x(), "y": point.y(),
            "crs": crs_ref(layer.crs()), "coordinates_are": "the sampled point in the layer's own CRS"}
-    units = _crs_units(layer.crs())
+    units = crs_units(layer.crs())
     if units:
         out["crs_units"] = units
     if crs_id and str(crs_id).strip().upper() != str(layer.crs().authid()).upper():
         out["asked_in_crs"] = str(crs_id)
     return out
-
-
-def _crs_units(crs) -> str:
-
-    try:
-        from qgis.core import QgsUnitTypes
-
-        return str(QgsUnitTypes.toString(crs.mapUnits()))
-    except Exception:  # noqa: BLE001
-        return ""
-
-
-def _extent_block(rect, crs) -> dict:
-
-
-
-
-
-
-
-
-    block = {"xmin": rect.xMinimum(), "ymin": rect.yMinimum(),
-             "xmax": rect.xMaximum(), "ymax": rect.yMaximum(),
-             "crs": crs_ref(crs)}
-    units = _crs_units(crs)
-    if units:
-        block["units"] = units
-        block["width"] = rect.width()
-        block["height"] = rect.height()
-    return block
 
 
 def _remote_raster(layer) -> bool:
@@ -1846,7 +1848,7 @@ def _sample_plan(args: dict, layer, provider, band: int, window, why: str) -> di
         window, why = None, ""
     out = {"layer": layer.name(), "band": band, "band_count": layer.bandCount(), "crs": crs_ref(layer.crs())}
     if window is not None:
-        out["measured_over"] = _extent_block(window, layer.crs())
+        out["measured_over"] = extent_block(window, layer.crs())
         full_extent = layer.extent()
         if not full_extent.isNull() and full_extent.width() > 0 and full_extent.height() > 0:
             out["measured_over"]["share_of_raster_pct"] = round(
@@ -1878,11 +1880,9 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
 
 
 
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsRasterLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a raster layer"}
+    layer, error = require_raster(args["layer_name"])
+    if error:
+        return error
 
     band = int(args.get("band", 1))
     if band < 1 or band > layer.bandCount():
@@ -1952,7 +1952,7 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
             out["_exact_source"] = str(layer.source() or "")
     _coverage_note(out, counted, float(stats.mean), coverage, str(layer.providerType() or "").lower())
     if window is not None:
-        out["measured_over"] = _extent_block(window, layer.crs())
+        out["measured_over"] = extent_block(window, layer.crs())
         full_extent = layer.extent()
         if not full_extent.isNull() and full_extent.width() > 0 and full_extent.height() > 0:
             out["measured_over"]["share_of_raster_pct"] = round(
@@ -2124,11 +2124,9 @@ def _check_geometry_validity(args: dict) -> dict:
                               hint="no_layer_named")
         layer, name = active, active.name()
     else:
-        layer = _find_layer(name)
-    if not layer:
-        return _layer_not_found_error(name)
-    if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{name}' is not a vector layer"}
+        layer, error = require_vector(name)
+        if error:
+            return error
 
     limit = min(max(int(args.get("limit", 50) or 50), 1), 500)
     max_checked = 100_000

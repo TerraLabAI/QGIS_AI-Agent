@@ -311,6 +311,8 @@ class _ExecutorCalls:
                 return
             if self._refused_before_card(call):
                 return
+            if name == CODE_TOOL and self._code_refused_before_card(call):
+                return
             call["always"] = always
             self._pending[tool_call_id] = call
             sentence = str(call.get("sentence") or tr("Run {tool}").format(tool=name))
@@ -761,7 +763,7 @@ class _ExecutorCalls:
         timer.timeout.connect(_tick)
         timer.start()
 
-    def on_question_answered(self, tool_call_id: str, answer: str) -> None:
+    def on_question_answered(self, tool_call_id: str, answer: str, attachments=None) -> None:
         call = self._questions.pop(tool_call_id, None)
         if call is None:
             return
@@ -775,6 +777,10 @@ class _ExecutorCalls:
 
         security.remember_user_text(answer)
         result = {"answer": answer}
+        if attachments:
+
+            result["attachments"] = list(attachments)
+            security.remember_user_text(" ".join(str(a.get("path") or "") for a in attachments))
         self._table.put(tool_call_id, "result", result)
         self._session.send_tool_result(tool_call_id, run_id, result)
         log(f"ANSWER {tool_call_id}: {answer[:80]}")
@@ -1131,7 +1137,7 @@ class _ExecutorCalls:
             self._table.put(tool_call_id, "result", scrub_result(result))
 
     def _fail(self, call: dict, code: str, message: str, suggestion: str, duration: float = 0.0,
-              detail: str = "", details: str = "") -> None:
+              detail: str = "", details: str = "", hint: str = "") -> None:
 
 
 
@@ -1151,4 +1157,6 @@ class _ExecutorCalls:
         else:
             self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
         log_warning(f"{code} {call.get('name')}: {message[:200]}")
-        self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion, None)
+
+        self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion,
+                                {"hint": hint} if hint else None)

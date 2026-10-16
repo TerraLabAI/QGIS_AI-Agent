@@ -598,45 +598,14 @@ def _crosses_dateline(west: float, east: float) -> bool:
 
 def _layer_bbox_4326(layer_name: str):
 
-    from qgis.core import (
-        QgsCoordinateReferenceSystem,
-        QgsCoordinateTransform,
-        QgsProject,
-    )
 
+    from ..core.context_layers import view_bbox_4326
     from .layer_lookup import _find_layer
 
     layer = _find_layer(layer_name)
     if layer is None:
         return None
-    extent = layer.extent()
-    crs = layer.crs()
-    if crs.isValid() and crs.authid() != "EPSG:4326":
-        transform = QgsCoordinateTransform(
-            crs, QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance()
-        )
-        extent = transform.transformBoundingBox(extent)
-    return [extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum()]
-
-
-def _canvas_bbox_4326():
-
-    from qgis.core import (
-        QgsCoordinateReferenceSystem,
-        QgsCoordinateTransform,
-        QgsProject,
-    )
-    from qgis.utils import iface as qgis_iface
-
-    canvas = qgis_iface.mapCanvas()
-    extent = canvas.extent()
-    crs = canvas.mapSettings().destinationCrs()
-    if crs.authid() != "EPSG:4326":
-        transform = QgsCoordinateTransform(
-            crs, QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance()
-        )
-        extent = transform.transformBoundingBox(extent)
-    return [extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum()]
+    return view_bbox_4326(layer.extent(), layer.crs()) or []
 
 
 def _resolve_extent(args: dict) -> tuple:
@@ -658,7 +627,9 @@ def _resolve_extent(args: dict) -> tuple:
         bbox, error = _read_bbox(raw)
         return (None, None, error) if error else (bbox, f"layer:{layer_name}", None)
 
-    raw = run_on_main_thread(_canvas_bbox_4326, timeout=30)
+    from ..core.context_layers import canvas_bbox_4326
+
+    raw = run_on_main_thread(canvas_bbox_4326, timeout=30)
     if not raw:
         return None, None, tool_error(
             "No extent given and the map canvas extent is unavailable.",

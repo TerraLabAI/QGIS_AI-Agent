@@ -80,6 +80,7 @@ from .widgets import ChatLabel, ElidedLabel
 
 __all__ = [
     "ErrorCard",
+    "InstallWaitCard",
     "PermissionCard",
     "QuotaPauseCard",
     "RunSummaryCard",
@@ -387,12 +388,9 @@ class PermissionCard(_Card, FoldMixin):
         said = plain_sentence(sentence, args, name)
         self._calls.append({"id": tool_call_id, "sentence": said, "args": args, "name": name,
                             "addresses": urls[:_ADDRESSES_SHOWN],
-                            "fields": editable_fields(args, said)})
+
+                            "fields": [] if source_text(name, args)[0] else editable_fields(args, said)})
         self._open.append(tool_call_id)
-
-    def tool_call_ids(self) -> list[str]:
-
-        return list(self._open)
 
     def is_open(self) -> bool:
 
@@ -898,7 +896,87 @@ def plain_sentence(sentence: str, args=None, name: str = "") -> str:
     return sentence or tr("The agent wants to run this action.")
 
 
+def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:
+
+
+
+
+
+
+
+
+    key = (str(code or ""), str(reason or ""))
+    if key == ("PLUGIN_GONE", "gone"):
+        return (tr("QGIS stopped responding during a step."),
+                tr("The connection to QGIS dropped and did not come back, so that step did not finish. "
+                   "If QGIS is still open, the project is as the run left it. If it closed, files the run "
+                   "wrote are still on disk, and its layers come back only if the project was saved after "
+                   "them. Reopen QGIS if it closed, then press Retry."))
+    if key == ("PLUGIN_GONE", "crashed"):
+        return (tr("QGIS closed during a step. Your saved work is safe."),
+                tr("That step did not finish. Files the run had already written are still on disk. Layers "
+                   "it added come back only if the project was saved after them, and a temporary layer is "
+                   "gone. The same step may close QGIS again: ask for something lighter (a smaller area, "
+                   "fewer layers)."))
+    if key == ("TIMEOUT", "preview_lost"):
+        return (tr("Done. Only the map preview did not draw."),
+                tr("QGIS stopped answering while drawing the preview. The result is on the map."))
+    if key == ("TIMEOUT", "dropped"):
+        return (tr("QGIS stopped responding. Your earlier steps are kept."),
+                tr("A lighter request (fewer layers, a smaller area, a lower resolution) is more likely "
+                   "to finish than the same one again."))
+    if key == ("TIMEOUT", "card_silent"):
+        return (tr("QGIS stopped responding while a card waited."),
+                tr("The step on that card has not run, unless it was clicked just before. Earlier steps "
+                   "are kept; sending the same message again brings the card back."))
+    if key == ("TIMEOUT", "unanswered"):
+        return (tr("QGIS stopped responding. Your earlier steps are kept."),
+                tr("It may still be working on an earlier step. Once QGIS responds again, a lighter request "
+                   "(fewer layers, a smaller area, a lower resolution) is more likely to finish."))
+    if key == ("LOOP_DETECTED", "loop"):
+        return (tr("The agent got stuck on the same step."),
+                tr("What it did before is kept. Rephrase the request or add a detail (a layer, a place, "
+                   "a value), then send it again."))
+    if key == ("MODEL_UNAVAILABLE", "stream_dropped"):
+        return (tr("The answer was cut off. Ask again to carry on."), "")
+    if key == ("MODEL_INCOMPLETE", "incomplete"):
+        return (tr("No answer came back. Try again."),
+                tr("A shorter or more precise request gets an answer sooner."))
+    if key == ("MODEL_INCOMPLETE", "unexpected"):
+        return (tr("Something went wrong on our side. Try again."),
+                tr("The model kept sending a step the agent could not read. Earlier steps are kept."))
+    if key == ("RATE_LIMITED", "rate_limited"):
+        return (tr("Too many requests right now. Try again in a minute."),
+                tr("A smaller area, or one task at a time, gets through sooner."))
+    if key == ("INTERNAL", "internal"):
+        return (tr("Something went wrong on our side. Try again."),
+                tr("What the run did before is kept. Report sends us the details."))
+    if key == ("CONTEXT_TOO_LARGE", "context_too_large"):
+        return (tr("This conversation is too long."), "")
+    if key == ("RESTARTED", "restart_loop"):
+        return (tr("The agent service restarted twice during a step."),
+                tr("What the run did before that step is kept. A lighter request (a smaller area, a lower "
+                   "resolution) is more likely to finish than the same one again."))
+    return _first_sentence(fallback)
+
+
+def _first_sentence(text: str) -> tuple[str, str]:
+
+    text = " ".join(str(text or "").split())
+    head, dot, rest = text.partition(". ")
+    if dot and rest and len(head) > 12:
+        return head + ".", rest
+    return text, ""
+
+
+
+
+_NO_RETRY = {("PLUGIN_GONE", "crashed"), ("CONTEXT_TOO_LARGE", "context_too_large")}
+_NEW_CHAT = {("CONTEXT_TOO_LARGE", "context_too_large")}
+
+
 class ErrorCard(_Card):
+
 
 
 
@@ -911,23 +989,46 @@ class ErrorCard(_Card):
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
     undo_retry_requested = pyqtSignal(str)
+    new_chat_requested = pyqtSignal()
 
     def __init__(self, run_id: str | None, code: str, message: str,
-                 retryable: bool, details: str = "", parent=None, continuable: bool = False):
+                 retryable: bool, details: str = "", parent=None, continuable: bool = False,
+                 more: str = "", new_chat: bool = False, glyph: bool = True):
         super().__init__("error", parent)
         self.run_id = run_id or ""
         self.code = code or ""
         self.message = message or ""
+        self.more = more or ""
         self.details = details or ""
-        self._col.addWidget(_message_row(self, "error", self.message))
+        if not glyph:
+            text = plain_label(self.message, self)
+            text.setObjectName("cardText")
+            text.setWordWrap(True)
+            text.setStyleSheet(_MESSAGE_TEXT_QSS)
+            self._col.addWidget(text)
+        else:
+            self._col.addWidget(_message_row(self, "error", self.message))
+        self._more_label = None
+        if self.more:
+            self._more_label = plain_label(self.more, self)
+            self._more_label.setObjectName("cardDetails")
+            self._more_label.setWordWrap(True)
+            self._more_label.setStyleSheet(_REASON_QSS)
+            self._more_label.hide()
+            self._col.addWidget(self._more_label)
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(SPACE_CARD)
+        if new_chat:
+            row.addWidget(_pill(self._button(self.tr("New chat"), _BTN_GHOST_PILL,
+                                             lambda: self.new_chat_requested.emit())))
 
 
 
 
-        if self.code == "PLUGIN_UPDATE_REQUIRED":
+        if new_chat:
+            pass
+        elif self.code == "PLUGIN_UPDATE_REQUIRED":
 
 
             row.addWidget(_pill(self._button(self.tr("Update the plugin"), _BTN_GHOST_PILL, self._on_update)))
@@ -948,13 +1049,21 @@ class ErrorCard(_Card):
 
         if self.run_id:
             row.addWidget(self._button(self.tr("Report"), _BTN_QUIET_LINK, self._on_report))
+        if self._more_label is not None:
+            self._more_btn = self._button(self.tr("Details"), _BTN_QUIET_LINK, self._toggle_more)
+            row.addWidget(self._more_btn)
         row.addStretch(1)
         self._col.addLayout(row)
+
+    def _toggle_more(self) -> None:
+        showing = self._more_label.isHidden()
+        self._more_label.setVisible(showing)
+        self._more_btn.setText(self.tr("Hide details") if showing else self.tr("Details"))
 
     def _on_report(self) -> None:
         try:
             from .error_report_dialog import show_error_report
-            show_error_report(self, self.message, self.run_id)
+            show_error_report(self, f"{self.message} {self.more}".strip(), self.run_id)
         except Exception:  # noqa: BLE001
             return
 
@@ -979,10 +1088,74 @@ class ErrorCard(_Card):
         head = f"> **{self.tr('Error')}**"
         if self.code:
             head += f" `{self.code}`"
-        lines = [f"{head}: {self.message}"]
+        lines = [f"{head}: {' '.join(p for p in (self.message, self.more) if p)}"]
         if self.details:
             lines.append(fence(self.details[-2000:]))
         return "\n".join(lines)
+
+
+class InstallWaitCard(_Card):
+
+
+
+
+
+
+    answered = pyqtSignal(str, str)
+
+    def __init__(self, tool_call_id: str, name: str, parent=None):
+        super().__init__(None, parent)
+        from .widgets import Spinner
+
+        self.tool_call_id = tool_call_id
+        self.name = name
+        self.answer: str | None = None
+        line = QHBoxLayout()
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(SPACE_CARD)
+        self._spinner = Spinner(14, None, self)
+        line.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
+        text = plain_label(self.tr("Waiting for {name} to install").format(name=name), self)
+        text.setObjectName("cardText")
+        text.setWordWrap(True)
+        text.setStyleSheet(_MESSAGE_TEXT_QSS)
+        line.addWidget(text, 1)
+        self._col.addLayout(line)
+        footer = AnswerFooter(self)
+        skip = self._button(self.tr("Skip"), _BTN_QUIET_LINK, lambda: self._answer(""))
+        skip.setObjectName("installWaitSkip")
+        manager = _pill(self._button(self.tr("Open Plugin Manager"), _BTN_PRIMARY_PILL, self._open_manager))
+        manager.setObjectName("installWaitOpen")
+        footer.set_widgets(skip, [manager])
+        self._col.addWidget(footer)
+        self._spinner.start()
+
+    def _open_manager(self) -> None:
+        try:
+            from .cross_plugin_discovery import open_plugin_manager_later
+            open_plugin_manager_later(self.name, "")
+        except Exception:  # noqa: BLE001
+            return
+
+    def _answer(self, text: str) -> None:
+        if self.answer is None:
+            self.answered.emit(self.tool_call_id, text)
+
+    def is_open(self) -> bool:
+        return self.answer is None
+
+    def open_page_id(self) -> str:
+        return self.tool_call_id if self.answer is None else ""
+
+    def collapse(self, answer: str = "", _tool_call_id: str = "") -> None:
+        self.answer = answer or ""
+        self._spinner.stop()
+
+    def cleanup(self) -> None:
+        self._spinner.stop()
+
+    def to_markdown(self) -> str:
+        return ""
 
 
 class QuotaPauseCard(_Card):
@@ -1026,7 +1199,7 @@ class RunSummaryCard(_Card):
         "done": ("success", QT_TRANSLATE_NOOP("RunSummaryCard", "Done")),
         "cancelled": ("neutral", QT_TRANSLATE_NOOP("RunSummaryCard", "Stopped")),
         "failed": ("error", QT_TRANSLATE_NOOP("RunSummaryCard", "Failed")),
-        "quota": ("warning", QT_TRANSLATE_NOOP("RunSummaryCard", "Out of runs")),
+        "quota": ("warning", QT_TRANSLATE_NOOP("RunSummaryCard", "Out of tasks")),
     }
 
     def __init__(self, status: str, summary: str = "", usage=None,

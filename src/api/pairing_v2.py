@@ -209,10 +209,6 @@ class PairingV2(QObject):
     def port(self) -> int | None:
         return self._port
 
-    @property
-    def fallback_shown(self) -> bool:
-        return self._fallback_shown
-
 
 
     def begin(self) -> None:

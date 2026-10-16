@@ -46,9 +46,19 @@ def metres_per_unit(crs, x: float, y: float) -> float | None:
 
 
     try:
-        from qgis.core import QgsDistanceArea, QgsPointXY, QgsProject
+        from qgis.core import Qgis, QgsDistanceArea, QgsPointXY, QgsProject, QgsUnitTypes
+
+        from .qt_compat import enum_member
 
         if crs is None or not crs.isValid() or crs.isGeographic():
+            return None
+
+
+
+        degrees = enum_member(Qgis, "DistanceUnit", "Degrees", None)
+        if degrees is None:
+            degrees = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceDegrees")
+        if crs.mapUnits() == degrees:
             return None
         measure = QgsDistanceArea()
         measure.setSourceCrs(crs, QgsProject.instance().transformContext())

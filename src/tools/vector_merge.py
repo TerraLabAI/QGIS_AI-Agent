@@ -313,7 +313,7 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
         return {"layers": [], "files": len(sources), "read": read, "unreadable": unreadable,
                 "no_geometry": state["no_geometry"], "description_fields": [],
                 "type_conflicts": sorted(state["conflicts"])}
-    added = _finalise(gdal, ogr, stage, gpkg, tables, is_canceled)
+    added = _finalise(gdal, stage, gpkg, tables, is_canceled)
     remove_quietly(stage)
     if isinstance(added, dict):
         if added.get("canceled"):
@@ -450,7 +450,7 @@ def _write_feature(ogr, family, family_name, geometry, feature, names, descripti
     family.count += 1
 
 
-def _finalise(gdal, ogr, stage: str, gpkg: str, tables: list, is_canceled):
+def _finalise(gdal, stage: str, gpkg: str, tables: list, is_canceled):
 
 
 

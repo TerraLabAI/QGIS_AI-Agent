@@ -63,12 +63,22 @@ def register_advanced_tools(registry: ToolRegistry):
             "x-code-classes": True,
 
 
+            "x-page-rows": True,
+
+
+            "x-own-work-card": True,
+
+
 
             "x-workspace": True,
 
 
 
             "x-read-scope": True,
+
+
+
+            "x-console-names": True,
             "properties": {
                 "code": {
                     "type": "string",
@@ -190,6 +200,10 @@ def register_advanced_tools(registry: ToolRegistry):
 
 
             "x-dpi-at-ceiling": True,
+
+
+
+            "x-credit-check": True,
             "properties": {
                 "layout_name": {"type": "string"},
                 "output_path": {"type": "string"},

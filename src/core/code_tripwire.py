@@ -145,7 +145,7 @@ def _plugin_dirs() -> tuple[str, ...]:
 
 _PLUGINS_DIRS: list = []
 
-_ACTING_FOR_SNIPPET = frozenset({"code_guard.py", "code_guard_files.py", "code_tripwire.py"})
+_ACTING_FOR_SNIPPET = frozenset({"code_guard.py", "code_guard_files.py", "code_guard_runtime.py", "code_tripwire.py"})
 
 
 def _from_snippet(depth: int = 2) -> bool:
@@ -342,6 +342,34 @@ def _outside_scope(source, provider: str = "") -> str:
     return security.validate_read(path) or ""
 
 
+def _existing_folder(args) -> bool:
+
+    path, _mode, dir_fd = (tuple(args) + (None, None, None))[:3]
+    if path is None or isinstance(path, int) or dir_fd not in (None, -1):
+        return False
+    try:
+        return os.path.lexists(os.path.abspath(os.path.expanduser(os.fsdecode(path))))
+    except (TypeError, ValueError, OSError):
+        return False
+
+
+def _drop_orphans(before: set) -> None:
+
+
+
+
+
+
+
+
+
+    loaded = sys.modules
+    for name in [n for n in list(loaded) if "." in n and n not in before]:
+        parts = name.split(".")
+        if any(".".join(parts[:i]) not in loaded for i in range(1, len(parts))):
+            loaded.pop(name, None)
+
+
 _BYTECODE_EVENTS = frozenset({"open", "os.mkdir", "os.rename", "os.replace"})
 
 
@@ -451,11 +479,15 @@ class _Arm:
                 shown = os.path.basename(str(args[0])) if args else "a file"
                 self.need(ce.FW, f"moves or changes {shown}")
         elif event == "shutil.make_archive" or event in _MKDIR_EVENTS:
-            if _from_snippet(3):
+
+
+
+            if _from_snippet(3) and not (event in _MKDIR_EVENTS and _existing_folder(args)):
                 self.need(*file_class(args[0] if args else ""))
         elif event in _LISTING_EVENTS:
             self.judge_read(args[0] if args else ".", "lists")
         elif event in _IMPORT_SETUP_EVENTS and _software_import(3):
+
 
 
 
@@ -584,7 +616,11 @@ _PROCESS_EVENTS = frozenset({"os.system", "os.exec", "os.posix_spawn", "os.spawn
 _SETTINGS_EVENTS = frozenset({"os.putenv", "os.unsetenv"})
 
 
-_IMPORT_SETUP_EVENTS = frozenset({"os.add_dll_directory", "socket.gethostname"})
+
+
+
+_IMPORT_SETUP_EVENTS = frozenset({"os.add_dll_directory", "socket.gethostname", "ctypes.dlopen", "ctypes.dlsym",
+                                  "ctypes.dlsym/handle"})
 _FILE_EVENTS = (frozenset({"open", "shutil.make_archive"}) | _DELETE_EVENTS | _COPY_EVENTS | _MOVE_EVENTS
                 | _MKDIR_EVENTS | _LISTING_EVENTS)
 
@@ -858,6 +894,17 @@ def _path_arg(index: int, keyword: str):
     return judge
 
 
+def _page_export(arm, *args, **kwargs):
+
+    _path_arg(1, "filePath")(arm, *args, **kwargs)
+    target = args[1] if len(args) > 1 and isinstance(args[1], str) else kwargs.get("filePath")
+    text = str(target or "").strip()
+    if text:
+        from .code_namespace import note_page
+
+        note_page(os.path.abspath(os.path.expanduser(text)))
+
+
 def _written(target) -> None:
 
 
@@ -880,9 +927,9 @@ def _deletes(reason: str):
     return judge
 
 
-def _refuses(reason: str):
+def _refuses(reason: str, hint: str = ""):
     def judge(arm, *args, **kwargs):
-        arm.refuse(reason)
+        arm.refuse(reason, hint)
     return judge
 
 
@@ -893,6 +940,107 @@ def _raster_write(arm, writer, *args, **kwargs):
         target = ""
     arm.need(*file_class(target))
     _written(target)
+
+
+_CREDENTIALS = ("reads a credential; credentials are not readable from code (a password field, QGIS's "
+                "authentication database and its credential store)")
+
+_CREDENTIALS_HINT = "code_credential_refused"
+
+_FIELD_READS = ("text", "selectedText", "inputMethodQuery")
+_FIELD_PROPERTIES = frozenset({"text", "selectedText", "echoMode"})
+
+
+def _hides_text(widget) -> bool:
+
+    try:
+        from qgis.PyQt.QtWidgets import QLineEdit
+    except ImportError:
+        return False
+    if not isinstance(widget, QLineEdit):
+        return False
+    if type(widget).__name__ == "QgsPasswordLineEdit" or any(
+            c.__name__ == "QgsPasswordLineEdit" for c in type(widget).__mro__):
+        return True
+    try:
+        return widget.echoMode() != QLineEdit.EchoMode.Normal
+    except Exception:  # noqa: BLE001
+        return True
+
+
+def _field_read(arm, widget, *args, **kwargs):
+    if _hides_text(widget):
+        arm.refuse(_CREDENTIALS, _CREDENTIALS_HINT)
+
+
+def _property_read(arm, obj, name=None, *args, **kwargs):
+    key = bytes(name).decode("utf-8", "replace") if isinstance(name, (bytes, bytearray)) else str(name)
+    if key in _FIELD_PROPERTIES and _hides_text(obj):
+        arm.refuse(_CREDENTIALS, _CREDENTIALS_HINT)
+
+
+def _meta_property_read(arm, prop, obj=None, *args, **kwargs):
+    try:
+        name = prop.name()
+    except Exception:  # noqa: BLE001
+        name = ""
+    _property_read(arm, obj, name)
+
+
+def _credential_classes() -> list:
+
+    out = []
+    for module_name in ("qgis.core", "qgis.gui"):
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        for name in dir(module):
+            if name.startswith(("QgsAuth", "QgsCredential")):
+                cls = getattr(module, name, None)
+                if isinstance(cls, type):
+                    out.append(cls)
+    return out
+
+
+def _credential_traps() -> list:
+
+
+
+
+
+
+    refuse = _refuses(_CREDENTIALS, _CREDENTIALS_HINT)
+    out = []
+    for cls in _credential_classes():
+        out.append((cls, "__init__", refuse, False))
+
+
+        inherited = set()
+        for base in cls.__mro__[1:]:
+            if not base.__name__.startswith(("QgsAuth", "QgsCredential")):
+                inherited.update(dir(base))
+        for name in dir(cls):
+            if name.startswith("_") or name in inherited:
+                continue
+            getattr(cls, name, None)
+            raw = vars(cls).get(name)
+            kind = type(raw).__name__
+            if kind == "staticmethod":
+                out.append((cls, name, refuse, True))
+            elif kind in ("methoddescriptor", "method_descriptor"):
+                out.append((cls, name, refuse, False))
+    qt_core = sys.modules.get("qgis.PyQt.QtCore")
+    qt_widgets = sys.modules.get("qgis.PyQt.QtWidgets")
+    if qt_core is None or qt_widgets is None:
+        return out
+    QLineEdit, QObject, QMetaProperty = qt_widgets.QLineEdit, qt_core.QObject, qt_core.QMetaProperty  # noqa: N806
+    out += [(QLineEdit, name, _field_read, False) for name in _FIELD_READS]
+    out += [(QLineEdit, "setEchoMode", _field_read, False),
+            (QObject, "property", _property_read, False),
+            (QObject, "setProperty", _property_read, False),
+            (QMetaProperty, "read", _meta_property_read, False),
+            (QMetaProperty, "write", _meta_property_read, False)]
+    return out
 
 
 _NETWORK = "reaches the network; code reads layers and local files, and the fetch tools carry the address card"
@@ -924,9 +1072,9 @@ def _traps():
         (get("QgsMapLayer"), "saveNamedStyle", _path_arg(1, "uri"), False),
         (get("QgsMapLayer"), "saveSldStyle", _path_arg(1, "uri"), False),
         (get("QgsMapLayer"), "saveDefaultStyle", _deletes("replaces the layer's default style file"), False),
-        (get("QgsLayoutExporter"), "exportToImage", _path_arg(1, "filePath"), False),
-        (get("QgsLayoutExporter"), "exportToPdf", _path_arg(1, "filePath"), False),
-        (get("QgsLayoutExporter"), "exportToSvg", _path_arg(1, "filePath"), False),
+        (get("QgsLayoutExporter"), "exportToImage", _page_export, False),
+        (get("QgsLayoutExporter"), "exportToPdf", _page_export, False),
+        (get("QgsLayoutExporter"), "exportToSvg", _page_export, False),
         (get("QgsCoordinateReferenceSystem"), "saveAsUserCrs", _refuses(_SETTING), False),
         (get("QgsExpressionContextUtils"), "setGlobalVariable", _refuses(_SETTING), True),
         (get("QgsExpressionContextUtils"), "setGlobalVariables", _refuses(_SETTING), True),
@@ -940,6 +1088,7 @@ def _traps():
         out.append((get("QgsVectorDataProvider"), name, _provider_write(True), False))
     out.extend(_child_write_traps())
     out.extend(_read_traps())
+    out.extend(_credential_traps())
     if gui is not None:
         out.append((getattr(gui, "QgsMapCanvas", None), "saveAsImage", _path_arg(1, "fileName"), False))
         iface_type = getattr(gui, "QgisInterface", None)
@@ -987,7 +1136,7 @@ def guard_child(granted: str = ce.D) -> _Arm | None:
     _software_roots()
     arm = _Arm(granted if granted in ce.RANK else ce.D)
     state.thread = threading.get_ident()
-    arm.patch(_read_traps() + _child_write_traps())
+    arm.patch(_read_traps() + _child_write_traps() + _credential_traps())
     state.handler = arm.on_event
     _CURRENT.append(arm)
     return arm
@@ -1069,10 +1218,12 @@ class armed:  # noqa: N801
 
     def __init__(self, granted: str) -> None:
         self.arm = _Arm(granted)
+        self.modules: set = set()
 
     def __enter__(self) -> _Arm:
         state = _state()
         install()
+        self.modules = set(sys.modules)
         state.thread = threading.get_ident()
         self.arm.patch()
         state.handler = self.arm.on_event
@@ -1085,6 +1236,7 @@ class armed:  # noqa: N801
         if _CURRENT and _CURRENT[-1] is self.arm:
             _CURRENT.pop()
         self.arm.unpatch()
+        _drop_orphans(self.modules)
         return False
 
 

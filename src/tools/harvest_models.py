@@ -651,8 +651,7 @@ def _build_model(name: str, steps: list, inputs: list, outputs: list, descriptio
 
     model = builder.model
     _add_section_boxes(model, ordered_steps, positions)
-    if hasattr(model, "setParameterOrder"):
-        model.setParameterOrder([spec["name"] for spec in inputs])
+    model.setParameterOrder([spec["name"] for spec in inputs])
     valid, issues = model.validate()
     if not valid:
         raise _SpecError("Model validation failed: " + "; ".join(str(issue) for issue in issues))

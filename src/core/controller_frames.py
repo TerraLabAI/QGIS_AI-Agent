@@ -171,7 +171,7 @@ class _ControllerFrames:
         rows = session.get("connectors")
         if isinstance(rows, list) and rows:
             try:
-                from ..ui.shared import set_connectors
+                from .served_state import set_connectors
 
                 set_connectors(rows)
             except Exception as exc:  # noqa: BLE001
@@ -184,7 +184,6 @@ class _ControllerFrames:
             catalog.apply_session(session)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Catalog lists refused: {exc}")
-
 
 
         group_rows = session.get("use_case_groups")
@@ -209,7 +208,7 @@ class _ControllerFrames:
         plugin_rows = session.get("qgis_plugins")
         if isinstance(plugin_rows, list) and plugin_rows:
             try:
-                from ..ui.shared import set_qgis_plugins
+                from .served_state import set_qgis_plugins
 
                 set_qgis_plugins(plugin_rows)
             except Exception as exc:  # noqa: BLE001
@@ -228,7 +227,7 @@ class _ControllerFrames:
         hidden = session.get("qgis_plugins_hidden")
         if isinstance(hidden, list) and hidden:
             try:
-                from ..ui.shared import set_hidden_plugins
+                from .served_state import set_hidden_plugins
 
                 set_hidden_plugins(hidden)
             except Exception as exc:  # noqa: BLE001
@@ -297,7 +296,7 @@ class _ControllerFrames:
         self._touch_watchdog()
         self._panel_call("update_plan_step", run_id, step_id, state)
 
-    def _on_status_line(self, run_id: str, text: str) -> None:
+    def _on_status_line(self, run_id: str, text: str, progress=None) -> None:
 
 
 
@@ -305,7 +304,7 @@ class _ControllerFrames:
             return
         self._heard(run_id)
         self._touch_watchdog()
-        self._panel_call("set_status_line", run_id, text)
+        self._panel_call("set_status_line", run_id, text, progress or {})
 
     def _on_tool_call(self, call: dict) -> None:
         tool_call_id = str(call.get("tool_call_id") or "")
@@ -433,6 +432,9 @@ class _ControllerFrames:
             return
         self._panel_later("show_call_running", str(call.get("run_id") or ""), tool_call_id)
 
+    def _on_call_progress(self, tool_call_id: str, done_bytes, total_bytes) -> None:
+        self._panel_later("set_call_progress", tool_call_id, done_bytes, total_bytes)
+
     def _on_tool_finished(self, tool_call_id: str, ok: bool, summary: str, duration: float, detail: str,
                           result=None) -> None:
 
@@ -450,8 +452,10 @@ class _ControllerFrames:
         self._call_names.pop(tool_call_id, None)
         self._touch_watchdog()
         if self._thread_id and run_id:
-            self._store.append_tool_call(self._thread_id, run_id, {
-                "tool_call_id": tool_call_id, "ok": ok, "summary": summary, "duration_s": round(duration, 2)})
+            stored = {"tool_call_id": tool_call_id, "ok": ok, "summary": summary, "duration_s": round(duration, 2)}
+            if not ok and isinstance(result, dict) and result.get("hint"):
+                stored["hint"] = str(result["hint"])[:80]
+            self._store.append_tool_call(self._thread_id, run_id, stored)
 
     def _on_permission_needed(self, tool_call_id: str, run_id: str, sentence: str, args) -> None:
         name, danger = self._call_names.get(tool_call_id, ("", "read"))
@@ -490,12 +494,23 @@ class _ControllerFrames:
                          int(recommended), str(why or ""), *extra)
         self._approval_pending(tool_call_id, True)
 
-    def _on_question_answered(self, tool_call_id: str, answer: str) -> None:
+    def _on_install_wait_needed(self, tool_call_id: str, run_id: str, name: str) -> None:
+
+        self._runs.wait_user(tool_call_id)
+        self._pause_watchdog()
+        self._panel_call("show_install_wait", tool_call_id, run_id, name)
+        self._approval_pending(tool_call_id, True)
+
+    def _on_question_answered(self, tool_call_id: str, answer: str, attachments=None) -> None:
+
         telemetry.track(ev.AGENT_QUESTION_ANSWERED, {"skipped": not answer})
         self._runs.user_answered(tool_call_id)
         self._approval_pending(tool_call_id, False)
         self._touch_watchdog()
-        self._executor.on_question_answered(tool_call_id, answer)
+        if attachments:
+            self._executor.on_question_answered(tool_call_id, answer, attachments)
+        else:
+            self._executor.on_question_answered(tool_call_id, answer)
 
     def _on_permission_decided(self, tool_call_id: str, decision: str, edits: object = None) -> None:
 
@@ -724,7 +739,7 @@ class _ControllerFrames:
 
 
             if self._quota_tracked_run != run_id:
-                self._panel_call("show_quota_pause", run_id, summary or tr("You have used every run of this period."))
+                self._panel_call("show_quota_pause", run_id, summary or tr("You have used every task of this period."))
                 telemetry.track(ev.QUOTA_EXHAUSTED, {"run_id": run_id, "source": "run_end"})
             self._quota_tracked_run = None
         started = (self._run or {}).get("started") if self._run and self._run["run_id"] == run_id else None
@@ -802,7 +817,8 @@ class _ControllerFrames:
 
 
         if code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run:
-            self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "")
+            self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "",
+                             "", str(error.get("reason") or "")[:64])
         track_plugin_error("server", code, run_id if isinstance(run_id, str) else "")
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
             self._quota_tracked_run = run_id if isinstance(run_id, str) else None

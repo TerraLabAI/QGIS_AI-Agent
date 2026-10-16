@@ -40,7 +40,7 @@ class _Run:
 
 
     __slots__ = ("run_id", "bubble", "trace", "plan", "tools", "permissions", "started",
-                 "segment_break", "produced")
+                 "segment_break", "produced", "handed_back")
 
     def __init__(self, run_id: str):
         self.run_id = run_id
@@ -56,6 +56,9 @@ class _Run:
         self.started = time.monotonic()
 
         self.produced = False
+
+
+        self.handed_back = False
 
 
 def _wrap(widget: QWidget, margins: tuple, parent=None) -> QWidget:
@@ -159,9 +162,6 @@ class RestoreDivider(CompactionDivider):
 
         self._link.setEnabled(bool(enabled))
         self._link.setToolTip("" if enabled else tr("Available when the agent finishes"))
-
-    def link_enabled(self) -> bool:
-        return self._link.isVisible() and self._link.isEnabled()
 
     def _elide(self) -> None:
         label = self.label

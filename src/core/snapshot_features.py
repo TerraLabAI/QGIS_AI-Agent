@@ -142,6 +142,13 @@ def _no_geometry_request():
         return None
 
 
+def _valid(layer) -> bool:
+    try:
+        return bool(layer.isValid())
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _feature_count(layer) -> int:
 
     try:
@@ -368,6 +375,11 @@ class _FeaturePass:
         budget = signature_total()
         for lid, layer in project.mapLayers().items():
             if not isinstance(layer, QgsVectorLayer):
+                continue
+            if not _valid(layer):
+
+
+
                 continue
 
 

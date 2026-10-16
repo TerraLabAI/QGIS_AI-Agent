@@ -22,7 +22,6 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import security
-from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer
 
@@ -40,62 +39,6 @@ def _crs_from_text(raw: str):
         crs = QgsCoordinateReferenceSystem()
         crs.createFromUserInput(text)
     return crs if crs.isValid() else None
-
-
-def _read_source(source: str) -> tuple[str, str] | dict:
-    path = security.expand_path(str(source or "").strip())
-    if not path.lower().endswith(".prj") or not os.path.isfile(path):
-        return str(source or "").strip(), ""
-    error = security.validate_path(path)
-    if error:
-        return tool_error(error, "PERMISSION_DENIED",
-                          "" if isinstance(error, CodedText) else "A .prj file must sit in the project or home folder.")
-    try:
-        with open(path, encoding="utf-8") as handle:
-            return path, handle.read().strip()
-    except (OSError, UnicodeError) as exc:
-        return tool_error(
-            f"Could not read the .prj file: {exc}",
-            "INVALID_ARGS",
-            "The file may not be a UTF-8 or ASCII ESRI WKT file.",
-        )
-
-
-def _crs_details(crs: QgsCoordinateReferenceSystem, source: str) -> dict:
-    return {
-        "source": source,
-        "valid": bool(crs.isValid()),
-        "authid": str(crs.authid() or ""),
-        "description": str(crs.description() or ""),
-        "type": "geographic" if crs.isGeographic() else "projected",
-        "map_units": str(crs.mapUnits().name if hasattr(crs.mapUnits(), "name") else crs.mapUnits()),
-        "wkt": str(crs.toWkt()),
-        "proj": str(crs.toProj()),
-    }
-
-
-def _identify_crs(args: dict) -> dict:
-    source = args.get("wkt") or args.get("source") or args.get("prj_path")
-    if not source:
-        return tool_error(
-            "A WKT string or .prj path is required.",
-            "INVALID_ARGS",
-            "wkt takes raw WKT; source or prj_path takes a .prj file.",
-        )
-    loaded = _read_source(str(source))
-    if isinstance(loaded, dict):
-        return loaded
-    source_label, raw = loaded
-    crs = _crs_from_text(raw or str(source))
-    if crs is None:
-        return tool_error(
-            "QGIS could not identify a valid CRS from the supplied WKT or .prj file.",
-            "INVALID_ARGS",
-            "The complete WKT is needed, not a shortened name.",
-        )
-    result = _crs_details(crs, source_label)
-    result["matched_existing_crs"] = bool(crs.authid())
-    return result
 
 
 def _save_custom_crs(args: dict) -> dict:
@@ -272,19 +215,6 @@ def _compare_rasters(args: dict) -> dict:
 
 
 def register_crs_raster_tools(registry: ToolRegistry):
-    registry.register(
-        Tool(
-            name="identify_crs",
-            danger="read",
-            label=QT_TRANSLATE_NOOP("AIAgent", "Identify a CRS from WKT or a .prj file"),
-            input_schema={
-                "type": "object",
-                "properties": {"wkt": {"type": "string"}, "source": {"type": "string"}, "prj_path": {"type": "string"}},
-                "additionalProperties": False,
-            },
-            handler=_identify_crs,
-        )
-    )
     registry.register(
         Tool(
             name="save_custom_crs",

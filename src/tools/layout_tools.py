@@ -1999,6 +1999,10 @@ def _add_layout_map(args: dict) -> dict:
     layout, error = _resolve_layout(args["layout_name"])
     if error:
         return error
+    return _add_layout_map_in(layout, args)
+
+
+def _add_layout_map_in(layout, args: dict) -> dict:
     if _editing(args):
         return _edit_layout_map(layout, args)
     error = _missing(args, ("x", "y", "width", "height"), "map")

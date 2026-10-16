@@ -15,6 +15,7 @@ from __future__ import annotations
 from ..core.tool_registry import spec
 from .bubbles import AgentBubble, UserBubble
 from .cards import ErrorCard, PermissionCard, QuestionCard, RunSummaryCard, ToolCard
+from .cards_run import _first_sentence
 from .shared import tr
 
 
@@ -100,8 +101,11 @@ def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> N
         panel._add(card, animate=False)
     elif role == "error":
         retryable = bool(m.get("retryable")) and (resendable is None or run_id in resendable)
-        card = ErrorCard(run_id, str(m.get("code") or ""), str(m.get("message") or ""),
-                         retryable, str(m.get("details") or ""))
+        short, more = _first_sentence(str(m.get("message") or ""))
+        run = panel._runs.get(run_id)
+        card = ErrorCard(run_id, str(m.get("code") or ""), short,
+                         retryable, str(m.get("details") or ""), more=more,
+                         glyph=run is None or getattr(run, "trace", None) is None)
         card.retry_requested.connect(panel.retry_requested.emit)
         if retryable and run_id:
             card.undo_retry_requested.connect(panel.undo_retry_requested.emit)
@@ -291,7 +295,7 @@ def _replay_tool(panel, run_id: str, call: dict) -> None:
         except (TypeError, ValueError):
             duration = 0.0
         card.finish(bool(call.get("ok")), str(call.get("summary") or ""), duration,
-                    str(call.get("detail") or ""))
+                    str(call.get("detail") or ""), str(call.get("hint") or ""))
     else:
         card.mark_unfinished()
     if tool_id:

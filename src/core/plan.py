@@ -47,26 +47,13 @@ _features: dict = dict(_DEFAULTS)
 
 _said: set = set()
 
-
-
-
-
-
-
-
-
-_LEGACY_EFFORTS = {"instant": "low"}
-
-
 def effort_name(value) -> str:
 
 
 
 
 
-
     name = str(value or "").strip().lower()
-    name = _LEGACY_EFFORTS.get(name, name)
     return name if name in _DEFAULTS["efforts"] else ""
 
 

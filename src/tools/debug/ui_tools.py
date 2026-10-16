@@ -25,13 +25,7 @@ from .widgets import (
     process_events as _process_events,
 )
 from .widgets import (
-    resolve_widget as _resolve_widget,
-)
-from .widgets import (
     widget_ident as _widget_ident,
-)
-from .widgets import (
-    widget_summary as _widget_summary,
 )
 
 
@@ -61,37 +55,6 @@ def register_ui_tools(registry: ToolRegistry):
         handler=_take_qgis_window_screenshot,
     ))
 
-    registry.register(Tool(
-        name="take_widget_screenshot",
-        danger="read",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Look at the interface"),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "query": {"type": "string"},
-                "occurrence": {
-                    "type": "integer",
-                },
-                "max_width": {
-                    "type": "integer",
-                },
-                "format": {
-                    "type": "string",
-                    "enum": ["png", "jpeg"],
-                },
-                "quality": {"type": "integer"},
-                "save_path": {
-                    "type": "string",
-                },
-                "verbose": {
-                    "type": "boolean",
-                },
-                "overwrite": {"type": "boolean"},
-            },
-            "required": ["query"],
-        },
-        handler=_take_widget_screenshot,
-    ))
 
     registry.register(Tool(
         name="open_plugin_panel",
@@ -285,19 +248,6 @@ def _paint_3d_views(painter, host, origin, views, views_3d) -> None:
             views_3d["drawn"].append(name)
 
 
-def _take_widget_screenshot(args: dict) -> dict:
-    max_width = min(max(int(args.get("max_width", 1600) or 1600), 100), 4000)
-    widget, error = _resolve_widget(args)
-    if error:
-        return error
-    fmt, quality = _capture_format(args)
-    result = _grab_widget(widget, max_width, args.get("save_path", ""), fmt, quality)
-    if "_error" not in result:
-        result["widget"] = _widget_summary(widget) if args.get("verbose") else _widget_ident(widget)
-        result["capture"] = "widget"
-    return result
-
-
 def _open_plugin_panel(args: dict) -> dict:
     key, plugin = _find_plugin(args["plugin_name"])
     if plugin is None:
@@ -335,5 +285,5 @@ def _open_plugin_panel(args: dict) -> dict:
 
 
 
-    out["state"] = _accessibility_snapshot({"plugin_name": key})
+    out["state"] = _accessibility_snapshot(key)
     return out

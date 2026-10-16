@@ -99,7 +99,6 @@ def register_integration_tools(registry: ToolRegistry):
 
 
 
-
     registry.register(Tool(
         name="ai_segment_status",
         danger="read",
@@ -432,7 +431,6 @@ def _aiedit_select_version(args: dict) -> dict:
 
 
 def _aiseg_status(args: dict) -> dict:
-
 
 
 
@@ -866,13 +864,13 @@ def _aiseg_zone_outside_refusal(plugin, args: dict) -> dict | None:
     return {
         "error": (f"The zone lies outside '{layer.name()}': that raster covers none of it, so the run "
                   "would read blank tiles and AI Segmentation refuses it. "
-                  + _aiseg_zone_facts(plugin, args, layer, zone)),
+                  + _aiseg_zone_facts(args, layer, zone)),
         "code": "INVALID_ARGS",
         **coded_fact(hint="aiseg_zone_outside_raster", layer=layer.name()),
     }
 
 
-def _aiseg_zone_facts(plugin, args: dict, layer, zone) -> str:
+def _aiseg_zone_facts(args: dict, layer, zone) -> str:
 
 
 
@@ -908,7 +906,6 @@ def _aiseg_zone_facts(plugin, args: dict, layer, zone) -> str:
 
 
 def aiseg_argument_refusal(args: dict) -> dict | None:
-
 
 
 

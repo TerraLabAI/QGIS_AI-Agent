@@ -448,6 +448,13 @@ def _georeferencing(gdal, osr, dataset, path: str) -> dict | None:
     if placed:
         xs, ys = [p[0] for p in placed[:4]], [p[1] for p in placed[:4]]
         facts["extent"] = [min(xs), min(ys), max(xs), max(ys)]
+        if srs is not None and srs.IsGeographic() and (max(map(abs, xs)) > 180.5 or max(map(abs, ys)) > 90.5):
+
+
+            facts["georeferenced"] = False
+            facts["not_placed"] = (f"its {why} put the corners at {facts['extent']} under {facts['crs']}, "
+                                   "outside every longitude and latitude: those numbers are not degrees")
+            return facts
         if srs is not None:
             try:
                 wgs84 = osr.SpatialReference()
@@ -1181,6 +1188,7 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         placed = _georeferencing(gdal, osr, dataset, image)
         if placed is not None:
             result.update(placed)
+        if placed is not None and placed["georeferenced"]:
             if placed.get("crs"):
                 result["suggest"] = (f"Already georeferenced ({placed['georeferenced_by']}, {placed['crs']}); "
                                      "add_raster_layer adds it, no control points needed.")

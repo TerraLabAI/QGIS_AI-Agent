@@ -19,7 +19,7 @@ from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import vector_write
-from .layer_lookup import _find_layer, _layer_not_found_error
+from .layer_lookup import require_vector
 
 
 
@@ -188,39 +188,9 @@ def register_feature_tools(registry: ToolRegistry):
     ))
 
 
-def _find_vector_layer(name_or_id: str):
+def _feature_layer(name_or_id: str):
 
-
-
-
-
-
-
-
-
-
-
-
-    layer = _find_layer(name_or_id)
-    if layer is None or not isinstance(layer, QgsVectorLayer):
-        return None
-    return layer
-
-
-def _vector_layer(name_or_id: str):
-
-
-
-
-
-    layer = _find_layer(name_or_id)
-    if layer is None:
-        return None, _layer_not_found_error(name_or_id)
-    if not isinstance(layer, QgsVectorLayer):
-        kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "other"
-        return None, tool_error(f"Layer {layer.name()!r} is a {kind} layer, and this tool works on vector features.",
-                                "INVALID_ARGS", hint="feature_tool_layer_not_vector", layer=layer.name(), kind=kind)
-    return layer, None
+    return require_vector(name_or_id, hint="feature_tool_layer_not_vector")
 
 
 def _unknown_fields_error(layer, unknown: list) -> dict:
@@ -243,7 +213,7 @@ def _unknown_fields_error(layer, unknown: list) -> dict:
 
 
 def _add_features(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
 
@@ -414,7 +384,7 @@ def _write_refused(layer, action: str, count: int) -> dict:
 
 
 def _update_features(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
 
@@ -535,7 +505,7 @@ def _update_features(args: dict) -> dict:
 
 
 def _delete_features(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
 
@@ -599,7 +569,6 @@ def _delete_features(args: dict) -> dict:
 
 
 
-
 _SELECT_BEHAVIORS = {
     "replace": "SetSelection",
     "add": "AddToSelection",
@@ -653,7 +622,7 @@ def _with_behavior(out: dict, behavior: str, previously: int) -> dict:
 
 
 def _select_features(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
     behavior_name, behavior, error = _select_behavior(args)
@@ -690,7 +659,7 @@ def _select_features(args: dict) -> dict:
 
 
 def _get_selection(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
 
@@ -727,7 +696,7 @@ def _get_selection(args: dict) -> dict:
 def _clear_selection(args: dict) -> dict:
     layer_name = args.get("layer_name")
     if layer_name:
-        layer, error = _vector_layer(layer_name)
+        layer, error = _feature_layer(layer_name)
         if error:
             return error
         layer.removeSelection()
@@ -755,10 +724,10 @@ def _field_is_text(layer, index: int) -> bool:
 
 
 def _select_by_attribute(args: dict) -> dict:
-    from .layer_lookup import _field_not_found_error, _layer_not_found_error
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
+    from .layer_lookup import _field_not_found_error
+    layer, error = _feature_layer(args["layer_name"])
+    if error:
+        return error
 
     behavior_name, behavior, error = _select_behavior(args)
     if error:
@@ -845,7 +814,7 @@ def _too_many_vertices(too_big, budget) -> str:
 
 
 def _select_by_geometry(args: dict) -> dict:
-    layer, error = _vector_layer(args["layer_name"])
+    layer, error = _feature_layer(args["layer_name"])
     if error:
         return error
 
@@ -914,7 +883,7 @@ def _select_by_geometry(args: dict) -> dict:
         return {"_error": f"reference_layer is required for mode '{mode}'", "code": "INVALID_ARGS",
                 "suggestion": "reference_layer is the layer the selection is measured against."}
 
-    ref_layer, ref_error = _vector_layer(ref_name)
+    ref_layer, ref_error = _feature_layer(ref_name)
     if ref_error:
 
 

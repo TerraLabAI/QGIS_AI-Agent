@@ -45,11 +45,17 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import contextlib
+import os
+import uuid
 
 from qgis.core import (
+    Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPointXY,
@@ -86,7 +92,7 @@ def register_map_3d_tools(registry: ToolRegistry):
                 "terrain_ground_error": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
                 "terrain_screen_error": {"type": "number", "minimum": 0.5, "maximum": 64},
                 "heading": {"type": "number", "minimum": -360, "maximum": 360},
-                "pitch": {"type": "number", "minimum": 0, "maximum": 90},
+                "pitch": {"type": "number", "minimum": 0, "maximum": 180},
                 "distance": {"type": "number", "exclusiveMinimum": 0, "maximum": 100000000},
                 "center": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
                 "crs": {"type": "string"},
@@ -96,10 +102,14 @@ def register_map_3d_tools(registry: ToolRegistry):
                 "shadows": {"type": "boolean"},
                 "ambient_occlusion": {"type": "boolean"},
                 "eye_dome_lighting": {"type": "boolean"},
+                "show_terrain": {"type": "boolean"},
             },
 
 
             "x-view-raised": True,
+
+
+            "x-terrain-project-crs": True,
         },
         handler=_configure_3d_map_view,
     ))
@@ -127,13 +137,14 @@ def open_3d_views():
 
 def _public_3d_api():
 
+
     create = getattr(iface, "createNewMapCanvas3D", None)
     if not callable(create) or not callable(getattr(iface, "mapCanvases3D", None)):
         return None
     try:
         from qgis._3d import QgsDemTerrainSettings, QgsFlatTerrainSettings
     except ImportError:
-        return None
+        return create, lambda: _XmlTerrain("dem"), lambda: _XmlTerrain("flat")
     return create, QgsDemTerrainSettings, QgsFlatTerrainSettings
 
 
@@ -142,9 +153,9 @@ def _configure_3d_map_view(args: dict) -> dict:
     api = _public_3d_api()
     if api is None:
         return tool_error(
-            "This QGIS version does not expose the public 3D map-view API (QGIS 3.44 or newer is required).",
+            "This QGIS version does not expose the public 3D map-view API (QGIS 3.36 or newer is required).",
             "UNSUPPORTED_QGIS_VERSION",
-            "An older QGIS version has no automatic 3D Map View; 3.44 and newer open one here.",
+            "An older QGIS version has no automatic 3D Map View; 3.36 and newer open one here.",
         )
     create, terrain_type, flat_type = api
     dem = None
@@ -200,7 +211,7 @@ def _configure_3d_map_view(args: dict) -> dict:
     if settings is None:
         return tool_error("The 3D map view has no map settings.", "EXECUTION_FAILED")
 
-    kept = None if created else (settings.terrainSettings() if hasattr(settings, "terrainSettings") else None)
+    kept = None if created else _terrain_of(settings)
     vertical_scale = float(args.get("vertical_exaggeration") or (kept.verticalScale() if kept else 1.0))
     tile_resolution = int(args.get("tile_resolution") or (kept.mapTileResolution() if kept
                                                            else _DEFAULT_TILE_RESOLUTION))
@@ -209,11 +220,13 @@ def _configure_3d_map_view(args: dict) -> dict:
     screen_error = float(args.get("terrain_screen_error") or (kept.maximumScreenError() if kept
                                                               else _DEFAULT_SCREEN_ERROR))
     terrain_word = None
-    current = settings.terrainSettings() if hasattr(settings, "terrainSettings") else None
+    current = _terrain_of(settings)
     wanted = (vertical_scale, tile_resolution, ground_error, screen_error)
+    reprojected = None
     if dem is not None:
         terrain = terrain_type()
-        terrain.setLayer(dem)
+        surface, reprojected = _terrain_in_project_crs(dem)
+        terrain.setLayer(surface)
         terrain_word = f"DEM {dem.name()}"
     elif created and _project_terrain_is_flat():
         terrain = flat_type()
@@ -240,18 +253,31 @@ def _configure_3d_map_view(args: dict) -> dict:
     ground = None
     if created and camera:
         ground = ground_square(settings, camera["center"][0], camera["center"][1], camera["distance"])
-    waits = _rebuild_when_idle(canvas, ground, terrain)
-
+    show = args.get("show_terrain")
+    if (show is not None and hasattr(settings, "terrainRenderingEnabled")
+            and bool(show) == settings.terrainRenderingEnabled()):
+        show = None
     try:
-        scene = _scene_look(settings, args, (camera or {}).get("distance"))
+        _scene_setters(settings, args)
     except ValueError as exc:
         return tool_error(str(exc), "INVALID_ARGS", "background_color is a colour such as #0b1026 or navy.")
+
+
+    edit = _scene_xml(args, (camera or {}).get("distance"))
+    legacy = not hasattr(settings, "setTerrainSettings")
+    waits = _rebuild_when_idle(canvas, ground, terrain, None if show is None else bool(show),
+                               edit if legacy else None)
+    if edit is not None and not legacy:
+        _through_xml(settings, edit)
+    scene = _scene_facts(settings) if any(args.get(key) is not None for key in _SCENE_KEYS) else None
+    if scene and "scene" in waits:
+        scene.update({key: bool(args[key]) for key in ("shadows", "ambient_occlusion") if args.get(key) is not None})
     from . import style_3d
 
     moved = style_3d.refloat_labels(settings.layers()) if _annotations_3d() else []
 
     current_views = open_3d_views()
-    current = settings.terrainSettings() if hasattr(settings, "terrainSettings") else None
+    current = _terrain_of(settings)
     result = {
         "created": created,
         "terrain": terrain_word or (f"kept ({current.type()})" if current is not None else "kept"),
@@ -264,6 +290,8 @@ def _configure_3d_map_view(args: dict) -> dict:
         "layers_3d": [layer.name() for layer in settings.layers() if _has_3d_renderer(layer)][:20],
         "ground_layers": _ground_layers(settings)[:20],
     }
+    if hasattr(settings, "terrainRenderingEnabled"):
+        result["terrain_shown"] = settings.terrainRenderingEnabled() if show is None else bool(show)
     flat = [layer.name() for layer in settings.layers() if layer is not None and hasattr(layer, "labelsEnabled")
             and layer.labelsEnabled()]
     if flat:
@@ -279,7 +307,10 @@ def _configure_3d_map_view(args: dict) -> dict:
         result["camera"] = camera
     if ground is not None:
 
-        result["ground_km"] = round(ground.width() / 1000.0, 1)
+        result["ground_km"] = round(ground.width() / 1000.0, 1 if ground.width() >= 1000.0 else 2)
+    if reprojected:
+
+        result["terrain_reprojected"] = reprojected
     if waits:
 
         result["applied_after_load"] = waits
@@ -314,6 +345,79 @@ def _opengl_refusal() -> str | None:
         return (f"This machine's OpenGL is {version[0]}.{version[1]}; QGIS's 3D views need 3.3 or newer, and a "
                 "view opened on less crashes QGIS.")
     return None
+
+
+def _terrain_in_project_crs(dem):
+
+
+
+
+
+
+
+
+
+
+    target = QgsProject.instance().crs()
+    if not target.isValid() or dem.crs() == target:
+        return dem, None
+    for layer in QgsProject.instance().mapLayers().values():
+        if (layer.customProperty("terralab/terrain_of") == dem.id() and layer.isValid()
+                and isinstance(layer, QgsRasterLayer) and layer.crs() == target):
+            return layer, {"from": dem.crs().authid() or dem.crs().description(), "to": target.authid(),
+                           "file": layer.source(), "reused": True}
+    from osgeo import gdal
+
+    from ..core import output_paths, security
+
+    folder = output_paths.default_folder()
+    os.makedirs(folder, exist_ok=True)
+    tag = (target.authid() or "project CRS").replace(":", "-")
+    path = os.path.join(folder, output_paths.safe_file_name(f"{dem.name()} 3D terrain {tag}", "terrain") + ".vrt")
+    if not security.fits_path(path):
+
+        folder = output_paths.exports_folder()
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, f"terrain-{uuid.uuid4().hex[:8]}.vrt")
+    source = dem.dataProvider().dataSourceUri() if dem.dataProvider() is not None else dem.source()
+    variant = getattr(getattr(Qgis, "CrsWktVariant", None), "PreferredGdal", None)
+    wkt = target.toWkt(variant if variant is not None else QgsCoordinateReferenceSystem.WKT_PREFERRED_GDAL)
+    read = _with_virtual_overviews(gdal, source, path[:-4] + ".base.vrt")
+    warped = gdal.Warp(path, read, format="VRT", dstSRS=wkt, resampleAlg="bilinear")
+    if warped is None:
+        return dem, {"from": dem.crs().authid(), "to": target.authid(), "failed": gdal.GetLastErrorMsg()[:200]}
+    warped = None
+    layer = QgsRasterLayer(path, f"{dem.name()} (3D terrain, {target.authid() or 'project CRS'})", "gdal")
+    if not layer.isValid():
+        return dem, {"from": dem.crs().authid(), "to": target.authid(), "failed": "the warped VRT did not open"}
+    layer.setCustomProperty("terralab/terrain_of", dem.id())
+    QgsProject.instance().addMapLayer(layer, False)
+    return layer, {"from": dem.crs().authid() or dem.crs().description(), "to": target.authid(), "file": path}
+
+
+def _with_virtual_overviews(gdal, source: str, base: str) -> str:
+
+
+
+
+    opened = gdal.Open(source)
+    if opened is None or opened.GetRasterBand(1).GetOverviewCount() > 0:
+        return source
+    side = max(opened.RasterXSize, opened.RasterYSize)
+    opened = None
+    factors, factor = [], 2
+    while side // factor >= 256:
+        factors.append(str(factor))
+        factor *= 2
+    if not factors or gdal.BuildVRT(base, [source]) is None:
+        return source
+    with open(base, encoding="utf-8") as handle:
+        text = handle.read()
+    listed = " ".join(factors)
+    text = text.replace("</VRTDataset>", f'  <OverviewList resampling="nearest">{listed}</OverviewList>\n</VRTDataset>')
+    with open(base, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    return base
 
 
 def _project_terrain_is_flat() -> bool:
@@ -377,7 +481,7 @@ def _view_point(center, crs_text, view_crs):
 
 def _ground_height(settings, x, y) -> float:
 
-    terrain = settings.terrainSettings() if hasattr(settings, "terrainSettings") else None
+    terrain = _terrain_of(settings)
     offset = float(terrain.elevationOffset()) if hasattr(terrain, "elevationOffset") else 0.0
     layer = terrain.layer() if hasattr(terrain, "layer") else None
     if not isinstance(layer, QgsRasterLayer):
@@ -388,6 +492,56 @@ def _ground_height(settings, x, y) -> float:
     except Exception:  # noqa: BLE001
         return offset
     return float(value) * float(terrain.verticalScale()) + offset if found else offset
+
+
+
+_HEIGHT_SAMPLE = 200
+
+
+def _content_height(settings, x, y, distance) -> float | None:
+
+
+
+
+    from qgis.core import QgsRectangle, QgsWkbTypes
+
+    lows, highs = [], []
+    around = QgsRectangle(x - distance, y - distance, x + distance, y + distance)
+    for layer in settings.layers():
+        if not _has_3d_renderer(layer) or not hasattr(layer, "wkbType") or not QgsWkbTypes.hasZ(layer.wkbType()):
+            continue
+        box = None
+        with contextlib.suppress(Exception):
+            box = QgsCoordinateTransform(layer.crs(), settings.crs(), QgsProject.instance()).transformBoundingBox(
+                layer.extent())
+        if box is None or not box.intersects(around):
+            continue
+        span = _z_span(layer)
+        if span is not None:
+            lows.append(span[0])
+            highs.append(span[1])
+    return (min(lows) + max(highs)) / 2.0 if lows else None
+
+
+def _z_span(layer):
+
+    import math
+
+    from qgis.core import QgsFeatureRequest
+
+    box = layer.extent3D() if hasattr(layer, "extent3D") else None
+    if box is not None and math.isfinite(box.zMinimum()) and math.isfinite(box.zMaximum()):
+        return box.zMinimum(), box.zMaximum()
+    if layer.providerType() not in ("memory", "ogr", "spatialite"):
+        return None
+    zs = []
+    request = QgsFeatureRequest().setNoAttributes().setLimit(_HEIGHT_SAMPLE)
+    for feature in layer.getFeatures(request):
+        geometry = feature.geometry()
+        if geometry.isNull():
+            continue
+        zs.extend(vertex.z() for vertex in geometry.vertices() if math.isfinite(vertex.z()))
+    return (min(zs), max(zs)) if zs else None
 
 
 def _looked_at(controller, settings):
@@ -422,6 +576,8 @@ def _point_camera(canvas, settings, args: dict, created: bool) -> dict | None:
         pitch = float(args["pitch"]) if args.get("pitch") is not None else pitch
         heading = float(args["heading"]) % 360.0 if args.get("heading") is not None else heading
         if z is None:
+            z = _content_height(settings, x, y, distance)
+        if z is None:
             z = _ground_height(settings, x, y)
     if moved:
         look = getattr(controller, "setLookingAtMapPoint", None)
@@ -443,7 +599,7 @@ _GROUND_DISTANCES = 5.0
 
 def _content_reach(settings, x: float, y: float) -> float:
 
-    terrain = settings.terrainSettings() if hasattr(settings, "terrainSettings") else None
+    terrain = _terrain_of(settings)
     layers = [layer for layer in settings.layers() if _has_3d_renderer(layer)]
     dem = terrain.layer() if hasattr(terrain, "layer") else None
     if dem is not None:
@@ -466,19 +622,24 @@ def ground_square(settings, x: float, y: float, distance: float):
 
 
 
+
     from qgis.core import QgsRectangle
 
     extent = settings.extent()
-    half = _content_reach(settings, x, y) or _GROUND_DISTANCES * distance
+    reach = _content_reach(settings, x, y)
+    half = max(reach, distance) if reach else _GROUND_DISTANCES * distance
     if extent.isFinite() and not extent.isEmpty():
         half = min(half, max(abs(extent.xMinimum() - x), abs(extent.xMaximum() - x),
                              abs(extent.yMinimum() - y), abs(extent.yMaximum() - y)))
+
+
+    half = max(half, distance)
     if not half > 0:
         return None
     return QgsRectangle(x - half, y - half, x + half, y + half)
 
 
-def _rebuild_when_idle(canvas, ground, terrain) -> list:
+def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=None) -> list:
 
 
 
@@ -486,7 +647,10 @@ def _rebuild_when_idle(canvas, ground, terrain) -> list:
 
 
 
-    if ground is None and terrain is None:
+
+
+
+    if ground is None and terrain is None and show_terrain is None and scene_xml is None:
         return []
     settings = canvas.mapSettings()
     scene = canvas.scene() if hasattr(canvas, "scene") else None
@@ -495,13 +659,18 @@ def _rebuild_when_idle(canvas, ground, terrain) -> list:
     def apply() -> None:
         if ground is not None:
             settings.setExtent(ground)
-        if terrain is not None:
-            settings.setTerrainSettings(terrain)
+        if terrain is not None or scene_xml is not None:
+            if hasattr(settings, "setTerrainSettings"):
+                settings.setTerrainSettings(terrain)
+            else:
+                (terrain or _XmlTerrain.of(settings)).write(settings, scene_xml)
 
 
             layers = settings.layers()
             settings.setLayers([layer for layer in layers if not _has_3d_renderer(layer)])
             settings.setLayers(layers)
+        if show_terrain is not None:
+            settings.setTerrainRenderingEnabled(show_terrain)
 
     if scene is None or not callable(pending) or pending() == 0:
         apply()
@@ -529,7 +698,137 @@ def _rebuild_when_idle(canvas, ground, terrain) -> list:
 
     canvas.setProperty("terralabWaiting3D", [*(canvas.property("terralabWaiting3D") or []), check])
     scene.totalPendingJobsCountChanged.connect(check)
-    return [name for name, value in (("ground", ground), ("terrain", terrain)) if value is not None]
+    return [name for name, value in (("ground", ground), ("terrain", terrain), ("show_terrain", show_terrain),
+                                     ("scene", scene_xml)) if value is not None]
+
+
+def _terrain_of(settings):
+
+    if hasattr(settings, "terrainSettings"):
+        return settings.terrainSettings()
+    return _XmlTerrain.of(settings)
+
+
+def _xml_context():
+    from qgis.core import QgsReadWriteContext
+
+    context = QgsReadWriteContext()
+    context.setPathResolver(QgsProject.instance().pathResolver())
+    return context
+
+
+def _exact_place(settings, element) -> None:
+
+
+    origin = settings.origin()
+    node = element.firstChildElement("origin")
+    for axis, value in (("x", origin.x()), ("y", origin.y()), ("z", origin.z())):
+        node.setAttribute(axis, repr(float(value)))
+    extent = settings.extent()
+    node = element.firstChildElement("extent")
+    if not node.isNull():
+        for key, value in (("xMin", extent.xMinimum()), ("yMin", extent.yMinimum()), ("xMax", extent.xMaximum()),
+                           ("yMax", extent.yMaximum())):
+            node.setAttribute(key, repr(float(value)))
+
+
+class _XmlTerrain:
+
+
+
+
+
+
+
+    _VALUES = (("exaggeration", "_scale"), ("texture-size", "_tiles"), ("max-ground-error", "_ground"),
+               ("max-terrain-error", "_screen"))
+
+    def __init__(self, kind: str, layer=None, scale=1.0, tiles=_DEFAULT_TILE_RESOLUTION,
+                 ground=_DEFAULT_GROUND_ERROR, screen=_DEFAULT_SCREEN_ERROR, offset=0.0):
+        self._kind, self._layer, self._offset = kind, layer, float(offset)
+        self._scale, self._tiles, self._ground, self._screen = float(scale), int(tiles), float(ground), float(screen)
+
+    @classmethod
+    def of(cls, settings) -> _XmlTerrain:
+        from qgis.PyQt.QtXml import QDomDocument
+
+        node = settings.writeXml(QDomDocument(), _xml_context()).firstChildElement("terrain")
+        generator = node.firstChildElement("generator")
+        kind = generator.attribute("type") or "flat"
+        layer = QgsProject.instance().mapLayer(generator.attribute("layer")) if kind == "dem" else None
+        return cls(kind, layer, settings.terrainVerticalScale(), settings.mapTileResolution(),
+                   settings.maxTerrainGroundError(), settings.maxTerrainScreenError(),
+                   settings.terrainElevationOffset())
+
+    def type(self) -> str:
+        return self._kind
+
+    def layer(self):
+        return self._layer
+
+    def setLayer(self, layer) -> None:
+        self._layer = layer
+
+    def verticalScale(self) -> float:
+        return self._scale
+
+    def setVerticalScale(self, value) -> None:
+        self._scale = float(value)
+
+    def mapTileResolution(self) -> int:
+        return self._tiles
+
+    def setMapTileResolution(self, value) -> None:
+        self._tiles = int(value)
+
+    def maximumGroundError(self) -> float:
+        return self._ground
+
+    def setMaximumGroundError(self, value) -> None:
+        self._ground = float(value)
+
+    def maximumScreenError(self) -> float:
+        return self._screen
+
+    def setMaximumScreenError(self, value) -> None:
+        self._screen = float(value)
+
+    def elevationOffset(self) -> float:
+        return self._offset
+
+    def clone(self) -> _XmlTerrain:
+        return _XmlTerrain(self._kind, self._layer, self._scale, self._tiles, self._ground, self._screen, self._offset)
+
+    def equals(self, other) -> bool:
+        def key(terrain):
+            layer = terrain.layer()
+            return (terrain.type(), layer.id() if layer is not None else "", terrain.verticalScale(),
+                    terrain.mapTileResolution(), terrain.maximumGroundError(), terrain.maximumScreenError())
+        return isinstance(other, _XmlTerrain) and key(self) == key(other)
+
+    def write(self, settings, edit=None) -> None:
+
+        from qgis.PyQt.QtXml import QDomDocument
+
+        context = _xml_context()
+        element = settings.writeXml(QDomDocument(), context)
+        node = element.firstChildElement("terrain")
+        for name, attribute in self._VALUES:
+            value = getattr(self, attribute)
+            node.setAttribute(name, str(value) if isinstance(value, int) else repr(value))
+        generator = node.firstChildElement("generator")
+        generator.setAttribute("type", self._kind)
+        if self._kind == "dem" and self._layer is not None:
+            generator.setAttribute("layer", self._layer.id())
+
+            for name, default in (("resolution", "16"), ("skirt-height", "10")):
+                if not generator.attribute(name):
+                    generator.setAttribute(name, default)
+        if edit is not None:
+            edit(settings, element)
+        _exact_place(settings, element)
+        settings.readXml(element, context)
+        settings.resolveReferences(QgsProject.instance())
 
 
 def _view_facts(canvas, views) -> dict:
@@ -582,20 +881,12 @@ def _sun_angles(light) -> tuple[float, float]:
     return round(azimuth, 1), round(math.degrees(math.atan2(-d.z(), flat)), 1)
 
 
-def _scene_look(settings, args: dict, camera_distance=None) -> dict | None:
-
-
-
-
+def _scene_setters(settings, args: dict) -> None:
 
     import math
 
-    from qgis.core import QgsReadWriteContext
     from qgis.PyQt.QtGui import QColor
-    from qgis.PyQt.QtXml import QDomDocument
 
-    if all(args.get(key) is None for key in _SCENE_KEYS):
-        return None
     if args.get("background_color") is not None:
         colour = QColor(str(args["background_color"]))
         if not colour.isValid():
@@ -618,11 +909,19 @@ def _scene_look(settings, args: dict, camera_distance=None) -> dict | None:
                                      -math.sin(math.radians(altitude))))
 
         settings.setLightSources([light.clone() for light in lights if not _directional(light)] + [sun])
-    if args.get("shadows") is not None or args.get("ambient_occlusion") is not None:
-        context = QgsReadWriteContext()
-        context.setPathResolver(QgsProject.instance().pathResolver())
-        document = QDomDocument()
-        element = settings.writeXml(document, context)
+
+
+def _scene_xml(args: dict, camera_distance=None):
+
+
+
+
+
+
+    if args.get("shadows") is None and args.get("ambient_occlusion") is None:
+        return None
+
+    def edit(settings, element) -> None:
         if args.get("shadows") is not None:
             shadows = element.firstChildElement("shadow-rendering")
             shadows.setAttribute("shadow-rendering-enabled", "1" if args["shadows"] else "0")
@@ -641,29 +940,34 @@ def _scene_look(settings, args: dict, camera_distance=None) -> dict | None:
             element.firstChildElement("screen-space-ambient-occlusion").setAttribute(
                 "enabled", "1" if args["ambient_occlusion"] else "0")
 
-
-        origin = settings.origin()
-        node = element.firstChildElement("origin")
-        for axis, value in (("x", origin.x()), ("y", origin.y()), ("z", origin.z())):
-            node.setAttribute(axis, repr(float(value)))
+    return edit
 
 
+def _through_xml(settings, edit) -> None:
 
-        terrain = element.firstChildElement("terrain")
-        generator = terrain.firstChildElement("generator")
-        if not generator.isNull():
-            terrain.removeChild(generator)
-        layers = settings.layers()
-        settings.readXml(element, context)
+    from qgis.PyQt.QtXml import QDomDocument
+
+    context = _xml_context()
+    element = settings.writeXml(QDomDocument(), context)
+    edit(settings, element)
+    _exact_place(settings, element)
 
 
 
+    terrain = element.firstChildElement("terrain")
+    generator = terrain.firstChildElement("generator")
+    if not generator.isNull():
+        terrain.removeChild(generator)
+    layers = settings.layers()
+    settings.readXml(element, context)
 
-        settings.setLayers(layers)
-        settings.shadowSettingsChanged.emit()
-        settings.ambientOcclusionSettingsChanged.emit()
-        settings.lightSourcesChanged.emit()
-    return _scene_facts(settings)
+
+
+
+    settings.setLayers(layers)
+    settings.shadowSettingsChanged.emit()
+    settings.ambientOcclusionSettingsChanged.emit()
+    settings.lightSourcesChanged.emit()
 
 
 def _scene_facts(settings) -> dict:

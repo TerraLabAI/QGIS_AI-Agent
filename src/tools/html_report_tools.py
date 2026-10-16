@@ -39,6 +39,7 @@ from ..core.writeback import write_atomic
 
 MAX_FIGURES = 12
 MAX_FIGURE_WIDTH = 1600
+REPORT_COLUMN_PX = 720
 MAX_FIGURE_HEIGHT = 1200
 
 
@@ -47,6 +48,7 @@ def register_html_report_tools(registry: ToolRegistry):
         name="write_html_report",
         danger="write",
         replaces_file_at="path",
+        writes_page="html",
         label=QT_TRANSLATE_NOOP("AIAgent", "Write the report {title}"),
         input_schema={
             "type": "object",
@@ -194,6 +196,8 @@ def _render_figures(declared) -> tuple[dict, dict, list]:
         if isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0:
             render_args["width"] = min(width, MAX_FIGURE_WIDTH)
             render_args["height"] = min(height, MAX_FIGURE_HEIGHT)
+
+        render_args["display_width"] = REPORT_COLUMN_PX
         drawn = _render_map(render_args)
         if not isinstance(drawn, dict) or "_error" in drawn or not drawn.get("image_base64"):
             message = drawn.get("_error") if isinstance(drawn, dict) else "no image"

@@ -112,8 +112,10 @@ from .net_opener import (
 )
 from .net_state import (
     current_cancel_check,
+    current_progress_sink,
     is_cancelled,
     set_cancel_check,
+    set_progress_sink,
 )
 from .net_stream import (
     STREAM_KEEP_FREE_BYTES,
@@ -185,6 +187,7 @@ __all__ = [
     "s3_regional_url",
     "seconds_to_transfer",
     "set_cancel_check",
+    "set_progress_sink",
     "set_proxy",
     "set_trust",
     "STREAM_KEEP_FREE_BYTES",
@@ -198,6 +201,27 @@ __all__ = [
 ]
 
 
+def ascii_url(url: str) -> str:
+
+
+    if url.isascii():
+        return url
+    try:
+        parts = urllib.parse.urlsplit(url)
+        host = parts.hostname or ""
+        netloc = parts.netloc
+        if host and not host.isascii():
+            user = netloc.rpartition("@")[0]
+            netloc = ((user + "@") if "@" in netloc else "") + host.encode("idna").decode("ascii") \
+                + (f":{parts.port}" if parts.port is not None else "")
+        safe = "/?:@!$&'()*+,;=-._~%[]"
+        return urllib.parse.urlunsplit((parts.scheme, netloc, urllib.parse.quote(parts.path, safe=safe),
+                                        urllib.parse.quote(parts.query, safe=safe),
+                                        urllib.parse.quote(parts.fragment, safe=safe)))
+    except (ValueError, UnicodeError):
+        return url
+
+
 def open_url(request, timeout: float, connect_timeout: float | None = None):
 
 
@@ -208,6 +232,15 @@ def open_url(request, timeout: float, connect_timeout: float | None = None):
 
 
     url = request.full_url if isinstance(request, urllib.request.Request) else str(request)
+    if not url.isascii():
+
+
+
+        url = ascii_url(url)
+        if isinstance(request, urllib.request.Request):
+            request.full_url = url
+        else:
+            request = url
     _pin_table().clear()
     check_url(url)
     if isinstance(request, urllib.request.Request):
@@ -263,7 +296,10 @@ class Response:
 
 
 def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel=None,
-                 budget: float | None = None) -> bytes:
+                 budget: float | None = None, progress=None, expected: int | None = None) -> bytes:
+
+
+
 
 
 
@@ -297,6 +333,9 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
                 break
             parts.append(block)
             total += len(block)
+            if progress is not None:
+                with contextlib.suppress(Exception):
+                    progress(total, expected)
             if total > max_bytes:
                 raise FetchTooLarge(f"The answer is larger than the {max_bytes} bytes this tool reads.")
     except (http.client.HTTPException, OSError) as exc:
@@ -400,7 +439,7 @@ def _credential_tag(request: urllib.request.Request) -> str:
 
 def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | None = None,
           cache_ttl: float = 0.0, cancel=None, polite: bool = True,
-          connect_timeout: float | None = None) -> Response:
+          connect_timeout: float | None = None, progress=None) -> Response:
 
 
 
@@ -413,6 +452,18 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
 
 
 
+
+
+
+
+    if progress is not None:
+        previous = current_progress_sink()
+        set_progress_sink(progress)
+        try:
+            return fetch(request, timeout=timeout, max_bytes=max_bytes, total_timeout=total_timeout,
+                         cache_ttl=cache_ttl, cancel=cancel, polite=polite, connect_timeout=connect_timeout)
+        finally:
+            set_progress_sink(previous)
     _warn_if_on_main_thread()
 
 
@@ -643,7 +694,8 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
             reading_from = time.perf_counter()
-            body = read_bounded(response, max_bytes, deadline, cancel, budget)
+            body = read_bounded(response, max_bytes, deadline, cancel, budget,
+                                progress=current_progress_sink(), expected=promised)
 
 
 

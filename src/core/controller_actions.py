@@ -17,15 +17,17 @@ from . import telemetry
 from . import telemetry_events as ev
 from .checkpoints import KIND_BEFORE, KIND_EDITS
 from .context import mention_candidates
+from .host_platform import resolved
 from .logger import log, log_warning
 from .protocol import Approval, Effort, Mode
+from .security_urls import host_name
 from .snapshot import diff_changed
 from .telemetry_errors import track_plugin_error
 
 
 def get_pro_offer() -> str:
 
-    from ..ui.shared import get_pro_offer as _offer
+    from .served_state import get_pro_offer as _offer
 
     return _offer()
 
@@ -467,10 +469,6 @@ class PanelActionsMixin:
         telemetry.flush()
         self._account.sign_out()
 
-    def _on_welcome_dismissed(self) -> None:
-        self._settings.onboarded = True
-        telemetry.track(ev.WELCOME_DISMISSED)
-
     def _on_example_chosen(self, slug: str) -> None:
         self._example_pick = str(slug or "")
         telemetry.track(ev.EXAMPLE_CHOSEN, {"slug": self._example_pick})
@@ -521,7 +519,7 @@ class PanelActionsMixin:
     def _on_invoice_requested(self, where: str) -> None:
 
         from ..ui.external_links import open_external_url
-        from ..ui.shared import BUSINESS_QUOTE_URL, get_invoice_url
+        from .served_state import BUSINESS_QUOTE_URL, get_invoice_url
 
         telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "invoice", "where": where, "checkout_link": "invoice",
                                                     "offer": get_pro_offer()})
@@ -633,10 +631,7 @@ class PanelActionsMixin:
         from .snapshot import layer_file_path
 
         def key(value: str) -> str:
-            try:
-                return os.path.normcase(os.path.realpath(value))
-            except (OSError, ValueError):
-                return os.path.normcase(os.path.normpath(os.path.abspath(value)))
+            return os.path.normcase(resolved(value))
 
         wanted = key(path)
         for layer in QgsProject.instance().mapLayers().values():
@@ -717,7 +712,7 @@ class PanelActionsMixin:
             "effort": self._settings.effort,
             "mode": self._settings.mode,
             "approval": self._settings.approval,
-            "server": _host_of(self._settings.server_url),
+            "server": host_name(self._settings.server_url),
             "manifest_hash": manifest_hash,
             "tool_count": len(manifest or []),
         }
@@ -726,16 +721,6 @@ class PanelActionsMixin:
             thread=thread, identity=self._identity(), session=session, account=account,
             policy=policy, logs=recent_logs(), error=error_message, run_id=run_id,
             verification=self._last_verification)
-
-
-def _host_of(url: str) -> str:
-
-    from urllib.parse import urlsplit
-
-    try:
-        return (urlsplit(str(url or "")).hostname or "").lower()
-    except ValueError:
-        return ""
 
 
 def _project_path() -> str:

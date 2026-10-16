@@ -173,9 +173,6 @@ class ConnectorPage(QWidget):
     def _gap(self, space: int) -> None:
         self._col.addSpacing(C.px(space))
 
-    def set_back_label(self, _text: str = "") -> None:
-        pass
-
     def _mark(self, detail: dict) -> QLabel:
         from .library.pictures import wear_source_mark
 

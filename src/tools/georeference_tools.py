@@ -38,6 +38,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import limits, net, output_paths, security, tuning
 from ..core.background import run_on_main_thread
+from ..core.context_layers import crs_units
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
@@ -186,7 +187,7 @@ def _source_facts(raster, crs_text) -> dict:
         "crs": _wkt(crs),
         "crs_authid": str(crs.authid() or ""),
         "geographic": bool(crs.isGeographic()),
-        "units": "degrees" if crs.isGeographic() else QgsUnitTypes.toString(crs.mapUnits()),
+        "units": crs_units(crs),
         "metres_per_unit": None if crs.isGeographic() else _metres_per_unit(crs),
     }
 

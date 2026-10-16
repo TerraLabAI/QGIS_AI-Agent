@@ -626,7 +626,7 @@ def _create_tiff(gdal, path: str, grid: dict, dtype, options, nodata):
     return dataset
 
 
-def _gdal_product(gdal, grid: dict, source: str, product: str, path: str, cancelled) -> None:
+def _gdal_product(gdal, grid: dict, product: str, path: str, cancelled) -> None:
 
 
 
@@ -775,7 +775,7 @@ def _terrain_visualisation(args: dict) -> dict:
         for product in products:
             if product not in _NUMPY_PRODUCTS:
                 mark = time.monotonic()
-                _gdal_product(gdal, grid, facts["source"], product, paths[product], cancelled)
+                _gdal_product(gdal, grid, product, paths[product], cancelled)
                 timings[product] = round(time.monotonic() - mark, 1)
         mark = time.monotonic()
         stats = {product: _finish(gdal, np, paths[product]) for product in products}

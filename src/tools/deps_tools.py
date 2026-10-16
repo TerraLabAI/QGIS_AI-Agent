@@ -41,11 +41,13 @@ OPTIONAL_DEPENDENCIES = {
         "package": "earthengine-api",
         "import_name": "ee",
         "unlocks": (
-            "Google Earth Engine tools (add_gee_dataset, gee_compute_index, gee_zonal_stats, "
+            "Google Earth Engine tools (add_gee_dataset, gee_compute_index, "
             "initialize_earth_engine), on the user's own Earth Engine account: they appear once "
             "this computer is signed in (ee.Authenticate() in the QGIS Python console) and the "
             "plugin reloads. search_gee_catalog is answered by the server and needs no install."
         ),
+
+        "session_state": "earthengine_tools",
     },
 
 
@@ -446,6 +448,19 @@ def _qgis_capabilities() -> dict:
     return out
 
 
+def _session_state(spec: dict) -> dict:
+
+    name = spec.get("session_state")
+    if not name:
+        return {}
+    try:
+        import importlib
+
+        return dict(importlib.import_module(f"{__package__}.{name}").session_state())
+    except Exception as exc:  # noqa: BLE001
+        return {"state_unreadable": str(exc)[:160]}
+
+
 def _check(args: dict) -> dict:
     deps = []
     installed_count = 0
@@ -458,6 +473,7 @@ def _check(args: dict) -> dict:
             "package": spec["package"],
             "installed": installed,
             "unlocks": spec["unlocks"],
+            **(_session_state(spec) if installed else {}),
             **coded_fact(hint="dependency_post_install", variant=feature, package=spec["package"],
                          import_name=spec["import_name"]),
         })

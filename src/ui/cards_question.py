@@ -20,7 +20,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import (
@@ -129,6 +128,20 @@ _RISE_MS = 180
 _COMPACT_ROW_PX = 32
 _ROW_GAP_PX = 6
 
+
+
+_HEADER_CHARS = 12
+
+
+def short_header(text) -> str:
+
+
+    text = " ".join(str(text or "").split())
+    if len(text) <= _HEADER_CHARS:
+        return text
+    cut = text[:_HEADER_CHARS - 1]
+    space = cut.rfind(" ")
+    return (cut[:space] if space > 0 else cut).rstrip(" ,;:-") + "\u2026"
 
 
 _HEADER_QSS = scale_qss_font_px(
@@ -441,7 +454,7 @@ class _Page(QWidget):
                  multiple: bool = False, parent=None, details=None, header: str = ""):
         super().__init__(parent)
         self.tool_call_id = tool_call_id
-        self.header = " ".join(str(header or "").split())[:12].strip()
+        self.header = short_header(header)
 
         self.skipped = False
 
@@ -625,10 +638,6 @@ class _Page(QWidget):
     def summary_head(self) -> str:
 
         return self.header or self.question
-
-    def shown_answer(self) -> str:
-        return self.answer or self.tr("skipped")
-
 
 class QuestionCard(_Card, FoldMixin):
 
@@ -886,6 +895,15 @@ class QuestionCard(_Card, FoldMixin):
 
         return any(page.answer is None for page in self._pages)
 
+    def open_page_id(self) -> str:
+
+
+        page = self._current_page()
+        if page is None or page.answer is not None:
+            index = self._next_open()
+            page = self._pages[index] if index >= 0 else None
+        return page.tool_call_id if page is not None else ""
+
     def is_answered(self, tool_call_id: str) -> bool:
         page = self._page(tool_call_id)
         return page is not None and page.answer is not None
@@ -1029,7 +1047,7 @@ class QuestionCard(_Card, FoldMixin):
         summary = getattr(self, "_summary", None)
         if summary is None:
             return
-        head = " ".join(str(header or "").split())[:12].strip() or (question or "").strip()
+        head = short_header(header) or (question or "").strip()
         summary.add_line(head, answer or "")
 
     def to_markdown(self) -> str:

@@ -18,7 +18,7 @@ from ..core.tool_registry import coded_fact, tool_error
 from . import style_3d, style_rows
 from ._compat import QVAR_DOUBLE, QVAR_INT, QVAR_LONGLONG, QVAR_STRING
 from .colour_text import qcolor_from_text
-from .layer_lookup import _field_not_found_error, _find_layer, _layer_not_found_error
+from .layer_lookup import _field_not_found_error, _find_layer, _layer_not_found_error, require_vector
 
 
 
@@ -54,7 +54,6 @@ def _style_to_put_back(layer) -> str:
 
 
 def _previous_style_keys(layer, kept: str, changed: str = "symbology") -> dict:
-
 
 
 
@@ -228,8 +227,6 @@ def _style_plan(args: dict) -> dict:
 
 
 
-
-
         return _style_raster_layer(layer, target, args)
 
     style_type = str(args.get("style_type") or "").strip()
@@ -262,7 +259,6 @@ def _style_plan(args: dict) -> dict:
 
 
 
-
     style_type, coerced_note = _style_for_geometry(layer, style_type, args)
 
 
@@ -279,6 +275,7 @@ def _style_plan(args: dict) -> dict:
         ramp, color_ramp_name, ramp_error = _raster_ramp(args)
         if ramp_error:
             return ramp_error
+        ramp = _perceptual_ramp(ramp)
     invert_ramp = color_ramp_name.endswith(" reversed")
     if invert_ramp:
         color_ramp_name = color_ramp_name[:-len(" reversed")]
@@ -572,13 +569,49 @@ def _decide_classes(plan: dict, facts: dict) -> dict:
         found = method.classes(values, count) if values else []
     else:
         found = method.classes(doubles["min"], doubles["max"], count)
-    out["ranges"] = [(r.label(), r.lowerBound(), r.upperBound()) for r in found]
-    if str(args.get("classification_mode") or "").strip():
-        sample = facts["sample"]
-        if plan["expression"]:
-            sample = [number for number in map(_number, sample["values"]) if number is not None]
-        out["class_counts"] = class_counts(sample, [(float(low), float(high)) for _label, low, high in out["ranges"]])
+    sample = facts["sample"]
+    if plan["expression"]:
+        sample = [number for number in map(_number, sample["values"]) if number is not None]
+    ranges = [(r.label(), float(r.lowerBound()), float(r.upperBound())) for r in found]
+    out["ranges"] = _merge_repeated_classes(ranges, bool(sample) and all(float(v).is_integer() for v in sample))
+    if len(out["ranges"]) < len(ranges):
+        out["classes_merged"] = len(ranges) - len(out["ranges"])
+    out["class_counts"] = class_counts(sample, [(low, high) for _label, low, high in out["ranges"]])
     return out
+
+
+def _label_digits(low: float, high: float, integral: bool = False) -> int:
+
+    if integral:
+        return 0
+    span = abs(high - low)
+    return 0 if span >= 50 else (1 if span >= 5 else (2 if span >= 0.5 else 4))
+
+
+def _merge_repeated_classes(ranges: list, integral: bool) -> list:
+
+
+
+
+    if len(ranges) < 2:
+        return ranges
+    if integral:
+        ranges = [(label, low if i == 0 else float(round(low)), high if i == len(ranges) - 1 else float(round(high)))
+                  for i, (label, low, high) in enumerate(ranges)]
+    digits = _label_digits(ranges[0][1], ranges[-1][2], integral)
+
+    def shown(low, high):
+        return round(low, digits), round(high, digits)
+
+    kept: list = []
+    for label, low, high in ranges:
+        if kept:
+            last_label, last_low, last_high = kept[-1]
+            if shown(low, high) == shown(last_low, last_high) or shown(low, high)[0] == shown(low, high)[1]:
+                kept[-1] = (last_label, last_low, high)
+                continue
+        kept.append((label, low, high))
+    return kept
 
 
 def _style_apply(plan: dict, facts: dict) -> dict:
@@ -661,7 +694,6 @@ def _style_apply(plan: dict, facts: dict) -> dict:
                 symbol.setColor(QColor.fromHsl(hue, 178, 128))
             categories.append(QgsRendererCategory(value, symbol, _category_label(value)))
         if folded or folded is None:
-
 
 
 
@@ -833,6 +865,13 @@ def _style_apply(plan: dict, facts: dict) -> dict:
         result["not_applied_note"] = note
     if style_type == "graduated":
         result["classes"] = len(bounds)
+
+        result["class_bounds"] = [[low, high] for low, high in bounds]
+        if facts.get("class_counts") and not fold_note.get("breaks"):
+            result["class_counts"] = facts["class_counts"]
+        if facts.get("classes_merged"):
+            result["classes_requested"] = classes
+            result["classes_merged"] = facts["classes_merged"]
         if class_colors:
             result["class_colors"] = class_colors
         if facts.get("classes_from"):
@@ -848,7 +887,6 @@ def _style_apply(plan: dict, facts: dict) -> dict:
 
             counts = facts.get("class_counts")
             if counts:
-                result["class_counts"] = counts
                 warning = dominant_class_note(counts, field, mode_name)
                 if warning:
                     result["classification_warning"] = warning
@@ -906,6 +944,60 @@ def _classified(attribute: str, base_symbol, ramp, mode_name: str, ranges: list)
                                                 renderer.sourceSymbol().clone()))
     renderer.updateColorRamp(None)
     return renderer
+
+
+def _oklab(colour) -> tuple:
+
+    def linear(c):
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    r, g, b = linear(colour.redF()), linear(colour.greenF()), linear(colour.blueF())
+    l_ = (0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) ** (1 / 3)
+    m_ = (0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) ** (1 / 3)
+    s_ = (0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b) ** (1 / 3)
+    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_, colour.alphaF())
+
+
+def _from_oklab(lab: tuple):
+    from qgis.PyQt.QtGui import QColor
+
+    big_l, a, b, alpha = lab
+    l_, m_, s_ = (big_l + 0.3963377774 * a + 0.2158037573 * b, big_l - 0.1055613458 * a - 0.0638541728 * b,
+                  big_l - 0.0894841775 * a - 1.2914855480 * b)
+    lc, m, s = l_ ** 3, m_ ** 3, s_ ** 3
+    rgb = (4.0767416621 * lc - 3.3077115913 * m + 0.2309699292 * s,
+           -1.2684380046 * lc + 2.6097574011 * m - 0.3413193965 * s,
+           -0.0041960863 * lc - 0.7034186147 * m + 1.7076147010 * s)
+
+    def gamma(c):
+        c = min(1.0, max(0.0, c))
+        return 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+
+    return QColor.fromRgbF(*(gamma(c) for c in rgb), alpha)
+
+
+def _perceptual_ramp(ramp, steps: int = 12):
+
+
+    from qgis.core import QgsGradientColorRamp, QgsGradientStop
+
+    if not isinstance(ramp, QgsGradientColorRamp) or ramp.isDiscrete():
+        return ramp
+    try:
+        stops = [(0.0, ramp.color1())] + [(s.offset, s.color) for s in ramp.stops()] + [(1.0, ramp.color2())]
+        dense = []
+        for (o1, c1), (o2, c2) in zip(stops, stops[1:]):
+            lab1, lab2 = _oklab(c1), _oklab(c2)
+            for k in range(1 if dense or o1 > 0 else 0, steps + 1):
+                t = k / steps
+                dense.append((o1 + (o2 - o1) * t, _from_oklab(tuple(x + (y - x) * t for x, y in zip(lab1, lab2)))))
+        inner = [QgsGradientStop(o, c) for o, c in dense if 0.0 < o < 1.0]
+        return QgsGradientColorRamp(ramp.color1(), ramp.color2(), False, inner)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"_perceptual_ramp: kept the RGB ramp: {exc}")
+        return ramp
 
 
 def _missing(plan: dict, facts: dict):
@@ -1027,7 +1119,6 @@ _VECTOR_ONLY_ARGS = ("field", "fill", "stroke_color", "stroke_width", "stroke_wi
 
 
 def _wider_than_the_selection(layer) -> dict:
-
 
 
 
@@ -1551,17 +1642,18 @@ def _readable_range_labels(renderer, unit=None) -> None:
 
 
 
-
     try:
         ranges = list(renderer.ranges())
         if not ranges:
             return
-        span = abs(float(ranges[-1].upperValue()) - float(ranges[0].lowerValue()))
-        digits = 0 if span >= 50 else (1 if span >= 5 else (2 if span >= 0.5 else 4))
+        integral = all(float(v).is_integer() for r in ranges for v in (r.lowerValue(), r.upperValue()))
+        digits = _label_digits(float(ranges[0].lowerValue()), float(ranges[-1].upperValue()), integral)
         tail = f" {unit}" if unit else ""
         for index, item in enumerate(ranges):
             low, high = float(item.lowerValue()), float(item.upperValue())
-            renderer.updateRangeLabel(index, f"{low:,.{digits}f} - {high:,.{digits}f}{tail}")
+            text = (f"{low:,.{digits}f}" if round(low, digits) == round(high, digits)
+                    else f"{low:,.{digits}f} - {high:,.{digits}f}")
+            renderer.updateRangeLabel(index, text + tail)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"_readable_range_labels: relabeling failed: {exc}")
 
@@ -2099,11 +2191,9 @@ def _set_layer_labels_2d(args: dict) -> dict:
     from qgis.core import Qgis, QgsPalLayerSettings, QgsTextFormat, QgsVectorLayerSimpleLabeling, QgsWkbTypes
     from qgis.PyQt.QtGui import QFont
 
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a vector layer"}
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
 
     if args.get("segment_lengths"):
         return _label_polygon_edges(layer, args)

@@ -22,7 +22,7 @@ import urllib.parse
 from qgis.core import QgsProject
 
 from . import tuning
-from .host_platform import remove_quietly, remove_tree, retry_file_op
+from .host_platform import remove_quietly, remove_tree, resolved, retry_file_op
 from .logger import log, log_warning
 from .snapshot_paths import (
     _SQLITE_EXTENSIONS,
@@ -509,9 +509,9 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
                    for n in os.listdir(base) if os.path.isdir(os.path.join(base, n))]
     except OSError:
         return
-    held = {os.path.normpath(os.path.realpath(path)) for path in held_snapshots() if path}
+    held = {os.path.normpath(resolved(path)) for path in held_snapshots() if path}
     referenced = set(held)
-    protected = os.path.normpath(os.path.realpath(protect)) if protect else ""
+    protected = os.path.normpath(resolved(protect)) if protect else ""
     if protected:
         referenced.add(protected)
     indexes: list[tuple[float, str, set]] = []
@@ -542,7 +542,7 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
                 snapshot = record.get("snapshot")
                 folder = snapshot.get("dir") if isinstance(snapshot, dict) else None
                 if isinstance(folder, str) and folder:
-                    dirs.add(os.path.normpath(os.path.realpath(folder)))
+                    dirs.add(os.path.normpath(resolved(folder)))
         referenced.update(dirs)
         try:
             mtime = os.path.getmtime(path)
@@ -551,7 +551,7 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
         indexes.append((mtime, path, dirs))
     now = time.time()
     for mtime, path in entries:
-        if os.path.normpath(os.path.realpath(path)) in referenced:
+        if os.path.normpath(resolved(path)) in referenced:
             continue
         if now - mtime <= ORPHAN_GRACE_SECONDS:
             continue
@@ -571,7 +571,7 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
 
     sweep: list[tuple[float, str, set | None]] = [
         (mtime, path, None) for mtime, path in entries
-        if os.path.normpath(os.path.realpath(path)) not in referenced
+        if os.path.normpath(resolved(path)) not in referenced
     ]
     sweep.extend((mtime, path, dirs) for mtime, path, dirs in indexes)
     sweep.sort(key=lambda row: row[0])

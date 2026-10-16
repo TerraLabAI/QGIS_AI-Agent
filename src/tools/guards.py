@@ -44,8 +44,6 @@ WRITE_PATH_ARGS: dict[str, tuple[str, ...]] = {
     "save_style_qml": ("path", "output_path", "qml_path"),
     "create_processing_model": ("path", "output_path", "model_path"),
     "take_qgis_window_screenshot": ("save_path",),
-    "take_widget_screenshot": ("save_path",),
-    "ref_action": ("save_path",),
     "render_map": ("save_path", "output_path"),
     "get_3d_screenshot": ("save_path",),
     "create_hillshade": ("output_path",),
@@ -59,9 +57,6 @@ WRITE_PATH_ARGS: dict[str, tuple[str, ...]] = {
 OVERWRITE_KEYS = ("overwrite", "OVERWRITE", "allow_overwrite", "replace_existing")
 _OVERWRITE_KEYS = OVERWRITE_KEYS
 _LIMIT_KEYS = ("limit", "max_features", "max_results", "sample_size", "max_rows", "max_items", "page_size")
-_SETTINGS_DENY_PREFIX = ("terralab", "proxy", "qgis/networkandproxy", "auth", "qgis/auth", "network", "python/",
-                         "pythonplugins/", "plugins/")
-_SETTINGS_DENY_WORDS = ("password", "secret", "token", "apikey", "api_key", "credential", "activation", "authcfg")
 _DENIED_SCHEMES = ("file", "ftp", "gopher", "data", "javascript", "dict", "ldap", "jar", "smb", "afp", "nfs", "tftp")
 
 
@@ -229,7 +224,7 @@ def _check_argument_tree(value) -> dict | None:
     return None
 
 
-def _check_extent_order(name: str, args: dict) -> dict | None:
+def _check_extent_order(args: dict) -> dict | None:
 
     candidates = []
     if all(key in args for key in ("xmin", "ymin", "xmax", "ymax")):
@@ -312,7 +307,6 @@ def _leaves_outside(value, skip: set, depth: int = 0):
     elif depth < _MAX_ARGUMENT_DEPTH and isinstance(value, (list, tuple)):
         for item in value:
             yield from _leaves_outside(item, skip, depth + 1)
-
 
 
 
@@ -484,11 +478,12 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
     found: list[str] = []
     catalog_hosts: set[str] | None = None
     texts = list(_string_leaves(args))
-    if name == "write_html_report":
+    declared = spec(name)
+    if declared is not None and declared.writes_page:
 
         from ..core.report_page import active_urls
 
-        texts += active_urls(args.get("html"))
+        texts += active_urls(args.get(declared.writes_page))
     for text in texts:
         stripped = text.strip()
         kind, rest = security.unwrap_vsi(stripped)
@@ -519,17 +514,6 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
                 if len(found) >= _UNVOUCHED_SHOWN:
                     return found
     return found
-
-
-def settings_key_refusal(args: dict) -> dict | None:
-
-    key = str(args.get("key") or "").strip().lower().lstrip("/")
-    if (key.startswith(tuning.names("settings_deny_prefix", _SETTINGS_DENY_PREFIX))
-            or any(word in key for word in tuning.names("settings_deny_words", _SETTINGS_DENY_WORDS))):
-        return _refusal(f"The setting '{args.get('key')}' holds credentials, proxy or plugin state the agent never "
-                        "reads or writes.", "That setting is visible only in QGIS itself.",
-                        "PERMISSION_DENIED")
-    return None
 
 
 def _current_project_file() -> str:
@@ -679,7 +663,6 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
 
 
-
     writes = _write_targets(name, args)
     declared = spec(name)
     project_file = _current_project_file()
@@ -741,7 +724,6 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
             continue
 
 
-
         if remote and value == args.get("layer"):
             continue
 
@@ -759,7 +741,6 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
             continue
         if inside and value == args.get("layer") and not (
                 os.path.isabs(part) or part.startswith(("~", "%", "$", "\\", "/")) or _DRIVE_RE.match(part)):
-
 
 
             part = os.path.join(inside, part)
@@ -888,14 +869,13 @@ _MATERIALISED_LAYER_KEYS = ("layer", "layer_name", "input", "INPUT", "reference_
 
 
 _RENDER_TOOLS = frozenset({
-    "render_map", "take_qgis_window_screenshot", "take_widget_screenshot", "get_3d_screenshot",
+    "render_map", "take_qgis_window_screenshot", "get_3d_screenshot",
     "export_layout", "export_atlas", "export_layout_image",
 })
 
 
 _RENDER_SIZE_KEYS = (("width", "MAX_RENDER_WIDTH_PX"), ("height", "MAX_RENDER_HEIGHT_PX"),
                      ("max_width", "MAX_RENDER_WIDTH_PX"))
-
 
 
 
@@ -963,26 +943,7 @@ def _lonlat_box(value) -> tuple[float, float, float, float] | None:
 
 
 
-
-
-
 _SERVER_SIDE_RASTER = frozenset({"add_gee_dataset"})
-_RASTER_SCALE_ARG = {"gee_zonal_stats": ("scale", 30.0)}
-
-
-def _check_raster_pixels(name: str, area_km2: float, args: dict) -> dict | None:
-    key, default = _RASTER_SCALE_ARG[name]
-    scale = _number(args.get(key))
-    if scale is None or scale <= 0:
-        scale = default
-    pixels = area_km2 * 1e6 / (scale * scale)
-    ceiling = limits.current("GEE_MAX_PIXELS")
-    if pixels <= ceiling:
-        return None
-    fits = (area_km2 * 1e6 / ceiling) ** 0.5
-    return _coded_ceiling(
-        "The bounding box", f"{pixels:,.0f} pixels at {scale:g} m", f"{ceiling:,.0f} pixels",
-        "scale_pixels_ceiling", key=key, fits_scale=int(fits) + 1)
 
 
 def _check_bbox_area(name: str, args: dict) -> dict | None:
@@ -992,8 +953,6 @@ def _check_bbox_area(name: str, args: dict) -> dict | None:
     if box is None:
         return None
     area = limits.bbox_km2(*box)
-    if name in _RASTER_SCALE_ARG:
-        return _check_raster_pixels(name, area, args)
     ceiling = limits.current("MAX_FETCH_KM2")
     if area <= ceiling:
         return None
@@ -1269,7 +1228,7 @@ def check_call(name: str, args: dict, own_files: frozenset = frozenset()) -> dic
 
     for checker in (
         lambda: _check_argument_tree(args),
-        lambda: _check_extent_order(name, args),
+        lambda: _check_extent_order(args),
         lambda: _check_urls(args),
         lambda: declared.argument_check(args) if declared is not None and declared.argument_check else None,
         lambda: check_size(name, args),

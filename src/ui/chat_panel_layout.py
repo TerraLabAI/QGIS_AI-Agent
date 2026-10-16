@@ -414,7 +414,7 @@ class _ChatPanelLayout:
             self.quota_card.show_exhausted(is_subscriber, limit, format_reset_date(period_end),
                                            None if is_subscriber else self.trial_offer(),
                                            getattr(self, "_account_cap", None))
-            self.composer.set_blocked(True, self.tr("More runs next month") if is_subscriber
+            self.composer.set_blocked(True, self.tr("More tasks next month") if is_subscriber
                                       else self.tr("Keep working with Pro"))
             self._quota_host.show()
             self._low_balance_visible = False

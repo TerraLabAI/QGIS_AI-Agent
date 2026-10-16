@@ -26,14 +26,14 @@
             <source>Results for “{query}”</source>
             <translation>“{query}” の結果</translation>
         </message>
-    <message>
-        <source>AI Segmentation review[ ({action})]</source>
-        <translation>AI Segmentation のレビュー[ ({action})]</translation>
-    </message>
-    <message>
-        <source>Save the AI Segmentation review</source>
-        <translation>AI Segmentation のレビューを保存</translation>
-    </message>
+        <message>
+            <source>AI Segmentation review[ ({action})]</source>
+            <translation>AI Segmentation のレビュー[ ({action})]</translation>
+        </message>
+        <message>
+            <source>Save the AI Segmentation review</source>
+            <translation>AI Segmentation のレビューを保存</translation>
+        </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
@@ -2286,6 +2286,110 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Open</source>
             <translation>開く</translation>
         </message>
+        <message>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>同じ依頼をもう一度送るより、軽い依頼（レイヤ数を減らす、範囲を狭める、解像度を下げる）のほうが完了しやすくなります。</translation>
+        </message>
+        <message>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation>依頼を短くするか、より具体的にすると、早く答えが返ります。</translation>
+        </message>
+        <message>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation>範囲を狭めるか、1つずつ依頼すると、早く終わります。</translation>
+        </message>
+        <message>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation>完了しました。地図のプレビューだけが描画されませんでした。</translation>
+        </message>
+        <message>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
+            <translation>前のステップをまだ処理している可能性があります。QGIS が再び応答したら、軽い依頼（レイヤ数を減らす、範囲を狭める、解像度を下げる）のほうが完了しやすくなります。</translation>
+        </message>
+        <message>
+            <source>No answer came back. Try again.</source>
+            <translation>応答がありませんでした。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation>ステップの途中で QGIS が終了しました。保存済みの作業は無事です。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation>プレビューの描画中に QGIS が応答しなくなりました。結果は地図に反映されています。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding during a step.</source>
+            <translation>ステップの途中で QGIS が応答しなくなりました。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation>カードの待機中に QGIS が応答しなくなりました。</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
+            <translation>QGIS が応答しなくなりました。これまでのステップは保持されています。</translation>
+        </message>
+        <message>
+            <source>Set up AI Edit</source>
+            <translation>AI Edit をセットアップ</translation>
+        </message>
+        <message>
+            <source>Set up AI Segmentation</source>
+            <translation>AI Segmentation をセットアップ</translation>
+        </message>
+        <message>
+            <source>Something went wrong on our side. Try again.</source>
+            <translation>こちら側で問題が発生しました。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation>このステップは完了しませんでした。実行中にすでに書き込まれたファイルはディスクに残っています。追加されたレイヤは、その後にプロジェクトを保存していた場合のみ復元され、一時レイヤは失われます。同じステップで QGIS が再び終了するかもしれません。もっと軽い依頼（範囲を狭める、レイヤ数を減らす）にしてください。</translation>
+        </message>
+        <message>
+            <source>The agent got stuck on the same step.</source>
+            <translation>エージェントが同じステップで止まってしまいました。</translation>
+        </message>
+        <message>
+            <source>The agent service restarted twice during a step.</source>
+            <translation>ステップの途中でエージェントのサービスが2回再起動しました。</translation>
+        </message>
+        <message>
+            <source>The answer was cut off. Ask again to carry on.</source>
+            <translation>回答が途中で途切れました。続けるにはもう一度依頼してください。</translation>
+        </message>
+        <message>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
+            <translation>QGIS との接続が切れたまま戻らなかったため、このステップは完了しませんでした。QGIS がまだ開いている場合、プロジェクトは実行時の状態のままです。終了していた場合でも、実行中に書き込まれたファイルはディスクに残っていますが、そのレイヤは、その後にプロジェクトを保存していた場合のみ復元されます。QGIS が終了していたら開き直してから、「再試行」を押してください。</translation>
+        </message>
+        <message>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation>モデルが、エージェントが読み取れないステップを送り続けました。これまでのステップは保持されています。</translation>
+        </message>
+        <message>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
+            <translation>そのカードのステップは、直前にクリックした場合を除き、実行されていません。これまでのステップは保持されています。同じメッセージをもう一度送ると、カードが再表示されます。</translation>
+        </message>
+        <message>
+            <source>This conversation is too long.</source>
+            <translation>この会話は長くなりすぎました。</translation>
+        </message>
+        <message>
+            <source>Too many requests right now. Try again in a minute.</source>
+            <translation>現在リクエストが集中しています。1分後にもう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation>これまでの作業は保持されています。依頼の言い方を変えるか、詳細（レイヤ、場所、値など）を加えて、もう一度送ってください。</translation>
+        </message>
+        <message>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation>これまでの作業は保持されています。「報告」を押すと詳細が私たちに送られます。</translation>
+        </message>
+        <message>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>そのステップより前の作業は保持されています。同じ依頼をもう一度送るより、軽い依頼（範囲を狭める、解像度を下げる）のほうが完了しやすくなります。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2918,8 +3022,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>今月は{used}回実行済み</translation>
+            <source>{used} tasks this month</source>
+            <translation>今月は{used}回のタスクを実行済み</translation>
         </message>
     </context>
     <context>
@@ -3091,6 +3195,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Show the {n} tries that did not work</source>
             <translation>うまくいかなかった{n}件の試行を表示</translation>
+        </message>
+        <message>
+            <source>Blocked to protect your credentials</source>
+            <translation>認証情報を守るためブロックしました</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>残り約 {n} 分</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>残り約 {n} 秒</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
         </message>
     </context>
     <context>
@@ -3326,8 +3450,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>You have used every run of this period.</source>
-            <translation>この期間の実行をすべて使い切りました。</translation>
+            <source>You have used every task of this period.</source>
+            <translation>この期間のタスクをすべて使い切りました。</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
@@ -3705,6 +3829,46 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Print layouts changed</source>
             <translation>印刷レイアウトを変更しました</translation>
         </message>
+        <message>
+            <source>Balanced</source>
+            <translation>バランス</translation>
+        </message>
+        <message>
+            <source>Beginner</source>
+            <translation>初心者</translation>
+        </message>
+        <message>
+            <source>Concise</source>
+            <translation>簡潔</translation>
+        </message>
+        <message>
+            <source>Detailed</source>
+            <translation>詳細</translation>
+        </message>
+        <message>
+            <source>Expert</source>
+            <translation>上級者</translation>
+        </message>
+        <message>
+            <source>GIS experience</source>
+            <translation>GIS の経験</translation>
+        </message>
+        <message>
+            <source>Imperial</source>
+            <translation>ヤード・ポンド法</translation>
+        </message>
+        <message>
+            <source>Metric</source>
+            <translation>メートル法</translation>
+        </message>
+        <message>
+            <source>Rarely</source>
+            <translation>ほとんど使わない</translation>
+        </message>
+        <message>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation>AI Agent の作業用フォルダにある一時ファイルです。プロジェクトを保存すると、プロジェクトの隣に保存されます。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3901,8 +4065,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
-            <source>More runs next month</source>
-            <translation>来月はさらに実行できます</translation>
+            <source>More tasks next month</source>
+            <translation>来月はさらにタスクを実行できます</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4165,6 +4329,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>{n} layers couldn't be restored</source>
             <translation>{n} 件のレイヤを復元できませんでした</translation>
+        </message>
+        <message>
+            <source>Reply to the question...</source>
+            <translation>質問に返信...</translation>
+        </message>
+        <message>
+            <source>Waiting for the install</source>
+            <translation>インストールを待っています</translation>
         </message>
     </context>
     <context>
@@ -4971,6 +5143,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>More details</source>
             <translation>詳細を表示</translation>
         </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5345,6 +5521,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo and retry</source>
             <translation>元に戻して再試行</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>詳細</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>詳細を隠す</translation>
+        </message>
+        <message>
+            <source>New chat</source>
+            <translation>新しいチャット</translation>
         </message>
     </context>
     <context>
@@ -6218,13 +6406,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your free runs are used up</source>
-            <translation>無料の実行回数を使い切りました</translation>
+            <source>Your free tasks for this month are used</source>
+            <translation>今月の無料タスクを使い切りました</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your runs are used up</source>
-            <translation>実行回数を使い切りました</translation>
+            <source>Your tasks for this month are used</source>
+            <translation>今月のタスク回数を使い切りました</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6237,12 +6425,12 @@ Click to open its page.</source>
             <translation>無料実行が{n}回残っています。</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month.</source>
-            <translation>今月の実行{n}回をすべて使い切りました。</translation>
+            <source>You used all {n} tasks this month.</source>
+            <translation>今月のタスク{n}回をすべて使い切りました。</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>今月の実行{n}回をすべて使い切りました。{date}に回復します。</translation>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
+            <translation>今月のタスク{n}回をすべて使い切りました。{date}に回復します。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6292,12 +6480,12 @@ Click to open its page.</source>
             <translation>Freeプランは個人利用と学習用です。Proプランは、クライアントや雇用主のための業務にも使えます。</translation>
         </message>
         <message>
-            <source>Free runs come back at your monthly reset.</source>
-            <translation>無料の実行回数は毎月のリセット時に回復します。</translation>
+            <source>Free tasks come back at your monthly reset.</source>
+            <translation>無料のタスクは毎月のリセット時に回復します。</translation>
         </message>
         <message>
-            <source>Free runs come back on {date}.</source>
-            <translation>無料の実行回数は{date}に回復します。</translation>
+            <source>Free tasks come back on {date}.</source>
+            <translation>無料のタスクは{date}に回復します。</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
@@ -6324,8 +6512,8 @@ Click to open its page.</source>
             <translation>{amount}／月（税抜）</translation>
         </message>
         <message>
-            <source>{n} runs a month</source>
-            <translation>月{n}回の実行</translation>
+            <source>{n} tasks a month</source>
+            <translation>毎月{n}タスク</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
@@ -6546,6 +6734,22 @@ Click to open its page.</source>
         <message>
             <source>{step} and {n} more</source>
             <translation>{step}ほか{n}件</translation>
+        </message>
+        <message>
+            <source>Waiting for you</source>
+            <translation>あなたの操作を待っています</translation>
+        </message>
+        <message>
+            <source>Worked for {time}</source>
+            <translation>{time} 作業しました</translation>
+        </message>
+        <message>
+            <source>blocked</source>
+            <translation>ブロック済み</translation>
+        </message>
+        <message>
+            <source>{n} steps</source>
+            <translation>{n} ステップ</translation>
         </message>
     </context>
     <context>
@@ -6841,8 +7045,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>月{n}回を超える実行が必要ですか？{email}までご連絡ください。</translation>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
+            <translation>毎月{n}タスクを超えて必要ですか？{email}までご連絡ください。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7166,7 +7370,7 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>{used} runs this month</source>
+            <source>{used} tasks this month</source>
             <translation>今月{used}回実行</translation>
         </message>
         <message>
@@ -7402,8 +7606,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>{left} of {limit} runs left</source>
-            <translation>実行：残り{left}回（全{limit}回）</translation>
+            <source>{left} of {limit} tasks left</source>
+            <translation>タスク：残り{left}回（全{limit}回）</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -7419,8 +7623,8 @@ Click to open its page.</source>
             <translation>アップグレード</translation>
         </message>
         <message>
-            <source>Commercial use and more runs with Pro</source>
-            <translation>商用利用と実行回数の追加はProで</translation>
+            <source>Commercial use and more tasks with Pro</source>
+            <translation>商用利用とタスク回数の追加はProで</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -7471,8 +7675,8 @@ Click to open its page.</source>
             <translation>プラン、お支払い方法、請求書は、TerraLabのウェブサイトで確認できます。お支払いがQGIS内で行われることはありません。</translation>
         </message>
         <message>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
-            <translation>サインインすると、プラン、実行回数、設定がここに表示されます。</translation>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
+            <translation>サインインすると、プラン、タスク、設定がここに表示されます。</translation>
         </message>
         <message>
             <source>Your profile and instructions, read before every run</source>
@@ -7785,46 +7989,46 @@ Click to open its page.</source>
     </context>
     <context>
         <name>ToolExecutor</name>
-    <message>
-        <source>{area} km²</source>
-        <translation>{area} km²</translation>
-    </message>
-    <message>
-        <source>{area} ha</source>
-        <translation>{area} ha</translation>
-    </message>
-    <message>
-        <source>{area} m²</source>
-        <translation>{area} m²</translation>
-    </message>
-    <message>
-        <source>the '{layer}' layer ({area})</source>
-        <translation>'{layer}' レイヤ ({area})</translation>
-    </message>
-    <message>
-        <source>Run {label} on {zone}. This spends your {label} credits.</source>
-        <translation>{zone} で {label} を実行します。{label} のクレジットを消費します。</translation>
-    </message>
-    <message>
-        <source> at {resolution}</source>
-        <translation> 解像度 {resolution}</translation>
-    </message>
-    <message>
-        <source> at the panel's selected resolution</source>
-        <translation> パネルで選んだ解像度</translation>
-    </message>
-    <message>
-        <source>{price} credits per generation</source>
-        <translation>生成 1 回あたり {price} クレジット</translation>
-    </message>
-    <message>
-        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-        <translation>AI Edit{size} を実行: {cost}。画像の範囲: {zone}。課金は生成 1 回ごとです。</translation>
-    </message>
-    <message>
-        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-        <translation>生成 1 回あたり約 {price} クレジット（2K の価格。現在の価格を取得できませんでした）</translation>
-    </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
+        </message>
+        <message>
+            <source>the '{layer}' layer ({area})</source>
+            <translation>'{layer}' レイヤ ({area})</translation>
+        </message>
+        <message>
+            <source>Run {label} on {zone}. This spends your {label} credits.</source>
+            <translation>{zone} で {label} を実行します。{label} のクレジットを消費します。</translation>
+        </message>
+        <message>
+            <source> at {resolution}</source>
+            <translation> 解像度 {resolution}</translation>
+        </message>
+        <message>
+            <source> at the panel's selected resolution</source>
+            <translation> パネルで選んだ解像度</translation>
+        </message>
+        <message>
+            <source>{price} credits per generation</source>
+            <translation>生成 1 回あたり {price} クレジット</translation>
+        </message>
+        <message>
+            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+            <translation>AI Edit{size} を実行: {cost}。画像の範囲: {zone}。課金は生成 1 回ごとです。</translation>
+        </message>
+        <message>
+            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+            <translation>生成 1 回あたり約 {price} クレジット（2K の価格。現在の価格を取得できませんでした）</translation>
+        </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7923,6 +8127,26 @@ Click to open its page.</source>
         <message>
             <source>Run Python code ({what}).</source>
             <translation>Pythonコードを実行します（{what}）。</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>{name} のインストールを待っています</translation>
+        </message>
+        <message>
+            <source>changes a layer you had before this run</source>
+            <translation>この実行の前からあったレイヤを変更します</translation>
+        </message>
+        <message>
+            <source>changes your layer {name}</source>
+            <translation>レイヤ {name} を変更します</translation>
+        </message>
+        <message>
+            <source>changes your layers {names}</source>
+            <translation>レイヤ {names} を変更します</translation>
+        </message>
+        <message>
+            <source>{name} is installed</source>
+            <translation>{name} がインストールされました</translation>
         </message>
     </context>
     <context>
@@ -8149,6 +8373,34 @@ Click to open its page.</source>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>新しいレイヤ、1 地物。クリックするとレイヤパネルで選択します。</translation>
+        </message>
+        <message>
+            <source>Credit: {value}</source>
+            <translation>クレジット: {value}</translation>
+        </message>
+        <message>
+            <source>Dataset: {value}</source>
+            <translation>データセット: {value}</translation>
+        </message>
+        <message>
+            <source>Derived from: {value}</source>
+            <translation>派生元: {value}</translation>
+        </message>
+        <message>
+            <source>Licence: {value}</source>
+            <translation>ライセンス: {value}</translation>
+        </message>
+        <message>
+            <source>Loaded: {value}</source>
+            <translation>読み込み日時: {value}</translation>
+        </message>
+        <message>
+            <source>Open the source page</source>
+            <translation>出典ページを開く</translation>
+        </message>
+        <message>
+            <source>Source details</source>
+            <translation>出典の詳細</translation>
         </message>
     </context>
     <context>
@@ -8461,8 +8713,8 @@ Click to open its page.</source>
             <translation>失敗</translation>
         </message>
         <message>
-            <source>Out of runs</source>
-            <translation>上限に到達</translation>
+            <source>Out of tasks</source>
+            <translation>タスクの上限に到達</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -8557,6 +8809,58 @@ Click to open its page.</source>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
             <translation>{day} UTC、AI Agent by TerraLabが追加</translation>
+        </message>
+        <message>
+            <source>Accessed {day} via {host}</source>
+            <translation>{day} に {host} 経由でアクセス</translation>
+        </message>
+        <message>
+            <source>Derived from: {label}</source>
+            <translation>派生元: {label}</translation>
+        </message>
+        <message>
+            <source>Live</source>
+            <translation>ライブ</translation>
+        </message>
+        <message>
+            <source>Made by code</source>
+            <translation>コードで作成</translation>
+        </message>
+        <message>
+            <source>Original address</source>
+            <translation>元のアドレス</translation>
+        </message>
+        <message>
+            <source>QGIS default operation</source>
+            <translation>QGIS の既定の操作</translation>
+        </message>
+        <message>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation>{source} から {target} へ再投影。操作: {operation}</translation>
+        </message>
+        <message>
+            <source>Since {year}, live</source>
+            <translation>{year} 年からライブ</translation>
+        </message>
+        <message>
+            <source>Source not verified</source>
+            <translation>出典は未確認</translation>
+        </message>
+        <message>
+            <source>grids: {grids}</source>
+            <translation>グリッド: {grids}</translation>
+        </message>
+        <message>
+            <source>made by code</source>
+            <translation>コードで作成</translation>
+        </message>
+        <message>
+            <source>project layers the code names: {names}</source>
+            <translation>コードが指定するプロジェクトのレイヤ: {names}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
+            <translation>{day} UTC、AI Agent の実行 {run}: {layers} を追加</translation>
         </message>
     </context>
     <context>
@@ -8691,8 +8995,8 @@ This file is no longer where the run wrote it.</source>
     <context>
         <name>RunsLeftLine</name>
         <message>
-            <source>1 free run left</source>
-            <translation>無料の実行：残り1回</translation>
+            <source>1 free task left</source>
+            <translation>無料のタスク：残り1回</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -8703,8 +9007,8 @@ This file is no longer where the run wrote it.</source>
             <translation>追加の実行を入手</translation>
         </message>
         <message>
-            <source>{n} free runs left</source>
-            <translation>無料の実行：残り{n}回</translation>
+            <source>{n} free tasks left</source>
+            <translation>無料のタスク：残り{n}回</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -8715,12 +9019,12 @@ This file is no longer where the run wrote it.</source>
             <translation>Highの推論レベルを使うにはProにアップグレード</translation>
         </message>
         <message>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Proでは、月{n}回の実行、難しいタスク向けのMediumとHighの推論レベル、オートパイロットを利用できます。</translation>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
+            <translation>Proでは、毎月{n}タスク、難しい作業向けのMediumとHighの推論レベル、オートパイロットを利用できます。</translation>
         </message>
         <message>
-            <source>Get more runs with Pro</source>
-            <translation>Proで実行回数を増やす</translation>
+            <source>Get more tasks with Pro</source>
+            <translation>Proでタスク回数を増やす</translation>
         </message>
     </context>
     <context>
@@ -9094,6 +9398,18 @@ This file is no longer where the run wrote it.</source>
             <source>Running {name}...</source>
             <translation>{name} を実行中...</translation>
         </message>
+        <message>
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>停止しています...</translation>
+        </message>
     </context>
     <context>
         <name>_OptionRow</name>
@@ -9107,6 +9423,21 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Skipped</source>
             <translation>スキップ</translation>
+        </message>
+    </context>
+    <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <source>Open Plugin Manager</source>
+            <translation>プラグインマネージャを開く</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>スキップ</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>{name} のインストールを待っています</translation>
         </message>
     </context>
 </TS>

@@ -6,6 +6,7 @@
 
 
 
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -602,6 +603,62 @@ def _cartociudad_reverse_url(base, lat, lon) -> str:
     return _join_url(base, "/reverseGeocode") + "?" + urllib.parse.urlencode({"lat": lat, "lon": lon})
 
 
+def _cartociudad_point(r) -> tuple | None:
+
+
+
+
+
+
+    if not (isinstance(r, dict) and _is_number(r.get("lat")) and _is_number(r.get("lng"))):
+        return None
+    lat, lon = float(r["lat"]), float(r["lng"])
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0) or (lat == 0.0 and lon == 0.0):
+        return None
+    return lat, lon
+
+
+def _cartociudad_located(base: str, payload):
+
+
+
+
+
+
+
+    rows = payload if isinstance(payload, list) else [payload] if isinstance(payload, dict) else []
+    unplaced = [i for i, r in enumerate(rows) if isinstance(r, dict) and not _cartociudad_point(r)
+                and _text(r.get("id")) and _text(r.get("type"))]
+    if not unplaced:
+        return payload
+    cancel = net.current_cancel_check()
+
+    def find(row: dict):
+        net.set_cancel_check(cancel)
+        try:
+            url = _join_url(base, "/find") + "?" + urllib.parse.urlencode({"id": row["id"], "type": row["type"]})
+            return _geocode_fetch(url)
+        finally:
+            net.set_cancel_check(None)
+
+    located, failures = list(rows), []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(unplaced),
+                                               thread_name_prefix="geocode-find") as pool:
+        asked = {i: pool.submit(find, rows[i]) for i in unplaced}
+        for i, future in asked.items():
+            try:
+                point = _cartociudad_point(future.result())
+            except (urllib.error.URLError, OSError, ValueError) as exc:
+                log_warning(f"CartoCiudad /find failed for {rows[i].get('type')} {rows[i].get('id')}: {exc}")
+                failures.append(exc)
+                continue
+            if point:
+                located[i] = dict(rows[i], lat=point[0], lng=point[1])
+    if failures and not any(_cartociudad_point(r) for r in located):
+        raise failures[0]
+    return located
+
+
 def _cartociudad_label(r: dict) -> str:
     address = _text(r.get("address"))
     via = _text(r.get("tip_via"))
@@ -616,16 +673,13 @@ def _cartociudad_label(r: dict) -> str:
 
 
 def _cartociudad_hit(r, verbose: bool) -> dict | None:
-
-    if not (isinstance(r, dict) and _is_number(r.get("lat")) and _is_number(r.get("lng"))):
-        return None
-    lat, lon = float(r["lat"]), float(r["lng"])
-    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+    point = _cartociudad_point(r)
+    if not point:
         return None
     hit = {
         "display_name": _cartociudad_label(r) or None,
-        "lat": lat,
-        "lon": lon,
+        "lat": point[0],
+        "lon": point[1],
         "type": r.get("type"),
         "class": "address",
     }
@@ -732,11 +786,13 @@ def _parse_pelias_reverse(payload) -> dict | None:
     }
 
 
+
+
 _GEOCODE_PROVIDERS = {
     "nominatim": {
         "name": "OpenStreetMap Nominatim",
+        "licence": "ODbL 1.0", "attribution": "© OpenStreetMap contributors",
         "service": "nominatim",
-        "scope": "worldwide",
         "forward_url": _nominatim_forward_url,
         "reverse_url": _nominatim_reverse_url,
         "parse_forward": _parse_nominatim_forward,
@@ -744,8 +800,8 @@ _GEOCODE_PROVIDERS = {
     },
     "photon": {
         "name": "Photon (TerraLab, OpenStreetMap)",
+        "licence": "ODbL 1.0", "attribution": "© OpenStreetMap contributors",
         "service": "photon",
-        "scope": "worldwide",
         "forward_url": _photon_forward_url,
         "reverse_url": _photon_reverse_url,
         "parse_forward": _parse_photon_forward,
@@ -753,8 +809,8 @@ _GEOCODE_PROVIDERS = {
     },
     "ban": {
         "name": "Base Adresse Nationale (France)",
+        "licence": "Licence Ouverte / Etalab 2.0", "attribution": "Base Adresse Nationale",
         "service": "ban",
-        "scope": "France",
         "forward_url": _ban_forward_url,
         "reverse_url": _ban_reverse_url,
         "parse_forward": _parse_ban_forward,
@@ -762,10 +818,11 @@ _GEOCODE_PROVIDERS = {
     },
     "cartociudad": {
         "name": "CartoCiudad (IGN Spain)",
+        "licence": "CC BY 4.0", "attribution": "CartoCiudad, Instituto Geográfico Nacional de España",
         "service": "cartociudad",
-        "scope": "Spain",
         "forward_url": _cartociudad_forward_url,
         "reverse_url": _cartociudad_reverse_url,
+        "locate": _cartociudad_located,
         "parse_forward": _parse_cartociudad_forward,
         "parse_reverse": _parse_cartociudad_reverse,
     },
@@ -774,7 +831,6 @@ _GEOCODE_PROVIDERS = {
 
     "pelias": {
         "name": "Pelias",
-        "scope": "the instance you point it at",
         "forward_url": _pelias_forward_url,
         "reverse_url": _pelias_reverse_url,
         "parse_forward": _parse_pelias_forward,
@@ -993,9 +1049,14 @@ def _geocode(args: dict) -> dict:
     fetched = max(limit, _PLACE_CANDIDATES) if provider_id == "photon" else limit
     url = provider["forward_url"](base, query, fetched, country_codes, viewbox)
 
+    def ask(address: str):
+
+        found = _geocode_fetch(address)
+        return provider["locate"](base, found) if "locate" in provider and found is not None else found
+
     fell_back = False
     try:
-        payload = _geocode_fetch(url)
+        payload = ask(url)
     except urllib.error.HTTPError as e:
 
 
@@ -1004,7 +1065,7 @@ def _geocode(args: dict) -> dict:
         payload = None
         if e.code == 400 and viewbox:
             try:
-                payload = _geocode_fetch(provider["forward_url"](base, query, limit, country_codes, None))
+                payload = ask(provider["forward_url"](base, query, limit, country_codes, None))
             except (urllib.error.URLError, OSError, ValueError):
 
 
@@ -1062,7 +1123,7 @@ def _geocode(args: dict) -> dict:
         if check_plain:
             try:
                 plain = provider["parse_forward"](
-                    _geocode_fetch(provider["forward_url"](base, query, fetched, country_codes, None)),
+                    ask(provider["forward_url"](base, query, fetched, country_codes, None)),
                     bool(args.get("verbose", False)))
             except (urllib.error.URLError, OSError, ValueError):
                 plain = None
@@ -1146,6 +1207,11 @@ def _geocode(args: dict) -> dict:
     if layer_name:
         try:
             out["layer"] = run_on_main_thread(_add_geocode_layer, layer_name, query, output[0])
+
+            if fell_back:
+                out["layer"]["attribution"] = _fallback_attribution(answer)
+            else:
+                out["layer"].update({key: provider[key] for key in ("licence", "attribution") if provider.get(key)})
         except Exception as e:  # noqa: BLE001
             out["layer_error"] = f"Could not add the point layer: {e}"
     return out

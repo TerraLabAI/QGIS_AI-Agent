@@ -21,10 +21,10 @@ import math
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsRasterLayer, QgsRectangle
 
+from ..core.context_layers import box_to_4326
 from ..core.tool_registry import coded_fact
-from .crs_landing import _to_wgs84
 from .csv_loader import _project_candidates
-from .processing_guards import _centre_in_area_of_use, degree_slack, fits_degrees
+from .processing_crs_checks import _centre_in_area_of_use, degree_slack, fits_degrees
 
 _WGS84 = "EPSG:4326"
 
@@ -135,8 +135,7 @@ def verdict(layer, crs, declared: bool = True) -> dict:
                            f"only with x and y swapped.")}
 
 
-
-    box = _to_wgs84(crs, extent)
+    box = box_to_4326(crs, extent)
     lands = (f"; read in it they land at lon {box.xMinimum():.3f} to {box.xMaximum():.3f}, lat "
              f"{box.yMinimum():.3f} to {box.yMaximum():.3f} (EPSG:4326)" if box is not None else "")
     return {"verdict": "outside_area_of_use", "crs": label, "candidates": projected_candidates(crs.authid()),

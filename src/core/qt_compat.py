@@ -31,6 +31,19 @@ from typing import Any
 _MISSING = object()
 
 
+def qgis_iface():
+
+
+
+
+
+    try:
+        import qgis.utils
+    except Exception:  # noqa: BLE001
+        return None
+    return getattr(qgis.utils, "iface", None)
+
+
 def enum_member(owner: Any, scope: str, member: str, default: Any = _MISSING) -> Any:
 
 

@@ -183,7 +183,9 @@ def _lifted_family(geometry_type: int) -> str:
     return _FAMILY_OF_FLAT.get(_FAMILY_OF_FLAT["flatten"](geometry_type), "")
 
 
-def _outline_shape(outline: dict):
+def _outline_shape(outline: dict, simplify: bool = True):
+
+
 
     from osgeo import ogr
 
@@ -193,7 +195,7 @@ def _outline_shape(outline: dict):
     shape = ogr.CreateGeometryFromJson(json.dumps({"type": "MultiPolygon", "coordinates": coordinates}))
     if shape is None:
         return None
-    if sum(len(ring) for polygon in coordinates for ring in polygon) > _LIFTED_OUTLINE_VERTICES:
+    if simplify and sum(len(ring) for polygon in coordinates for ring in polygon) > _LIFTED_OUTLINE_VERTICES:
 
 
         sizes = sorted(max(east - west, north - south) for west, south, east, north in
@@ -232,7 +234,11 @@ def _outline_test(outline: dict, cut: bool = False):
 
 
 
-    shape = _outline_shape(outline)
+
+
+
+
+    shape = _outline_shape(outline, simplify=not cut)
     if shape is None:
         return None
     prepared = _prepared(shape)
@@ -1614,13 +1620,19 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     served_in_box = len(features)
     dropped_outside = 0
     cut = theme not in _SELECTED_WHOLE_THEMES
-    if outline is not None:
+
+
+
+    edge = outline if outline is not None else (
+        {"label": "the box", "polys": [([[west, south], [east, south], [east, north], [west, north],
+                                         [west, south]], [])]} if cut else None)
+    if edge is not None:
         from osgeo import ogr
 
-        inside = _outline_test(outline, cut=cut)
+        inside = _outline_test(edge, cut=cut)
         if inside is None:
-            return tool_error(f"The outline of {outline['label']!r} could not be read as a polygon.",
-                              "INVALID_ARGS", hint="overture_outline_unreadable", outline=outline["label"])
+            return tool_error(f"The outline of {edge['label']!r} could not be read as a polygon.",
+                              "INVALID_ARGS", hint="overture_outline_unreadable", outline=edge["label"])
         kept = []
         for index, feature in enumerate(features):
             if index % _CLIP_CHECK_EVERY == 0:

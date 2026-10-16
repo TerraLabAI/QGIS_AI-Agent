@@ -218,7 +218,7 @@ class AccountPageMixin:
 
             title = (self.tr("This computer was signed out") if code == "INVALID_KEY"
                      else self.tr("Sign in to see your account"))
-            note = self.tr("Your plan, runs and settings appear here once you sign in.")
+            note = self.tr("Your plan, tasks and settings appear here once you sign in.")
             action = self._button(self.tr("Sign in"), PRIMARY_BTN_QSS)
             action.clicked.connect(self._on_sign_in)
         elif code == "SUBSCRIPTION_INACTIVE":
@@ -293,7 +293,7 @@ class AccountPageMixin:
 
 
             points = get_served_pro_points()
-            card = ProCard(self.tr("Commercial use and more runs with Pro"),
+            card = ProCard(self.tr("Commercial use and more tasks with Pro"),
                            " · ".join(points) if points else
                            self.tr("Plus memory, your instructions and higher effort."),
                            self._account_box)
@@ -307,10 +307,10 @@ class AccountPageMixin:
 
         if plan.limit is not None and plan.used is not None:
             left = max(0, int(plan.limit) - int(plan.used))
-            runs = self.tr("{left} of {limit} runs left").format(
+            runs = self.tr("{left} of {limit} tasks left").format(
                 left=format_count(left), limit=format_count(plan.limit))
         elif plan.used is not None:
-            runs = self.tr("{used} runs this month").format(used=format_count(plan.used))
+            runs = self.tr("{used} tasks this month").format(used=format_count(plan.used))
         else:
             runs = ""
         reset_str = format_reset_date(plan.reset_iso or "")
@@ -348,7 +348,7 @@ class AccountPageMixin:
         line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(line)
         if plan.is_subscriber:
-            row.setToolTip(self.tr("Need more than {n} runs a month? Write to {email}.").format(
+            row.setToolTip(self.tr("Need more than {n} tasks a month? Write to {email}.").format(
                 n=get_pro_runs_per_month(), email=get_support_email()))
         if plan.limit is not None and plan.used is not None:
             bar = QProgressBar(row)

@@ -1046,7 +1046,8 @@ def _terrain_cell_note(algorithm_id: str, parameters: dict, input_layer):
 
 
     from ..core import ground
-    from .processing_guards import _TERRAIN_BY_CELL, _metric
+    from .processing_crs_checks import _TERRAIN_BY_CELL
+    from .processing_guards import _metric
 
     if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL) or not _is_raster(input_layer):
         return None

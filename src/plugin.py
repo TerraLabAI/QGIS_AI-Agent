@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import sys
 import time
 
 from qgis.core import Qgis, QgsApplication
@@ -19,8 +20,8 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QIcon, QKeySequence
 from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget, QMenu
 
-from . import LOADED_AT
-from .core import i18n, improve, policy, telemetry, tuning
+from . import LOADED_AT, plugin_self_update
+from .core import i18n, policy, telemetry, tuning
 from .core import telemetry_events as ev
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
 from .core.settings import Settings
@@ -69,10 +70,6 @@ _CONFIG_MIN_GAP_S = 60.0
 
 _CONFIG_REFRESH_MS_RANGE = (60_000, 24 * 60 * 60 * 1000)
 _CONFIG_MIN_GAP_S_RANGE = (5.0, 3600.0)
-
-
-_REPOSITORY_WAIT_S = 90
-_REPOSITORY_WAIT_S_RANGE = (5, 600)
 
 _RELEASE_READ_DELAY_MS = 3000
 
@@ -460,7 +457,7 @@ class AIAgentPlugin:
         if asked is None or time.monotonic() - asked >= min_gap_s:
             self._refresh_server_config()
 
-        self._offer_upgradeable_update()
+        plugin_self_update.offer_upgradeable_update(self)
         if self._config_refresh_timer is None:
             self._config_refresh_timer = QTimer(self.dock)
             self._config_refresh_timer.timeout.connect(self._refresh_server_config)
@@ -552,186 +549,20 @@ class AIAgentPlugin:
         panel = getattr(self.dock, "panel", None)
         if panel is not None and hasattr(panel, "apply_server_config"):
             panel.apply_server_config(payload)
-        self._offer_upgradeable_update(payload)
-
-    def _offer_upgradeable_update(self, payload: dict | None = None) -> None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        from .api.terralab_client import plugin_version
-        from .core.plugin_release import put_off_version
-        from .core.versions import is_newer
-        from .ui.shared import (
-            get_latest_version,
-            get_min_supported_version,
-            get_release_notes_line,
-            get_update_policy,
-        )
-
-        panel = getattr(self.dock, "panel", None)
-        installed = plugin_version()
-        served_version = get_latest_version()
-        listed = self._upgradeable_version()
-        released = self._released_version if is_newer(self._released_version, installed) else ""
-        available = listed if listed and not is_newer(released, listed) else released
-        too_old = is_newer(get_min_supported_version(), installed)
-        if not available:
-            if is_newer(served_version, installed) or too_old:
-                self._refresh_plugin_repository(served_version)
-            elif panel is not None and hasattr(panel, "clear_update"):
-                panel.clear_update()
-            return
-        if not listed or is_newer(available, listed):
-
-
-
-            self._refresh_plugin_repository(available)
-        if not listed:
-            if panel is not None and hasattr(panel, "clear_update"):
-                panel.clear_update()
-            return
-        available = listed
-        if panel is None:
-            return
-        required = (too_old or get_update_policy() == "require") and available == listed
-        if required and too_old and is_newer(get_min_supported_version(), available):
-
-
-
-
-
-
-            log_warning(f"The plugin repository only offers {available}, below the "
-                        f"{get_min_supported_version()} the service requires; no update is offered.")
-            if hasattr(panel, "clear_update"):
-                panel.clear_update()
-            return
-        if not required and put_off_version() == available:
-            return
-        note = get_release_notes_line() if served_version == available else ""
-        panel.show_update(available, note, required, installed)
-        if self._shown_update_version != available:
-            self._shown_update_version = available
-            telemetry.track(ev.PLUGIN_UPDATE_PROMPT_SHOWN, {
-                "offered_version": available, "required": required,
-                "trigger": "plugin_registry"})
+        plugin_self_update.offer_upgradeable_update(self, payload)
 
     def _read_released(self) -> None:
 
-        if self._unloading or self._release_reply is not None:
-            return
-        try:
-            from .core.plugin_release import read_released
-
-            self._release_reply = read_released(self._on_released)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"plugins.qgis.org not asked for the latest AI Agent: {exc}")
-
-    def _on_released(self, version: str, error: str) -> None:
-        if self._unloading:
-            return
-        if error:
-            log_warning(f"plugins.qgis.org did not say which AI Agent is out: {error}")
-            return
-        self._released_version = version
-        self._offer_upgradeable_update()
-
-    def _refresh_plugin_repository(self, served_version: str) -> None:
 
 
-
-
-
-
-
-        if self._update_refresh_requested:
-            if self._update_refresh_timer is None or not self._update_refresh_timer.isActive():
-                self._suppress_update(served_version, "not_listed")
-            return
-        self._update_refresh_requested = True
-        try:
-            from pyplugin_installer.installer_data import repositories
-
-            from .ui.plugin_self_update import request_repository_fetch
-
-            enabled = list(repositories.allEnabled())
-            if not enabled:
-                self._suppress_update(served_version, "no_repository")
-                return
-            repositories.checkingDone.connect(self._on_plugin_repository_checked)
-            for key in enabled:
-                request_repository_fetch(repositories, key)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Plugin repository refresh skipped: {exc}")
-            self._suppress_update(served_version, "refresh_failed")
-            return
-        timer = QTimer(self.dock) if self.dock is not None else QTimer()
-        timer.setSingleShot(True)
-        timer.timeout.connect(lambda: self._on_plugin_repository_late(served_version))
-        timer.start(1000 * int(tuning.threshold(
-            "update_fetch_timeout_s", _REPOSITORY_WAIT_S, *_REPOSITORY_WAIT_S_RANGE)))
-        self._update_refresh_timer = timer
-
-    def _on_plugin_repository_late(self, served_version: str) -> None:
-
-        if self._unloading:
-            return
-        with contextlib.suppress(Exception):
-            from pyplugin_installer.installer_data import repositories
-
-            repositories.checkingDone.disconnect(self._on_plugin_repository_checked)
-        log_warning("The QGIS plugin repository did not answer in time; the update offer uses "
-                    "plugins.qgis.org's own page instead.")
-        self._suppress_update(served_version, "refresh_failed")
+        plugin_self_update.read_released_once(self)
 
     def _on_plugin_repository_checked(self) -> None:
 
-        if self._unloading:
-            return
-        if self._update_refresh_timer is not None:
-            self._update_refresh_timer.stop()
-        try:
-            from pyplugin_installer.installer_data import plugins, repositories
 
-            with contextlib.suppress(TypeError, RuntimeError):
-                repositories.checkingDone.disconnect(self._on_plugin_repository_checked)
-            plugins.rebuild()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Plugin list rebuild skipped: {exc}")
-        self._offer_upgradeable_update()
 
-    def _suppress_update(self, served_version: str, reason: str) -> None:
 
-        if not served_version or served_version in self._suppressed_update_versions:
-            return
-        self._suppressed_update_versions.add(served_version)
-        telemetry.track(ev.PLUGIN_UPDATE_PROMPT_SUPPRESSED, {
-            "served_version": served_version, "reason": reason})
-
-    def _upgradeable_version(self) -> str:
-
-        try:
-            from pyplugin_installer.installer_data import plugins
-
-            plugin_key = os.path.basename(self.plugin_dir)
-            data = plugins.all().get(plugin_key)
-            if data and data.get("status") == "upgradeable":
-                return str(data.get("version_available") or "")
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"QGIS plugin list not read: {exc}")
-        return ""
+        plugin_self_update.on_plugin_repository_checked(self)
 
     @staticmethod
     def _forget_network_state() -> None:
@@ -785,6 +616,10 @@ class AIAgentPlugin:
         from .tools import code_runtime
 
         code_runtime.shutdown()
+
+        isolated = sys.modules.get(f"{__package__}.tools.isolated_code")
+        if isolated is not None:
+            isolated.shutdown()
 
         from .core import settings
 
@@ -904,6 +739,19 @@ class AIAgentPlugin:
         for name in [key for key in sys.modules if key == root or key.startswith(root + ".")]:
             sys.modules.pop(name, None)
 
+
+
+    _UNLOAD_STOPS = (
+        ("stall profiler", "_stop_profiler"),
+        ("snapshot jobs", "_stop_snapshot_jobs"),
+        ("style watch", "_stop_style_watch"),
+        ("3D view and layout designer guards", "_stop_3d_view_guard"),
+        ("dependency installs", "_stop_dependency_installs"),
+        ("background algorithms", "_stop_processing_tasks"),
+        ("report bridge", "_stop_report_bridge"),
+        ("code runtime", "_stop_code_runtime"),
+    )
+
     def unload(self):
         self._unloading = True
         with contextlib.suppress(Exception):
@@ -919,11 +767,9 @@ class AIAgentPlugin:
             self._on_approval_waiting(False)
         with contextlib.suppress(Exception):
             self._drop_bar_item("_finished_bar_item")
-        for stop in (self._stop_profiler, self._stop_snapshot_jobs, self._stop_style_watch,
-                     self._stop_3d_view_guard, self._stop_dependency_installs, self._stop_processing_tasks,
-                     self._stop_report_bridge, self._stop_code_runtime):
+        for _what, name in self._UNLOAD_STOPS:
             try:
-                stop()
+                getattr(self, name)()
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Unload: {exc}")
         self._forget_network_state()
@@ -1148,21 +994,6 @@ class AIAgentPlugin:
             composer.set_text(text)
         composer.focus_input()
 
-    def _take_settings_prompt(self, text: str, chip=None) -> None:
-
-
-        self._show_dock()
-        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
-        composer = getattr(panel, "composer", None)
-        if composer is not None and hasattr(composer, "take_example_prompt"):
-            composer.take_example_prompt(text, chip)
-
-    def _settings_example_chosen(self, slug: str) -> None:
-        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
-        composer = getattr(panel, "composer", None)
-        if composer is not None:
-            composer.example_chosen.emit(slug)
-
     def _pin_chip(self, chip: dict):
         panel = getattr(self.dock, "panel", None) if self.dock is not None else None
         if panel is not None:
@@ -1192,11 +1023,10 @@ class AIAgentPlugin:
 
 
         include_debug = os.environ.get("AI_AGENT_DEBUG_TOOLS", "1") != "0"
-        include_dev = os.environ.get("AI_AGENT_DEBUG_TOOLS") == "1"
-        registry = build_registry(include_debug=include_debug, include_dev=include_dev)
+        registry = build_registry(include_debug=include_debug)
         self._open_facts["registry_ms"] = int((time.monotonic() - began) * 1000)
         log(f"Tool registry built: {len(registry.visible_names())} visible tools, "
-            f"debug={include_debug}, dev={include_dev}")
+            f"debug={include_debug}")
 
 
 
@@ -1497,7 +1327,9 @@ class AIAgentPlugin:
 
 
         try:
-            self._open_settings()
+            from . import plugin_settings
+
+            plugin_settings.open_settings_dialog(self)
         except ImportError as exc:
             log_warning(f"Settings dialog import failed: {exc}")
             self._push(tr("AI Agent was updated while QGIS was running. Restart QGIS to open its "
@@ -1506,145 +1338,6 @@ class AIAgentPlugin:
             log_warning(f"Settings dialog failed to open: {exc}")
             self._push(tr("AI Agent could not open its settings: {error}").format(error=exc),
                        "warning")
-
-    def _open_plans_from_settings(self, dialog) -> None:
-
-        from .ui.shared import get_pro_offer
-
-        def report(link: str) -> None:
-            telemetry.track(ev.SUBSCRIBE_LINK_CLICKED,
-                            {"source": "settings", "where": "settings", "checkout_link": link,
-                             "offer": get_pro_offer()})
-
-        account = self.controller.account if self.controller is not None else None
-        if account is not None:
-            account.open_plans("plugin_settings", on_outcome=report)
-            return
-        from .ui.external_links import open_external_url
-        from .ui.shared import get_pricing_url
-        report("fallback")
-        open_external_url(get_pricing_url(), parent=dialog)
-
-    def _open_settings(self):
-
-
-        from .ui.settings_dialog import SettingsDialog
-        from .ui.shared import exec_dialog
-
-        if self.dock is None:
-
-
-            self._mark_open("settings")
-            self._ensure_dock()
-            if self.dock is not None:
-                self.dock.setVisible(False)
-                self._wire_dock()
-        settings = self._settings or Settings()
-        self._settings = settings
-        account = self.controller.account if self.controller is not None else None
-        info = {"telemetry_enabled": telemetry.is_telemetry_enabled(),
-                "improve_enabled": improve.is_improve_enabled()}
-        if account is not None and account.has_activation_key:
-            info["loading"] = True
-        else:
-            info["error"], info["error_code"] = tr("Sign in to see your account."), "SIGNED_OUT"
-        values = {"mode": settings.mode, "approval": settings.approval, "server_url": settings.server_url,
-                  "settings": settings}
-        dialog = SettingsDialog(self.iface.mainWindow(), info, values)
-        dialog.telemetry_toggled.connect(telemetry.set_telemetry_enabled)
-
-
-
-
-
-        dialog.improve_toggled.connect(
-            lambda on, d=dialog: self._improve_choice(d, on))
-        dialog.values_changed.connect(self._apply_settings_values)
-        dialog.upgrade_requested.connect(lambda d=dialog: self._open_plans_from_settings(d))
-
-        panel = getattr(self.dock, "panel", None)
-        if panel is not None and hasattr(panel, "open_help"):
-            dialog.help_requested.connect(panel.open_help)
-
-
-
-
-        dialog.prompt_chosen.connect(self._take_settings_prompt)
-        dialog.example_chosen.connect(self._settings_example_chosen)
-
-
-
-        session = getattr(self.controller, "session", None) if self.controller is not None else None
-        connected_repaint = None
-        if session is not None:
-            def repaint_plan(_frame=None):
-                try:
-                    dialog.apply_plan()
-                except RuntimeError:
-                    pass
-            try:
-                session.session_started.connect(repaint_plan)
-            except (AttributeError, TypeError):
-                pass
-            else:
-                connected_repaint = repaint_plan
-        if account is not None:
-            account.account_loaded.connect(dialog.set_account_info)
-            account.account_failed.connect(
-                lambda message, code: dialog.set_account_info({"error": message, "error_code": code}))
-            dialog.refresh_requested.connect(account.fetch_account_async)
-            dialog.sign_out_requested.connect(account.sign_out)
-
-
-            dialog.sign_in_requested.connect(self.controller._on_sign_in)
-            dialog.delete_account_requested.connect(account.delete_account_async)
-            if account.has_activation_key:
-                account.fetch_account_async()
-        try:
-            exec_dialog(dialog)
-        finally:
-            if connected_repaint is not None:
-                try:
-                    session.session_started.disconnect(connected_repaint)
-                except (TypeError, RuntimeError):
-                    pass
-            if account is not None:
-                for signal, slot in ((account.account_loaded, dialog.set_account_info),):
-                    try:
-                        signal.disconnect(slot)
-                    except (TypeError, RuntimeError):
-                        pass
-                try:
-                    account.account_failed.disconnect()
-                except (TypeError, RuntimeError):
-                    pass
-            dialog.deleteLater()
-
-    def _improve_choice(self, dialog, on: bool) -> None:
-
-        if improve.set_improve_enabled(bool(on)):
-            return
-        try:
-            dialog.improve_not_saved()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Improve preference not written: {exc}")
-
-    def _apply_settings_values(self, values: dict) -> None:
-        settings = self._settings or Settings()
-        self._settings = settings
-        settings.mode = str(values.get("mode") or settings.mode)
-        settings.approval = str(values.get("approval") or settings.approval)
-        shortcut = str(values.get("send_shortcut") or "").strip()
-        if shortcut:
-            settings.send_shortcut = shortcut
-            self._apply_send_shortcut(settings.send_shortcut)
-        old_url = settings.server_url
-        new_url = str(values.get("server_url") or "").strip() or old_url
-        settings.server_url = new_url
-        if self.controller is not None and new_url != old_url:
-            self.controller.session.disconnect_from_server()
-            self.controller.session.forget_session()
-            self.controller.session.connect_to_server()
 
     def _apply_send_shortcut(self, value: str) -> None:
 

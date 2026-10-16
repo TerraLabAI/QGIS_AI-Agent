@@ -201,9 +201,6 @@ _CHIP_GAP = 4
 def normalize_effort(effort: str) -> str:
 
 
-
-
-
     return effort_name(effort) or DEFAULT_EFFORT
 
 

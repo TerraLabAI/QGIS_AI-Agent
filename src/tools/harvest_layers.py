@@ -21,13 +21,13 @@ from qgis.core import (
     QgsSingleBandGrayRenderer,
     QgsSingleBandPseudoColorRenderer,
     QgsStyle,
-    QgsUnitTypes,
     QgsVectorLayer,
     QgsVectorLayerJoinInfo,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, QLocale, Qt, QTime
 
 from ..core import layer_order, limits
+from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
@@ -47,12 +47,11 @@ from ._compat import (
     SHADER_DISCRETE,
     SHADER_EXACT,
     SHADER_INTERPOLATED,
-    is_raster,
-    is_vector,
 )
 from ._layers import layer_not_found, resolve_layer
 from .colour_text import hex_from_qcolor, qcolor_from_text
-from .processing_guards import crs_plausibility
+from .layer_lookup import require_raster, require_vector
+from .processing_crs_checks import crs_plausibility
 
 RASTER_STYLES = ("singleband_pseudocolor", "singleband_gray", "multiband_color", "hillshade", "paletted")
 
@@ -346,41 +345,10 @@ def register_harvest_layers_tools(registry: ToolRegistry):
 
 
 
-def _units(crs) -> str:
-    try:
-        return QgsUnitTypes.toString(crs.mapUnits())
-    except Exception:  # nosec B110
-        return "unknown"
-
-
 def _layer(name: str):
     layer = resolve_layer(name)
     if layer is None:
         return None, layer_not_found(name)
-    return layer, None
-
-
-def _vector(name: str):
-    layer, error = _layer(name)
-    if error:
-        return None, error
-    if not is_vector(layer):
-        return None, tool_error(
-            f"Layer {layer.name()!r} is not a vector layer.",
-            "INVALID_ARGS", hint="layer_not_vector", layer=layer.name(),
-        )
-    return layer, None
-
-
-def _raster(name: str):
-    layer, error = _layer(name)
-    if error:
-        return None, error
-    if not is_raster(layer):
-        return None, tool_error(
-            f"Layer {layer.name()!r} is not a raster layer.",
-            "INVALID_ARGS", hint="layer_not_raster", layer=layer.name(),
-        )
     return layer, None
 
 
@@ -420,7 +388,6 @@ def _raster_option(args: dict, name: str):
 
 
 def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tuple:
-
 
 
 
@@ -529,8 +496,6 @@ def _limits_plan(args: dict) -> tuple:
 
 
 
-
-
             return {"limits": "typed", "cut": None}, None
         return None, tool_error(
             "min_value/max_value type the range by hand; min_max cumulative_cut has QGIS compute one; "
@@ -603,7 +568,7 @@ def _band_limits(layer, band: int, plan, min_value, max_value, notes: dict, long
 
 
 def _set_raster_style(args: dict) -> dict:
-    layer, error = _raster(args["layer_name"])
+    layer, error = require_raster(args["layer_name"])
     if error:
         return error
 
@@ -1196,7 +1161,6 @@ def _move_one_layer(args: dict) -> dict:
         out["reference_layer"] = reference
 
 
-
     if moved and parent is not came_from:
         out["left_group"] = came_from.name() if came_from is not root else "(root)"
     if layer is not None:
@@ -1223,7 +1187,7 @@ def _crs_info(layer) -> dict:
     as_proj = getattr(crs, "toProj", None) or crs.toProj4
     out = {"layer_id": layer.id(), "name": layer.name()}
     out.update(authid=crs.authid(), description=crs.description(), is_geographic=crs.isGeographic(),
-               units=_units(crs), proj=as_proj())
+               units=crs_units(crs), proj=as_proj())
     return out
 
 
@@ -1279,7 +1243,7 @@ def _set_layer_crs(args: dict) -> dict:
 
 
 def _delete_field(args: dict) -> dict:
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     field_name = args["field_name"]
@@ -1327,7 +1291,7 @@ def _non_null_count(layer, field: str, limit: int = 500) -> int:
 
 
 def _rename_field(args: dict) -> dict:
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     old_name, new_name = args["old_name"], args["new_name"]
@@ -1431,11 +1395,6 @@ _ISO_DATE = enum_member(Qt, "DateFormat", "ISODate")
 _ISO_WITH_MS = enum_member(Qt, "DateFormat", "ISODateWithMs")
 
 
-def _is_remote_vector(layer) -> bool:
-
-    return layer_order.is_web_service(layer)
-
-
 def _join_key(value):
 
 
@@ -1478,7 +1437,7 @@ def _join_match_count(target, target_field: str, join, join_field: str):
     from qgis.core import QgsFeatureRequest
 
     join_idx = join.fields().indexOf(join_field)
-    if _is_remote_vector(join):
+    if layer_order.is_web_service(join):
         request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS + 1).setSubsetOfAttributes([join_idx])
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
         join_values = [feature.attribute(join_idx) for feature in join.getFeatures(request)]
@@ -1497,7 +1456,7 @@ def _join_match_count(target, target_field: str, join, join_field: str):
             join_keys.add(key)
 
     target_idx = target.fields().indexOf(target_field)
-    if _is_remote_vector(target):
+    if layer_order.is_web_service(target):
         request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS).setSubsetOfAttributes([target_idx])
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
         by_repr: dict = {}
@@ -1541,10 +1500,10 @@ def _join_spec(join, join_field: str, target_field: str, prefix):
 
 
 def _add_table_join(args: dict) -> dict:
-    target, error = _vector(args["target_layer"])
+    target, error = require_vector(args["target_layer"])
     if error:
         return error
-    join, error = _vector(args["join_layer"])
+    join, error = require_vector(args["join_layer"])
     if error:
         return error
     target_field, join_field = args["target_field"], args["join_field"]
@@ -1721,7 +1680,7 @@ def _duplicate_layer(args: dict) -> dict:
         "name": clone.name(),
         "source_layer_id": layer.id(),
         "crs": crs_ref(clone.crs()),
-        "units": _units(clone.crs()),
+        "units": crs_units(clone.crs()),
     }
     if isinstance(clone, QgsVectorLayer):
         out["feature_count"] = clone.featureCount()

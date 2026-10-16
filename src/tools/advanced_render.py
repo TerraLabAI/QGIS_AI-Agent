@@ -189,6 +189,114 @@ _FALLBACK_MAX_SIDE = 640
 _RENDER_PASS_FLOOR_S = 8.0
 
 
+class _TileWatch:
+
+
+
+
+
+
+
+
+
+
+
+    def __init__(self, hosts: dict):
+        self.hosts = hosts
+        self.last: dict = {}
+        self.timed_out: set = set()
+        self.manager = None
+
+    def start(self) -> None:
+        from qgis.core import QgsNetworkAccessManager
+
+        self.manager = QgsNetworkAccessManager.instance()
+        try:
+            self.manager.finished.connect(self.replied)
+            self.manager.requestTimedOut.connect(self.timed)
+        except Exception:  # noqa: BLE001
+            self.stop()
+
+    def stop(self) -> None:
+        if self.manager is None:
+            return
+        for signal, slot in ((self.manager.finished, self.replied), (self.manager.requestTimedOut, self.timed)):
+            try:
+                signal.disconnect(slot)
+            except (TypeError, RuntimeError):  # nosec B110
+                pass
+        self.manager = None
+
+    def timed(self, parameters) -> None:
+        try:
+            url = parameters.request().url()
+            if url.host().lower() in self.hosts:
+                self.timed_out.add(url.toString())
+        except Exception:  # nosec B110
+            pass
+
+    def replied(self, content) -> None:
+        try:
+            from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+
+            url = content.request().url()
+            host = url.host().lower()
+            if host not in self.hosts:
+                return
+            address = url.toString()
+            error = content.error()
+            status = content.attribute(enum_member(QNetworkRequest, "Attribute", "HttpStatusCodeAttribute"))
+            if error == enum_member(QNetworkReply, "NetworkError", "NoError") and not (status and int(status) >= 400):
+                self.last[address] = (host, None)
+                self.timed_out.discard(address)
+            elif error == enum_member(QNetworkReply, "NetworkError", "OperationCanceledError"):
+
+
+                if address in self.timed_out:
+                    self.last[address] = (host, "no answer before the network timeout")
+            else:
+                phrase = content.attribute(enum_member(QNetworkRequest, "Attribute", "HttpReasonPhraseAttribute"))
+                self.last[address] = (host, f"HTTP {int(status)} {phrase or ''}".strip() if status
+                                      else (content.errorString() or "network error"))
+        except Exception:  # nosec B110
+            pass
+
+    def missing(self) -> list:
+
+        errors = []
+        for host, (layer_id, names) in self.hosts.items():
+            failed = [why for seen, why in self.last.values() if seen == host and why]
+            if not failed:
+                continue
+            reasons = sorted(set(failed), key=failed.count, reverse=True)
+            errors.append({"layer_id": layer_id, "tiles_missing": len(failed),
+                           "message": (f"{len(failed)} tiles of {', '.join(names)} did not arrive from {host} "
+                                       f"({'; '.join(reasons[:2])}); their place in the picture is empty")})
+        return errors
+
+
+def _tile_hosts(layers) -> dict:
+
+    from urllib.parse import urlsplit
+
+    from qgis.core import QgsDataSourceUri
+
+    hosts: dict = {}
+    for layer in layers:
+        if not _is_tiled_raster(layer):
+            continue
+        try:
+            uri = QgsDataSourceUri()
+            uri.setEncodedUri(layer.source())
+            host = (urlsplit(uri.param("url")).hostname or "").lower()
+        except Exception:  # noqa: BLE001
+            host = ""
+        if host:
+            entry = hosts.setdefault(host, (layer.id(), []))
+            entry[1].append(layer.name())
+    return hosts
+
+
 def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
 
@@ -220,6 +328,8 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
         _JOBS_ALIVE[key] = job
         holder["key"] = key
         ref = weakref.ref(job)
+        hosts = _tile_hosts(settings.layers())
+        watch = _TileWatch(hosts) if hosts else None
 
         def finished():
             try:
@@ -228,7 +338,11 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
                     holder["image"] = ended.renderedImage()
                     holder["errors"] = [{"layer_id": e.layerID, "message": e.message} for e in ended.errors()]
                     holder["labels"] = ended.takeLabelingResults()
+                    if watch is not None:
+                        holder["errors"] += watch.missing()
             finally:
+                if watch is not None:
+                    watch.stop()
                 done.set()
                 QTimer.singleShot(0, lambda: _JOBS_ALIVE.pop(key, None))
 
@@ -238,6 +352,8 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
         job.finished.connect(finished)
         job.renderingLayersFinished.connect(layers_drawn)
+        if watch is not None:
+            watch.start()
         job.start()
 
     run_on_main_thread(start, timeout=30)
@@ -459,6 +575,25 @@ def _slow_layer_names(layers) -> list:
     return remote or pixels
 
 
+def _edited_extent(layer) -> QgsRectangle | None:
+
+
+
+
+
+
+
+    buffer = layer.editBuffer() if hasattr(layer, "editBuffer") else None
+    if buffer is None or not (buffer.changedGeometries() or buffer.deletedFeatureIds()):
+        return None
+    rect = QgsRectangle(layer.dataProvider().extent())
+    edited = [f.geometry() for f in buffer.addedFeatures().values()] + list(buffer.changedGeometries().values())
+    for geometry in edited:
+        if geometry is not None and not geometry.isEmpty():
+            rect.combineExtentWith(geometry.boundingBox())
+    return rect
+
+
 def _extent_in(layer, destination) -> QgsRectangle | None:
 
 
@@ -468,7 +603,9 @@ def _extent_in(layer, destination) -> QgsRectangle | None:
     try:
         if _is_tiled_raster(layer):
             return None
-        rect = QgsRectangle(layer.extent())
+        rect = _edited_extent(layer)
+        if rect is None:
+            rect = QgsRectangle(layer.extent())
         if rect.isNull() or rect.isEmpty():
             return None
         source = layer.crs()
@@ -645,7 +782,7 @@ def _render_fingerprint(settings, layers, args) -> str:
     try:
         size = settings.outputSize()
         parts = [
-            f"{size.width()}x{size.height()}",
+            f"{size.width()}x{size.height()}@{settings.outputDpi():.1f}",
             settings.destinationCrs().authid() or settings.destinationCrs().toWkt(),
             settings.extent().toString(9),
             str(args.get("background") or ""),
@@ -724,6 +861,8 @@ def _render_once_async(settings, tiles: bool):
 
 
 
+
+
     deadline = time.monotonic() + _RENDER_TOTAL_SECONDS
     image, errors, labels = _render_pass_async(settings, _RENDER_TOTAL_SECONDS)
     if image is None:
@@ -738,7 +877,8 @@ def _render_once_async(settings, tiles: bool):
         if any(e.get("message") == _STOPPED for e in again_errors):
             return None, 2, False, again_errors, None
         return image, 2, False, errors, labels
-    return again, 2, not (tiles and _image_is_uniform(again)), again_errors, again_labels
+    settled = not (tiles and _image_is_uniform(again)) and not any(e.get("tiles_missing") for e in again_errors)
+    return again, 2, settled, again_errors, again_labels
 
 
 def _label_facts(results, settings, layer_ids: list) -> list:
@@ -1085,6 +1225,12 @@ def _plan_render(args: dict) -> dict:
 
     settings = QgsMapSettings()
     settings.setOutputSize(QSize(width, height))
+
+
+
+    display_width = args.get("display_width")
+    if isinstance(display_width, (int, float)) and 0 < display_width < width:
+        settings.setOutputDpi(96.0 * width / float(display_width))
 
 
 

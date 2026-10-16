@@ -283,8 +283,7 @@ class _ChatPanelThreads:
 
         running = self._current_run is not None
         try:
-            self.header.checkpoint_sheet().set_running(
-                running, self._run_requests.get(self._current_run or "", "") if running else "")
+            self.header.checkpoint_sheet().set_running(running)
         except (AttributeError, RuntimeError):
             pass
         self._sync_undone_turns()
@@ -520,11 +519,9 @@ class _ChatPanelThreads:
         self._runs = {}
 
 
-        self._memory_card = None
         self._reopened_tools = {}
         self._status = None
         self._current_run = None
-        self._run_requests = {}
 
         self.set_queue_thread(None)
         self._error_cards = {}

@@ -25,7 +25,6 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
-    QgsUnitTypes,
     QgsVectorLayer,
     QgsWkbTypes,
 )
@@ -33,6 +32,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import net
 from ..core.background import delete_here, run_on_main_thread, take
+from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.links import host_is
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
@@ -124,10 +124,7 @@ def _describe_added(layer, kind: str, url: str) -> dict:
         "crs": crs_ref(layer.crs()),
         "extent": _extent_dict(layer.extent()),
     }
-    try:
-        out["units"] = QgsUnitTypes.toString(layer.crs().mapUnits())
-    except Exception:
-        out["units"] = "unknown"
+    out["units"] = crs_units(layer.crs())
     if isinstance(layer, QgsVectorLayer):
         out["feature_count"] = _feature_count(layer)
         try:
@@ -469,7 +466,10 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         if not layer.isValid():
             reason = ""
             try:
-                reason = layer.error().summary() or layer.dataProvider().error().summary()
+
+
+
+                reason = layer.error().summary()
             except Exception:  # nosec B110
                 pass
             return tool_error(

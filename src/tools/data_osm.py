@@ -19,6 +19,7 @@ from qgis.core import QgsProject, QgsVectorLayer
 
 from ..core import catalog, limits, net, tuning
 from ..core.background import run_on_main_thread
+from ..core.data_date import from_range
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import ServedValueMissing, coded_fact, tool_error
@@ -339,10 +340,9 @@ def _fetch_building_footprints(args: dict) -> dict:
     if isinstance(asked, str):
         asked = [part.strip() for part in asked.split(",")]
     asked = ["openstreetmap" if source == "osm" else source for source in asked]
-    known = tuning.service_list("footprint_sources", _FOOTPRINT_SOURCES)
-    sources = [name for name in known if name in asked]
+    sources = [name for name in _FOOTPRINT_SOURCES if name in asked]
     if not sources:
-        return {"_error": f"sources must name at least one of: {', '.join(known)}"}
+        return {"_error": f"sources must name at least one of: {', '.join(_FOOTPRINT_SOURCES)}"}
 
 
 
@@ -697,6 +697,7 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
         return got
     elements, endpoint_used, final_query = got["elements"], got["endpoint"], got["final_query"]
     fallback_note, truncated_remark = got["fallback_note"], got["truncated_remark"]
+    osm_day = from_range(got.get("osm_base"))
     if not elements:
         if fallback_note:
             return {"features": 0, "empty": True,
@@ -749,9 +750,11 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             "licence": "ODbL 1.0",
             "attribution": _OSM_ATTRIBUTION,
         }
+        dated = {"data_date": osm_day} if osm_day else {}
+        out.update(dated)
         if several:
             for entry in added:
-                entry.update(licence="ODbL 1.0", attribution=_OSM_ATTRIBUTION)
+                entry.update(licence="ODbL 1.0", attribution=_OSM_ATTRIBUTION, **dated)
             out["layers"] = added
             out["feature_count"] = sum(entry["feature_count"] for entry in added)
             out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[f]: len(by_family[f]) for f, *_rest in planned}
@@ -990,8 +993,11 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             _osm_remember(final_query, endpoint_used, raw)
 
         elements = osm_data["elements"]
+
+    osm_base = osm_data.get("osm3s") if isinstance(osm_data, dict) else None
+    osm_base = str(osm_base.get("timestamp_osm_base") or "") if isinstance(osm_base, dict) else ""
     return {"elements": elements, "endpoint": endpoint_used, "fallback_note": fallback_note,
-            "truncated_remark": truncated_remark, "final_query": final_query,
+            "truncated_remark": truncated_remark, "final_query": final_query, "osm_base": osm_base,
             "bytes": len(raw) if isinstance(raw, (bytes, str)) else 0}
 
 
@@ -1112,6 +1118,10 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         if fetched.get("_error") or fetched.get("empty"):
             return fetched
         answer_path, endpoint_used = fetched["path"], fetched["endpoint"]
+
+        with open(answer_path, "rb") as head_file:
+            stamp = re.search(rb'"timestamp_osm_base"\s*:\s*"([^"]+)"', head_file.read(4096))
+        osm_day = from_range(stamp.group(1).decode("ascii", "replace")) if stamp else ""
         stem = _safe_extract_stem(layer_name)
         gpkg = os.path.join(directory, f"{stem}.gpkg")
         converted = _osm_stream_convert(
@@ -1156,7 +1166,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
                 QgsProject.instance().addMapLayer(layer)
                 added.append({"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": counts[family],
                               "geometry_type": _OSM_GEOMETRY_TYPES[family], "licence": "ODbL 1.0",
-                              "attribution": _OSM_ATTRIBUTION})
+                              "attribution": _OSM_ATTRIBUTION, **({"data_date": osm_day} if osm_day else {})})
             return added
 
         check()
@@ -1170,7 +1180,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         out = {"crs": "EPSG:4326", "source_endpoint": endpoint_used, "licence": "ODbL 1.0",
                "attribution": _OSM_ATTRIBUTION, "lifted": True, "feature_count": total, "size_bytes": size,
                "size": _human_bytes(size), "download_bytes": download_bytes, "wall_s": round(wall, 1),
-               "path": gpkg, "box_km2": round(area_km2, 1)}
+               "path": gpkg, "box_km2": round(area_km2, 1), **({"data_date": osm_day} if osm_day else {})}
         if several:
             out["layers"] = added
             out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[family]: count for family, count in counts.items() if count}

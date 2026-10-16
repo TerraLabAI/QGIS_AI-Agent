@@ -30,6 +30,8 @@ import os
 import threading
 from typing import Any
 
+from .host_platform import resolved
+
 
 
 _META_KEYS = ("name", "version", "author", "description", "about", "homepage",
@@ -182,8 +184,8 @@ def _icon_of(directory: str, relative: str) -> str:
 
 
     relative = relative.replace("\\", "/")
-    candidate = os.path.realpath(os.path.join(directory, *relative.split("/")))
-    root = os.path.realpath(directory)
+    candidate = resolved(os.path.join(directory, *relative.split("/")))
+    root = resolved(directory)
     if not candidate.startswith(root + os.sep):
         return ""
     if os.path.splitext(candidate)[1].lower() not in _ICON_EXT:
@@ -221,7 +223,7 @@ def installed_plugins() -> dict[str, dict[str, Any]]:
         directory = _folder_of(folder, roots)
         if not directory:
             continue
-        real = os.path.realpath(directory)
+        real = resolved(directory)
         twin = seen.get(real)
         if twin is not None:
             if folder not in loaded or twin in loaded:

@@ -26,14 +26,14 @@
             <source>Results for “{query}”</source>
             <translation>Résultats pour « {query} »</translation>
         </message>
-    <message>
-        <source>AI Segmentation review[ ({action})]</source>
-        <translation>Revue AI Segmentation[ ({action})]</translation>
-    </message>
-    <message>
-        <source>Save the AI Segmentation review</source>
-        <translation>Enregistrer la revue AI Segmentation</translation>
-    </message>
+        <message>
+            <source>AI Segmentation review[ ({action})]</source>
+            <translation>Revue AI Segmentation[ ({action})]</translation>
+        </message>
+        <message>
+            <source>Save the AI Segmentation review</source>
+            <translation>Enregistrer la revue AI Segmentation</translation>
+        </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
@@ -2286,6 +2286,110 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Open</source>
             <translation>Ouvrir</translation>
         </message>
+        <message>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Une requête plus légère (moins de couches, une zone plus petite, une résolution plus basse) a plus de chances d'aboutir que la même renvoyée.</translation>
+        </message>
+        <message>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation>Une requête plus courte ou plus précise obtient une réponse plus vite.</translation>
+        </message>
+        <message>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation>Une zone plus petite, ou une tâche à la fois, passe plus vite.</translation>
+        </message>
+        <message>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation>Terminé. Seul l'aperçu de la carte ne s'est pas affiché.</translation>
+        </message>
+        <message>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
+            <translation>Il travaille peut-être encore sur une étape précédente. Dès que QGIS répond de nouveau, une requête plus légère (moins de couches, une zone plus petite, une résolution plus basse) a plus de chances d'aboutir.</translation>
+        </message>
+        <message>
+            <source>No answer came back. Try again.</source>
+            <translation>Aucune réponse reçue. Réessayez.</translation>
+        </message>
+        <message>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation>QGIS s'est fermé pendant une étape. Votre travail enregistré est en sécurité.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation>QGIS a cessé de répondre pendant l'affichage de l'aperçu. Le résultat est sur la carte.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding during a step.</source>
+            <translation>QGIS a cessé de répondre pendant une étape.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation>QGIS a cessé de répondre pendant qu'une fiche attendait.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
+            <translation>QGIS a cessé de répondre. Vos étapes précédentes sont conservées.</translation>
+        </message>
+        <message>
+            <source>Set up AI Edit</source>
+            <translation>Configurer AI Edit</translation>
+        </message>
+        <message>
+            <source>Set up AI Segmentation</source>
+            <translation>Configurer AI Segmentation</translation>
+        </message>
+        <message>
+            <source>Something went wrong on our side. Try again.</source>
+            <translation>Un problème est survenu de notre côté. Réessayez.</translation>
+        </message>
+        <message>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation>Cette étape ne s'est pas terminée. Les fichiers déjà écrits par l'exécution sont toujours sur le disque. Les couches ajoutées ne reviennent que si le projet a été enregistré après elles, et une couche temporaire a disparu. La même étape peut fermer QGIS de nouveau : demandez quelque chose de plus léger (une zone plus petite, moins de couches).</translation>
+        </message>
+        <message>
+            <source>The agent got stuck on the same step.</source>
+            <translation>L'agent est resté bloqué sur la même étape.</translation>
+        </message>
+        <message>
+            <source>The agent service restarted twice during a step.</source>
+            <translation>Le service de l'agent a redémarré deux fois pendant une étape.</translation>
+        </message>
+        <message>
+            <source>The answer was cut off. Ask again to carry on.</source>
+            <translation>La réponse a été coupée. Redemandez pour continuer.</translation>
+        </message>
+        <message>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
+            <translation>La connexion à QGIS s'est interrompue et n'est pas revenue, donc cette étape ne s'est pas terminée. Si QGIS est toujours ouvert, le projet est dans l'état où l'exécution l'a laissé. S'il s'est fermé, les fichiers écrits par l'exécution sont toujours sur le disque, et ses couches ne reviennent que si le projet a été enregistré après elles. Rouvrez QGIS s'il s'est fermé, puis appuyez sur Réessayer.</translation>
+        </message>
+        <message>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation>Le modèle a continué d'envoyer une étape que l'agent ne pouvait pas lire. Les étapes précédentes sont conservées.</translation>
+        </message>
+        <message>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
+            <translation>L'étape de cette fiche n'a pas été exécutée, sauf si l'on a cliqué juste avant. Les étapes précédentes sont conservées ; renvoyer le même message fait revenir la fiche.</translation>
+        </message>
+        <message>
+            <source>This conversation is too long.</source>
+            <translation>Cette conversation est trop longue.</translation>
+        </message>
+        <message>
+            <source>Too many requests right now. Try again in a minute.</source>
+            <translation>Trop de requêtes en ce moment. Réessayez dans une minute.</translation>
+        </message>
+        <message>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation>Ce qui a été fait avant est conservé. Reformulez la demande ou ajoutez un détail (une couche, un lieu, une valeur), puis renvoyez-la.</translation>
+        </message>
+        <message>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation>Ce que l'exécution a fait avant est conservé. Signaler nous envoie les détails.</translation>
+        </message>
+        <message>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Ce que l'exécution a fait avant cette étape est conservé. Une requête plus légère (une zone plus petite, une résolution plus basse) a plus de chances d'aboutir que la même renvoyée.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2918,8 +3022,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>{used} exécutions ce mois-ci</translation>
+            <source>{used} tasks this month</source>
+            <translation>{used} tâches ce mois-ci</translation>
         </message>
     </context>
     <context>
@@ -3091,6 +3195,26 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Show the {n} tries that did not work</source>
             <translation>Afficher les {n} essais qui n'ont pas fonctionné</translation>
+        </message>
+        <message>
+            <source>Blocked to protect your credentials</source>
+            <translation>Bloqué pour protéger vos identifiants</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>environ {n} min restantes</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>environ {n} s restantes</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} Mo</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} sur {total} Mo</translation>
         </message>
     </context>
     <context>
@@ -3326,8 +3450,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>You have used every run of this period.</source>
-            <translation>Vous avez utilisé toutes les exécutions de cette période.</translation>
+            <source>You have used every task of this period.</source>
+            <translation>Vous avez utilisé toutes les tâches de cette période.</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
@@ -3705,6 +3829,46 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Print layouts changed</source>
             <translation>Mises en page modifiées</translation>
         </message>
+        <message>
+            <source>Balanced</source>
+            <translation>Équilibré</translation>
+        </message>
+        <message>
+            <source>Beginner</source>
+            <translation>Débutant</translation>
+        </message>
+        <message>
+            <source>Concise</source>
+            <translation>Concis</translation>
+        </message>
+        <message>
+            <source>Detailed</source>
+            <translation>Détaillé</translation>
+        </message>
+        <message>
+            <source>Expert</source>
+            <translation>Expert</translation>
+        </message>
+        <message>
+            <source>GIS experience</source>
+            <translation>Expérience en SIG</translation>
+        </message>
+        <message>
+            <source>Imperial</source>
+            <translation>Impérial</translation>
+        </message>
+        <message>
+            <source>Metric</source>
+            <translation>Métrique</translation>
+        </message>
+        <message>
+            <source>Rarely</source>
+            <translation>Rarement</translation>
+        </message>
+        <message>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation>Fichier temporaire dans le dossier de travail de AI Agent. Enregistrer le projet le range à côté du projet.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3901,8 +4065,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
-            <source>More runs next month</source>
-            <translation>Plus d’exécutions le mois prochain</translation>
+            <source>More tasks next month</source>
+            <translation>Plus de tâches le mois prochain</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4165,6 +4329,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>{n} layers couldn't be restored</source>
             <translation>{n} couches n'ont pas pu être rétablies</translation>
+        </message>
+        <message>
+            <source>Reply to the question...</source>
+            <translation>Répondre à la question...</translation>
+        </message>
+        <message>
+            <source>Waiting for the install</source>
+            <translation>En attente de l'installation</translation>
         </message>
     </context>
     <context>
@@ -4971,6 +5143,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>More details</source>
             <translation>Plus de détails</translation>
         </message>
+        <message>
+            <source>Show less</source>
+            <translation>Afficher moins</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5345,6 +5521,18 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Undo and retry</source>
             <translation>Annuler et réessayer</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Détails</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Masquer les détails</translation>
+        </message>
+        <message>
+            <source>New chat</source>
+            <translation>Nouvelle conversation</translation>
         </message>
     </context>
     <context>
@@ -6218,13 +6406,13 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your free runs are used up</source>
-            <translation>Vos exécutions gratuites sont épuisées</translation>
+            <source>Your free tasks for this month are used</source>
+            <translation>Vos tâches gratuites du mois sont utilisées</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your runs are used up</source>
-            <translation>Vos exécutions sont épuisées</translation>
+            <source>Your tasks for this month are used</source>
+            <translation>Vos tâches du mois sont utilisées</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6237,12 +6425,12 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>Il reste {n} exécutions gratuites.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month.</source>
-            <translation>Vous avez utilisé les {n} exécutions de ce mois-ci.</translation>
+            <source>You used all {n} tasks this month.</source>
+            <translation>Vous avez utilisé les {n} tâches de ce mois-ci.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>Vous avez utilisé les {n} exécutions de ce mois-ci. Elles reviennent le {date}.</translation>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
+            <translation>Vous avez utilisé les {n} tâches de ce mois-ci. Elles reviennent le {date}.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6292,12 +6480,12 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>L’offre gratuite est réservée à un usage personnel et d’étude. Pro couvre le travail pour les clients et les employeurs.</translation>
         </message>
         <message>
-            <source>Free runs come back at your monthly reset.</source>
-            <translation>Les exécutions gratuites reviennent au renouvellement mensuel.</translation>
+            <source>Free tasks come back at your monthly reset.</source>
+            <translation>Les tâches gratuites reviennent au renouvellement mensuel.</translation>
         </message>
         <message>
-            <source>Free runs come back on {date}.</source>
-            <translation>Les exécutions gratuites reviennent le {date}.</translation>
+            <source>Free tasks come back on {date}.</source>
+            <translation>Les tâches gratuites reviennent le {date}.</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
@@ -6324,8 +6512,8 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>{amount}/mois HT</translation>
         </message>
         <message>
-            <source>{n} runs a month</source>
-            <translation>{n} exécutions par mois</translation>
+            <source>{n} tasks a month</source>
+            <translation>{n} tâches par mois</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
@@ -6546,6 +6734,22 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{step} and {n} more</source>
             <translation>{step} et {n} de plus</translation>
+        </message>
+        <message>
+            <source>Waiting for you</source>
+            <translation>En attente de votre réponse</translation>
+        </message>
+        <message>
+            <source>Worked for {time}</source>
+            <translation>Travaillé pendant {time}</translation>
+        </message>
+        <message>
+            <source>blocked</source>
+            <translation>bloqué</translation>
+        </message>
+        <message>
+            <source>{n} steps</source>
+            <translation>{n} étapes</translation>
         </message>
     </context>
     <context>
@@ -6841,8 +7045,8 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>Besoin de plus de {n} exécutions par mois ? Écrivez à {email}.</translation>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
+            <translation>Besoin de plus de {n} tâches par mois ? Écrivez à {email}.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7166,8 +7370,8 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>Exécutions ce mois-ci : {used}</translation>
+            <source>{used} tasks this month</source>
+            <translation>Tâches ce mois-ci : {used}</translation>
         </message>
         <message>
             <source>Always wait for me</source>
@@ -7402,8 +7606,8 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>{left} of {limit} runs left</source>
-            <translation>Exécutions restantes : {left} sur {limit}</translation>
+            <source>{left} of {limit} tasks left</source>
+            <translation>Tâches restantes : {left} sur {limit}</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -7419,8 +7623,8 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>Passer à Pro</translation>
         </message>
         <message>
-            <source>Commercial use and more runs with Pro</source>
-            <translation>Usage commercial et plus d'exécutions avec Pro</translation>
+            <source>Commercial use and more tasks with Pro</source>
+            <translation>Usage commercial et plus de tâches avec Pro</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -7471,8 +7675,8 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>Votre abonnement, votre moyen de paiement et vos factures, sur le site de TerraLab. Le paiement n'a jamais lieu dans QGIS.</translation>
         </message>
         <message>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
-            <translation>Votre abonnement, vos exécutions et vos paramètres apparaissent ici une fois connecté.</translation>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
+            <translation>Votre abonnement, vos tâches et vos paramètres apparaissent ici une fois connecté.</translation>
         </message>
         <message>
             <source>Your profile and instructions, read before every run</source>
@@ -7785,46 +7989,46 @@ Cliquez pour ouvrir sa page.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
-    <message>
-        <source>{area} km²</source>
-        <translation>{area} km²</translation>
-    </message>
-    <message>
-        <source>{area} ha</source>
-        <translation>{area} ha</translation>
-    </message>
-    <message>
-        <source>{area} m²</source>
-        <translation>{area} m²</translation>
-    </message>
-    <message>
-        <source>the '{layer}' layer ({area})</source>
-        <translation>la couche '{layer}' ({area})</translation>
-    </message>
-    <message>
-        <source>Run {label} on {zone}. This spends your {label} credits.</source>
-        <translation>Lancer {label} sur {zone}. Cela consomme vos crédits {label}.</translation>
-    </message>
-    <message>
-        <source> at {resolution}</source>
-        <translation> à {resolution}</translation>
-    </message>
-    <message>
-        <source> at the panel's selected resolution</source>
-        <translation> à la résolution choisie dans le panneau</translation>
-    </message>
-    <message>
-        <source>{price} credits per generation</source>
-        <translation>{price} crédits par génération</translation>
-    </message>
-    <message>
-        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-        <translation>Lancer AI Edit{size} : {cost}. Emprise de l'image : {zone} ; facturation par génération.</translation>
-    </message>
-    <message>
-        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-        <translation>environ {price} crédits par génération (le prix 2K ; le prix en direct n'était pas disponible)</translation>
-    </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
+        </message>
+        <message>
+            <source>the '{layer}' layer ({area})</source>
+            <translation>la couche '{layer}' ({area})</translation>
+        </message>
+        <message>
+            <source>Run {label} on {zone}. This spends your {label} credits.</source>
+            <translation>Lancer {label} sur {zone}. Cela consomme vos crédits {label}.</translation>
+        </message>
+        <message>
+            <source> at {resolution}</source>
+            <translation> à {resolution}</translation>
+        </message>
+        <message>
+            <source> at the panel's selected resolution</source>
+            <translation> à la résolution choisie dans le panneau</translation>
+        </message>
+        <message>
+            <source>{price} credits per generation</source>
+            <translation>{price} crédits par génération</translation>
+        </message>
+        <message>
+            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+            <translation>Lancer AI Edit{size} : {cost}. Emprise de l'image : {zone} ; facturation par génération.</translation>
+        </message>
+        <message>
+            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+            <translation>environ {price} crédits par génération (le prix 2K ; le prix en direct n'était pas disponible)</translation>
+        </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7923,6 +8127,26 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>Run Python code ({what}).</source>
             <translation>Exécuter du code Python ({what}).</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>En attente de l'installation de {name}</translation>
+        </message>
+        <message>
+            <source>changes a layer you had before this run</source>
+            <translation>modifie une couche que vous aviez avant cette exécution</translation>
+        </message>
+        <message>
+            <source>changes your layer {name}</source>
+            <translation>modifie votre couche {name}</translation>
+        </message>
+        <message>
+            <source>changes your layers {names}</source>
+            <translation>modifie vos couches {names}</translation>
+        </message>
+        <message>
+            <source>{name} is installed</source>
+            <translation>{name} est installé</translation>
         </message>
     </context>
     <context>
@@ -8155,6 +8379,34 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Nouvelle couche, 1 entité. Cliquez pour la sélectionner dans le panneau Couches.</translation>
+        </message>
+        <message>
+            <source>Credit: {value}</source>
+            <translation>Crédit : {value}</translation>
+        </message>
+        <message>
+            <source>Dataset: {value}</source>
+            <translation>Jeu de données : {value}</translation>
+        </message>
+        <message>
+            <source>Derived from: {value}</source>
+            <translation>Dérivé de : {value}</translation>
+        </message>
+        <message>
+            <source>Licence: {value}</source>
+            <translation>Licence : {value}</translation>
+        </message>
+        <message>
+            <source>Loaded: {value}</source>
+            <translation>Chargé : {value}</translation>
+        </message>
+        <message>
+            <source>Open the source page</source>
+            <translation>Ouvrir la page source</translation>
+        </message>
+        <message>
+            <source>Source details</source>
+            <translation>Détails de la source</translation>
         </message>
     </context>
     <context>
@@ -8469,8 +8721,8 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>Échec</translation>
         </message>
         <message>
-            <source>Out of runs</source>
-            <translation>Plus d’exécutions</translation>
+            <source>Out of tasks</source>
+            <translation>Plus de tâches</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -8565,6 +8817,58 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
             <translation>{day} UTC, ajouté par AI Agent by TerraLab</translation>
+        </message>
+        <message>
+            <source>Accessed {day} via {host}</source>
+            <translation>Consulté le {day} via {host}</translation>
+        </message>
+        <message>
+            <source>Derived from: {label}</source>
+            <translation>Dérivé de : {label}</translation>
+        </message>
+        <message>
+            <source>Live</source>
+            <translation>En direct</translation>
+        </message>
+        <message>
+            <source>Made by code</source>
+            <translation>Produit par du code</translation>
+        </message>
+        <message>
+            <source>Original address</source>
+            <translation>Adresse d'origine</translation>
+        </message>
+        <message>
+            <source>QGIS default operation</source>
+            <translation>Opération par défaut de QGIS</translation>
+        </message>
+        <message>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation>Reprojeté de {source} vers {target} ; opération : {operation}</translation>
+        </message>
+        <message>
+            <source>Since {year}, live</source>
+            <translation>Depuis {year}, en direct</translation>
+        </message>
+        <message>
+            <source>Source not verified</source>
+            <translation>Source non vérifiée</translation>
+        </message>
+        <message>
+            <source>grids: {grids}</source>
+            <translation>grilles : {grids}</translation>
+        </message>
+        <message>
+            <source>made by code</source>
+            <translation>produit par du code</translation>
+        </message>
+        <message>
+            <source>project layers the code names: {names}</source>
+            <translation>couches du projet citées par le code : {names}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
+            <translation>{day} UTC, exécution AI Agent {run} : ajout de {layers}</translation>
         </message>
     </context>
     <context>
@@ -8699,8 +9003,8 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
     <context>
         <name>RunsLeftLine</name>
         <message>
-            <source>1 free run left</source>
-            <translation>1 exécution gratuite restante</translation>
+            <source>1 free task left</source>
+            <translation>1 tâche gratuite restante</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -8711,8 +9015,8 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <translation>Obtenir plus d'exécutions</translation>
         </message>
         <message>
-            <source>{n} free runs left</source>
-            <translation>{n} exécutions gratuites restantes</translation>
+            <source>{n} free tasks left</source>
+            <translation>{n} tâches gratuites restantes</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -8723,12 +9027,12 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <translation>Obtenir Pro pour l’effort High</translation>
         </message>
         <message>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro : {n} exécutions par mois, effort Medium et High pour les tâches plus difficiles, Autonome</translation>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
+            <translation>Pro : {n} tâches par mois, effort Medium et High pour le travail difficile, Autopilot</translation>
         </message>
         <message>
-            <source>Get more runs with Pro</source>
-            <translation>Obtenez plus d'exécutions avec Pro</translation>
+            <source>Get more tasks with Pro</source>
+            <translation>Obtenez plus de tâches avec Pro</translation>
         </message>
     </context>
     <context>
@@ -9102,6 +9406,18 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <source>Running {name}...</source>
             <translation>Exécution de {name}...</translation>
         </message>
+        <message>
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Arrêter</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Arrêt en cours...</translation>
+        </message>
     </context>
     <context>
         <name>_OptionRow</name>
@@ -9115,6 +9431,21 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
         <message>
             <source>Skipped</source>
             <translation>Ignoré</translation>
+        </message>
+    </context>
+    <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <source>Open Plugin Manager</source>
+            <translation>Ouvrir le gestionnaire d'extensions</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Passer</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>En attente de l'installation de {name}</translation>
         </message>
     </context>
 </TS>

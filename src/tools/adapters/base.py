@@ -6,19 +6,13 @@
 
 
 
-
-
 from __future__ import annotations
 
 from typing import Any
 
 from qgis.utils import plugins
 
-from .._widgets import (
-    plugin_candidates,
-    plugin_widgets,
-    widget_summary,
-)
+from .._widgets import plugin_candidates, plugin_widgets
 
 
 class PluginAdapter:
@@ -46,14 +40,6 @@ class PluginAdapter:
                 return key, inst
         return None, None
 
-    def is_loaded(self) -> bool:
-        _, inst = self.find_instance()
-        return inst is not None
-
-    def api(self):
-        _, inst = self.find_instance()
-        return getattr(inst, "mcp_api", None) if inst is not None else None
-
 
 
     def root_widgets(self):
@@ -62,50 +48,6 @@ class PluginAdapter:
 
     def snapshot_roots(self):
         return self.root_widgets()
-
-
-
-    def state(self) -> dict:
-
-        key, inst = self.find_instance()
-        if inst is None:
-            return {"available": False, "plugin": self.display_name()}
-        roots = self.root_widgets()
-        state: dict[str, Any] = {
-            "available": True,
-            "plugin": key,
-            "class": inst.__class__.__name__,
-            "docks": [
-                {"text": widget_summary(w)["text"], "visible": w.isVisible()}
-                for w in roots
-            ],
-        }
-        api = self.api()
-        if api is not None and hasattr(api, "get_status"):
-            try:
-                status = api.get_status()
-                if isinstance(status, dict):
-                    state["status"] = status
-            except Exception as err:
-                state["status_error"] = str(err)
-        return state
-
-
-
-    def reset(self, scenario: str | None) -> dict:
-        return {"_error": f"{self.display_name()} has no reset scenarios"}
-
-    def seed(self, scenario: str | None) -> dict:
-        return {"_error": f"{self.display_name()} has no seed scenarios"}
-
-    def flows(self) -> dict[str, str]:
-        return {}
-
-    def run_flow(self, name: str, params: dict) -> dict:
-        return {"_error": f"Unknown flow '{name}'", "available_flows": self.flows()}
-
-    def log_tags(self) -> tuple[str, ...]:
-        return ()
 
 
 class GenericAdapter(PluginAdapter):

@@ -18,17 +18,12 @@
 
 
 
-
-
-
-
 from __future__ import annotations
 
 import importlib
 import inspect
 import pkgutil
 import re
-import sys
 from types import ModuleType
 
 from ..core.logger import log, log_warning
@@ -56,22 +51,17 @@ def _entry_points(module: ModuleType) -> list:
             if _ENTRY_POINT.fullmatch(name) and inspect.isfunction(fn) and fn.__module__ == module.__name__]
 
 
-def build_registry(include_debug: bool = True, include_dev: bool = False) -> ToolRegistry:
+def build_registry(include_debug: bool = True) -> ToolRegistry:
     from .facade import wrap_run_processing
     from .native_processing_tools import add_native_processing_tools
 
     registry = ToolRegistry()
     for module in _tool_modules(include_debug):
         for register in _entry_points(module):
-            if "include_dev" in inspect.signature(register).parameters:
-                register(registry, include_dev=include_dev)
-            else:
-                register(registry)
+            register(registry)
 
 
     add_native_processing_tools(registry)
     wrap_run_processing(registry)
-    if include_debug and f"{__name__}.debug" in sys.modules:
-        sys.modules[f"{__name__}.debug"].install_capture()
     log(f"Tool catalog ready: {registry.tool_count} tools, {len(registry.visible_names())} visible")
     return registry

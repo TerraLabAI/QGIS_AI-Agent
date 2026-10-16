@@ -71,7 +71,8 @@ VISIBILITY_TOOLS = frozenset({"set_layer_visibility", "set_layers_visibility"})
 RENDER_TOOLS = frozenset({"render_map"})
 
 
-MIN_TO_OFFER = 3
+
+MIN_TO_OFFER = 1
 
 
 MAX_REPORTED = 60

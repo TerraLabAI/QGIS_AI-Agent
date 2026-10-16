@@ -34,11 +34,13 @@ from qgis.core import (
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core.context_layers import crs_units
 from ..core.host_platform import remove_quietly
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import is_raster
 from .data_tools import _avoid_reserved_name
-from .harvest_analysis import _expand, _field_error, _raster, _units, _vector
+from .harvest_analysis import _expand, _field_error
+from .layer_lookup import require_raster, require_vector
 from .postconditions import compute_checks
 from .processing_guards import _nodata_sentinel, fitting_pixel_size
 
@@ -265,7 +267,7 @@ def _register_output(out, name: str) -> dict:
         "layer_id": layer.id(),
         "name": layer.name(),
         "crs": layer.crs().authid(),
-        "units": _units(layer.crs()),
+        "units": crs_units(layer.crs()),
         "added_to_project": True,
     }
     if renamed:
@@ -313,10 +315,10 @@ def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
 
 
 def _zonal_statistics(args: dict) -> dict:
-    poly, error = _vector(args["polygon_layer"])
+    poly, error = require_vector(args["polygon_layer"])
     if error:
         return error
-    rast, error = _raster(args["raster_layer"])
+    rast, error = require_raster(args["raster_layer"])
     if error:
         return error
     band = int(args.get("band") or 1)
@@ -407,10 +409,10 @@ def _discard_partial_raster(path: str) -> bool:
 
 
 def _spatial_join(args: dict) -> dict:
-    target, error = _vector(args["target_layer"])
+    target, error = require_vector(args["target_layer"])
     if error:
         return error
-    join, error = _vector(args["join_layer"])
+    join, error = require_vector(args["join_layer"])
     if error:
         return error
     predicates = [int(p) for p in (args.get("predicates") or [0])]
@@ -555,9 +557,9 @@ def _remote_input_too_large(referenced: list, refs: dict, pixels: int, grid=None
         return None
     view = None
     try:
-        from .stac_tools import _canvas_bbox_4326
+        from ..core.context_layers import canvas_bbox_4326
 
-        canvas = None if extent is not None else _canvas_bbox_4326()
+        canvas = None if extent is not None else canvas_bbox_4326()
         window = _calc_window(grid, canvas) if canvas else None
         if window and window[1] * window[2] <= _CALC_MAX_PIXELS and window[1] * window[2] < pixels:
             view = (canvas, window[1] * window[2])
@@ -796,7 +798,7 @@ def _raster_calculator(args: dict) -> dict:
         )
 
     if args.get("reference_layer"):
-        ref_layer, error = _raster(args["reference_layer"])
+        ref_layer, error = require_raster(args["reference_layer"])
         if error:
             return error
     elif referenced:
@@ -1031,7 +1033,7 @@ def _raster_calculator(args: dict) -> dict:
         "height": layer.height(),
         "size_units": "pixels",
         "crs": layer.crs().authid(),
-        "units": _units(layer.crs()),
+        "units": crs_units(layer.crs()),
         "extent": {
             "xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
             "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),

@@ -29,7 +29,6 @@ from __future__ import annotations
 import html
 import os
 import sys
-import uuid
 
 from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage
@@ -210,6 +209,8 @@ class Composer(QFrame):
 
         self._empty_chat = True
         self._blocked_placeholder = ""
+
+        self._reply_placeholder = ""
 
 
         self._effort_locked = False
@@ -442,10 +443,6 @@ class Composer(QFrame):
             if callable(setter):
                 setter(compact)
 
-    def controls_are_compact(self) -> bool:
-
-        return self._compact_controls > 0
-
 
 
     def text(self) -> str:
@@ -561,9 +558,6 @@ class Composer(QFrame):
 
         self._permission_chip.set_mode(approval)
 
-    def permission_mode(self) -> str:
-        return self._permission_chip.mode()
-
     def set_effort(self, effort: str) -> None:
 
         self._effort_chip.set_effort(effort)
@@ -607,9 +601,6 @@ class Composer(QFrame):
         self._paint_send()
         self._sync_send_enabled()
 
-    def is_effort_locked(self) -> bool:
-        return self._effort_locked
-
     def _apply_placeholder(self) -> None:
         if self._blocked and self._blocked_placeholder:
             self._input.setPlaceholderText(self._blocked_placeholder)
@@ -624,8 +615,15 @@ class Composer(QFrame):
 
 
             self._input.setPlaceholderText(self.tr("Can't reach TerraLab. Retrying."))
+        elif self._reply_placeholder:
+            self._input.setPlaceholderText(self._reply_placeholder)
         else:
             self._input.setPlaceholderText(self._placeholder)
+
+    def set_reply_placeholder(self, text: str) -> None:
+
+        self._reply_placeholder = text or ""
+        self._apply_placeholder()
 
     def set_placeholder(self, text: str) -> None:
 
@@ -828,9 +826,6 @@ class Composer(QFrame):
 
         return [wire_shape(item) for item in self._items]
 
-    def has_attachments(self) -> bool:
-        return bool(self._items)
-
     def attachments_over_budget(self) -> dict | None:
 
 
@@ -930,24 +925,6 @@ class Composer(QFrame):
                 accepted.append(path)
         self._report_rejections(unsupported, unreadable, over, heavy)
         return accepted
-
-    def restore_attachments(self, items) -> str:
-
-
-
-        unreadable = []
-        for item in items or []:
-            if not isinstance(item, dict):
-                continue
-            if item.get("kind") == "image" and item.get("data_base64"):
-                back = dict(item, id=uuid.uuid4().hex)
-            else:
-                back = attachment_from_path(str(item.get("path") or ""))
-            if back is None:
-                unreadable.append(str(item.get("name") or item.get("path") or ""))
-            else:
-                self.add_attachment(back)
-        return self._rejection_line((), unreadable, 0)
 
     def _report_rejections(self, unsupported, unreadable, over: int, heavy=()) -> None:
         line = self._rejection_line(unsupported, unreadable, over, heavy)
@@ -1238,10 +1215,6 @@ class Composer(QFrame):
 
         self._submit(check_quality=False)
         self.show_hint(self.tr("Connection is back. Your message was sent."))
-
-    def has_pending_send(self) -> bool:
-
-        return self._pending_send
 
     def connection_state(self) -> str:
         return self._conn_state

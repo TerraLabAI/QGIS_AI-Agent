@@ -490,7 +490,6 @@ def _segment_rows(cells, order, segments, accumulation, window_gt, width, cell_x
 
 
 
-
         rows.append((struct.pack("<BII", 1, 2, len(flat_ids)) + coords.tobytes(), int(value), round(length_m, 1),
                      round(float(acc[cells[path[-1]]]) * cell_km2, 4)))
     return rows
@@ -529,7 +528,7 @@ def _longest_flow_path(filled, basin, down, outlet_flat, cell_x_m, cell_y_m, np)
     return chain, longest[int(position[outlet_flat])]
 
 
-def _rasterise(wkbs, geotransform, width, height, crs_wkt, gdal, ogr, osr, np):
+def _rasterise(wkbs, geotransform, width, height, crs_wkt, gdal, ogr, osr):
 
     raster = gdal.GetDriverByName("MEM").Create("", width, height, 1, gdal.GDT_Byte)
     raster.SetGeoTransform(geotransform)

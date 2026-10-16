@@ -40,6 +40,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import io
 import json
@@ -118,6 +119,16 @@ _CLOSES_PROJECT = frozenset({"QgsProject.clear", "QgsProject.read", "QgsProject.
 
 _COPY_FAILED: set[str] = set()
 _PYTHON: list[str] = []
+
+
+
+
+
+
+SPARE_IDLE_S = 600.0
+_SPARE: list = []
+_SPARE_LOCK = threading.Lock()
+_SPARE_OFF = [False]
 
 
 def _fingerprint(code: str) -> str:
@@ -452,7 +463,15 @@ def plan(code: str) -> dict:
     project = QgsProject.instance()
     dynamic = code_split.lists_layers(code)
 
-    helper_names = {name.casefold() for name in code_split.helper_layer_names(code)}
+    written = code_split.helper_layer_names(code)
+    helper_names = {name.casefold() for name in written}
+
+
+
+    known = {layer.name().casefold() for layer in project.mapLayers().values()}
+    missing = sorted(name for name in written if name.casefold() not in known and project.mapLayer(name) is None)
+    if missing:
+        return {"reason": f"layer({missing[0]!r}) names no layer of this project"}
     pending = [layer for layer in project.mapLayers().values()
                if dynamic or (layer.name() and layer.name() in code) or layer.id() in code
                or layer.name().casefold() in helper_names]
@@ -774,6 +793,84 @@ def _put_capped(out: dict, key: str, text: str, true_len=None) -> None:
         out[f"{key}_chars"] = length
 
 
+def _spare_key(python: str) -> str:
+
+
+    environment = _environment(python, "<work>")
+    return hashlib.sha256(json.dumps([python, sorted(environment.items())]).encode("utf-8")).hexdigest()
+
+
+def _spawn(python: str, work_dir: str, args: list, stdin) -> subprocess.Popen:
+    kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} \
+        if IS_WINDOWS and hasattr(subprocess, "CREATE_NO_WINDOW") else {}
+    with open(os.path.join(work_dir, "worker.log"), "wb") as log_handle:
+        return subprocess.Popen(  # nosec B603
+            [python, "-s", _WORKER, *args],
+            cwd=work_dir,
+            env=_environment(python, work_dir),
+            stdin=stdin,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            **kwargs,
+        )
+
+
+def _start_spare(python: str) -> None:
+
+    if _SPARE_OFF[0] or _QGIS_CHILD_UNAVAILABLE[0] or not isolation_enabled():
+        return
+    with _SPARE_LOCK:
+        if _SPARE:
+            return
+        work_dir = create_managed_temp_dir("execute-code")
+        try:
+            process = _spawn(python, work_dir, ["--spare"], subprocess.PIPE)
+        except OSError as exc:
+            log_warning(f"execute_code spare not started: {exc}")
+            remove_tree(work_dir)
+            return
+        _SPARE.append((process, work_dir, _spare_key(python), time.monotonic()))
+
+
+def _start_spare_soon(python: str) -> None:
+    threading.Thread(target=_start_spare, args=(python,), name="ai-agent-code-spare", daemon=True).start()
+
+
+def _drop(process, work_dir: str) -> None:
+
+    if process.poll() is None:
+        with contextlib.suppress(OSError):
+            process.stdin.close()
+        _stop(process)
+    remove_tree(work_dir)
+
+
+def _take_spare(python: str):
+
+    with _SPARE_LOCK:
+        if not _SPARE:
+            return None
+        process, work_dir, key, started = _SPARE.pop()
+    if process.poll() is not None:
+
+        _SPARE_OFF[0] = True
+        remove_tree(work_dir)
+        return None
+    if time.monotonic() - started > SPARE_IDLE_S or key != _spare_key(python):
+        _drop(process, work_dir)
+        return None
+    return process, work_dir
+
+
+def shutdown() -> None:
+
+    with _SPARE_LOCK:
+        held = list(_SPARE)
+        _SPARE.clear()
+    for process, work_dir, _key, _started in held:
+        _drop(process, work_dir)
+
+
 def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: float,
               poll_s: float = POLL_S) -> dict:
 
@@ -784,7 +881,9 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
 
 
 
-    work_dir = create_managed_temp_dir("execute-code")
+    needs_qgis = bool(planned.get("needs_qgis"))
+    spare = _take_spare(python) if needs_qgis else None
+    work_dir = spare[1] if spare else create_managed_temp_dir("execute-code")
     names_dir = os.path.join(work_dir, "names")
     job_path = os.path.join(work_dir, "job.json")
     status_path = os.path.join(work_dir, "status.json")
@@ -795,11 +894,13 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
         os.makedirs(names_dir, exist_ok=True)
         name_files, modules, left_out = _send_names(planned.get("kept") or {}, names_dir)
         if left_out:
+            if spare:
+                _drop(spare[0], work_dir)
             return {"_fallback": "kept_names", "detail": ", ".join(left_out)}
         job = {
             "code": code,
             "plugin_root": _PLUGIN_ROOT,
-            "needs_qgis": bool(planned.get("needs_qgis")),
+            "needs_qgis": needs_qgis,
             "stdout_path": stdout_path,
             "layers": planned.get("layers") or [],
             "project": planned.get("project") or {},
@@ -820,45 +921,45 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
         }
         with open(job_path, "w", encoding="utf-8") as handle:
             json.dump(job, handle, ensure_ascii=False)
-        command = [python, "-s", _WORKER, job_path, status_path]
-        kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} \
-            if IS_WINDOWS and hasattr(subprocess, "CREATE_NO_WINDOW") else {}
-        with open(log_path, "wb") as log_handle:
-            process = subprocess.Popen(  # nosec B603
-                command,
-                cwd=work_dir,
-                env=_environment(python, work_dir),
-                stdin=subprocess.DEVNULL,
-                stdout=log_handle,
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
+        process = None
+        if spare:
+            process = spare[0]
             try:
-                while process.poll() is None:
-                    if cancel_check is not None and cancel_check():
-                        _stop(process)
-                        return {
-                            "executed": False,
-                            "_error": "execute_code was stopped.",
-                            "_code": "CANCELLED",
-                            "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
-                            "isolated": True,
-                        }
-                    if time.monotonic() - started > timeout_s:
-                        _stop(process)
-                        return {
-                            "executed": False,
-                            "_error": f"execute_code stopped after {int(timeout_s)} s.",
-                            "_code": "EXEC_TIMEOUT",
-                            "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
-                            "hint": "exec_timeout",
-                            "timeout_s": int(timeout_s),
-                            "isolated": True,
-                        }
-                    time.sleep(poll_s)
-            finally:
-                if process.poll() is None:
+                process.stdin.write(f"{job_path}\t{status_path}\n".encode())
+                process.stdin.close()
+            except OSError:
+                _stop(process)
+                process = None
+        if process is None:
+            process = _spawn(python, work_dir, [job_path, status_path], subprocess.DEVNULL)
+        if needs_qgis:
+            _start_spare_soon(python)
+        try:
+            while process.poll() is None:
+                if cancel_check is not None and cancel_check():
                     _stop(process)
+                    return {
+                        "executed": False,
+                        "_error": "execute_code was stopped.",
+                        "_code": "CANCELLED",
+                        "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
+                        "isolated": True,
+                    }
+                if time.monotonic() - started > timeout_s:
+                    _stop(process)
+                    return {
+                        "executed": False,
+                        "_error": f"execute_code stopped after {int(timeout_s)} s.",
+                        "_code": "EXEC_TIMEOUT",
+                        "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
+                        "hint": "exec_timeout",
+                        "timeout_s": int(timeout_s),
+                        "isolated": True,
+                    }
+                time.sleep(poll_s)
+        finally:
+            if process.poll() is None:
+                _stop(process)
         status = _read_status(status_path)
 
 

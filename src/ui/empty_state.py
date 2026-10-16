@@ -146,7 +146,6 @@ class EmptyState(QWidget):
         disclosure.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         disclosure.setWordWrap(True)
         rows_outer.addWidget(disclosure)
-        self._disclosure = disclosure
         self._rows = rows
 
         outer.addWidget(block)

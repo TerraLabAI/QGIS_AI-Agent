@@ -470,7 +470,6 @@ class NoteRow(QFrame):
         close.setFixedSize(24, 24)
         close.clicked.connect(lambda: self.removed.emit(self.note_id))
         row.addWidget(close, 0, Qt.AlignmentFlag.AlignTop)
-        self.close_button = close
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
@@ -607,7 +606,6 @@ class Disclosure(QWidget):
 
 
 class ProCard(QFrame):
-
 
 
 

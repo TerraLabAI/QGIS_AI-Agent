@@ -10,8 +10,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import math
@@ -20,7 +18,6 @@ import re
 
 from qgis.core import (
     Qgis,
-    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsExpression,
@@ -35,11 +32,12 @@ from qgis.core import (
 )
 
 from ..core import ground, limits, tuning, vsi
-from ..core.logger import log_debug, log_warning
+from ..core.logger import log_debug
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 from .layer_lookup import _find_layer
+from .processing_crs_checks import _TERRAIN_BY_CELL
 from .project_tools import _is_remote_vector
 
 
@@ -535,7 +533,6 @@ def localise_streamed_rasters(algorithm_id: str, parameters: dict) -> tuple[dict
 
 
 
-
 _WINDOW_RATIO_MAX = 4.0
 _WINDOW_CRS_RE = re.compile(r"\[\s*(EPSG:\d+)\s*\]", re.IGNORECASE)
 
@@ -554,83 +551,24 @@ def _raster_input(parameters: dict):
     return None
 
 
-def _window_degrees_repair(parameters: dict) -> list[str]:
-
-
-
-
-
-
-
-
-
-    notes: list[str] = []
-    for key in ("PROJWIN", "EXTENT", "TARGET_EXTENT"):
-        value = parameters.get(key)
-        numbers = _extent_numbers(value)
-        if numbers is None or (isinstance(value, str) and _WINDOW_CRS_RE.search(value)):
-            continue
-        if not all(abs(n) <= 180 for n in numbers):
-            continue
-        layer = _raster_input(parameters)
-        if layer is None or layer.extent().isEmpty():
-            continue
-        crs = layer.crs()
-        if not crs.isValid() or crs.isGeographic():
-            continue
-        try:
-            transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), crs,
-                                               QgsProject.instance())
-        except Exception:  # nosec B112
-            continue
-        a, b, c, d = numbers
-        extent = layer.extent()
-        readings = ((min(a, b), max(a, b), min(c, d), max(c, d)),
-                    (min(a, c), max(a, c), min(b, d), max(b, d)))
-        for xmin, xmax, ymin, ymax in readings:
-            if abs(ymin) > 90 or abs(ymax) > 90:
-                continue
-            try:
-                rect = transform.transformBoundingBox(QgsRectangle(xmin, ymin, xmax, ymax))
-            except Exception:  # nosec B112
-                continue
-            ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
-            if rect.intersects(extent) and rect.area() <= ratio_max * extent.area():
-                parameters[key] = f"{_plain(xmin)},{_plain(xmax)},{_plain(ymin)},{_plain(ymax)} [EPSG:4326]"
-                notes.append(f"{key} was four degrees with no CRS: written as xmin,xmax,ymin,ymax [EPSG:4326] "
-                             f"for a raster in {crs.authid()}")
-                break
-    return notes
-
-
 def _window_readings(value, layer):
-
-
-
 
     numbers = _extent_numbers(value)
     if numbers is None:
         return None
     a, b, c, d = numbers
     rect = QgsRectangle(min(a, b), min(c, d), max(a, b), max(c, d))
-    alt = QgsRectangle(min(a, c), min(b, d), max(a, c), max(b, d))
     tag = _WINDOW_CRS_RE.search(value) if isinstance(value, str) else None
-    crs_text = f" [{tag.group(1).upper()}]" if tag else ""
     if tag and tag.group(1).upper() != layer.crs().authid().upper():
         try:
             transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(tag.group(1).upper()),
                                                layer.crs(), QgsProject.instance())
             rect = transform.transformBoundingBox(rect)
-            alt = transform.transformBoundingBox(alt)
         except Exception:  # noqa: BLE001
             return None
     extent = layer.extent()
-
-    def fits(box):
-        ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
-        return box.intersects(extent) and box.area() <= ratio_max * extent.area()
-
-    return rect, alt, crs_text, fits(rect), fits(alt)
+    ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
+    return rect, rect.intersects(extent) and rect.area() <= ratio_max * extent.area()
 
 
 
@@ -670,31 +608,8 @@ def _ground_measure_repair(alg, parameters: dict) -> list[str]:
             f"area and length fields are in ground square metres and metres"]
 
 
-def _window_order_repair(parameters: dict) -> list[str]:
-
-
-
-
-
-    notes: list[str] = []
-    for key in ("PROJWIN", "EXTENT", "TARGET_EXTENT"):
-        value = parameters.get(key)
-        layer = _raster_input(parameters)
-        if layer is None or layer.extent().isEmpty():
-            return notes
-        readings = _window_readings(value, layer)
-        if readings is None:
-            continue
-        _rect, _alt, crs_text, fits, alt_fits = readings
-        if fits or not alt_fits:
-            continue
-        a, b, c, d = _extent_numbers(value)
-        parameters[key] = f"{_plain(a)},{_plain(c)},{_plain(b)},{_plain(d)}{crs_text}"
-        notes.append(f"{key} was xmin,ymin,xmax,ymax: rewritten as xmin,xmax,ymin,ymax, the order Processing reads")
-    return notes
-
-
 def _window_sanity(parameters: dict) -> dict | None:
+
 
 
 
@@ -711,7 +626,7 @@ def _window_sanity(parameters: dict) -> dict | None:
         readings = _window_readings(value, layer)
         if readings is None:
             return None
-        rect, _alt, _crs_text, fits, _alt_fits = readings
+        rect, fits = readings
         if fits:
             return None
         extent = layer.extent()
@@ -719,68 +634,10 @@ def _window_sanity(parameters: dict) -> dict | None:
                    else f"is {rect.area() / extent.area():,.0f} times the size of")
         return tool_error(
             f"WINDOW_OFF_RASTER: {key} spans {rect.width():,.6g} by {rect.height():,.6g} in the "
-            f"raster's CRS and {problem} {layer.name()} (extent {extent.xMinimum():,.6g}, "
-            f"{extent.yMinimum():,.6g} to {extent.xMaximum():,.6g}, {extent.yMaximum():,.6g}).",
+            f"raster's CRS and {problem} {layer.name()} ({layer.crs().authid()}, extent {_plain(extent.xMinimum())}, "
+            f"{_plain(extent.yMinimum())} to {_plain(extent.xMaximum())}, {_plain(extent.yMaximum())}).",
             "INVALID_ARGS", hint="window_off_raster", key=key)
     return None
-
-
-
-
-
-
-
-
-
-_FORMAT_FLAGS = ("-f", "-of")
-_GDAL_OPTION_KEYS = ("OPTIONS", "EXTRA")
-
-
-_OPTION_TOKEN_RE = re.compile(r"""(?:[^\s"']+|"[^"]*"|'[^']*')+""")
-
-
-def _strip_format_flags(value: str) -> tuple[str, list[str]]:
-
-    tokens = _OPTION_TOKEN_RE.findall(value)
-    kept: list[str] = []
-    removed: list[str] = []
-    skip_next = False
-    for token in tokens:
-        if skip_next:
-            removed[-1] += f" {token}"
-            skip_next = False
-            continue
-        if token in _FORMAT_FLAGS:
-            removed.append(token)
-            skip_next = True
-            continue
-        kept.append(token)
-    return " ".join(kept), removed
-
-
-def _gdal_format_options(algorithm_id: str, parameters: dict) -> list[str]:
-
-
-
-
-
-    if not str(algorithm_id or "").startswith("gdal:"):
-        return []
-    repairs: list[str] = []
-    for key in _GDAL_OPTION_KEYS:
-        value = parameters.get(key)
-        if not isinstance(value, str) or not value.strip():
-            continue
-        cleaned, removed = _strip_format_flags(value)
-        if not removed:
-            continue
-        parameters[key] = cleaned
-        repairs.append(
-            f"{key}: dropped {', '.join(repr(r) for r in removed)}. Processing writes the format "
-            f"itself from the OUTPUT extension, and a second one fails the run with "
-            '"Duplicate argument". The OUTPUT extension sets the format.'
-        )
-    return repairs
 
 
 _INPUT_KEYS = ("INPUT", "INPUT_LAYER", "LAYER", "SOURCE", "INPUT_VECTOR")
@@ -1412,174 +1269,6 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
     return None
 
 
-_DISTANCE_NAMES = ("DISTANCE", "RADIUS", "TOLERANCE", "BUFFER", "MAX_DISTANCE", "SEARCH_DISTANCE",
-                   "SNAP_TOLERANCE", "SPACING", "INTERVAL", "CELLSIZE", "PIXEL_SIZE")
-
-
-
-
-_PERCENTAGE_PARAMETERS = frozenset({("native:voronoipolygons", "BUFFER")})
-
-_DEGREES_ALLOWED = 0.01
-
-
-
-
-
-
-
-
-
-def _utm_authid(lon: float, lat: float) -> str:
-
-    lon = max(-180.0, min(180.0, float(lon)))
-    zone = min(60, int((lon + 180.0) // 6.0) + 1)
-    return f"EPSG:{32600 + zone}" if float(lat) >= 0 else f"EPSG:{32700 + zone}"
-
-
-def _centre_lonlat(layer) -> tuple[float, float] | None:
-
-    try:
-        extent = layer.extent()
-        if extent.isNull():
-            return None
-        centre = extent.center()
-        crs = layer.crs()
-        wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
-        if not crs.isValid() or crs == wgs84:
-            return centre.x(), centre.y()
-        moved = QgsCoordinateTransform(crs, wgs84, QgsProject.instance()).transform(centre)
-        return moved.x(), moved.y()
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def _suggest_metric_crs(layer) -> str:
-
-
-
-
-
-
-
-
-
-
-    project_crs = QgsProject.instance().crs()
-    if project_crs.isValid() and not project_crs.isGeographic():
-        scale = ground.layer_metres_per_unit(_ProjectCrsProbe(project_crs, layer))
-        if scale is None or abs(scale - 1.0) <= ground.TOLERANCE:
-            return project_crs.authid()
-    centre = _centre_lonlat(layer)
-    if centre is None:
-        return "EPSG:3857"
-    return _utm_authid(centre[0], centre[1])
-
-
-class _ProjectCrsProbe:
-
-
-
-
-
-
-
-    def __init__(self, crs, layer):
-        self._crs = crs
-        self._layer = layer
-
-    def crs(self):
-        return self._crs
-
-    def extent(self):
-        source = self._layer.crs()
-        extent = self._layer.extent()
-        if not source.isValid() or source == self._crs:
-            return extent
-        return QgsCoordinateTransform(source, self._crs, QgsProject.instance()).transformBoundingBox(extent)
-
-
-def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[dict | None, str]:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    notes: list[str] = []
-    for definition in alg.parameterDefinitions():
-        name = definition.name()
-        if (str(alg.id() or "").casefold(), name.upper()) in _PERCENTAGE_PARAMETERS:
-            continue
-        try:
-            typed_distance = definition.type() == "distance"
-        except Exception:  # nosec B110
-            typed_distance = False
-        if not typed_distance and name.upper() not in _DISTANCE_NAMES:
-            continue
-        value = parameters.get(name)
-        degrees_allowed = tuning.threshold("processing_degrees_allowed", _DEGREES_ALLOWED, 0.001, 0.1)
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or abs(float(value)) < degrees_allowed:
-            continue
-        parent = ""
-        if hasattr(definition, "parentParameterName"):
-            try:
-                parent = definition.parentParameterName() or ""
-            except Exception:  # nosec B110
-                parent = ""
-        source = parameters.get(parent or "INPUT")
-        layer = _find_layer(source) if isinstance(source, str) else None
-        if layer is None or not hasattr(layer, "crs"):
-            continue
-        if name.upper() == "INTERVAL" and not typed_distance and isinstance(layer, QgsRasterLayer):
-
-
-
-            continue
-        crs = layer.crs()
-        if not crs.isValid():
-            continue
-        if not crs.isGeographic():
-
-
-
-            scale = ground.layer_metres_per_unit(layer)
-            if scale is None or abs(scale - 1.0) <= ground.TOLERANCE:
-                continue
-            notes.append(f"{name} {value:g} on layer '{layer.name()}' in {crs.authid()} covers "
-                         f"{float(value) * scale:.4g} m on the ground: one {crs.authid()} unit is {scale:.4g} m "
-                         "where this layer sits.")
-            continue
-        if confirmed:
-            continue
-        suggested = _suggest_metric_crs(layer)
-        return {
-            "_error": (
-                f"GEOGRAPHIC_DISTANCE: {name} {value:g} on layer '{layer.name()}' in {crs.authid()} means "
-                f"{value:g} degrees, about {float(value) * 111:g} km, not metres."
-            ),
-
-
-
-            "code": "CRS_GUARD",
-            "layer_crs": crs.authid(),
-            "suggested_crs": suggested,
-            "suggestion": (
-                f"native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in metres. "
-                "confirm_large true keeps degrees when a value in degrees is really intended."
-            ),
-        }, ""
-    return None, " ".join(notes)
-
-
 
 
 
@@ -1640,46 +1329,6 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
         "suggestion": (
             f"zonal_statistics with nodata={sentinel:g} leaves those cells out without touching the "
             f"source. confirm_large true keeps {sentinel:g} as a real measurement here."
-        ),
-    }
-
-
-
-
-_TERRAIN_BY_CELL = frozenset()
-
-
-def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | None:
-
-
-
-
-
-
-
-
-
-    if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL):
-        return None
-    source = parameters.get("INPUT")
-    layer = source if hasattr(source, "crs") else (_find_layer(source) if isinstance(source, str) else None)
-    if layer is None or not hasattr(layer, "crs"):
-        return None
-    crs = layer.crs()
-    if not crs.isValid() or not crs.isGeographic():
-        return None
-    suggested = _suggest_metric_crs(layer)
-    return {
-        "_error": (
-            f"TERRAIN_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while its "
-            f"heights are not; {algorithm_id} on this grid is wrong on at least one axis, whatever SCALE is."
-        ),
-        "code": "CRS_GUARD",
-        "layer_crs": crs.authid(),
-        "suggested_crs": suggested,
-        "suggestion": (
-            f"gdal:warpreproject with TARGET_CRS {suggested} lets {algorithm_id} "
-            "run on the result with SCALE 1."
         ),
     }
 
@@ -1772,421 +1421,3 @@ def _hillshade_input_check(algorithm_id: str, parameters: dict) -> dict | None:
     source = parameters.get("INPUT")
     layer = source if hasattr(source, "crs") else (_find_layer(source) if isinstance(source, str) else None)
     return hillshade_of_hillshade(layer, algorithm_id)
-
-
-
-
-
-
-
-
-
-_ON_DEGREES = {
-    "gdal:viewshed": (True, "every sight line mixes a horizontal distance in degrees with heights in metres, "
-                            "and MAX_DISTANCE (100 when left out) reads as degrees", "INPUT"),
-    "native:rastersurfacevolume": (True, "each cell's area is in square degrees, so the volume comes out in "
-                                         "degrees squared times metres", "INPUT"),
-    "qgis:idwinterpolation": (False, "the distances IDW weights by are degrees, and a degree of longitude is "
-                                     "shorter than a degree of latitude away from the equator; PIXEL_SIZE (0.1 "
-                                     "when left out) is in degrees too", ""),
-    "qgis:tininterpolation": (False, "PIXEL_SIZE (0.1 when left out, about 11 km) is in degrees, and the "
-                                     "cells are not square on the ground", ""),
-    "qgis:heatmapkerneldensityestimation": (False, "RADIUS (100 when left out) and PIXEL_SIZE are in degrees",
-                                            "INPUT"),
-    "gdal:gridinversedistance": (False, "the search radii and the distance weights are in degrees", "INPUT"),
-    "gdal:gridinversedistancenearestneighbor": (False, "the search radius and the distance weights are in "
-                                                       "degrees", "INPUT"),
-    "gdal:gridaverage": (False, "the search radii are in degrees", "INPUT"),
-    "gdal:griddatametrics": (False, "the search radii are in degrees", "INPUT"),
-}
-
-
-def _interpolation_source(value):
-
-    if not isinstance(value, str) or not value:
-        return None
-    first = value.split("::|::", 1)[0].split("::~::", 1)[0]
-    return _find_layer(first) if first else None
-
-
-def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
-
-    row = _ON_DEGREES.get(str(algorithm_id or "").casefold())
-    if row is None:
-        return None
-    always, why, key = row
-    if confirmed and not always:
-        return None
-    layer = _find_layer(parameters.get(key)) if key and isinstance(parameters.get(key), str) else (
-        _interpolation_source(parameters.get("INTERPOLATION_DATA")) if not key else None)
-    if layer is None or not hasattr(layer, "crs"):
-        return None
-    crs = layer.crs()
-    if not crs.isValid() or not crs.isGeographic():
-        return None
-    suggested = _suggest_metric_crs(layer)
-    reproject = ("gdal:warpreproject" if isinstance(layer, QgsRasterLayer) else "native:reprojectlayer")
-    return {
-        "_error": (f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, a CRS in degrees: {algorithm_id} "
-                   f"on it is wrong, because {why}."),
-        "code": "CRS_GUARD",
-        "layer_crs": crs.authid(),
-        "suggested_crs": suggested,
-        "suggestion": (f"{reproject} with TARGET_CRS {suggested} runs "
-                       f"{algorithm_id} on the result in metres."
-                       + ("" if always else " confirm_large true keeps values really meant in degrees.")),
-    }
-
-
-
-
-
-
-_FLOW_FROM_DEM = frozenset({
-    "grass:r.flow", "grass7:r.flow",
-    "saga:flowaccumulationtopdown", "sagang:flowaccumulationtopdown",
-    "saga:flowaccumulationrecursive", "sagang:flowaccumulationrecursive",
-    "sagang:flowaccumulationparallelizable", "saga:flowdirection", "sagang:flowdirection",
-    "wbt:d8pointer", "wbt:dinfpointer", "wbt:fd8pointer", "wbt:rho8pointer",
-})
-
-_FILL_MARKS = ("fillsink", "fill.dir", "filldepression", "breachdepression", "pitremove", "sinkremoval",
-               "fillsinkswangliu")
-
-_FILL_ALGORITHMS = ("native:fillsinkswangliu", "grass:r.fill.dir", "grass7:r.fill.dir", "sagang:fillsinkswangliu",
-                    "wbt:filldepressions", "wbt:breachdepressions")
-
-
-def _was_filled(layer) -> bool:
-
-    try:
-        history = " ".join(str(item) for item in layer.metadata().history()).casefold()
-    except Exception:  # noqa: BLE001
-        return False
-    return any(mark in history for mark in _FILL_MARKS)
-
-
-
-
-
-_fill_step_cache: dict = {"value": "", "count": -1}
-
-
-def _fill_step_available() -> str:
-
-    try:
-        algs = QgsApplication.processingRegistry().algorithms()
-    except Exception:  # noqa: BLE001
-        return ""
-    if len(algs) != _fill_step_cache["count"]:
-        ids = {a.id().casefold(): a.id() for a in algs}
-        _fill_step_cache["value"] = next((ids[a] for a in _FILL_ALGORITHMS if a in ids), "")
-        _fill_step_cache["count"] = len(algs)
-    return _fill_step_cache["value"]
-
-
-def _flow_dem(alg, algorithm_id: str, parameters: dict):
-
-    if str(algorithm_id or "").casefold() not in _FLOW_FROM_DEM:
-        return None
-    layer = None
-    for definition in alg.parameterDefinitions():
-        try:
-            if definition.type() == "raster" and not definition.isDestination():
-                layer = _find_layer(parameters.get(definition.name())) \
-                    if isinstance(parameters.get(definition.name()), str) else None
-                break
-        except Exception:  # noqa: BLE001  # nosec B112
-            continue
-    return layer if isinstance(layer, QgsRasterLayer) else None
-
-
-def _flow_in_degrees_check(alg, algorithm_id: str, parameters: dict) -> dict | None:
-
-    layer = _flow_dem(alg, algorithm_id, parameters)
-    if layer is None:
-        return None
-    crs = layer.crs()
-    if crs.isValid() and crs.isGeographic():
-        suggested = _suggest_metric_crs(layer)
-        return {
-            "_error": (f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while "
-                       f"its heights are metres: {algorithm_id} routes water on slopes it cannot measure."),
-            "code": "CRS_GUARD",
-            "layer_crs": crs.authid(),
-            "suggested_crs": suggested,
-            "suggestion": (f"map_drainage reprojects and fills the DEM itself. Or gdal:warpreproject TARGET_CRS "
-                           f"{suggested} then a sink fill prepares it for {algorithm_id}."),
-        }
-    return None
-
-
-def unfilled_dem_warning(alg, algorithm_id: str, parameters: dict, confirmed: bool) -> str:
-
-
-
-
-
-
-
-    if confirmed:
-        return ""
-    layer = _flow_dem(alg, algorithm_id, parameters)
-    if layer is None or _was_filled(layer):
-        return ""
-    fill = _fill_step_available()
-    step = f"{fill} on '{layer.name()}'" if fill else "a sink fill on the DEM"
-    return (f"UNFILLED_DEM: the history of '{layer.name()}' names no sink fill. If it is a raw DEM, "
-            f"{algorithm_id} stopped the water at every pit, so the streams break and the catchments fragment: "
-            f"run {step} and route its output again, or call map_drainage, which fills and routes in one call. "
-            f"A DEM already filled or breached elsewhere is fine as it is.")
-
-
-
-
-
-
-
-
-_DEGREE_MIN_X = -180.0
-_DEGREE_MAX_X = 360.0
-_DEGREE_BOUND_Y = 90.0
-
-
-_HALF_CELL_MAX = 2.5
-
-
-def degree_slack(layer) -> tuple[float, float]:
-
-    try:
-        if isinstance(layer, QgsRasterLayer):
-            half_x = abs(float(layer.rasterUnitsPerPixelX())) / 2.0
-            half_y = abs(float(layer.rasterUnitsPerPixelY())) / 2.0
-            half_max = tuning.threshold("processing_half_cell_max", _HALF_CELL_MAX, 1.0, 5.0)
-            if half_x <= half_max and half_y <= half_max:
-                return half_x, half_y
-    except Exception:  # noqa: BLE001  # nosec B110
-        pass
-    return 0.0, 0.0
-
-
-def fits_degrees(xmin: float, xmax: float, ymin: float, ymax: float,
-                 slack_x: float = 0.0, slack_y: float = 0.0) -> bool:
-
-    return (xmin >= _DEGREE_MIN_X - slack_x and xmax <= _DEGREE_MAX_X + slack_x
-            and xmax - xmin <= 360.0 + 2 * slack_x
-            and ymin >= -_DEGREE_BOUND_Y - slack_y and ymax <= _DEGREE_BOUND_Y + slack_y)
-
-
-def _looks_like_degrees(extent, layer=None) -> bool:
-    slack_x, slack_y = degree_slack(layer)
-    return fits_degrees(extent.xMinimum(), extent.xMaximum(), extent.yMinimum(), extent.yMaximum(),
-                        slack_x, slack_y)
-
-
-def crs_plausibility(layer, new_crs) -> dict | None:
-
-
-
-
-
-
-
-
-
-
-    try:
-        if layer is None or not hasattr(layer, "extent") or not new_crs.isValid():
-            return None
-        extent = layer.extent()
-        if extent is None or extent.isEmpty():
-            return None
-        degrees = _looks_like_degrees(extent, layer)
-    except Exception:  # nosec B110
-        return None
-
-    name = layer.name()
-    if new_crs.isGeographic() and not degrees:
-        return {
-            "_error": (
-                f"The coordinates in '{name}' run to {extent.xMaximum():.0f}, {extent.yMaximum():.0f}, which "
-                f"cannot be degrees, so declaring {new_crs.authid()} would put the layer in the wrong place."
-            ),
-            "code": "CRS_GUARD",
-            "suggestion": (
-                "native:reprojectlayer TARGET_CRS EPSG:4326 moves an already correctly declared layer into "
-                "degrees. Setting the CRS relabels the coordinates, it does not move them."
-            ),
-        }
-    if not new_crs.isGeographic() and degrees:
-        return {
-            "_error": (
-                f"The coordinates in '{name}' all sit inside 180 by 90, so they are degrees, and "
-                f"{new_crs.authid()} is in metres. Declaring it would not reproject the layer."
-            ),
-            "code": "CRS_GUARD",
-            "suggestion": (
-                f"The coordinates are usually EPSG:4326; from there, native:reprojectlayer TARGET_CRS "
-                f"{new_crs.authid()} gives metres."
-            ),
-        }
-    return _outside_area_of_use(layer, new_crs, extent)
-
-
-
-
-_AREA_OF_USE_MARGIN = 2.0
-
-
-def _centre_in_area_of_use(crs, point) -> bool | None:
-
-    try:
-        bounds = crs.bounds()
-        if bounds is None or bounds.isEmpty():
-            return None
-        wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
-        lonlat = point if crs.isGeographic() else \
-            QgsCoordinateTransform(crs, wgs84, QgsProject.instance()).transform(point)
-        x, y = lonlat.x(), lonlat.y()
-        if math.isnan(x) or math.isnan(y) or math.isinf(x) or math.isinf(y):
-            return False
-        if crs.isGeographic() and x > 180.0:
-
-            x -= 360.0
-        m = tuning.threshold("processing_area_of_use_margin", _AREA_OF_USE_MARGIN, 0.5, 10.0)
-        return (bounds.xMinimum() - m <= x <= bounds.xMaximum() + m
-                and bounds.yMinimum() - m <= y <= bounds.yMaximum() + m)
-    except Exception:  # noqa: BLE001
-        return False
-
-
-def _outside_area_of_use(layer, new_crs, extent) -> dict | None:
-
-
-
-
-
-
-
-    try:
-        current = layer.crs()
-        if not current.isValid() or current == new_crs:
-            return None
-        centre = extent.center()
-    except Exception:  # nosec B110
-        return None
-    if _centre_in_area_of_use(current, centre) is not True or _centre_in_area_of_use(new_crs, centre) is not False:
-        return None
-    return {
-        "_error": (
-            f"'{layer.name()}' is declared {current.authid()} and its coordinates fit that CRS; read as "
-            f"{new_crs.authid()} they fall outside the area that CRS covers, so declaring it would move the layer."
-        ),
-        "code": "CRS_GUARD",
-        "suggestion": (
-            f"native:reprojectlayer (gdal:warpreproject for a raster) TARGET_CRS "
-            f"{new_crs.authid()} moves it there. Setting the CRS relabels the coordinates, it does not move them."
-        ),
-    }
-
-
-_PROVENANCE_COMMAND_MAX = 2000
-
-
-def _stamp_provenance(layer, provenance: dict) -> None:
-
-
-
-
-
-
-
-
-
-
-
-    try:
-        from datetime import datetime, timezone
-
-        from ..core.licence import ORIGIN_PROPERTY, credit_layer
-
-        when = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        algorithm = provenance.get("algorithm") or "a Processing algorithm"
-        command = str(provenance.get("command") or "")
-        if len(command) > _PROVENANCE_COMMAND_MAX:
-            command = command[:_PROVENANCE_COMMAND_MAX] + " ..."
-        md = layer.metadata()
-
-
-        own = any(str(text).strip() for text in md.licenses())
-        inputs = ", ".join(str(name) for name in provenance.get("inputs") or [])
-        md.addHistoryItem(f"{when}: produced by the TerraLab AI Agent with {algorithm}"
-                          + (f". Inputs: {inputs}" if inputs else "")
-                          + (f". Command: {command}" if command else ""))
-        if not md.abstract():
-            md.setAbstract(f"Output of {algorithm}, produced by the TerraLab AI Agent on {when}. "
-                           "The exact command is in the metadata history.")
-        layer.setMetadata(md)
-        layer.setCustomProperty(ORIGIN_PROPERTY, True)
-        if own:
-            credit_layer(layer)
-        else:
-            credit_layer(layer, list(provenance.get("licences") or []), list(provenance.get("rights") or []))
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Provenance not written on {layer.name()}: {exc}")
-        return
-    write_metadata_to_file(layer, provenance.get("existed"))
-
-
-def _gpkg_table(path: str) -> str:
-
-    from osgeo import ogr
-
-    dataset = ogr.Open(path)
-    try:
-        return dataset.GetLayer(0).GetName() if dataset is not None and dataset.GetLayerCount() else ""
-    finally:
-        dataset = None
-
-
-def write_metadata_to_file(layer, existed=None) -> None:
-
-
-
-
-
-
-
-
-
-
-
-    from qgis.core import QgsProviderRegistry
-
-    from ..core.provenance import was_there
-
-    try:
-        registry = QgsProviderRegistry.instance()
-        parts = registry.decodeUri(layer.providerType(), layer.source()) or {}
-        path = str(parts.get("path") or "")
-        if not path or not os.path.isfile(path):
-            return
-        if layer.providerType() == "ogr" and path.lower().endswith(".gpkg"):
-            table = str(parts.get("layerName") or "") or _gpkg_table(path)
-            if not table:
-                log_warning(f"Provenance not saved in {os.path.basename(path)}: no table found in it")
-                return
-            if was_there(path, table, existed):
-                return
-            parts["layerName"] = table
-            parts.pop("layerId", None)
-            saved = registry.saveLayerMetadata("ogr", registry.encodeUri("ogr", parts), layer.metadata())
-            ok, error = saved if isinstance(saved, tuple) else (bool(saved), "")
-        else:
-            if was_there(path, "", existed) or os.path.exists(layer.metadataUri()):
-                return
-            error, ok = layer.saveDefaultMetadata()
-        if not ok:
-            log_warning(f"Provenance not saved with {os.path.basename(path)}: {error}")
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Provenance not saved with the layer's file: {exc}")

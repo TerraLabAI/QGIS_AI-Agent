@@ -38,7 +38,7 @@ from .query_tools import (
     _check_geometry_validity,
     _evaluate_expression,
     _get_features,
-    _get_features_is_remote,
+    _get_features_off_main,
     _get_field_statistics,
     _get_provider_capabilities,
     _get_raster_band_stats,
@@ -314,7 +314,7 @@ def register_core_tools(registry: ToolRegistry):
         handler=_get_features,
 
 
-        background=_get_features_is_remote,
+        background=_get_features_off_main,
     ))
 
     registry.register(Tool(

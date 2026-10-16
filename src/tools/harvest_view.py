@@ -41,6 +41,7 @@ from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
 from .data_tools import _avoid_reserved_name
+from .layer_lookup import require_vector
 from .processing_run import _PROCESSING_TASKS, _readers_of, _sweep_consumed_tasks, remove_layers
 
 _REMOTE_PREFIXES = ("/vsicurl/", "http://", "https://", "/vsis3/", "/vsiaz/", "/vsigs/")
@@ -135,20 +136,6 @@ def register_harvest_view_tools(registry: ToolRegistry):
 
 
 
-def _vector_layer_or_error(name_or_id: str):
-
-    layer = resolve_layer(name_or_id)
-    if layer is None:
-        return None, layer_not_found(name_or_id)
-    if not isinstance(layer, QgsVectorLayer):
-        return None, tool_error(
-            f"Layer {layer.name()!r} is not a vector layer.",
-            "INVALID_ARGS",
-            hint="layer_not_vector", layer=layer.name(),
-        )
-    return layer, None
-
-
 def _feature_count(layer) -> int:
 
     count = layer.featureCount()
@@ -183,7 +170,7 @@ def _extent_dict(extent) -> dict:
 
 
 def _set_layer_filter(args: dict) -> dict:
-    layer, error = _vector_layer_or_error(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     expression = str(args.get("filter") or "").strip()
@@ -450,7 +437,7 @@ def _tie_again(project, layer, ties: dict) -> None:
 def _zoom_to_selected(args: dict) -> dict:
     name = args.get("layer_name")
     if name:
-        layer, error = _vector_layer_or_error(name)
+        layer, error = require_vector(name)
         if error:
             return error
     else:
@@ -489,7 +476,7 @@ def _zoom_to_selected(args: dict) -> dict:
 
 
 def _open_attribute_table(args: dict) -> dict:
-    layer, error = _vector_layer_or_error(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     expression = str(args.get("filter_expression") or "").strip()

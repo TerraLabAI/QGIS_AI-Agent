@@ -382,14 +382,14 @@ def remote_dataset_refusal(url: str) -> str | None:
 
 
 
-    from . import net, security
+    from . import net, security_urls
 
     try:
         parts = urllib.parse.urlsplit(url)
     except ValueError:
         return None
     ext = os.path.splitext(parts.path)[1].lower()
-    if ext not in ("", ".vrt") or security._routed_public_host(parts.hostname or ""):
+    if ext not in ("", ".vrt") or security_urls._routed_public_host(parts.hostname or ""):
         return None
     try:
         response = net.open_url(url, timeout=15)

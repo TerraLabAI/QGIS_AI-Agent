@@ -47,7 +47,6 @@ from .data_ogc import (
 )
 from .data_osm import (
     _FOOTPRINT_SOURCE_INPUTS,
-    _FOOTPRINT_SOURCES,
     _fetch_building_footprints,
     _fetch_osm_data,
     _fetch_osm_data_preflight,
@@ -541,7 +540,6 @@ def register_data_tools(registry: ToolRegistry):
 
 
 
-
 _ENUM_NODES: list = []
 
 
@@ -562,8 +560,6 @@ def _watch_served_vocabularies(registry: ToolRegistry) -> None:
     wanted = (
         (node("fetch_overture", ("properties", "theme")),
          "overture_themes", (), ()),
-        (node("fetch_building_footprints", ("properties", "sources", "items")),
-         "footprint_sources", _FOOTPRINT_SOURCES, ("osm",)),
     )
     for schema, key, shipped, aliases in wanted:
         if isinstance(schema, dict) and isinstance(schema.get("enum"), list):

@@ -55,20 +55,21 @@ def _attribute(renderer, layer) -> str:
     return QgsExpression.quotedColumnRef(text) if layer.fields().indexOf(text) >= 0 else text
 
 
-def _colour_cases(renderer, layer) -> tuple[str | None, QColor | None, str]:
+def _classes(renderer, layer) -> tuple[list, QColor | None, QColor | None, str]:
+
 
     if isinstance(renderer, QgsGraduatedSymbolRenderer):
         value = f"({_attribute(renderer, layer)})"
         ranges = [r for r in renderer.ranges() if r.renderState() and r.symbol() is not None]
         if not ranges:
-            return None, None, "graduated, no class drawn"
+            return [], None, None, "graduated, no class drawn"
         arms = []
         for index, item in enumerate(ranges):
             low = ">=" if index == 0 else ">"
-            arms.append(f"WHEN {value} {low} {item.lowerValue()!r} AND {value} <= {item.upperValue()!r} "
-                        f"THEN {_quoted(item.symbol().color())}")
-        return ("CASE " + " ".join(arms) + " END", ranges[0].symbol().color(),
-                f"graduated on {renderer.classAttribute()}, {len(ranges)} classes")
+            arms.append((f"{value} {low} {item.lowerValue()!r} AND {value} <= {item.upperValue()!r}",
+                         item.symbol().color()))
+        reads = f"graduated on {renderer.classAttribute()}, {len(ranges)} classes"
+        return arms, None, ranges[0].symbol().color(), reads
     if isinstance(renderer, QgsCategorizedSymbolRenderer):
         value = f"({_attribute(renderer, layer)})"
         arms, fallback, first = [], None, None
@@ -79,13 +80,10 @@ def _colour_cases(renderer, layer) -> tuple[str | None, QColor | None, str]:
             if item.value() is None or item.value() == "":
                 fallback = item.symbol().color()
                 continue
-            quoted = QgsExpression.quotedValue(item.value())
-            arms.append(f"WHEN {value} = {quoted} THEN {_quoted(item.symbol().color())}")
+            arms.append((f"{value} = {QgsExpression.quotedValue(item.value())}", item.symbol().color()))
         if not arms:
-            return None, first, "categorized, no category drawn"
-        tail = f" ELSE {_quoted(fallback)}" if fallback is not None else ""
-        return ("CASE " + " ".join(arms) + tail + " END", first,
-                f"categorized on {renderer.classAttribute()}, {len(arms)} categories")
+            return [], None, first, "categorized, no category drawn"
+        return arms, fallback, first, f"categorized on {renderer.classAttribute()}, {len(arms)} categories"
     if isinstance(renderer, QgsRuleBasedRenderer):
         arms, rest, first = [], None, None
         for rule in renderer.rootRule().descendants():
@@ -96,17 +94,40 @@ def _colour_cases(renderer, layer) -> tuple[str | None, QColor | None, str]:
             if rule.isElse():
                 rest = rest or rule.symbol().color()
                 continue
-            test = rule.filterExpression() or "TRUE"
-            arms.append(f"WHEN ({test}) THEN {_quoted(rule.symbol().color())}")
+            arms.append((f"({rule.filterExpression() or 'TRUE'})", rule.symbol().color()))
         if not arms:
-            return None, first, "rule-based, no rule with a symbol"
-        tail = f" ELSE {_quoted(rest)}" if rest is not None else ""
-        return "CASE " + " ".join(arms) + tail + " END", first, f"rule-based, {len(arms)} rules"
+            return [], None, first, "rule-based, no rule with a symbol"
+        return arms, rest, first, f"rule-based, {len(arms)} rules"
     symbol = renderer.symbol() if isinstance(renderer, QgsSingleSymbolRenderer) else None
     if symbol is None:
         symbols = renderer.symbols(QgsRenderContext()) if renderer is not None else []
         symbol = symbols[0] if symbols else None
-    return None, (QColor(symbol.color()) if symbol is not None else None), "one colour"
+    return [], None, (QColor(symbol.color()) if symbol is not None else None), "one colour"
+
+
+def _colour_cases(renderer, layer) -> tuple[str | None, QColor | None, str]:
+
+    arms, rest, first, reads = _classes(renderer, layer)
+    if not arms:
+        return None, first, reads
+    tail = f" ELSE {_quoted(rest)}" if rest is not None else ""
+    return ("CASE " + " ".join(f"WHEN {test} THEN {_quoted(colour)}" for test, colour in arms) + tail + " END",
+            first, reads)
+
+
+def line_width_px(layer) -> float:
+
+
+    from qgis.core import QgsLineSymbol, QgsUnitTypes
+
+    from ._compat import enum_value
+
+    millimetres = enum_value((Qgis, "RenderUnit.Millimeters"), (QgsUnitTypes, "RenderMillimeters"))
+    renderer = layer.renderer()
+    for symbol in renderer.symbols(QgsRenderContext()) if renderer is not None else []:
+        if isinstance(symbol, QgsLineSymbol) and symbol.outputUnit() == millimetres:
+            return max(1.0, round(symbol.width() * 96.0 / 25.4, 1))
+    return 2.0
 
 
 def _outline(renderer) -> tuple[QColor | None, float | None]:
@@ -133,11 +154,51 @@ def vector_renderer(layer):
     return sip.cast(renderer, QgsVectorLayer3DRenderer)
 
 
+
+
+SYMBOL_CLASSES = {"point": "QgsPoint3DSymbol", "line": "QgsLine3DSymbol", "polygon": "QgsPolygon3DSymbol"}
+
+
+def typed_symbol(symbol):
+
+    import qgis._3d as q3d
+    from qgis.PyQt import sip
+
+    name = SYMBOL_CLASSES.get(symbol.type())
+    return sip.cast(symbol, getattr(q3d, name)) if name else symbol
+
+
 def polygon_symbol(layer):
 
     renderer = vector_renderer(layer)
     symbol = renderer.symbol() if renderer is not None else None
     return symbol if symbol is not None and symbol.type() == "polygon" else None
+
+
+def kept_renderer(layer, kind: str | None = None) -> tuple:
+
+
+
+
+    renderer = layer.renderer3D() if hasattr(layer, "renderer3D") else None
+    if renderer is None:
+        return None, []
+    if renderer.type() == "vector":
+        clone = vector_renderer(layer).clone()
+        symbols = [clone.symbol()]
+    elif renderer.type() == "rulebased":
+        from qgis._3d import QgsRuleBased3DRenderer
+        from qgis.PyQt import sip
+
+        clone = sip.cast(renderer, QgsRuleBased3DRenderer).clone()
+        symbols = [rule.symbol() for rule in clone.rootRule().descendants() if rule.symbol() is not None]
+    else:
+        return None, []
+    kinds = {symbol.type() for symbol in symbols if symbol is not None}
+    if len(kinds) != 1 or None in symbols or (kind is not None and kinds != {kind}) or (
+            renderer.type() == "rulebased" and kinds == {"polygon"}):
+        return None, []
+    return clone, [typed_symbol(symbol) for symbol in symbols]
 
 
 def material_access(symbol) -> tuple:
@@ -177,13 +238,68 @@ def _with_colours(material, cases):
     return painted
 
 
+def _material_like(kept, colour: QColor, ambient: QColor):
+
+    from qgis._3d import QgsPhongMaterialSettings
+
+    material = QgsPhongMaterialSettings()
+    for name in ("Specular", "Shininess", "Opacity"):
+        if hasattr(kept, name[0].lower() + name[1:]) and hasattr(material, "set" + name):
+            getattr(material, "set" + name)(getattr(kept, name[0].lower() + name[1:])())
+    material.setDiffuse(colour)
+    material.setAmbient(ambient)
+    return material
+
+
+def painted_renderer(symbol, layer) -> tuple:
+
+
+
+
+
+    from qgis._3d import QgsRuleBased3DRenderer, QgsVectorLayer3DRenderer
+
+
+    held = symbol
+    symbol = typed_symbol(held)
+    arms, rest, first, reads = _classes(layer.renderer(), layer)
+    kept = material_access(symbol)[0]()
+
+    def coloured(owned, colour):
+        target, colour = typed_symbol(owned), QColor(colour)
+        if target.type() == "line" and target.renderAsSimpleLines():
+
+            from qgis._3d import QgsSimpleLineMaterialSettings
+
+            material = QgsSimpleLineMaterialSettings()
+            material.setAmbient(colour)
+        else:
+            material = _material_like(kept, colour, colour.darker(200))
+        material_access(target)[1](material)
+        return owned
+
+    base = QColor(first) if first is not None else QColor("#b4b4b4")
+    facts = {"color_from": reads, "color": base.name()}
+    if not arms:
+        return QgsVectorLayer3DRenderer(coloured(held, base)), facts
+    root = QgsRuleBased3DRenderer.Rule(None)
+    for test, colour in arms:
+        copy = coloured(symbol.clone(), colour)
+        root.appendChild(QgsRuleBased3DRenderer.Rule(copy, test, QColor(colour).name()))
+    if rest is not None:
+        copy = coloured(symbol.clone(), rest)
+        others = " OR ".join(f"({test})" for test, _ in arms)
+        root.appendChild(QgsRuleBased3DRenderer.Rule(copy, f"NOT coalesce({others}, FALSE)", QColor(rest).name()))
+    facts["rules"] = len(arms) + (rest is not None)
+    return QgsRuleBased3DRenderer(root), facts
+
+
 def paint(symbol, layer) -> dict:
 
-    from qgis._3d import QgsAbstractMaterialSettings, QgsPhongMaterialSettings, QgsPolygon3DSymbol
-    from qgis.PyQt import sip
+    from qgis._3d import QgsAbstractMaterialSettings
 
 
-    symbol = sip.cast(symbol, QgsPolygon3DSymbol)
+    symbol = typed_symbol(symbol)
     renderer = layer.renderer()
     cases, first, reads = _colour_cases(renderer, layer)
 
@@ -191,14 +307,8 @@ def paint(symbol, layer) -> dict:
 
 
     read_material, hand_material = material_access(symbol)
-    kept = read_material()
-    material = QgsPhongMaterialSettings()
-    for name in ("Specular", "Shininess", "Opacity"):
-        if hasattr(kept, name[0].lower() + name[1:]) and hasattr(material, "set" + name):
-            getattr(material, "set" + name)(getattr(kept, name[0].lower() + name[1:])())
     base = QColor(first) if first is not None else QColor("#b4b4b4")
-    material.setDiffuse(base)
-    material.setAmbient(base.darker(200))
+    material = _material_like(read_material(), base, base.darker(200))
     facts = {"color_from": reads, "color": base.name()}
 
 
@@ -226,11 +336,14 @@ def paint(symbol, layer) -> dict:
 
 def colour_from_2d(layer) -> dict | None:
 
-    symbol = polygon_symbol(layer)
-    if symbol is None:
+
+    renderer, symbols = kept_renderer(layer)
+    if renderer is None:
         return None
-    renderer = vector_renderer(layer).clone()
-    facts = paint(renderer.symbol(), layer)
+    if symbols[0].type() == "polygon":
+        facts = paint(symbols[0], layer)
+    else:
+        renderer, facts = painted_renderer(symbols[0].clone(), layer)
     layer.setRenderer3D(renderer)
     layer.triggerRepaint()
     return facts

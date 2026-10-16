@@ -43,7 +43,7 @@ from . import vector_write
 from ._compat import FIELD_TYPES
 from .csv_loader import CSV_EXTENSIONS, add_csv
 from .data_common import built_here, worker_options
-from .layer_lookup import _find_layer, _layer_not_found_error
+from .layer_lookup import _find_layer, _layer_not_found_error, require_vector
 from .missing_file import missing_file
 
 _CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".gpx", ".dxf", ".vrt")
@@ -350,6 +350,33 @@ def _safe_cad_stem(value: str) -> str:
     return stem
 
 
+
+
+
+
+
+GML_COPY_BYTES = 5 * 1024 * 1024
+
+
+def _gml_to_gpkg(path: str) -> str:
+
+
+    stem = _safe_cad_stem(os.path.splitext(os.path.basename(path))[0])[:60] or "gml"
+    gpkg = os.path.join(create_managed_temp_dir("gml"), stem + ".gpkg")
+    try:
+        from osgeo import gdal
+
+        gdal.UseExceptions()
+        translated = gdal.VectorTranslate(gpkg, path, format="GPKG")
+        if translated is None:
+            raise RuntimeError("GDAL returned no output dataset")
+        del translated
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"GML not copied to a GeoPackage, read as it is: {exc}")
+        return ""
+    return gpkg
+
+
 def _cad_crs_question(path: str, name: str) -> dict:
 
 
@@ -359,7 +386,12 @@ def _cad_crs_question(path: str, name: str) -> dict:
     from .crs_at_load import _VERDICT_FACT, verdict
 
     def refusal(probe) -> dict:
-        found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False) if probe.isValid() else {}
+        if not probe.isValid():
+
+
+            return {"_error": f"GDAL cannot read {os.path.basename(path)}; nothing was imported.",
+                    "code": "EXECUTION_FAILED", **coded_fact(hint="cad_unreadable")}
+        found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False)
         found = found or {"verdict": "missing", "crs": "", "candidates": []}
         candidate_crs = [authid for authid, _why in found["candidates"]]
         return {"_error": ("CAD import needs the CRS the drawing was made in, and a drawing does not say it: "
@@ -749,6 +781,15 @@ def _add_vector_layer(args: dict) -> dict:
 
     if path.lower().endswith(CSV_EXTENSIONS):
         return add_csv(path, name, args.get("crs"))
+
+    if not options and real_path.lower().endswith(".gml") and os.path.getsize(real_path) > GML_COPY_BYTES:
+        copied = _gml_to_gpkg(real_path)
+        if copied:
+            added = _add_vector_layer({**args, "path": copied, "name": name})
+            if isinstance(added, dict) and added.get("_error") is None:
+                added["read_from"] = copied
+                added["gml"] = real_path
+            return added
 
     uri = path
     wanted = str(args.get("layer") or "").strip()
@@ -2137,11 +2178,9 @@ def _add_field(args: dict) -> dict:
         QgsField,
     )
 
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is not a vector layer"}
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
 
     field_name = args["field_name"]
     kind = str(args.get("field_type") or "string").strip().lower()

@@ -6,8 +6,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from .font_scale import scale_qss_font_px as _scale_qss_font_px
@@ -17,19 +15,12 @@ from .font_scale import scale_qss_font_px as _scale_qss_font_px
 
 BTN_GREEN = "#43a047"
 BTN_GREEN_HOVER = "#2e7d32"
-BTN_GREEN_DISABLED = "#c8e6c9"
-
 
 
 BRAND_GREEN = "#8bac27"
 BRAND_GREEN_TEXT = "#4d7c0f"
 BRAND_BLUE = "#1e88e5"
-BRAND_BLUE_HOVER = "#1976d2"
 BRAND_RED = "#d32f2f"
-BRAND_RED_HOVER = "#b71c1c"
-BRAND_GRAY = "#757575"
-BRAND_GRAY_HOVER = "#616161"
-BRAND_DISABLED = "#b0bec5"
 DISABLED_TEXT = "#666666"
 
 
@@ -54,10 +45,7 @@ DARK_UI = _dark_ui()
 
 
 
-
 MUTED_TEXT = "#a5a8ad" if DARK_UI else "#5b5f66"
-
-MUTED_TEXT_SOFT = "#6c6f75" if DARK_UI else "#868b93"
 
 
 
@@ -65,7 +53,6 @@ MUTED_TEXT_SOFT = "#6c6f75" if DARK_UI else "#868b93"
 INK_HOVER_FILL = "#d7dade" if DARK_UI else "#33363b"
 INK_PRESSED_FILL = "#c2c6cb" if DARK_UI else "#43464c"
 ERROR_TEXT = "#ef5350"
-SUCCESS_TEXT = "#66bb6a"
 
 
 WARNING_TEXT = "#f5a623"
@@ -83,14 +70,6 @@ _CARD_QSS = (
 
 
 _CARD_MARGINS = (12, 10, 12, 10)
-
-
-
-_SUBCARD_QSS = (
-    "QWidget#{name} {{ background-color: rgba(128, 128, 128, 0.08);"
-    " border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 10px; }}"
-)
-_SUBCARD_MARGINS = (12, 10, 12, 10)
 
 
 
@@ -160,108 +139,9 @@ def _msg_card_qss(name: str, kind: str) -> str:
 
 
 
-_SECTION_TOGGLE_QSS = (
-    "QPushButton { font-size: 11px; color: palette(text);"
-    " font-weight: bold; background-color: rgba(128, 128, 128, 0.10);"
-    " border: 1px solid rgba(128, 128, 128, 0.30); border-radius: 4px;"
-    " padding: 8px 10px; text-align: left; }"
-    f"QPushButton:hover {{ color: {BRAND_BLUE};"
-    " border-color: rgba(30, 136, 229, 0.7); }"
-    " QPushButton:disabled { color: rgba(128, 128, 128, 0.55);"
-    " background-color: rgba(128, 128, 128, 0.06);"
-    " border-color: rgba(128, 128, 128, 0.20); }"
-)
-
-
-_COMBO_THEME_QSS = (
-    "QComboBox { color: palette(text); background-color: palette(base);"
-    " border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 3px;"
-    " padding: 2px 8px; }"
-    "QComboBox QAbstractItemView { color: palette(text);"
-    " background-color: palette(base);"
-    " selection-background-color: rgba(30, 136, 229, 0.35); }"
-)
-
-
-_INPUT_THEME_QSS = (
-    "QLineEdit { border: 1px solid rgba(128, 128, 128, 0.35);"
-    " border-radius: 6px; padding: 7px 10px; background: palette(base);"
-    " color: palette(text); }"
-    f"QLineEdit:focus {{ border: 1px solid {BRAND_BLUE}; }}"
-)
-
-
-
-_PROGRESS_THIN_QSS = (
-    "QProgressBar { background: rgba(128, 128, 128, 0.25); border: none;"
-    " border-radius: 2px; max-height: 3px; min-height: 3px; }"
-    f"QProgressBar::chunk {{ background: {BRAND_BLUE}; border-radius: 2px; }}"
-)
-
-
-_INSTRUCTIONS_CARD_QSS = (
-    "QLabel {"
-    " background-color: rgba(128, 128, 128, 0.12);"
-    " border: 1px solid rgba(128, 128, 128, 0.25);"
-    " border-radius: 4px;"
-    " padding: 8px;"
-    " font-size: 12px;"
-    " color: palette(text);"
-    "}"
-)
-_INSTRUCTIONS_HINT_QSS = (
-    "QLabel {"
-    " background: transparent;"
-    " border: none;"
-    " padding: 2px 0px;"
-    " font-size: 11px;"
-    f" color: {MUTED_TEXT};"
-    "}"
-)
-
-
-
-
-
-
 
 
 _BTN_LABEL_WEIGHT = "font-weight: 600;"
-
-_BTN_GREEN = (
-    f"QPushButton {{ background-color: {BTN_GREEN}; color: #000000;"
-    f" padding: 8px 16px; border: none; border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BTN_GREEN_HOVER}; color: #000000; }}"
-    f"QPushButton:disabled {{ background-color: {BTN_GREEN_DISABLED};"
-    f" color: {DISABLED_TEXT}; }}"
-)
-
-_BTN_GREEN_AUTH = (
-    f"QPushButton {{ background-color: {BTN_GREEN}; color: #000000;"
-    f" border: none; border-radius: 4px; {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BTN_GREEN_HOVER}; }}"
-    f"QPushButton:disabled {{ background-color: {BRAND_DISABLED};"
-    f" color: {DISABLED_TEXT}; }}"
-)
-
-_BTN_BLUE = (
-    f"QPushButton {{ background-color: {BRAND_BLUE}; color: #000000;"
-    f" padding: 6px 12px; border: none; border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BRAND_BLUE_HOVER}; color: #000000; }}"
-    f"QPushButton:disabled {{ background-color: {BRAND_DISABLED};"
-    f" color: {DISABLED_TEXT}; }}"
-)
-
-_BTN_BLUE_AUTH = (
-    f"QPushButton {{ background-color: {BRAND_BLUE}; color: #000000;"
-    f" border: none; border-radius: 4px; {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BRAND_BLUE_HOVER}; }}"
-    f"QPushButton:disabled {{ background-color: {BRAND_DISABLED}; }}"
-)
-
-
 
 
 _UPDATE_CARD_STYLE = (
@@ -283,17 +163,6 @@ _UPDATE_LATER_STYLE = (
 )
 
 
-_BTN_BLUE_PRIMARY = (
-    f"QPushButton {{ background-color: {BRAND_BLUE}; color: #000000;"
-    f" padding: 8px 16px; border: none; border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BRAND_BLUE_HOVER}; color: #000000; }}"
-    f"QPushButton:disabled {{ background-color: {BRAND_DISABLED};"
-    f" color: {DISABLED_TEXT}; }}"
-)
-
-
-
 
 _BTN_GHOST = (
     "QPushButton { background-color: transparent; color: palette(text);"
@@ -307,172 +176,12 @@ _BTN_GHOST = (
 )
 
 
-
-_BTN_BLUE_OUTLINE = (
-    f"QPushButton {{ background-color: transparent; color: {BRAND_BLUE};"
-    f" border: 1px solid {BRAND_BLUE}; border-radius: 4px; font-weight: 600;"
-    " padding: 6px 12px; }"
-    "QPushButton:hover { background-color: rgba(30, 136, 229, 0.12); }"
-    f"QPushButton:disabled {{ color: {DISABLED_TEXT};"
-    f" border-color: {DISABLED_TEXT}; }}"
-)
-
-
-
-_BTN_RED_OUTLINE = (
-    f"QPushButton {{ background-color: transparent; color: {BRAND_RED};"
-    " border: 1px solid rgba(211, 47, 47, 0.55); border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT}"
-    " padding: 6px 12px; }"
-    "QPushButton:hover { background-color: rgba(211, 47, 47, 0.12); }"
-    f"QPushButton:disabled {{ color: {DISABLED_TEXT};"
-    " border-color: rgba(128, 128, 128, 0.35); }"
-)
-
-
-
-_BTN_LINK = (
-    f"QPushButton {{ background: transparent; border: none; color: {BRAND_BLUE};"
-    " font-size: 11px; text-align: left; padding: 2px 0px; }"
-    "QPushButton:hover { text-decoration: underline; }"
-)
-_BTN_LINK_MUTED = (
-    "QPushButton { background: transparent; border: none;"
-    f" color: {MUTED_TEXT}; font-size: 11px; padding: 4px 8px; }}"
-    f"QPushButton:hover {{ color: {ERROR_TEXT}; text-decoration: underline; }}"
-)
-
-
-_BTN_LINK_STRONG = (
-    "QPushButton { background: transparent; border: none;"
-    " color: palette(text); font-size: 11px; font-weight: 600;"
-    " padding: 4px 8px; text-decoration: underline; }"
-    f"QPushButton:hover {{ color: {ERROR_TEXT}; }}"
-)
-
-
-
-_BTN_CHIP = (
-    "QPushButton { background: rgba(128, 128, 128, 0.08);"
-    " border: 1px solid rgba(128, 128, 128, 0.40); border-radius: 6px;"
-    f" padding: 6px 12px; font-size: 12px; color: palette(text);"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    "QPushButton:hover { background: rgba(67, 160, 71, 0.18);"
-    " border-color: rgba(67, 160, 71, 0.65); }"
-    "QPushButton:pressed { background: rgba(67, 160, 71, 0.32);"
-    " border-color: rgba(67, 160, 71, 0.85); }"
-    "QPushButton:disabled { color: rgba(128, 128, 128, 0.40);"
-    " background: transparent; border-color: rgba(128, 128, 128, 0.20); }"
-)
-
-
-_BTN_GRAY = (
-    f"QPushButton {{ background-color: {BRAND_GRAY}; color: #000000;"
-    f" padding: 4px 8px; border: none; border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: {BRAND_GRAY_HOVER}; color: #000000; }}"
-    f"QPushButton:disabled {{ background-color: {BRAND_DISABLED}; color: {DISABLED_TEXT}; }}"
-)
-
-_BTN_RED = (
-    f"QPushButton {{ background-color: rgba(211,47,47,0.12); color: {BRAND_RED};"
-    f" padding: 6px 12px; border: none; border-radius: 4px;"
-    f" {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: rgba(211,47,47,0.22); }}"
-)
-
-
-
-_BTN_PAIR_NEUTRAL = (
-    "QPushButton { background-color: rgba(128,128,128,0.16); color: palette(text);"
-    f" border: none; border-radius: 4px; {_BTN_LABEL_WEIGHT} }}"
-    "QPushButton:hover { background-color: rgba(128,128,128,0.28); }"
-)
-_BTN_PAIR_CANCEL = (
-    f"QPushButton {{ background-color: rgba(211,47,47,0.12); color: {BRAND_RED};"
-    f" border: none; border-radius: 4px; {_BTN_LABEL_WEIGHT} }}"
-    f"QPushButton:hover {{ background-color: rgba(211,47,47,0.22); }}"
-)
-
-
-
-
-
-
-_FOOTER_ICON_BTN_STYLE = (
-    "QToolButton { background: transparent; border: none; padding: 6px 10px;"
-    " font-size: 22px; font-weight: 600;"
-    " color: palette(text); border-radius: 4px; }"
-    'QToolButton[hover="true"] { background: rgba(128,128,128,0.15); }'
-    'QToolButton[active="true"] { background: rgba(67, 160, 71, 0.55); }'
-    'QToolButton[active="true"][hover="true"] { background: rgba(67, 160, 71, 0.75); }'
-    "QToolButton::menu-indicator { image: none; width: 0; }"
-)
-
-
-
-_HELP_ICON_BTN_STYLE = (
-    "QToolButton { background: transparent; border: none; padding: 6px 10px;"
-    " font-size: 22px; font-weight: 600;"
-    " color: palette(text); border-radius: 4px; }"
-    'QToolButton[hover="true"] { background: rgba(67, 160, 71, 0.35); }'
-    'QToolButton[active="true"] { background: rgba(67, 160, 71, 0.55); }'
-    'QToolButton[active="true"][hover="true"] { background: rgba(67, 160, 71, 0.75); }'
-    "QToolButton::menu-indicator { image: none; width: 0; }"
-)
-
-_FOOTER_MENU_STYLE = (
-    "QMenu { background: palette(base); border: 1px solid rgba(128,128,128,0.35);"
-    " border-radius: 6px; padding: 4px; }"
-    "QMenu::item { background: transparent; padding: 6px 14px; border-radius: 4px;"
-    " color: palette(text); }"
-    "QMenu::item:selected { background: rgba(128,128,128,0.18); }"
-    "QMenu::item:disabled { color: rgba(128,128,128,0.55); }"
-    "QMenu::separator { height: 1px; background: rgba(128,128,128,0.25);"
-    " margin: 4px 8px; }"
-)
-
-
-
-_FOOTER_CTA_BTN_STYLE = (
-    "QToolButton { background: transparent; border: none; padding: 6px 10px;"
-    " font-size: 11px; font-weight: 600;"
-    " color: palette(text); border-radius: 4px; }"
-    'QToolButton[hover="true"] { background: rgba(128,128,128,0.15); }'
-)
-
-
-
-
-
-for _qss_name in (
-    "_SECTION_TOGGLE_QSS",
-    "_INSTRUCTIONS_CARD_QSS",
-    "_INSTRUCTIONS_HINT_QSS",
-    "_BTN_LINK",
-    "_BTN_LINK_MUTED",
-    "_BTN_LINK_STRONG",
-    "_BTN_CHIP",
-    "_FOOTER_ICON_BTN_STYLE",
-    "_HELP_ICON_BTN_STYLE",
-    "_FOOTER_CTA_BTN_STYLE",
-):
-    globals()[_qss_name] = _scale_qss_font_px(globals()[_qss_name])
-del _qss_name
-
-
 __all__ = [
     "BRAND_BLUE",
-    "BRAND_BLUE_HOVER",
-    "BRAND_DISABLED",
-    "BRAND_GRAY",
-    "BRAND_GRAY_HOVER",
     "BRAND_GREEN",
     "BRAND_GREEN_TEXT",
     "BRAND_RED",
-    "BRAND_RED_HOVER",
     "BTN_GREEN",
-    "BTN_GREEN_DISABLED",
     "BTN_GREEN_HOVER",
     "DARK_UI",
     "DISABLED_TEXT",
@@ -480,41 +189,12 @@ __all__ = [
     "INK_HOVER_FILL",
     "INK_PRESSED_FILL",
     "MUTED_TEXT",
-    "MUTED_TEXT_SOFT",
-    "SUCCESS_TEXT",
     "WARNING_TEXT",
-    "_BTN_BLUE",
-    "_BTN_BLUE_AUTH",
-    "_BTN_BLUE_OUTLINE",
-    "_BTN_BLUE_PRIMARY",
-    "_BTN_CHIP",
     "_BTN_GHOST",
-    "_BTN_GRAY",
-    "_BTN_GREEN",
-    "_BTN_GREEN_AUTH",
-    "_BTN_LINK",
-    "_BTN_LINK_MUTED",
-    "_BTN_LINK_STRONG",
-    "_BTN_PAIR_CANCEL",
-    "_BTN_PAIR_NEUTRAL",
-    "_BTN_RED",
-    "_BTN_RED_OUTLINE",
     "_CARD_CHILD_BTN_RESET_QSS",
     "_CARD_MARGINS",
     "_CARD_QSS",
-    "_COMBO_THEME_QSS",
-    "_FOOTER_CTA_BTN_STYLE",
-    "_FOOTER_ICON_BTN_STYLE",
-    "_FOOTER_MENU_STYLE",
-    "_HELP_ICON_BTN_STYLE",
-    "_INPUT_THEME_QSS",
-    "_INSTRUCTIONS_CARD_QSS",
-    "_INSTRUCTIONS_HINT_QSS",
     "_MSG_TINTS",
-    "_PROGRESS_THIN_QSS",
-    "_SECTION_TOGGLE_QSS",
-    "_SUBCARD_MARGINS",
-    "_SUBCARD_QSS",
     "_UPDATE_CARD_STYLE",
     "_UPDATE_LATER_STYLE",
     "_UPDATE_NOTE_STYLE",

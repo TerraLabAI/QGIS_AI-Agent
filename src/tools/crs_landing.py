@@ -23,8 +23,9 @@ import os
 import pathlib
 import sqlite3
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsRectangle
+from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsProject, QgsRectangle
 
+from ..core.context_layers import box_to_4326
 from ..core.tool_registry import coded_fact
 
 
@@ -77,20 +78,6 @@ def _transforms_here(crs) -> bool:
     return bool(operations) and bool(operations[0].isAvailable)
 
 
-def _to_wgs84(crs, rect: QgsRectangle) -> QgsRectangle | None:
-    try:
-        box = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem(_WGS84),
-                                     QgsProject.instance()).transformBoundingBox(rect)
-    except Exception:  # noqa: BLE001
-        return None
-    values = (box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum())
-    if box.isNull() or not all(math.isfinite(v) for v in values):
-        return None
-    if box.yMinimum() < -90.5 or box.yMaximum() > 90.5:
-        return None
-    return box
-
-
 def anchors(exclude_ids: tuple = ()) -> list:
 
     found = []
@@ -103,7 +90,7 @@ def anchors(exclude_ids: tuple = ()) -> list:
             continue
         if not crs.isValid() or extent.isNull():
             continue
-        box = _to_wgs84(crs, extent)
+        box = box_to_4326(crs, extent)
         if box is None or box.width() > _ANCHOR_MAX_DEGREES or box.height() > _ANCHOR_MAX_DEGREES:
             continue
         found.append((layer.name(), box))
@@ -125,7 +112,7 @@ def _km(a: QgsPointXY, b: QgsPointXY) -> float:
 
 def landing(crs, extent: QgsRectangle, anchor_list: list) -> tuple[list, float | None]:
 
-    box = _to_wgs84(crs, extent)
+    box = box_to_4326(crs, extent)
     if box is None:
         return [], None
     centre = box.center()
@@ -232,7 +219,7 @@ def layer_check(layer) -> dict:
         return {}
     if not crs.isValid() or extent.isNull():
         return {}
-    own = _to_wgs84(crs, extent)
+    own = box_to_4326(crs, extent)
     if own is not None and (own.width() > _ANCHOR_MAX_DEGREES or own.height() > _ANCHOR_MAX_DEGREES):
         return {}
     anchor_list = anchors(exclude_ids=(layer.id(),))

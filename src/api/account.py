@@ -94,12 +94,12 @@ def usage_to_runs(payload: dict) -> dict:
 
 
 def get_dashboard_url() -> str:
-    from ..ui.shared import get_dashboard_url as served_dashboard_url
+    from ..core.served_state import get_dashboard_url as served_dashboard_url
     return served_dashboard_url()
 
 
 def get_plans_page_url(cta_source: str = "plugin") -> str:
-    from ..ui.shared import get_upgrade_url
+    from ..core.served_state import get_upgrade_url
     source = "".join(ch for ch in str(cta_source or "") if ch.isalnum() or ch == "_") or "plugin"
     return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
 
@@ -224,10 +224,8 @@ class Account(QObject):
         self._login_link_task: GenericRequestTask | None = None
         self._pending_code = ""
         self._pairing_url = ""
-        self._pairing_t0 = 0.0
 
         self._v2: PairingV2 | None = None
-        self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
         self._upgrade_watch_since = 0.0
@@ -415,7 +413,6 @@ class Account(QObject):
         worker.pairing_browser_seen.connect(self.pairing_browser_seen)
         worker.pairing_link_back.connect(self.pairing_link_back)
         self._pairing_worker = worker
-        self._pairing_t0 = time.monotonic()
         QgsApplication.taskManager().addTask(worker)
         log("Pairing started")
 
@@ -438,7 +435,6 @@ class Account(QObject):
         self._settings.set_activation_key(key)
         self._pending_code = ""
         self._pairing_url = ""
-        self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
         self._set_state(self.ACTIVATED, tr("Signed in."))
@@ -457,7 +453,6 @@ class Account(QObject):
         if not self.is_valid_key(key):
             return
         self._settings.set_activation_key(key)
-        self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
         email, label = str(result.get("email") or ""), str(result.get("label") or "")
@@ -540,7 +535,6 @@ class Account(QObject):
 
 
 
-
         if not force and (time.monotonic() - self._last_key_validation_at) < _REVALIDATE_EVERY_S:
             return
         if self._revalidate_task is not None and self._revalidate_task.is_active():
@@ -558,7 +552,6 @@ class Account(QObject):
 
 
 
-        self._last_key_validation_unix = time.time()
         self._last_key_validation_at = time.monotonic()
 
     def unlock(self) -> bool:
@@ -628,7 +621,6 @@ class Account(QObject):
         account = dict(account) if isinstance(account, dict) else {}
         payload = account.pop("_usage_payload", None)
         if isinstance(payload, dict):
-            self._last_key_validation_unix = time.time()
             self._last_key_validation_at = time.monotonic()
             self.usage_refreshed.emit(payload)
         self.account_loaded.emit(account)
@@ -739,7 +731,6 @@ class Account(QObject):
         if isinstance(usage, dict) and usage.get("is_subscriber") is True:
             self.stop_upgrade_watch()
             self._reset_return_check()
-        self._last_key_validation_unix = time.time()
         self._last_key_validation_at = time.monotonic()
         if self._state != self.ACTIVATED:
             self._set_state(self.ACTIVATED, "")
@@ -787,7 +778,6 @@ class Account(QObject):
         normalized = (code or "").strip().upper()
         if normalized == "INVALID_KEY":
             self._settings.clear_activation_key()
-            self._last_key_validation_unix = 0.0
             self._last_key_validation_at = float("-inf")
             expired = tr("Session expired. Sign in again to continue.")
             self._set_state(self.EXPIRED, expired)
@@ -849,7 +839,6 @@ class Account(QObject):
                         pass
             setattr(self, attr, None)
         self._settings.clear_activation_key()
-        self._last_key_validation_unix = 0.0
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
         self.stop_upgrade_watch()

@@ -35,8 +35,8 @@ import uuid
 from qgis.core import QgsProject, QgsVectorLayer
 
 from . import designer_guard, tuning
-from .host_platform import release_pooled_handles
-from .layer_order import is_web_service, read_back
+from .host_platform import release_pooled_handles, resolved
+from .layer_order import is_remote_vector, is_web_service, read_back
 from .logger import log, log_warning
 from .snapshot_features import (
     MAX_CAPTURE_SECONDS,
@@ -320,6 +320,15 @@ def _layout_digests(rows) -> dict[str, str]:
             if isinstance(row, (list, tuple)) and len(row) == 2}
 
 
+
+
+_LEAVING: set[str] = set()
+
+
+def _folder_key(path: str) -> str:
+    return os.path.normcase(os.path.normpath(str(path or "")))
+
+
 def _remove_soon(path: str, what: str) -> bool:
 
 
@@ -332,15 +341,33 @@ def _remove_soon(path: str, what: str) -> bool:
 
 
 
-    if not os.path.exists(path):
-        return True
-    gone = os.path.join(os.path.dirname(path), f".gone-{uuid.uuid4().hex[:12]}")
-    try:
-        os.rename(path, gone)
-    except OSError:
-        return _remove_tree(path, what)
-    _jobs().schedule_job(lambda: _remove_tree(gone, what))
+    key = _folder_key(path)
+    _LEAVING.add(key)
+
+    def remove() -> None:
+        try:
+            if not os.path.exists(path):
+                return
+            gone = os.path.join(os.path.dirname(path), f".gone-{uuid.uuid4().hex[:12]}")
+            try:
+                os.rename(path, gone)
+            except OSError:
+                gone = path
+            _remove_tree(gone, what)
+        finally:
+            _LEAVING.discard(key)
+
+    _jobs().schedule_job(remove)
     return True
+
+
+
+_COUNT_KEPT_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "gpx", "spatialite"})
+
+
+def _keeps_count(layer) -> bool:
+    return (str(layer.providerType() or "") in _COUNT_KEPT_PROVIDERS
+            and not is_remote_vector(layer))
 
 
 class RunSnapshot:
@@ -349,6 +376,8 @@ class RunSnapshot:
         self.captured = False
         self.captured_at = 0.0
         self.dir = os.path.join(snapshots_dir(), "".join(c for c in run_id if c.isalnum() or c in "-_")[:64])
+        if _folder_key(self.dir) in _LEAVING:
+            self.dir = f"{self.dir}-{uuid.uuid4().hex[:6]}"
         self.project_path = os.path.join(self.dir, "project.qgz")
         self.original_file = ""
 
@@ -365,7 +394,6 @@ class RunSnapshot:
 
         self.project_state: dict = {"crs": "", "tree": []}
         self.last_diff: dict | None = None
-        self.last_diff_at = 0.0
         self.backups: dict[str, list[tuple[str, str]]] = {}
 
 
@@ -483,7 +511,7 @@ class RunSnapshot:
         if not isinstance(folder, str) or not inside(snapshots_dir(), folder):
             return None
         snap = cls(run_id)
-        snap.dir = os.path.realpath(folder)
+        snap.dir = resolved(folder)
         snap.project_path = os.path.join(snap.dir, "project.qgz")
         snap.captured = bool(record.get("captured"))
         snap.quiet = bool(record.get("quiet"))
@@ -642,7 +670,10 @@ class RunSnapshot:
             return
         self._ready_callbacks.append(callback)
 
-    def _record(self, layer, with_hash: bool, with_style: bool = True) -> dict:
+    def _record(self, layer, with_hash: bool, with_style: bool = True, count: bool = True) -> dict:
+
+
+
 
 
         path = layer_file_path(layer) if with_hash else source_path(layer)
@@ -658,7 +689,7 @@ class RunSnapshot:
 
 
 
-                if not is_web_service(layer):
+                if not is_web_service(layer) and (count or _keeps_count(layer)):
                     n = layer.featureCount()
                     record["feature_count"] = int(n) if n is not None and n >= 0 else None
             except Exception:  # nosec B110
@@ -673,9 +704,18 @@ class RunSnapshot:
             record["size"] = stamp[0] if stamp else None
         return record
 
-    def capture(self) -> bool:
+    def capture(self, layer_ids=None) -> bool:
+
+
+
+
+
+
+
+
         if self.captured:
             return True
+        scope = None if layer_ids is None else {str(lid) for lid in layer_ids}
         project = QgsProject.instance()
         started = time.monotonic()
         try:
@@ -747,15 +787,16 @@ class RunSnapshot:
 
 
 
-            full = time.monotonic() <= deadline
+            full = time.monotonic() <= deadline if scope is None else lid in scope
             try:
-                self.layers[lid] = self._record(layer, with_hash=full, with_style=full)
+                self.layers[lid] = self._record(layer, with_hash=full, with_style=full, count=full)
+                self.layers[lid]["light"] = not full
             except Exception as exc:
                 log_warning(f"Snapshot skipped layer {lid}: {exc}")
                 continue
             if not full:
                 light += 1
-        if light:
+        if light and scope is None:
             log(f"Snapshot over {budget_s:.1f} s: {light} layers recorded without their style.")
 
         for layer in unsaved_edit_layers(project):
@@ -774,7 +815,7 @@ class RunSnapshot:
         self.captured = ok
         self.captured_at = time.time()
         log(f"Snapshot {'captured' if ok else 'FAILED'} for run {self.run_id[:8]} in "
-            f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers)")
+            f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers, {len(self.layers) - light} in full)")
 
 
         base = snapshots_dir()
@@ -788,6 +829,23 @@ class RunSnapshot:
         _jobs().schedule_job(lambda: prune_snapshots(protect=self.dir, base=base,
                                                      index_dir=index_dir, disk_mb=disk_mb))
         return ok
+
+    def record_layers(self, layer_ids) -> int:
+
+
+        project = QgsProject.instance()
+        done = 0
+        for lid in layer_ids or ():
+            record = self.layers.get(str(lid))
+            layer = project.mapLayer(str(lid))
+            if record is None or not record.get("light") or layer is None:
+                continue
+            try:
+                self.layers[str(lid)] = {**self._record(layer, with_hash=True), "light": False}
+                done += 1
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Snapshot could not record layer {lid}: {exc}")
+        return done
 
 
 
@@ -835,10 +893,7 @@ class RunSnapshot:
 
             self.unbacked[lid] = name
             return False
-        try:
-            canonical = os.path.realpath(path)
-        except (OSError, ValueError):
-            canonical = path
+        canonical = resolved(path)
         known = self.path_backups.get(canonical)
         if known is None and canonical in self.file_backups:
 
@@ -881,12 +936,9 @@ class RunSnapshot:
 
         count = 0
         for raw in paths or []:
-            try:
-                path = os.path.realpath(str(raw))
-            except (OSError, ValueError):
 
 
-                path = os.path.normpath(os.path.abspath(str(raw)))
+            path = resolved(str(raw))
             if path in self.file_backups or not os.path.isfile(path):
                 continue
             if path in self.path_backups:
@@ -1083,10 +1135,7 @@ class RunSnapshot:
             try:
                 if not os.path.isfile(path):
                     continue
-                try:
-                    canonical = os.path.realpath(path)
-                except (OSError, ValueError):
-                    canonical = path
+                canonical = resolved(path)
                 if canonical in made or canonical in self.path_backups or canonical in self.file_backups:
                     out.append(("shared", lid, name, canonical))
                     continue
@@ -1153,7 +1202,7 @@ class RunSnapshot:
 
         real = self._real_paths.get(path)
         if real is None:
-            real = self._real_paths[path] = os.path.realpath(path)
+            real = self._real_paths[path] = resolved(path)
         return real
 
     def copied_files(self) -> set[str]:
@@ -1177,8 +1226,11 @@ class RunSnapshot:
         diff_s = tuning.ceiling("snapshot_max_diff_seconds", MAX_DIFF_SECONDS, 0.05)
         deadline = started + diff_s
         for lid, layer in project.mapLayers().items():
+
+
+            full = not (self.layers.get(lid) or {}).get("light")
             try:
-                after[lid] = self._record(layer, with_hash=True)
+                after[lid] = self._record(layer, with_hash=full, with_style=full, count=full)
                 after[lid]["in_tree"] = root.findLayer(lid) is not None
                 after[lid]["memory"] = layer.providerType() == "memory"
             except Exception:  # nosec B112
@@ -1241,7 +1293,6 @@ class RunSnapshot:
         if spent > diff_s:
             log_warning(f"Snapshot diff took {spent:.1f} s: the layers after the budget were "
                         "compared on their counts only.")
-        self.last_diff_at = time.monotonic()
         result = {
             "layers_added": added,
             "layers_removed": removed,
@@ -1356,15 +1407,7 @@ class RunSnapshot:
     @staticmethod
     def _path_key(path: str) -> str:
 
-
-
-
-
-
-        try:
-            return os.path.normcase(os.path.realpath(path))
-        except (OSError, ValueError):
-            return os.path.normcase(os.path.normpath(path))
+        return os.path.normcase(resolved(path))
 
     def _same_as_saved(self, file_name: str) -> bool:
 

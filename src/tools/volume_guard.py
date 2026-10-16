@@ -650,15 +650,10 @@ def own_overpass() -> bool:
     return own_overpass_host() in str(first or "").lower()
 
 
-def dense_hard_km2(name: str) -> float:
-
-    return dense_max_km2()
-
-
 def hard_cap_km2(name: str, args: dict) -> float:
 
     dense = is_dense(name, args)
-    hard = dense_hard_km2(name) if dense else limits.current("MAX_FETCH_KM2")
+    hard = dense_max_km2() if dense else limits.current("MAX_FETCH_KM2")
     served, _ = provider_max_km2(name)
     if dense and served and served < hard:
         hard = served
@@ -758,14 +753,6 @@ def hosted_fallback(name: str, args: dict) -> list:
     return themes
 
 
-
-
-ZONE_ARGUMENTS = (
-    "The area in km² needs the user's yes; confirm_area_km2 (one decimal) from {quiet:.0f} km² up "
-    "then continues the call. One zone is one call: full_extent loads the whole named place in the "
-    "same call."
-)
-
 def _num(value) -> float | None:
     try:
         if isinstance(value, bool):
@@ -819,19 +806,11 @@ def not_degrees(west, south, east, north) -> str:
 
 
 def _canvas_bbox() -> tuple[float, float, float, float] | None:
-    try:
-        from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
-        from qgis.utils import iface
 
-        canvas = iface.mapCanvas()
-        extent = canvas.extent()
-        crs = canvas.mapSettings().destinationCrs()
-        wgs = QgsCoordinateReferenceSystem("EPSG:4326")
-        if crs.isValid() and crs != wgs:
-            extent = QgsCoordinateTransform(crs, wgs, QgsProject.instance()).transformBoundingBox(extent)
-        return (extent.yMinimum(), extent.xMinimum(), extent.yMaximum(), extent.xMaximum())
-    except Exception:  # noqa: BLE001
-        return None
+    from ..core.context_layers import canvas_bbox_4326
+
+    box = canvas_bbox_4326()
+    return (box[1], box[0], box[3], box[2]) if box else None
 
 
 def zone_km2(args: dict) -> float | None:
@@ -883,9 +862,6 @@ def _confirmed(args: dict, area: float) -> bool:
 FULL_EXTENT = "full_extent"
 
 
-LIFT_HINT = " full_extent loads it whole when the user's own words ask for all of it: their words and the place."
-
-
 def lifted(args) -> bool:
 
 
@@ -913,7 +889,7 @@ def check(name: str, args: dict) -> dict:
         if area is not None:
             dense = is_dense(name, args)
             quiet = quiet_km2() if dense else quiet_sparse_km2()
-            hard = dense_hard_km2(name) if dense else limits.current("MAX_FETCH_KM2")
+            hard = dense_max_km2() if dense else limits.current("MAX_FETCH_KM2")
             served, refuses = provider_max_km2(name)
             provider = refuses if dense and served and served < hard else ""
             if provider:
@@ -929,7 +905,6 @@ def check(name: str, args: dict) -> dict:
                 hard, quiet, provider = own, own, ""
             hosted, hosted_cap = hosted_ceiling(name, args)
             if hosted and own and area > hosted_cap:
-
 
 
 

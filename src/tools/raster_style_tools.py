@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import math
 
-from qgis.core import Qgis, QgsApplication, QgsPalettedRasterRenderer, QgsRasterLayer
+from qgis.core import QgsApplication, QgsPalettedRasterRenderer, QgsRasterLayer
 
 try:
 
     from qgis.core import QgsRasterAttributeTable
 except ImportError:  # pragma: no cover
     QgsRasterAttributeTable = None
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QMetaType
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .colour_text import qcolor_from_text
@@ -46,14 +46,6 @@ def register_raster_style_tools(registry: ToolRegistry) -> None:
         "type": "object", "properties": {"layer_name": {"type": "string"},
         "band": {"type": "integer", "minimum": 1}, "classes": {"type": "array", "items": classes}},
         "required": ["layer_name", "classes"], "additionalProperties": False}, handler=_set_raster_class_style))
-    registry.register(Tool(
-        name="set_raster_attribute_table",
-        danger="write",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Set the raster attribute table on {layer_name}"),
-        input_schema={
-        "type": "object", "properties": {"layer_name": {"type": "string"},
-        "band": {"type": "integer", "minimum": 1}, "classes": {"type": "array", "items": classes}},
-        "required": ["layer_name", "classes"], "additionalProperties": False}, handler=_set_raster_attribute_table))
 
 
 def _validate(args):
@@ -103,43 +95,6 @@ def _set_raster_class_style(args):
               "renderer": "paletted", "classes": len(classes)}
     result.update(_previous_style_keys(layer, previous))
     return result
-
-
-def _set_raster_attribute_table(args):
-    validated, error = _validate(args)
-    if error:
-        return error
-    layer, band, values = validated
-    if QgsRasterAttributeTable is None:
-        return tool_error("Raster Attribute Tables need QGIS 3.30 or later; this QGIS is older.",
-                          "UNSUPPORTED")
-    rat = QgsRasterAttributeTable()
-    usages = Qgis.RasterAttributeTableFieldUsage
-    for name, usage, meta_type in (("Value", usages.MinMax, QMetaType.Type.Double),
-                                   ("ClassName", usages.Name, QMetaType.Type.QString)):
-        ok, message = rat.appendField(name, usage, meta_type)
-        if not ok:
-            return tool_error(f"Could not create raster attribute table field {name}: {message}", "WRITE_FAILED")
-    ok, message = rat.insertColor(2)
-    if not ok:
-        return tool_error(f"Could not create raster attribute table color fields: {message}", "WRITE_FAILED")
-    for value, color, label in values:
-        ok, message = rat.appendRow([value, label, color.red(), color.green(), color.blue(), color.alpha()])
-        if not ok:
-            return tool_error(f"Could not add raster attribute table class: {message}", "WRITE_FAILED")
-    valid, message = rat.isValid()
-    if not valid:
-        return tool_error(f"QGIS rejected the raster attribute table: {message}", "WRITE_FAILED")
-    setter = getattr(layer.dataProvider(), "setAttributeTable", None)
-    if setter is None:
-        return tool_error("This raster provider cannot attach a Raster Attribute Table.", "UNSUPPORTED")
-    try:
-        setter(band, rat)
-    except Exception as exc:
-        return tool_error(f"This raster provider could not attach the Raster Attribute Table: {exc}", "WRITE_FAILED")
-    layer.triggerRepaint()
-    return {"layer_name": layer.name(), "layer_id": layer.id(), "band": band,
-            "classes": len(values), "fields": [field.name for field in rat.fields()], "attached": True}
 
 
 __all__ = ["register_raster_style_tools"]

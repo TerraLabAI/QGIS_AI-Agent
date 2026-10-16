@@ -23,11 +23,12 @@ import posixpath
 import re
 import urllib.parse
 
-from qgis.core import QgsProject, QgsRasterLayer, QgsUnitTypes, QgsVectorLayer
+from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import dataset_docs, ground, links, net
 from ..core.background import run_on_main_thread
+from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.logger import log_warning
@@ -178,6 +179,7 @@ def register_facade_tools(registry: ToolRegistry):
         danger="write",
         visible=11,
         label=QT_TRANSLATE_NOOP("AIAgent", "AI Edit: {action}"),
+        label_for=_setup_label("ai_edit"),
         input_schema={
             "type": "object",
             "properties": {
@@ -234,6 +236,7 @@ def register_facade_tools(registry: ToolRegistry):
         danger="write",
         visible=12,
         label=QT_TRANSLATE_NOOP("AIAgent", "AI Segmentation[: detect {object_class}][ ({action})]"),
+        label_for=_setup_label("ai_segment"),
         input_schema={
             "type": "object",
             "properties": {
@@ -642,13 +645,6 @@ def _dispatch_add(kind: str, args: dict) -> dict:
     return tool_error(f"Unknown kind: {kind}", "INVALID_ARGS", f"kind must be one of {list(ADD_DATA_KINDS)}.")
 
 
-def _unit_name(layer) -> str:
-    try:
-        return QgsUnitTypes.toString(layer.crs().mapUnits())
-    except Exception:  # nosec B110
-        return "unknown"
-
-
 def _describe_layer(layer, kind: str, known_count=None) -> dict:
     extent = layer.extent()
     out = {
@@ -663,7 +659,7 @@ def _describe_layer(layer, kind: str, known_count=None) -> dict:
             "xmax": extent.xMaximum(),
             "ymax": extent.yMaximum(),
         },
-        "units": _unit_name(layer),
+        "units": crs_units(layer.crs()),
     }
     if not out["crs"]:
 
@@ -982,6 +978,17 @@ def _ai_edit(args: dict) -> dict:
     if action == "credits":
         return _integration._aiedit_get_credits(args)
     return tool_error(f"Unknown action: {action}", "INVALID_ARGS", f"action must be one of {list(AI_EDIT_ACTIONS)}.")
+
+
+def _setup_label(tool: str):
+
+    words = {"ai_edit": QT_TRANSLATE_NOOP("AIAgent", "Set up AI Edit"),
+             "ai_segment": QT_TRANSLATE_NOOP("AIAgent", "Set up AI Segmentation")}[tool]
+
+    def label(args: dict) -> str:
+        return words if args.get("action") == "setup" else ""
+
+    return label
 
 
 

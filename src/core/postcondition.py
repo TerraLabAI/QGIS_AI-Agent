@@ -34,6 +34,8 @@
 
 from __future__ import annotations
 
+from .layer_order import feature_count_of
+
 
 
 
@@ -211,19 +213,6 @@ def _resolve(args: dict, result: dict):
             return layer, ref, strong, False
         shared = shared or count > 1
     return None, (refs or [""])[0], strong, shared
-
-
-def _feature_count(layer) -> int | None:
-
-
-
-
-
-    if not hasattr(layer, "featureCount"):
-        return None
-    from .layer_order import feature_count_of
-
-    return feature_count_of(layer)
 
 
 def _crs(layer) -> str:
@@ -417,6 +406,8 @@ def _local_gdal_file(layer) -> str:
 
 
 
+
+
     import os
 
     if not hasattr(layer, "bandCount") or layer.providerType() != "gdal":
@@ -427,7 +418,8 @@ def _local_gdal_file(layer) -> str:
     from osgeo import gdal
 
     dataset = gdal.OpenEx(path, gdal.OF_RASTER)
-    files = dataset.GetFileList() if dataset is not None else None
+    virtual = dataset is not None and dataset.GetDriver().ShortName == "VRT"
+    files = dataset.GetFileList() if dataset is not None and not virtual else None
     dataset = None
     return path if files and all(os.path.isfile(f) for f in files) else ""
 
@@ -591,7 +583,7 @@ def describe(result, placed: bool = True) -> None:
                 crs = _crs(layer)
                 if crs:
                     entry["crs"] = crs
-                count = _feature_count(layer)
+                count = feature_count_of(layer)
                 if count is not None:
                     entry["features"] = count
             for key, value in facts.items():
@@ -638,7 +630,7 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
     crs = _crs(layer)
     if crs:
         out["crs"] = crs
-    count = _feature_count(layer)
+    count = feature_count_of(layer)
     if count is not None:
         out["features"] = count
         out["empty"] = count == 0

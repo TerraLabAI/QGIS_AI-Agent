@@ -290,6 +290,10 @@ def setup(tool: str) -> dict:
             "tell_user": (f"The Plugin Manager is open on {name}: click Install. "
                           "It starts right away, no restart."),
             "next_step": f"{tool} action status reports it once the person says it is installed.",
+
+
+            "wait_for_plugin": {"keys": list(product["keys"]), "name": name,
+                                "then": {"next_step": f"{tool} action status names what is left, if anything."}},
         }
 
     if state == "disabled":

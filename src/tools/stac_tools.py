@@ -32,8 +32,6 @@ import urllib.parse
 import urllib.request
 
 from qgis.core import (
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
     QgsProject,
     QgsRasterLayer,
     QgsVectorLayer,
@@ -41,8 +39,9 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import dataset_docs, limits, net, tuning, vsi
+from ..core import dataset_docs, limits, net, vsi
 from ..core.background import run_on_main_thread, still_awaited, take
+from ..core.context_layers import canvas_bbox_4326
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_tree, retry_file_op
 from ..core.logger import log_warning
@@ -189,62 +188,14 @@ def _stac_get(url: str, timeout: int = _STAC_GET_TIMEOUT):
 
 
 
-    ttl = 0.0 if url.startswith(_pc_sign_url().rsplit("/", 1)[0] + "/") else _CACHE_STAC_S
+    ttl = 0.0 if url.startswith(_PC_SIGN_URL.rsplit("/", 1)[0] + "/") else _CACHE_STAC_S
     raw = net.fetch(req, timeout=timeout, max_bytes=_MAX_RESPONSE_SIZE,
                     total_timeout=timeout * _TOTAL_TIMEOUT_FACTOR, cache_ttl=ttl).body
     return json.loads(raw)
 
 
-
-
-
-
-
-
-
-def _pc_sign_url() -> str:
-    return tuning.service_url("pc_sign", _PC_SIGN_URL)
-
-
-def _earthdata_hosts() -> tuple:
-    return tuple(tuning.service_list("earthdata_hosts", _EARTHDATA_HOSTS))
-
-
-def _earthdata_suffixes() -> tuple:
-    return tuple(tuning.service_list("earthdata_suffixes", _EARTHDATA_SUFFIXES))
-
-
-def _cdse_https_prefix() -> str:
-    return tuning.service_url("cdse_https_prefix", _CDSE_HTTPS_PREFIX)
-
-
 def _stac_root(args: dict) -> str:
-    return (args.get("stac_url") or tuning.service_url("stac_root", _DEFAULT_STAC_ROOT)).rstrip("/")
-
-
-def _canvas_bbox_4326() -> list | None:
-
-
-
-
-
-    try:
-        from qgis.utils import iface as qgis_iface
-        canvas = qgis_iface.mapCanvas()
-        extent = canvas.extent()
-        canvas_crs = canvas.mapSettings().destinationCrs()
-        if canvas_crs.authid() != "EPSG:4326":
-            xform = QgsCoordinateTransform(
-                canvas_crs, QgsCoordinateReferenceSystem("EPSG:4326"), QgsProject.instance()
-            )
-            extent = xform.transformBoundingBox(extent)
-        w, e = extent.xMinimum(), extent.xMaximum()
-        s, n = extent.yMinimum(), extent.yMaximum()
-        if abs(e - w) > 0.0001 and abs(n - s) > 0.0001:
-            return [round(w, 6), round(s, 6), round(e, 6), round(n, 6)]
-    except Exception:  # nosec B110
-        pass
-    return None
+    return (args.get("stac_url") or _DEFAULT_STAC_ROOT).rstrip("/")
 
 
 
@@ -300,7 +251,7 @@ def _sign_pc_href(url: str) -> tuple[str, str | None]:
         return f"{url}{'&' if '?' in url else '?'}{token}", None
     for attempt in range(2):
         try:
-            sign_url = f"{_pc_sign_url()}?href={urllib.parse.quote(url, safe='')}"
+            sign_url = f"{_PC_SIGN_URL}?href={urllib.parse.quote(url, safe='')}"
             signed = _stac_get(sign_url, timeout=_SIGN_TIMEOUT).get("href")
             if signed:
                 return signed, None
@@ -324,7 +275,7 @@ _PC_TOKEN_MARGIN_S = 300
 
 def _pc_container_token(account: str, container: str) -> str | None:
 
-    sign = _pc_sign_url()
+    sign = _PC_SIGN_URL
     if not sign.endswith("/sign"):
         return None
     key = (account, container)
@@ -346,6 +297,8 @@ def _pc_container_token(account: str, container: str) -> str | None:
         return token
 
 
+
+
 _CDSE_S3_PREFIX = "s3://eodata/"
 _CDSE_HTTPS_PREFIX = "https://eodata.dataspace.copernicus.eu/"
 
@@ -358,13 +311,13 @@ _EARTHDATA_SUFFIXES = (".earthdata.nasa.gov", ".earthdatacloud.nasa.gov")
 def _needs_backend_signing(url: str) -> bool:
 
     lowered = (url or "").strip()
-    if lowered.startswith(_CDSE_S3_PREFIX) or lowered.startswith(_cdse_https_prefix()):
+    if lowered.startswith(_CDSE_S3_PREFIX) or lowered.startswith(_CDSE_HTTPS_PREFIX):
         return True
     parts = urllib.parse.urlsplit(lowered)
     if parts.scheme != "https":
         return False
     host = (parts.hostname or "").lower().rstrip(".")
-    return host in _earthdata_hosts() or host.endswith(_earthdata_suffixes())
+    return host in _EARTHDATA_HOSTS or host.endswith(_EARTHDATA_SUFFIXES)
 
 
 def _backend_sign_url() -> str:
@@ -1455,9 +1408,49 @@ def _add_stac_layer(args: dict) -> dict:
                           props.get("end_datetime") or props.get("datetime"))
     if acquired:
         extra["data_date"] = acquired
+    collection_facts = _collection_facts(item, item_url)
+    if collection_facts:
+        extra["source_facts"] = collection_facts
     result = _add_cog(final_url, name, note=note, extra=extra, bbox=bbox)
     dataset_docs.attach(result, item_url)
     return result
+
+
+def _collection_facts(item: dict, item_url: str) -> dict:
+
+
+
+
+
+
+    link = next((entry.get("href") for entry in item.get("links") or []
+                 if isinstance(entry, dict) and entry.get("rel") == "collection" and entry.get("href")), "")
+    if not link:
+        return {}
+    try:
+        collection = _stac_get(urllib.parse.urljoin(item_url, str(link)))
+    except (urllib.error.URLError, OSError, ValueError):
+        return {}
+    if not isinstance(collection, dict):
+        return {}
+    facts = {}
+    licence = str(collection.get("license") or "").strip()
+    if licence and licence.lower() not in ("proprietary", "various", "other"):
+        facts["licence"] = licence[:300]
+    names = [str(provider.get("name") or "").strip() for provider in collection.get("providers") or []
+             if isinstance(provider, dict) and set(provider.get("roles") or ()) & {"producer", "licensor"}]
+    names = [name for name in dict.fromkeys(names) if name]
+    if names:
+        facts["attribution"] = ", ".join(names)[:500]
+    page = next((entry.get("href") for entry in collection.get("links") or []
+                 if isinstance(entry, dict) and entry.get("rel") in ("license", "about")
+                 and str(entry.get("href") or "").startswith(("https://", "http://"))), "")
+    if page:
+        facts["page_url"] = str(page)[:500]
+    title = str(collection.get("title") or "").strip()
+    if facts and title:
+        facts["title"] = title[:200]
+    return facts
 
 
 def _probe_pmtiles(url: str) -> dict:
@@ -1612,7 +1605,7 @@ def _bbox_4326(args: dict) -> tuple[list | None, str]:
             return parsed, f"the {key} argument"
         return None, f"{key} was given but is not a bbox in EPSG:4326"
     try:
-        canvas = run_on_main_thread(_canvas_bbox_4326, timeout=10)
+        canvas = run_on_main_thread(canvas_bbox_4326, timeout=10)
     except Exception:  # noqa: BLE001
         canvas = None
     if canvas:

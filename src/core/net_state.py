@@ -30,3 +30,15 @@ def is_cancelled(cancel=None) -> bool:
         return bool(check())
     except Exception:  # noqa: BLE001
         return False
+
+
+def set_progress_sink(sink) -> None:
+
+
+
+
+    _LOCAL.progress = sink
+
+
+def current_progress_sink():
+    return getattr(_LOCAL, "progress", None)

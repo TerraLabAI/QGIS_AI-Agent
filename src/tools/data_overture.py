@@ -159,10 +159,6 @@ def _overture_themes() -> tuple:
     return themes
 
 
-def _division_subtypes() -> tuple:
-    return tuple(tuning.service_list("division_subtypes", _OVERTURE_DIVISION_SUBTYPES))
-
-
 def _tiles_base(theme: str) -> str:
 
 
@@ -1058,7 +1054,7 @@ def _divisions_subtypes_asked(wanted) -> tuple:
     raw = wanted.get("subtype") if isinstance(wanted, dict) else None
     asked = raw if isinstance(raw, (list, tuple)) else [raw]
     names = [name for name in dict.fromkeys(str(one or "").strip().lower() for one in asked) if name]
-    known = _division_subtypes()
+    known = _OVERTURE_DIVISION_SUBTYPES
     if not names:
 
 

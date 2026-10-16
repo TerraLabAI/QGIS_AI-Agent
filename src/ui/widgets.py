@@ -218,7 +218,6 @@ class ElidedLabel(QLabel):
                  mode: Qt.TextElideMode = Qt.TextElideMode.ElideRight):
         super().__init__(parent)
         self._full = ""
-        self._tail = ""
 
 
 
@@ -228,12 +227,6 @@ class ElidedLabel(QLabel):
 
     def set_elide_mode(self, mode: Qt.TextElideMode) -> None:
         self._elide_mode = mode
-        self.update()
-
-    def set_kept_tail(self, tail: str) -> None:
-
-
-        self._tail = tail or ""
         self.update()
 
     def setText(self, text: str) -> None:  # noqa: N802
@@ -283,14 +276,8 @@ class ElidedLabel(QLabel):
             self.drawFrame(painter)
             rect = self.contentsRect()
             metrics = self.fontMetrics()
-            tail = self._tail if self._tail and self._full.endswith(self._tail) else ""
-            if tail and metrics.horizontalAdvance(self._full) > rect.width():
-                head = self._full[:-len(tail)]
-                room = max(0, rect.width() - metrics.horizontalAdvance(tail))
-                text = self._keep_measures(head, metrics.elidedText(head, self._elide_mode, room)) + tail
-            else:
-                text = self._keep_measures(
-                    self._full, metrics.elidedText(self._full, self._elide_mode, rect.width()))
+            text = self._keep_measures(
+                self._full, metrics.elidedText(self._full, self._elide_mode, rect.width()))
             painter.setPen(self.palette().color(QPalette.ColorRole.WindowText))
             painter.setFont(self.font())
             option = QTextOption(self.alignment())

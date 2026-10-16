@@ -105,7 +105,29 @@ def default_folder() -> str:
     return security.project_dir() or exports_folder()
 
 
-def exports_folder() -> str:
+
+_WRITABLE: list = []
+
+
+def _writable(folder: str) -> bool:
+
+    import tempfile
+
+    try:
+        os.makedirs(folder, exist_ok=True)
+        handle, probe = tempfile.mkstemp(prefix=".terralab-", dir=folder)
+        os.close(handle)
+        host_platform.remove_quietly(probe)
+    except OSError:
+        return False
+    return True
+
+
+def exports_folder(make: bool = True) -> str:
+
+
+
+
 
 
 
@@ -122,10 +144,18 @@ def exports_folder() -> str:
     chosen = os.environ.get("QGIS_AI_AGENT_EXPORTS", "").strip()
     if chosen:
         return os.path.normpath(os.path.expanduser(chosen))
-    for base in (standard_folder("documents"), os.path.expanduser("~"), tempfile.gettempdir()):
-        if base and os.path.isdir(base):
-            return os.path.join(base, DEFAULT_SUBFOLDER)
-    return os.path.join(tempfile.gettempdir(), DEFAULT_SUBFOLDER)
+    if _WRITABLE and os.path.isdir(_WRITABLE[0]):
+        return _WRITABLE[0]
+    folders = [os.path.join(base, DEFAULT_SUBFOLDER)
+               for base in (standard_folder("documents"), os.path.expanduser("~"), tempfile.gettempdir())
+               if base and os.path.isdir(base)] or [os.path.join(tempfile.gettempdir(), DEFAULT_SUBFOLDER)]
+    if not make:
+        return next((folder for folder in folders if os.path.isdir(folder)), folders[0])
+    for folder in folders:
+        if _writable(folder):
+            _WRITABLE[:] = [folder]
+            return folder
+    return folders[-1]
 
 
 def _alias_kind(part: str) -> str:

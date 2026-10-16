@@ -39,6 +39,12 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 import functools
@@ -52,9 +58,6 @@ from ..core import code_namespace, code_tripwire
 _NOT_FROM_CODE = frozenset({"execute_code", "ask_user", "verify_run", "call_tool",
                             "search_tools", "install_dependency", "reload_plugin", "trigger_plugin_action",
                             "trigger_menu_action"})
-
-
-
 
 
 _DEBUG_PACKAGE = __name__.rsplit(".", 1)[0] + ".debug."
@@ -163,8 +166,35 @@ def shutdown() -> None:
 
 
 def kept(chat: str) -> dict:
+
     _watch_project()
-    return dict(_KEPT.get(chat, {}))
+    out = {}
+    names = _KEPT.get(chat, {})
+    gone = []
+    for key, value in names.items():
+        if isinstance(value, _Ref):
+            try:
+                from qgis.core import QgsProject
+
+                out[key] = code_namespace.resolve(value.ref, QgsProject.instance())
+            except Exception:  # noqa: BLE001
+                gone.append(key)
+                _DROPPED.setdefault(chat, {})[key] = f"{value.held} that is no longer in the project"
+        else:
+            out[key] = value
+    for key in gone:
+        names.pop(key, None)
+    return out
+
+
+class _Ref:
+
+
+    __slots__ = ("ref", "held")
+
+    def __init__(self, ref, held: str) -> None:
+        self.ref = ref
+        self.held = held
 
 
 def keep(chat: str, namespace: dict, bound: set, lost: dict | None = None) -> None:
@@ -178,8 +208,12 @@ def keep(chat: str, namespace: dict, bound: set, lost: dict | None = None) -> No
     for key, value in namespace.items():
         if key.startswith("__") or key in bound or key in ("result", "show_files"):
             continue
-        if code_namespace.keepable(value):
+        if isinstance(value, _Ref) or code_namespace.keepable(value):
             names[key] = value
+            continue
+        ref = code_namespace.reference(value)
+        if ref is not None:
+            names[key] = _Ref(ref, type(value).__name__)
         else:
             dropped[key] = type(value).__name__
     dropped.update(lost or {})
@@ -195,9 +229,8 @@ def dropped_help(chat: str, name: str) -> str:
     if held is None:
         return ""
     return (f"{name} was made by an earlier snippet of this chat but not kept: it held a {held or 'value'}, "
-            "which is not kept between calls (QGIS owns it and can free it, or it could not come back from "
-            f"the separate process). A snippet rebuilds {name} from a layer name or id, a path "
-            "or plain values kept from before.")
+            "which QGIS owns and can free, or which could not come back from the separate process. "
+            f"A snippet rebuilds {name} from a layer name or id, a path or plain values kept from before.")
 
 
 

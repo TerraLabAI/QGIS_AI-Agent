@@ -194,7 +194,6 @@ class MarkdownView(QTextBrowser):
         super().__init__(parent)
         self._mono = mono
         self._px = int(px) if px else _BODY_PX
-        self._streaming = False
 
 
         self._stream = None
@@ -546,7 +545,6 @@ class MarkdownView(QTextBrowser):
 
 
 
-
         link_format = QTextCharFormat()
         link_format.setForeground(QBrush(accent_color()))
         link_format.setFontUnderline(False)
@@ -733,15 +731,6 @@ class MarkdownView(QTextBrowser):
                 finally:
                     painter.end()
         super().paintEvent(event)
-
-
-
-    def set_streaming(self, streaming: bool) -> None:
-
-        self._streaming = bool(streaming)
-
-    def is_streaming(self) -> bool:
-        return self._streaming
 
 
 

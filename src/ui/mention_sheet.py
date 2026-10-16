@@ -404,11 +404,6 @@ class MentionSheet(QWidget):
                 return index
         return self._model.index(0, 0)
 
-    def current_data(self) -> dict | None:
-        index = self._view.currentIndex()
-        data = index.data(Qt.ItemDataRole.UserRole) if index.isValid() else None
-        return data if isinstance(data, dict) else None
-
     def step(self, step: int) -> None:
 
         count = self._model.rowCount()

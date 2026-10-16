@@ -28,13 +28,13 @@ import time
 import uuid
 import zlib
 from typing import Callable
-from urllib.parse import urlsplit
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
 from . import crash_note, data_access, protocol, tuning
 from .logger import log, log_warning
 from .protocol import ProtocolError, ServerErrorCode
+from .security_urls import host_name
 from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_PING_S, QUIET_DNS_RETRIES_S, WsClient
 
 
@@ -218,14 +218,6 @@ def _store_catalogs(tag: str, fields: dict) -> threading.Thread | None:
     return writer
 
 
-def _host_of(url: str) -> str:
-
-    try:
-        return urlsplit(str(url or "")).hostname or "?"
-    except ValueError:
-        return "?"
-
-
 def socket_clocks() -> dict:
 
 
@@ -293,7 +285,7 @@ class AgentSession(QObject):
 
 
     memory_note = pyqtSignal(str, str, str, str, str, str, str)
-    status_line = pyqtSignal(str, str)
+    status_line = pyqtSignal(str, str, object)
     state_changed = pyqtSignal(str, str)
 
 
@@ -745,7 +737,7 @@ class AgentSession(QObject):
                                                      "dead_after_s")}
 
 
-        self._dial_host, self._dial_failures = _host_of(url), self._failed_streak
+        self._dial_host, self._dial_failures = host_name(url), self._failed_streak
         dial = {"last_good": self._last_good_addresses().get(self._dial_host, ""),
                 "dns_retries": () if self._failed_streak else QUIET_DNS_RETRIES_S}
         if not self._ws.open(url, headers, clocks=transport, dial=dial):
@@ -819,8 +811,8 @@ class AgentSession(QObject):
             choices = server_url_choices()
             following = choices[(choices.index(current) + 1) % len(choices)]
             if following != current:
-                log_warning(f"{ALTERNATE_AFTER_FAILURES} connections to {_host_of(current)} failed, "
-                            f"trying {_host_of(following)}")
+                log_warning(f"{ALTERNATE_AFTER_FAILURES} connections to {host_name(current) or '?'} failed, "
+                            f"trying {host_name(following) or '?'}")
                 use_server_url(following)
                 current = following
         return current
@@ -1330,6 +1322,8 @@ class AgentSession(QObject):
 
         data_access.apply(frame.get("data_access"))
         self._session_id = str(frame.get("session_id") or self._session_id or "") or None
+
+        crash_note.record_session(self._session_id or "")
         self._attempt = 0
         self._reached_session = True
         self._failed_streak = 0
@@ -1489,7 +1483,9 @@ class AgentSession(QObject):
                           str(frame.get("summary") or ""), usage, verification)
 
     def _on_status_line(self, frame: dict) -> None:
-        self.status_line.emit(str(frame.get("run_id") or ""), str(frame.get("text") or ""))
+        progress = frame.get("progress")
+        self.status_line.emit(str(frame.get("run_id") or ""), str(frame.get("text") or ""),
+                              progress if isinstance(progress, dict) else {})
 
     def _on_error(self, frame: dict) -> None:
         code = str(frame.get("code") or ServerErrorCode.INTERNAL)

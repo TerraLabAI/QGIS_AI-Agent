@@ -21,6 +21,7 @@ from .cards import (
     QuestionCard,
     QuotaPauseCard,
 )
+from .cards_run import _NEW_CHAT, _NO_RETRY, InstallWaitCard, run_ending
 from .confirm_dialog import ConfirmDialog
 from .loader import ElapsedClock, ShimmerLabel, user_waiting
 from .widgets import Spinner
@@ -150,10 +151,12 @@ class _ChatPanelPrompts:
         run = self._live_run(run_id) if run_id else None
         if run is None or run_id != self._current_run:
             self._release_motion()
+            self.composer.set_reply_placeholder("")
             return
         if any(callable(getattr(c, "is_open", None)) and c.is_open() for c in run.permissions):
             return
         self._release_motion()
+        self.composer.set_reply_placeholder("")
         tool = self.message_list.tool_card(tool_call_id) if tool_call_id else None
         line = ""
         if tool is not None and getattr(tool, "ok", True) is None:
@@ -211,11 +214,26 @@ class _ChatPanelPrompts:
                             multiple=multiple, details=details, header=header)
         card.answered.connect(self.question_answered.emit)
         self._wait_on_user(run_id, self.tr("Waiting for your answer"))
+        self.composer.set_reply_placeholder(self.tr("Reply to the question..."))
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
         if not self._composer_is_being_typed_in():
             card.focus()
+
+    def show_install_wait(self, tool_call_id: str, run_id: str, name: str) -> None:
+
+
+        run = self._live_run(run_id)
+        if run is None:
+            self.question_answered.emit(tool_call_id, "")
+            return
+        card = InstallWaitCard(tool_call_id, str(name or ""))
+        card.answered.connect(self.question_answered.emit)
+        self._wait_on_user(run_id, self.tr("Waiting for the install"))
+        self.message_list.register_permission_card(tool_call_id, card)
+        run.permissions.append(card)
+        self._add(card)
 
     def ask_recommendation(self, tool_call_id: str, run_id: str, title: str, proposal: str,
                            entity: str = "", value: str = "", confidence: str = "high",
@@ -293,6 +311,10 @@ class _ChatPanelPrompts:
                 return
         elif getattr(card, "answer", None) is None:
             card.collapse(answer)
+        if isinstance(card, InstallWaitCard):
+
+            card.cleanup()
+            self.message_list.remove_widget(card)
         run_id = ""
         for run in self._runs.values():
             if card in run.permissions:
@@ -373,7 +395,7 @@ class _ChatPanelPrompts:
             self._trace_for(run_id).add_note(f"{card.decision_text('deny')}: {said}", failed=True)
 
     def show_error(self, run_id, code: str, message: str, retryable: bool,
-                   details: str = "", retry_key: str = "") -> None:
+                   details: str = "", retry_key: str = "", reason: str = "") -> None:
         run_id = str(run_id or "")[:256]
         if run_id and self._live_run(run_id) is None:
             return
@@ -387,8 +409,16 @@ class _ChatPanelPrompts:
         self._error_said[run_id or ""] = (message or "").strip()
 
 
-        card = ErrorCard(run_id or "", code, message, retryable, details,
-                         continuable=str(code or "") in StopCode.RESUMABLE)
+
+
+        ending = (code, str(reason or ""))
+        short, more = run_ending(code, reason, message)
+        retryable = bool(retryable) and ending not in _NO_RETRY
+        run = self._runs.get(run_id) if run_id else None
+        card = ErrorCard(run_id or "", code, short, retryable, details,
+                         continuable=str(code or "") in StopCode.RESUMABLE, more=more,
+                         new_chat=ending in _NEW_CHAT, glyph=run is None or run.trace is None)
+        card.new_chat_requested.connect(self.new_thread_requested.emit)
         key = str(retry_key or "")[:256]
         if key and not run_id:
 

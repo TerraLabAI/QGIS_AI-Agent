@@ -35,9 +35,9 @@ import json
 import platform
 import sys
 import time
-from datetime import datetime, timezone
 
 from .log_scrub import scrub_result, scrub_secrets, scrub_user_paths
+from .threads import now_iso
 
 SCHEMA = "terralab.agent.session/1"
 
@@ -50,10 +50,6 @@ HEAD_SHARE = 0.6
 
 
 BLOB_CHARS = 800
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _clean(value):
@@ -82,7 +78,7 @@ def build(*, thread=None, identity=None, session=None, account=None, policy=None
     identity = dict(identity or {})
     export = {
         "schema": SCHEMA,
-        "exported_at": _now_iso(),
+        "exported_at": now_iso(),
         "run_id": str(run_id or ""),
         "plugin": {
             "version": identity.get("plugin_version", ""),

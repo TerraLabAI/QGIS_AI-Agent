@@ -233,21 +233,16 @@ def _map_layers(item) -> list:
     return list(project.layerTreeRoot().checkedLayers())
 
 
-def _layout_credits(layout) -> str:
+def _credit_layers(layout) -> list:
 
-
-
-
-
-    from qgis.core import QgsLayoutItemLabel, QgsLayoutItemMap
+    from qgis.core import QgsLayoutItemMap
 
     layers = []
     seen = set()
     for item in layout.items():
         if not isinstance(item, QgsLayoutItemMap):
             continue
-        source = _map_layers(item)
-        for layer in source:
+        for layer in _map_layers(item):
             try:
                 layer_id = layer.id()
             except (RuntimeError, AttributeError):
@@ -255,26 +250,33 @@ def _layout_credits(layout) -> str:
             if layer_id not in seen:
                 seen.add(layer_id)
                 layers.append(layer)
+    return layers
+
+
+def _credit_lines(layout) -> list:
 
     credits = []
-    for layer in layers:
+    for layer in _credit_layers(layout):
         try:
-            text = str(layer.attribution() or "").strip()
-            if not text:
-                rights = layer.metadata().rights()
-                text = next((str(entry).strip() for entry in rights if str(entry).strip()), "")
+            text = licence.credit_line(layer)
         except (RuntimeError, AttributeError):
             continue
         if text and text not in credits:
             credits.append(text)
+    return credits
 
-    shown = []
-    for item in layout.items():
-        if isinstance(item, QgsLayoutItemLabel):
-            shown.append(str(item.text() or ""))
-    credits = [credit for credit in credits if not any(credit in label for label in shown)]
-    joined = " | ".join(credits)
-    return joined if len(joined) <= 600 else joined[:597].rstrip() + "..."
+
+def _layout_credits(layout) -> list:
+
+
+
+
+
+
+    from qgis.core import QgsLayoutItemLabel
+
+    shown = [str(item.text() or "") for item in layout.items() if isinstance(item, QgsLayoutItemLabel)]
+    return [credit for credit in _credit_lines(layout) if not any(credit in label for label in shown)]
 
 
 
@@ -452,61 +454,6 @@ def _unwritable_target(output_path: str) -> dict | None:
     return {"_error": f"{output_path} {why}, so the layout cannot be exported over it.",
             "_code": "EXECUTION_FAILED",
             "_suggestion": f"Another file name, such as {stem}_2{extension}, avoids it; {then}."}
-
-
-def _add_without_undo(layout, label) -> None:
-
-    undo = layout.undoStack()
-    undo.blockCommands(True)
-    try:
-        layout.addLayoutItem(label)
-    finally:
-        undo.blockCommands(False)
-
-
-def _add_credit_label(layout, text: str):
-
-    if not text:
-        return None
-    if layout.pageCollection().pageCount() == 0:
-        return None
-    try:
-        from qgis.core import QgsLayoutItemLabel, QgsLayoutPoint, QgsLayoutSize, QgsUnitTypes
-        from qgis.PyQt.QtGui import QFont
-
-        mm = enum_member(QgsUnitTypes, "LayoutUnit", "LayoutMillimeters")
-        page = layout.pageCollection().page(0)
-        size = page.pageSize()
-        width, height = size.width(), size.height()
-        label = QgsLayoutItemLabel(layout)
-        label.setText(licence.literal_label_text(text))
-        font = QFont()
-        font.setPointSizeF(6.5)
-        label.setFont(font)
-
-
-        margin = 10.0 * max(0.7, min(2.2, ((width * height) / (210.0 * 297.0)) ** 0.5))
-        label.attemptMove(QgsLayoutPoint(margin, max(0.0, height - 8), mm))
-        label.attemptResize(QgsLayoutSize(max(10.0, width - 2 * margin), 6, mm))
-        _add_without_undo(layout, label)
-        return label
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def _remove_credit_label(layout, label) -> None:
-
-    if label is None:
-        return
-    try:
-        undo = layout.undoStack()
-        undo.blockCommands(True)
-        try:
-            layout.removeLayoutItem(label)
-        finally:
-            undo.blockCommands(False)
-    except (RuntimeError, AttributeError):
-        pass
 
 
 def _page_text(layout) -> str:
@@ -850,8 +797,7 @@ def _export_layout_with(args: dict, ready) -> dict:
 
 
 
-    credits = _layout_credits(layout)
-    credit_label = _add_credit_label(layout, credits)
+    missing_credits = _layout_credits(layout)
 
 
     held = PixelSizeHold(layout, dpi)
@@ -893,7 +839,6 @@ def _export_layout_with(args: dict, ready) -> dict:
         exported = True
     finally:
         held.restore()
-        _remove_credit_label(layout, credit_label)
         if not exported:
 
             _restore_scale_on_refusal(reference_map, pre_scale_extent)
@@ -939,8 +884,8 @@ def _export_layout_with(args: dict, ready) -> dict:
     if dpi_note:
         out["dpi_note"] = dpi_note
         out["dpi_lowered_from"] = requested
-    if credit_label is not None:
-        out["attribution"] = credits
+    if missing_credits:
+        out["credits_not_on_page"] = missing_credits
     pixel_units = held.report()
     if pixel_units:
         out["pixel_units"] = pixel_units

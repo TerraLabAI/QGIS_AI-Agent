@@ -29,7 +29,6 @@ from qgis.core import (
     QgsExpression,
     QgsProject,
     QgsRelation,
-    QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
@@ -41,7 +40,7 @@ except ImportError:
 from ..core import limits
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._layers import layer_not_found, resolve_layer
-from .layer_lookup import _field_not_found_error
+from .layer_lookup import _field_not_found_error, require_vector
 
 _ACTIONS = ("add", "list", "remove")
 _STRENGTHS = ("association", "composition")
@@ -193,15 +192,7 @@ def _vector(name, role: str):
     if not str(name or "").strip():
         return None, tool_error(f"{role} is required.", "INVALID_ARGS",
                                 "It takes a layer name or id (list_layers).")
-    layer = resolve_layer(name)
-    if layer is None:
-        error = layer_not_found(name)
-        error["_error"] = f"{role}: {error.get('_error', '')}"
-        return None, error
-    if not isinstance(layer, QgsVectorLayer):
-        return None, tool_error(f"{role} {layer.name()!r} is not a vector layer.", "INVALID_ARGS",
-                                "Relations link vector layers or tables.")
-    return layer, None
+    return require_vector(name, role)
 
 
 def _field(layer, name, role: str):

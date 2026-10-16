@@ -208,9 +208,32 @@ def _raster_of(value):
     if layer is None:
         found = QgsProject.instance().mapLayersByName(value)
         layer = found[0] if found else None
-    if layer is None and os.path.isfile(value.split("|", 1)[0]):
+    if layer is None and _local_raster_file(value.split("|", 1)[0]):
         layer = QgsRasterLayer(value, "nodata probe", "gdal")
     return layer if isinstance(layer, QgsRasterLayer) and layer.isValid() else None
+
+
+def _local_raster_file(path: str) -> bool:
+
+
+
+
+
+
+
+    if not os.path.isfile(path):
+        return False
+    from osgeo import gdal
+
+    try:
+        dataset = gdal.OpenEx(path, gdal.OF_RASTER)
+    except RuntimeError:
+        return False
+    if dataset is None or dataset.GetDriver().ShortName == "VRT":
+        return False
+    files = dataset.GetFileList() or []
+    dataset = None
+    return all(os.path.isfile(name) for name in files)
 
 
 def _declared_nodata(layer, band: int = 1):
@@ -583,7 +606,7 @@ _FIELD_EXISTS_RE = re.compile(r"[Cc]annot create field (?P<field>[^\s.,]+)[^.]*\
 _LAYER_ERROR_RE = re.compile(r"Could not load source layer for \w+: (?P<value>.+?) not found")
 
 
-def _processing_error(algorithm_id: str, detail: str, alg=None) -> dict:
+def _processing_error(detail: str, alg=None) -> dict:
 
 
 

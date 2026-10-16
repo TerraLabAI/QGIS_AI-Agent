@@ -47,7 +47,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
@@ -276,10 +275,6 @@ class Header(QWidget):
         compact = bool(self._pro_pill.property("compact"))
         self._pro_pill_full_width = self._pro_pill.sizeHint().width() + (_PRO_GLYPH + 4 if compact else 0)
         self._fit_pro_pill()
-
-    def pro_pill(self) -> QPushButton:
-
-        return self._pro_pill
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)

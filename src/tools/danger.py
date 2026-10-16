@@ -28,8 +28,6 @@ _OPTIONAL_PATH_ARGS = {
     "take_screenshot": ("save_path",),
     "render_map": ("save_path", "output_path"),
     "take_qgis_window_screenshot": ("save_path",),
-    "take_widget_screenshot": ("save_path",),
-    "ref_action": ("save_path",),
     "create_memory_layer": ("gpkg_path",),
     "create_hillshade": ("output_path",),
     "get_3d_screenshot": ("save_path",),
@@ -117,7 +115,9 @@ _DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 
-_OGR_DBNAME_RE = re.compile(r"^ogr:dbname='(?P<path>[^']+)'")
+
+_OGR_DBNAME_PATTERN = r"^ogr:dbname='(?P<path>[^']+)'"
+_OGR_DBNAME_RE = re.compile(_OGR_DBNAME_PATTERN)
 
 
 def static_danger(name: str) -> str:
@@ -170,7 +170,6 @@ def _processing_output_params(algorithm_id: str) -> set[str] | None:
 
 
 def _processing_replaces_file(args: dict, own_files: frozenset = frozenset()) -> bool:
-
 
 
 

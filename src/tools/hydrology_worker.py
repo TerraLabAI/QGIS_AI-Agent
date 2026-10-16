@@ -302,7 +302,6 @@ def _delineate(args: dict, checkpoint) -> dict:
                              "written as 0) and was left out as open water: flow ends at its shore.")
     if only_dem_edge:
 
-
         out["checks"] = _checks([_finding(
             f"The watershed reaches the edge of {facts['name']} itself, so it is cut where the DEM ends.",
             "hydrology_basin_cut_dem_itself", dem=facts["name"])])
@@ -489,7 +488,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         snapped = {"lon": round(s_lon, 6), "lat": round(s_lat, 6), "moved_m": round(moved_m)}
     elif mask is not None:
         basin = _rasterise(mask["wkbs"], (window_gt[0], dx, 0.0, window_gt[2], 0.0, dy), width, height,
-                           facts["crs_wkt"], gdal, ogr, osr, np) & ~invalid
+                           facts["crs_wkt"], gdal, ogr, osr) & ~invalid
         if not basin.any():
             return tool_error(f"{mask['name']} covers no cell centre of {facts['name']} holding data.",
                               "INVALID_ARGS", hint="hydrology_mask_no_cells", mask=mask["name"],
@@ -956,7 +955,6 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
 
 
-
     if label and (ax0 < fx0 or ax1 > fx1 or ay0 < fy0 or ay1 > fy1):
         _warn(warnings, coded, f"{label} reaches beyond {facts['name']}.", "hydrology_area_beyond_dem",
               area=label, dem=facts["name"])
@@ -1024,7 +1022,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
 
         covered = _rasterise([bytes(in_analysis.ExportToWkb())], geotransform, width, height, analysis_wkt,
-                             gdal, ogr, osr, np)
+                             gdal, ogr, osr)
     else:
         dem = band.ReadAsArray(c_min, r_min, width, height).astype("float64")
         geotransform = (x0 + c_min * dx, dx, 0.0, y0 + r_min * dy, 0.0, dy)
@@ -1057,7 +1055,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
 
     if label:
         inside = _rasterise([bytes(g.ExportToWkb()) for g in projected], geotransform, width, height, analysis_wkt,
-                            gdal, ogr, osr, np) & ~invalid
+                            gdal, ogr, osr) & ~invalid
         if not inside.any():
             return tool_error(f"{label} covers no cell of {facts['name']} holding data.", "INVALID_ARGS",
                               hint="hydrology_area_no_cells", area=label, dem=facts["name"])
@@ -1206,7 +1204,6 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
     prefix = str(args.get("name") or label or "").strip()
     watershed_name = f"{prefix} watershed {area_km2:.1f} km2" if prefix else f"Watershed {area_km2:.1f} km2"
     streams_name = f"{prefix} streams (Strahler)" if prefix else "Streams (Strahler)"
-
 
 
     path = None

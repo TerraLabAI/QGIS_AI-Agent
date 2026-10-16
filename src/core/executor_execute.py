@@ -11,7 +11,7 @@ import traceback
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from . import background, crash_note, protocol, security, stalls, tuning
+from . import background, crash_note, net, protocol, security, stalls, tuning
 from . import code_effects as ce
 from .executor_code import CODE_TOOL
 from .logger import log, log_warning
@@ -19,6 +19,10 @@ from .protocol import ClientErrorCode as Err
 from .protocol import Danger
 from .serialization import error_details
 from .tool_registry import coded_fact
+
+
+_PROGRESS_MIN_BYTES = 1024 * 1024
+_PROGRESS_EVERY_S = 0.5
 
 try:
     from ..tools import code_runtime
@@ -301,7 +305,7 @@ class _ExecutorExecute:
         call["scratch_mark"] = self.scratch.mark()
         if danger != Danger.READ:
 
-            call["journal_before"] = self._journal_before(run_id, name, args)
+            call["journal_before"] = self._journal_before(run_id, name, args, call.get("code_plan"))
         if self._start_background(call, name, args, started):
             return
 
@@ -372,10 +376,23 @@ class _ExecutorExecute:
 
         context = self._code_context(call)
 
+        heard = {"at": 0.0}
+
+        def progress(done, total):
+
+            now = time.monotonic()
+            if done >= _PROGRESS_MIN_BYTES and now - heard["at"] >= _PROGRESS_EVERY_S:
+                heard["at"] = now
+                self.call_progress.emit(tool_call_id, done, total)
+
         def work():
             with context, background.calling(tool_call_id):
                 self._share_clock(call)
-                return self._registry.execute(name, args)
+                net.set_progress_sink(progress)
+                try:
+                    return self._registry.execute(name, args)
+                finally:
+                    net.set_progress_sink(None)
 
         def done(result, error_text: str):
             self._background.pop(tool_call_id, None)

@@ -216,6 +216,7 @@ class ToolCard(QWidget):
         self.danger = danger or "read"
         self.sentence = sentence or ""
         self.ok: bool | None = None
+        self.blocked = False
 
         self.ended = ""
         self.summary = ""
@@ -448,7 +449,6 @@ class ToolCard(QWidget):
 
 
 
-
         if self.ok is None or self.ended in ("denied", "stopped", "unfinished"):
             return ""
         if self.ok is False:
@@ -474,15 +474,6 @@ class ToolCard(QWidget):
 
         last_ok = max((i for i, (worked, _) in enumerate(self._tries) if worked), default=-1)
         return [summary for worked, summary in self._tries[:max(last_ok, 0)] if not worked]
-
-    def failures_since_worked(self) -> int:
-
-        count = 0
-        for worked, _ in reversed(self._tries):
-            if worked:
-                break
-            count += 1
-        return count
 
     def set_retry_state(self, recovered: bool, after_failure: bool) -> None:
 
@@ -633,7 +624,6 @@ class ToolCard(QWidget):
         self._header.setVisible(not self._bare)
 
 
-
         margins = self._body.layout().contentsMargins()
         self._body.layout().setContentsMargins(0 if self._bare else _BODY_INDENT_PX, margins.top(),
                                                margins.right(), margins.bottom())
@@ -703,7 +693,14 @@ class ToolCard(QWidget):
             return f"connector:{self.connector['id']}:{self._label_text}"
 
 
-        return f"tool:{self.name}:{self._verb}" if self.name else ""
+        if not self.name:
+            return ""
+
+
+        code = source_text(self.name, self.args)[0]
+        if code:
+            return f"tool:{self.name}:{self._verb}:{hash(code)}"
+        return f"tool:{self.name}:{self._verb}"
 
     def line(self) -> str:
 
@@ -723,9 +720,11 @@ class ToolCard(QWidget):
 
 
 
-    def finish(self, ok: bool, summary: str, duration_s: float, detail: str = "") -> None:
+    def finish(self, ok: bool, summary: str, duration_s: float, detail: str = "", hint: str = "") -> None:
         self.ok = bool(ok)
         self.summary = summary or ""
+
+        self.blocked = not ok and hint == "code_credential_refused"
 
 
 

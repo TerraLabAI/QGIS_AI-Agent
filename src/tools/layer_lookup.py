@@ -9,6 +9,11 @@ from __future__ import annotations
 
 import difflib
 
+from ..core import ground
+from ..core.context_layers import crs_units
+from ..core.crs_ref import crs_ref
+from ..core.tool_registry import tool_error
+from ._compat import is_raster, is_vector
 from ._layers import layer_not_found, resolve_layer
 
 
@@ -31,6 +36,75 @@ def _layer_not_found_error(name_or_id: str) -> dict:
 
 
     return layer_not_found(name_or_id)
+
+
+def require_vector(name_or_id: str, role: str = "", hint: str = "layer_not_vector"):
+
+
+
+
+
+
+
+    return _require(name_or_id, role, is_vector, "vector", hint)
+
+
+def require_raster(name_or_id: str, role: str = "", hint: str = "layer_not_raster"):
+
+    return _require(name_or_id, role, is_raster, "raster", hint)
+
+
+def _require(name_or_id, role: str, fits, wanted: str, hint: str):
+    layer = _find_layer(str(name_or_id or ""))
+    if layer is None:
+        error = layer_not_found(str(name_or_id or ""))
+        if role:
+            error["_error"] = f"{role}: {error.get('_error', '')}"
+        return None, error
+    if not fits(layer):
+        kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "other"
+        lead = f"{role} " if role else "Layer "
+        return None, tool_error(f"{lead}{layer.name()!r} is a {kind} layer, not a {wanted} layer.",
+                                "INVALID_ARGS", hint=hint, layer=layer.name(), kind=kind)
+    return layer, None
+
+
+def extent_block(extent, crs) -> dict:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    block = {"xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
+             "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),
+             "crs": crs_ref(crs)}
+    if crs is None or not crs.isValid():
+        return block
+    try:
+        block["units"] = crs_units(crs)
+
+        digits = 6 if crs.isGeographic() else 2
+        width, height = extent.width(), extent.height()
+        block["width"] = round(width, digits)
+        block["height"] = round(height, digits)
+        centre = extent.center()
+        scale = ground.metres_per_unit(crs, centre.x(), centre.y())
+    except Exception:  # noqa: BLE001
+        return block
+    if ground.distorted(scale):
+        block["ground_width_m"] = round(width * scale, 1)
+        block["ground_height_m"] = round(height * scale, 1)
+    return block
 
 
 def _field_not_found_error(layer, field_name: str) -> dict:

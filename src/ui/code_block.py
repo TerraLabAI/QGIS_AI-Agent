@@ -31,7 +31,6 @@
 from __future__ import annotations
 
 import difflib
-import json
 import math
 import re
 
@@ -88,7 +87,6 @@ _HEAD_PX = 40
 _GUTTER_PX = scale_px_length(28)
 _PAD_PX = 12
 _LINE_HEIGHT = 1.6
-
 
 
 
@@ -625,14 +623,6 @@ class CodeBlock(QFrame):
         self._body.set_lines(lines, diff=False)
         self._detach_highlighter()
         self._highlighter = _Highlighter(self._body.document(), language)
-
-    def set_json(self, value, name: str = "") -> None:
-
-        try:
-            text = json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True, default=str)
-        except (TypeError, ValueError):
-            text = str(value)
-        self.set_code(text, name or "parameters.json", "json")
 
     def set_diff(self, before: str, after: str, name: str = "") -> None:
 

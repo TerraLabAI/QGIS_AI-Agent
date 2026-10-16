@@ -107,6 +107,7 @@ def _vector_uri_for(path: str) -> str:
 
 
 
+
     if not path.lower().endswith(_READ_WHOLE):
         return path
     try:
@@ -122,18 +123,14 @@ def _vector_uri_for(path: str) -> str:
         gpkg = os.path.join(os.path.dirname(path), f"{name}.gpkg")
 
         source = gdal.OpenEx(path, gdal.OF_VECTOR)
-        first = source.GetLayer(0).GetName() if source.GetLayerCount() else None
+        sheets = [source.GetLayer(i) for i in range(source.GetLayerCount())]
+        first = max(sheets, key=lambda sheet: sheet.GetFeatureCount()).GetName() if sheets else None
         gdal.VectorTranslate(gpkg, source, format="GPKG", layerName=name, layers=[first] if first else None)
         source = None
     except Exception as exc:  # noqa: BLE001
         log_warning(f"GeoPackage conversion skipped for {os.path.basename(path)}: {exc}")
         return path
     return f"{gpkg}|layername={name}"
-
-
-def _vector_source_from_geojson(geojson_str: str, layer_name: str, subdir: str = "osm") -> str:
-
-    return _vector_uri_for(_geojson_file(geojson_str, layer_name, subdir))
 
 
 

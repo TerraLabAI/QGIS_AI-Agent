@@ -9,6 +9,44 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-16
+
+### Added
+
+- 3D views: `set_layer_elevation` gives points and lines a 3D symbol in their 2D colours, and
+  `configure_3d_map_view` works on QGIS 3.36 to 3.41, can look from under the ground, hide the
+  terrain once the view has loaded, and set the camera height over boreholes.
+- Long steps show the time left and the size downloaded; background jobs stay on their line until
+  they end, and web rows name the site they read.
+- Every layer the agent adds carries a source record: the layer chip shows its source line and a
+  layout gets a Sources block. Results last on any project save, and working layers are grouped.
+- A message typed in the chat box answers the waiting question card. Installs wait for the plugin
+  to finish installing before the run carries on.
+- The server's fixed run endings (stopped, cut off, too many requests) show in the user's language.
+
+### Changed
+
+- Paid accounts and the 7-day trial start on the Low level; Medium and High stay one slider move
+  away. The allowance in the panel counts tasks, in every language of the plugin.
+- Code the agent runs shows a card only for what Undo cannot take back and for the user's own
+  layers. Its snippets behave like the QGIS Python console.
+- Layout exports add no furniture or credit line of their own and name the credits no label
+  carries.
+- The "Left in your project" card under answers is gone.
+- Commands no run used in 30 days are removed from the plugin.
+
+### Fixed
+
+- A reopened project whose 3D view uses a DEM in another CRS than the project's finishes loading
+  and closes without closing QGIS; a large DEM without overviews loads in under a second.
+- An ArcGIS layer that does not open, or a layer whose source is gone, no longer closes QGIS.
+- Spanish streets, towns and postcodes found through CartoCiudad land at their real place.
+- Saving a project into a GeoPackage lists its tables without freezing QGIS; a shared project
+  offline keeps its run history.
+- Links with non-ASCII characters open, DWG files GDAL cannot read are named as such, and the
+  TerraLab exports folder is always one a file can be written in.
+- The map keeps the user's view when an undo changes the project CRS.
+
 ## [1.7.1] - 2026-10-11
 
 ### Changed

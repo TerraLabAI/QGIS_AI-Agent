@@ -25,6 +25,8 @@ from qgis.PyQt.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLa
 
 from ..core.layer_mime import live_layer_chips
 from .bubbles import UserBubble
+from .cards_question import QuestionCard
+from .cards_run import InstallWaitCard
 from .icons import pixmap_for
 from .layer_icons import layer_name
 from .style import (
@@ -73,6 +75,25 @@ def new_item(text: str, chips=(), attachments=()) -> dict:
 
     return {"id": next(_ids), "text": str(text or ""), "chips": list(chips or []),
             "attachments": list(attachments or [])}
+
+
+
+
+_REPLY_FILE_KEYS = ("name", "path", "kind", "mime", "size", "layer_id", "layer_name")
+
+
+def reply_attachments(chips, files) -> list[dict]:
+
+
+    out = [{"kind": "layer", "layer_id": str(chip.get("value") or ""),
+            "layer_name": str(chip.get("label") or chip.get("name") or "")}
+           for chip in chips or [] if isinstance(chip, dict) and chip.get("kind") == "layer"]
+    for item in files or []:
+        if isinstance(item, dict):
+            kept = {k: item[k] for k in _REPLY_FILE_KEYS if item.get(k) not in (None, "")}
+            if kept:
+                out.append(kept)
+    return out
 
 
 def extras_of(item: dict) -> int:
@@ -575,7 +596,10 @@ class _ChatPanelQueue:
 
     def _on_queue(self) -> None:
 
+
         text = self.composer.text().strip()
+        if text and self._answer_open_question(text):
+            return
         entry = self._queue()
         if not text or len(entry["items"]) >= QUEUE_MAX:
             return
@@ -584,6 +608,31 @@ class _ChatPanelQueue:
         self.composer.clear()
         self.composer.clear_attachments()
         self._sync_queue()
+
+    def _answer_open_question(self, text: str) -> bool:
+
+
+
+        run = self._live_run(self._current_run) if self._current_run else None
+        card = next((c for c in reversed(run.permissions)
+                     if isinstance(c, (QuestionCard, InstallWaitCard)) and c.is_open()), None) \
+            if run is not None else None
+        tool_call_id = card.open_page_id() if card is not None else ""
+        if not tool_call_id:
+            return False
+        c = self.composer
+        files = [dict(a) for a in c.attachments() if isinstance(a, dict)]
+        sent = reply_attachments(live_layer_chips(c.peek_chips(), layer_name), files)
+        names = [str(a.get("layer_name") or a.get("name") or "") for a in sent]
+        shown = " · ".join([text] + [n for n in names if n])
+        c.take_chips()
+        c.clear()
+        c.clear_attachments()
+        c.remember_sent(text, files)
+        card.collapse(shown, tool_call_id)
+        self._card_answered(tool_call_id)
+        self.question_reply.emit(tool_call_id, text, sent)
+        return True
 
     def _queue_remove(self, item_id: int) -> None:
         item = self._find(item_id)

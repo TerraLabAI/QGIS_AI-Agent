@@ -94,7 +94,28 @@ def _site(host: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
+def _site_name(host: str) -> str:
+
+
+
+    from qgis.PyQt.QtCore import QUrl
+
+    top = getattr(QUrl(f"http://{host}"), "topLevelDomain", None)
+    suffix = ""
+    if callable(top):
+        try:
+            suffix = str(top() or "")
+        except Exception:  # noqa: BLE001
+            suffix = ""
+    if suffix and host.endswith(suffix) and len(host) > len(suffix):
+        label = host[:-len(suffix)].rsplit(".", 1)[-1]
+        if label:
+            return label + suffix
+    return host
+
+
 def _host(value) -> str:
+
 
 
 
@@ -122,8 +143,8 @@ def _host(value) -> str:
         from .shared import get_connectors
 
         connectors = get_connectors()
-    except Exception:  # nosec B110
-        return ""
+    except Exception:  # noqa: BLE001
+        connectors = []
     for connector in connectors:
         page = _site(source_host(str(connector.get("url") or "")))
         if page and (host == page or host.endswith("." + page)) and connector.get("name"):
@@ -132,7 +153,7 @@ def _host(value) -> str:
         key = str(connector.get("id") or "").lower().replace("-", "").replace("_", "")
         if key and key in segments and connector.get("name"):
             return str(connector["name"])
-    return ""
+    return _site_name(host)
 
 
 
@@ -674,7 +695,17 @@ def _gpkg_effect(name: str, args: dict) -> str:
 
 
 
-_CHIP_FALLBACK_KEYS = ("description", "name", "path")
+_CHIP_FALLBACK_KEYS = ("description", "name", "url", "path")
+
+
+def _is_file_path(value) -> bool:
+
+
+    text = str(value or "")
+    if "/" in text or "\\" in text:
+        return True
+    _stem, ext = os.path.splitext(text)
+    return 1 < len(ext) <= 6 and ext[1:].isalnum() and not ext[1:].isdigit() and "." not in _stem
 
 
 def _template_keys(text: str) -> list:
@@ -729,6 +760,8 @@ def _chip_fallback(name: str, args: dict) -> str:
     if subject:
         return subject
     for key in _CHIP_FALLBACK_KEYS:
+        if key == "path" and not _is_file_path(args.get(key)):
+            continue
         word = _word(args.get(key))
         if word:
             return word
@@ -800,10 +833,9 @@ COLOUR_QGIS = "ink_2"
 
 
 _PLUGIN_TOOL_NAMES = frozenset({
-    "run_plugin_flow", "install_plugin", "list_plugins", "get_plugin_info", "open_plugin_manager",
+    "install_plugin", "list_plugins", "get_plugin_info", "open_plugin_manager",
     "search_plugin_repository", "set_plugin_enabled", "open_plugin_panel",
     "reload_plugin", "trigger_plugin_action", "trigger_menu_action",
-    "get_plugin_debug_context",
 })
 _PLUGIN_PREFIXES = ("plugin_", "qgis_plugin", "ai_edit_", "ai_segment_")
 
@@ -820,7 +852,7 @@ _GLYPH_RULES = (
     (("sql", "postgis", "connection"), "database"),
     (("field_calculator",), "calculator"),
     (("search_", "find_", "list_algorithms", "qgis_docs", "search_tools"), "search"),
-    (("geocode", "pick_coordinate", "bookmark"), "map-pin"),
+    (("geocode", "bookmark"), "map-pin"),
     (("processing", "run_model", "batch", "algorithm"), "cog"),
     (("canvas", "zoom", "flash_features", "pan_", "extent"), "locate-fixed"),
     (("render_map", "screenshot", "snapshot", "animation"), "camera"),

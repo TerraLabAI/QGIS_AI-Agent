@@ -64,7 +64,6 @@ class SourceChip(Pressable):
 class ExampleDetail(QWidget):
 
 
-    back_requested = pyqtSignal()
 
     crumb_requested = pyqtSignal(int)
     prompt_chosen = pyqtSignal(str)

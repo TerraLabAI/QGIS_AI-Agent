@@ -130,11 +130,11 @@ class RunsLeftLine(QWidget):
 
         self.where = "warning" if left <= WARN_AT_RUNS_LEFT else ""
         if self.where == "warning":
-            count = (self.tr("1 free run left") if left == 1
-                     else self.tr("{n} free runs left").format(n=left))
+            count = (self.tr("1 free task left") if left == 1
+                     else self.tr("{n} free tasks left").format(n=left))
 
             link = (trial_cta(trial[0]) if trial
-                    else self.tr("Get more runs with Pro"))
+                    else self.tr("Get more tasks with Pro"))
             self._label.setStyleSheet(scale_qss_font_px(_WARNING_QSS))
             self._label.setText(
                 f'{html.escape(count)}&nbsp; <a href="pro" style="color: {ACCENT_INK};'
@@ -147,7 +147,7 @@ class RunsLeftLine(QWidget):
         tip = ""
         if self.where == "warning":
             tip = (trial_promise(*trial) if trial else
-                   self.tr("Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot")
+                   self.tr("Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot")
                    .format(n=get_pro_runs_per_month()))
         self._label.setToolTip(tip)
 
@@ -409,14 +409,14 @@ class QuotaCard(QWidget):
         self._contact.hide()
         if is_subscriber:
             self.state = "paid_out"
-            self._title.setText(self.tr("Your runs are used up"))
+            self._title.setText(self.tr("Your tasks for this month are used"))
             if limit and reset_text:
-                self._note.setText(self.tr("You used all {n} runs this month. They come back on {date}.")
+                self._note.setText(self.tr("You used all {n} tasks this month. They come back on {date}.")
                                    .format(n=limit, date=reset_text))
             elif reset_text:
                 self._note.setText(self.tr("They come back on {date}.").format(date=reset_text))
             else:
-                self._note.setText(self.tr("You used all {n} runs this month.").format(n=limit) if limit else "")
+                self._note.setText(self.tr("You used all {n} tasks this month.").format(n=limit) if limit else "")
             self._note.show()
             self._plan.hide()
             self._body.setText(self.tr("Need more this month? Write to us and we set up a custom quota."))
@@ -438,13 +438,13 @@ class QuotaCard(QWidget):
                     "Upgrade to Pro to keep going. Shared computer, or a mistake? "
                     "Contact {email} and we will unlock it.").format(email=get_support_email()))
             else:
-                self._title.setText(self.tr("Your free runs are used up"))
-                self._note.setText(self.tr("Free runs come back on {date}.").format(date=reset_text) if reset_text
-                                   else self.tr("Free runs come back at your monthly reset."))
+                self._title.setText(self.tr("Your free tasks for this month are used"))
+                self._note.setText(self.tr("Free tasks come back on {date}.").format(date=reset_text) if reset_text
+                                   else self.tr("Free tasks come back at your monthly reset."))
             self._note.show()
             self._pitch.setText(self.tr("Pro: more and better"))
             lines = (
-                self.tr("{n} runs a month").format(n=get_pro_runs_per_month()),
+                self.tr("{n} tasks a month").format(n=get_pro_runs_per_month()),
                 self.tr("Medium and High effort for harder tasks"),
                 self.tr("Autopilot"),
                 self.tr("Memory and your instructions"),

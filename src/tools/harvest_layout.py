@@ -23,7 +23,6 @@ from qgis.core import (
     QgsLayoutSize,
     QgsPrintLayout,
     QgsProject,
-    QgsVectorLayer,
 )
 from qgis.PyQt.QtGui import QImage
 
@@ -33,7 +32,7 @@ from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
 from .data_tools import _safe_filename
-from .layer_lookup import _find_layer, _layer_not_found_error
+from .layer_lookup import require_vector
 from .layout_elevation import camera_facts, snapshot_3d_view
 from .layout_pixel_units import PixelSizeHold
 from .layout_tools import _first_map_item, _mm_point, _mm_size, _resolve_layout, _with_new_item, place_item
@@ -203,17 +202,6 @@ def _layout_or_error(name: str):
     return layout, error
 
 
-def _resolve_vector_layer(name_or_id: str):
-
-    layer = _find_layer(name_or_id)
-    if not layer:
-        return None, _layer_not_found_error(name_or_id)
-    if not isinstance(layer, QgsVectorLayer):
-        return None, tool_error(f"Layer {name_or_id!r} is not a vector layer", "INVALID_ARGS",
-                                "must be a vector layer; list_layers shows each layer's type.")
-    return layer, None
-
-
 
 
 
@@ -283,7 +271,7 @@ def _add_layout_table(args: dict) -> dict:
     layout, error = _layout_or_error(args["layout_name"])
     if error:
         return error
-    layer, error = _resolve_vector_layer(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
 
@@ -337,7 +325,7 @@ def _configure_atlas(args: dict) -> dict:
     layout, error = _layout_or_error(args["layout_name"])
     if error:
         return error
-    layer, error = _resolve_vector_layer(args["coverage_layer"])
+    layer, error = require_vector(args["coverage_layer"])
     if error:
         return error
 

@@ -19,6 +19,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import json
@@ -33,21 +37,85 @@ _LIST_ITEMS = 200
 
 
 
+PRELUDE = {"np": "numpy", "Path": "pathlib:Path"}
 
 
-PRELUDE = {"math": "math", "json": "json", "statistics": "statistics", "np": "numpy"}
+def _stdlib(name: str) -> bool:
+
+    if name.startswith("_") or name not in sys.modules:
+        return False
+    names = getattr(sys, "stdlib_module_names", None)
+    if names is not None:
+        return name in names
+    module = sys.modules.get(name)
+    where = getattr(module, "__file__", None)
+    if not where:
+        return True
+    import sysconfig
+
+    stdlib = os.path.normcase(os.path.abspath(sysconfig.get_paths()["stdlib"]))
+    where = os.path.normcase(os.path.abspath(where))
+    return where.startswith(stdlib + os.sep) and "site-packages" not in where
 
 
 def prelude(names: frozenset, importer) -> dict:
 
+
+
+
+
+
+
+
     out = {}
-    for alias, module in PRELUDE.items():
-        if alias not in names:
+    for alias in names:
+        spec = PRELUDE.get(alias) or (alias if _stdlib(alias) else None)
+        if spec is None:
             continue
+        module, _sep, attr = spec.partition(":")
         try:
-            out[alias] = importer(module)
+            value = importer(module, None, None, (attr,) if attr else (), 0) if attr else importer(module)
+            out[alias] = getattr(value, attr) if attr else value
         except Exception:  # noqa: BLE001  # nosec B112
             continue
+    return out
+
+
+
+
+_CONSOLE_MODULES = ("qgis.core", "qgis.gui", "qgis.analysis", "qgis.PyQt.QtCore", "qgis.PyQt.QtGui",
+                    "qgis.PyQt.QtWidgets", "qgis.PyQt.QtNetwork", "qgis.PyQt.QtXml")
+_CONSOLE_CACHE: dict = {}
+
+
+def console_names(denied: frozenset, gui: bool = True) -> dict:
+
+
+
+
+
+
+    key = (denied, gui)
+    if key in _CONSOLE_CACHE:
+        return _CONSOLE_CACHE[key]
+    import importlib
+
+    out: dict = {}
+    for module_name in _CONSOLE_MODULES:
+        if not gui and module_name in ("qgis.gui", "qgis.PyQt.QtWidgets"):
+            continue
+        try:
+            module = importlib.import_module(module_name)
+        except ImportError:
+            continue
+        public = getattr(module, "__all__", None) or [n for n in vars(module) if not n.startswith("_")]
+        for name in public:
+            if name in denied or name.startswith("_") or name in out:
+                continue
+            value = getattr(module, name, None)
+            if value is not None and not isinstance(value, type(sys)):
+                out[name] = value
+    _CONSOLE_CACHE[key] = out
     return out
 
 
@@ -86,6 +154,82 @@ def keepable(value, depth: int = 0) -> bool:
     if isinstance(value, dict) and depth < 2:
         return all(keepable(item, depth + 1) for item in list(value.values())[:1000])
     return True
+
+
+def reference(value, depth: int = 0):
+
+
+
+
+
+
+
+    if keepable(value, depth):
+        return ("value", value)
+    if depth < 2 and isinstance(value, (list, tuple)):
+        items = [reference(item, depth + 1) for item in list(value)[:1000]]
+        return None if any(i is None for i in items) else (type(value).__name__, items)
+    if depth < 2 and isinstance(value, dict):
+        items = {k: reference(v, depth + 1) for k, v in list(value.items())[:1000]}
+        return None if any(i is None for i in items.values()) else ("dict", items)
+    try:
+        from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsLayoutItem, QgsMapLayer, QgsPrintLayout
+        from qgis.PyQt import sip
+
+        if sip.isdeleted(value):
+            return None
+        if isinstance(value, QgsMapLayer):
+            return ("layer", value.id())
+        if isinstance(value, QgsPrintLayout):
+            return ("layout", value.name())
+        if isinstance(value, QgsLayoutItem):
+            layout = value.layout()
+            return ("layout_item", layout.name(), value.uuid()) if layout is not None else None
+        if isinstance(value, QgsLayerTreeLayer):
+            return ("tree_layer", value.layerId())
+        if isinstance(value, QgsLayerTreeGroup):
+            path = []
+            node = value
+            while node is not None and node.parent() is not None:
+                path.insert(0, node.name())
+                node = node.parent()
+            return ("tree_group", path)
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+    return None
+
+
+def resolve(ref, project):
+
+    kind = ref[0]
+    if kind == "value":
+        return ref[1]
+    if kind in ("list", "tuple"):
+        items = [resolve(item, project) for item in ref[1]]
+        return items if kind == "list" else tuple(items)
+    if kind == "dict":
+        return {k: resolve(v, project) for k, v in ref[1].items()}
+    found = None
+    if kind == "layer":
+        found = project.mapLayer(ref[1])
+    elif kind in ("layout", "layout_item"):
+        found = project.layoutManager().layoutByName(ref[1])
+        if found is not None and kind == "layout_item":
+            found = found.itemByUuid(ref[2])
+    elif kind == "tree_layer":
+        found = project.layerTreeRoot().findLayer(ref[1])
+    elif kind == "tree_group":
+        from qgis.core import QgsLayerTreeGroup
+
+        found = project.layerTreeRoot()
+        for name in ref[1]:
+            found = next((child for child in found.children()
+                          if isinstance(child, QgsLayerTreeGroup) and child.name() == name), None)
+            if found is None:
+                break
+    if found is None:
+        raise LookupError(kind)
+    return found
 
 
 def ordered_layers(project) -> list:
@@ -201,6 +345,24 @@ def result_json(value) -> tuple[object, str]:
     return encode(value), type(value).__name__
 
 
+
+
+
+EXPORTED_PAGES: list[str] = []
+
+
+def note_page(path: str) -> None:
+
+    if isinstance(path, str) and path and path not in EXPORTED_PAGES and len(EXPORTED_PAGES) < _LIST_ITEMS:
+        EXPORTED_PAGES.append(path)
+
+
+def take_pages(written) -> list[str]:
+
+    pages, EXPORTED_PAGES[:] = list(EXPORTED_PAGES), []
+    return [path for path in pages if path in written]
+
+
 def shown_files(namespace: dict) -> list[str]:
 
 
@@ -241,7 +403,12 @@ def _pointer(obj) -> int:
 def _signature(layer) -> tuple:
     look, data = (), ()
     try:
-        look = (_pointer(layer.renderer()), layer.opacity(), getattr(layer, "blendMode", lambda: 0)())
+        renderer = layer.renderer()
+        look = (_pointer(renderer), layer.opacity(), getattr(layer, "blendMode", lambda: 0)())
+
+
+        if hasattr(renderer, "dump"):
+            look += (renderer.dump(),)
         if hasattr(layer, "labeling"):
             look += (_pointer(layer.labeling()), layer.labelsEnabled())
         if hasattr(layer, "featureCount"):

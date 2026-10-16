@@ -26,14 +26,14 @@
             <source>Results for “{query}”</source>
             <translation>Resultaten voor “{query}”</translation>
         </message>
-    <message>
-        <source>AI Segmentation review[ ({action})]</source>
-        <translation>Controle van AI Segmentation[ ({action})]</translation>
-    </message>
-    <message>
-        <source>Save the AI Segmentation review</source>
-        <translation>De controle van AI Segmentation opslaan</translation>
-    </message>
+        <message>
+            <source>AI Segmentation review[ ({action})]</source>
+            <translation>Controle van AI Segmentation[ ({action})]</translation>
+        </message>
+        <message>
+            <source>Save the AI Segmentation review</source>
+            <translation>De controle van AI Segmentation opslaan</translation>
+        </message>
         <message>
             <location filename="src/ui/library/dialog.py" />
             <source>%n examples</source>
@@ -2286,6 +2286,110 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Open</source>
             <translation>Openen</translation>
         </message>
+        <message>
+            <source>A lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Een lichtere vraag (minder lagen, een kleiner gebied, een lagere resolutie) wordt eerder afgerond dan dezelfde vraag nog eens.</translation>
+        </message>
+        <message>
+            <source>A shorter or more precise request gets an answer sooner.</source>
+            <translation>Een kortere of preciezere vraag krijgt sneller antwoord.</translation>
+        </message>
+        <message>
+            <source>A smaller area, or one task at a time, gets through sooner.</source>
+            <translation>Een kleiner gebied, of één taak tegelijk, gaat sneller.</translation>
+        </message>
+        <message>
+            <source>Done. Only the map preview did not draw.</source>
+            <translation>Klaar. Alleen het kaartvoorbeeld is niet getekend.</translation>
+        </message>
+        <message>
+            <source>It may still be working on an earlier step. Once QGIS responds again, a lighter request (fewer layers, a smaller area, a lower resolution) is more likely to finish.</source>
+            <translation>Mogelijk is het nog bezig met een eerdere stap. Zodra QGIS weer reageert, wordt een lichtere vraag (minder lagen, een kleiner gebied, een lagere resolutie) eerder afgerond.</translation>
+        </message>
+        <message>
+            <source>No answer came back. Try again.</source>
+            <translation>Er kwam geen antwoord terug. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>QGIS closed during a step. Your saved work is safe.</source>
+            <translation>QGIS werd tijdens een stap gesloten. Je opgeslagen werk is veilig.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped answering while drawing the preview. The result is on the map.</source>
+            <translation>QGIS reageerde niet meer tijdens het tekenen van het voorbeeld. Het resultaat staat op de kaart.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding during a step.</source>
+            <translation>QGIS reageerde niet meer tijdens een stap.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding while a card waited.</source>
+            <translation>QGIS reageerde niet meer terwijl een kaart wachtte.</translation>
+        </message>
+        <message>
+            <source>QGIS stopped responding. Your earlier steps are kept.</source>
+            <translation>QGIS reageerde niet meer. Je eerdere stappen blijven bewaard.</translation>
+        </message>
+        <message>
+            <source>Set up AI Edit</source>
+            <translation>AI Edit instellen</translation>
+        </message>
+        <message>
+            <source>Set up AI Segmentation</source>
+            <translation>AI Segmentation instellen</translation>
+        </message>
+        <message>
+            <source>Something went wrong on our side. Try again.</source>
+            <translation>Er ging iets mis aan onze kant. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>That step did not finish. Files the run had already written are still on disk. Layers it added come back only if the project was saved after them, and a temporary layer is gone. The same step may close QGIS again: ask for something lighter (a smaller area, fewer layers).</source>
+            <translation>Die stap is niet afgerond. Bestanden die de run al had geschreven, staan nog op schijf. Lagen die de run toevoegde, komen alleen terug als het project daarna is opgeslagen, en een tijdelijke laag is weg. Dezelfde stap kan QGIS opnieuw sluiten: vraag om iets lichters (een kleiner gebied, minder lagen).</translation>
+        </message>
+        <message>
+            <source>The agent got stuck on the same step.</source>
+            <translation>De agent bleef hangen op dezelfde stap.</translation>
+        </message>
+        <message>
+            <source>The agent service restarted twice during a step.</source>
+            <translation>De agentservice is tijdens een stap twee keer opnieuw gestart.</translation>
+        </message>
+        <message>
+            <source>The answer was cut off. Ask again to carry on.</source>
+            <translation>Het antwoord werd afgekapt. Vraag opnieuw om verder te gaan.</translation>
+        </message>
+        <message>
+            <source>The connection to QGIS dropped and did not come back, so that step did not finish. If QGIS is still open, the project is as the run left it. If it closed, files the run wrote are still on disk, and its layers come back only if the project was saved after them. Reopen QGIS if it closed, then press Retry.</source>
+            <translation>De verbinding met QGIS viel weg en kwam niet terug, dus die stap is niet afgerond. Als QGIS nog open is, staat het project zoals de run het achterliet. Als QGIS is gesloten, staan de bestanden die de run schreef nog op schijf, en de lagen komen alleen terug als het project daarna is opgeslagen. Open QGIS opnieuw als het is gesloten en druk dan op Opnieuw proberen.</translation>
+        </message>
+        <message>
+            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
+            <translation>Het model bleef een stap sturen die de agent niet kon lezen. Eerdere stappen blijven bewaard.</translation>
+        </message>
+        <message>
+            <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
+            <translation>De stap op die kaart is niet uitgevoerd, tenzij er net voordien op is geklikt. Eerdere stappen blijven bewaard; als je hetzelfde bericht opnieuw verstuurt, komt de kaart terug.</translation>
+        </message>
+        <message>
+            <source>This conversation is too long.</source>
+            <translation>Dit gesprek is te lang.</translation>
+        </message>
+        <message>
+            <source>Too many requests right now. Try again in a minute.</source>
+            <translation>Op dit moment te veel verzoeken. Probeer het over een minuut opnieuw.</translation>
+        </message>
+        <message>
+            <source>What it did before is kept. Rephrase the request or add a detail (a layer, a place, a value), then send it again.</source>
+            <translation>Wat het eerder deed, blijft bewaard. Formuleer de vraag anders of voeg een detail toe (een laag, een plaats, een waarde) en verstuur haar opnieuw.</translation>
+        </message>
+        <message>
+            <source>What the run did before is kept. Report sends us the details.</source>
+            <translation>Wat de run eerder deed, blijft bewaard. Met Melden sturen we de details naar ons.</translation>
+        </message>
+        <message>
+            <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
+            <translation>Wat de run vóór die stap deed, blijft bewaard. Een lichtere vraag (een kleiner gebied, een lagere resolutie) wordt eerder afgerond dan dezelfde vraag nog eens.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2918,8 +3022,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} runs this month</source>
-            <translation>{used} uitvoeringen deze maand</translation>
+            <source>{used} tasks this month</source>
+            <translation>{used} taken deze maand</translation>
         </message>
     </context>
     <context>
@@ -3091,6 +3195,26 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Show the {n} tries that did not work</source>
             <translation>Toon de {n} pogingen die niet werkten</translation>
+        </message>
+        <message>
+            <source>Blocked to protect your credentials</source>
+            <translation>Geblokkeerd om je inloggegevens te beschermen</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>nog ongeveer {n} min</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>nog ongeveer {n} s</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} van {total} MB</translation>
         </message>
     </context>
     <context>
@@ -3326,8 +3450,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>You have used every run of this period.</source>
-            <translation>Je hebt alle uitvoeringen voor deze periode gebruikt.</translation>
+            <source>You have used every task of this period.</source>
+            <translation>Je hebt alle taken voor deze periode gebruikt.</translation>
         </message>
         <message>
             <source>Not connected to the agent service. Retry once the connection is back.</source>
@@ -3705,6 +3829,46 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Print layouts changed</source>
             <translation>Afdruklay-outs gewijzigd</translation>
         </message>
+        <message>
+            <source>Balanced</source>
+            <translation>Gebalanceerd</translation>
+        </message>
+        <message>
+            <source>Beginner</source>
+            <translation>Beginner</translation>
+        </message>
+        <message>
+            <source>Concise</source>
+            <translation>Beknopt</translation>
+        </message>
+        <message>
+            <source>Detailed</source>
+            <translation>Uitgebreid</translation>
+        </message>
+        <message>
+            <source>Expert</source>
+            <translation>Expert</translation>
+        </message>
+        <message>
+            <source>GIS experience</source>
+            <translation>GIS-ervaring</translation>
+        </message>
+        <message>
+            <source>Imperial</source>
+            <translation>Imperiaal</translation>
+        </message>
+        <message>
+            <source>Metric</source>
+            <translation>Metrisch</translation>
+        </message>
+        <message>
+            <source>Rarely</source>
+            <translation>Zelden</translation>
+        </message>
+        <message>
+            <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
+            <translation>Tijdelijk bestand in de werkmap van AI Agent. Als je het project opslaat, wordt het naast het project bewaard.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3901,8 +4065,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
-            <source>More runs next month</source>
-            <translation>Meer uitvoeringen volgende maand</translation>
+            <source>More tasks next month</source>
+            <translation>Meer taken volgende maand</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4165,6 +4329,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>{n} layers couldn't be restored</source>
             <translation>{n} lagen konden niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>Reply to the question...</source>
+            <translation>Beantwoord de vraag...</translation>
+        </message>
+        <message>
+            <source>Waiting for the install</source>
+            <translation>Wachten op de installatie</translation>
         </message>
     </context>
     <context>
@@ -4971,6 +5143,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>More details</source>
             <translation>Meer details</translation>
         </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5345,6 +5521,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Undo and retry</source>
             <translation>Ongedaan maken en opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Details</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Details verbergen</translation>
+        </message>
+        <message>
+            <source>New chat</source>
+            <translation>Nieuwe chat</translation>
         </message>
     </context>
     <context>
@@ -6218,13 +6406,13 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your free runs are used up</source>
-            <translation>Je gratis uitvoeringen zijn op</translation>
+            <source>Your free tasks for this month are used</source>
+            <translation>Je gratis taken voor deze maand zijn op</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Your runs are used up</source>
-            <translation>Je uitvoeringen zijn op</translation>
+            <source>Your tasks for this month are used</source>
+            <translation>Je taken voor deze maand zijn op</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6237,12 +6425,12 @@ Klik om de pagina te openen.</translation>
             <translation>Nog {n} gratis uitvoeringen.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month.</source>
-            <translation>Je hebt alle {n} uitvoeringen van deze maand gebruikt.</translation>
+            <source>You used all {n} tasks this month.</source>
+            <translation>Je hebt alle {n} taken van deze maand gebruikt.</translation>
         </message>
         <message>
-            <source>You used all {n} runs this month. They come back on {date}.</source>
-            <translation>Je hebt alle {n} uitvoeringen van deze maand gebruikt. Ze zijn op {date} weer beschikbaar.</translation>
+            <source>You used all {n} tasks this month. They come back on {date}.</source>
+            <translation>Je hebt alle {n} taken van deze maand gebruikt. Ze zijn op {date} weer beschikbaar.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6292,12 +6480,12 @@ Klik om de pagina te openen.</translation>
             <translation>Free is voor persoonlijk gebruik en studie. Met Pro mag je voor klanten en werkgevers werken.</translation>
         </message>
         <message>
-            <source>Free runs come back at your monthly reset.</source>
-            <translation>Gratis uitvoeringen komen terug bij je maandelijkse reset.</translation>
+            <source>Free tasks come back at your monthly reset.</source>
+            <translation>Gratis taken komen terug bij je maandelijkse reset.</translation>
         </message>
         <message>
-            <source>Free runs come back on {date}.</source>
-            <translation>Gratis uitvoeringen komen terug op {date}.</translation>
+            <source>Free tasks come back on {date}.</source>
+            <translation>Gratis taken komen terug op {date}.</translation>
         </message>
         <message>
             <source>Medium and High effort for harder tasks</source>
@@ -6324,8 +6512,8 @@ Klik om de pagina te openen.</translation>
             <translation>{amount}/maand excl. btw</translation>
         </message>
         <message>
-            <source>{n} runs a month</source>
-            <translation>{n} uitvoeringen per maand</translation>
+            <source>{n} tasks a month</source>
+            <translation>{n} taken per maand</translation>
         </message>
         <message>
             <source>{price} · cancel anytime</source>
@@ -6546,6 +6734,22 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{step} and {n} more</source>
             <translation>{step} en nog {n}</translation>
+        </message>
+        <message>
+            <source>Waiting for you</source>
+            <translation>Wacht op jou</translation>
+        </message>
+        <message>
+            <source>Worked for {time}</source>
+            <translation>Gewerkt gedurende {time}</translation>
+        </message>
+        <message>
+            <source>blocked</source>
+            <translation>geblokkeerd</translation>
+        </message>
+        <message>
+            <source>{n} steps</source>
+            <translation>{n} stappen</translation>
         </message>
     </context>
     <context>
@@ -6841,8 +7045,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Need more than {n} runs a month? Write to {email}.</source>
-            <translation>Meer dan {n} uitvoeringen per maand nodig? Schrijf naar {email}.</translation>
+            <source>Need more than {n} tasks a month? Write to {email}.</source>
+            <translation>Meer dan {n} taken per maand nodig? Schrijf naar {email}.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7166,7 +7370,7 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>{used} runs this month</source>
+            <source>{used} tasks this month</source>
             <translation>Uitvoeringen deze maand: {used}</translation>
         </message>
         <message>
@@ -7402,8 +7606,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>{left} of {limit} runs left</source>
-            <translation>{left} van {limit} uitvoeringen over</translation>
+            <source>{left} of {limit} tasks left</source>
+            <translation>{left} van {limit} taken over</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -7419,8 +7623,8 @@ Klik om de pagina te openen.</translation>
             <translation>Upgraden</translation>
         </message>
         <message>
-            <source>Commercial use and more runs with Pro</source>
-            <translation>Commercieel gebruik en meer runs met Pro</translation>
+            <source>Commercial use and more tasks with Pro</source>
+            <translation>Commercieel gebruik en meer taken met Pro</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -7471,8 +7675,8 @@ Klik om de pagina te openen.</translation>
             <translation>Je abonnement, betaalmethode en facturen, op de TerraLab-website. Betalen gebeurt nooit in QGIS.</translation>
         </message>
         <message>
-            <source>Your plan, runs and settings appear here once you sign in.</source>
-            <translation>Je abonnement, runs en instellingen verschijnen hier zodra je je aanmeldt.</translation>
+            <source>Your plan, tasks and settings appear here once you sign in.</source>
+            <translation>Je abonnement, taken en instellingen verschijnen hier zodra je je aanmeldt.</translation>
         </message>
         <message>
             <source>Your profile and instructions, read before every run</source>
@@ -7785,46 +7989,46 @@ Klik om de pagina te openen.</translation>
     </context>
     <context>
         <name>ToolExecutor</name>
-    <message>
-        <source>{area} km²</source>
-        <translation>{area} km²</translation>
-    </message>
-    <message>
-        <source>{area} ha</source>
-        <translation>{area} ha</translation>
-    </message>
-    <message>
-        <source>{area} m²</source>
-        <translation>{area} m²</translation>
-    </message>
-    <message>
-        <source>the '{layer}' layer ({area})</source>
-        <translation>de laag '{layer}' ({area})</translation>
-    </message>
-    <message>
-        <source>Run {label} on {zone}. This spends your {label} credits.</source>
-        <translation>Voer {label} uit op {zone}. Dit gebruikt je {label}-credits.</translation>
-    </message>
-    <message>
-        <source> at {resolution}</source>
-        <translation> bij {resolution}</translation>
-    </message>
-    <message>
-        <source> at the panel's selected resolution</source>
-        <translation> bij de resolutie die in het paneel is gekozen</translation>
-    </message>
-    <message>
-        <source>{price} credits per generation</source>
-        <translation>{price} credits per generatie</translation>
-    </message>
-    <message>
-        <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-        <translation>AI Edit uitvoeren{size}: {cost}. Beeldgebied: {zone}; er wordt per generatie gerekend.</translation>
-    </message>
-    <message>
-        <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-        <translation>ongeveer {price} credits per generatie (de prijs voor 2K; de actuele prijs was niet beschikbaar)</translation>
-    </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
+        </message>
+        <message>
+            <source>the '{layer}' layer ({area})</source>
+            <translation>de laag '{layer}' ({area})</translation>
+        </message>
+        <message>
+            <source>Run {label} on {zone}. This spends your {label} credits.</source>
+            <translation>Voer {label} uit op {zone}. Dit gebruikt je {label}-credits.</translation>
+        </message>
+        <message>
+            <source> at {resolution}</source>
+            <translation> bij {resolution}</translation>
+        </message>
+        <message>
+            <source> at the panel's selected resolution</source>
+            <translation> bij de resolutie die in het paneel is gekozen</translation>
+        </message>
+        <message>
+            <source>{price} credits per generation</source>
+            <translation>{price} credits per generatie</translation>
+        </message>
+        <message>
+            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
+            <translation>AI Edit uitvoeren{size}: {cost}. Beeldgebied: {zone}; er wordt per generatie gerekend.</translation>
+        </message>
+        <message>
+            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
+            <translation>ongeveer {price} credits per generatie (de prijs voor 2K; de actuele prijs was niet beschikbaar)</translation>
+        </message>
         <message>
             <location filename="src/core/executor.py" />
             <source>Allowing also covers the other code this answer runs.</source>
@@ -7923,6 +8127,26 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Run Python code ({what}).</source>
             <translation>Python-code uitvoeren ({what}).</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>Wachten tot {name} is geïnstalleerd</translation>
+        </message>
+        <message>
+            <source>changes a layer you had before this run</source>
+            <translation>wijzigt een laag die je vóór deze run had</translation>
+        </message>
+        <message>
+            <source>changes your layer {name}</source>
+            <translation>wijzigt je laag {name}</translation>
+        </message>
+        <message>
+            <source>changes your layers {names}</source>
+            <translation>wijzigt je lagen {names}</translation>
+        </message>
+        <message>
+            <source>{name} is installed</source>
+            <translation>{name} is geïnstalleerd</translation>
         </message>
     </context>
     <context>
@@ -8149,6 +8373,34 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Nieuwe laag, 1 object. Klik om hem te selecteren in het paneel Lagen.</translation>
+        </message>
+        <message>
+            <source>Credit: {value}</source>
+            <translation>Bronvermelding: {value}</translation>
+        </message>
+        <message>
+            <source>Dataset: {value}</source>
+            <translation>Dataset: {value}</translation>
+        </message>
+        <message>
+            <source>Derived from: {value}</source>
+            <translation>Afgeleid van: {value}</translation>
+        </message>
+        <message>
+            <source>Licence: {value}</source>
+            <translation>Licentie: {value}</translation>
+        </message>
+        <message>
+            <source>Loaded: {value}</source>
+            <translation>Geladen: {value}</translation>
+        </message>
+        <message>
+            <source>Open the source page</source>
+            <translation>Bronpagina openen</translation>
+        </message>
+        <message>
+            <source>Source details</source>
+            <translation>Brongegevens</translation>
         </message>
     </context>
     <context>
@@ -8461,8 +8713,8 @@ Klik om de pagina te openen.</translation>
             <translation>Mislukt</translation>
         </message>
         <message>
-            <source>Out of runs</source>
-            <translation>Uitvoeringen op</translation>
+            <source>Out of tasks</source>
+            <translation>Taken op</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -8557,6 +8809,58 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>
             <translation>{day} UTC, toegevoegd door AI Agent by TerraLab</translation>
+        </message>
+        <message>
+            <source>Accessed {day} via {host}</source>
+            <translation>Geraadpleegd op {day} via {host}</translation>
+        </message>
+        <message>
+            <source>Derived from: {label}</source>
+            <translation>Afgeleid van: {label}</translation>
+        </message>
+        <message>
+            <source>Live</source>
+            <translation>Live</translation>
+        </message>
+        <message>
+            <source>Made by code</source>
+            <translation>Gemaakt met code</translation>
+        </message>
+        <message>
+            <source>Original address</source>
+            <translation>Oorspronkelijk adres</translation>
+        </message>
+        <message>
+            <source>QGIS default operation</source>
+            <translation>Standaardbewerking van QGIS</translation>
+        </message>
+        <message>
+            <source>Reprojected from {source} to {target}; operation: {operation}</source>
+            <translation>Herprojecteerd van {source} naar {target}; bewerking: {operation}</translation>
+        </message>
+        <message>
+            <source>Since {year}, live</source>
+            <translation>Sinds {year}, live</translation>
+        </message>
+        <message>
+            <source>Source not verified</source>
+            <translation>Bron niet geverifieerd</translation>
+        </message>
+        <message>
+            <source>grids: {grids}</source>
+            <translation>rasters: {grids}</translation>
+        </message>
+        <message>
+            <source>made by code</source>
+            <translation>gemaakt met code</translation>
+        </message>
+        <message>
+            <source>project layers the code names: {names}</source>
+            <translation>projectlagen die de code noemt: {names}</translation>
+        </message>
+        <message>
+            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
+            <translation>{day} UTC, AI Agent-run {run}: {layers} toegevoegd</translation>
         </message>
     </context>
     <context>
@@ -8691,8 +8995,8 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
     <context>
         <name>RunsLeftLine</name>
         <message>
-            <source>1 free run left</source>
-            <translation>Nog 1 gratis uitvoering</translation>
+            <source>1 free task left</source>
+            <translation>Nog 1 gratis taak</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -8703,8 +9007,8 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <translation>Meer runs kopen</translation>
         </message>
         <message>
-            <source>{n} free runs left</source>
-            <translation>Nog {n} gratis uitvoeringen</translation>
+            <source>{n} free tasks left</source>
+            <translation>Nog {n} gratis taken</translation>
         </message>
         <message>
             <source>{n} runs a month with Pro</source>
@@ -8715,12 +9019,12 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <translation>Neem Pro voor High-inspanning</translation>
         </message>
         <message>
-            <source>Pro: {n} runs a month, Medium and High effort for harder tasks, Autopilot</source>
-            <translation>Pro: {n} uitvoeringen per maand, Medium- en High-inspanning voor moeilijkere taken, Autopilot</translation>
+            <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
+            <translation>Pro: {n} taken per maand, Medium- en High-inspanning voor moeilijkere taken, Autopilot</translation>
         </message>
         <message>
-            <source>Get more runs with Pro</source>
-            <translation>Krijg meer runs met Pro</translation>
+            <source>Get more tasks with Pro</source>
+            <translation>Krijg meer taken met Pro</translation>
         </message>
     </context>
     <context>
@@ -9094,6 +9398,18 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <source>Running {name}...</source>
             <translation>{name} wordt uitgevoerd...</translation>
         </message>
+        <message>
+            <source>AI Agent</source>
+            <translation>AI Agent</translation>
+        </message>
+        <message>
+            <source>Stop</source>
+            <translation>Stoppen</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Bezig met stoppen...</translation>
+        </message>
     </context>
     <context>
         <name>_OptionRow</name>
@@ -9107,6 +9423,21 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Skipped</source>
             <translation>Overgeslagen</translation>
+        </message>
+    </context>
+    <context>
+        <name>InstallWaitCard</name>
+        <message>
+            <source>Open Plugin Manager</source>
+            <translation>Plugin-beheer openen</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Overslaan</translation>
+        </message>
+        <message>
+            <source>Waiting for {name} to install</source>
+            <translation>Wachten tot {name} is geïnstalleerd</translation>
         </message>
     </context>
 </TS>

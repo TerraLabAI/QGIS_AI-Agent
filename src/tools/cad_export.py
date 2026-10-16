@@ -35,12 +35,12 @@ from qgis.core import (
     QgsMapSettings,
     QgsProject,
     QgsSingleSymbolRenderer,
-    QgsUnitTypes,
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QBuffer, QIODevice
 
 from ..core import limits
+from ..core.context_layers import crs_units
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 
@@ -280,7 +280,7 @@ def export_dxf(layer, path: str, args: dict) -> dict:
                           "EXECUTION_FAILED", "A CAD program may hold the drawing open; another name avoids it.")
 
     out = {"exported": path, "format": "DXF", "feature_count": count, "selected_only": selected_only,
-           "crs": crs.authid() or crs.description(), "units": QgsUnitTypes.toString(crs.mapUnits()),
+           "crs": crs.authid() or crs.description(), "units": crs_units(crs),
            "encoding": chosen, "code_page": CODE_PAGES[chosen],
            "encoding_chosen": "asked" if codec else "first code page holding every string",
            "symbology_scale": round(scale), "polygons_as_lines": polygons_as_lines,

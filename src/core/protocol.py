@@ -161,12 +161,10 @@ class Effort:
 
 
 
-
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     ALL = (LOW, MEDIUM, HIGH)
-    LEGACY = {LOW: "fast", MEDIUM: "pro", HIGH: "pro"}
 
 
 class Approval:
@@ -364,8 +362,6 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
         "mode": mode if mode in (Mode.ASK, Mode.AGENT) else Mode.AGENT,
         "approval": approval if approval in (Approval.ASK, Approval.AUTO) else Approval.ASK,
         "effort": effort,
-
-        "model_mode": Effort.LEGACY[effort],
 
 
         "example": str(example or ""),

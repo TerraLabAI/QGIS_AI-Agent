@@ -27,6 +27,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import hashlib
@@ -37,7 +40,7 @@ import tempfile
 import time
 
 from . import freeze_stack
-from .host_platform import remove_quietly, retry_file_op
+from .host_platform import qgis_version, remove_quietly, retry_file_op
 from .logger import log, log_warning
 from .policy import AGENT_HOME, ensure_agent_directories
 
@@ -74,15 +77,6 @@ def args_digest(args) -> str:
     return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
 
 
-def _qgis_version() -> str:
-    try:
-        from qgis.core import Qgis
-
-        return str(Qgis.QGIS_VERSION).split("-")[0]
-    except Exception:  # noqa: BLE001
-        return ""
-
-
 def _record_path(pid: int) -> str:
     return os.path.join(AGENT_HOME, f"{RECORD_PREFIX}{pid}{RECORD_SUFFIX}")
 
@@ -92,7 +86,6 @@ def _own_stack_path(pid: int) -> str:
 
 
 def _write_record() -> None:
-
 
 
 
@@ -134,7 +127,7 @@ def _open_record() -> None:
     _record.setdefault("session_id", "")
     _record["call"] = None
     _record["closed"] = False
-    _record["qgis_version"] = _qgis_version()
+    _record["qgis_version"] = qgis_version()
 
 
 
@@ -191,6 +184,13 @@ def _enable_stack_file() -> None:
         faulthandler.enable(file=handle, all_threads=True)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Crash stack file not enabled: {type(exc).__name__}: {exc}")
+
+
+def record_session(session_id: str) -> None:
+
+
+    if _record and session_id and session_id != _record.get("session_id"):
+        _update(session_id=str(session_id))
 
 
 def record_run(run_id: str, session_id: str) -> None:
@@ -308,7 +308,7 @@ def take(plugin_version: str = "") -> dict | None:
                 continue
 
             if (not isinstance(record, dict) or record.get("closed") or now - mtime > MAX_AGE_S
-                    or not record.get("run_id")):
+                    or not (record.get("run_id") or record.get("session_id"))):
                 drop.extend([path, *_stack_paths(pid)])
                 continue
             dead.append((mtime, pid, path, record))
@@ -333,7 +333,14 @@ def take(plugin_version: str = "") -> dict | None:
         "qgis_version": str(record.get("qgis_version") or "")[:64],
         "plugin_version": str(plugin_version or "")[:64],
     }
-    if call:
+    if not note["run_id"]:
+
+
+        log("QGIS had died before opening a run; reporting it")
+        started = record.get("started_at")
+        note.update({"tool_call_id": "", "tool": "", "args_digest": "", "before_run": True,
+                     "started_at": float(started) if isinstance(started, (int, float)) else float(mtime)})
+    elif call:
         log(f"QGIS had died inside {call.get('tool') or 'a tool call'}; reporting it")
         started = call.get("started_at")
         note.update({

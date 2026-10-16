@@ -45,7 +45,7 @@ import re
 import threading
 import urllib.parse
 
-from . import security
+from . import security_urls
 from .logger import log_warning
 from .serialization import coded_like
 
@@ -66,11 +66,11 @@ def _urls_in(layer) -> list[str]:
     except Exception:  # noqa: BLE001
         return []
     found = []
-    for match in security._URL_IN_TEXT_RE.finditer(source[:_SOURCE_CHARS]):
+    for match in security_urls._URL_IN_TEXT_RE.finditer(source[:_SOURCE_CHARS]):
         head = re.match(r"(?i)^(https?)://([^/?#&]*)", match.group(0))
         if not head:
             continue
-        netloc = security._TEMPLATE_LABEL_RE.sub("", head.group(2))
+        netloc = security_urls._TEMPLATE_LABEL_RE.sub("", head.group(2))
         url = f"{head.group(1).lower()}://{netloc}/"
         if netloc and url not in found:
             found.append(url)
@@ -86,7 +86,7 @@ def _user_layer_hosts() -> set:
         if layer_id in _run_layers:
             continue
         for url in _urls_in(layer):
-            hosts.add(security.normal_host(url))
+            hosts.add(security_urls.normal_host(url))
     return hosts
 
 
@@ -115,11 +115,11 @@ def note_run_layers(layers) -> None:
     for layer_id, name, urls in noted:
         pending, refused = [], False
         for url in urls:
-            host = security.normal_host(url)
-            if not host or security._routed_public_host(host):
+            host = security_urls.normal_host(url)
+            if not host or security_urls._routed_public_host(host):
                 continue
-            name_to_ask = security.name_to_resolve(url)
-            if name_to_ask and security.start_lookup(name_to_ask) is not None:
+            name_to_ask = security_urls.name_to_resolve(url)
+            if name_to_ask and security_urls.start_lookup(name_to_ask) is not None:
                 pending.append(url)
             elif _judge(layer_id, name, url, _active_run, deferred=True):
                 refused = True
@@ -131,8 +131,8 @@ def note_run_layers(layers) -> None:
 def _judge(layer_id: str, name: str, url: str, run_id: str, deferred: bool) -> bool:
 
 
-    problem = security.validate_url(url)
-    if not problem or security.normal_host(url) in _user_layer_hosts():
+    problem = security_urls.validate_url(url)
+    if not problem or security_urls.normal_host(url) in _user_layer_hosts():
         return False
     _refuse(layer_id, name, problem, run_id, deferred)
     return True
@@ -144,7 +144,7 @@ def _judge_later(layer_id: str, name: str, urls: list) -> None:
 
     def wait() -> None:
         for url in urls:
-            security.resolve_host(security.name_to_resolve(url))
+            security_urls.resolve_host(security_urls.name_to_resolve(url))
 
         def judge() -> None:
             if generation != _generation or not checked(layer_id):

@@ -350,8 +350,8 @@ class ChatSidebar(QWidget):
         self._rows = QVBoxLayout(self._host)
         self._rows.setContentsMargins(0, 0, 0, 0)
         self._rows.setSpacing(1)
-        self._new_row = self._nav_row("new_chat", self.tr("New chat"), self.new_thread_requested)
-        self._search_row = self._nav_row("search", self.tr("Search chats"), self.search_requested)
+        self._nav_row("new_chat", self.tr("New chat"), self.new_thread_requested)
+        self._nav_row("search", self.tr("Search chats"), self.search_requested)
         self._rows.addSpacing(_PAD)
         self._recents_label = QLabel(self.tr("Recents").upper(), self._host)
         self._recents_label.setObjectName("sidebarMicro")
@@ -509,9 +509,6 @@ class ChatSidebar(QWidget):
     def sync_visible(self, allowed: bool) -> None:
 
         self.setVisible(self._open and bool(allowed))
-
-    def is_collapsed(self) -> bool:
-        return self._collapsed
 
     def collapse(self) -> None:
         self._set_collapsed(True)

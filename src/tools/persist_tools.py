@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sqlite3
 
 from qgis.core import (
     Qgis,
@@ -37,6 +38,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import output_paths, security
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.snapshot_files import sqlite_read_only_uri
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer
 
@@ -94,25 +96,22 @@ def _gpkg_tables(path: str) -> set[str] | None:
 
 
 
+
+
+
+
     if not os.path.exists(path):
         return set()
-    dataset = None
     try:
-        from osgeo import gdal
-
-        dataset = gdal.OpenEx(path, gdal.OF_VECTOR | gdal.OF_RASTER | gdal.OF_READONLY)
-        if dataset is None:
-            return None
-        names = {dataset.GetLayerByIndex(i).GetName().casefold() for i in range(dataset.GetLayerCount())}
-        for entry in (dataset.GetMetadata("SUBDATASETS") or {}).values():
-            if entry.startswith("GPKG:"):
-                names.add(entry.rsplit(":", 1)[-1].casefold())
-        return names
-    except Exception as exc:  # noqa: BLE001
+        connection = sqlite3.connect(sqlite_read_only_uri(path), timeout=1.0, uri=True)
+        try:
+            rows = connection.execute("SELECT name FROM sqlite_master WHERE type IN ('table', 'view')").fetchall()
+        finally:
+            connection.close()
+        return {str(name).casefold() for (name,) in rows}
+    except (OSError, sqlite3.Error) as exc:
         log_warning(f"make_layers_permanent: the tables of {path} cannot be listed: {exc}")
         return None
-    finally:
-        dataset = None
 
 
 def _fresh_gpkg(path: str) -> str:

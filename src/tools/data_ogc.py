@@ -24,7 +24,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
-from ..core import limits, links, net, tuning
+from ..core import limits, links, net
 from ..core.background import delete_here, hand_over, on_main_thread, run_on_main_thread, take
 from ..core.follow import view_kept
 from ..core.logger import log_warning
@@ -787,17 +787,6 @@ WFS_WHOLE_BUDGET_S = 30.0
 WFS_SILENT_PAGES = (100, 500, 1_000, 2_000, 5_000, 10_000, 25_000)
 
 
-def _wfs_silent_pages() -> tuple:
-
-
-
-
-
-
-
-    return tuple(tuning.service_list("wfs_silent_pages", WFS_SILENT_PAGES))
-
-
 _WFS_HITS_MAX_BYTES = 64 * 1024
 _WFS_HITS_TTL_S = 300
 _WFS_MATCHED_RE = re.compile(rb'numberMatched\s*=\s*"(\d+)"')
@@ -1338,7 +1327,7 @@ def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max
 
 
     silent_page = (hits is None and isinstance(count, int)
-                   and count in _wfs_silent_pages() and count < max_features)
+                   and count in WFS_SILENT_PAGES and count < max_features)
 
 
     if not view_filter and isinstance(count, int) and count > 0 and (

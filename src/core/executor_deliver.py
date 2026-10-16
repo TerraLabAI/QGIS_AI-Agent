@@ -32,6 +32,7 @@ from .serialization import (
     reads_the_outside_world,
 )
 from .snapshot import RunSnapshot
+from .snapshot_files import resolve_layers
 from .tool_registry import spec
 
 try:
@@ -225,6 +226,9 @@ class _ExecutorDeliver:
                        "The user stopped the run.", duration)
             return
 
+        if isinstance(result, dict) and "wait_for_plugin" in result and self._wait_for_install(call, result, started):
+            return
+
 
 
 
@@ -257,7 +261,8 @@ class _ExecutorDeliver:
 
             late = getattr(self.stacker, "from_task", set())
             mine = [lay for lay in added if lay.id() not in late and self.stacker.added_by(lay) == tool_call_id]
-            licence.credit_added(mine, result, tool=name, args=args)
+
+            licence.credit_added(mine, result, tool=name, args=args, facts=call.get("source_facts"))
 
             layer_egress.note_run_layers(added)
             licence.credit_added([lay for lay in added if lay not in mine], None)
@@ -321,7 +326,8 @@ class _ExecutorDeliver:
 
             unadvised = not suggestion and isinstance(result, dict) and not result.get("hint")
             shown = {**result, "hint": _DEFAULT_HINTS.get(code, "error_default_generic")} if unadvised else result
-            self._fail(call, code, message, suggestion, duration, detail, details=error_details(shown))
+            self._fail(call, code, message, suggestion, duration, detail, details=error_details(shown),
+                       hint=str(result.get("hint") or "") if isinstance(result, dict) else "")
             if danger != Danger.READ:
                 self._journal_note(run_id, call, result, False)
             return
@@ -406,6 +412,8 @@ class _ExecutorDeliver:
             if layout_show.removed_layout(name, args) == self._layouts.get(run_id):
                 self._layouts.pop(run_id, None)
             built = layout_show.built_layout(name, args)
+            if name == CODE_TOOL:
+                built = layout_show.code_layout(shown, self._layouts.pop(run_id, ""))
             if built:
                 self._layouts[run_id] = built
 
@@ -415,8 +423,12 @@ class _ExecutorDeliver:
         if snapshot is None:
             snapshot = RunSnapshot(run_id or "run")
             self._snapshots[run_id] = snapshot
+
+        scope = None if name == CODE_TOOL else [layer.id() for layer in resolve_layers(args)]
         with stalls.probe("snapshot.capture"):
-            if not snapshot.captured and snapshot.capture():
+            if snapshot.captured and scope:
+                snapshot.record_layers(scope)
+            if not snapshot.captured and snapshot.capture(layer_ids=scope):
                 thread_id = self._threads.get(run_id, "")
                 index = self.history.next_run_index(thread_id)
                 self._run_index[run_id] = index
@@ -572,18 +584,21 @@ class _ExecutorDeliver:
         self.project_changed.emit(len(touched))
         return named
 
-    def _journal_before(self, run_id: str, name: str, args: dict):
+    def _journal_before(self, run_id: str, name: str, args: dict, plan: dict | None = None):
 
         from . import journal
 
         try:
             layer_ids = self._call_layers(args, None)
+            files = True
             if name == CODE_TOOL:
 
 
-                layer_ids += journal.watched_layer_ids(QgsProject.instance())
+
+                files = ce.RANK[(plan or {}).get("granted", ce.D)] >= ce.RANK[ce.FW]
+                layer_ids += journal.watched_layer_ids(QgsProject.instance(), files)
             paths = written_paths(name, args, None)
-            return journal.before_call(QgsProject.instance(), layer_ids, paths, self._snapshots.get(run_id))
+            return journal.before_call(QgsProject.instance(), layer_ids, paths, self._snapshots.get(run_id), files)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run log not started for {name}: {exc}")
             return None

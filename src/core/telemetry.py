@@ -32,7 +32,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 
-from qgis.core import QgsApplication, QgsSettings, QgsTask
+from qgis.core import QgsApplication, QgsTask
 from qgis.PyQt.QtCore import QTimer
 
 from ..api.terralab_client import TerraLabClient, plugin_version, qgis_version
@@ -40,6 +40,7 @@ from . import telemetry_events as ev
 from .host_platform import os_info
 from .log_scrub import is_secret_key, scrub_secrets
 from .privacy_notice import has_accepted_privacy_notice
+from .settings import profile_settings
 
 PRODUCT_ID = "ai-agent"
 SOURCE = "qgis_plugin"
@@ -101,7 +102,7 @@ def is_telemetry_enabled() -> bool:
     if cached is not None and now - _enabled_cache["at"] < ENABLED_CACHE_S:
         return cached
     try:
-        value = bool(QgsSettings().value(TELEMETRY_ENABLED_KEY, True, type=bool))
+        value = bool(profile_settings().value(TELEMETRY_ENABLED_KEY, True, type=bool))
     except Exception:  # nosec B110
         value = False
     _enabled_cache.update(value=value, at=now)
@@ -117,7 +118,7 @@ def set_telemetry_enabled(enabled: bool) -> None:
     if not enabled:
         track(ev.TELEMETRY_OPT_CHANGED, {"enabled": False}, flush_now=True)
     try:
-        QgsSettings().setValue(TELEMETRY_ENABLED_KEY, bool(enabled))
+        profile_settings().setValue(TELEMETRY_ENABLED_KEY, bool(enabled))
     except Exception:  # nosec B110
         pass
     _enabled_cache["value"] = None
@@ -158,7 +159,7 @@ def set_auth_provider(provider) -> None:
 def first_open_recorded() -> bool:
 
     try:
-        settings = QgsSettings()
+        settings = profile_settings()
         if settings.value(_first_open_key, False, type=bool):
             return False
         settings.setValue(_first_open_key, True)
@@ -170,7 +171,7 @@ def first_open_recorded() -> bool:
 def first_run_recorded() -> bool:
 
     try:
-        settings = QgsSettings()
+        settings = profile_settings()
         if settings.value(_first_run_key, False, type=bool):
             return False
         settings.setValue(_first_run_key, True)

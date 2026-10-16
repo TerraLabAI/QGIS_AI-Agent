@@ -95,7 +95,6 @@ class _ChatPanelRuns:
 
 
 
-
         waiting = {id(card) for card in run.permissions}
         last = next((w for w in reversed(self.message_list.widgets())
                      if w is not self._status and id(w) not in waiting
@@ -169,7 +168,6 @@ class _ChatPanelRuns:
         if self._live_run(run_id) is None:
             return
         self._last_run = run_id or self._last_run
-        self._run_requests[run_id] = str(text or "")
         bubble = UserBubble(text, list(chips or []), list(attachments or []))
         bubble.run_id = str(run_id or "")
         self._add_user(bubble)
@@ -185,7 +183,7 @@ class _ChatPanelRuns:
 
         run_id = str(run_id or "")
 
-        for registry in (self._runs, self._run_requests, self._error_cards):
+        for registry in (self._runs, self._error_cards):
             registry.pop(run_id, None)
         widgets = [w for w in self.message_list.widgets()
                    if w is not self._status and w is not getattr(self, "_replay_boundary", None)]
@@ -254,7 +252,7 @@ class _ChatPanelRuns:
                 text = "\n\n" + text.lstrip()
         bubble.append_token(text)
 
-    def set_status_line(self, run_id: str, text: str) -> None:
+    def set_status_line(self, run_id: str, text: str, progress=None) -> None:
         text = str(text or "").strip()[:300] or self.tr("Thinking...")
 
 
@@ -263,7 +261,7 @@ class _ChatPanelRuns:
             return
         block = run.trace if run is not None else None
         if block is not None and block.is_live() and self._block_is_tail(block):
-            block.set_activity(text)
+            block.set_activity(text, progress)
             self._drop_status()
             return
         if self._status is None:
@@ -346,6 +344,18 @@ class _ChatPanelRuns:
         run.tools.append(card)
         trace.add_tool(card)
 
+    def set_call_progress(self, tool_call_id: str, done_bytes, total_bytes=None) -> None:
+
+        card = self.message_list.tool_card(str(tool_call_id or ""))
+        if card is None:
+            return
+        for run in self._runs.values():
+            for block in self.message_list.traces_of(run.run_id):
+                for row in block.rows():
+                    if card in row.cards:
+                        row.set_call_progress(done_bytes, total_bytes)
+                        return
+
     def finish_tool_call(self, tool_call_id: str, ok: bool, summary: str,
                          duration_s: float, detail: str = "", result=None) -> None:
 
@@ -366,9 +376,15 @@ class _ChatPanelRuns:
             duration_s = 0.0
         card = self.message_list.tool_card(str(tool_call_id or ""))
         if card is not None:
-            card.finish(bool(ok), str(summary or "")[:1000], duration_s, str(detail or "")[:2000])
+            hint = str(result.get("hint") or "") if isinstance(result, dict) and not ok else ""
+            card.finish(bool(ok), str(summary or "")[:1000], duration_s, str(detail or "")[:2000], hint)
+            if isinstance(result, dict) and (result.get("tell_user") or result.get("tell_user_hint")):
+                for run in self._runs.values():
+                    if card in run.tools:
+                        run.handed_back = True
 
     def end_run(self, run_id: str, status: str, summary: str, usage, verification) -> None:
+        self.composer.set_reply_placeholder("")
         run = self._live_run(run_id)
         if run is None:
             return
@@ -407,11 +423,15 @@ class _ChatPanelRuns:
             for card in block.tools:
                 if card.ok is None and not getattr(card, "ended", ""):
                     card.mark_unfinished(reason)
+
+
+        ended = ("waiting" if status == "done" and run.handed_back and not run.produced
+                 and self._changed_count <= 0 else status)
         for block in blocks:
 
 
             if not block.is_empty():
-                block.finish(status, seconds)
+                block.finish(ended, seconds)
         if run.plan is not None:
             run.plan.finish(status)
         if status == "failed":

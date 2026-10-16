@@ -21,7 +21,13 @@ from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
 from ..core.vsi import streamed_in_place
 from ._widgets import AI_EDIT_KEYS, sibling_plugin
-from .layer_lookup import _duplicate_layer_names, _find_layer, _geometry_type_name, _layer_not_found_error
+from .layer_lookup import (
+    _duplicate_layer_names,
+    _find_layer,
+    _geometry_type_name,
+    _layer_not_found_error,
+    extent_block,
+)
 
 
 
@@ -48,45 +54,6 @@ def _safe_feature_count(layer):
 def _extent_omission():
     return {"extent_available": False,
             "extent_note": "Remote extent was not queried: QGIS may fetch provider data on the main thread."}
-
-
-def _extent_block(extent, crs) -> dict:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    from ..core.context import crs_units
-
-    block = {"xmin": extent.xMinimum(), "ymin": extent.yMinimum(),
-             "xmax": extent.xMaximum(), "ymax": extent.yMaximum(),
-             "crs": crs_ref(crs)}
-    if crs is None or not crs.isValid():
-        return block
-    try:
-        block["units"] = crs_units(crs)
-
-        digits = 6 if crs.isGeographic() else 2
-        width, height = extent.width(), extent.height()
-        block["width"] = round(width, digits)
-        block["height"] = round(height, digits)
-        centre = extent.center()
-        scale = ground.metres_per_unit(crs, centre.x(), centre.y())
-    except Exception:  # noqa: BLE001
-        return block
-    if ground.distorted(scale):
-        block["ground_width_m"] = round(width * scale, 1)
-        block["ground_height_m"] = round(height * scale, 1)
-    return block
 
 
 def _layer_kind(layer) -> str:
@@ -147,7 +114,7 @@ def _get_project_context(args: dict) -> dict:
 
 
 
-            "extent": _extent_block(canvas.extent(), canvas_crs),
+            "extent": extent_block(canvas.extent(), canvas_crs),
             "scale": canvas.scale(),
             "width_px": canvas.width(),
             "height_px": canvas.height(),
@@ -176,7 +143,7 @@ def _get_project_context(args: dict) -> dict:
             else:
                 ext = layer.extent()
                 if ext and not ext.isEmpty():
-                    info["extent"] = _extent_block(ext, layer.crs())
+                    info["extent"] = extent_block(ext, layer.crs())
         if isinstance(layer, QgsVectorLayer):
             fc = _safe_feature_count(layer)
             info["feature_count"] = fc if fc is not None else "unknown"
@@ -598,7 +565,7 @@ def _get_layer_info(args: dict) -> dict:
     if skip_remote_extent:
         info.update(_extent_omission())
     else:
-        info["extent"] = _extent_block(layer.extent(), layer.crs())
+        info["extent"] = extent_block(layer.extent(), layer.crs())
         if not remote:
 
 
@@ -797,5 +764,5 @@ def _zoom_to_layer(args: dict) -> dict:
 
 
 
-        "extent": _extent_block(ext, canvas.mapSettings().destinationCrs()),
+        "extent": extent_block(ext, canvas.mapSettings().destinationCrs()),
     }

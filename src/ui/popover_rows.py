@@ -121,10 +121,6 @@ class _Row(QWidget):
         row.addWidget(self._tag, 0, Qt.AlignmentFlag.AlignVCenter)
         self._elide()
 
-    def set_tag(self, text: str) -> None:
-        self._tag.setText(text)
-        self._tag.setVisible(bool(text))
-
     def set_focused(self, focused: bool) -> None:
         self._focused = bool(focused)
         self.update()

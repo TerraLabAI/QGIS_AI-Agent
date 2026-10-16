@@ -43,14 +43,14 @@ import traceback
 import types
 
 _APPLICATION = None
+
+_QGIS_FAILED: list = []
 _TRAPPED: list[str] = []
 _TRAPPED_LINES: list[int] = []
 
 
 
 _SNIPPET_FILE = "<snippet>"
-_QT_CORE_NAMES = ("QVariant", "Qt", "QSize", "QSizeF", "QPointF", "QPoint", "QRectF", "QRect", "QDate", "QTime",
-                  "QDateTime", "QUrl")
 
 
 class NeedsLiveQgis(BaseException):
@@ -408,6 +408,18 @@ def _install_traps(code_split) -> None:
                 continue
 
 
+def _start_qgis() -> None:
+
+    global _APPLICATION
+    if _QGIS_FAILED:
+        raise _QGIS_FAILED[0]
+    if _APPLICATION is None:
+        from qgis.core import QgsApplication
+
+        _APPLICATION = QgsApplication([], False)
+        _APPLICATION.initQgis()
+
+
 def _run(job: dict, status_path: str) -> int:
     plugin_root = str(job["plugin_root"])
     guard, security, code_split, helpers = _load_guard(plugin_root)
@@ -419,11 +431,9 @@ def _run(job: dict, status_path: str) -> int:
     security.set_write_roots(job.get("write_roots"))
     needs_qgis = bool(job.get("needs_qgis"))
     if needs_qgis:
-        global _APPLICATION
-        from qgis.core import QgsApplication, QgsProject
+        from qgis.core import QgsProject
 
-        _APPLICATION = QgsApplication([], False)
-        _APPLICATION.initQgis()
+        _start_qgis()
         try:
             _project_and_layers(job)
         except LayerCopyFailed as exc:
@@ -451,21 +461,13 @@ def _run(job: dict, status_path: str) -> int:
         "validate_path": security.validate_path,
     }
     if needs_qgis:
-        import qgis.core as core
-        from qgis.PyQt import QtCore, QtGui
 
-        for name, value in vars(core).items():
-            if (name.startswith("Qgs") or name in ("NULL", "Qgis")) and name not in guard.DENIED_NAMES:
-                namespace[name] = value
+
+        namespace.update(helpers.console_names(guard.DENIED_NAMES, gui=False))
         namespace["project"] = QgsProject.instance()
 
         namespace["layer"] = helpers.layer_lookup(QgsProject.instance())
         namespace["layers"] = lambda: helpers.ordered_layers(QgsProject.instance())
-        for module, qt_names in ((QtCore, _QT_CORE_NAMES), (QtGui, ("QColor",))):
-            for name in qt_names:
-                value = getattr(module, name, None)
-                if value is not None and name not in guard.DENIED_NAMES:
-                    namespace[name] = value
     for alias, module in helpers.prelude(code_split.names_mentioned(str(job.get("code") or "")),
                                          namespace["__builtins__"]["__import__"]).items():
         namespace[alias] = module
@@ -595,7 +597,28 @@ class _Sink:
         self._handle.flush()
 
 
+def _wait_as_spare(argv: list[str]) -> list[str] | None:
+
+
+
+
+
+
+    try:
+        _start_qgis()
+    except BaseException as exc:  # noqa: BLE001
+        _QGIS_FAILED.append(exc)
+    line = sys.stdin.readline().strip()
+    if "\t" not in line:
+        return None
+    return [argv[0], *line.split("\t", 1)]
+
+
 def main(argv: list[str]) -> int:
+    if len(argv) == 2 and argv[1] == "--spare":
+        argv = _wait_as_spare(argv)
+        if argv is None:
+            return 0
     if len(argv) != 3:
         return 2
     job_path, status_path = argv[1:]

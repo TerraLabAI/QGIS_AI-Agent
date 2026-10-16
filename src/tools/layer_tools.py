@@ -23,6 +23,7 @@ from ..core import ground, layer_order, output_paths
 from ..core.context import view_area_km2
 from ..core.follow import hold_view
 from ..core.host_platform import remove_quietly
+from ..core.logger import log_warning
 from ..core.provider_uri import crs_problem  # noqa: E402
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import validate_path
@@ -63,26 +64,6 @@ def register_layer_tools(registry: ToolRegistry):
         handler=_set_layers_visibility,
     ))
 
-    registry.register(Tool(
-        name="set_active_layer",
-        danger="write",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Select {layer_name} in the layer panel"),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "layer_name": {"type": "string"},
-            },
-            "required": ["layer_name"],
-        },
-        handler=_set_active_layer,
-    ))
-
-    registry.register(Tool(
-        name="get_active_layer",
-        danger="read",
-        input_schema={"type": "object", "properties": {}, "required": []},
-        handler=_get_active_layer,
-    ))
 
     registry.register(Tool(
         name="set_layer_visibility",
@@ -314,32 +295,6 @@ def register_layer_tools(registry: ToolRegistry):
         },
         handler=_create_new_project,
     ))
-
-
-def _set_active_layer(args: dict) -> dict:
-    layer, note = resolve_layer_note(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    iface.setActiveLayer(layer)
-    out = {"active_layer": layer.name(), "layer_id": layer.id()}
-    if note:
-        out["note"] = note
-    return out
-
-
-def _get_active_layer(args: dict) -> dict:
-    from ..core.context import layer_kind
-
-    layer = iface.activeLayer()
-    if not layer:
-        return {"active_layer": None}
-    return {
-        "active_layer": {
-            "name": layer.name(),
-            "type": layer_kind(layer),
-            "layer_id": layer.id(),
-        }
-    }
 
 
 def _visibility_candidates(missing: list[str], limit: int = 4) -> list[dict]:
@@ -1308,6 +1263,33 @@ def _new_project_path() -> str:
     return path
 
 
+def _agent_layers_made_durable(project, save: bool = True) -> dict:
+
+
+
+
+
+
+    from ..core.context import THREAD_PROPERTY
+    from .persist_tools import _make_layers_permanent
+
+    if not project.fileName():
+        return {}
+    memory, temporary = scratch_layers(project)
+    ours = [layer.id() for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
+    if not ours:
+        return {}
+    try:
+        moved = _make_layers_permanent({"layers": ours, "save": save})
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Agent layers not stored beside the project: {exc}")
+        return {}
+    if not isinstance(moved, dict) or not moved.get("made_permanent"):
+        return {}
+    return {"gpkg_path": moved.get("gpkg_path", ""),
+            "layers": [entry.get("name") for entry in moved["made_permanent"]]}
+
+
 def _save_project(args: dict) -> dict:
     from ..core.security import validate_path
     project = QgsProject.instance()
@@ -1339,6 +1321,12 @@ def _save_project(args: dict) -> dict:
         result["path_chosen"] = chosen
         result["note"] = (f"This project had never been saved and the call named no path, so it was written to "
                           f"{chosen}; save_project with a path moves it elsewhere.")
+
+
+
+    durable = _agent_layers_made_durable(project)
+    if durable:
+        result["layers_stored"] = durable
     memory_layers, temporary_layers = _scratch_layers_summary(project)
     if memory_layers:
         result["memory_layers"] = memory_layers

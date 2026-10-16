@@ -12,7 +12,7 @@ import os
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import limits, output_paths, tuning
+from . import limits, output_paths
 from .logger import log, log_warning
 from .protocol import Danger
 from .tool_registry import coded_fact, spec
@@ -40,25 +40,6 @@ except ImportError:
 
 
 CODE_TOOL = "execute_code"
-
-
-
-
-
-_DISTANCE_KEYS = ("DISTANCE", "BUFFER", "RADIUS", "TOLERANCE", "INTERVAL", "MAX_DISTANCE",
-                  "HUB_DISTANCE", "SEGMENT_LENGTH", "NEIGHBOR_DISTANCE")
-_METRIC_ALGS = frozenset()
-
-
-def _metric_algs() -> frozenset:
-
-
-
-
-
-
-
-    return tuning.check_algs("metric_algs", _METRIC_ALGS)
 
 
 _METRIC_UNITS = frozenset({"meters", "metres", "m", "kilometers", "kilometres", "km", "feet", "ft",
@@ -259,28 +240,21 @@ class _ExecutorGuards:
 
 
 
+
+
+
+
         lowered = name.lower()
-        unit_keys = ("distance_units", "DISTANCE_UNITS", "units", "unit", "UNITS", "UNIT")
-        if lowered in ("run_processing", "run_algorithm"):
-            alg = str(args.get("algorithm_id") or args.get("algorithm") or "").lower()
-            params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-            keys = [k for k in params if k.upper() in _DISTANCE_KEYS and _is_number(params[k])]
-            distance_like = any(k.upper() in ("DISTANCE", "BUFFER", "RADIUS") for k in keys)
-            if not keys or (alg not in _metric_algs() and not distance_like):
-                return None
-            unit = str(next((params[u] for u in unit_keys if u in params), "")).lower()
-            layer_ref = params.get("INPUT") or params.get("INPUT_LAYER") or params.get("LAYER")
-            what = f"{alg} with {keys[0]}={params[keys[0]]}"
-        elif "buffer" in lowered or "distance" in lowered or "within" in lowered:
-            value = next((args[k] for k in ("distance", "buffer", "radius", "tolerance", "buffer_distance")
-                          if _is_number(args.get(k))), None)
-            if value is None:
-                return None
-            unit = str(next((args[u] for u in unit_keys if u in args), "")).lower()
-            layer_ref = next((args.get(k) for k in ("layer_name", "layer", "layer_id", "input") if args.get(k)), None)
-            what = f"{name} with distance={value}"
-        else:
+        if not ("buffer" in lowered or "distance" in lowered or "within" in lowered):
             return None
+        value = next((args[k] for k in ("distance", "buffer", "radius", "tolerance", "buffer_distance")
+                      if _is_number(args.get(k))), None)
+        if value is None:
+            return None
+        unit_keys = ("distance_units", "DISTANCE_UNITS", "units", "unit", "UNITS", "UNIT")
+        unit = str(next((args[u] for u in unit_keys if u in args), "")).lower()
+        layer_ref = next((args.get(k) for k in ("layer_name", "layer", "layer_id", "input") if args.get(k)), None)
+        what = f"{name} with distance={value}"
         if unit in _METRIC_UNITS or unit in _DEGREE_UNITS:
             return None
         layer = self._resolve_layer(layer_ref)

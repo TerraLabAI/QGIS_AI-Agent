@@ -5,13 +5,12 @@
 
 
 
-
 from __future__ import annotations
 
 import os
 from typing import Any
 
-from qgis.PyQt.QtCore import QPoint, QRect, Qt
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
@@ -194,25 +193,6 @@ def _clean_tab_text(text) -> str:
     return (str(text or "")).replace("&", "").strip()
 
 
-def tab_rect_center(bar: QTabBar, index: int) -> QPoint | None:
-
-
-
-
-
-
-    try:
-        rect = bar.tabRect(index)
-    except Exception:
-        return None
-    if rect.isEmpty():
-        return None
-    center = rect.center()
-    if not bar.rect().contains(center):
-        return None
-    return center
-
-
 
 
 def nearest_scroll_area(widget: QWidget) -> QAbstractScrollArea | None:
@@ -248,42 +228,6 @@ def scroll_state(area: QWidget) -> dict | None:
         return None
 
 
-def scroll_into_view(widget: QWidget) -> str:
-
-
-
-
-
-
-
-    area = nearest_scroll_area(widget)
-    if area is None:
-        return ""
-    try:
-        ensure = getattr(area, "ensureWidgetVisible", None)
-        if callable(ensure):
-            ensure(widget, 50, 50)
-        else:
-            viewport = area.viewport()
-            top_left = viewport.mapFromGlobal(widget.mapToGlobal(QPoint(0, 0)))
-            rect = QRect(top_left, widget.size())
-            _nudge_bar(area.verticalScrollBar(), rect.top(), rect.bottom(), viewport.height())
-            _nudge_bar(area.horizontalScrollBar(), rect.left(), rect.right(), viewport.width())
-    except Exception:
-        return ""
-    process_events()
-    return area.metaObject().className()
-
-
-def _nudge_bar(bar, near: int, far: int, extent: int, margin: int = 50):
-    if bar is None or bar.maximum() <= 0:
-        return
-    if far > extent:
-        bar.setValue(bar.value() + (far - extent) + margin)
-    elif near < 0:
-        bar.setValue(bar.value() + near - margin)
-
-
 
 
 _ITEM_ROLES = {"tree": "treeitem", "list": "listitem", "table": "row", "itemview": "item"}
@@ -297,47 +241,6 @@ def item_path_of(index) -> str:
         parts.append(str(node.row()))
         node = node.parent()
     return "/".join(reversed(parts))
-
-
-def index_from_item_path(view: QWidget, path: str, column: int = 0):
-
-    model = view.model() if hasattr(view, "model") else None
-    if model is None:
-        return None, {"_error": "This view has no model", "widget": widget_ident(view)}
-    parent = view.rootIndex()
-    index = None
-    for token in str(path or "").split("/"):
-        token = token.strip()
-        if not token:
-            continue
-        try:
-            row = int(token)
-        except ValueError:
-            return None, {
-                "_error": f"item_path must be slash-separated row numbers, got {path!r}",
-                "_code": "BAD_ITEM_PATH",
-            }
-        index = model.index(row, 0, parent)
-        if not index.isValid():
-            return None, {
-                "_error": f"No row at item_path '{path}': row {row} does not exist",
-                "_code": "ITEM_NOT_FOUND",
-                "row_count": model.rowCount(parent),
-                "_suggestion": "accessibility_snapshot gives the view's rows.",
-            }
-        parent = index
-    if index is None:
-        return None, {"_error": "item_path is empty", "_code": "BAD_ITEM_PATH"}
-    if column:
-        sibling = index.sibling(index.row(), column)
-        if not sibling.isValid():
-            return None, {
-                "_error": f"Column {column} does not exist on this row",
-                "_code": "ITEM_NOT_FOUND",
-                "columns": model.columnCount(index.parent()),
-            }
-        index = sibling
-    return index, None
 
 
 def item_check_state(model, index):
@@ -415,7 +318,6 @@ def _item_row_node(view, model, index, path: str, role_token: str, columns: int,
 
 
 def item_view_rows(view: QWidget, max_rows: int = 50, max_text: int = 0) -> tuple[list[dict], int, bool]:
-
 
 
 
@@ -499,8 +401,6 @@ def widget_node(
 
 
 
-
-
     node: dict[str, Any] = {"ref": ref, "class": widget.metaObject().className()}
     role = interactive_kind(widget)
     if role:
@@ -569,105 +469,6 @@ def matches(widget: QWidget, query: str | None, widget_type: str | None = None) 
         widget_path(widget),
     )).lower()
     return query.lower() in haystack
-
-
-def candidate_widgets(
-    query: str | None,
-    root_query: str | None = None,
-    widget_type: str | None = None,
-    visible_only: bool = True,
-    enabled_only: bool = False,
-) -> list[QWidget]:
-    roots = top_level_roots()
-    if root_query:
-        root_matches = []
-        for root in roots:
-            for widget in descendants(root):
-                if matches(widget, root_query):
-                    root_matches.append(widget)
-        roots = root_matches
-
-    seen = set()
-    found = []
-    for root in roots:
-        for widget in descendants(root):
-            key = int(widget.winId()) if widget.isWindow() else id(widget)
-            if key in seen:
-                continue
-            seen.add(key)
-            if visible_only and not widget.isVisible():
-                continue
-            if enabled_only and not widget.isEnabled():
-                continue
-            if matches(widget, query, widget_type):
-                found.append(widget)
-    return found
-
-
-def _own_text(widget: QWidget) -> str:
-
-    parts = [
-        safe_call(widget, "text"),
-        safe_call(widget, "windowTitle"),
-        safe_call(widget, "title"),
-        safe_call(widget, "currentText"),
-        safe_call(widget, "accessibleName"),
-        safe_call(widget, "objectName"),
-    ]
-    return " ".join(p.strip() for p in parts if p and p.strip()).lower()
-
-
-def relevance_score(widget: QWidget, query: str) -> int:
-
-
-
-
-    q = (query or "").strip().lower()
-    if not q:
-        return 0
-    own = _own_text(widget)
-    score = 0
-    if own == q:
-        score += 1000
-    elif q in own:
-        score += max(40, 220 - len(own))
-    elif q in widget.metaObject().className().lower():
-        score += 60
-    else:
-        score += 10
-    if widget.isVisible():
-        score += 50
-    try:
-        if widget.isWindow():
-            score += 25
-    except Exception:  # nosec B110
-        pass
-    return score
-
-
-def resolve_widget(args: dict, require_type: str | None = None) -> tuple[QWidget | None, dict | None]:
-    query = args.get("query", "")
-    occurrence = max(0, int(args.get("occurrence", 0) or 0))
-    found = candidate_widgets(query, widget_type=require_type, visible_only=False)
-    visible = [w for w in found if w.isVisible()]
-    ordered = visible or found
-
-
-
-    if query:
-        ordered = sorted(ordered, key=lambda w: relevance_score(w, query), reverse=True)
-    if not ordered:
-        return None, {
-            "_error": f"No widget matched query: {query}",
-            "query": query,
-            "hint": "accessibility_snapshot lists a visible text, object name, class, or path substring to match.",
-        }
-    if occurrence >= len(ordered):
-        return None, {
-            "_error": f"Widget occurrence {occurrence} is out of range for query: {query}",
-            "matches": [widget_ident(w) for w in ordered[:10]],
-        }
-    return ordered[occurrence], None
 
 
 

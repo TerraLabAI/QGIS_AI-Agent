@@ -18,7 +18,6 @@ from qgis.core import (
     QgsGeometry,
     QgsLabeling,
     QgsProject,
-    QgsVectorLayer,
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
@@ -29,8 +28,7 @@ from ..core.layer_order import is_remote_vector
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import vector_write
-from .feature_tools import _find_vector_layer
-from .layer_lookup import _find_layer, _layer_not_found_error
+from .layer_lookup import require_vector
 
 
 def register_harvest_canvas_tools(registry: ToolRegistry):
@@ -168,12 +166,9 @@ def _label_settings_summary(settings) -> dict:
 
 
 def _get_layer_labeling(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
-    if not isinstance(layer, QgsVectorLayer):
-        return tool_error(f"Layer {args['layer_name']!r} is not a vector layer", "INVALID_ARGS",
-                          "Labels apply to vector layers only.")
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
     result = {"layer": layer.name(), "layer_id": layer.id(), "enabled": layer.labelsEnabled()}
     labeling = layer.labeling()
     if labeling is None:
@@ -401,9 +396,9 @@ def _write_geometries(layer, shapes: dict, own_session: bool):
 
 
 def _update_feature_geometry(args: dict) -> dict:
-    layer = _find_vector_layer(args["layer_name"])
-    if not layer:
-        return _layer_not_found_error(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
+    if error:
+        return error
     kmz = vector_write.kmz_in_place_error(layer, "change geometries")
     if kmz is not None:
         return kmz

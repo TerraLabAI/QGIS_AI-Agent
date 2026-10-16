@@ -18,8 +18,6 @@ def _load_builtins():
         return
     _builtins["loaded"] = True
 
-
-
     from .ai_edit import _ADAPTER as ai_edit_adapter
     from .ai_segmentation import AiSegmentationAdapter
 

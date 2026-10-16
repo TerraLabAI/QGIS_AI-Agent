@@ -14,16 +14,11 @@ import re
 from qgis.core import (
     QgsAbstractDatabaseProviderConnection,
     QgsApplication,
-    QgsBookmark,
-    QgsCoordinateReferenceSystem,
     QgsDataSourceUri,
     QgsExpressionContextUtils,
     QgsMapThemeCollection,
     QgsProject,
     QgsProviderRegistry,
-    QgsRectangle,
-    QgsReferencedRectangle,
-    QgsSettings,
     QgsVectorLayer,
     QgsWkbTypes,
 )
@@ -33,7 +28,6 @@ from qgis.utils import iface
 from ..core.crs_ref import crs_ref
 from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import guards
 from ._compat import enum_value
 from .layer_lookup import _jsonable_value
 
@@ -157,37 +151,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         handler=_get_bookmarks,
     ))
 
-    registry.register(Tool(
-        name="add_bookmark",
-        danger="write",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Add the bookmark {name}"),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "xmin": {"type": "number"},
-                "ymin": {"type": "number"},
-                "xmax": {"type": "number"},
-                "ymax": {"type": "number"},
-                "crs": {"type": "string"},
-                "group": {"type": "string"},
-                "scope": {"type": "string", "enum": ["project", "user"]},
-            },
-            "required": ["name", "xmin", "ymin", "xmax", "ymax"],
-        },
-        handler=_add_bookmark,
-    ))
-
-    registry.register(Tool(
-        name="remove_bookmark",
-        danger="destructive",
-        input_schema={
-            "type": "object",
-            "properties": {"bookmark_id": {"type": "string"}},
-            "required": ["bookmark_id"],
-        },
-        handler=_remove_bookmark,
-    ))
 
     registry.register(Tool(
         name="get_map_themes",
@@ -207,16 +170,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         handler=_add_map_theme,
     ))
 
-    registry.register(Tool(
-        name="remove_map_theme",
-        danger="destructive",
-        input_schema={
-            "type": "object",
-            "properties": {"name": {"type": "string"}},
-            "required": ["name"],
-        },
-        handler=_remove_map_theme,
-    ))
 
     registry.register(Tool(
         name="apply_map_theme",
@@ -229,12 +182,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         handler=_apply_map_theme,
     ))
 
-    registry.register(Tool(
-        name="get_project_variables",
-        danger="read",
-        input_schema={"type": "object", "properties": {}, "required": []},
-        handler=_get_project_variables,
-    ))
 
     registry.register(Tool(
         name="set_project_variable",
@@ -248,33 +195,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
             "required": ["key", "value"],
         },
         handler=_set_project_variable,
-    ))
-
-    registry.register(Tool(
-        name="get_setting",
-        danger="read",
-        input_schema={
-            "type": "object",
-            "properties": {"key": {"type": "string"}},
-            "required": ["key"],
-        },
-        handler=_get_setting,
-        argument_check=guards.settings_key_refusal,
-    ))
-
-    registry.register(Tool(
-        name="set_setting",
-        danger="destructive",
-        input_schema={
-            "type": "object",
-            "properties": {
-                "key": {"type": "string"},
-                "value": dict(_SCALAR),
-            },
-            "required": ["key", "value"],
-        },
-        handler=_set_setting,
-        argument_check=guards.settings_key_refusal,
     ))
 
 
@@ -765,68 +685,6 @@ def _get_bookmarks(args: dict) -> dict:
     return {"bookmarks": bookmarks, "count": len(bookmarks)}
 
 
-def _add_bookmark(args: dict) -> dict:
-
-
-
-
-
-
-    asked = args.get("crs")
-    project_crs = QgsProject.instance().crs()
-    if asked:
-        crs = QgsCoordinateReferenceSystem(asked)
-        crs_source = "argument"
-    elif project_crs.isValid():
-        crs = project_crs
-        crs_source = "project"
-    else:
-        crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        crs_source = "default"
-    if not crs.isValid():
-        return tool_error(f"crs {asked!r} is not a coordinate system QGIS knows.", "INVALID_ARGS",
-                          "crs is an authority code such as EPSG:4326; left out, the project CRS is used.")
-    rect = QgsRectangle(args["xmin"], args["ymin"], args["xmax"], args["ymax"])
-    if rect.isEmpty():
-        return tool_error(
-            f"The extent is empty: xmax must exceed xmin and ymax must exceed ymin "
-            f"(got xmin={args['xmin']}, xmax={args['xmax']}, ymin={args['ymin']}, ymax={args['ymax']}).",
-            "INVALID_ARGS",
-            f"get_canvas_extent or get_layer_info give the numbers; they read as "
-            f"{crs.authid() or 'the project CRS'} unless crs says otherwise.")
-    scope = args.get("scope") or "project"
-    bookmark = QgsBookmark()
-    bookmark.setName(args["name"])
-    bookmark.setGroup(args.get("group") or "")
-    bookmark.setExtent(QgsReferencedRectangle(rect, crs))
-    _label, store = _bookmark_managers(scope)[0]
-    added = store.addBookmark(bookmark)
-
-    pair = tuple(added[:2]) if isinstance(added, (list, tuple)) else (added, bool(added))
-    bookmark_id, ok = pair
-    if not ok:
-        return tool_error(f"QGIS refused the bookmark {args['name']!r}", "EXECUTION_FAILED",
-                          "the extent must be valid in the given CRS.")
-    return {"id": bookmark_id, "name": args["name"], "scope": scope, "crs": crs.authid(),
-            "crs_source": crs_source}
-
-
-def _remove_bookmark(args: dict) -> dict:
-    bookmark_id = args["bookmark_id"]
-    for scope, manager in _bookmark_managers("all"):
-        match = [b for b in manager.bookmarks() if b.id() == bookmark_id]
-        if match:
-            if not manager.removeBookmark(bookmark_id):
-                return tool_error(
-                    f"QGIS could not remove bookmark {bookmark_id!r} from the {scope} store.",
-                    "EXECUTION_FAILED",
-                    "get_bookmarks shows whether it is still there; a bookmark in the user "
-                    "profile store cannot be removed while the project one is open.")
-            return {"removed": bookmark_id, "name": match[0].name(), "scope": scope}
-    return tool_error(f"No bookmark with id {bookmark_id!r}", "INVALID_ARGS",
-                      "get_bookmarks answers with 'id', not the name.")
-
-
 def _themes():
     return QgsProject.instance().mapThemeCollection()
 
@@ -863,14 +721,6 @@ def _add_map_theme(args: dict) -> dict:
     return {"name": name, "action": "updated" if replacing else "created", "visible_layer_count": _visible_count(name)}
 
 
-def _remove_map_theme(args: dict) -> dict:
-    name = args["name"]
-    if not _themes().hasMapTheme(name):
-        return _theme_not_found(name)
-    _themes().removeMapTheme(name)
-    return {"removed": name}
-
-
 def _apply_map_theme(args: dict) -> dict:
     name = args["name"]
     if not _themes().hasMapTheme(name):
@@ -884,21 +734,6 @@ def _apply_map_theme(args: dict) -> dict:
 
 
 
-def _get_project_variables(args: dict) -> dict:
-    project = QgsProject.instance()
-    scope = QgsExpressionContextUtils.projectScope(project)
-    variables = {}
-    for variable in scope.variableNames():
-        if variable in ("layers", "layer_ids"):
-            continue
-        value = _jsonable_value(scope.variable(variable))
-        if isinstance(value, str) and len(value) > 300:
-            value = value[:300] + "..."
-        variables[variable] = value
-    custom = {key: _jsonable_value(value) for key, value in project.customVariables().items()}
-    return {"custom": custom, "variables": variables, "count": len(custom),
-            "omitted": ["layers", "layer_ids"]}
-
 
 def _set_project_variable(args: dict) -> dict:
     key, value = args["key"], args["value"]
@@ -911,40 +746,3 @@ def _set_project_variable(args: dict) -> dict:
             "expression": f"@{key}"}
 
 
-_SETTINGS_DENY_TERMS = ("password", "passwd", "pwd", "token", "secret", "apikey", "api_key", "authcfg")
-
-
-def _denied_setting_key(key: str) -> dict:
-    return tool_error(
-        f"{key!r} looks like a credential key; QGIS settings are not the place to read or write it.",
-        "PERMISSION_DENIED",
-        "Credentials are managed by the QGIS authentication system (Settings > Options > Authentication).",
-    )
-
-
-def _get_setting(args: dict) -> dict:
-    key = args["key"]
-    if any(term in key.lower() for term in _SETTINGS_DENY_TERMS):
-        return _denied_setting_key(key)
-    settings = QgsSettings()
-    exists = settings.contains(key)
-    result = {"key": key, "exists": exists, "value": _jsonable_value(settings.value(key)) if exists else None}
-    if not exists:
-        settings.beginGroup(key)
-        try:
-            result["child_keys"] = list(settings.childKeys())[:50]
-            result["child_groups"] = list(settings.childGroups())[:50]
-        finally:
-            settings.endGroup()
-    return result
-
-
-def _set_setting(args: dict) -> dict:
-    key, value = args["key"], args["value"]
-    if any(term in key.lower() for term in _SETTINGS_DENY_TERMS):
-        return _denied_setting_key(key)
-    settings = QgsSettings()
-    previous = _jsonable_value(settings.value(key)) if settings.contains(key) else None
-    settings.setValue(key, value)
-    settings.sync()
-    return {"key": key, "value": _jsonable_value(settings.value(key)), "previous": previous}

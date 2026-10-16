@@ -39,6 +39,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import ast
@@ -77,6 +89,9 @@ _R_MODULES = frozenset({
     "shapely", "shapely.geometry", "shapely.ops", "shapely.affinity", "shapely.prepared",
     "shapely.strtree", "shapely.validation", "shapely.wkt", "shapely.wkb",
     "PyQt5.QtCore", "PyQt5.QtGui", "PyQt6.QtCore", "PyQt6.QtGui",
+
+
+    "pyproj",
 })
 _P_MODULES = frozenset({"processing"})
 
@@ -92,7 +107,7 @@ _FILE_MODULES = frozenset({"os", "shutil", "pathlib", "glob", "tempfile", "zipfi
 
 
 
-_LIBRARY_MODULES = frozenset({"numpy", "matplotlib", "PIL", "pypdf", "shapely"})
+_LIBRARY_MODULES = frozenset({"numpy", "matplotlib", "PIL", "pypdf", "shapely", "pyproj"})
 
 
 
@@ -183,6 +198,10 @@ _UNPROVABLE = frozenset({
     "QgsTask", "QgsApplication",
 })
 
+
+
+_APP_PATH_READS = frozenset({"svgPaths", "defaultSvgPaths"})
+
 _DEFERRED_ATTRS = frozenset({"connect", "singleShot", "start", "exec", "exec_", "processEvents",
                              "addTask", "setInterval", "callLater"})
 
@@ -263,6 +282,13 @@ class Verdict:
 
     floor: str = R
     unprovable: bool = False
+
+
+    user: bool = False
+
+
+
+    layers: frozenset | None = None
 
     @property
     def danger(self) -> str:
@@ -425,9 +451,219 @@ def _local_instances(tree: ast.AST, classes: set[str]) -> set[str]:
     return names
 
 
+
+
+
+
+
+_REACH_ALL = frozenset({"activeLayer", "selectedLayers", "mapLayers", "findLayers", "checkedLayers", "children",
+                        "layers", "visibleLayers", "layerTreeLayers", "orderedLayers"})
+
+_LOOKUPS = frozenset({"mapLayer", "mapLayersByName", "mapLayersByShortName", "layer", "findLayer",
+                      "layerById"})
+
+
+_COPIES = frozenset({"getFeatures", "getFeature", "selectedFeatures", "getSelectedFeatures", "fields",
+                     "extent", "crs", "sourceCrs", "clone", "geometry", "attributes", "attribute",
+                     "uniqueValues", "featureCount", "name", "source", "boundingBox", "minimumValue",
+                     "maximumValue", "aggregate", "dataComment", "publicSource"})
+
+
+_VIEW_ATTRS = frozenset({"triggerRepaint", "setItemVisibilityChecked", "setItemVisibilityCheckedRecursive",
+                         "setItemVisibilityCheckedParentRecursive", "setExpanded", "setActiveLayer",
+                         "refreshLayerSymbology", "setExtent", "zoomToFeatureIds", "zoomToSelected",
+                         "setCenter", "zoomScale", "refresh", "refreshAllLayers", "setLayers", "selectByIds",
+                         "selectByExpression", "selectByRect", "removeSelection", "select", "deselect",
+                         "invertSelection", "selectAll", "setDestinationCrs", "zoomToFullExtent", "flashFeatureIds",
+                         "flashGeometries", "setMapTool", "setRotation", "setMagnificationFactor"})
+
+_PROJECT_ROOTS = frozenset({"project", "QgsProject", "iface", "canvas"})
+_SNIPPET_NAMES = frozenset({"iface", "project", "canvas", "processing", "tools", "edit", "exports", "qgis",
+                            "layer", "layers", "read_text", "validate_path", "print", "math", "json",
+                            "statistics", "np", "NULL", "result", "show_files"})
+
+
+class _Owner:
+
+
+    def __init__(self, tree: ast.AST, user_layer: Callable[[str], bool] | None, safe: set,
+                 p_modules: frozenset) -> None:
+        self.user_layer = user_layer or (lambda _text: False)
+        self.p_modules = p_modules
+        stored = _stored_names(tree)
+        loaded = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+
+
+        self.tainted = {name for name in loaded - stored if name not in safe and name[:1] != "Q"}
+        self.tainted.add("active")
+        self.tainted |= {a.arg for a in ast.walk(tree) if isinstance(a, ast.arg)} - {"self", "cls"}
+        self.external = set(self.tainted)
+        self.named: set[str] = set()
+        self.unresolved = False
+        self.containers = set(_PROJECT_ROOTS)
+
+        self.values: dict[str, list] = {}
+        for target, value in _bindings(tree):
+            if isinstance(target, ast.Name):
+                self.values.setdefault(target.id, []).append(value)
+            else:
+                for name in _flatten([target]):
+                    if isinstance(name, ast.Name):
+                        self.values.setdefault(name.id, []).append(None)
+        for _ in range(3):
+            for target, value in _bindings(tree):
+                names = [t.id for t in _flatten([target]) if isinstance(t, ast.Name)]
+                if self.is_user(value):
+                    self.tainted.update(names)
+                elif _receiver_root(value) in self.containers and not self.fresh(value):
+                    self.containers.update(names)
+
+    def fresh(self, node: ast.AST) -> bool:
+
+        while isinstance(node, ast.Subscript):
+            node = node.value
+        if not isinstance(node, ast.Call):
+            return False
+        kind, callee = _callee(node)
+        if kind == "name" and callee.startswith("Qgs") and callee != "QgsProject":
+            return True
+        return kind == "attr" and _receiver_root(node.func) in self.p_modules
+
+    def is_user(self, node: ast.AST | None) -> bool:
+
+        if node is None:
+            return False
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            return any(self.is_user(e) for e in node.elts)
+        if isinstance(node, ast.Dict):
+            return any(self.is_user(v) for v in node.values)
+        if isinstance(node, ast.Starred):
+            return self.is_user(node.value)
+        if isinstance(node, ast.Constant):
+            hit = isinstance(node.value, str) and bool(node.value) and bool(self.user_layer(node.value))
+            if hit:
+                self.named.add(node.value)
+            return hit
+        if isinstance(node, ast.Name):
+            if node.id in self.external:
+                self.unresolved = True
+            return node.id in self.tainted
+        if isinstance(node, (ast.Subscript, ast.Attribute)):
+            return self.is_user(node.value)
+        if isinstance(node, ast.IfExp):
+            return self.is_user(node.body) or self.is_user(node.orelse)
+        if isinstance(node, ast.BoolOp):
+            return any(self.is_user(v) for v in node.values)
+        if isinstance(node, (ast.JoinedStr, ast.BinOp)):
+            return False
+        if isinstance(node, ast.Call):
+            kind, callee = _callee(node)
+            if callee in _COPIES or self.fresh(node):
+                return False
+            if callee in _REACH_ALL:
+                self.unresolved = True
+                return True
+            if callee in _LOOKUPS and node.args:
+                return any(self._looked_up(a, set()) for a in node.args)
+            if kind == "attr":
+                return self.is_user(node.func.value)
+            if callee in ("next", "list", "tuple", "sorted", "reversed", "iter"):
+                return any(self.is_user(a) for a in node.args)
+        return False
+
+    def _looked_up(self, node: ast.AST | None, seen: set) -> bool:
+
+
+        if isinstance(node, (ast.JoinedStr, ast.BinOp)) or node is None:
+            self.unresolved = True
+            return True
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            return any(self._looked_up(e, seen) for e in node.elts)
+        if isinstance(node, ast.Name) and node.id not in self.tainted:
+            values = self.values.get(node.id)
+            if not values or node.id in seen:
+                self.unresolved = True
+                return True
+            seen.add(node.id)
+            return any(self._looked_up(v, seen) for v in values)
+        return self.is_user(node)
+
+    def call_reaches(self, node: ast.Call) -> bool:
+
+
+        if self.fresh(node):
+            return False
+        if isinstance(node.func, ast.Attribute):
+            if self.is_user(node.func.value):
+                return True
+            if _receiver_root(node.func.value) not in self.containers:
+                return False
+        return any(self.is_user(a) for a in node.args) or any(self.is_user(k.value) for k in node.keywords)
+
+
+def _stored_names(tree: ast.AST) -> set:
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            names.add(node.id)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names.update(str(a.asname or a.name or "").split(".")[0] for a in node.names)
+        elif isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            names.add(node.name)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            names.update(node.names)
+        elif type(node).__name__ in ("MatchAs", "MatchStar") and getattr(node, "name", None):
+            names.add(node.name)
+        elif type(node).__name__ == "MatchMapping" and getattr(node, "rest", None):
+            names.add(node.rest)
+    return names
+
+
+def _bindings(tree: ast.AST) -> list:
+
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            out.extend((t, node.value) for t in node.targets)
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)) and node.value is not None:
+            out.append((node.target, node.value))
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            out.append((node.target, node.iter))
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            out.append((node.optional_vars, node.context_expr))
+    return out
+
+
+def undefined_name(code: object, available: set | frozenset) -> tuple[str, int] | None:
+
+
+
+
+
+
+    try:
+        tree = ast.parse(str(code or ""))
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return None
+    stored = _stored_names(tree)
+    for node in sorted((n for n in ast.walk(tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)),
+                       key=lambda n: (getattr(n, "lineno", 0), getattr(n, "col_offset", 0))):
+        if node.id not in stored and node.id not in available:
+            return node.id, getattr(node, "lineno", 0)
+    return None
+
+
 def classify(code: object, tool_class: Callable[[str], str | None] | None = None,
              commit_class: Callable[[list, bool], str | tuple] | None = None,
-             libraries: frozenset | set | tuple = ()) -> Verdict:
+             libraries: frozenset | set | tuple = (),
+             user_layer: Callable[[str], bool] | None = None) -> Verdict:
+
+
+
 
 
 
@@ -459,6 +695,12 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
     local_classes = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)} & locals_
     instances = _local_instances(tree, local_classes)
     libraries = _library_names(tree, frozenset(t.get("library_modules") or ()) | frozenset(libraries))
+    import builtins as _builtins
+
+    safe = (set(dir(_builtins)) | _SNIPPET_NAMES | set(t["r_names"]) | set(t["p_names"]) | set(t["fp_names"])
+            | _stored_names(tree))
+    owner = _Owner(tree, user_layer, safe, frozenset(t["p_modules"]))
+    user = False
     commits = False
 
 
@@ -471,13 +713,18 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
         if cls != R and (cls, reason) not in found:
             found.append((cls, reason))
 
-    def method(root: str, name: str, handed_on: bool) -> None:
+    def method(root: str, name: str, handed_on: bool, on_user: bool = False) -> None:
 
 
 
 
-        nonlocal commits, deletes, doors
-        if root == "tools":
+        nonlocal commits, deletes, doors, user
+        if on_user and not handed_on and name not in t["r_attrs"] and name not in _VIEW_ATTRS:
+
+            user = True
+        if root == "QgsApplication" and name in _APP_PATH_READS and not handed_on:
+            pass
+        elif root == "tools":
             cls = tool_class(name) if tool_class is not None else None
             if cls is None:
                 unknown.append(f"tools.{name}")
@@ -516,6 +763,8 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
     called = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
     lookups = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call) and _literal_lookup(n)}
+    app_reads = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Attribute) and id(n) in called
+                 and isinstance(n.value, ast.Name) and n.value.id == "QgsApplication" and n.attr in _APP_PATH_READS}
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -554,6 +803,13 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                         reach(FP, "opens a file to write it")
                 elif callee in t["r_names"] or callee in locals_:
                     pass
+                elif owner.call_reaches(node) and callee not in t["fp_names"] and not callee.startswith("Qgs"):
+
+                    user = True
+                    if callee in t["p_names"]:
+                        reach(P, _words(callee))
+                    else:
+                        unknown.append(callee)
                 elif callee in t["p_names"]:
                     reach(P, _words(callee))
                 elif callee in t["fp_names"]:
@@ -569,12 +825,13 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                 else:
                     unknown.append(callee)
             elif not callee.startswith("__"):
-                method(_receiver_root(node.func.value), callee, handed_on=False)
+                method(_receiver_root(node.func.value), callee, handed_on=False, on_user=owner.call_reaches(node))
         elif isinstance(node, ast.With):
             for item in node.items:
                 call = item.context_expr
                 if isinstance(call, ast.Call) and _callee(call) == ("name", "edit"):
                     commits = True
+                    user = user or any(owner.is_user(a) for a in call.args)
         elif isinstance(node, ast.Attribute):
             load = isinstance(node.ctx, ast.Load)
             if node.attr.startswith("__"):
@@ -585,7 +842,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
         elif isinstance(node, ast.Name):
             if id(node) in lookups:
                 pass
-            elif node.id in t["unprovable"] and isinstance(node.ctx, ast.Load):
+            elif node.id in t["unprovable"] and isinstance(node.ctx, ast.Load) and id(node) not in app_reads:
 
                 if node.id not in unknown:
                     unknown.append(node.id)
@@ -595,6 +852,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             for target in _flatten(targets):
                 if isinstance(target, ast.Attribute):
                     reach(P, f"sets {_words(target.attr)}")
+                    user = user or owner.is_user(target.value)
         elif isinstance(node, (ast.Await, ast.AsyncFunctionDef, ast.AsyncFor, ast.AsyncWith,
                                ast.Global, ast.Nonlocal)):
             unknown.append(type(node).__name__.lower())
@@ -611,9 +869,11 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             if item not in seen:
                 seen.append(item)
 
-        return Verdict(ASK, ["may change things the plugin cannot preview"], seen, level, doors)
+        return Verdict(ASK, ["may change things the plugin cannot preview"], seen, level, doors, user,
+                       layers=None if owner.unresolved else frozenset(owner.named))
 
-    return Verdict(level, [reason for cls, reason in found if cls == level])
+    return Verdict(level, [reason for cls, reason in found if cls == level], user=user and level != R,
+                   layers=None if owner.unresolved else frozenset(owner.named))
 
 
 def _flatten(targets) -> list:

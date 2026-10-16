@@ -41,6 +41,23 @@ def removed_layout(name: str, args) -> str:
     return _layout_named(args, getattr(spec(name), "removes_layout_at", ""))
 
 
+def code_layout(result, current: str) -> str:
+
+
+
+
+
+    changed = result.get("changed") if isinstance(result, dict) else None
+    if not isinstance(changed, dict):
+        return current
+    for key in ("layouts_added", "layouts_changed"):
+        names = changed.get(key)
+        if isinstance(names, dict) and names:
+            return str(list(names)[-1])
+    gone = changed.get("layouts_removed")
+    return "" if isinstance(gone, list) and current in gone else current
+
+
 def _master_name(designer) -> str:
     try:
         master = designer.masterLayout()

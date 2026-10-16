@@ -33,7 +33,7 @@ from qgis.PyQt.QtCore import QByteArray, QCoreApplication, QUrl
 from qgis.PyQt.QtNetwork import QNetworkProxy, QNetworkProxyQuery, QNetworkReply, QNetworkRequest
 
 from ..core.background import on_main_thread, run_on_main_thread
-from ..core.host_platform import os_info
+from ..core.host_platform import os_info, qgis_version
 from ..core.log_scrub import scrub_secrets
 from ..core.net_hosts import retry_after_seconds
 
@@ -160,13 +160,6 @@ def plugin_version() -> str:
             version = ""
         _plugin_version_cache = version or "unknown"
     return _plugin_version_cache
-
-
-def qgis_version() -> str:
-    try:
-        return str(Qgis.QGIS_VERSION).split("-")[0]
-    except Exception:  # nosec B110
-        return ""
 
 
 def config_query(product: str, lang: str = "") -> str:
@@ -380,7 +373,6 @@ class TerraLabClient:
         if base_url is None:
             base_url = self._read_base_url()
         self.base_url = base_url.rstrip("/")
-        self._pending_retry_after_s = 0.0
 
     @staticmethod
     def _read_base_url() -> str:
@@ -557,7 +549,6 @@ class TerraLabClient:
                       timeout_ms: int, allow_list: bool, require_body: bool, state: dict | None = None):
         state = {} if state is None else state
         state["retry_after_s"] = 0.0
-        self._pending_retry_after_s = 0.0
         method = str(method or "").upper()
         if body is not None and len(body) > _MAX_REQUEST_BYTES:
             return ({"error": "Request is too large", "code": "CLIENT_ERROR"}, None, False)
@@ -604,7 +595,7 @@ class TerraLabClient:
             if http_status is not None:
                 note_server_contact()
             if http_status == _RATE_LIMITED_STATUS and reply is not None:
-                state["retry_after_s"] = self._pending_retry_after_s = _retry_after_s(reply)
+                state["retry_after_s"] = _retry_after_s(reply)
             if reply is not None and http_status is not None and http_status >= 400:
                 raw = self._read_reply_body(reply)
                 if raw:
@@ -628,7 +619,7 @@ class TerraLabClient:
                     http_status, False)
         note_server_contact()
         if http_status == _RATE_LIMITED_STATUS:
-            state["retry_after_s"] = self._pending_retry_after_s = _retry_after_s(reply)
+            state["retry_after_s"] = _retry_after_s(reply)
 
         if http_status is not None and http_status >= 400:
             _log_warning(f"HTTP {http_status} error response")

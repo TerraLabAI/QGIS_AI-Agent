@@ -45,6 +45,7 @@ from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
 from .logger import log_warning
+from .qt_compat import qgis_iface
 
 _CONNECTED = False
 
@@ -137,15 +138,6 @@ def quiet_atlas(designer) -> bool:
         return False
 
 
-def _iface():
-    try:
-        from qgis.utils import iface
-
-        return iface
-    except Exception:  # noqa: BLE001
-        return None
-
-
 def install() -> None:
 
 
@@ -157,7 +149,7 @@ def install() -> None:
         _CONNECTED = True
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Layout designer guard not installed: {exc}")
-    iface = _iface()
+    iface = qgis_iface()
     try:
         if iface is not None:
             iface.layoutDesignerOpened.connect(quiet_atlas)
@@ -176,7 +168,7 @@ def shutdown() -> None:
         QgsProject.instance().aboutToBeCleared.disconnect(close_designers)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Layout designer guard not disconnected: {exc}")
-    iface = _iface()
+    iface = qgis_iface()
     if iface is not None:
         try:
             iface.layoutDesignerOpened.disconnect(quiet_atlas)

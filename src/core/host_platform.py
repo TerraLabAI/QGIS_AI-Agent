@@ -65,6 +65,31 @@ def expand_leading_env(text: str) -> str:
     return text
 
 
+def qgis_version() -> str:
+
+    try:
+        from qgis.core import Qgis
+
+        return str(Qgis.QGIS_VERSION).split("-")[0]
+    except Exception:  # nosec B110  # noqa: BLE001
+        return ""
+
+
+def resolved(path: str) -> str:
+
+
+
+
+
+
+
+
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return os.path.abspath(path)
+
+
 def release_pooled_handles(layer) -> None:
 
 

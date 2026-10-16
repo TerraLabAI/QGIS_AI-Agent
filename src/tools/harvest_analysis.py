@@ -26,7 +26,6 @@ from qgis.core import (
     QgsProject,
     QgsRasterDataProvider,
     QgsRectangle,
-    QgsUnitTypes,
     QgsVectorLayer,
     QgsVectorLayerFeatureSource,
 )
@@ -35,6 +34,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QThread, QTimer
 
 from ..core import background, limits, net
 from ..core.background import run_on_main_thread
+from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.invariants import metres_per_map_unit
@@ -46,6 +46,7 @@ from . import guards, kml_description, vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
 from ._layers import layer_not_found, resolve_layer
 from .danger import sql_mutates
+from .layer_lookup import require_vector
 
 _SQL_ROW_CAP = 1000
 
@@ -236,39 +237,6 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
 
 
 
-def _units(crs) -> str:
-    try:
-        return QgsUnitTypes.toString(crs.mapUnits())
-    except Exception:
-        return "unknown"
-
-
-def _vector(name: str):
-    layer = resolve_layer(name)
-    if layer is None:
-        return None, layer_not_found(name)
-    if not is_vector(layer):
-        return None, tool_error(
-            f"Layer {layer.name()!r} is not a vector layer.",
-            "INVALID_ARGS",
-            hint="layer_not_vector", layer=layer.name(),
-        )
-    return layer, None
-
-
-def _raster(name: str):
-    layer = resolve_layer(name)
-    if layer is None:
-        return None, layer_not_found(name)
-    if not is_raster(layer):
-        return None, tool_error(
-            f"Layer {layer.name()!r} is not a raster layer.",
-            "INVALID_ARGS",
-            hint="layer_not_raster", layer=layer.name(),
-        )
-    return layer, None
-
-
 def _field_error(layer, field_name: str) -> dict:
     from .layer_lookup import _field_not_found_error
 
@@ -409,7 +377,7 @@ def _execute_sql(args: dict) -> dict:
     if "layers" in args:
         sources = []
         for name in args["layers"] or []:
-            layer, error = _vector(name)
+            layer, error = require_vector(name)
             if error:
                 return error
             sources.append(layer)
@@ -498,7 +466,7 @@ def _execute_sql(args: dict) -> dict:
             "feature_count": _capped_count(vlayer, _SQL_ROW_CAP),
             "count_units": "features",
             "crs": crs_ref(vlayer.crs()),
-            "units": _units(vlayer.crs()),
+            "units": crs_units(vlayer.crs()),
             "fields": [f.name() for f in vlayer.fields()],
             "tables": tables,
         }
@@ -588,7 +556,7 @@ def _calc_close(state: dict) -> None:
 def _calc_open(args: dict) -> dict:
 
 
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     field_name = args["field_name"]
@@ -877,7 +845,7 @@ def _count_key(value):
 
 def _unique_values_plan(args: dict) -> dict:
 
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     error = _invalid_layer_error(layer)
@@ -989,7 +957,7 @@ def _get_unique_values(args: dict) -> dict:
     if not background.on_main_thread():
 
         return _unique_values_off_thread(args)
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     error = _invalid_layer_error(layer)
@@ -1226,7 +1194,7 @@ def _identify_here(args: dict, ask_services: bool):
         "point": [x, y],
         "crs": point_crs.authid(),
         "tolerance": tolerance,
-        "units": _units(point_crs),
+        "units": crs_units(point_crs),
         "layers_searched": searched,
         "results": results,
         "count": sum(r.get("count", 0) for r in results),
@@ -1504,7 +1472,7 @@ def _validate_expression(args: dict) -> dict:
         report.update(coded_fact(hint="expression_quoting"))
     if not args.get("layer_name"):
         return report
-    layer, error = _vector(args["layer_name"])
+    layer, error = require_vector(args["layer_name"])
     if error:
         return error
     fields = [f.name() for f in layer.fields()]
@@ -1557,10 +1525,10 @@ def _get_layer_extent(args: dict) -> dict:
     if box.isNull() or any(not math.isfinite(corner) for corner in corners.values()):
         out["empty"] = True
         out.update(dict.fromkeys(corners))
-        out.update(crs=crs.authid(), units=_units(crs))
+        out.update(crs=crs.authid(), units=crs_units(crs))
         return out
     out.update(corners)
     middle = box.center()
     out.update(width=box.width(), height=box.height(), center=[middle.x(), middle.y()], crs=crs.authid(),
-               units=_units(crs), is_geographic=crs.isGeographic())
+               units=crs_units(crs), is_geographic=crs.isGeographic())
     return out

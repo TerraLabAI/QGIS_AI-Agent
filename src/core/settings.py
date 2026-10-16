@@ -38,6 +38,20 @@ _LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 
 
+
+
+def profile_settings():
+
+
+
+
+
+
+
+
+    return QgsSettings()
+
+
 UNSAVED_KEY = "(unsaved)"
 _unsaved_grants: dict[str, str] = {}
 _unsaved_watch = {"tried": False}
@@ -343,7 +357,7 @@ class Settings:
 
 
         self._cache_files = settings is None
-        self._s = settings or QgsSettings()
+        self._s = settings or profile_settings()
         self._session_approval = ""
 
     def _cache_get(self, name: str) -> str:
@@ -698,10 +712,16 @@ class Settings:
 
 
 
-
-
-
         value = self._get("effort", "")
+
+
+
+        mode = self._get("model_mode", "")
+        if mode and efforts_stated():
+            self._s.remove(self._key("model_mode"))
+            legacy = {"fast": "low", "pro": "medium"}.get(mode, "")
+            if not value and legacy and effort_allowed(legacy):
+                self.effort = value = legacy
 
 
 
@@ -717,17 +737,9 @@ class Settings:
 
 
                 self._set("effort_pro", pro)
-
-
-
-
-
         known = effort_name(value)
         if known:
             return known
-        legacy = {"fast": "low", "pro": "medium"}.get(self._get("model_mode", ""), "")
-        if legacy and effort_allowed(legacy):
-            return legacy
         if efforts_stated():
             default = effort_default()
             if self._get("effort_last_default", "") != default:
@@ -1163,19 +1175,6 @@ class Settings:
             return False
         self._set("allow_project", json.dumps(data))
         return True
-
-    def clear_allowed(self, project_path: str | None = None) -> None:
-        if project_path is None:
-            forget_unsaved_grants()
-            self._set("allow_project", "")
-            return
-        if self._grant_key(project_path) == UNSAVED_KEY:
-            forget_unsaved_grants()
-            return
-        data = self._allow_map()
-        for key in self._grant_keys(project_path):
-            data.pop(key, None)
-        self._set("allow_project", json.dumps(data))
 
 
 

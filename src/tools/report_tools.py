@@ -533,7 +533,7 @@ def _plan(report, fmt: str, dpi: int, base: str, ext: str, budget: float, starte
     return counted
 
 
-def _refuse_over_budget(report, plan: dict, fmt: str, dpi: int, budget: float) -> dict:
+def _refuse_over_budget(report, plan: dict, dpi: int, budget: float) -> dict:
     pages = plan["pages"]
     total = f"{pages}" if plan["complete"] else f"more than {pages}"
     per_page = plan["seconds"] / max(1, pages)
@@ -556,13 +556,11 @@ def _refuse_over_budget(report, plan: dict, fmt: str, dpi: int, budget: float) -
 def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> dict:
 
     from .advanced_layouts import (
-        _add_credit_label,
         _export_failure,
         _fit_dpi,
         _layout_credits,
         _output_folder,
         _page_text,
-        _remove_credit_label,
     )
 
     started = time.monotonic()
@@ -600,47 +598,37 @@ def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> d
 
 
 
-    labels = []
-    credits_seen = []
-    try:
-        for _label, layout in parts:
-            credits = _layout_credits(layout)
-            label = _add_credit_label(layout, credits)
-            if label is not None:
-                labels.append((layout, label))
-                if credits not in credits_seen:
-                    credits_seen.append(credits)
+    missing = []
+    for _label, layout in parts:
+        missing += [credit for credit in _layout_credits(layout) if credit not in missing]
 
-        plan = _plan(report, fmt, dpi, base, ext, budget, started)
-        if plan["pages"] == 0:
-            return tool_error(f"The report '{name}' has no page: its coverage layers have no feature.",
-                              "INVALID_ARGS", "get_layout_info on the report shows the layers.")
-        if plan["fit"] is not None or not plan["complete"]:
-            return _refuse_over_budget(report, plan, fmt, dpi, budget)
-        names = plan["names"]
-        overwrite = args.get("overwrite", False)
-        taken = [path for path in names if os.path.exists(path)]
-        if taken and not overwrite:
-            return tool_error(f"{len(taken)} of the {len(names)} page files already exist, the first "
-                              f"{taken[0]}.", "INVALID_ARGS",
-                              "overwrite:true replaces them; that is the user's call.")
+    plan = _plan(report, fmt, dpi, base, ext, budget, started)
+    if plan["pages"] == 0:
+        return tool_error(f"The report '{name}' has no page: its coverage layers have no feature.",
+                          "INVALID_ARGS", "get_layout_info on the report shows the layers.")
+    if plan["fit"] is not None or not plan["complete"]:
+        return _refuse_over_budget(report, plan, dpi, budget)
+    names = plan["names"]
+    overwrite = args.get("overwrite", False)
+    taken = [path for path in names if os.path.exists(path)]
+    if taken and not overwrite:
+        return tool_error(f"{len(taken)} of the {len(names)} page files already exist, the first "
+                          f"{taken[0]}.", "INVALID_ARGS",
+                          "overwrite:true replaces them; that is the user's call.")
 
-        if fmt == "pdf":
-            settings = QgsLayoutExporter.PdfExportSettings()
-            settings.dpi = dpi
-            if args.get("force_vector"):
-                try:
-                    settings.forceVectorOutput = True
-                except AttributeError:
-                    pass
-            result, detail = QgsLayoutExporter.exportToPdf(report, output_path, settings)
-        else:
-            settings = QgsLayoutExporter.ImageExportSettings()
-            settings.dpi = dpi
-            result, detail = QgsLayoutExporter.exportToImage(report, base, ext, settings)
-    finally:
-        for layout, label in labels:
-            _remove_credit_label(layout, label)
+    if fmt == "pdf":
+        settings = QgsLayoutExporter.PdfExportSettings()
+        settings.dpi = dpi
+        if args.get("force_vector"):
+            try:
+                settings.forceVectorOutput = True
+            except AttributeError:
+                pass
+        result, detail = QgsLayoutExporter.exportToPdf(report, output_path, settings)
+    else:
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = dpi
+        result, detail = QgsLayoutExporter.exportToImage(report, base, ext, settings)
 
     if result != enum_member(QgsLayoutExporter, "ExportResult", "Success"):
         failure = _export_failure(result)
@@ -670,8 +658,8 @@ def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> d
     if dpi_note:
         out["dpi_note"] = dpi_note
         out["dpi_lowered_from"] = int(asked_dpi)
-    if credits_seen:
-        out["attribution"] = " | ".join(credits_seen)
+    if missing:
+        out["credits_not_on_page"] = missing
     if created_folder:
         out["created_folder"] = created_folder
     return out

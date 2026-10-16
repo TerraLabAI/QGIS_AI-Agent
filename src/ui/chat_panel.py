@@ -61,6 +61,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     permission_decided = pyqtSignal(str, str, object)
     question_answered = pyqtSignal(str, str)
+
+
+    question_reply = pyqtSignal(str, str, object)
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
     undo_requested = pyqtSignal()
@@ -86,8 +89,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     context_add_requested = pyqtSignal(str)
     mode_changed = pyqtSignal(str, str)
     effort_changed = pyqtSignal(str)
-
-    welcome_dismissed = pyqtSignal()
     pairing_reopen_requested = pyqtSignal()
     pairing_cancel_requested = pyqtSignal()
     pairing_code_submitted = pyqtSignal(str)
@@ -113,7 +114,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     update_dismissed = pyqtSignal(str)
     low_balance_shown = pyqtSignal(int)
     attachment_added = pyqtSignal(int)
-    thread_exported = pyqtSignal(str)
     example_chosen = pyqtSignal(str)
     recommendation_decided = pyqtSignal(str, str)
     diff_applied = pyqtSignal(str, object)
@@ -131,8 +131,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._reopened_tools: dict[str, bool] = {}
         self._compaction_marked = False
         self._current_run: str | None = None
-
-        self._run_requests: dict[str, str] = {}
 
         self._error_cards: dict = {}
         self._explain_runs = True

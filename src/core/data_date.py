@@ -7,6 +7,7 @@
 
 
 
+
 from __future__ import annotations
 
 import calendar
@@ -14,6 +15,8 @@ import re
 from datetime import date
 
 LIVE = "live"
+SINCE = "since"
+_SINCE = re.compile(r"^(\d{4})-live$")
 _YEAR = re.compile(r"^(\d{4})$")
 _SPAN = re.compile(r"^(\d{4})-(\d{4})$")
 _MONTH = re.compile(r"^(\d{4})-(\d{2})$")
@@ -37,6 +40,11 @@ def parse(text) -> tuple[str, date, date] | None:
         today = date.today()
         return (LIVE, today, today)
     try:
+        match = _SINCE.match(value)
+        if match:
+
+            year = int(match.group(1))
+            return (SINCE, date(year, 1, 1), date.today()) if _year_ok(year) else None
         match = _YEAR.match(value)
         if match:
             year = int(match.group(1))
@@ -74,7 +82,7 @@ def name_label(text) -> str:
 
 
     parsed = parse(text)
-    if parsed is None or parsed[0] == LIVE:
+    if parsed is None or parsed[0] in (LIVE, SINCE):
         return ""
     kind, first, last = parsed
     if kind == "span":

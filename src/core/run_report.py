@@ -48,6 +48,8 @@ from qgis.core import (
 )
 
 from . import tuning
+from .host_platform import resolved
+from .layer_order import feature_count_of
 from .snapshot import RunSnapshot, layer_file_path
 from .snapshot_report import diff_changed
 
@@ -151,17 +153,6 @@ def _crs_name(layer) -> str:
         return ""
 
 
-def _feature_count(layer) -> int | None:
-
-
-
-
-
-    from .layer_order import feature_count_of
-
-    return feature_count_of(layer)
-
-
 def _in_view(layer, extent, view) -> bool | None:
 
 
@@ -241,7 +232,7 @@ def _added_layer(project, raw: dict, orphans: set, view, hidden: frozenset = fro
     except Exception:  # noqa: BLE001
         extent = None
 
-    count = _feature_count(layer) if isinstance(layer, QgsVectorLayer) else None
+    count = feature_count_of(layer) if isinstance(layer, QgsVectorLayer) else None
     if count is not None:
         item["features"] = count
         item["empty"] = empty = count == 0
@@ -384,10 +375,7 @@ def _list_files(paths: list) -> list:
     for path in paths:
         if len(entries) >= _cap("run_report_max_files", MAX_FILES):
             break
-        try:
-            key = os.path.realpath(path)
-        except (OSError, ValueError):
-            key = path
+        key = resolved(path)
         if key in seen:
             continue
         seen.add(key)

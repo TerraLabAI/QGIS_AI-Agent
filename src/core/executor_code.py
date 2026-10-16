@@ -33,6 +33,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -135,6 +146,36 @@ def _declared(call: dict) -> str | None:
     return _DECLARED.get(str(call.get("served_effect") or ""))
 
 
+def _user_layer_reasons(layers, reasons: list) -> list:
+
+
+
+
+    from qgis.core import QgsProject
+
+    project = QgsProject.instance()
+    names: list[str] = []
+    for text in sorted(layers or ()):
+        found = project.mapLayer(text)
+        name = found.name() if found is not None else str(text)
+        if name not in names:
+            names.append(name)
+    effects: list[str] = []
+    for reason in reasons:
+        verb, _, what = str(reason).partition(" ")
+        if verb in ("set", "sets", "change") and what and what not in effects:
+            effects.append(what)
+    if not names:
+        said = tr("changes a layer you had before this run")
+    elif len(names) == 1:
+        said = tr("changes your layer {name}").format(name=names[0])
+    else:
+        said = tr("changes your layers {names}").format(names=", ".join(names[:3]))
+    if effects:
+        said = f"{said}: {', '.join(effects[:3])}"
+    return [said] + [r for r in reasons if r == "writes a file" or str(r).startswith(("saves ", "deletes "))]
+
+
 class _ExecutorCode:
 
 
@@ -144,19 +185,106 @@ class _ExecutorCode:
             call["code_plan"] = {"cls": ce.ASK, "granted": ce.D, "reasons": []}
             return danger
         code = str(args.get("code") or "")
-        verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=self._commit_class)
+        run_id = str(call.get("run_id") or "")
+        verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=self._commit_class,
+                              user_layer=self._user_layer_test(run_id))
         cls = verdict.cls
         declared = _declared(call)
         if cls == ce.ASK and declared is not None:
             cls = declared
+        elif (cls == ce.ASK and not verdict.unprovable and not verdict.user
+              and ce.RANK[verdict.floor] <= ce.RANK[ce.FP]):
+
+
+
+
+            cls = ce.higher(verdict.floor, ce.P)
         remembered = self._code_escalated.get(_fingerprint(code))
         if remembered and ce.RANK[remembered] > ce.RANK[cls]:
             cls = remembered
+        reasons = verdict.reasons
+        if verdict.user and cls in (ce.P, ce.FP):
+            reasons = _user_layer_reasons(verdict.layers, reasons)
         call["code_plan"] = {"cls": cls, "granted": cls if cls != ce.ASK else ce.FW,
-                             "reasons": verdict.reasons}
+                             "reasons": reasons, "user": verdict.user,
+                             "layers": None if verdict.layers is None else sorted(verdict.layers)}
         if cls == ce.FW and _ceiling(call) == ce.FW:
             return ce.DANGER[ce.FP]
         return ce.DANGER[cls]
+
+    def _user_layer_test(self, run_id: str):
+
+
+
+        from qgis.core import QgsProject
+
+        snapshot = self._snapshots.get(run_id)
+        before = snapshot.layer_ids if snapshot is not None and snapshot.captured else None
+        project = QgsProject.instance()
+
+        def test(text: str) -> bool:
+            try:
+                found = project.mapLayer(text)
+                layers = [found] if found is not None else project.mapLayersByName(text)
+            except Exception:  # noqa: BLE001
+                return False
+            return any(before is None or each.id() in before for each in layers)
+
+        return test
+
+    def _code_refused_before_card(self, call: dict) -> bool:
+
+
+
+
+
+
+        code = str((call.get("args") or {}).get("code") or "")
+        try:
+            compile(code, "<snippet>", "exec")
+        except SyntaxError as exc:
+            self._fail(call, "INVALID_ARGS", f"execute_code raised SyntaxError: {exc.msg} (line {exc.lineno})", "",
+                       details=error_details({"hint": "code_syntax_error", "line": exc.lineno, "executed": False}))
+            return True
+        except (ValueError, RecursionError, MemoryError):
+            return False
+        try:
+            missing = ce.undefined_name(code, self._snippet_names(call))
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"execute_code name check failed: {exc}")
+            return False
+        if missing is None:
+            return False
+        name, line = missing
+        chat = self._threads.get(str(call.get("run_id") or ""), "")
+        if code_runtime is not None and code_runtime.dropped_help(chat, name):
+
+            return False
+        self._fail(call, "INVALID_ARGS",
+                   f"name {name!r} is not defined (line {line}): the snippet would raise NameError there. "
+                   "Nothing was run.", "",
+                   details=error_details({"name": name, "line": line, "executed": False}))
+        return True
+
+    def _snippet_names(self, call: dict) -> set:
+
+
+
+        import builtins
+        import sys
+
+        from qgis.core import QgsProject
+
+        from .code_guard import DENIED_NAMES, build_safe_builtins
+        from .code_namespace import PRELUDE, console_names
+        from .code_owners import HELPER
+
+        chat = self._threads.get(str(call.get("run_id") or ""), "")
+        names = set(dir(builtins)) | set(build_safe_builtins()) | set(PRELUDE) | set(sys.modules)
+        names |= {HELPER, "processing", "qgis", "print", "read_text", "validate_path"}
+        names |= set(console_names(DENIED_NAMES))
+        names |= set(code_runtime.bindings(None, QgsProject.instance())) | set(code_runtime.kept(chat))
+        return names
 
     @staticmethod
     def _code_class_of(call: dict) -> str:
@@ -209,7 +337,7 @@ class _ExecutorCode:
             return False
         plan = call.get("code_plan") or {}
         cls = plan.get("cls", ce.ASK)
-        if ce.RANK[cls] <= ce.RANK[_ceiling(call)]:
+        if ce.RANK[cls] <= ce.RANK[_ceiling(call)] and not (plan.get("user") and cls != ce.R):
             return False
         if self._code_class_allowed(call):
             return False
@@ -269,7 +397,7 @@ class _ExecutorCode:
             return bool(call.get("carded"))
         snapshot = RunSnapshot(f"{run_id or 'run'}-code")
         try:
-            ok = snapshot.capture()
+            ok = snapshot.capture(layer_ids=self._code_point_layers(run_id, plan.get("layers")))
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Restore point before execute_code failed: {exc}")
             ok = False
@@ -277,6 +405,25 @@ class _ExecutorCode:
             return bool(call.get("carded"))
         call["code_point"] = (snapshot, True)
         return True
+
+    def _code_point_layers(self, run_id: str, named) -> list | None:
+
+
+
+
+        before = getattr(self._snapshots.get(run_id), "layer_ids", None)
+        if named is None or not before:
+            return None
+        from qgis.core import QgsProject
+
+        project = QgsProject.instance()
+        ids = set()
+        for text in named:
+            found = project.mapLayer(text)
+            for layer in [found] if found is not None else project.mapLayersByName(text):
+                if layer.id() in before:
+                    ids.add(layer.id())
+        return sorted(ids)
 
     @staticmethod
     def _unsaved_edits() -> list:
@@ -348,6 +495,8 @@ class _ExecutorCode:
 
     def _code_no_point(self, call: dict) -> None:
 
+        if self._code_refused_before_card(call):
+            return
         plan = call.get("code_plan") or {}
         plan["reasons"] = list(plan.get("reasons") or []) + [
             tr("could not be saved first, so Undo could not take it back")]

@@ -41,8 +41,9 @@ from __future__ import annotations
 
 import json
 import re
+import time
 
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
@@ -61,6 +62,7 @@ from .tool_describe import (
     is_background_job,
     result_facts,
 )
+from .tool_describe import source_text as _source_text
 from .trace_rows import (
     _HINT_QSS,
     _LABEL_QSS,
@@ -85,11 +87,61 @@ _VERB_MIN_PX = 130
 _QWIDGETSIZE_MAX = (1 << 24) - 1
 _OUTCOME_MIN_PX = 90
 
+_VERB_WHOLE_OUTCOME_PX = 56
+
 _SOURCE_MIN_PX = 56
 
 
 
 _PERCENT_RE = re.compile(r"(\d{1,3}(?:[.,]\d)?)\s?%")
+
+_JOB_LOOK_MS = 2000
+
+_SERVER_FRESH_S = 5.0
+
+
+def progress_words(percent=None, eta_s=None, done_bytes=None, total_bytes=None) -> str:
+
+
+    def tr(text):
+        return QCoreApplication.translate("ActivityRow", text)
+
+    parts = []
+    if isinstance(done_bytes, (int, float)) and done_bytes > 0:
+        mb = 1024 * 1024
+        if isinstance(total_bytes, (int, float)) and total_bytes >= done_bytes:
+            parts.append(tr("{done} of {total} MB").format(done=f"{done_bytes / mb:.0f}",
+                                                           total=f"{total_bytes / mb:.0f}"))
+        else:
+            parts.append(tr("{done} MB").format(done=f"{done_bytes / mb:.0f}"))
+    elif isinstance(percent, (int, float)) and not isinstance(percent, bool) and 0 <= percent <= 100:
+        parts.append(f"{int(percent)}\u202f%")
+    if isinstance(eta_s, (int, float)) and not isinstance(eta_s, bool) and eta_s > 0:
+        if eta_s < 60:
+            parts.append(tr("about {n} s left").format(n=int(max(10, round(eta_s / 10.0) * 10))))
+        else:
+            parts.append(tr("about {n} min left").format(n=int(round(eta_s / 60.0))))
+    return " \u00b7 ".join(parts)
+
+
+def _task_id_of(card) -> str:
+
+    try:
+        value = json.loads(str(getattr(card, "detail", "") or ""))
+    except (TypeError, ValueError):
+        return ""
+    return str(value.get("task_id") or "") if isinstance(value, dict) else ""
+
+
+def _task_state(task_id: str):
+
+    if not task_id:
+        return None
+    try:
+        from ..tools.processing_run import task_state
+    except Exception:  # noqa: BLE001
+        return None
+    return task_state(task_id)
 
 
 MEASURE_HEAD_RE = re.compile(r"^.*?\d[\d.,]*(?:\u00a0\S+)?")
@@ -321,8 +373,17 @@ class ActivityRow(QWidget):
         self._logo_hooked = False
 
 
+
+
         self._job_over = False
-        self._job_percent = ""
+        self._progress_text = ""
+        self._job_percent = None
+        self._server_at = 0.0
+        self._job_looked = False
+        self.on_job_end = None
+        self._job_timer = QTimer(self)
+        self._job_timer.setInterval(_JOB_LOOK_MS)
+        self._job_timer.timeout.connect(self._look_at_job)
         self._second_is_source = False
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
@@ -413,7 +474,9 @@ class ActivityRow(QWidget):
         self._body_col.insertWidget(self._body_col.indexOf(self._tries_btn), card)
         self.cards.append(card)
         self._job_over = False
-        self._job_percent = ""
+        self._job_looked = False
+        self._progress_text = ""
+        self._job_percent = None
         card.state_changed.connect(self.refresh)
         card.expanded_changed.connect(self._on_card_expanded)
         self.refresh()
@@ -503,7 +566,9 @@ class ActivityRow(QWidget):
 
         verb_min = min(_VERB_MIN_PX, self._label.sizeHint().width())
         measure = MEASURE_HEAD_RE.match(self._label.full_text())
-        if measure:
+        if getattr(self, "_outcome_whole", False):
+            verb_min = min(_VERB_WHOLE_OUTCOME_PX, self._label.sizeHint().width())
+        elif measure:
             head = self._label.fontMetrics().horizontalAdvance(measure.group(0) + "\u2026")
             verb_min = min(max(verb_min, head), self._label.sizeHint().width())
         self._label.setMinimumWidth(verb_min)
@@ -529,7 +594,12 @@ class ActivityRow(QWidget):
 
         shown = min(self._secondary.sizeHint().width(), self._secondary.maximumWidth())
         others = self._head.sizeHint().width() - shown
-        self._secondary.setMaximumWidth(max(0, self._head.width() - others))
+        keep = max(0, self._head.width() - others)
+        if getattr(self, "_outcome_whole", False) and keep < min(self._secondary.sizeHint().width(), _SOURCE_MIN_PX):
+
+
+            keep = 0
+        self._secondary.setMaximumWidth(keep)
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
@@ -561,30 +631,81 @@ class ActivityRow(QWidget):
         return not self._job_over and last.ok is True and \
             is_background_job(last.summary, getattr(last, "detail", ""))
 
-    def set_job_status(self, text: str) -> None:
+    def set_job_status(self, text: str, progress=None) -> None:
+
 
         if not self.job_live():
             return
-        found = _PERCENT_RE.findall(str(text or ""))
-        percent = f"{found[-1]}\u202f%" if found else ""
-        if percent != self._job_percent:
-            self._job_percent = percent
+        progress = progress if isinstance(progress, dict) else {}
+        percent = progress.get("percent")
+        if percent is None:
+            found = _PERCENT_RE.findall(str(text or ""))
+            try:
+                percent = int(float(found[-1].replace(",", "."))) if found else None
+            except ValueError:
+                percent = None
+        self._server_at = time.monotonic()
+        self._job_percent = percent
+        self._set_progress(progress_words(percent, progress.get("eta_s")))
+
+    def set_call_progress(self, done_bytes, total_bytes=None) -> None:
+
+        if not any(card.ok is None and not getattr(card, "ended", "") for card in self.cards):
+            return
+        self._set_progress(progress_words(done_bytes=done_bytes, total_bytes=total_bytes))
+
+    def _set_progress(self, text: str) -> None:
+        if text != self._progress_text:
+            self._progress_text = text
             self.refresh()
+
+    def _look_at_job(self) -> None:
+
+
+        if not self.job_live():
+            self._job_timer.stop()
+            return
+        state = _task_state(_task_id_of(self.cards[-1]))
+        if state is None:
+
+
+            self._job_timer.stop()
+            return
+        if state[0] != "running":
+            self.end_job()
+            return
+        percent = state[1]
+        if percent != self._job_percent and time.monotonic() - self._server_at > _SERVER_FRESH_S:
+            self._job_percent = percent
+            self._set_progress(progress_words(percent))
+
+    def follows_job(self) -> bool:
+
+        return self._job_timer.isActive()
 
     def end_job(self) -> None:
 
         if self._job_over:
             return
         self._job_over = True
+        self._job_timer.stop()
         if self.cards[-1].ok is True and is_background_job(
                 self.cards[-1].summary, getattr(self.cards[-1], "detail", "")):
             self.refresh()
+        if callable(self.on_job_end):
+            self.on_job_end()
 
     def refresh(self) -> None:
         first = self.cards[0]
         last = self.cards[-1]
         calling = any(card.ok is None and not getattr(card, "ended", "") for card in self.cards)
-        running = calling or self.job_live()
+        job = not calling and self.job_live()
+        running = calling or job
+        if not running:
+            self._progress_text = ""
+        if job and not self._job_timer.isActive() and not self._job_looked and _task_id_of(last):
+            self._job_looked = True
+            self._job_timer.start()
         self._spinner.setVisible(running)
         self._icon.setVisible(not running)
         if running:
@@ -614,7 +735,8 @@ class ActivityRow(QWidget):
             else qcolor(INK_2)
         if declined:
 
-            mark = "lu.x" if failed else "lu.minus"
+
+            mark = ("lock" if self.blocked() else "lu.x") if failed else "lu.minus"
             self._icon.setPixmap(pixmap_for(self, mark, GLYPH_PX, qcolor(INK_3)))
         else:
             logo = self._logo_url(first)
@@ -711,14 +833,16 @@ class ActivityRow(QWidget):
     def _sync_outcome(self, running: bool, failed: bool, ended: str = "", some_failed: int = 0) -> None:
 
         text = ""
-        if failed:
+        if failed and self.blocked():
+            text = self.tr("Blocked to protect your credentials")
+        elif failed:
             text = self.tr("did not work")
         elif ended == "denied":
             text = self.tr("denied")
         elif ended == "stopped":
             text = self.tr("stopped")
         elif running:
-            text = self._job_percent if self.job_live() else ""
+            text = self._progress_text
         elif some_failed:
             text = self.tr("{failed} of {total} did not work").format(
                 failed=some_failed, total=self.repeats)
@@ -733,7 +857,11 @@ class ActivityRow(QWidget):
             elif facts["layer"] and self._made_layer(last, facts["layer"]):
                 text = f"\u2192 {facts['layer']}"
         self._outcome.setText(text)
-        self._outcome.setMinimumWidth(min(_OUTCOME_MIN_PX, self._outcome.sizeHint().width()) if text else 0)
+
+
+        self._outcome_whole = bool(text) and (running or (failed and self.blocked()))
+        whole = self._outcome.sizeHint().width()
+        self._outcome.setMinimumWidth((whole if self._outcome_whole else min(_OUTCOME_MIN_PX, whole)) if text else 0)
         self._outcome.setVisible(bool(text))
 
     @staticmethod
@@ -801,6 +929,18 @@ class ActivityRow(QWidget):
 
 
         return bool(self.cards) and self.cards[-1].ok is True
+
+    def described(self) -> str:
+
+
+        last = self.cards[-1] if self.cards else None
+        if last is None or not _source_text(last.name, last.args)[0]:
+            return ""
+        return self.secondary()
+
+    def blocked(self) -> bool:
+
+        return bool(self.cards) and bool(getattr(self.cards[-1], "blocked", False))
 
     def failed(self) -> bool:
 

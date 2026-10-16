@@ -26,7 +26,11 @@ _SECRET_NAMES = frozenset({
     "credential", "credentials", "private_token", "subscription-key", "subscription_key", "bearer",
     "x-amz-signature", "x-amz-credential", "x-amz-security-token", "x-goog-signature", "x-goog-credential",
     "username", "user",
+
+    "tk", "code", "access-token", "api", "gkt", "x-api-key", "api-token", "jwt_token", "ticket",
 })
+
+_SECRET_PARTS = ("key", "token", "secret", "passw", "auth", "sig", "ticket", "jwt", "credential", "session")
 
 _SIGNED_PATH_PARAM = ("/eodata/", "t")
 
@@ -55,7 +59,8 @@ def _param(name: str) -> str:
 
 
 def _secret(name: str) -> bool:
-    return _param(name) in _SECRET_NAMES
+    name = _param(name)
+    return name in _SECRET_NAMES or any(part in name for part in _SECRET_PARTS)
 
 
 def _signed_token(name: str, holder: str) -> bool:
@@ -93,7 +98,10 @@ def _url(text: str) -> str:
             if not _secret(name) and not _signed_token(name, url.path()):
                 kept.addQueryItem(name, plain_source(value) if "://" in value else value)
         url.setQuery(kept)
-    return url.toString()
+
+    url.setFragment(None)
+
+    return url.toString().replace("%7B", "{").replace("%7D", "}")
 
 
 def _vsi(name: str, rest: str) -> str:
@@ -200,6 +208,9 @@ def plain_source(text) -> str:
 
         name, quoted = driver.group(1), driver.group(2)
         rest = driver.group(3) if quoted is not None else driver.group(4)
+        if quoted is None and rest.lower().startswith(("http://", "https://")):
+
+            return f"{name}:{_url(rest)}"
         if quoted is not None:
             return f'{name}:"{plain_source(quoted)}"{rest}'
         main, colon, tail = rest.rpartition(":")
@@ -342,13 +353,18 @@ def inputs_of(parameters: dict, algorithm=None) -> dict:
         elif _is_local(value) or value.startswith(("/vsi", "http://", "https://")):
             seen.add(value)
             add(plain_source(value), [], [])
+    from .licence import parent_facts
+
     names = [layer.name() for layer in layers]
+    parents = []
     for layer in layers:
         label = layer.name()
         if names.count(label) > 1:
             label = f"{label} [{plain_source(layer.source())}]"
         add(label, *_credit_of(layer))
-    return {"inputs": inputs, "licences": licences, "rights": rights}
+
+        parents.append(parent_facts(layer))
+    return {"inputs": inputs, "licences": licences, "rights": rights, "parents": parents}
 
 
 def command_text(algorithm_id: str, parameters: dict) -> str:
