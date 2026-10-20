@@ -32,7 +32,7 @@ import os
 import re
 import unicodedata
 
-from ..core.tool_registry import coded_fact
+from ..core.tool_registry import coded_fact, tool_error
 
 
 
@@ -249,14 +249,12 @@ def kmz_in_place_error(layer, action: str = "edit") -> dict | None:
         name = layer.name()
     except Exception:  # noqa: BLE001
         name = "this layer"
-    return {
-        "_error": (f"{name!r} is read from the KMZ file {path}, and saving any edit into a KMZ rebuilds the "
-                   "archive empty: every feature in it would be lost while QGIS reports the save as done. "
-                   f"Nothing was changed. To {action}, export it to a GeoPackage with export_layer and edit "
-                   "that copy."),
-        "code": "EXECUTION_FAILED", "reason": "kmz_rebuilt_on_save", "layer": name, "path": path,
-        **coded_fact(hint="edit_blocked", variant="kmz_rebuilt_on_save"),
-    }
+    return tool_error(
+        f"{name!r} is read from the KMZ file {path}, and saving any edit into a KMZ rebuilds the "
+        "archive empty: every feature in it would be lost while QGIS reports the save as done. "
+        "Nothing was changed.",
+        "EXECUTION_FAILED", hint="edit_blocked", variant="kmz_rebuilt_on_save",
+        reason="kmz_rebuilt_on_save", layer=name, path=path, attempted=action)
 
 
 def cannot_edit_error(layer, action: str = "edit") -> dict:
@@ -276,48 +274,36 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
         name = "this layer"
     where = f" ({facts['path']})" if facts["path"] else ""
     detail = {"layer": name, "provider": facts["provider"], "storage": facts["storage"],
-              "path": facts["path"], "code": "EXECUTION_FAILED"}
+              "path": facts["path"]}
+
+    def blocked(message: str, reason: str, variant: str = "", **more) -> dict:
+        return tool_error(message, "EXECUTION_FAILED", hint="edit_blocked", variant=variant or reason,
+                          reason=reason, **detail, **more)
 
     if facts["read_only"]:
-        detail["_error"] = (f"Layer {name!r} is marked read-only in this project, so no edit session can open on it.")
-        detail["reason"] = "layer_read_only"
-        detail.update(coded_fact(hint="edit_blocked", variant="layer_read_only"))
-        return detail
+        return blocked(f"Layer {name!r} is marked read-only in this project, so no edit session can open on it.",
+                       "layer_read_only")
 
     have = _capability_names(layer)
     wanted = _CAPABILITY_FOR.get(action, _CAPABILITY_FOR["edit"])
     if have and not have.intersection(wanted):
-        detail["_error"] = (f"The {facts['provider'] or 'data'} provider behind {name!r} cannot {action}"
-                            f"{(' (' + facts['storage'] + ')') if facts['storage'] else ''}; it serves "
-                            "this layer for reading only.")
-        detail["reason"] = "provider_read_only"
-        detail["capabilities"] = sorted(have)
-        detail.update(coded_fact(hint="edit_blocked", variant="provider_read_only"))
-        return detail
+        return blocked(f"The {facts['provider'] or 'data'} provider behind {name!r} cannot {action}"
+                       f"{(' (' + facts['storage'] + ')') if facts['storage'] else ''}; it serves "
+                       "this layer for reading only.", "provider_read_only", capabilities=sorted(have))
 
     reason, blocker = _write_block(facts["path"])
     if reason == "missing":
-        detail["_error"] = (f"The file {name!r} reads is not there any more: {blocker}.")
-        detail["reason"] = "source_missing"
-        detail.update(coded_fact(hint="edit_blocked", variant="source_missing"))
-        return detail
+        return blocked(f"The file {name!r} reads is not there any more: {blocker}.", "source_missing")
     if reason == "locked":
-        detail["_error"] = (f"The file behind {name!r} is open in another program, so QGIS cannot write to it: "
-                            f"{blocker}.")
-        detail["reason"] = "file_locked"
-        detail.update(coded_fact(hint="edit_blocked",
-                                 variant="file_locked_remote" if _looks_remote(facts["path"]) else "file_locked"))
-        return detail
+        return blocked(f"The file behind {name!r} is open in another program, so QGIS cannot write to it: "
+                       f"{blocker}.", "file_locked",
+                       "file_locked_remote" if _looks_remote(facts["path"]) else "file_locked")
     if reason in ("read_only_file", "folder_read_only"):
-        detail["_error"] = (f"There is no write permission on {blocker}, so {name!r} cannot be edited in place.")
-        detail["reason"] = "no_write_permission"
-        detail.update(coded_fact(hint="edit_blocked", variant="no_write_permission"))
-        return detail
+        return blocked(f"There is no write permission on {blocker}, so {name!r} cannot be edited in place.",
+                       "no_write_permission")
     if reason == "unreadable":
-        detail["_error"] = f"The file behind {name!r} could not be opened for writing: {blocker}."
-        detail["reason"] = "source_unreadable"
-        detail.update(coded_fact(hint="edit_blocked", variant="source_unreadable"))
-        return detail
+        return blocked(f"The file behind {name!r} could not be opened for writing: {blocker}.",
+                       "source_unreadable")
 
     editing_elsewhere = ""
     try:
@@ -325,12 +311,10 @@ def cannot_edit_error(layer, action: str = "edit") -> dict:
             editing_elsewhere = " The layer is already in edit mode."
     except Exception as exc:  # noqa: BLE001
         _log(f"cannot_edit_error: isEditable() failed: {exc}")
-    detail["_error"] = (f"QGIS refused to open an edit session on {name!r}{where}.{editing_elsewhere} "
-                        f"Provider: {facts['provider'] or 'unknown'}"
-                        f"{'; storage: ' + facts['storage'] if facts['storage'] else ''}.")
-    detail["reason"] = "start_editing_refused"
-    detail.update(coded_fact(hint="edit_blocked", variant="start_editing_refused"))
-    return detail
+    return blocked(f"QGIS refused to open an edit session on {name!r}{where}.{editing_elsewhere} "
+                   f"Provider: {facts['provider'] or 'unknown'}"
+                   f"{'; storage: ' + facts['storage'] if facts['storage'] else ''}.",
+                   "start_editing_refused")
 
 
 def open_edit(layer, action: str = "edit") -> tuple[bool, dict | None]:
@@ -453,7 +437,6 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
     except Exception:  # noqa: BLE001
         still_editing = True
     result = {
-        "code": "EXECUTION_FAILED",
         "layer": name,
         "provider": facts["provider"],
         "storage": facts["storage"],
@@ -471,30 +454,22 @@ def commit_failure_error(layer, errors, what: str = "the change") -> dict:
     advice = _shapefile_name_advice(layer, joined)
     if advice is not None:
         explanation, coded = advice
-        result["reason"] = "field_name_truncated"
-        result["_error"] = f"{what} could not be saved to {name!r}: {explanation}.{closed}"
-        result.update(coded)
-        return result
+        return tool_error(f"{what} could not be saved to {name!r}: {explanation}.{closed}", "EXECUTION_FAILED",
+                          reason="field_name_truncated", **result, **coded)
 
     if any(word in folded for word in ("permission", "denied", "locked", "verrou", "in use", "acces refuse",
                                        "could not open", "cannot open", "failed to open", "impossible d'ouvrir")):
-        result["reason"] = "file_locked"
-        result["_error"] = (f"{what} could not be saved to {name!r}: the file is locked or cannot be opened for "
-                            f"writing ({joined}).{closed}")
-        result.update(coded_fact(hint="commit_refused", variant="file_locked"))
-        return result
+        return tool_error(f"{what} could not be saved to {name!r}: the file is locked or cannot be opened for "
+                          f"writing ({joined}).{closed}", "EXECUTION_FAILED", reason="file_locked", **result,
+                          hint="commit_refused", variant="file_locked")
 
     if any(word in folded for word in ("too long", "truncat", "trop long", "value out of range", "overflow")):
-        result["reason"] = "value_does_not_fit"
-        result["_error"] = (f"{what} could not be saved to {name!r}: a value does not fit the field it was written "
-                            f"to ({joined}).{closed}")
-        result.update(coded_fact(hint="commit_refused", variant="value_does_not_fit"))
-        return result
+        return tool_error(f"{what} could not be saved to {name!r}: a value does not fit the field it was written "
+                          f"to ({joined}).{closed}", "EXECUTION_FAILED", reason="value_does_not_fit", **result,
+                          hint="commit_refused", variant="value_does_not_fit")
 
-    result["reason"] = "commit_refused"
-    result["_error"] = f"{what} could not be saved to {name!r}: {joined}.{closed}"
-    result.update(coded_fact(hint="commit_refused"))
-    return result
+    return tool_error(f"{what} could not be saved to {name!r}: {joined}.{closed}", "EXECUTION_FAILED",
+                      reason="commit_refused", **result, hint="commit_refused")
 
 
 def finish_edit(layer, started_here: bool, what: str = "the change") -> dict | None:
@@ -765,13 +740,10 @@ def geometry_problem(layer, geom, check_crs: bool = True) -> dict | None:
         return None
 
     if wanted != given:
-        return {
-            "_error": (f"The geometry is {_geometry_word(given)} and layer {layer.name()!r} holds "
-                       f"{_geometry_word(wanted)}, so it cannot be added to it."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="geometry_kind_mismatch", layer_holds=_geometry_word(wanted),
-                         geometry_is=_geometry_word(given)),
-        }
+        return tool_error(f"The geometry is {_geometry_word(given)} and layer {layer.name()!r} holds "
+                          f"{_geometry_word(wanted)}, so it cannot be added to it.", "INVALID_ARGS",
+                          hint="geometry_kind_mismatch", layer_holds=_geometry_word(wanted),
+                          geometry_is=_geometry_word(given))
 
     return _crs_problem(layer, geom) if check_crs else None
 
@@ -809,13 +781,10 @@ def _crs_problem(layer, geom) -> dict | None:
         return None
 
     if geographic and (x_max > 180 or y_max > 90):
-        return {
-            "_error": (f"Layer {layer.name()!r} is in {authid or 'a longitude/latitude CRS'}, where coordinates run "
-                       f"to 180 and 90, and the geometry reaches {x_max:.0f} and {y_max:.0f}. These look like "
-                       "projected metres."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="geometry_not_degrees", crs=authid, x_max=round(x_max), y_max=round(y_max)),
-        }
+        return tool_error(f"Layer {layer.name()!r} is in {authid or 'a longitude/latitude CRS'}, where coordinates "
+                          f"run to 180 and 90, and the geometry reaches {x_max:.0f} and {y_max:.0f}. These look "
+                          "like projected metres.", "INVALID_ARGS",
+                          hint="geometry_not_degrees", crs=authid, x_max=round(x_max), y_max=round(y_max))
 
     if not geographic and x_max <= 180 and y_max <= 90:
         try:
@@ -824,14 +793,12 @@ def _crs_problem(layer, geom) -> dict | None:
         except Exception:  # noqa: BLE001
             far = False
         if far:
-            return {
-                "_error": (f"Layer {layer.name()!r} is in {authid or 'a projected CRS'} and its own data sits around "
-                           f"({extent.xMinimum():.0f}, {extent.yMinimum():.0f}), while the geometry given is at "
-                           f"({box.xMinimum():.4f}, {box.yMinimum():.4f}). Those are longitude and latitude "
-                           "degrees, not the layer's units, so the feature would land off the map."),
-                "code": "INVALID_ARGS",
-                **coded_fact(hint="geometry_not_layer_units", crs=authid or "the layer CRS",
-                             layer_x=round(extent.xMinimum()), layer_y=round(extent.yMinimum()),
-                             geometry_x=round(box.xMinimum(), 4), geometry_y=round(box.yMinimum(), 4)),
-            }
+            return tool_error(
+                f"Layer {layer.name()!r} is in {authid or 'a projected CRS'} and its own data sits around "
+                f"({extent.xMinimum():.0f}, {extent.yMinimum():.0f}), while the geometry given is at "
+                f"({box.xMinimum():.4f}, {box.yMinimum():.4f}). Those are longitude and latitude "
+                "degrees, not the layer's units, so the feature would land off the map.", "INVALID_ARGS",
+                hint="geometry_not_layer_units", crs=authid or "the layer CRS",
+                layer_x=round(extent.xMinimum()), layer_y=round(extent.yMinimum()),
+                geometry_x=round(box.xMinimum(), 4), geometry_y=round(box.yMinimum(), 4))
     return None

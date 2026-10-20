@@ -25,12 +25,21 @@ import contextlib
 
 from qgis.core import QgsVectorLayer
 
+from ..core import tuning
 from ..core.qt_compat import enum_member
+from ..core.tool_registry import tool_error
 from .colour_text import qcolor_from_text
 
 
-_PALETTE = ("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f",
-            "#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02")
+def _palette_colour(i: int, count: int):
+
+    from qgis.PyQt.QtGui import QColor
+
+    palette = (tuning.service_doc("vocab_rules") or {}).get("diagram_palette")
+    if palette:
+        return QColor(palette[i % len(palette)])
+    return QColor.fromHsv(int(360 * i / max(1, count)) % 360, 140, 210)
+
 _KINDS = ("pie", "bar", "stacked_bar")
 
 SCAN = 200_000
@@ -74,32 +83,32 @@ def diagram_plan(layer, args: dict) -> dict:
 
 
     if not isinstance(layer, QgsVectorLayer) or not layer.isSpatial():
-        return {"_error": "Diagram renderers require a spatial vector layer.", "code": "INVALID_ARGS"}
+        return tool_error("Diagram renderers require a spatial vector layer.", "INVALID_ARGS")
     fields = args.get("fields") or args.get("diagram_fields")
     numeric_names = [f.name() for f in layer.fields() if f.isNumeric()]
     if not isinstance(fields, list) or not fields or len(fields) > 12:
-        return {"_error": "fields must contain 1 to 12 numeric field names for a diagram.", "code": "INVALID_ARGS",
-                "suggestion": ("fields: the numeric fields to draw, one slice or bar each. Numeric fields here: "
-                               + (", ".join(numeric_names[:20]) or "none") + ".")}
+        return tool_error("fields must contain 1 to 12 numeric field names for a diagram.", "INVALID_ARGS",
+                          ("fields: the numeric fields to draw, one slice or bar each. Numeric fields here: "
+                           + (", ".join(numeric_names[:20]) or "none") + "."))
     fields = [str(f) for f in fields]
     names = {f.name(): f for f in layer.fields()}
     missing = [f for f in fields if f not in names]
     if missing:
-        return {"_error": f"Unknown diagram field: {missing[0]}", "code": "INVALID_ARGS",
-                "suggestion": "Numeric fields here: " + (", ".join(numeric_names[:20]) or "none") + "."}
+        return tool_error(f"Unknown diagram field: {missing[0]}", "INVALID_ARGS",
+                          "Numeric fields here: " + (", ".join(numeric_names[:20]) or "none") + ".")
     non_numeric = [f for f in fields if not names[f].isNumeric()]
     if non_numeric:
-        return {"_error": f"Diagram fields must be numeric: {', '.join(non_numeric)}", "code": "INVALID_ARGS",
-                "suggestion": ("A text field with numbers in it needs a numeric copy first (add_field with an "
-                               'expression such as to_real("field")). Numeric fields here: '
-                               + (", ".join(numeric_names[:20]) or "none") + ".")}
+        return tool_error(f"Diagram fields must be numeric: {', '.join(non_numeric)}", "INVALID_ARGS",
+                          ("A text field with numbers in it needs a numeric copy first (add_field with an "
+                           'expression such as to_real("field")). Numeric fields here: '
+                           + (", ".join(numeric_names[:20]) or "none") + "."))
     kind = str(args.get("diagram_type") or "").lower()
     if kind not in _KINDS:
         style = str(args.get("style_type") or "").lower()
         kind = style if style in _KINDS else "pie"
     explicit = [qcolor_from_text(str(c)) for c in (args.get("colors") or [])]
     if any(not c.isValid() for c in explicit):
-        return {"_error": "colors must be colour names or hex values such as '#1b9e77'.", "code": "INVALID_ARGS"}
+        return tool_error("colors must be colour names or hex values such as '#1b9e77'.", "INVALID_ARGS")
     total = " + ".join(f"coalesce({_quoted(f)}, 0)" for f in fields)
 
 
@@ -133,7 +142,7 @@ def set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_sty
         if explicit:
             colors.append(explicit[i % len(explicit)])
         else:
-            colors.append(matched.get(field) or QColor(_PALETTE[i % len(_PALETTE)]))
+            colors.append(matched.get(field) or _palette_colour(i, len(fields)))
     try:
         size = float(args.get("diagram_size") or 12)
     except (TypeError, ValueError):
@@ -193,7 +202,7 @@ def set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_sty
         layer.setDiagramRenderer(renderer)
         layer.triggerRepaint()
     except Exception as exc:  # noqa: BLE001
-        return {"_error": f"QGIS diagram renderer is unavailable: {exc}", "code": "EXECUTION_FAILED"}
+        return tool_error(f"QGIS diagram renderer is unavailable: {exc}", "EXECUTION_FAILED")
     out = {"styled": layer.name(), "type": "diagram", "diagram_type": kind, "fields": fields,
            "colors": [c.name() for c in colors], "colors_from": colors_from, "native": "QgsDiagramRenderer",
            "size_mm": size, "legend": "one entry per field in the layer's legend",

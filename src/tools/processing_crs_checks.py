@@ -24,11 +24,22 @@ from qgis.core import (
 )
 
 from ..core import ground, tuning
+from ..core.tool_registry import tool_error
 from ._compat import enum_value
 from .layer_lookup import _find_layer
 
-_DISTANCE_NAMES = ("DISTANCE", "RADIUS", "TOLERANCE", "BUFFER", "MAX_DISTANCE", "SEARCH_DISTANCE",
-                   "SNAP_TOLERANCE", "SPACING", "INTERVAL", "CELLSIZE", "PIXEL_SIZE")
+
+def _rules(section: str):
+
+
+    return (tuning.service_doc("processing_rules") or {}).get(section)
+
+
+def _distance_names() -> frozenset:
+
+
+    return frozenset(_rules("distance_parameters") or ())
+
 
 
 
@@ -144,7 +155,7 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[
             counted = definition.type() == "number" and definition.dataType() == _INTEGER
         except Exception:  # nosec B110
             typed_distance, counted = False, False
-        if counted or (not typed_distance and name.upper() not in _DISTANCE_NAMES):
+        if counted or (not typed_distance and name.upper() not in _distance_names()):
             continue
         value = parameters.get(name)
         degrees_allowed = tuning.threshold("processing_degrees_allowed", _DEGREES_ALLOWED, 0.001, 0.1)
@@ -182,22 +193,14 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[
         if confirmed:
             continue
         suggested = _suggest_metric_crs(layer)
-        return {
-            "_error": (
-                f"GEOGRAPHIC_DISTANCE: {name} {value:g} on layer '{layer.name()}' in {crs.authid()} means "
-                f"{value:g} degrees, about {float(value) * 111:g} km, not metres."
-            ),
 
 
 
-            "code": "CRS_GUARD",
-            "layer_crs": crs.authid(),
-            "suggested_crs": suggested,
-            "suggestion": (
-                f"native:reprojectlayer with TARGET_CRS {suggested} runs the algorithm in metres. "
-                "confirm_large true keeps degrees when a value in degrees is really intended."
-            ),
-        }, ""
+        return tool_error(
+            f"GEOGRAPHIC_DISTANCE: {name} {value:g} on layer '{layer.name()}' in {crs.authid()} means "
+            f"{value:g} degrees, about {float(value) * 111:g} km, not metres.",
+            "CRS_GUARD", hint="processing_distance_degrees", layer_crs=crs.authid(), suggested_crs=suggested,
+        ), ""
     return None, " ".join(notes)
 
 
@@ -226,19 +229,12 @@ def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | Non
     if not crs.isValid() or not crs.isGeographic():
         return None
     suggested = _suggest_metric_crs(layer)
-    return {
-        "_error": (
-            f"TERRAIN_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while its "
-            f"heights are not; {algorithm_id} on this grid is wrong on at least one axis, whatever SCALE is."
-        ),
-        "code": "CRS_GUARD",
-        "layer_crs": crs.authid(),
-        "suggested_crs": suggested,
-        "suggestion": (
-            f"gdal:warpreproject with TARGET_CRS {suggested} lets {algorithm_id} "
-            "run on the result with SCALE 1."
-        ),
-    }
+    return tool_error(
+        f"TERRAIN_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while its "
+        f"heights are not; {algorithm_id} on this grid is wrong on at least one axis, whatever SCALE is.",
+        "CRS_GUARD", hint="processing_terrain_degrees", layer_crs=crs.authid(), suggested_crs=suggested,
+        algorithm=str(algorithm_id),
+    )
 
 
 
@@ -246,26 +242,6 @@ def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | Non
 
 
 
-
-
-_ON_DEGREES = {
-    "gdal:viewshed": (True, "every sight line mixes a horizontal distance in degrees with heights in metres, "
-                            "and MAX_DISTANCE (100 when left out) reads as degrees", "INPUT"),
-    "native:rastersurfacevolume": (True, "each cell's area is in square degrees, so the volume comes out in "
-                                         "degrees squared times metres", "INPUT"),
-    "qgis:idwinterpolation": (False, "the distances IDW weights by are degrees, and a degree of longitude is "
-                                     "shorter than a degree of latitude away from the equator; PIXEL_SIZE (0.1 "
-                                     "when left out) is in degrees too", ""),
-    "qgis:tininterpolation": (False, "PIXEL_SIZE (0.1 when left out, about 11 km) is in degrees, and the "
-                                     "cells are not square on the ground", ""),
-    "qgis:heatmapkerneldensityestimation": (False, "RADIUS (100 when left out) and PIXEL_SIZE are in degrees",
-                                            "INPUT"),
-    "gdal:gridinversedistance": (False, "the search radii and the distance weights are in degrees", "INPUT"),
-    "gdal:gridinversedistancenearestneighbor": (False, "the search radius and the distance weights are in "
-                                                       "degrees", "INPUT"),
-    "gdal:gridaverage": (False, "the search radii are in degrees", "INPUT"),
-    "gdal:griddatametrics": (False, "the search radii are in degrees", "INPUT"),
-}
 
 
 def _interpolation_source(value):
@@ -278,10 +254,11 @@ def _interpolation_source(value):
 
 def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
 
-    row = _ON_DEGREES.get(str(algorithm_id or "").casefold())
-    if row is None:
+    folded = str(algorithm_id or "").casefold()
+    row = (_rules("on_degrees") or {}).get(folded)
+    if not isinstance(row, dict):
         return None
-    always, why, key = row
+    always, key = bool(row.get("always")), str(row.get("source") or "")
     if confirmed and not always:
         return None
     layer = _find_layer(parameters.get(key)) if key and isinstance(parameters.get(key), str) else (
@@ -293,35 +270,30 @@ def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed
         return None
     suggested = _suggest_metric_crs(layer)
     reproject = ("gdal:warpreproject" if isinstance(layer, QgsRasterLayer) else "native:reprojectlayer")
-    return {
-        "_error": (f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, a CRS in degrees: {algorithm_id} "
-                   f"on it is wrong, because {why}."),
-        "code": "CRS_GUARD",
-        "layer_crs": crs.authid(),
-        "suggested_crs": suggested,
-        "suggestion": (f"{reproject} with TARGET_CRS {suggested} runs "
-                       f"{algorithm_id} on the result in metres."
-                       + ("" if always else " confirm_large true keeps values really meant in degrees.")),
-    }
+    parameter = str(row.get("parameter") or "")
+    value = parameters.get(parameter) if parameter else None
+    if parameter and value in (None, ""):
+        value = row.get("default")
+    facts = {"parameter": parameter, "value": value} if parameter and value is not None else {}
+    said = f" {parameter} is {value}." if facts else ""
+    return tool_error(
+        f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, a CRS in degrees, and {algorithm_id} reads "
+        f"its distances and cells in the layer's units.{said}",
+        "CRS_GUARD", hint="processing_grid_degrees", layer_crs=crs.authid(), suggested_crs=suggested,
+        reproject=reproject, algorithm=str(algorithm_id), variant=folded, **facts,
+    )
 
 
 
 
 
 
-_FLOW_FROM_DEM = frozenset({
-    "grass:r.flow", "grass7:r.flow",
-    "saga:flowaccumulationtopdown", "sagang:flowaccumulationtopdown",
-    "saga:flowaccumulationrecursive", "sagang:flowaccumulationrecursive",
-    "sagang:flowaccumulationparallelizable", "saga:flowdirection", "sagang:flowdirection",
-    "wbt:d8pointer", "wbt:dinfpointer", "wbt:fd8pointer", "wbt:rho8pointer",
-})
+_FLOW_FROM_DEM = frozenset()
 
-_FILL_MARKS = ("fillsink", "fill.dir", "filldepression", "breachdepression", "pitremove", "sinkremoval",
-               "fillsinkswangliu")
 
-_FILL_ALGORITHMS = ("native:fillsinkswangliu", "grass:r.fill.dir", "grass7:r.fill.dir", "sagang:fillsinkswangliu",
-                    "wbt:filldepressions", "wbt:breachdepressions")
+def _sink_fill(part: str) -> tuple:
+    value = (_rules("sink_fill") or {}).get(part)
+    return tuple(value) if isinstance(value, list) else ()
 
 
 def _was_filled(layer) -> bool:
@@ -330,31 +302,32 @@ def _was_filled(layer) -> bool:
         history = " ".join(str(item) for item in layer.metadata().history()).casefold()
     except Exception:  # noqa: BLE001
         return False
-    return any(mark in history for mark in _FILL_MARKS)
+    return any(mark in history for mark in _sink_fill("marks"))
 
 
 
 
 
-_fill_step_cache: dict = {"value": "", "count": -1}
+_fill_step_cache: dict = {"value": "", "count": -1, "names": ()}
 
 
 def _fill_step_available() -> str:
 
+    names = _sink_fill("algorithms")
     try:
         algs = QgsApplication.processingRegistry().algorithms()
     except Exception:  # noqa: BLE001
         return ""
-    if len(algs) != _fill_step_cache["count"]:
+    if len(algs) != _fill_step_cache["count"] or names != _fill_step_cache["names"]:
         ids = {a.id().casefold(): a.id() for a in algs}
-        _fill_step_cache["value"] = next((ids[a] for a in _FILL_ALGORITHMS if a in ids), "")
-        _fill_step_cache["count"] = len(algs)
+        _fill_step_cache["value"] = next((ids[a] for a in names if a in ids), "")
+        _fill_step_cache["count"], _fill_step_cache["names"] = len(algs), names
     return _fill_step_cache["value"]
 
 
 def _flow_dem(alg, algorithm_id: str, parameters: dict):
 
-    if str(algorithm_id or "").casefold() not in _FLOW_FROM_DEM:
+    if str(algorithm_id or "").casefold() not in tuning.check_algs("flow_from_dem", _FLOW_FROM_DEM):
         return None
     layer = None
     for definition in alg.parameterDefinitions():
@@ -376,19 +349,16 @@ def _flow_in_degrees_check(alg, algorithm_id: str, parameters: dict) -> dict | N
     crs = layer.crs()
     if crs.isValid() and crs.isGeographic():
         suggested = _suggest_metric_crs(layer)
-        return {
-            "_error": (f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while "
-                       f"its heights are metres: {algorithm_id} routes water on slopes it cannot measure."),
-            "code": "CRS_GUARD",
-            "layer_crs": crs.authid(),
-            "suggested_crs": suggested,
-            "suggestion": (f"map_drainage reprojects and fills the DEM itself. Or gdal:warpreproject TARGET_CRS "
-                           f"{suggested} then a sink fill prepares it for {algorithm_id}."),
-        }
+        return tool_error(
+            f"CRS_ON_DEGREES: '{layer.name()}' is in {crs.authid()}, so its cells are degrees while "
+            f"its heights are metres: {algorithm_id} routes water on slopes it cannot measure.",
+            "CRS_GUARD", hint="processing_flow_degrees", layer_crs=crs.authid(), suggested_crs=suggested,
+            algorithm=str(algorithm_id),
+        )
     return None
 
 
-def unfilled_dem_warning(alg, algorithm_id: str, parameters: dict, confirmed: bool) -> str:
+def unfilled_dem_warning(alg, algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
 
 
 
@@ -396,17 +366,15 @@ def unfilled_dem_warning(alg, algorithm_id: str, parameters: dict, confirmed: bo
 
 
 
-    if confirmed:
-        return ""
+    if confirmed or not _sink_fill("marks"):
+        return None
     layer = _flow_dem(alg, algorithm_id, parameters)
     if layer is None or _was_filled(layer):
-        return ""
+        return None
     fill = _fill_step_available()
-    step = f"{fill} on '{layer.name()}'" if fill else "a sink fill on the DEM"
-    return (f"UNFILLED_DEM: the history of '{layer.name()}' names no sink fill. If it is a raw DEM, "
-            f"{algorithm_id} stopped the water at every pit, so the streams break and the catchments fragment: "
-            f"run {step} and route its output again, or call map_drainage, which fills and routes in one call. "
-            f"A DEM already filled or breached elsewhere is fine as it is.")
+    return {"fact": f"the history of '{layer.name()}' names no sink fill.", "hint": "processing_unfilled_dem",
+            "dem": layer.name(), "algorithm": str(algorithm_id),
+            **({"fill_step": fill, "variant": "named"} if fill else {})}
 
 
 
@@ -474,29 +442,17 @@ def crs_plausibility(layer, new_crs) -> dict | None:
 
     name = layer.name()
     if new_crs.isGeographic() and not degrees:
-        return {
-            "_error": (
-                f"The coordinates in '{name}' run to {extent.xMaximum():.0f}, {extent.yMaximum():.0f}, which "
-                f"cannot be degrees, so declaring {new_crs.authid()} would put the layer in the wrong place."
-            ),
-            "code": "CRS_GUARD",
-            "suggestion": (
-                "native:reprojectlayer TARGET_CRS EPSG:4326 moves an already correctly declared layer into "
-                "degrees. Setting the CRS relabels the coordinates, it does not move them."
-            ),
-        }
+        return tool_error(
+            f"The coordinates in '{name}' run to {extent.xMaximum():.0f}, {extent.yMaximum():.0f}, which "
+            f"cannot be degrees, so declaring {new_crs.authid()} would put the layer in the wrong place.",
+            "CRS_GUARD", hint="crs_declared_degrees_over_metres",
+        )
     if not new_crs.isGeographic() and degrees:
-        return {
-            "_error": (
-                f"The coordinates in '{name}' all sit inside 180 by 90, so they are degrees, and "
-                f"{new_crs.authid()} is in metres. Declaring it would not reproject the layer."
-            ),
-            "code": "CRS_GUARD",
-            "suggestion": (
-                f"The coordinates are usually EPSG:4326; from there, native:reprojectlayer TARGET_CRS "
-                f"{new_crs.authid()} gives metres."
-            ),
-        }
+        return tool_error(
+            f"The coordinates in '{name}' all sit inside 180 by 90, so they are degrees, and "
+            f"{new_crs.authid()} is in metres. Declaring it would not reproject the layer.",
+            "CRS_GUARD", hint="crs_declared_metres_over_degrees", crs=new_crs.authid(),
+        )
     return _outside_area_of_use(layer, new_crs, extent)
 
 
@@ -544,14 +500,8 @@ def _outside_area_of_use(layer, new_crs, extent) -> dict | None:
         return None
     if _centre_in_area_of_use(current, centre) is not True or _centre_in_area_of_use(new_crs, centre) is not False:
         return None
-    return {
-        "_error": (
-            f"'{layer.name()}' is declared {current.authid()} and its coordinates fit that CRS; read as "
-            f"{new_crs.authid()} they fall outside the area that CRS covers, so declaring it would move the layer."
-        ),
-        "code": "CRS_GUARD",
-        "suggestion": (
-            f"native:reprojectlayer (gdal:warpreproject for a raster) TARGET_CRS "
-            f"{new_crs.authid()} moves it there. Setting the CRS relabels the coordinates, it does not move them."
-        ),
-    }
+    return tool_error(
+        f"'{layer.name()}' is declared {current.authid()} and its coordinates fit that CRS; read as "
+        f"{new_crs.authid()} they fall outside the area that CRS covers, so declaring it would move the layer.",
+        "CRS_GUARD", hint="crs_declared_outside_area", crs=new_crs.authid(),
+    )

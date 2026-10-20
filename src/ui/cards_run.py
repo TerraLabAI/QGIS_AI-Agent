@@ -56,7 +56,6 @@ from .card_controls import (
     FoldMixin,
     _pill,
     ask_head,
-    done_row,
 )
 from .code_block import CodeBlock
 from .font_scale import scale_px_length, scale_qss_font_px
@@ -73,7 +72,7 @@ from .style import (
     SPACE_CARD,
     SPACE_OUTER,
 )
-from .tool_describe import call_title, card_effect, source_text
+from .tool_describe import call_title, card_effect, source_text, spec
 from .transcript import fence
 from .widgets import ChatLabel, ElidedLabel
 
@@ -94,14 +93,12 @@ __all__ = [
     "_BTN_PRIMARY_PILL",
     "_BTN_QUIET_LINK",
     "_PILL_PX",
-    "_done_row",
     "_pill",
     "editable_fields",
     "plain_sentence",
     "title_and_reasons",
 ]
 
-_done_row = done_row
 
 
 _STATUS_TITLE_QSS = scale_qss_font_px(
@@ -163,6 +160,11 @@ _ADDRESS_QSS = scale_qss_font_px(
 
 
 _CODE_EXPANDED_LINES = 30
+
+
+def _writes_page(name: str) -> bool:
+    declared = spec(name)
+    return bool(declared is not None and declared.writes_page)
 
 
 def _is_scalar(value) -> bool:
@@ -389,7 +391,8 @@ class PermissionCard(_Card, FoldMixin):
         self._calls.append({"id": tool_call_id, "sentence": said, "args": args, "name": name,
                             "addresses": urls[:_ADDRESSES_SHOWN],
 
-                            "fields": [] if source_text(name, args)[0] else editable_fields(args, said)})
+                            "fields": [] if source_text(name, args)[0] or _writes_page(name)
+                            else editable_fields(args, said)})
         self._open.append(tool_call_id)
 
     def is_open(self) -> bool:
@@ -518,7 +521,10 @@ class PermissionCard(_Card, FoldMixin):
         self._address_well = None
         self._address_btn = None
         if self.addresses:
-            body.addWidget(self._build_address_section())
+
+            body.addWidget(self._build_address_section(
+                link_in_footer=not any(c["fields"] for c in self._calls)
+                and (grouped or not source_text(first["name"], self.args)[0])))
 
 
 
@@ -561,13 +567,16 @@ class PermissionCard(_Card, FoldMixin):
 
             button.setProperty("agentRequestIds", ",".join(self._open))
             button.setProperty("agentCardKind", "permission")
-        footer.set_widgets(self._edit_btn, [button for button, _action in answers])
+
+
+        footer.set_widgets(self._edit_btn or self._code_open_btn or self._address_btn,
+                           [button for button, _action in answers])
         body.addWidget(footer)
         return self._body
 
 
 
-    def _build_address_section(self) -> QWidget:
+    def _build_address_section(self, link_in_footer: bool = False) -> QWidget:
 
 
 
@@ -581,7 +590,12 @@ class PermissionCard(_Card, FoldMixin):
             name = (urlsplit(url).hostname or url) if "://" in url else url
             if name not in hosts:
                 hosts.append(name)
-        if len(hosts) == 1:
+        if _writes_page(self._calls[0]["name"]):
+
+            reason = self.tr("The page links to {hosts}, a site the agent does not know.").format(
+                hosts=", ".join(hosts[:3])) if len(hosts) == 1 else self.tr(
+                "The page links to sites the agent does not know: {hosts}.").format(hosts=", ".join(hosts[:3]))
+        elif len(hosts) == 1:
             reason = self.tr("This data comes from a site outside the sources the agent knows.")
         else:
             reason = self.tr("This data comes from sites outside the sources the agent knows.")
@@ -593,12 +607,14 @@ class PermissionCard(_Card, FoldMixin):
                                        wrap=True, selectable=True)
         self._address_well.setObjectName("permissionAddress")
         self._address_well.setFont(mono_font(FONT_HINT))
+        self._address_well.setProperty("mono", True)
         self._address_well.setStyleSheet(_ADDRESS_QSS)
         self._address_well.hide()
         self._address_btn = self._button(self._address_link_text(False), _BTN_QUIET_LINK,
                                          self._toggle_address)
         self._address_btn.setObjectName("permissionShowAddress")
-        col.addWidget(self._address_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        if not link_in_footer:
+            col.addWidget(self._address_btn, 0, Qt.AlignmentFlag.AlignLeft)
         col.addWidget(self._address_well)
         return host
 
@@ -641,10 +657,12 @@ class PermissionCard(_Card, FoldMixin):
         self._code_open_btn = self._button(self._code_link_text(False), _BTN_QUIET_LINK,
                                            self._toggle_code_open)
         self._code_open_btn.setObjectName("permissionShowCode")
-        col.addWidget(self._code_open_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
         col.addWidget(self.code_block)
         self.code_block.set_visible_lines(_CODE_COLLAPSE_LINES)
-        self.code_block.hide()
+
+        self._code_host = host
+        host.hide()
 
         if self._code_lines > _CODE_COLLAPSE_LINES:
             self._code_toggle_btn = self._button(
@@ -668,7 +686,7 @@ class PermissionCard(_Card, FoldMixin):
 
         self._code_open = not self._code_open
         showing = self._code_open
-        self.code_block.setVisible(showing)
+        self._code_host.setVisible(showing)
         if self._code_toggle_btn is not None:
             self._code_toggle_btn.setVisible(showing)
         if showing:
@@ -934,7 +952,7 @@ def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:
                 tr("It may still be working on an earlier step. Once QGIS responds again, a lighter request "
                    "(fewer layers, a smaller area, a lower resolution) is more likely to finish."))
     if key == ("LOOP_DETECTED", "loop"):
-        return (tr("The agent got stuck on the same step."),
+        return (tr("The AI agent got stuck on the same step."),
                 tr("What it did before is kept. Rephrase the request or add a detail (a layer, a place, "
                    "a value), then send it again."))
     if key == ("MODEL_UNAVAILABLE", "stream_dropped"):
@@ -944,7 +962,7 @@ def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:
                 tr("A shorter or more precise request gets an answer sooner."))
     if key == ("MODEL_INCOMPLETE", "unexpected"):
         return (tr("Something went wrong on our side. Try again."),
-                tr("The model kept sending a step the agent could not read. Earlier steps are kept."))
+                tr("The model kept sending a step the AI agent could not read. Earlier steps are kept."))
     if key == ("RATE_LIMITED", "rate_limited"):
         return (tr("Too many requests right now. Try again in a minute."),
                 tr("A smaller area, or one task at a time, gets through sooner."))
@@ -954,7 +972,7 @@ def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:
     if key == ("CONTEXT_TOO_LARGE", "context_too_large"):
         return (tr("This conversation is too long."), "")
     if key == ("RESTARTED", "restart_loop"):
-        return (tr("The agent service restarted twice during a step."),
+        return (tr("The AI agent service restarted twice during a step."),
                 tr("What the run did before that step is kept. A lighter request (a smaller area, a lower "
                    "resolution) is more likely to finish than the same one again."))
     return _first_sentence(fallback)

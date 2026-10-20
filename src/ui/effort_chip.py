@@ -60,7 +60,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.plan import effort_name, efforts_allowed, efforts_stated
+from ..core.plan import effort_name, efforts_allowed, efforts_stated, efforts_trial_locked, efforts_trial_note
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
@@ -125,6 +125,11 @@ def pickable_efforts(paid: bool) -> tuple:
         if kept:
             return kept
     return EFFORTS if paid else FREE_EFFORTS
+
+
+def trial_locked(paid: bool) -> tuple:
+
+    return tuple(e for e in EFFORTS if e in efforts_trial_locked()) if paid else ()
 
 
 _CHIP_QSS = select_qss("effortChip")
@@ -221,13 +226,13 @@ def effort_texts(widget: QWidget | None = None) -> tuple:
         (LOW, "Low",
          QCoreApplication.translate(
              "EffortChip",
-             "Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.")),
+             "Quick answers and small edits.")),
         (MEDIUM, "Medium",
          QCoreApplication.translate(
-             "EffortChip", "Smart agent that plans, checks its results and looks up algorithms and documentation.")),
+             "EffortChip", "Everyday tasks, done with care.")),
         (HIGH, "High",
          QCoreApplication.translate(
-             "EffortChip", "Deeper planning, research and independent direction for harder tasks.")),
+             "EffortChip", "The biggest jobs, with more time.")),
     )
 
 
@@ -778,6 +783,7 @@ class _StopNames(QWidget):
         super().__init__(parent)
         self._slider = slider
         self._names = list(names)
+        self.trial: tuple = ()
         font = QFont(self.font())
         font.setPixelSize(max(9, FONT_MICRO))
         self.setFont(font)
@@ -794,6 +800,9 @@ class _StopNames(QWidget):
                 locked = index >= self._slider._locked_from
                 painter.setPen(qcolor(INK_3 if locked else INK_2))
                 painter.drawText(int(round(x)), metrics.ascent() + 1, name)
+                if EFFORTS[index] in self.trial:
+                    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+                    EffortChip._draw_lock(painter, x - _LOCK_PX - 3, self.height(), qcolor(INK_3))
         finally:
             painter.end()
 
@@ -888,6 +897,7 @@ class EffortPopover(QFrame):
         col.addWidget(self._run_note)
         self._live: tuple = ()
         self._paid = False
+        self._trial: tuple = ()
         self._show(DEFAULT_EFFORT)
 
     def set_current(self, effort: str) -> None:
@@ -911,7 +921,12 @@ class EffortPopover(QFrame):
     def set_paid(self, paid: bool) -> None:
 
         self._paid = bool(paid)
-        self.slider.set_locked_from(len(pickable_efforts(self._paid)))
+        self._trial = trial_locked(self._paid)
+        locked_from = len(pickable_efforts(self._paid))
+        if self._trial:
+            locked_from = min(locked_from, EFFORTS.index(self._trial[0]))
+        self.slider.set_locked_from(locked_from)
+        self._stops.trial = self._trial
         self._stops.update()
         self._price.setVisible(self.slider.is_locked(HIGH))
         self._show(EFFORTS[self.slider._preview])
@@ -942,21 +957,31 @@ class EffortPopover(QFrame):
     def _show(self, effort: str) -> None:
         self._sync_run_note(effort)
         name, note = self._texts.get(normalize_effort(effort), ("", ""))
-        locked = self.slider.is_locked(effort)
         if self.isVisible() and (name != self._title.text() or note != self._note.text()):
 
-            self._pending = (name, note, locked)
+            self._pending = (name, note, effort)
             if self._dip.state() != QVariantAnimation.State.Running:
                 self._dip.setStartValue(0.0)
                 self._dip.setEndValue(1.0)
                 self._dip.start()
             return
+        self._set_words(name, note, effort, self.isVisible())
+
+    def _set_words(self, name: str, note: str, effort: str, visible: bool) -> None:
+
+        trial = normalize_effort(effort) in self._trial
+        upsell = self.slider.is_locked(effort) and not trial
         self._title.setText(name)
         self._note.setText(note)
-        self._cta.setVisible(locked)
-        self._price.setText(self._price_text() if locked else "")
-        if locked and self.isVisible():
+        self._cta.setVisible(upsell)
+        self._price.setText(self._price_text() if upsell else self._trial_text() if trial else "")
+        if upsell and visible:
             self.upsell_shown.emit()
+
+    @staticmethod
+    def _trial_text() -> str:
+        return efforts_trial_note() or QCoreApplication.translate(
+            "EffortChip", "Available after your free trial, if you keep Pro.")
 
     @staticmethod
     def _price_text() -> str:
@@ -970,19 +995,18 @@ class EffortPopover(QFrame):
         except (TypeError, ValueError):
             return
         if t >= 0.5 and self._pending is not None:
-            name, note, locked = self._pending
+            name, note, effort = self._pending
             self._pending = None
-            self._title.setText(name)
-            self._note.setText(note)
-            self._cta.setVisible(locked)
-            self._price.setText(self._price_text() if locked else "")
-            if locked:
-                self.upsell_shown.emit()
+            self._set_words(name, note, effort, True)
 
         self._fade.setOpacity(0.25 + 0.75 * abs(2 * t - 1))
 
     def _on_changed(self, effort: str) -> None:
         self._show(effort)
+        if normalize_effort(effort) in self._trial:
+
+            self.slider.set_value(MEDIUM, animate=True)
+            effort = MEDIUM
         self.changed.emit(effort)
 
     def _on_upgrade(self) -> None:
@@ -1048,6 +1072,8 @@ class EffortChip(QToolButton):
 
     def effort(self) -> str:
 
+        if self._effort in trial_locked(self._paid):
+            return MEDIUM
         return self._effort if self._effort in pickable_efforts(self._paid) else LOW
 
     def chosen(self) -> str:
@@ -1191,8 +1217,10 @@ class EffortChip(QToolButton):
         if word:
             painter.setFont(plain)
             painter.setPen(qcolor(INK if lit else INK_2))
-            painter.drawText(QRectF(x, 0, QFontMetrics(plain).horizontalAdvance(word + " ") + 2, height),
-                             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), word + " ")
+
+
+            painter.drawText(QRectF(x, 0, QFontMetrics(plain).horizontalAdvance(word) + 2, height),
+                             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), word)
             x += QFontMetrics(plain).horizontalAdvance(word + " ")
         painter.setFont(strong)
         painter.setPen(qcolor(INK))

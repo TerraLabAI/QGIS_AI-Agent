@@ -23,21 +23,25 @@ from qgis.core import QgsFeatureRequest, QgsProject, QgsVectorLayer
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QUrl
 
+from ..core import tuning
 from ..core.background import on_main_thread, run_on_main_thread
 from ..core.host_platform import IS_WINDOWS
-from ..core.tool_registry import tool_error
+from ..core.tool_registry import coded_fact, tool_error
 from .data_common import built_here, worker_options
 
 CSV_EXTENSIONS = (".csv", ".tsv", ".txt")
 
-_LAT = ("latitude", "lat", "y", "ycoord", "y_coord", "northing", "lat_dd", "latitude_dd")
-_LON = ("longitude", "lon", "lng", "long", "x", "xcoord", "x_coord", "easting", "lon_dd", "longitude_dd")
-_WKT = ("wkt", "geometry", "geom", "the_geom", "wkt_geom", "geom_wkt")
 _DECIMAL_COMMA = re.compile(r"^-?\d+,\d+$")
 
 
 def _norm(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.strip().lower())
+
+
+def _column_names(kind: str) -> list:
+
+
+    return ((tuning.service_doc("vocab_rules") or {}).get("csv_columns") or {}).get(kind) or []
 
 
 def detect_encoding(sample: bytes) -> str:
@@ -123,9 +127,9 @@ def sniff(path: str) -> dict:
     else:
         header, body = (rows[0] if rows else []), rows[1:]
     keys = {_norm(h): h for h in header}
-    lat = next((keys[k] for k in map(_norm, _LAT) if k in keys), None)
-    lon = next((keys[k] for k in map(_norm, _LON) if k in keys), None)
-    wkt = next((keys[k] for k in map(_norm, _WKT) if k in keys), None)
+    lat = next((keys[k] for k in map(_norm, _column_names("lat")) if k in keys), None)
+    lon = next((keys[k] for k in map(_norm, _column_names("lon")) if k in keys), None)
+    wkt = next((keys[k] for k in map(_norm, _column_names("wkt")) if k in keys), None)
     decimal = "."
     projected = False
     box = None
@@ -272,12 +276,11 @@ def _geometry_check(layer, geometry: str, info: dict) -> str | None:
                 continue
             if abs(lat_val) > 90 and abs(lon_val) <= 90:
                 swap_suspect = True
+
     if swap_suspect:
-        return ("Sampled latitude values fall outside [-90, 90] while longitude does not: "
-                "the lat/lon columns may be swapped.")
+        return "csv_lat_lon_swapped"
     if total and empty * 2 > total:
-        return ("More than half of the sampled features have no geometry: the coordinate columns may hold "
-                "DMS text (e.g. 45 deg 30' N) rather than decimal degrees.")
+        return "csv_rows_without_geometry"
     return None
 
 
@@ -447,13 +450,10 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
     numbers = (f"x runs from {num(extent.xMinimum())} to {num(extent.xMaximum())} and y from "
                f"{num(extent.yMinimum())} to {num(extent.yMaximum())}")
     if crs:
-        return {
-            "_error": (f"PROJECTED_COORDINATES: {base} was asked for in {crs}, a longitude/latitude CRS, but its "
-                       f"{columns} hold projected coordinates ({numbers}). Nothing was loaded."),
-            "code": "INVALID_ARGS",
-            "suggestion": ("crs set to the projected CRS the data is in (a UTM zone, a national "
-                           "grid) resolves it, as the source, its metadata or the user names it."),
-        }
+        return tool_error(
+            f"PROJECTED_COORDINATES: {base} was asked for in {crs}, a longitude/latitude CRS, but its "
+            f"{columns} hold projected coordinates ({numbers}). Nothing was loaded.",
+            "INVALID_ARGS", hint="csv_projected_coordinates", variant="given")
     sidecar = _sidecar_crs(path)
     if sidecar is not None:
         found, prj = sidecar
@@ -473,21 +473,16 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
     landing = crs_landing.candidates(extent, crs_landing.anchors())
     candidate_crs = list(dict.fromkeys([c["crs"] for c in landing[:3]]
                                        + [c.authid() for c, _origin in candidates if c.authid()]))
-    return {
-        "_error": (f"PROJECTED_COORDINATES: the {columns} of {base} hold projected coordinates ({numbers}), not "
-                   f"longitude/latitude, and nothing says which CRS they are in. Loaded as EPSG:4326 they "
-                   f"would land nowhere, so nothing was loaded."
-                   + (f" More than one CRS of the project fits them: {named}." if candidates else "")
-                   + (f" Read against the project's layers: {crs_landing.sentence(landing)}." if landing else "")),
-        "code": "INVALID_ARGS",
-        "candidate_crs": candidate_crs,
-        "suggestion": (f"crs={landing[0]['crs']} fits when the user expects the file on "
-                       f"{', '.join(repr(n) for n in landing[0]['lands_on'])}, unless the source or its metadata "
-                       "names another CRS, or the user does." if landing else
-                       "crs=<EPSG code> takes the CRS the source, its metadata or the "
-                       "user names (a UTM zone, a national grid); the numbers alone "
-                       "cannot tell one UTM zone from another."),
-    }
+    message = (f"PROJECTED_COORDINATES: the {columns} of {base} hold projected coordinates ({numbers}), not "
+               f"longitude/latitude, and nothing says which CRS they are in. Loaded as EPSG:4326 they "
+               f"would land nowhere, so nothing was loaded."
+               + (f" More than one CRS of the project fits them: {named}." if candidates else "")
+               + (f" Read against the project's layers: {crs_landing.sentence(landing)}." if landing else ""))
+    if landing:
+        return tool_error(message, "INVALID_ARGS", hint="csv_projected_coordinates", variant="landing",
+                          candidate_crs=candidate_crs, crs=landing[0]["crs"],
+                          lands_on=[repr(n) for n in landing[0]["lands_on"]])
+    return tool_error(message, "INVALID_ARGS", hint="csv_projected_coordinates", candidate_crs=candidate_crs)
 
 
 def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:
@@ -575,7 +570,7 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
         try:
             info = sniff(path)
         except OSError as exc:
-            return {"_error": f"Cannot read {os.path.basename(path)}: {exc}"}
+            return tool_error(f"Cannot read {os.path.basename(path)}: {exc}")
         uri, geometry = build_uri(path, info, crs)
         layer = QgsVectorLayer(uri, name, "delimitedtext")
     checked = layer if prepared is not None else None
@@ -583,12 +578,12 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
     if prepared is not None and prepared.get("ogr"):
 
         if not layer.isValid():
-            return {"_error": f"Failed to load the table from: {path}"}
+            return tool_error(f"Failed to load the table from: {path}")
         geometry = _geometry_kind_of(layer)
     elif not layer.isValid():
         layer = QgsVectorLayer(path, name, "ogr")
         if not layer.isValid():
-            return {"_error": f"Failed to load the table from: {path}"}
+            return tool_error(f"Failed to load the table from: {path}")
 
 
 
@@ -625,15 +620,15 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
 
 
         out["wkt_field"] = info.get("wkt")
-        out["_note"] = (f"Geometry read from the WKT column {info.get('wkt')!r}. "
-                        "crs=<EPSG code> sets it if coordinates are not longitude/latitude.")
+        out["_note"] = f"Geometry read from the WKT column {info.get('wkt')!r}."
+        out["wkt_hint"] = "csv_wkt_crs"
     else:
-        out["_note"] = ("No latitude/longitude or WKT column found: loaded as an attribute table "
-                        "without geometry. A layer join or address geocode adds geometry.")
+        out["_note"] = "No latitude/longitude or WKT column found: loaded as an attribute table without geometry."
+        out["table_note"] = coded_fact(hint="csv_no_coordinates")
     if crs_note:
         out["_note"] = f"{crs_note} {out['_note']}" if out.get("_note") else crs_note
     geometry_note = (prepared.get("geometry_note") if checked is not None and layer is checked
                      else _geometry_check(layer, geometry, info))
     if geometry_note:
-        out["_note"] = f"{out['_note']} {geometry_note}" if out.get("_note") else geometry_note
+        out["geometry_hint"] = geometry_note
     return out

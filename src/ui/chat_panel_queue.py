@@ -27,6 +27,7 @@ from ..core.layer_mime import live_layer_chips
 from .bubbles import UserBubble
 from .cards_question import QuestionCard
 from .cards_run import InstallWaitCard
+from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .layer_icons import layer_name
 from .style import (
@@ -59,7 +60,7 @@ TRAY_INSET = 6
 
 
 _TRAY_QSS = (
-    f"QFrame#queueTray {{ background: {CANVAS}; border: 1px solid {LINE}; border-bottom: none;"
+    scale_qss_font_px(f"QFrame#queueTray {{ background: {CANVAS}; border: 1px solid {LINE}; border-bottom: none;"
     f" border-top-left-radius: {RADIUS_COMPOSER}px; border-top-right-radius: {RADIUS_COMPOSER}px; }}"
     f"QFrame#queueRow {{ background: transparent; border: none; border-radius: {RADIUS_CONTROL}px; }}"
     f'QFrame#queueRow[hover="true"] {{ background: {HOVER_ON}; }}'
@@ -67,7 +68,7 @@ _TRAY_QSS = (
     f"QLabel#queueHeader, QLabel#queueExtra {{ font-size: {FONT_HINT}px; color: {INK_3};"
     " background: transparent; border: none; }"
     f"QLabel#queueMore {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
-    f"QLabel#queueMore:hover {{ color: {INK}; }}"
+    f"QLabel#queueMore:hover {{ color: {INK}; }}")
 )
 
 

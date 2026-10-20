@@ -61,6 +61,7 @@ from typing import Any, Callable
 
 from .code_guard_runtime import (  # noqa: F401
     _DENIED_LITERAL_RE,
+    _DRIVER_READS,
     _FORMAT_METHODS,
     _NO_FILE_CHANGE,
     _PROCESSING_RUNNERS,
@@ -77,6 +78,7 @@ from .code_guard_runtime import (  # noqa: F401
     _guarded_open,
     _module_denied,
     _processing_refusal,
+    bind_namespace_views,
     build_safe_builtins,
     harden_gdal_config,
     in_process_algorithms,
@@ -87,6 +89,7 @@ from .code_guard_runtime import (  # noqa: F401
     take_written,
     workspace_cwd,
 )
+from .code_owners import HELPER as _OWNED_CALL  # noqa: E402
 
 MAX_OUTPUT_CHARS = 200_000
 
@@ -134,6 +137,7 @@ class _Checker(ast.NodeVisitor):
         self.names: list[str] = []
         self.checked_sql: set[int] = set()
         self.plain_getters: set[int] = set()
+        self.driver_reads: set[int] = set()
 
 
         self.dict_keys: set[int] = set()
@@ -166,13 +170,24 @@ class _Checker(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
-        if node.id in DENIED_NAMES or node.id in DENIED_DUNDERS:
+
+
+
+        if node.id in DENIED_NAMES or node.id in DENIED_DUNDERS or node.id == _OWNED_CALL:
             self._refuse(node, f"{node.id} is not available in execute_code", node.id)
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         attr = node.attr
-        if attr in DENIED_ATTRS or attr in DENIED_NAMES or attr in DENIED_DUNDERS:
+        inner = node.value
+        if (attr in _DRIVER_READS and isinstance(inner, ast.Call) and not inner.args and not inner.keywords
+                and isinstance(inner.func, ast.Attribute) and inner.func.attr == "GetDriver"):
+
+
+            self.driver_reads.add(id(inner.func))
+        if attr == "GetDriver" and id(node) in self.driver_reads:
+            pass
+        elif attr in DENIED_ATTRS or attr in DENIED_NAMES or attr in DENIED_DUNDERS:
             self._refuse(node, f".{attr} is not available in execute_code", attr)
         elif attr in _SQL_METHODS and id(node) not in self.checked_sql:
             self._refuse(node, f".{attr} runs only a plain query written out in the code, as its first argument")

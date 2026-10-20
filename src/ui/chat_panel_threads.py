@@ -25,7 +25,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.background import run_sliced
 from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
-from .checkpoint_sheet import affected_layers, history_rows, long_reason, not_restored_line, row_target, usable
+from .checkpoint_sheet import changes_tooltip, history_rows, long_reason, losses, not_restored_line, row_target, usable
 from .shared import CHECKPOINTS_KEYS, STEP_BACK_KEYS, STEP_FORWARD_KEYS
 from .style import MUTED
 from .thread_replay import replay_steps
@@ -263,18 +263,22 @@ class _ChatPanelThreads:
                     or not (usable(row["before"]) and usable(row["after"]))):
                 later += 1 if live_request else 0
                 continue
-            layers = affected_layers([row], self.tr)
+            changed = changes_tooltip(row, self.tr)
             if row["live"]:
-                tip = (self.tr("Removes: {layers}").format(layers=layers) if layers
-                       else self.tr("Removes this request's changes from the map"))
+
+
+                tip = "\n".join(part for part in (
+                    self.tr("This request:") if changed else "", changed,
+                    self.tr("Undo takes these changes off the map.")) if part)
                 lost = not_restored_line(row["target"], self.tr)
                 if lost:
                     tip += "\n" + lost
                 points[row["run_id"]] = ("undo", row_target(row), tip, later)
                 later += 1
             else:
-                tip = (self.tr("Brings back: {layers}").format(layers=layers) if layers
-                       else self.tr("Brings this request's changes back"))
+                tip = "\n".join(part for part in (
+                    self.tr("This request:") if changed else "", changed,
+                    self.tr("Redo brings these changes back.")) if part)
                 points[row["run_id"]] = ("redo", row_target(row), tip, 0)
         return points
 
@@ -425,12 +429,13 @@ class _ChatPanelThreads:
 
 
 
-        items = [item for item in (missing or []) if isinstance(item, dict) and item.get("name")]
-        if not ok:
+
+        items = losses([item for item in (missing or []) if isinstance(item, dict) and item.get("name")])
+        if not ok and not items:
             self.toast.show_message(self.tr("Couldn't restore. See the log."), warn=True)
             return
         if items:
-            text = (self.tr("1 layer couldn't be restored") if len(items) == 1
+            text = (self.tr("{layer} couldn't be restored").format(layer=str(items[0]["name"])) if len(items) == 1
                     else self.tr("{n} layers couldn't be restored").format(n=len(items)))
             tip = "\n".join(
                 self.tr("{layer}: {reason}").format(layer=str(item["name"]),

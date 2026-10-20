@@ -112,6 +112,96 @@ def release_pooled_handles(layer) -> None:
         pass
 
 
+_CLEARING = False
+_WATCHING = False
+
+
+def _release_leaving(removed) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if not IS_WINDOWS or _CLEARING:
+        return
+    try:
+        from qgis.core import QgsProject
+
+        from ..tools.processing_run import _readers_of
+
+        project = QgsProject.instance()
+        done: set = set()
+        for item in removed or ():
+            layer = project.mapLayer(item) if isinstance(item, str) else item
+            if layer is None or layer.providerType() != "ogr" or not layer.isValid():
+                continue
+            path = (layer.source() or "").split("|", 1)[0]
+            key = os.path.normcase(os.path.normpath(path)) if path else ""
+            if (not key or key in done or path.startswith(("\\\\", "//", "/vsi")) or "://" in path
+                    or not os.path.isabs(path) or layer.isEditable() or _readers_of(layer)):
+                continue
+            done.add(key)
+            release_pooled_handles(layer)
+    except Exception:  # nosec B110
+        pass
+
+
+def _clearing(flag: bool):
+    def set_flag(*_args) -> None:
+        global _CLEARING
+        _CLEARING = flag
+    return set_flag
+
+
+_CLEAR_START = _clearing(True)
+_CLEAR_END = _clearing(False)
+
+
+def watch_layer_removals() -> None:
+
+    global _WATCHING
+    if not IS_WINDOWS or _WATCHING:
+        return
+    try:
+        from qgis.core import QgsProject
+
+        project = QgsProject.instance()
+        project.layersWillBeRemoved.connect(_release_leaving)
+        project.aboutToBeCleared.connect(_CLEAR_START)
+        project.cleared.connect(_CLEAR_END)
+        _WATCHING = True
+    except Exception:  # nosec B110
+        pass
+
+
+def stop_watching_layer_removals() -> None:
+
+    global _WATCHING, _CLEARING
+    if not _WATCHING:
+        return
+    try:
+        from qgis.core import QgsProject
+
+        project = QgsProject.instance()
+        project.layersWillBeRemoved.disconnect(_release_leaving)
+        project.aboutToBeCleared.disconnect(_CLEAR_START)
+        project.cleared.disconnect(_CLEAR_END)
+    except Exception:  # nosec B110
+        pass
+    _WATCHING = False
+    _CLEARING = False
+
+
 def remove_quietly(path: str) -> bool:
 
     try:

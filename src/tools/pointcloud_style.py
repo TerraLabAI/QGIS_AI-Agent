@@ -82,10 +82,9 @@ def _range(layer, attribute: str, minimum, maximum) -> tuple[float | None, float
         high = float(maximum) if maximum is not None else float(layer.statistics().statisticsOf(attribute).maximum())
     except Exception:  # noqa: BLE001
         return None, None, tool_error(f"QGIS has no numeric range for {attribute!r} on this point cloud.",
-                                      "EXECUTION_FAILED", "minimum, maximum need values.")
+                                      "EXECUTION_FAILED", hint="pointcloud_range_unknown")
     if not (math.isfinite(low) and math.isfinite(high) and low < high):
-        return None, None, tool_error("minimum must be below maximum and both must be finite.", "INVALID_ARGS",
-                                      "Two finite values, minimum below maximum, fit.")
+        return None, None, tool_error("minimum must be below maximum and both must be finite.", "INVALID_ARGS")
     return low, high, None
 
 
@@ -105,11 +104,10 @@ def _configure_pointcloud_style(args: dict) -> dict:
         return tool_error(f"Layer {args.get('layer_name')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(layer, QgsPointCloudLayer):
         return tool_error(f"{layer.name()!r} is not a point-cloud layer.", "INVALID_ARGS",
-                          "A LAS, LAZ, COPC, EPT or VPC point cloud is needed.")
+                          hint="pointcloud_style_kinds")
     mode = str(args.get("mode") or "")
     if mode not in _MODES:
-        return tool_error(f"mode {mode!r} is not supported.", "INVALID_ARGS",
-                          "rgb, classification, elevation_ramp.")
+        return tool_error(f"mode {mode!r} is not supported.", "INVALID_ARGS", hint="pointcloud_style_modes")
     if not _renderer_available(mode):
         return tool_error(f"This QGIS build does not provide the {mode} point-cloud renderer.", "EXECUTION_FAILED")
 
@@ -146,7 +144,7 @@ def _configure_pointcloud_style(args: dict) -> dict:
         color_ramp = _ramp(ramp_name)
         if ramp_name and color_ramp is None:
             return tool_error(f"Colour ramp {ramp_name!r} was not found.", "INVALID_ARGS",
-                              "QGIS's Style Manager lists ramps; color_ramp may be omitted.")
+                              hint="pointcloud_ramp_unknown")
         shader = QgsColorRampShader(low, high)
         shader.setColorRampType(SHADER_INTERPOLATED)
         shader.setClassificationMode(SHADER_CLASS_CONTINUOUS)

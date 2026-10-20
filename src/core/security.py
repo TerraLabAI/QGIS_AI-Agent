@@ -36,10 +36,11 @@ import os
 import re
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 
-from .host_platform import IS_WINDOWS
+from .host_platform import IS_WINDOWS, resolved
 from .net_proxy import apply_qgis_proxy  # noqa: F401
 from .policy import AGENT_CACHE_DIR, AGENT_EXPORT_DIR, AGENT_HOME, AGENT_ROOT, AGENT_TMP_DIR
 from .security_urls import (  # noqa: F401
@@ -463,10 +464,14 @@ def _explicit_roots() -> list[str]:
 
 
 
+
     out = list(temp_roots())
     for root in (project_dir(), tempfile.gettempdir()):
         if root:
-            out.extend((os.path.normpath(root), os.path.realpath(root)))
+            out.append(os.path.normpath(root))
+            real = _resolved_root(root)
+            if real:
+                out.append(real)
     if _output_root:
         out.append(_output_root)
     out.extend(_allowed_roots)
@@ -497,6 +502,15 @@ _LAYER_ROOTS: dict = {"key": None, "at": 0.0, "roots": []}
 _LAYER_ROOTS_TTL_S = 5.0
 _FOLDERS: dict[str, bool] = {}
 _FOLDERS_MAX = 8192
+_RESOLVED: dict[str, str] = {}
+_RESOLVED_MAX = 4096
+
+
+_WARMING: dict = {}
+_WARM_POOL = None
+_WARM_WORKERS = 8
+_WARM_LOCK = threading.Lock()
+_WARM_GENERATION = [0]
 
 
 
@@ -643,6 +657,139 @@ def _read_layer_folders() -> list[str]:
     return list(roots)
 
 
+def _resolve_into_cache(root: str, key: str, generation: int | None = None) -> str:
+    real = resolved(root)
+    with _WARM_LOCK:
+        if generation is None or generation == _WARM_GENERATION[0]:
+            if len(_RESOLVED) >= _RESOLVED_MAX:
+                _RESOLVED.clear()
+            _RESOLVED[key] = real
+            if generation is not None:
+                _WARMING.pop(key, None)
+    return real
+
+
+def _warm_submit(generation: int, key: str | None, job, *args):
+
+
+
+    global _WARM_POOL
+    with _WARM_LOCK:
+        if generation != _WARM_GENERATION[0]:
+            return None
+        if _WARM_POOL is None:
+            from concurrent.futures import ThreadPoolExecutor
+
+            _WARM_POOL = ThreadPoolExecutor(max_workers=_WARM_WORKERS, thread_name_prefix="ai-agent-root-warm")
+        try:
+            pending = _WARM_POOL.submit(job, *args)
+        except RuntimeError:
+            return None
+        if key is not None:
+            _WARMING[key] = pending
+        return pending
+
+
+def warm_roots(roots, generation: int | None = None) -> None:
+
+
+
+
+
+
+
+
+
+    if generation is None:
+        generation = _WARM_GENERATION[0]
+    for root in roots or ():
+        if not root:
+            continue
+        key = os.path.normcase(os.path.normpath(root))
+        if key in _RESOLVED or key in _WARMING:
+            continue
+        if _warm_submit(generation, key, _resolve_into_cache, root, key, generation) is None:
+            return
+
+
+def _warm_layer_path(full: str, generation: int) -> None:
+
+
+    if full not in _FOLDERS:
+        is_folder = os.path.isdir(full)
+        with _WARM_LOCK:
+            if generation != _WARM_GENERATION[0]:
+                return
+            if len(_FOLDERS) >= _FOLDERS_MAX:
+                _FOLDERS.clear()
+            _FOLDERS[full] = is_folder
+    if _FOLDERS.get(full) is False:
+        warm_roots([os.path.dirname(full)], generation)
+
+
+def warm_layer_roots(layers) -> None:
+
+    try:
+        from qgis.core import QgsProviderRegistry
+
+        registry = QgsProviderRegistry.instance()
+        paths = []
+        for layer in layers or ():
+            try:
+                path = local_part(str(registry.decodeUri(layer.providerType(), layer.source()).get("path") or ""))
+            except (AttributeError, RuntimeError, TypeError):
+                continue
+            if path:
+                paths.append(expand_path(path))
+        warm_roots(paths)
+        generation = _WARM_GENERATION[0]
+        for full in dict.fromkeys(paths):
+            if _warm_submit(generation, None, _warm_layer_path, full, generation) is None:
+                return
+    except Exception as exc:  # noqa: BLE001
+        from .logger import log_warning
+
+        log_warning(f"Layer folders not resolved ahead: {exc}")
+
+
+def forget_resolved_roots() -> None:
+
+
+    global _WARM_POOL
+    with _WARM_LOCK:
+        _WARM_GENERATION[0] += 1
+        pool, _WARM_POOL = _WARM_POOL, None
+    if pool is not None:
+        pool.shutdown(wait=False, cancel_futures=True)
+    _WARMING.clear()
+    _RESOLVED.clear()
+
+
+def _resolved_root(root: str) -> str:
+
+
+
+
+
+
+
+
+
+
+    key = os.path.normcase(os.path.normpath(root))
+    try:
+        return _RESOLVED[key]
+    except KeyError:
+        pass
+    pending = _WARMING.pop(key, None)
+    if pending is not None:
+        try:
+            return pending.result()
+        except Exception:  # noqa: BLE001
+            return _resolve_into_cache(root, key)
+    return _resolve_into_cache(root, key)
+
+
 def _is_folder(path: str) -> bool:
 
 
@@ -695,15 +842,15 @@ def read_roots() -> list[str]:
 
 
     roots = [root for root in roots if root and not _too_wide(root)] + list(_user_paths)
+    warm_roots(roots)
     out: list[str] = []
     for root in roots:
         if not root:
             continue
         out.append(os.path.normpath(root))
-        try:
-            out.append(os.path.realpath(root))
-        except OSError:
-            pass
+        real = _resolved_root(root)
+        if real:
+            out.append(real)
     out.extend(sorted(_own_paths))
     return list(dict.fromkeys(out))
 
@@ -716,7 +863,7 @@ def _too_wide(root: str) -> bool:
         return True
     if os.path.dirname(full) == full or refused_share(full):
         return True
-    return any(_under(home, full) for home in dict.fromkeys((_HOME, os.path.realpath(_HOME))))
+    return any(_under(home, full) for home in dict.fromkeys((_HOME, _resolved_root(_HOME) or _HOME)))
 
 
 def _sidecar_of_attached(path: str) -> bool:

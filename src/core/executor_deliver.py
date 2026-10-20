@@ -14,7 +14,19 @@ from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication
 
 from . import code_effects as ce
-from . import layer_egress, layout_show, licence, limits, postcondition, protocol, scratch, security, stalls, tuning
+from . import (
+    layer_egress,
+    layout_show,
+    licence,
+    limits,
+    postcondition,
+    protocol,
+    run_objects,
+    scratch,
+    security,
+    stalls,
+    tuning,
+)
 from .checkpoints import KIND_BEFORE
 from .context import stamp_thread
 from .executor_code import CODE_TOOL
@@ -171,7 +183,7 @@ class _ExecutorDeliver:
 
 
 
-        looped, on_dialog, dialog_title = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, ""))
+        looped, on_dialog, dialog_title, datum_pressed = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, "", ()))
 
 
 
@@ -200,6 +212,11 @@ class _ExecutorDeliver:
             self._note_slow_main_thread(run_id, name, duration - looped)
         if on_dialog >= 1.0 and isinstance(result, dict):
             result["waited_on_dialog"] = {"title": dialog_title, "seconds": round(on_dialog)}
+        if datum_pressed and isinstance(result, dict):
+            result["datum_transformation"] = (
+                "This call's CRS change opened QGIS's " + ", ".join(repr(t) for t in datum_pressed) + "; OK "
+                "was pressed on the transformation QGIS selected in it, now in the project's transform "
+                "context (Project Properties > Transformations).")
 
 
 
@@ -211,12 +228,9 @@ class _ExecutorDeliver:
             if result.get("needs_permission") and run_id not in self._cancelled:
                 self._code_tripped(call, result)
                 return
-            if (result.get("_code") == "PERMISSION_DENIED" and result.get("executed") is False
-                    and not result.get("isolated")):
 
-                self._code_roll_back(call)
-            else:
-                self._code_release(call)
+
+            self._code_release(call)
         if run_id in self._cancelled:
 
 
@@ -399,6 +413,9 @@ class _ExecutorDeliver:
             known = {entry["path"] for entry in kept}
             kept.extend(entry for entry in declared[:MAX_OUTPUT_FILES] if entry["path"] not in known)
             del kept[MAX_OUTPUT_FILES:]
+        found = run_objects.result_objects(name, args, shown)
+        if found:
+            run_objects.merge(self._objects.setdefault(run_id, []), found)
         if danger != Danger.READ:
             named = self._note_touched(run_id, args, result)
             self._journal_note(run_id, call, shown, True)

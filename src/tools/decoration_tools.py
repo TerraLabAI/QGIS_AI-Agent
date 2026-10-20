@@ -348,8 +348,8 @@ def _apply(decoration: str, item) -> bool:
 
 
 
-def _invalid(message: str, suggestion: str) -> dict:
-    return tool_error(message, "INVALID_ARGS", suggestion)
+def _invalid(message: str, *, hint: str, **facts) -> dict:
+    return tool_error(message, "INVALID_ARGS", hint=hint, **facts)
 
 
 def _nice_interval(span: float) -> float:
@@ -367,12 +367,13 @@ def _check_args(decoration: str, args: dict) -> dict | None:
     if foreign:
         return _invalid(
             f"The {decoration} decoration has no {', '.join(foreign)}.",
-            f"Settings of {decoration}: {', '.join(sorted(_APPLIES[decoration]))}.")
+            hint="decoration_settings_foreign", decoration=decoration, settings=sorted(_APPLIES[decoration]))
     style = args.get("style")
     if style is not None:
         allowed = SCALE_BAR_STYLES if decoration == "scale_bar" else GRID_STYLES
         if style not in allowed:
-            return _invalid(f"style {style!r} is not a {decoration} style.", f"Valid: {', '.join(allowed)}.")
+            return _invalid(f"style {style!r} is not a {decoration} style.", hint="decoration_style_unknown",
+                            decoration=decoration, styles=list(allowed))
     for key in ("color", "background_color", "outline_color"):
         bad = _color_error(args.get(key), key)
         if bad:
@@ -381,9 +382,9 @@ def _check_args(decoration: str, args: dict) -> dict | None:
     if path is not None:
         why = validate_path(str(path))
         if why:
-            return _invalid(why, "The full path of an image file on this computer.")
+            return _invalid(why, hint="decoration_image_path")
         if not os.path.isfile(str(path)):
-            return _invalid(f"No file at {path}.", "The full path of an existing SVG, PNG or JPEG file.")
+            return _invalid(f"No file at {path}.", hint="decoration_image_path")
     return None
 
 
@@ -412,9 +413,7 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
     if decoration in ("title", "copyright"):
         text = args.get("text") if args.get("text") is not None else current["text"]
         if not str(text or "").strip():
-            return _invalid(f"A {decoration} decoration needs its text.",
-                            "For example the map title or 'Data: OpenStreetMap contributors'. "
-                            "QGIS expressions in [% %] work, such as [% @project_title %].")
+            return _invalid(f"A {decoration} decoration needs its text.", hint="decoration_text_needed")
         _write_margins(scope, decoration, args, current)
         _write(scope, "/Label", str(text))
 
@@ -447,7 +446,7 @@ def _write_settings(decoration: str, args: dict, current: dict) -> dict | None:
     elif decoration == "image":
         path = args.get("path") or current["path"]
         if not path:
-            return _invalid("An image decoration needs the image file.", "path takes an SVG, PNG or JPEG file.")
+            return _invalid("An image decoration needs the image file.", hint="decoration_image_path")
         _write_margins(scope, decoration, args, current)
         _write(scope, "/ImagePath", os.path.abspath(str(path)))
         _write(scope, "/Size", float(args["size"] if args.get("size") is not None else current["size"]))
@@ -482,7 +481,7 @@ def _write_grid(scope: str, args: dict, current: dict) -> dict | None:
     iface, _window = _main_window()
     canvas = iface.mapCanvas() if iface is not None else None
     if canvas is None:
-        return tool_error("The map canvas is not available.", "EXECUTION_FAILED", "")
+        return tool_error("The map canvas is not available.", "EXECUTION_FAILED")
     units = _enum_int(canvas.mapSettings().mapUnits())
     extent = canvas.extent()
 
@@ -493,7 +492,7 @@ def _write_grid(scope: str, args: dict, current: dict) -> dict | None:
     interval_y = args.get("interval_y") or args.get("interval") or (
         current["interval_y"] if same_units else _nice_interval(extent.height()))
     if not interval_x or not interval_y:
-        return _invalid("The grid spacing could not be read from the view.", "interval is in map units.")
+        return _invalid("The grid spacing could not be read from the view.", hint="decoration_grid_interval")
     _write(scope, "/MapUnits", units)
     _write(scope, "/Style", GRID_STYLES.index(args.get("style") or current["style"]))
     _write(scope, "/IntervalX", float(interval_x))
@@ -539,7 +538,7 @@ def _set_canvas_decoration(args: dict) -> dict:
     if item is None:
         return tool_error(
             "Canvas decorations need the QGIS desktop window, and its decoration items were not found.",
-            "EXECUTION_FAILED", "create_print_layout gives a title, scale bar or north arrow off the canvas.")
+            "EXECUTION_FAILED", hint="decoration_no_window")
 
     scope = _ITEMS[decoration][0]
     enabled = args.get("enabled") is not False

@@ -74,9 +74,7 @@ def _previous_style_keys(layer, kept: str, changed: str = "symbology") -> dict:
         return {}
     return {
         "previous_style_qml": path,
-        "previous_style_note": (f"this call changed the layer's {changed}; apply_style_qml with this "
-                                "layer_name and this path puts back exactly what it looked like before "
-                                "this call, and nothing else of the project"),
+        "previous_style_note": coded_fact(hint="style_previous_kept", changed=changed),
     }
 
 
@@ -176,8 +174,7 @@ def _set_layer_style_2d(args: dict) -> dict:
         return facts
     facts.update(_style_decide(plan, facts))
     if net.is_cancelled():
-        return tool_error("Stopped before the style was applied.", "CANCELLED",
-                          "Nothing was changed: the layer keeps its style.")
+        return tool_error("Stopped before the style was applied.", "CANCELLED", hint="style_stopped_unchanged")
     return run_on_main_thread(_style_apply, plan, facts, timeout=60)
 
 
@@ -214,8 +211,7 @@ def _style_plan(args: dict) -> dict:
     _legacy_names(args)
     target = args.get("layer_name")
     if not target:
-        return {"_error": "layer_name is required.", "code": "INVALID_ARGS",
-                "suggestion": "It takes the layer name or id."}
+        return tool_error("layer_name is required.", "INVALID_ARGS", hint="style_layer_name_missing")
     layer = _find_layer(target)
     if not layer:
         return _layer_not_found_error(target)
@@ -231,12 +227,15 @@ def _style_plan(args: dict) -> dict:
 
     style_type = str(args.get("style_type") or "").strip()
     if not style_type:
-        return {"_error": "style_type is required.", "code": "INVALID_ARGS",
-                "suggestion": "single, categorized, graduated or cluster."}
+        return tool_error("style_type is required.", "INVALID_ARGS", hint="style_type_missing")
 
     bad_argument = _style_args_error(layer, args)
     if bad_argument:
         return bad_argument
+    if str(args.get("symbol") or "").strip():
+        picked = _picked_symbol(layer, str(args["symbol"]).strip())
+        if isinstance(picked, dict):
+            return picked
 
 
 
@@ -305,7 +304,7 @@ def _style_plan(args: dict) -> dict:
         if refused:
             return refused
     elif style_type not in ("single", "cluster"):
-        return {"_error": f"Unknown style type: {style_type}"}
+        return tool_error(f"Unknown style type: {style_type}", "INVALID_ARGS")
     if not rows:
         return _style_apply(plan, {})
     plan["started"] = time.monotonic()
@@ -340,7 +339,7 @@ def _plan_categorized(layer, args: dict, plan: dict, rows) -> dict | None:
         expression = str(args.get("value_expression") or "").strip()
         field = expression or args.get("field")
         if not field:
-            return {"_error": "Field (or value_expression) is required for categorized style"}
+            return tool_error("Field (or value_expression) is required for categorized style", "INVALID_ARGS")
         idx = -1 if expression else fields.indexOf(field)
         if idx < 0 and not expression:
             return _field_not_found_error(layer, field)
@@ -384,7 +383,7 @@ def _plan_graduated(layer, args: dict, plan: dict, rows) -> dict | None:
     expression = str(args.get("value_expression") or "").strip()
     field = expression or args.get("field")
     if not field:
-        return {"_error": "Field (or value_expression) is required for graduated style"}
+        return tool_error("Field (or value_expression) is required for graduated style", "INVALID_ARGS")
 
     idx = -1 if expression else fields.indexOf(field)
     if idx < 0 and not expression:
@@ -633,15 +632,14 @@ def _style_apply(plan: dict, facts: dict) -> dict:
         return tool_error(f"{args.get('layer_name')} left the project before it was styled.", "EXECUTION_FAILED",
                           hint="chart_layer_gone", layer=str(args.get("layer_name")))
     if not background.still_awaited():
-        return tool_error("Stopped before the style was applied.", "CANCELLED",
-                          "Nothing was changed: the layer keeps its style.")
+        return tool_error("Stopped before the style was applied.", "CANCELLED", hint="style_stopped_unchanged")
     style_type, kind, ramp = plan["style_type"], plan["kind"], plan["ramp"]
     color_ramp_name, invert_ramp, coerced_note = plan["color_ramp_name"], plan["invert_ramp"], plan["coerced_note"]
     proportional = plan["proportional"]
     if proportional:
         low, high = facts["size_range"]
         if low is None:
-            return {"_error": f"size_field {proportional['field']!r} has no values to size by.", "code": "INVALID_ARGS"}
+            return tool_error(f"size_field {proportional['field']!r} has no values to size by.", "INVALID_ARGS")
         proportional = dict(proportional, low=low, high=high if high > low else low + 1.0)
 
     if "diagram" in plan:
@@ -762,6 +760,19 @@ def _style_apply(plan: dict, facts: dict) -> dict:
         if isinstance(renderer, dict):
             return renderer
 
+    marker_note: dict = {}
+    if str(args.get("symbol") or "").strip():
+        if style_type == "cluster":
+            marker_note = {"symbol_not_applied": "a cluster draws its own marker"}
+        else:
+            picked = _picked_symbol(layer, str(args["symbol"]).strip())
+            if isinstance(picked, dict):
+                return picked
+            symbol, source = picked
+            _put_symbol(renderer, symbol, keep_own_colour=(style_type == "single" and not args.get("color")
+                                                           and source == "style_library"))
+            marker_note = {"symbol": str(args["symbol"]).strip(), "symbol_source": source}
+
 
     bounds = ([(float(r.lowerValue()), float(r.upperValue())) for r in renderer.ranges()]
               if style_type == "graduated" else [])
@@ -826,6 +837,7 @@ def _style_apply(plan: dict, facts: dict) -> dict:
         iface.layerTreeView().refreshLayerSymbology(layer.id())
     result = {"styled": layer.name(), "type": style_type}
     result.update(_previous_style_keys(layer, kept_style))
+    result.update(marker_note)
     result.update(_wider_than_the_selection(layer))
     if coerced_note:
         result["style_type_changed"] = coerced_note
@@ -854,14 +866,11 @@ def _style_apply(plan: dict, facts: dict) -> dict:
             not_applied.append(key)
     if not_applied:
         result["not_applied"] = not_applied
-        note = ("these arguments have no place on this layer's symbols and changed nothing: "
-                "size sizes point markers, fill is a polygon's inside, stroke_width and "
-                "stroke_color are a line or an outline")
+        note = coded_fact(hint="style_args_not_applied")
         if classed_lines and "stroke_color" in not_applied:
             rest = [key for key in not_applied if key != "stroke_color"]
-            note = ("stroke_color changed nothing: a line's colour is its class's, so one stroke_color would "
-                    "draw every class the same and the classes keep their own colours"
-                    + (f"; {', '.join(rest)} has no place on this layer's symbols" if rest else ""))
+            note = coded_fact(hint="style_args_not_applied", variant="classed_lines_rest" if rest else "classed_lines",
+                              rest=rest)
         result["not_applied_note"] = note
     if style_type == "graduated":
         result["classes"] = len(bounds)
@@ -892,10 +901,8 @@ def _style_apply(plan: dict, facts: dict) -> dict:
                     result["classification_warning"] = warning
             if explicit_mode == "pretty" and len(bounds) != classes:
                 result["classes_requested"] = classes
-                result["classification_note"] = (
-                    f"pretty chose round-number breaks and came out to {len(bounds)} classes, not the "
-                    f"{classes} asked for; jenks or quantile classification_mode matches the count exactly"
-                )
+                result["classification_note"] = coded_fact(hint="style_pretty_class_count", got=len(bounds),
+                                                           asked=classes)
     elif style_type == "categorized":
         if hasattr(renderer, "categories"):
             result["classes"] = len(renderer.categories())
@@ -932,8 +939,8 @@ def _classified(attribute: str, base_symbol, ramp, mode_name: str, ranges: list)
 
     method = QgsApplication.classificationMethodRegistry().method(mode_name)
     if method is None:
-        return {"_error": f"Graduated renderer is not available on this QGIS version: no {mode_name} method.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error(f"Graduated renderer is not available on this QGIS version: no {mode_name} method.",
+                          "EXECUTION_FAILED")
     renderer = QgsGraduatedSymbolRenderer(attribute, [])
     renderer.setSourceSymbol(base_symbol)
     renderer.setClassificationMethod(method)
@@ -1012,7 +1019,7 @@ def _class_limits(breaks):
     try:
         limits = sorted({float(value) for value in breaks})
     except (TypeError, ValueError):
-        return {"_error": "breaks are numbers, the class limits from lowest to highest.", "code": "INVALID_ARGS"}
+        return tool_error("breaks are numbers, the class limits from lowest to highest.", "INVALID_ARGS")
     if len(limits) < 2:
         return tool_error("breaks needs at least two different limits (one class).", "INVALID_ARGS",
                           hint="style_breaks_too_few", given=len(limits))
@@ -1060,8 +1067,7 @@ def _no_value_class(layer, renderer, args: dict, missing) -> tuple:
         if missing and catch_all:
             note["no_value_note"] = f"{missing} features have no value in {attribute}; the catch-all class draws them"
         elif missing:
-            note["no_value_note"] = (f"{missing} features have no value in {attribute} and are not drawn; "
-                                     "null_class_color draws them in a class of their own")
+            note["no_value_note"] = coded_fact(hint="style_no_value_undrawn", missing=missing, attribute=attribute)
         return renderer, note
     symbol = QgsSymbol.defaultSymbol(layer.geometryType())
     symbol.setColor(qcolor_from_text(colour or "#bdbdbd"))
@@ -1112,8 +1118,150 @@ def _proportional_request(layer, args: dict) -> dict:
 
 
 
+_SHAPES = ("circle", "square", "triangle", "equilateral_triangle", "star", "regular_star", "cross", "cross2",
+           "cross_fill", "diamond", "pentagon", "hexagon", "octagon", "decagon", "arrow", "arrowhead",
+           "filled_arrowhead", "heart", "shield", "trapezoid", "rounded_square", "square_with_corners",
+           "diamond_star", "asterisk_fill", "semi_circle", "line")
 
-_VECTOR_ONLY_ARGS = ("field", "fill", "stroke_color", "stroke_width", "stroke_width_unit", "label_field", "size",
+
+def _shape_names() -> list:
+    from qgis.core import QgsSimpleMarkerSymbolLayerBase as Base
+
+    return [name for name in _SHAPES if Base.decodeShape(name)[1]]
+
+
+def _symbol_kind(geometry_type):
+
+    from qgis.core import QgsSymbol, QgsWkbTypes
+
+    kinds = {enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"): "Marker",
+             enum_member(QgsWkbTypes, "GeometryType", "LineGeometry"): "Line",
+             enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry"): "Fill"}
+    name = kinds.get(geometry_type)
+    return enum_member(QgsSymbol, "SymbolType", name) if name else None
+
+
+def _picked_symbol(layer, text: str):
+
+
+
+
+
+
+    import difflib
+    import os
+
+    from qgis.core import (
+        QgsApplication,
+        QgsMarkerSymbol,
+        QgsRasterMarkerSymbolLayer,
+        QgsSimpleMarkerSymbolLayer,
+        QgsSimpleMarkerSymbolLayerBase,
+        QgsStyle,
+        QgsSvgMarkerSymbolLayer,
+        QgsWkbTypes,
+    )
+
+    from ..core import security
+
+    wanted = _symbol_kind(layer.geometryType())
+    style = QgsStyle.defaultStyle()
+    names = list(style.symbolNames()) if style is not None else []
+    name = text if text in names else next((n for n in names if n.lower() == text.lower()), None)
+    if name is not None:
+        symbol = style.symbol(name)
+        if symbol is not None and symbol.type() == wanted:
+            return symbol, "style_library"
+        if symbol is not None:
+            return tool_error(f"The saved symbol {name!r} draws {_kind_word(symbol.type())}, and "
+                              f"{layer.name()!r} holds {_kind_word(wanted)}. Nothing was changed.", "INVALID_ARGS")
+
+    points = wanted == _symbol_kind(enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"))
+    extension = os.path.splitext(text)[1].lower()
+    if extension in (".svg", ".png", ".jpg", ".jpeg"):
+        if not points:
+            return tool_error(f"An image marker draws points, and {layer.name()!r} holds {_kind_word(wanted)}.",
+                              "INVALID_ARGS", hint="style_symbol_points_only")
+
+        if security.refused_share(text) or "://" in text:
+            return tool_error(f"{text!r} is on a network share or the web; symbol reads a local file.",
+                              "INVALID_ARGS")
+        path = text
+        if not os.path.isabs(os.path.expandvars(os.path.expanduser(text))):
+            path = next((os.path.join(folder, text) for folder in QgsApplication.svgPaths()
+                         if folder and os.path.isfile(os.path.join(folder, text))), "")
+            if not path:
+                return tool_error(f"No file {text!r} in QGIS's SVG folders ({', '.join(QgsApplication.svgPaths())}).",
+                                  "FILE_NOT_FOUND")
+        else:
+            path = security.expand_path(text)
+        refused = security.validate_read(path)
+        if refused:
+            return tool_error(refused, "PERMISSION_DENIED")
+        if not os.path.isfile(path):
+            return tool_error(f"No file {path!r}.", "FILE_NOT_FOUND")
+        size = 4.0
+        layer_cls = QgsSvgMarkerSymbolLayer if extension == ".svg" else QgsRasterMarkerSymbolLayer
+        return QgsMarkerSymbol([layer_cls(path, size)]), ("svg" if extension == ".svg" else "image")
+
+    shape, ok = QgsSimpleMarkerSymbolLayerBase.decodeShape(text.lower())
+    if ok:
+        if not points:
+            return tool_error(f"A marker shape draws points, and {layer.name()!r} holds {_kind_word(wanted)}.",
+                              "INVALID_ARGS", hint="style_symbol_points_only")
+        return QgsMarkerSymbol([QgsSimpleMarkerSymbolLayer(shape, 3.0)]), "shape"
+
+    same_kind = []
+    for candidate in difflib.get_close_matches(text, names, n=40, cutoff=0.3):
+        saved = style.symbol(candidate)
+        if saved is not None and saved.type() == wanted:
+            same_kind.append(candidate)
+        if len(same_kind) >= 10:
+            break
+    facts = (f"Saved symbols of the style library drawing {_kind_word(wanted)} closest to it: "
+             f"{', '.join(same_kind) if same_kind else 'none'}.")
+    if points:
+        facts += f" Marker shapes: {', '.join(_shape_names())}."
+        return tool_error(f"symbol {text!r} is no saved symbol, image file or marker shape. {facts} "
+                          "Nothing was changed.", "INVALID_ARGS", hint="style_symbol_image_path")
+    return tool_error(f"symbol {text!r} is no saved symbol, image file or marker shape. {facts} Nothing was changed.",
+                      "INVALID_ARGS")
+
+
+def _kind_word(kind) -> str:
+    from qgis.core import QgsSymbol
+
+    words = {enum_member(QgsSymbol, "SymbolType", "Marker"): "points",
+             enum_member(QgsSymbol, "SymbolType", "Line"): "lines",
+             enum_member(QgsSymbol, "SymbolType", "Fill"): "polygons"}
+    return words.get(kind, "no geometry")
+
+
+def _put_symbol(renderer, picked, keep_own_colour: bool) -> None:
+
+
+
+    def own(old):
+        new = picked.clone()
+        if old is not None and not keep_own_colour:
+            new.setColor(old.color())
+        return new
+
+    if hasattr(renderer, "categories"):
+        for i, category in enumerate(list(renderer.categories())):
+            renderer.updateCategorySymbol(i, own(category.symbol()))
+    elif hasattr(renderer, "ranges"):
+        for i, class_range in enumerate(list(renderer.ranges())):
+            renderer.updateRangeSymbol(i, own(class_range.symbol()))
+    elif hasattr(renderer, "setSymbol"):
+        renderer.setSymbol(own(renderer.symbol()))
+
+
+
+
+
+_VECTOR_ONLY_ARGS = ("field", "fill", "symbol", "stroke_color", "stroke_width", "stroke_width_unit",
+                     "label_field", "size",
                      "size_expression", "size_field",
                      "cluster_distance", "min_size", "max_size", "label_color", "null_class_color")
 
@@ -1142,10 +1290,7 @@ def _wider_than_the_selection(layer) -> dict:
         return {}
     return {
         "affects": f"how all {total:,} features of {layer.name()!r} draw, not only the {selected} selected",
-        "highlight_instead": ("a style is permanent and covers the whole layer; to point at particular "
-                              "features without touching symbology, call flash_features with their fids "
-                              "or an expression: it blinks them three times over half a second and "
-                              "changes nothing"),
+        "highlight_instead": coded_fact(hint="style_permanent_flash_instead"),
     }
 
 
@@ -1221,16 +1366,13 @@ def _style_raster_layer(layer, target: str, args: dict) -> dict:
     if color_ramp:
         result["color_ramp"] = color_ramp
     elif args.get("color"):
-        result["color_note"] = ("One colour paints every pixel the same, so the classes use the default "
-                                "elevation tints. color_ramp names a QGIS ramp: Terrain, Viridis, "
-                                "Spectral, Blues.")
+        result["color_note"] = coded_fact(hint="raster_single_colour")
     if applied_opacity is not None:
         result["opacity"] = applied_opacity
     ignored = [key for key in _VECTOR_ONLY_ARGS if args.get(key) not in (None, "")]
     if ignored:
         result["not_applied"] = ignored
-        result["not_applied_note"] = ("a raster has no symbols, so these changed nothing; a raster takes "
-                                      "color_ramp, classes, band, units and opacity")
+        result["not_applied_note"] = coded_fact(hint="raster_vector_args_ignored")
     mode = str(args.get("classification_mode") or "").strip()
     if mode and mode != "equal_interval" and not codes:
         result["classification_mode"] = "equal_interval"
@@ -1453,8 +1595,7 @@ def _plan_coloured(layer, args: dict, plan: dict, rows) -> dict | None:
 
     field = str(args.get("field") or "").strip()
     if not field:
-        return {"_error": "Field is required for categorized style", "code": "INVALID_ARGS",
-                "suggestion": "field names the values that become the classes."}
+        return tool_error("Field is required for categorized style", "INVALID_ARGS", hint="style_field_missing")
     fields = layer.fields()
     idx = fields.indexOf(field)
     if idx < 0:
@@ -1481,8 +1622,8 @@ def _plan_coloured(layer, args: dict, plan: dict, rows) -> dict | None:
         plan.update(memo=memo, source=f"field {color_field}")
     else:
         if layer.renderer() is None:
-            return {"_error": f"{layer.name()!r} has no style to keep colours from.", "code": "INVALID_ARGS",
-                    "suggestion": "color_field or color_ramp is needed."}
+            return tool_error(f"{layer.name()!r} has no style to keep colours from.", "INVALID_ARGS",
+                              hint="style_keep_colours_no_style")
 
 
         probe, probe_context = _render_clone(layer)
@@ -1544,8 +1685,8 @@ def _coloured_categories(layer, plan: dict, read: dict) -> dict:
     partial = scanned >= plan["cap"] and (total is None or scanned < total)
     n = len(values)
     if not n:
-        return {"_error": f"Field {field!r} has no values to classify.", "code": "INVALID_ARGS",
-                "suggestion": "A field with a value on at least one feature is needed."}
+        return tool_error(f"Field {field!r} has no values to classify.", "INVALID_ARGS",
+                          hint="style_field_all_empty")
     geometry = layer.geometryType()
     line = geometry == enum_member(QgsWkbTypes, "GeometryType", "LineGeometry")
     note: dict = {"color_source": plan["source"], "features_read": scanned}
@@ -1929,21 +2070,17 @@ def _flash_ids(layer, args: dict) -> tuple:
         return [], tool_error("flash_features needs 'fids' or 'expression'.", "INVALID_ARGS",
                               hint="flash_needs_target", layer=layer.name())
     if raw is not None and expression:
-        return [], {"_error": "'fids' and 'expression' cannot both be set.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "'fids' fits known ids; 'expression' otherwise."}
+        return [], tool_error("'fids' and 'expression' cannot both be set.", "INVALID_ARGS",
+                              hint="flash_target_both")
 
     if raw is not None:
         wanted = list(raw) if isinstance(raw, (list, tuple, set)) else [raw]
         try:
             wanted = [int(value) for value in wanted]
         except (TypeError, ValueError):
-            return [], {"_error": "'fids' must be whole feature ids.",
-                        "_code": "INVALID_ARGS",
-                        "_suggestion": "get_features prints the fid values as numbers."}
+            return [], tool_error("'fids' must be whole feature ids.", "INVALID_ARGS", hint="flash_fids_not_whole")
         if not wanted:
-            return [], {"_error": "'fids' is empty.", "_code": "INVALID_ARGS",
-                        "_suggestion": "It needs a feature id or an expression."}
+            return [], tool_error("'fids' is empty.", "INVALID_ARGS", hint="flash_needs_target", layer=layer.name())
 
 
 
@@ -1963,7 +2100,7 @@ def _flash_ids(layer, args: dict) -> tuple:
         for feature in layer.getFeatures(request):
             found.append(int(feature.id()))
     except Exception as e:  # noqa: BLE001
-        return [], {"_error": f"Reading the features to flash failed: {e}"}
+        return [], tool_error(f"Reading the features to flash failed: {e}", "EXECUTION_FAILED")
     if len(found) > _FLASH_MAX_FEATURES:
         return [], tool_error(f"More than {_FLASH_MAX_FEATURES} features match: a flash that covers the map "
                               "points at nothing.", "INVALID_ARGS", hint="flash_too_many",
@@ -2014,7 +2151,7 @@ def _flash_features(args: dict) -> dict:
 
         canvas.flashFeatureIds(layer, ids, QColor(255, 0, 0, 255), QColor(255, 0, 0, 0), flashes, duration)
     except Exception as e:  # noqa: BLE001
-        return {"_error": f"Flashing the features failed: {e}"}
+        return tool_error(f"Flashing the features failed: {e}", "EXECUTION_FAILED")
 
     return {
         "layer": layer.name(),
@@ -2117,8 +2254,8 @@ def _style_args_error(layer, args: dict) -> dict | None:
     label_field = str(args.get("label_field") or "").strip()
     if label_field:
         if str(args.get("style_type") or "").strip() != "categorized":
-            return {"_error": "label_field names the legend labels of a categorized style.", "code": "INVALID_ARGS",
-                    "suggestion": "style_type categorized is needed, or no label_field."}
+            return tool_error("label_field names the legend labels of a categorized style.", "INVALID_ARGS",
+                              hint="style_label_field_needs_categorized")
         if layer.fields().indexOf(label_field) < 0:
             return _field_not_found_error(layer, label_field)
         if layer_order.is_remote_vector(layer):
@@ -2128,12 +2265,12 @@ def _style_args_error(layer, args: dict) -> dict | None:
     categories = args.get("categories")
     if categories:
         if str(args.get("style_type") or "").strip() != "categorized":
-            return {"_error": "categories gives the classes of a categorized style.", "code": "INVALID_ARGS",
-                    "suggestion": "style_type categorized with field takes categories."}
+            return tool_error("categories gives the classes of a categorized style.", "INVALID_ARGS",
+                              hint="style_categories_need_categorized")
         for entry in categories:
             if not isinstance(entry, dict) or "value" not in entry:
-                return {"_error": "Each entry of categories is an object with a value.", "code": "INVALID_ARGS",
-                        "suggestion": 'For example {"value": "forest", "label": "Forest", "color": "#2e7d32"}.'}
+                return tool_error("Each entry of categories is an object with a value.", "INVALID_ARGS",
+                                  hint="style_categories_entry_shape")
             bad = _color_error(entry.get("color"), "categories color")
             if bad:
                 return bad
@@ -2145,9 +2282,8 @@ def _style_args_error(layer, args: dict) -> dict | None:
     value_expression = str(args.get("value_expression") or "").strip()
     if value_expression:
         if str(args.get("style_type") or "").strip() not in ("graduated", "categorized"):
-            return {"_error": "value_expression is classified by a graduated or categorized style.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": "style_type graduated (numbers) or categorized (classes) fits."}
+            return tool_error("value_expression is classified by a graduated or categorized style.",
+                              "INVALID_ARGS", hint="style_value_expression_style_type")
         if args.get("color_field") or args.get("keep_colors") is True or label_field:
             return tool_error("value_expression takes its colours from color_ramp; color_field, keep_colors and "
                               "label_field read a field's own values.", "INVALID_ARGS",
@@ -2217,7 +2353,7 @@ def _set_layer_labels_2d(args: dict) -> dict:
         with contextlib.suppress(Exception):
             base = QgsPalLayerSettings(labeling_now.settings())
     if not field and not args.get("rules") and not args.get("expression") and base is None:
-        return {"_error": "field or rules is required when labels are enabled.", "code": "INVALID_ARGS"}
+        return tool_error("field or rules is required when labels are enabled.", "INVALID_ARGS")
     size = args.get("size", 10 if base is None else None)
     color = args.get("color", "#000000" if base is None else None)
     for key, label in (("color", "color"), ("buffer_color", "buffer_color")):
@@ -2271,14 +2407,13 @@ def _set_layer_labels_2d(args: dict) -> dict:
         if placement:
             member = _LABEL_PLACEMENTS.get(placement)
             if member is None:
-                return {"_error": f"placement {placement!r} is not one of {', '.join(_LABEL_PLACEMENTS)}.",
-                        "code": "INVALID_ARGS"}
+                return tool_error(f"placement {placement!r} is not one of {', '.join(_LABEL_PLACEMENTS)}.",
+                                  "INVALID_ARGS")
             value = enum_member(Qgis, "LabelPlacement", member, None)
             if value is None:
                 value = enum_member(QgsPalLayerSettings, "Placement", member, None)
             if value is None:
-                return {"_error": f"placement {placement!r} needs a newer QGIS than this one.",
-                        "code": "INVALID_ARGS"}
+                return tool_error(f"placement {placement!r} needs a newer QGIS than this one.", "INVALID_ARGS")
             settings.placement = value
         placed = _label_placement_extras(layer, settings, spec, args, fresh)
         if isinstance(placed, dict):
@@ -2302,7 +2437,7 @@ def _set_layer_labels_2d(args: dict) -> dict:
             try:
                 font.setLetterSpacing(enum_member(QFont, "SpacingType", "AbsoluteSpacing"), float(spacing))
             except (TypeError, ValueError):
-                return {"_error": "letter_spacing must be a number of points.", "code": "INVALID_ARGS"}
+                return tool_error("letter_spacing must be a number of points.", "INVALID_ARGS")
         text_format.setFont(font)
         if rule_size is not None:
             text_format.setSize(float(rule_size))
@@ -2347,7 +2482,7 @@ def _set_layer_labels_2d(args: dict) -> dict:
         root = QgsRuleBasedLabeling.Rule(None, 0, 0, "", "root")
         for index, spec in enumerate(rules):
             if not isinstance(spec, dict):
-                return {"_error": f"rules[{index}] must be an object.", "code": "INVALID_ARGS"}
+                return tool_error(f"rules[{index}] must be an object.", "INVALID_ARGS")
             settings = make_settings(spec)
             if isinstance(settings, dict):
                 return settings
@@ -2436,13 +2571,13 @@ def _label_rank(settings, spec: dict, args: dict) -> dict | None:
         try:
             settings.priority = max(0, min(10, int(priority)))
         except (TypeError, ValueError):
-            return {"_error": "priority is a whole number from 0 (lowest) to 10.", "code": "INVALID_ARGS"}
+            return tool_error("priority is a whole number from 0 (lowest) to 10.", "INVALID_ARGS")
     z_index = spec.get("z_index", args.get("z_index"))
     if z_index is not None:
         try:
             settings.zIndex = float(z_index)
         except (TypeError, ValueError):
-            return {"_error": "z_index must be a number; higher draws on top.", "code": "INVALID_ARGS"}
+            return tool_error("z_index must be a number; higher draws on top.", "INVALID_ARGS")
     obstacle = spec.get("obstacle", args.get("obstacle"))
     if obstacle is not None:
         obstacles = settings.obstacleSettings()
@@ -2453,7 +2588,7 @@ def _label_rank(settings, spec: dict, args: dict) -> dict | None:
         try:
             settings.repeatDistance = max(0.0, float(repeat))
         except (TypeError, ValueError):
-            return {"_error": "repeat_distance must be a number of millimetres.", "code": "INVALID_ARGS"}
+            return tool_error("repeat_distance must be a number of millimetres.", "INVALID_ARGS")
     return None
 
 
@@ -2465,8 +2600,8 @@ def _label_text_look(text_format, spec: dict, args: dict) -> dict | None:
     if case:
         member = _CAPITALIZATION.get(case)
         if member is None:
-            return {"_error": f"capitalization {case!r} is not one of {', '.join(_CAPITALIZATION)}.",
-                    "code": "INVALID_ARGS"}
+            return tool_error(f"capitalization {case!r} is not one of {', '.join(_CAPITALIZATION)}.",
+                              "INVALID_ARGS")
         value = enum_member(Qgis, "Capitalization", member, None)
         if value is None:
             from qgis.core import QgsStringUtils
@@ -2478,7 +2613,7 @@ def _label_text_look(text_format, spec: dict, args: dict) -> dict | None:
         try:
             text_format.setOpacity(max(0.0, min(1.0, float(opacity))))
         except (TypeError, ValueError):
-            return {"_error": "opacity is a number from 0 (invisible) to 1.", "code": "INVALID_ARGS"}
+            return tool_error("opacity is a number from 0 (invisible) to 1.", "INVALID_ARGS")
     return None
 
 
@@ -2506,8 +2641,8 @@ def _label_placement_extras(layer, settings, spec: dict, args: dict, fresh: bool
     if position:
         names = _LINE_POSITIONS.get(position)
         if names is None:
-            return {"_error": f"line_position {position!r} is not one of {', '.join(_LINE_POSITIONS)}.",
-                    "code": "INVALID_ARGS"}
+            return tool_error(f"line_position {position!r} is not one of {', '.join(_LINE_POSITIONS)}.",
+                              "INVALID_ARGS")
         flags = None
         for name in names:
             flag = enum_member(Qgis, "LabelLinePlacementFlag", name, None)
@@ -2534,13 +2669,13 @@ def _label_placement_extras(layer, settings, spec: dict, args: dict, fresh: bool
             settings.dist = float(distance)
             done.append("distance")
         except (TypeError, ValueError):
-            return {"_error": "distance must be a number of millimetres.", "code": "INVALID_ARGS"}
+            return tool_error("distance must be a number of millimetres.", "INVALID_ARGS")
     offset = spec.get("offset", args.get("offset"))
     if offset is not None:
         try:
             dx, dy = (float(v) for v in offset)
         except (TypeError, ValueError):
-            return {"_error": "offset must be two numbers, [x, y] in millimetres.", "code": "INVALID_ARGS"}
+            return tool_error("offset must be two numbers, [x, y] in millimetres.", "INVALID_ARGS")
         settings.xOffset, settings.yOffset = dx, dy
 
         if settings.placement == enum_member(Qgis, "LabelPlacement", "AroundPoint"):
@@ -2549,7 +2684,7 @@ def _label_placement_extras(layer, settings, spec: dict, args: dict, fresh: bool
     overrides = spec.get("data_defined", args.get("data_defined")) or {}
     if overrides:
         if not isinstance(overrides, dict):
-            return {"_error": "data_defined must map label property names to expressions.", "code": "INVALID_ARGS"}
+            return tool_error("data_defined must map label property names to expressions.", "INVALID_ARGS")
         known = {definition.name().casefold(): key
                  for key, definition in QgsPalLayerSettings.propertyDefinitions().items()}
         properties = settings.dataDefinedProperties()
@@ -2590,9 +2725,9 @@ def _label_polygon_edges(layer, args: dict) -> dict:
     factors = {"m": 1.0, "meter": 1.0, "metre": 1.0, "km": 0.001,
                "ft": 3.280839895, "feet": 3.280839895}
     if unit not in factors:
-        return {"_error": "unit must be m, km or ft.", "code": "INVALID_ARGS"}
+        return tool_error("unit must be m, km or ft.", "INVALID_ARGS")
     if layer.geometryType() != 2:
-        return {"_error": "segment_lengths requires a polygon layer.", "code": "INVALID_ARGS"}
+        return tool_error("segment_lengths requires a polygon layer.", "INVALID_ARGS")
     old_id = str(layer.customProperty("terralab/segment_lengths_layer", ""))
     if old_id:
         from .processing_run import remove_layers
@@ -2602,7 +2737,7 @@ def _label_polygon_edges(layer, args: dict) -> dict:
     name = str(args.get("output_name") or f"{layer.name()} boundary dimensions")
     out_layer = QgsVectorLayer(f"LineString?crs={layer.crs().authid()}", name, "memory")
     if not out_layer.isValid():
-        return {"_error": "Could not create the boundary-dimension layer.", "code": "WRITE_FAILED"}
+        return tool_error("Could not create the boundary-dimension layer.", "WRITE_FAILED")
     out_layer.dataProvider().addAttributes([
         QgsField("source_fid", QVAR_LONGLONG), QgsField("edge_index", QVAR_INT),
         QgsField("length", QVAR_DOUBLE), QgsField("label", QVAR_STRING)])

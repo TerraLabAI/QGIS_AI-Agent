@@ -29,8 +29,9 @@ from __future__ import annotations
 import bisect
 import math
 import re
+import secrets
 
-from qgis.PyQt.QtCore import QEvent, QRect, QRectF, QSize, Qt, QUrl, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QObject, QRect, QRectF, QSize, QSizeF, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import (
     QBrush,
     QColor,
@@ -39,6 +40,7 @@ from qgis.PyQt.QtGui import (
     QFontInfo,
     QPainter,
     QPen,
+    QPixmap,
     QTextBlockFormat,
     QTextCharFormat,
     QTextCursor,
@@ -47,6 +49,7 @@ from qgis.PyQt.QtGui import (
     QTextFormat,
     QTextImageFormat,
     QTextLength,
+    QTextObjectInterface,
     QTextOption,
     QTextTableFormat,
 )
@@ -160,7 +163,9 @@ _RULE_HEIGHT = 12
 
 
 
-SOURCE_SCHEME = "source:"
+
+
+SOURCE_SCHEME = f"source-{secrets.token_hex(6)}:"
 
 
 
@@ -173,6 +178,38 @@ _PLAIN_URL = re.compile(r"https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
 def _utf16_len(text: str) -> int:
 
     return len(text.encode("utf-16-le")) // 2
+
+
+class _MarkOnlyImages(QObject, QTextObjectInterface):
+
+
+
+
+
+
+
+
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    @staticmethod
+    def _is_mark(fmt) -> bool:
+        return fmt.toImageFormat().name().startswith("source-mark:")
+
+    def intrinsicSize(self, doc, pos_in_document, fmt):  # noqa: N802
+        image = fmt.toImageFormat()
+        if not self._is_mark(fmt):
+            return QSizeF(0, 0)
+        return QSizeF(image.width(), image.height())
+
+    def drawObject(self, painter, rect, doc, pos_in_document, fmt):  # noqa: N802
+        if not self._is_mark(fmt):
+            return
+        pixmap = doc.resource(resolve_qt_enum(QTextDocument, "ResourceType", "ImageResource"),
+                              QUrl(fmt.toImageFormat().name()))
+        if isinstance(pixmap, QPixmap) and not pixmap.isNull():
+            painter.drawPixmap(rect, pixmap, QRectF(pixmap.rect()))
 
 
 class MarkdownView(QTextBrowser):
@@ -224,6 +261,10 @@ class MarkdownView(QTextBrowser):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         doc = self.document()
+
+        self._images = _MarkOnlyImages(self)
+        doc.documentLayout().registerHandler(
+            resolve_qt_enum(QTextFormat, "ObjectTypes", "ImageObject"), self._images)
 
 
         doc.setUndoRedoEnabled(False)

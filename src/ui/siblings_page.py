@@ -57,7 +57,7 @@ from .cross_plugin_discovery import (
     open_sibling,
     open_sibling_tutorial,
 )
-from .font_scale import scale_px_length, widget_pixel_ratio
+from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .learn_page import Thumbnail, ThumbnailLoader, cached_thumbnail, is_thumbnail_url_usable
 from .logo_tile import logo_pixmap
 from .settings_pages import (
@@ -94,21 +94,21 @@ _SCROLLBAR_W = 16
 
 
 _CARD_QSS = (
-    f"QFrame#siblingCard {{ background: {SURFACE}; border: 1px solid {HAIRLINE};"
+    scale_qss_font_px(f"QFrame#siblingCard {{ background: {SURFACE}; border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_CARD}px; }}"
     f"QLabel#siblingName {{ font-size: {FONT_BASE + 1}px; font-weight: 600;"
     " color: palette(text); background: transparent; }"
     f"QLabel#siblingNote {{ font-size: {FONT_BODY}px; color: {MUTED};"
     " background: transparent; }"
     f"QLabel#siblingState {{ font-size: {FONT_HINT}px; color: {MUTED};"
-    " background: transparent; }"
+    " background: transparent; }")
 )
 
 
 _GUIDE_BTN_QSS = (
-    f"QPushButton {{ background: transparent; color: {MUTED}; border: none;"
+    scale_qss_font_px(f"QPushButton {{ background: transparent; color: {MUTED}; border: none;"
     " border-radius: 8px; padding: 7px 10px; font-size: 12px; }"
-    f"QPushButton:hover {{ color: palette(text); background: {TINT_HOVER}; }}"
+    f"QPushButton:hover {{ color: palette(text); background: {TINT_HOVER}; }}")
 )
 
 

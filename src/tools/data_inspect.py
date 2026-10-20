@@ -11,7 +11,6 @@ import os
 import posixpath
 import re
 import shutil
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -20,7 +19,7 @@ import zlib
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer, QgsWkbTypes
 
-from ..core import http_headers, limits, links, net, security, tuning, vsi
+from ..core import http_headers, limits, links, net, read_clock, security, tuning, vsi
 from ..core.background import delete_here, run_on_main_thread, take
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, remove_tree
@@ -157,53 +156,6 @@ def _given_srs(crs):
     return srs
 
 
-def _features_in_box(source: str, sublayer: str | None, bbox, given=None) -> tuple[int | None, object]:
-
-
-
-
-
-    from osgeo import ogr, osr
-
-    west, south, east, north = bbox
-    dataset = layer = None
-    declared = None
-    try:
-        try:
-            dataset = ogr.Open(source)
-        except RuntimeError as exc:
-            raise OSError(str(exc)) from exc
-        if dataset is None:
-            raise OSError("GDAL could not open it")
-        layer = dataset.GetLayerByName(str(sublayer)) if sublayer else dataset.GetLayer(0)
-        if layer is None:
-            raise _NoSuchLayer([dataset.GetLayer(i).GetName() for i in range(dataset.GetLayerCount())])
-        box = (west, south, east, north)
-        declared = layer.GetSpatialRef()
-        if declared is not None:
-            declared = declared.Clone()
-        layer_srs = declared or given
-        if layer_srs is not None:
-            wgs84 = osr.SpatialReference()
-            wgs84.ImportFromEPSG(4326)
-            wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-            layer_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-            if not layer_srs.IsSame(wgs84):
-                transform = osr.CoordinateTransformation(wgs84, layer_srs)
-                corners = [transform.TransformPoint(x, y)[:2] for x in (west, east) for y in (south, north)]
-                box = (min(c[0] for c in corners), min(c[1] for c in corners),
-                       max(c[0] for c in corners), max(c[1] for c in corners))
-        layer.SetSpatialFilterRect(*box)
-        return int(layer.GetFeatureCount(1)), declared
-    except (OSError, _NoSuchLayer):
-        raise
-    except Exception:  # noqa: BLE001
-        return None, declared
-    finally:
-        del layer
-        del dataset
-
-
 
 
 
@@ -212,8 +164,188 @@ def _features_in_box(source: str, sublayer: str | None, bbox, given=None) -> tup
 _EXTRACT_FEATURES_PER_S = 1_000
 
 
+def _open_in_box(source: str, sublayer: str | None, bbox, given=None) -> tuple:
+
+
+
+
+
+
+    from osgeo import ogr, osr
+
+    west, south, east, north = bbox
+    try:
+        dataset = ogr.Open(source)
+    except RuntimeError as exc:
+        raise OSError(str(exc)) from exc
+    if dataset is None:
+        raise OSError("GDAL could not open it")
+    layer = dataset.GetLayerByName(str(sublayer)) if sublayer else dataset.GetLayer(0)
+    if layer is None:
+        names = [dataset.GetLayer(i).GetName() for i in range(dataset.GetLayerCount())]
+        dataset = None
+        raise _NoSuchLayer(names)
+    box = (west, south, east, north)
+    declared = layer.GetSpatialRef()
+    if declared is not None:
+        declared = declared.Clone()
+    layer_srs = declared or given
+    if layer_srs is not None:
+        wgs84 = osr.SpatialReference()
+        wgs84.ImportFromEPSG(4326)
+        wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        layer_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        if not layer_srs.IsSame(wgs84):
+            try:
+                transform = osr.CoordinateTransformation(wgs84, layer_srs)
+                corners = [transform.TransformPoint(x, y)[:2] for x in (west, east) for y in (south, north)]
+                box = (min(c[0] for c in corners), min(c[1] for c in corners),
+                       max(c[0] for c in corners), max(c[1] for c in corners))
+            except RuntimeError:
+                pass
+    layer.SetSpatialFilterRect(*box)
+    return dataset, layer, declared, layer_srs
+
+
+def _count_from_index(layer) -> int | None:
+
+
+
+    try:
+        return int(layer.GetFeatureCount(0))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _box_reads_whole_file(layer) -> bool:
+
+
+
+
+    try:
+        groups = layer.GetMetadataItem("NUM_ROW_GROUPS", "_PARQUET_")
+        geo = layer.GetMetadataItem("geo", "_PARQUET_METADATA_")
+    except Exception:  # noqa: BLE001
+        return False
+    if not geo:
+        return False
+    if str(groups or "").strip() == "1":
+        return True
+    try:
+        meta = json.loads(geo)
+        column = (meta.get("columns") or {}).get(meta.get("primary_column") or "geometry") or {}
+    except (ValueError, AttributeError):
+        return False
+    return str(column.get("encoding") or "").upper() == "WKB" and not column.get("covering")
+
+
+
+_COPY_COMMIT_EVERY = 20_000
+
+
+def _copy_box(layer, layer_srs, path: str, clock, count: int | None) -> dict:
+
+
+
+
+
+
+
+
+
+
+
+    from osgeo import gdal, ogr, osr
+
+    from .data_overture_extract import _close_dataset
+
+    copied = 0
+    target = out = None
+    try:
+        wgs84 = osr.SpatialReference()
+        wgs84.ImportFromEPSG(4326)
+        wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        transform = (None if layer_srs is None or layer_srs.IsSame(wgs84)
+                     else osr.CoordinateTransformation(layer_srs, wgs84))
+        target = ogr.GetDriverByName("GPKG").CreateDataSource(path)
+        if target is None:
+            return {"failed": f"GDAL could not create {os.path.basename(path)}"}
+        source_defn = layer.GetLayerDefn()
+
+
+        taken = {source_defn.GetFieldDefn(i).GetName().lower() for i in range(source_defn.GetFieldCount())}
+        geometry_name = layer.GetGeometryColumn() or "geom"
+        while geometry_name.lower() in taken:
+            geometry_name += "_"
+        out = target.CreateLayer(layer.GetName() or "extract", wgs84, layer.GetGeomType(),
+                                 ["SPATIAL_INDEX=YES", f"GEOMETRY_NAME={geometry_name}"])
+        for index in range(source_defn.GetFieldCount()):
+            try:
+                out.CreateField(source_defn.GetFieldDefn(index))
+            except RuntimeError:
+                continue
+        out_defn = out.GetLayerDefn()
+        out.StartTransaction()
+        layer.ResetReading()
+
+
+
+        gdal.ErrorReset()
+        while True:
+            if net.is_cancelled():
+                return {"cancelled": True, "copied": copied}
+            if clock.over(copied / count if count else None):
+                return {"late": True, "copied": copied}
+            feature = layer.GetNextFeature()
+            if feature is None:
+                if gdal.GetLastErrorType() >= gdal.CE_Failure:
+                    return {"failed": gdal.GetLastErrorMsg() or "the read of the box stopped", "copied": copied}
+                break
+            row = ogr.Feature(out_defn)
+            row.SetFrom(feature, 1)
+            geometry = row.GetGeometryRef()
+            if transform is not None and geometry is not None:
+                geometry.Transform(transform)
+            if out.CreateFeature(row) != 0:
+                return {"failed": gdal.GetLastErrorMsg() or "a feature could not be written", "copied": copied}
+            copied += 1
+            if copied % _COPY_COMMIT_EVERY == 0:
+                out.CommitTransaction()
+                out.StartTransaction()
+        out.CommitTransaction()
+        return {"copied": copied, "layer_in_file": out.GetName()}
+    except RuntimeError as exc:
+        return {"failed": str(exc), "copied": copied}
+    finally:
+        out = None
+        if target is not None:
+            _close_dataset(target)
+
+
+def _whole_file_to_disk(url: str, file_name: str, clock) -> dict:
+
+
+
+
+    folder = create_managed_temp_dir("download")
+    path = os.path.join(folder, _safe_filename(file_name) or "download.parquet")
+    streamed = _stream_to_disk(url, path, max(10.0, clock.left()))
+    if isinstance(streamed, dict):
+        remove_tree(folder)
+        streamed["_error"] = (f"{file_name} cannot be read in part: any box of it reads the whole file "
+                              f"(one row group, or no bbox covering), so it is downloaded whole. "
+                              f"{streamed['_error']}")
+        return streamed
+    return {"path": path, "folder": folder}
+
+
 def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | None, bbox: list,
-                           args: dict | None = None) -> dict:
+                           args: dict | None = None, clock: read_clock.ReadClock | None = None) -> dict:
+
+
+
+
+
 
 
 
@@ -231,21 +363,29 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
     from osgeo import gdal
 
     gdal.UseExceptions()
-    west, south, east, north = bbox
+    clock = clock or read_clock.ReadClock()
     file_name = posixpath.basename(urllib.parse.urlparse(url).path)
-    started = time.monotonic()
 
 
 
     given_crs = (args or {}).get("crs")
     given = _given_srs(given_crs)
+    downloaded = None
     try:
-        count, declared = _features_in_box(source, sublayer, bbox, given)
+        dataset, layer, declared, layer_srs = _open_in_box(source, sublayer, bbox, given)
+        if _box_reads_whole_file(layer):
+            dataset = layer = None
+            downloaded = _whole_file_to_disk(url, file_name, clock)
+            if "_error" in downloaded:
+                return downloaded
+            dataset, layer, declared, layer_srs = _open_in_box(downloaded["path"], sublayer, bbox, given)
     except _NoSuchLayer as exc:
+        _drop_download(downloaded)
         layers = list(exc.args[0])
         return tool_error(f"{file_name} holds no layer named {sublayer!r}; its layers: {', '.join(layers)}.",
                           "INVALID_ARGS", hint="layer_not_in_file", layers=layers)
     except OSError as exc:
+        _drop_download(downloaded)
 
 
         try:
@@ -257,77 +397,110 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
                 return refused
         return tool_error(f"GDAL could not open {file_name} over HTTP: {exc}", "EXECUTION_FAILED",
                           hint="gdal_open_failed")
+    try:
+        return _cut_box(layer, declared, layer_srs, url, file_name, name, bbox, args, clock)
+    finally:
+        layer = None
+        dataset = None  # noqa: F841
+        _drop_download(downloaded)
+
+
+def _drop_download(downloaded: dict | None) -> None:
+    if downloaded and downloaded.get("folder"):
+        remove_tree(downloaded["folder"])
+
+
+def _cut_box(layer, declared, layer_srs, url: str, file_name: str, name: str, bbox: list, args, clock) -> dict:
+
+    west, south, east, north = bbox
+    given_crs = (args or {}).get("crs")
+    if layer_srs is None:
+        return tool_error(f"The extract from {url} failed: {file_name} declares no coordinate system, so the box "
+                          "cannot be placed on it; crs names the one its coordinates are in.", "EXECUTION_FAILED",
+                          hint="extract_failed")
+    count = _count_from_index(layer)
     if count is None:
         area = _bbox_km2(south, west, north, east)
         ceiling = limits.current("MAX_FETCH_KM2")
         if area > ceiling and not volume_guard.lifted(args or {}):
-            return {"_error": (f"The box is {area:,.0f} km2 and {file_name} "
-                               f"could not say how many features it holds, so the {ceiling:,.0f} km2 limit for one "
-                               "extract applies."),
-                    "code": limits.CEILING_CODE,
-                    "suggestion": f"{ceiling:,.0f} km2 around the area of interest fits the limit."}
+            return tool_error(f"The box is {area:,.0f} km2 and {file_name} "
+                              f"could not say how many features it holds, so the {ceiling:,.0f} km2 limit for one "
+                              "extract applies.",
+                              limits.CEILING_CODE, hint="extract_box_over_ceiling", ceiling=ceiling)
     elif count == 0:
-
-        return {"loaded": False, "feature_count": 0,
-                "note": f"{file_name} holds no feature in this box."}
-    elif not volume_guard.lifted(args or {}):
+        return _empty_box(file_name)
+    elif count > 0 and not volume_guard.lifted(args or {}):
 
 
-        left = max(0.0, limits.current("CALL_MAX_SECONDS_BACKGROUND") - (time.monotonic() - started))
-        fits = int(left * tuning.threshold("extract_features_per_s", _EXTRACT_FEATURES_PER_S, 200, 20_000))
+        fits = int(clock.left() * tuning.threshold("extract_features_per_s", _EXTRACT_FEATURES_PER_S, 200, 20_000))
         if count > fits:
-            area = _bbox_km2(south, west, north, east)
-            smaller = limits.shrink_bbox((south, west, north, east), area * fits / count) if fits else None
-            out = {"_error": (f"The box holds {count:,} features of {file_name}; the {left:.0f} s this call has "
-                              f"left copies about {fits:,}, so nothing was loaded."),
-                   **volume_guard.coded(hint="feature_ceiling", variant="cap"),
-                   "code": limits.CEILING_CODE, "feature_count": count, "suggestion": ""}
-            if smaller:
-                out["bbox_that_fits"] = [smaller[1], smaller[0], smaller[3], smaller[2]]
-                out["variant"] = "cap_box"
-            return out
+            return _over_clock(file_name, bbox, count, fits, f"the {clock.left():.0f} s this call has left copies "
+                                                             f"about {fits:,}")
+    known = count if count and count > 0 else None
     directory = create_managed_temp_dir("extract")
     path = os.path.join(directory, f"{_safe_extract_stem(name)}.gpkg")
-    kwargs = {"format": "GPKG", "spatFilter": [west, south, east, north],
-              "spatSRS": "EPSG:4326", "dstSRS": "EPSG:4326"}
-    crs_note = ""
-    if declared is None and given is not None:
-        kwargs["srcSRS"] = str(given_crs)
-        crs_note = f"{file_name} declares no CRS; it was read as {given_crs}, the crs of this call."
-    elif declared is not None and given is not None and not declared.IsSame(given):
-        name_of = declared.GetAuthorityCode(None)
-        declared_name = (f"{declared.GetAuthorityName(None)}:{name_of}" if name_of
-                         else (declared.GetName() or "its own CRS"))
-        crs_note = (f"{file_name} declares {declared_name}, which was kept; the crs of this call, "
-                    f"{given_crs}, was not applied.")
-    if sublayer:
-        kwargs["layers"] = [str(sublayer)]
+    copied = _copy_box(layer, layer_srs, path, clock, known)
+    done = copied.get("copied", 0)
+    if not any(key in copied for key in ("late", "cancelled", "failed")) and done:
+        out = {"path": path, "feature_count": done, "layer_in_file": copied.get("layer_in_file")}
+        crs_note = _extract_crs_note(declared, file_name, given_crs)
+        if crs_note:
+            out["crs_note"] = crs_note
+        return out
+    remove_tree(directory)
+    if copied.get("cancelled"):
+        return tool_error("The run was stopped.", "CANCELLED")
+    if copied.get("failed"):
+        return tool_error(f"The extract from {url} failed: {copied['failed']}", "EXECUTION_FAILED",
+                          hint="extract_failed")
+    if not copied.get("late"):
+        return _empty_box(file_name)
+    spent = clock.spent()
+    rate = done / spent if spent > 0 else 0.0
+    fits = int(rate * clock.allowed)
+    if known:
+        return _over_clock(file_name, bbox, known, fits,
+                           f"in {spent:.0f} s this connection copied {done:,} of them ({rate:,.0f} a second): "
+                           f"the {clock.allowed:.0f} s one call has copies about {fits:,}")
+    return tool_error(f"In {spent:.0f} s, {done:,} features of {file_name} inside the box arrived "
+                      f"({rate:,.0f} a second) and the box was not finished, so nothing was loaded: it holds more "
+                      f"than this connection copies in the {clock.allowed:.0f} s one call has.",
+                      limits.CEILING_CODE, hint="extract_late", features_copied=done, seconds=round(spent),
+                      features_per_s=round(rate))
 
 
+def _empty_box(file_name: str) -> dict:
+
+    return {"loaded": False, "feature_count": 0, "note": f"{file_name} holds no feature in this box."}
 
 
-    local = callable(getattr(gdal, "GetThreadLocalConfigOption", None))
-    getter = gdal.GetThreadLocalConfigOption if local else gdal.GetConfigOption
-    setter = gdal.SetThreadLocalConfigOption if local else gdal.SetConfigOption
-    previous = getter("OGR2OGR_USE_ARROW_API", None)
-    setter("OGR2OGR_USE_ARROW_API", "NO")
-    try:
-        written = gdal.VectorTranslate(path, source, **kwargs)
-    except RuntimeError as exc:
-        return tool_error(f"The extract from {url} failed: {exc}", "EXECUTION_FAILED", hint="extract_failed")
-    finally:
-        setter("OGR2OGR_USE_ARROW_API", previous)
-    if written is None:
-        return tool_error(f"The extract from {url} produced nothing.", "EXECUTION_FAILED", hint="extract_empty")
-    out_layer = written.GetLayer(0)
-    count = int(out_layer.GetFeatureCount()) if out_layer is not None else 0
-    layer_in_file = out_layer.GetName() if out_layer is not None else None
-    del out_layer
-    del written
-    out = {"path": path, "feature_count": count, "layer_in_file": layer_in_file}
-    if crs_note:
-        out["crs_note"] = crs_note
+def _over_clock(file_name: str, bbox: list, count: int, fits: int, pace: str) -> dict:
+
+
+    west, south, east, north = bbox
+    area = _bbox_km2(south, west, north, east)
+    smaller = limits.shrink_bbox((south, west, north, east), area * fits / count) if fits > 0 else None
+    out = tool_error(f"The box holds {count:,} features of {file_name}; {pace}. Nothing was loaded.",
+                     limits.CEILING_CODE, feature_count=count,
+                     **volume_guard.coded(hint="feature_ceiling", variant="cap"))
+    if smaller:
+        out["bbox_that_fits"] = [smaller[1], smaller[0], smaller[3], smaller[2]]
+        out["variant"] = "cap_box"
     return out
+
+
+def _extract_crs_note(declared, file_name: str, given_crs) -> str:
+
+    given = _given_srs(given_crs)
+    if given is None:
+        return ""
+    if declared is None:
+        return f"{file_name} declares no CRS; it was read as {given_crs}, the crs of this call."
+    if declared.IsSame(given):
+        return ""
+    code = declared.GetAuthorityCode(None)
+    declared_name = (f"{declared.GetAuthorityName(None)}:{code}" if code else (declared.GetName() or "its own CRS"))
+    return f"{file_name} declares {declared_name}, which was kept; the crs of this call, {given_crs}, was not applied."
 
 
 def _safe_extract_stem(text: str) -> str:
@@ -353,6 +526,7 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
 
 
 
+    clock = read_clock.ReadClock()
 
 
     net.check_url(url)
@@ -374,7 +548,7 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
         source = f"{source}|layername={sublayer}"
 
     if bbox:
-        cut = _extract_remote_vector(source.split("|", 1)[0], url, name, sublayer, bbox, args)
+        cut = _extract_remote_vector(source.split("|", 1)[0], url, name, sublayer, bbox, args, clock)
         if "_error" in cut or "path" not in cut:
             return cut
         local = cut["path"]
@@ -388,9 +562,8 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
             if layer is None:
                 layer = QgsVectorLayer(local, name, "ogr")
             if not layer.isValid():
-                return {"_error": f"QGIS could not read the extract cut from {url}.",
-                        "_code": "EXECUTION_FAILED",
-                        **coded_fact(hint="extract_unreadable")}
+                return tool_error(f"QGIS could not read the extract cut from {url}.", "EXECUTION_FAILED",
+                                  hint="extract_unreadable")
             QgsProject.instance().addMapLayer(layer)
             return {
                 "layer_name": layer.name(),
@@ -429,9 +602,8 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
         if layer is None:
             layer = QgsVectorLayer(source, name, "ogr")
         if not layer.isValid():
-            return {"_error": f"QGIS could not read {url} over HTTP range requests.",
-                    "_code": "INVALID_ARGS",
-                    **coded_fact(hint="range_requests_unsupported")}
+            return tool_error(f"QGIS could not read {url} over HTTP range requests.", "INVALID_ARGS",
+                              hint="range_requests_unsupported")
         given_crs = (args or {}).get("crs")
         if given_crs and not layer.crs().isValid():
 
@@ -632,9 +804,9 @@ def _add_vector_from_url(args: dict) -> dict:
                               or [{"name": f["name"], "url": f["url"]} for f in (link.get("files") or [])[:15]])
         if not _downloads_as_vector(data[0]):
 
-            return {"_error": f"{link['note']} It is read with {data[0]['add']['tool']}, not downloaded.",
-                    "code": "INVALID_ARGS", "call": data[0]["add"],
-                    "suggestion": f"{data[0]['add']['tool']}, with call arguments, reads it."}
+            return tool_error(f"{link['note']} It is read with {data[0]['add']['tool']}, not downloaded.",
+                              "INVALID_ARGS", hint="link_read_not_downloaded", call=data[0]["add"],
+                              tool=data[0]["add"]["tool"])
         url = data[0]["url"]
     out = _download_vector_from_url(args, url, args.get("layer_name"), shared=bool(link.get("resolved_from")))
     if link.get("resolved_from") and isinstance(out, dict):
@@ -655,7 +827,7 @@ def _add_inline_geojson(link: dict, layer_name) -> dict:
     def _create():
         layer = _layer_from_geojson_str(text, name, "geojson")
         if not layer.isValid():
-            return {"_error": "QGIS could not read the GeoJSON the link carries.", "code": "INVALID_ARGS"}
+            return tool_error("QGIS could not read the GeoJSON the link carries.", "INVALID_ARGS")
         QgsProject.instance().addMapLayer(layer)
         return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount(),
                 "resolved_from": link["resolved_from"]}
@@ -685,8 +857,7 @@ def _gunzip_download(filepath: str, cap: int = _MAX_EXTRACTED_SIZE):
             written = 0
             while True:
                 if cancel is not None and cancel():
-                    return {"_error": "The run was stopped while the download was being unpacked.",
-                            "code": "CANCELLED"}
+                    return tool_error("The run was stopped while the download was being unpacked.", "CANCELLED")
                 chunk = source.read(1 << 20)
                 if not chunk:
                     break
@@ -714,7 +885,7 @@ def _download_vector_from_url(args: dict, url: str, layer_name, shared: bool = F
 
 
         range_failure = (
-            ranged.get("_code") == "INVALID_ARGS"
+            ranged.get("code") == "INVALID_ARGS"
             and "over HTTP range requests" in str(ranged.get("_error") or "")
         )
         if args.get("bbox") or not range_failure:
@@ -741,28 +912,34 @@ def _share_page(shared: bool, head: bytes) -> dict | None:
     return None
 
 
+def _stream_to_disk(url: str, path: str, total_timeout: float):
+
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+        return net.fetch_to_file(req, path, timeout=_download_timeout(),
+                                 max_bytes=limits.current("MAX_STREAM_BYTES"), total_timeout=total_timeout)
+    except net.FetchTooLarge as e:
+        return tool_error(f"The file is larger than this disk can take for one load: {e}", limits.CEILING_CODE,
+                          hint="download_too_large")
+    except net.FetchDeadline as e:
+        return tool_error(f"The download did not finish in time: {e}", hint="download_late")
+    except net.FetchTooSlow as e:
+        return tool_error(f"The download would not finish in time: {e}", hint="download_late")
+    except net.FetchCancelled:
+        return tool_error("The run was stopped.", "CANCELLED")
+    except (urllib.error.URLError, OSError) as e:
+        return _http_refusal(url, e) or tool_error(f"Failed to download: {e}")
+
+
 def _download_to_disk(args: dict, url: str, layer_name, shared: bool) -> dict:
 
     tmp_dir = create_managed_temp_dir("download")
     body = os.path.join(tmp_dir, "download.bin")
     clock = limits.current("CALL_MAX_SECONDS_BACKGROUND") * _STREAM_DOWNLOAD_SHARE
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
-        streamed = net.fetch_to_file(req, body, timeout=_download_timeout(),
-                                     max_bytes=limits.current("MAX_STREAM_BYTES"),
-                                     total_timeout=min(_DOWNLOAD_TOTAL_TIMEOUT, clock))
-    except net.FetchTooLarge as e:
-        return _discard_download(tmp_dir, tool_error(
-            f"The file is larger than this disk can take for one load: {e}", limits.CEILING_CODE,
-            hint="download_too_large"))
-    except net.FetchDeadline as e:
-        return _discard_download(tmp_dir, tool_error(f"The download did not finish in time: {e}",
-                                                     hint="download_late"))
-    except net.FetchCancelled:
-        return _discard_download(tmp_dir, {"_error": "The run was stopped.", "code": "CANCELLED",
-                                           "suggestion": "The user stopped the run."})
-    except (urllib.error.URLError, OSError) as e:
-        return _discard_download(tmp_dir, _http_refusal(url, e) or {"_error": f"Failed to download: {e}"})
+    streamed = _stream_to_disk(url, body, min(_DOWNLOAD_TOTAL_TIMEOUT, clock))
+    if isinstance(streamed, dict):
+        return _discard_download(tmp_dir, streamed)
     with open(streamed.path, "rb") as handle:
         head = handle.read(512)
     refused = _share_page(shared, head)
@@ -867,7 +1044,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                         and target_path != os.path.realpath(tmp_dir)
                     ):
                         return _discard_download(
-                            tmp_dir, {"_error": f"ZIP archive contains an unsafe path: {member.filename}"})
+                            tmp_dir, tool_error(f"ZIP archive contains an unsafe path: {member.filename}"))
                     extracted += member.file_size
 
 
@@ -887,10 +1064,8 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                 cancel = net.current_cancel_check()
                 for member in members:
                     if cancel is not None and cancel():
-                        return _discard_download(tmp_dir, {
-                            "_error": "The run was stopped while the archive was being unpacked.",
-                            "code": "CANCELLED",
-                        })
+                        return _discard_download(tmp_dir, tool_error(
+                            "The run was stopped while the archive was being unpacked.", "CANCELLED"))
                     _extract_member(zf, member, tmp_dir)
 
 
@@ -1028,7 +1203,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
         if isinstance(loaded, dict) and loaded.get("_error") is not None:
             return _discard_download(tmp_dir, loaded)
         return loaded
-    if filepath.lower().endswith((".csv", ".tsv")):
+    if filepath.lower().endswith(CSV_EXTENSIONS):
 
 
 
@@ -1208,7 +1383,7 @@ def _inspect_local_file(path: str) -> dict:
         try:
             info = sniff(path)
         except OSError as exc:
-            return {"_error": f"Failed to read {path}: {exc}"}
+            return tool_error(f"Failed to read {path}: {exc}")
         out.update({
             "delimiter": info["delimiter"], "decimal_separator": info["decimal"],
             "columns": info["header"][:40], "rows_sampled": info["rows"],
@@ -1467,8 +1642,19 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
     return result
 
 
-def _landing_url(url: str) -> str:
+def _gone(url: str) -> int | None:
 
+
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": _USER_AGENT})
+    try:
+        net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=1024, total_timeout=_PORTAL_TIMEOUT)
+    except (urllib.error.URLError, OSError) as exc:
+        status = getattr(exc, "code", None)
+        return status if status in (404, 410) else None
+    return None
+
+
+def _landing(url: str) -> tuple[str, dict]:
 
 
 
@@ -1478,8 +1664,8 @@ def _landing_url(url: str) -> str:
     try:
         answer = net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=1024, total_timeout=_PORTAL_TIMEOUT)
     except (urllib.error.URLError, OSError):
-        return ""
-    return answer.url or ""
+        return "", {}
+    return answer.url or "", {str(k).lower(): str(v) for k, v in (answer.headers or {}).items()}
 
 
 
@@ -1487,20 +1673,37 @@ def _landing_url(url: str) -> str:
 
 
 
+_CLASSIFY_BODY_BYTES = 25 * 1024 * 1024
 
 
-_INSPECT_HTTP_ADVICE: dict[int, tuple[str, str, dict]] = {
-    400: ("INVALID_ARGS", "the server rejected the request itself", coded_fact(hint="inspect_http_400")),
-    401: ("EXECUTION_FAILED", "the service wants credentials", coded_fact(hint="inspect_http_401")),
-    403: ("EXECUTION_FAILED", "the service refused us", coded_fact(hint="inspect_http_403")),
-    404: ("INVALID_ARGS", "there is nothing at this address", coded_fact(hint="inspect_http_404")),
-    405: ("INVALID_ARGS", "the service refuses this method", coded_fact(hint="inspect_http_405")),
-    409: ("INVALID_ARGS", "the request conflicts with what the service holds",
-          coded_fact(hint="inspect_http_409")),
-    410: ("INVALID_ARGS", "this address is gone for good", coded_fact(hint="inspect_http_410")),
-    429: ("EXECUTION_FAILED", "the host is rate limiting us", coded_fact(hint="inspect_http_429")),
-}
-_INSPECT_SERVER_ERROR = ("EXECUTION_FAILED", "the service failed on its side", coded_fact(hint="inspect_http_5xx"))
+def _too_large_to_read(url: str, headers: dict) -> dict | None:
+
+
+    length = str(headers.get("content-length") or "").strip()
+    content_type = (headers.get("content-type") or "").split(";", 1)[0].strip().lower()
+    if not length.isdigit() or int(length) <= _CLASSIFY_BODY_BYTES or any(
+            kind in content_type for kind in ("json", "xml", "html")):
+        return None
+    path = urllib.parse.urlparse(url).path
+    ext = _extension_of_download(path.lower(), headers, b"")
+    if ext in _DIRECT_IMPORT_EXTS:
+        result = _build_direct_import_result(url, os.path.basename(path) or "dataset", "vector_file", ext.lstrip("."))
+    else:
+        result = {"source_family": "unknown", "final_url": url, "content_type": content_type or "unknown",
+                  "message": "A file whose name and content type name no format QGIS reads; it was not "
+                             "downloaded to classify it."}
+    result["size_bytes"] = int(length)
+    return result
+
+
+
+
+
+
+_HTTP_WRONG_REQUEST = frozenset({400, 404, 405, 409, 410})
+
+
+_HTTP_ADVISED = frozenset({400, 401, 403, 404, 405, 409, 410, 429})
 
 
 
@@ -1565,14 +1768,14 @@ def _http_refusal(url: str, exc: Exception) -> dict | None:
     status = getattr(exc, "code", None)
     if not isinstance(status, int):
         return None
-    code, what, fact = _INSPECT_HTTP_ADVICE.get(
-        status, _INSPECT_SERVER_ERROR if status >= 500 else
-        ("EXECUTION_FAILED", "the service refused the request", {}))
-    message = f"HTTP {status} from {url}: {what}."
+    code = "INVALID_ARGS" if status in _HTTP_WRONG_REQUEST else "EXECUTION_FAILED"
+    hint = ("inspect_http_5xx" if status >= 500 else f"inspect_http_{status}" if status in _HTTP_ADVISED
+            else "inspect_http_other")
+    message = f"HTTP {status} from {url}."
     reason = _service_reason(exc)
     if reason:
         message += f" The service says: {reason}"
-    out = tool_error(message, code, suggestion="" if fact else "The status says why.", **fact)
+    out = tool_error(message, code, hint=hint)
     out["status"] = status
     if reason:
         out["service_says"] = reason
@@ -1768,6 +1971,14 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
                 "load_note": coded_fact(hint="tile_template_load", tile_kind="vector tile" if vector else "tile")}
     if streamed in _STREAMED_EXTS:
         kind = _STREAMED_EXTS[streamed]
+
+
+
+
+        status = None if landed else _gone(url)
+        if status:
+            return {"source_family": "not_found", "final_url": url, "status": status,
+                    "message": f"HTTP {status} from {url}: there is nothing at this address."}
         return {"source_family": "remote_file", "final_url": url, "format": streamed.lstrip("."),
                 "import_method": "add_data", "import_arguments": {"source": url, "name": name, "kind": kind},
                 "message": "A remote file." if kind != "raster" else "A NetCDF file.",
@@ -1818,7 +2029,10 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
 
 
     if not landed:
-        landing = _landing_url(url)
+        landing, head = _landing(url)
+        large = _too_large_to_read(landing or url, head)
+        if large is not None:
+            return large
         if landing and landing != url:
             result = _inspect_remote_url(landing, landed=True)
             result.setdefault("resolved_from", url)

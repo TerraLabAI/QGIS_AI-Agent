@@ -316,10 +316,6 @@ class EditWatcher:
                     pass
         self._layers = kept
 
-    @property
-    def watching(self) -> bool:
-        return self._watching
-
     def take(self) -> QgsRectangle | None:
 
         rect = self.peek()

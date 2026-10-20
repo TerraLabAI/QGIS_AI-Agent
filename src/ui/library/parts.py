@@ -16,11 +16,13 @@
 
 
 
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPixmap
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics
 from qgis.PyQt.QtWidgets import (
+    QBoxLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -31,73 +33,61 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..font_scale import widget_pixel_ratio
-from ..icons import has_glyph, icon_for, pixmap_for, render_pixmap
+from ..icons import icon_for, pixmap_for
 from . import common as C
-from .pressable import mouse_through
+from .pressable import Pressable, labels_through, mouse_through
 
 _SEARCH_W = 240
 _LABEL_W = 168
 
-_BADGE_GLYPH = "layers"
-_BADGE_GREY = "#8e8e93"
-
-
-def badge_pixmap(glyph: str, accent: str, side: int, ratio: float = 1.0) -> QPixmap:
-
-    fill = QColor(accent) if accent and QColor(accent).isValid() else QColor(_BADGE_GREY)
-    name = glyph if has_glyph(glyph) else _BADGE_GLYPH
-    physical = max(1, int(round(side * ratio)))
-    pixmap = QPixmap(physical, physical)
-    pixmap.setDevicePixelRatio(ratio)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    try:
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(fill)
-        corner = side * 0.26
-        painter.drawRoundedRect(QRectF(0, 0, side, side), corner, corner)
-        inner = max(8, round(side * 0.74))
-        offset = (side - inner) / 2.0
-        painter.drawPixmap(QRectF(offset, offset, inner, inner),
-                           render_pixmap(name, QColor("#ffffff"), inner, ratio),
-                           QRectF(0, 0, inner * ratio, inner * ratio))
-    finally:
-        painter.end()
-    return pixmap
-
-
-def category_badge(parent: QWidget, glyph: str, accent: str, side: int) -> QLabel:
-
-    badge = QLabel(parent)
-    badge.setStyleSheet("background: transparent;")
-    badge.setFixedSize(side, side)
-    badge.setPixmap(badge_pixmap(glyph, accent, side, widget_pixel_ratio(badge)))
-    mouse_through(badge)
-    return badge
-
 
 def search_pill(parent: QWidget, name: str, placeholder: str) -> QLineEdit:
 
+
     field = QLineEdit(parent)
     field.setObjectName(name)
-    field.setStyleSheet(C.search_qss(name))
     field.setPlaceholderText(placeholder)
     field.setClearButtonEnabled(True)
-    field.setFixedWidth(C.px(_SEARCH_W))
     glyph = QLabel(field)
+    glyph.setObjectName("searchGlyph")
     glyph.setPixmap(pixmap_for(glyph, "search", 16, QColor(C.T.text_2)))
     glyph.setStyleSheet("background: transparent;")
     glyph.setFixedSize(16, 16)
-    glyph.move(14, max(0, (C.px(36) - 16) // 2))
     mouse_through(glyph)
+    set_pill_wide(field, False)
     return field
 
 
+_WIDE_SEARCH_W = 640
+
+
+def set_pill_wide(field: QLineEdit, wide: bool, room: int = 0) -> None:
+
+
+    height = C.px(44 if wide else 36)
+    field.setStyleSheet(C.search_qss(field.objectName(), 44 if wide else 36))
+    field.setFixedHeight(height)
+    width = min(C.px(_WIDE_SEARCH_W), room) if wide and room > 0 else (
+        C.px(_WIDE_SEARCH_W) if wide else C.px(_SEARCH_W))
+    field.setFixedWidth(max(C.px(_SEARCH_W), width))
+    glyph = field.findChild(QLabel, "searchGlyph")
+    if glyph is not None:
+        glyph.move(C.px(16), max(0, (height - 16) // 2))
+
+
 def primary_button(parent: QWidget, text: str) -> QPushButton:
+
     button = QPushButton(text, parent)
     button.setStyleSheet(C.primary_qss())
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setAutoDefault(False)
+    return button
+
+
+def secondary_button(parent: QWidget, text: str) -> QPushButton:
+
+    button = QPushButton(text, parent)
+    button.setStyleSheet(C.secondary_qss())
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setAutoDefault(False)
     return button
@@ -113,51 +103,145 @@ def label(parent: QWidget, text: str, size: int = C.BODY_PX, colour: str = "",
     return widget
 
 
+def paragraph(parent: QWidget, text: str, colour: str = "", size: int = C.READ_PX,
+              rich: bool = False) -> QLabel:
+
+
+
+    body = str(text or "") if rich else C.escape(text).replace("\n", "<br>")
+    widget = QLabel(parent)
+    widget.setTextFormat(Qt.TextFormat.RichText)
+    widget.setWordWrap(True)
+    widget.setStyleSheet(C.text_qss(size, colour or C.T.text))
+    widget.setText(f'<div style="line-height: {C.LINE_HEIGHT}%;">{body}</div>')
+    widget.setMaximumWidth(C.px(C.MEASURE_W))
+    widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+    widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+    return widget
+
+
+def edge(widget: QWidget) -> QWidget:
+
+    widget.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+    return widget
+
+
 class PageHeader(QWidget):
+
+
+
+
+
+
 
 
 
     def __init__(self, parent=None, title: str = "", subtitle: str = "",
                  right: QWidget | None = None):
         super().__init__(parent)
-        row = QHBoxLayout(self)
+        self._hero = False
+        words = QVBoxLayout(self)
+        words.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        words.setSpacing(0)
+        row = QBoxLayout(QBoxLayout.Direction.LeftToRight)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(C.px(C.SPACE_2))
-        words = QVBoxLayout()
-        words.setContentsMargins(0, 0, 0, 0)
-        words.setSpacing(C.px(4))
+        self._row = row
         self.title = label(self, title, C.TITLE_PX, C.T.text, C.MEDIUM, wrap=True)
-
-        self._badge_slot = QHBoxLayout()
-        self._badge_slot.setContentsMargins(0, 0, 0, 0)
-        self._badge_slot.setSpacing(C.px(10))
-        self._badge = None
-        self._badge_slot.addWidget(self.title, 1, Qt.AlignmentFlag.AlignVCenter)
-        words.addLayout(self._badge_slot)
-        self.subtitle = label(self, subtitle, C.BODY_PX, C.T.text_2, wrap=True)
-        self.subtitle.setVisible(bool(subtitle))
-        words.addWidget(self.subtitle)
-        row.addLayout(words, 1)
+        row.addWidget(self.title, 1, Qt.AlignmentFlag.AlignVCenter)
         self.right = right
         if right is not None:
             right.setParent(self)
-            row.addWidget(right, 0, Qt.AlignmentFlag.AlignTop)
+            row.addWidget(right, 0, Qt.AlignmentFlag.AlignVCenter)
+        words.addLayout(row)
+        self._gap_line = words.count()
+        words.addSpacing(C.px(6))
+        self.subtitle = label(self, subtitle, C.LEAD_PX, C.T.text_2, wrap=True)
+        self.subtitle.setVisible(bool(subtitle))
+        words.addWidget(self.subtitle)
+        self._lines: list = []
+        self._words = words
 
-    def set_badge(self, look: tuple | None) -> None:
+    def set_hero(self, hero: bool) -> None:
 
-        if self._badge is not None:
-            self._badge.hide()
-            self._badge.setParent(None)
-            self._badge.deleteLater()
-            self._badge = None
-        if look is not None:
-            self._badge = category_badge(self, look[0], look[1], C.px(24))
-            self._badge_slot.insertWidget(0, self._badge, 0, Qt.AlignmentFlag.AlignVCenter)
+        hero = bool(hero)
+        if hero == self._hero:
+            return
+        self._hero = hero
+        centre = Qt.AlignmentFlag.AlignHCenter
+        self.title.setStyleSheet(C.text_qss(C.HERO_PX if hero else C.TITLE_PX, C.T.text, C.MEDIUM))
+        self.title.setAlignment(centre if hero else Qt.AlignmentFlag.AlignLeft)
+        self.subtitle.setAlignment(centre if hero else Qt.AlignmentFlag.AlignLeft)
+        if not hero:
+            self.subtitle.setMinimumSize(0, 0)
+            self.subtitle.setMaximumSize(16777215, 16777215)
+        else:
+            self._fit_hero_line()
+        self._words.setAlignment(self.subtitle, centre if hero else Qt.AlignmentFlag.AlignLeft)
+        spacer = self._words.itemAt(self._gap_line)
+        if spacer is not None and spacer.spacerItem() is not None:
+            spacer.spacerItem().changeSize(0, C.px(C.SPACE_1 if hero else 6))
+        for widget in self._lines:
+            self._words.setAlignment(widget, centre if hero else Qt.AlignmentFlag.AlignLeft)
+            widget.setContentsMargins(0, C.px(C.SPACE_3) if hero else C.px(C.SPACE_2), 0, 0)
+        if self.right is not None:
+            if hero:
+                self._row.removeWidget(self.right)
+                self._words.addSpacing(C.px(C.SPACE_4))
+                self._words.addWidget(self.right, 0, centre)
+            else:
+                self._words.removeWidget(self.right)
+                last = self._words.itemAt(self._words.count() - 1)
+                if last is not None and last.spacerItem() is not None:
+                    self._words.removeItem(last)
+                self._row.addWidget(self.right, 0, Qt.AlignmentFlag.AlignVCenter)
+            if isinstance(self.right, QLineEdit):
+                set_pill_wide(self.right, hero, self.width() - 2 * C.px(C.EDGE))
+        self.updateGeometry()
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        if self._hero:
+            self._fit_hero_line()
+            if isinstance(self.right, QLineEdit):
+                set_pill_wide(self.right, True, self.width() - 2 * C.px(C.EDGE))
+            return
+        if self.right is None:
+            return
+        self.title.ensurePolished()
+        need = (self.title.fontMetrics().horizontalAdvance(self.title.text())
+                + self.right.width() + C.px(C.SPACE_3) + 2 * C.px(C.EDGE))
+        stacked = self.width() < need
+        direction = (QBoxLayout.Direction.TopToBottom if stacked
+                     else QBoxLayout.Direction.LeftToRight)
+        if self._row.direction() != direction:
+            self._row.setDirection(direction)
+            self._row.setAlignment(self.right, Qt.AlignmentFlag.AlignLeft if stacked
+                                   else Qt.AlignmentFlag.AlignVCenter)
+
+    def _fit_hero_line(self) -> None:
+
+
+        line = self.subtitle
+        line.ensurePolished()
+        room = min(C.px(520), max(1, self.width() - 2 * C.px(C.EDGE)))
+        advance = line.fontMetrics().horizontalAdvance(line.text()) + 4
+        width = advance if advance <= room else min(room, advance // 2 + C.px(48))
+        line.setFixedWidth(max(1, width))
+        line.setFixedHeight(line.heightForWidth(width))
+
+    def add_line(self, widget: QWidget) -> None:
+
+        widget.setParent(self)
+        self._words.insertWidget(self._words.indexOf(self.subtitle) + 1 + len(self._lines), widget)
+        self._lines.append(widget)
 
     def set_text(self, title: str, subtitle: str = "") -> None:
         self.title.setText(str(title or ""))
         self.subtitle.setText(str(subtitle or ""))
         self.subtitle.setVisible(bool(subtitle))
+        if self._hero:
+            self._fit_hero_line()
 
 
 
@@ -172,9 +256,11 @@ class Breadcrumb(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._row = QHBoxLayout(self)
-        self._row.setContentsMargins(0, 0, 0, 0)
+        self._row.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
         self._row.setSpacing(C.px(4))
-        self.setFixedHeight(C.px(28))
+
+
+        self.setFixedHeight(C.px(C.TOP_BAR_H))
 
     def set_trail(self, names: list) -> None:
         while self._row.count():
@@ -216,23 +302,28 @@ class Breadcrumb(QWidget):
         return QFontMetrics(font).elidedText(name, Qt.TextElideMode.ElideRight, C.px(_CRUMB_W))
 
 
-def text_button(parent: QWidget, text: str) -> QPushButton:
+class SectionHead(Pressable):
 
-    button = QPushButton(text, parent)
-    button.setCursor(Qt.CursorShape.PointingHandCursor)
-    button.setAutoDefault(False)
-    button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-    button.setStyleSheet(C.qss(
-        f"QPushButton {{ background: transparent; border: none; padding: 6px 10px;"
-        f" font-size: {C.BODY_PX}px; font-weight: {C.MEDIUM}; color: {C.T.text_2};"
-        f" border-radius: {C.px(16)}px; }}"
-        f"QPushButton:hover {{ color: {C.T.text}; background: {C.T.hover}; }}"
-        f"QPushButton:pressed {{ background: {C.T.press}; }}"))
-    return button
+
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent, radius=C.px(8))
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(C.px(C.EDGE), C.px(4), C.px(C.EDGE), C.px(4))
+        row.setSpacing(C.px(4))
+        row.addWidget(label(self, text, C.SECTION_PX, C.T.text, C.MEDIUM), 0,
+                      Qt.AlignmentFlag.AlignVCenter)
+        chevron = QLabel(self)
+        chevron.setPixmap(pixmap_for(chevron, "chevron_right", 16, QColor(C.T.text_2)))
+        chevron.setStyleSheet("background: transparent;")
+        row.addWidget(chevron, 0, Qt.AlignmentFlag.AlignVCenter)
+        labels_through(self)
+        self.setAccessibleName(text)
 
 
 def section_title(parent: QWidget, text: str) -> QLabel:
-    return label(parent, text, C.SECTION_PX, C.T.text, C.MEDIUM)
+
+    return edge(label(parent, text, C.SECTION_PX, C.T.text, C.MEDIUM))
 
 
 class UserBubble(QWidget):
@@ -304,24 +395,20 @@ class InfoTable(QFrame):
         lay = QHBoxLayout(row)
         lay.setContentsMargins(C.px(16), C.px(12), C.px(16), C.px(12))
         lay.setSpacing(C.px(C.SPACE_2))
-        key = label(row, name, C.BODY_PX, C.T.text_2, wrap=True)
+        key = label(row, name, C.READ_PX, C.T.text_2, wrap=True)
         key.setFixedWidth(C.px(_LABEL_W))
         lay.addWidget(key, 0, Qt.AlignmentFlag.AlignTop)
         if isinstance(value, QWidget):
             value.setParent(row)
             lay.addWidget(value, 1)
         else:
-            text = QLabel(row)
-            text.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text))
-            text.setWordWrap(True)
-            text.setTextFormat(Qt.TextFormat.RichText if rich else Qt.TextFormat.PlainText)
-            text.setText(str(value or ""))
+            text = paragraph(row, str(value or ""), rich=rich)
+            text.setMaximumWidth(16777215)
             text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
             if rich:
+                text.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
                 text.setOpenExternalLinks(False)
                 text.linkActivated.connect(self.link_activated.emit)
-            else:
-                text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             lay.addWidget(text, 1)
         self._col.addWidget(row)
         self._rows += 1
@@ -375,10 +462,8 @@ class EmptyState(QWidget):
         row.addStretch(1)
         self.buttons: list = []
         for index, (text, callback) in enumerate(actions):
-            button = QPushButton(text, self)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setAutoDefault(False)
-            button.setStyleSheet(C.primary_qss() if index == len(actions) - 1 else C.ghost_qss())
+            last = index == len(actions) - 1
+            button = (primary_button if last else secondary_button)(self, text)
             button.clicked.connect(lambda _c=False, f=callback: f())
             row.addWidget(button)
             self.buttons.append(button)

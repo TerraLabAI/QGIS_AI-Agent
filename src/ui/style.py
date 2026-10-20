@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from . import tokens
 from .font_scale import scale_qss_font_px
-from .styles import BRAND_GREEN_TEXT, BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
+from .styles import BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
 
 
 def is_dark() -> bool:
@@ -84,8 +84,6 @@ INSET = T["inset"]
 HOVER = T["hover"]
 HOVER_ON = T["hover_2"]
 FIELD = T["field"]
-STRIPE = T["stripe"]
-STRIPE_BG = T["stripe_bg"]
 
 INK = T["ink"]
 INK_2 = T["ink_2"]
@@ -102,11 +100,6 @@ GREEN = T["green"]
 GREEN_TINT = T["green_tint"]
 ORANGE = T["orange"]
 ORANGE_TINT = T["orange_tint"]
-
-
-
-ON_ORANGE = "#2a1400"
-ORANGE_DARK = "#e07f2f" if DARK else "#d5640a"
 RED = T["red"]
 RED_TINT = T["red_tint"]
 TOOLTIP_BG = T["tooltip_bg"]
@@ -170,9 +163,7 @@ RADIUS_CHIP = tokens.RADIUS_CHIP
 RADIUS_CONTROL = tokens.RADIUS_CONTROL
 RADIUS_ROW = RADIUS_CONTROL
 RADIUS_CARD = tokens.RADIUS_CARD
-RADIUS_BOX = 12
 RADIUS_PANEL = tokens.RADIUS_SHEET
-RADIUS_WINDOW = RADIUS_PANEL
 RADIUS_COMPOSER = 14
 
 
@@ -181,7 +172,6 @@ BTN_PX = 32
 BTN_SMALL_PX = 28
 ROW_PX = 28
 CHIP_PX = 22
-COMPOSER_PX = 52
 
 
 
@@ -196,7 +186,6 @@ MIN_PANEL_WIDTH = 320
 
 
 MUTED = INK_2
-MUTED_SOFT = INK_3
 HAIRLINE = LINE
 HAIRLINE_STRONG = LINE_STRONG
 TINT = FIELD
@@ -213,15 +202,12 @@ ACCENT_DARK = BTN_GREEN_HOVER
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
 
-ACCENT_TINT_SOFT = T["accent_tint"]
 ACCENT_TINT_STRONG = T["accent_tint_on"]
 ACCENT_BORDER_SOFT = "rgba(67, 160, 71, 0.24)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
 
 
-ACCENT_INK_LIGHT = BRAND_GREEN_TEXT
-ACCENT_INK_DARK = tokens.DARK["accent_text"]
 ACCENT_INK = T["accent_ink"]
 
 
@@ -230,6 +216,63 @@ ON_ACCENT = tokens.LIGHT["on_accent"]
 
 
 MONO_FAMILY = "Consolas, 'DejaVu Sans Mono', Menlo, monospace"
+
+
+
+
+_WINDOWS_CJK_FACES = {
+    "zh_TW": ("Microsoft JhengHei UI", "Microsoft YaHei UI", "Yu Gothic UI", "Malgun Gothic"),
+    "zh": ("Microsoft YaHei UI", "Microsoft JhengHei UI", "Yu Gothic UI", "Malgun Gothic"),
+    "ja": ("Yu Gothic UI", "Meiryo UI", "Microsoft YaHei UI", "Malgun Gothic"),
+    "ko": ("Malgun Gothic", "Microsoft YaHei UI", "Yu Gothic UI"),
+}
+
+_WINDOWS_LOGICAL_FACES = frozenset({"ms shell dlg 2", "ms shell dlg"})
+
+
+def platform_font_qss() -> str:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    from ..core.host_platform import IS_WINDOWS
+
+    if not IS_WINDOWS:
+        return ""
+    try:
+        from qgis.PyQt.QtWidgets import QApplication
+
+        from ..core.i18n import current_locale
+
+        app_face = QApplication.font().family()
+        locale = current_locale().replace("-", "_")
+    except Exception:  # noqa: BLE001
+        app_face, locale = "", ""
+    first = "Segoe UI" if not app_face or app_face.lower() in _WINDOWS_LOGICAL_FACES else app_face
+    key = "zh_TW" if locale.startswith(("zh_TW", "zh_HK", "zh_MO", "zh_Hant")) else locale.split("_")[0]
+    faces = dict.fromkeys((first, *_WINDOWS_CJK_FACES.get(key, _WINDOWS_CJK_FACES["zh"])))
+    names = ", ".join("'" + face.replace("'", "") + "'" for face in faces)
+    return f'QWidget {{ font-family: {names}; }} *[mono="true"] {{ font-family: {MONO_FAMILY}; }}'
+
+
+def with_platform_font(widget) -> None:
+
+
+
+
+    rule = platform_font_qss()
+    if rule and rule not in widget.styleSheet():
+        widget.setStyleSheet(rule + widget.styleSheet())
 
 
 
@@ -397,7 +440,7 @@ _BTN_PRO_PILL = (
     f"QPushButton#hdrProPill:hover {{ background: {HOVER}; }}"
     f"QPushButton#hdrProPill:pressed {{ background: {HOVER_ON}; }}"
     f"QPushButton#hdrProPill:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 9px 0 7px; }}"
-    'QPushButton#hdrProPill[compact="true"] { padding: 0; }'
+    f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 3px; font-size: {FONT_HINT}px; font-weight: 500; }}'
     f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0; }}'
 )
 
@@ -516,6 +559,8 @@ def panel_qss() -> str:
         f"QLabel#fileName {{ font-size: {FONT_BODY}px; color: {INK};"
         " background: transparent; border: none; }"
         f'QLabel#fileName[gone="true"] {{ color: {INK_3}; }}'
+        f"QLabel#fileKind {{ font-size: {FONT_HINT}px; color: {INK_3};"
+        " background: transparent; border: none; }"
 
         f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; }}"
@@ -675,33 +720,9 @@ def qcolor(token: str):
     return QColor(text)
 
 
-def accent_pill():
-
-
-
-
-
-
-
-    from qgis.PyQt.QtGui import QColor
-
-    color = QColor(ACCENT)
-    color.setAlpha(72 if DARK else 56)
-    return color
-
-
 def hover_pill():
 
     return qcolor(HOVER)
-
-
-def muted_ink(ink=None):
-
-
-
-
-
-    return qcolor(INK_2)
 
 
 def _shadow_level(level: str) -> tuple:
@@ -791,38 +812,12 @@ def paint_shadow(host, rect, radius: float, level: str = "overlay") -> None:
         painter.end()
 
 
-def drop_shadow(widget, level: str = "overlay") -> None:
-
-
-
-
-
-
-
-
-    try:
-        from qgis.PyQt.QtGui import QColor
-        from qgis.PyQt.QtWidgets import QGraphicsDropShadowEffect
-    except Exception:  # noqa: BLE001
-        return
-    blur, offset, alpha = _shadow_level(level)
-    effect = QGraphicsDropShadowEffect(widget)
-    effect.setBlurRadius(blur)
-    effect.setOffset(0, offset)
-    color = QColor(0, 0, 0)
-    color.setAlphaF(alpha)
-    effect.setColor(color)
-    widget.setGraphicsEffect(effect)
-
-
 __all__ = [
     "ACCENT",
     "ACCENT_BORDER",
     "ACCENT_BORDER_SOFT",
     "ACCENT_DARK",
     "ACCENT_INK",
-    "ACCENT_INK_DARK",
-    "ACCENT_INK_LIGHT",
     "ACCENT_TINT",
     "ACCENT_TINT_ON",
     "BTN_PILL_PX",
@@ -832,7 +827,6 @@ __all__ = [
     "CANVAS",
     "CHIP_PX",
     "COMPLETER_POPUP_RADIUS",
-    "COMPOSER_PX",
     "DARK",
     "FIELD",
     "FONT_BASE",
@@ -862,22 +856,17 @@ __all__ = [
     "MOTION_HOVER_MS",
     "MOTION_POP_MS",
     "MUTED",
-    "MUTED_SOFT",
     "ON_ACCENT",
-    "ON_ORANGE",
     "ORANGE",
-    "ORANGE_DARK",
     "ORANGE_TINT",
     "PAGE",
     "PRO_PILL_PX",
-    "RADIUS_BOX",
     "RADIUS_CARD",
     "RADIUS_CHIP",
     "RADIUS_COMPOSER",
     "RADIUS_CONTROL",
     "RADIUS_PANEL",
     "RADIUS_ROW",
-    "RADIUS_WINDOW",
     "RED",
     "RED_TINT",
     "ROW_PX",
@@ -885,8 +874,6 @@ __all__ = [
     "SPACE_OUTER",
     "SPACE_STAGE",
     "SPACE_TIGHT",
-    "STRIPE",
-    "STRIPE_BG",
     "SURFACE",
     "T",
     "TINT",
@@ -917,11 +904,8 @@ __all__ = [
     "_SCROLL_AREA_QSS",
     "accent_color",
     "accent_ink",
-    "accent_pill",
-    "drop_shadow",
     "hover_pill",
     "is_dark",
-    "muted_ink",
     "paint_shadow",
     "panel_qss",
     "qcolor",

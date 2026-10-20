@@ -36,7 +36,7 @@ from qgis.PyQt.QtWidgets import (
 
 from . import style as S
 from .external_links import open_external_url
-from .font_scale import scale_px_length
+from .font_scale import scale_px_length, scale_qss_font_px
 from .settings_pages import PRIMARY_BTN_QSS
 from .shared import (
     ICONS_DIR,
@@ -204,7 +204,7 @@ class PrivacyNoticeDialog(QDialog):
 
         heading = QLabel(get_privacy_notice_heading(tr("AI Agent and your data")), self)
         heading.setWordWrap(True)
-        heading.setStyleSheet(f"font-size: 17px; font-weight: 600; color: {S.INK};")
+        heading.setStyleSheet(scale_qss_font_px(f"font-size: 17px; font-weight: 600; color: {S.INK};"))
         header.addWidget(heading, 1, Qt.AlignmentFlag.AlignVCenter)
         return header
 
@@ -298,7 +298,7 @@ class PrivacyNoticeDialog(QDialog):
             f'<span style="font-weight:600;color:{S.INK};">{safe_lead}</span> '
             f'<span style="color:{S.INK_2};">{safe_rest}</span>'
         )
-        text.setStyleSheet("font-size: 13px;")
+        text.setStyleSheet(scale_qss_font_px("font-size: 13px;"))
         text.setFixedWidth(self._text_width)
         text.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
         text.setOpenExternalLinks(False)
@@ -323,7 +323,7 @@ class PrivacyNoticeDialog(QDialog):
         accept_line.setObjectName("privacyNoticeAcceptLine")
         accept_line.setWordWrap(True)
         accept_line.setTextFormat(Qt.TextFormat.RichText)
-        accept_line.setStyleSheet(f"font-size: 11px; color: {S.INK_3};")
+        accept_line.setStyleSheet(scale_qss_font_px(f"font-size: 11px; color: {S.INK_3};"))
         accept_line.setMaximumWidth(FOOTER_TEXT_W)
 
 

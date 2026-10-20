@@ -27,7 +27,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
+from qgis.PyQt.QtWidgets import QLabel, QSizePolicy, QVBoxLayout
 
 from ..shared import event_pos
 from . import common as C
@@ -35,7 +35,21 @@ from .pictures import PictureView
 from .pressable import Pressable, labels_through
 
 
-_INSET = 6
+_INSET = 0
+
+_ROW_PAD = 6
+
+
+
+_CAPTION_LINE = 135
+
+
+def _lines_html(first: str, second: str) -> str:
+
+    from .common import escape
+
+    body = escape(first) + ("<br>" + escape(second) if second else "")
+    return f'<div style="line-height: {_CAPTION_LINE}%;">{body}</div>'
 
 
 def elide_two_lines(metrics, text: str, width: int) -> tuple:
@@ -119,15 +133,17 @@ class ExampleTile(PictureHover, Pressable):
         col.addWidget(self._picture)
         col.addSpacing(C.px(C.SPACE_1))
         self._title = QLabel(self)
-        self._title.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text, C.MEDIUM))
+        self._title.setStyleSheet(C.text_qss(C.CAPTION_PX, C.T.text, C.MEDIUM))
+        self._title.setTextFormat(Qt.TextFormat.PlainText)
         self._title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._title.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self._title.setContentsMargins(_INSET, 0, _INSET, 0)
         self._title.setVisible(self._pictured)
         col.addWidget(self._title)
-        col.addSpacing(2)
+        col.addSpacing(C.px(C.SPACE_1) if self._pictured else 0)
         self._note = QLabel(self)
-        self._note.setStyleSheet(C.text_qss(C.SMALL_PX, C.T.text_2))
+        self._note.setStyleSheet(C.text_qss(C.CAPTION_PX, C.T.text_2))
+        self._note.setTextFormat(Qt.TextFormat.RichText)
         self._note.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._note.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self._note.setContentsMargins(_INSET, 0, _INSET, 0)
@@ -159,63 +175,14 @@ class ExampleTile(PictureHover, Pressable):
         self._laid_width = width
         room = max(1, width - 2 * _INSET)
         if self._pictured:
+            self._title.ensurePolished()
             first, second = elide_two_lines(self._title.fontMetrics(), self._title_text, room)
             self._title.setText(first + ("\n" + second if second else ""))
-        first, second = elide_two_lines(self._note.fontMetrics(), self._note_text, room)
-        self._note.setText(first + ("\n" + second if second else ""))
+        self._note.ensurePolished()
+        self._note.setText(_lines_html(*elide_two_lines(self._note.fontMetrics(),
+                                                        self._note_text, room)))
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         self._picture.setFixedHeight(round(self.width() * 9 / 16))
         self._relayout(self.width())
-
-
-
-ROW_PICTURE_W = 112
-
-
-class ExampleRow(PictureHover, Pressable):
-
-
-
-
-    def __init__(self, case, parent=None):
-        super().__init__(parent, radius=C.RADIUS_TILE)
-        self.case = case
-        self._title_text = str(case.title or "")
-        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
-        self.setMouseTracking(True)
-        picture_h = round(C.px(ROW_PICTURE_W) * 9 / 16)
-        self.setFixedHeight(picture_h + 2 * C.px(_INSET))
-        line = QHBoxLayout(self)
-        line.setContentsMargins(C.px(_INSET), C.px(_INSET), C.px(_INSET), C.px(_INSET))
-        line.setSpacing(C.px(12))
-        self._picture = tile_picture(case, self, self, C.px(8))
-        self._picture.setFixedSize(C.px(ROW_PICTURE_W), picture_h)
-        self._picture.setAccessibleName(str(case.outcome or ""))
-        line.addWidget(self._picture, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._title = QLabel(self)
-        self._title.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text, C.MEDIUM))
-        self._title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        line.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
-        labels_through(self)
-        self.setAccessibleName(self._title_text)
-        self._laid_width = -1
-
-    def _state_changed(self) -> None:
-        self._hover_picture()
-        self.update()
-
-    def set_focused(self, focused: bool) -> None:
-        super().set_focused(focused)
-        self._picture.set_focused(focused)
-
-    def set_tile_width(self, width: int) -> None:
-        width = max(1, int(width))
-        self.setFixedWidth(width)
-        if width == self._laid_width:
-            return
-        self._laid_width = width
-        room = max(1, width - C.px(ROW_PICTURE_W) - C.px(12) - 2 * C.px(_INSET))
-        first, second = elide_two_lines(self._title.fontMetrics(), self._title_text, room)
-        self._title.setText(first + ("\n" + second if second else ""))

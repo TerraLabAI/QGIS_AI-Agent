@@ -197,23 +197,17 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     codec = code_page(asked) if asked else None
     if asked and codec is None:
         return tool_error(
-            f"'{asked}' is not a DXF code page.", "INVALID_ARGS",
-            "encoding accepts cp1252 (Western), cp1250, cp1251 (Cyrillic), cp1253, cp1254, cp1255, cp1256, "
-            "cp1257, cp1258, cp874 (Thai), cp932 (Japanese), gbk (Simplified Chinese), cp949 (Korean), cp950 "
-            "(Traditional Chinese); left out, the first page holding every label is picked.")
+            f"'{asked}' is not a DXF code page.", "INVALID_ARGS", hint="cad_encoding_unknown")
     selected_only = bool(args.get("selected_only", False))
     count = layer.selectedFeatureCount() if selected_only else layer.featureCount()
     if selected_only and count == 0:
         return tool_error(f"Nothing is selected in '{layer.name()}'.", "INVALID_ARGS",
-                          "selected_only true needs a selection.")
+                          hint="cad_nothing_selected")
     ceiling = int(limits.current("SYNC_FEATURE_LOOP_MAX"))
     if count > ceiling:
         return tool_error(
             f"'{layer.name()}' has {count} features to draw; a DXF export runs on QGIS's main thread and is "
-            f"capped at {ceiling} here.", "INVALID_ARGS",
-            "selected_only true (features selected) or a clip keeps this under the cap, which CAD drawings "
-            "usually want. run_processing native:dxfexport exports the whole layer in the background, though "
-            "on QGIS 4 it writes non-Latin text as UTF-8 under an ANSI header.")
+            f"capped at {ceiling} here.", "INVALID_ARGS", hint="cad_over_ceiling")
     field = str(args.get("cad_layer_field") or "").strip()
     field_index = -1
     if field:
@@ -225,7 +219,7 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     crs = QgsCoordinateReferenceSystem(args["crs"]) if args.get("crs") else layer.crs()
     if not crs.isValid():
         return tool_error(f"Invalid CRS: {args.get('crs') or layer.crs().authid()}", "INVALID_ARGS",
-                          "Drawing CRS must be projected, for example EPSG:5186 or EPSG:2154.")
+                          hint="cad_drawing_crs")
     polygons_as_lines = bool(args.get("polygons_as_lines", False))
     source, copy = _export_source(layer, selected_only, polygons_as_lines)
 
@@ -246,12 +240,12 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     del copy
     if result != enum_member(QgsDxfExport, "ExportResult", "Success"):
         return tool_error(f"QGIS's DXF writer refused the export ({result}).", "EXECUTION_FAILED",
-                          "No features in its extent, or an invalid CRS.")
+                          hint="cad_writer_refused")
     try:
         text = bytes(buffer.data()).decode("utf-8")
     except UnicodeDecodeError as exc:
         return tool_error(f"QGIS wrote a DXF that is not UTF-8 ({exc}).", "EXECUTION_FAILED",
-                          "run_processing native:dxfexport takes an explicit ENCODING for this.")
+                          hint="cad_not_utf8")
 
 
     letters = "".join(sorted({char for char in text if ord(char) > 127}))
@@ -272,12 +266,12 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     except OSError as exc:
         _discard_staged_write(staging)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
-                          "The folder may not be writable; another folder may work.")
+                          hint="cad_write_failed")
     publish_error = _publish_staged_write(staging, path)
     if publish_error:
         _discard_staged_write(staging)
         return tool_error(f"The DXF was written but could not be put in place at {path}: {publish_error}",
-                          "EXECUTION_FAILED", "A CAD program may hold the drawing open; another name avoids it.")
+                          "EXECUTION_FAILED", hint="cad_publish_failed")
 
     out = {"exported": path, "format": "DXF", "feature_count": count, "selected_only": selected_only,
            "crs": crs.authid() or crs.description(), "units": crs_units(crs),
@@ -295,13 +289,12 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     if field:
         out["cad_layer_field"] = layer.fields().at(field_index).name()
     if crs.isGeographic():
-        out["warning"] = (f"The drawing is in {crs.authid()}, degrees: CAD reads the numbers as drawing units. "
-                          f"crs set to the projected CRS of the site (a UTM zone or the "
-                          f"national grid) gives a drawing in metres.")
+        out["warning"] = f"The drawing is in {crs.authid()}, degrees: CAD reads the numbers as drawing units."
+        out["warning_next_hint"] = "cad_degrees_use_projected"
     out.update(_readback(path))
     if not out.get("labels_in_file") and not layer.labelsEnabled():
-        out["labels_note"] = ("The layer has no labels switched on, so the drawing carries no text. Label it "
-                              "with set_layer_labels first and export again to get the lot numbers as CAD text.")
+        out["labels_note"] = "The layer has no labels switched on, so the drawing carries no text."
+        out["labels_note_next_hint"] = "cad_labels_off"
     if released:
         out["replaced_layers"] = released
     return out

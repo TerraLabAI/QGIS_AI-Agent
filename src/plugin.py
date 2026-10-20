@@ -21,7 +21,7 @@ from qgis.PyQt.QtGui import QIcon, QKeySequence
 from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget, QMenu
 
 from . import LOADED_AT, plugin_self_update
-from .core import i18n, policy, telemetry, tuning
+from .core import first_run_funnel, i18n, policy, telemetry, tuning
 from .core import telemetry_events as ev
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
 from .core.settings import Settings
@@ -184,11 +184,23 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"3D view guard not installed: {exc}")
         try:
+            from .core.host_platform import watch_layer_removals
+
+            watch_layer_removals()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Layer removal watch not installed: {exc}")
+        try:
             from .core import designer_guard
 
             designer_guard.install()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Layout designer guard not installed: {exc}")
+        try:
+            from .core import stream_fallback
+
+            stream_fallback.install()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Streamed raster fallback not installed: {exc}")
         try:
 
 
@@ -260,6 +272,15 @@ class AIAgentPlugin:
             policy.prune_agent_scratch_dirs()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Scratch folder prune not started: {exc}")
+        try:
+
+
+
+            from .core.snapshot import prune_soon
+
+            prune_soon()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Snapshot prune not started: {exc}")
         try:
 
 
@@ -446,6 +467,7 @@ class AIAgentPlugin:
 
         if self._unloading:
             return
+        first_run_funnel.note_panel(visible)
         if not visible:
             if self._config_refresh_timer is not None:
                 self._config_refresh_timer.stop()
@@ -577,7 +599,7 @@ class AIAgentPlugin:
 
         for module, name in (("net", "clear_cache"), ("net", "politeness_reset"),
                              ("net", "forget_link_state"), ("net", "close_idle_connections"),
-                             ("security", "forget_resolved_hosts")):
+                             ("security", "forget_resolved_hosts"), ("security", "forget_resolved_roots")):
             try:
                 target = __import__(f"{__package__}.core.{module}", fromlist=[name])
                 getattr(target, name)()
@@ -631,9 +653,17 @@ class AIAgentPlugin:
 
         view3d_guard.shutdown()
 
+        from .core.host_platform import stop_watching_layer_removals
+
+        stop_watching_layer_removals()
+
         from .core import designer_guard
 
         designer_guard.shutdown()
+
+        from .core import stream_fallback
+
+        stream_fallback.shutdown()
 
     @staticmethod
     def _stop_dependency_installs() -> None:
@@ -757,6 +787,8 @@ class AIAgentPlugin:
         with contextlib.suppress(Exception):
             from .core import crash_note
             crash_note.stop()
+        with contextlib.suppress(Exception):
+            first_run_funnel.shutdown()
         try:
             telemetry.track(ev.PLUGIN_UNLOADED, {"session_ms": int((time.monotonic() - self._loaded_at) * 1000)})
             telemetry.flush(final=True)
@@ -1076,6 +1108,10 @@ class AIAgentPlugin:
             self._started = True
             self.controller.start()
             self._open_facts["controller_ms"] = int((time.monotonic() - began) * 1000)
+            if self._open_began:
+
+
+                self._open_facts["open_ms"] = int((time.monotonic() - self._open_began) * 1000)
 
             self.controller.open_stamps(dict(self._open_facts, load_ms=self._load_ms), self._open_began)
             self._early_account = None

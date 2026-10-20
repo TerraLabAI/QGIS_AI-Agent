@@ -38,7 +38,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
-from ..core import layer_order, limits, net
+from ..core import layer_order, limits, net, tuning
 from ..core.background import heartbeat, run_on_main_thread
 from ..core.context import source_kind
 from ..core.feature_requests import feature_request, first_feature
@@ -289,14 +289,14 @@ def _repair_layer_paths(args: dict) -> dict:
     old_path = _source_path(layer)
     filename = os.path.basename(old_path)
     if not filename:
-        return tool_error("The layer has no local file name.", "INVALID_ARGS", "a local file-backed layer.")
+        return tool_error("The layer has no local file name.", "INVALID_ARGS", hint="repair_layer_needs_file")
     project_path = QgsProject.instance().fileName()
     roots = [os.path.dirname(project_path)] if project_path else []
     if args.get("search_root"):
         root = os.path.abspath(os.path.expanduser(args["search_root"]))
         error = validate_path(root, write=False)
         if error:
-            return {"_error": error}
+            return tool_error(error, "INVALID_ARGS")
         roots.append(root)
     matches = []
 
@@ -324,20 +324,21 @@ def _repair_layer_paths(args: dict) -> dict:
             break
     if not matches:
         cut = (f" The search stopped after {_REPAIR_MAX_FOLDERS:,} folders." if exhausted else "")
-        return {"_error": f"Could not find {filename} under the project folder or search root.{cut}",
-                "_suggestion": ("a search_root closer to the file." if exhausted else
-                                "The file may not exist, or search_root may help.")}
+        return tool_error(f"Could not find {filename} under the project folder or search root.{cut}",
+                          "INVALID_ARGS",
+                          hint="repair_search_cut_short" if exhausted else "repair_file_not_found")
     if len(matches) > 1:
         return {
+            **tool_error("More than one matching file exists; a narrower search_root would pick one.",
+                         "INVALID_ARGS"),
             "layer": layer.name(),
             "old_path": old_path,
             "candidates": matches,
-            "_error": "More than one matching file exists; a narrower search_root would pick one.",
         }
     provider = layer.providerType()
     layer.setDataSource(matches[0] + source[len(old_path):], layer.name(), provider)
     if not layer.isValid():
-        return {"_error": f"QGIS could not load {matches[0]} with provider {provider}."}
+        return tool_error(f"QGIS could not load {matches[0]} with provider {provider}.")
     return {"layer": layer.name(), "old_path": old_path, "new_path": matches[0], "repaired": True}
 
 
@@ -475,7 +476,7 @@ def _package_project_snapshot(args: dict) -> dict:
         output = os.path.join(output, f"{stem}.zip")
     error = validate_path(output, write=True)
     if error:
-        return {"_error": error}
+        return tool_error(error, "INVALID_ARGS")
     project_dir = os.path.dirname(project_path)
 
 
@@ -721,23 +722,19 @@ _ROAD_NAME_HINTS = ("road", "highway", "street", "route", "voirie", "rue", "walk
 _ISOCHRONE_FRINGE_M = 60.0
 _ISOCHRONE_MAX_STARTS = 25
 _ISOCHRONE_SNAP_M = 500.0
-_ISOCHRONE_SPEEDS_KMH = {"driving": 50.0, "walking": 5.0, "cycling": 15.0}
 
 
 
 
 
-_TRAVEL_CLASSES = {
-    "driving": ("motorway", "trunk", "primary", "secondary", "tertiary", "residential", "living_street",
-                "unclassified", "service"),
-    "walking": ("primary", "secondary", "tertiary", "residential", "living_street", "unclassified", "service",
-                "pedestrian", "footway", "steps", "path", "track"),
-    "cycling": ("primary", "secondary", "tertiary", "residential", "living_street", "unclassified", "service",
-                "cycleway", "path", "track"),
-}
-_LINKED_CLASSES = ("motorway", "trunk", "primary", "secondary", "tertiary")
-_TRAVEL_VOCABULARY = ({name for names in _TRAVEL_CLASSES.values() for name in names}
-                      | {f"{name}_link" for name in _LINKED_CLASSES} | {"road"})
+def _isochrone_rules() -> dict:
+    return tuning.service_doc("isochrone_rules") or {}
+
+
+def _travel_vocabulary() -> set:
+    rules = _isochrone_rules()
+    return ({name for names in (rules.get("travel_classes") or {}).values() for name in names}
+            | {f"{name}_link" for name in rules.get("linked_classes") or ()} | {"road"})
 
 
 def _is_line_layer(layer) -> bool:
@@ -786,12 +783,16 @@ def _travel_filter(layer, mode: str) -> tuple:
 
 
     names = {field.name().lower(): field.name() for field in layer.fields()}
-    classes = _TRAVEL_CLASSES[mode]
+    rules = _isochrone_rules()
+    classes = (rules.get("travel_classes") or {}).get(mode)
+    if not classes:
+        return "", "", ()
     if "class" in names:
         field, values = names["class"], list(classes)
     elif "highway" in names:
         field = names["highway"]
-        values = list(classes) + [f"{name}_link" for name in _LINKED_CLASSES if name in classes] + ["road"]
+        values = (list(classes) + [f"{name}_link" for name in rules.get("linked_classes") or () if name in classes]
+                  + ["road"])
     else:
         return "", "", ()
 
@@ -800,7 +801,7 @@ def _travel_filter(layer, mode: str) -> tuple:
         present = {str(value) for value in layer.uniqueValues(layer.fields().indexOf(field), 1000)}
     except Exception:  # nosec B110
         present = set(values)
-    if not present & _TRAVEL_VOCABULARY:
+    if not present & _travel_vocabulary():
         return "", "", ()
     expression = (f"{QgsExpression.quotedColumnRef(field)} IN "
                   f"({', '.join(QgsExpression.quotedString(value) for value in values)})")
@@ -872,7 +873,10 @@ def _get_isochrone(args: dict) -> dict:
     rings = sorted({float(m) for m in (asked if isinstance(asked, list) else [asked])})
     minutes = rings[-1]
     mode = str(args["mode"])
-    speed = _ISOCHRONE_SPEEDS_KMH[mode]
+    speed = (_isochrone_rules().get("speeds_kmh") or {}).get(mode)
+    if not speed:
+        return tool_error(f"No travel speed is set for mode {mode}.", "EXECUTION_FAILED",
+                          hint="isochrone_no_speed", mode=mode)
     reach_m = speed * 1000.0 * minutes / 60.0
     points = list(args["points"])
     if len(points) > _ISOCHRONE_MAX_STARTS:
@@ -932,7 +936,7 @@ def _get_isochrone(args: dict) -> dict:
                                                                     "OUTPUT": "memory:"})["OUTPUT"]
         except Exception as exc:
             return tool_error(f"Keeping the {mode} road classes of {roads.name()} failed: {exc}",
-                              "EXECUTION_FAILED", f"The layer's {class_field} field holds the road class.")
+                              "EXECUTION_FAILED", hint="isochrone_class_field", class_field=class_field)
         if network.featureCount() == 0:
             return tool_error(
                 f"{roads.name()} holds no {mode} road near the starts: none of its {lines_in_window:,} lines "
@@ -1024,10 +1028,7 @@ def _get_isochrone(args: dict) -> dict:
         "starts_unreached": max(0, len(points) - starts_reached),
         "starts_unreached_why": ("farther than 500 m from any road, or fewer than 3 vertices reached"
                                  if starts_reached < len(points) else ""),
-        **({"starts_moved": starts_moved, "starts_moved_why": (
-            "the nearest road was a piece of the network not linked to the rest for this mode (a ramp, a "
-            "service road), so the start was tied to the nearest point of the main network, to_m metres away")}
-           if starts_moved else {}),
+        **({"starts_moved": starts_moved, "starts_moved_hint": "isochrone_starts_moved"} if starts_moved else {}),
         "minutes": rings if len(rings) > 1 else minutes,
         "rings": len(rings),
         "mode": mode,
@@ -1065,7 +1066,7 @@ def _profile_geometry(args: dict, dem):
         geometry = QgsGeometry.fromWkt(args["line_wkt"])
         if geometry.isNull():
             return None, tool_error("line_wkt is not a valid LINESTRING.", "INVALID_ARGS",
-                                    "WKT such as LINESTRING(x1 y1, x2 y2).")
+                                    hint="profile_line_wkt_invalid")
 
         source = QgsCoordinateReferenceSystem(str(args.get("wkt_crs") or "EPSG:4326"))
         if source.isValid() and source != dem.crs():
@@ -1081,7 +1082,7 @@ def _profile_geometry(args: dict, dem):
             transform = QgsCoordinateTransform(layer.crs(), dem.crs(), QgsProject.instance())
             geometry.transform(transform)
         return geometry, None
-    return None, tool_error("line_layer or line_wkt.", "INVALID_ARGS", "a line layer or LINESTRING WKT.")
+    return None, tool_error("line_layer or line_wkt.", "INVALID_ARGS", hint="profile_line_needed")
 
 
 def _metric_sampling_crs(geometry, dem_crs):
@@ -1119,7 +1120,7 @@ def _elevation_profile(args: dict) -> dict:
     if error:
         return error
     if geometry is None or geometry.isEmpty() or geometry.length() == 0:
-        return {"_error": "The profile line is empty or has zero length."}
+        return tool_error("The profile line is empty or has zero length.", "INVALID_ARGS")
     count = max(2, min(int(args.get("sample_count", 100) or 100), 2000))
     provider = dem.dataProvider()
     dem_crs = dem.crs()
@@ -1129,7 +1130,7 @@ def _elevation_profile(args: dict) -> dict:
         geometry.transform(to_metric)
     total = geometry.length()
     if total <= 0:
-        return {"_error": "The profile line is empty or has zero length."}
+        return tool_error("The profile line is empty or has zero length.", "INVALID_ARGS")
     series = []
     for index in range(count):
         distance = total * index / (count - 1)
@@ -1214,12 +1215,12 @@ def _topology_checks(requested, kind: str, name: str):
         requested = [requested]
     if not isinstance(requested, (list, tuple)):
         return None, tool_error("checks must be a list of rule names. Nothing was checked.", "INVALID_ARGS",
-                                f"Valid: {', '.join(TOPOLOGY_CHECKS)}; empty runs all.")
+                                hint="topology_checks_not_list", rules=list(TOPOLOGY_CHECKS))
     unknown = [str(c) for c in requested if c not in TOPOLOGY_CHECKS]
     if unknown:
         return None, tool_error(
             f"Unknown check {', '.join(repr(c) for c in unknown)}. Nothing was checked.", "INVALID_ARGS",
-            f"The rules are {', '.join(TOPOLOGY_CHECKS)}; for {kind}s: {', '.join(applies)}.")
+            hint="topology_unknown_check", rules=list(TOPOLOGY_CHECKS), kind=kind, applies=list(applies))
     wrong = [c for c in requested if c not in applies]
     if wrong:
         return None, tool_error(
@@ -1236,8 +1237,7 @@ def _check_topology(args: dict) -> dict:
     kind = _topology_kind(layer) if isinstance(layer, QgsVectorLayer) else None
     if kind is None:
         return tool_error(f"{layer.name()!r} has no point, line or polygon geometry, so there is no topology "
-                          "to check.", "INVALID_ARGS",
-                          "a vector layer with geometries; list_layers shows each layer's type.")
+                          "to check.", "INVALID_ARGS", hint="topology_layer_no_geometry")
     checks, error = _topology_checks(args.get("checks"), kind, layer.name())
     if error:
         return error
@@ -1247,7 +1247,7 @@ def _check_topology(args: dict) -> dict:
         tolerance = -1.0
     if not math.isfinite(tolerance) or tolerance < 0:
         return tool_error(f"tolerance {args.get('tolerance')!r} is not a distance. Nothing was checked.",
-                          "INVALID_ARGS", "0 or a positive distance in the layer's units.")
+                          "INVALID_ARGS", hint="topology_tolerance_distance")
 
 
     count = layer.featureCount()
@@ -1297,10 +1297,7 @@ def _check_topology(args: dict) -> dict:
         if "dangles" in checks:
             out["dangle_count"], out["dangles"] = _topology_dangles(features, index, tolerance, limit, budget)
             out["tolerance"] = tolerance
-            out["dangle_note"] = (
-                "A dangle is a line end that touches no other line within the tolerance. Ends of the network "
-                "(a cul-de-sac, a river source, the edge of the extract) are normal: they are candidates to "
-                "review, not errors.")
+            out["dangle_hint"] = "topology_dangles"
         if "duplicates" in checks:
             groups = _topology_duplicates(features, budget)
             out["duplicate_count"] = len(groups)
@@ -1383,10 +1380,8 @@ def _split_slivers(out: dict, key: str, items: list, count: int, floor: float) -
     if not slivers:
         return
     out[f"{key}_slivers"] = slivers
-    out[f"{key}_sliver_note"] = (
-        f"{slivers} of the {count} {key} measured have an area of {floor:.6g} square layer units or less: "
-        "slivers where two edges were digitised apart or touch, not real " + key + "; "
-        "native:snapgeometries with a small tolerance removes them.")
+    out[f"{key}_sliver_note"] = coded_fact(hint="topology_slivers", slivers=slivers, count=count, kind=key,
+                                           floor=float(f"{floor:.6g}"))
 
 
 def _topology_duplicates(features, budget) -> list[list[int]]:
@@ -1682,6 +1677,30 @@ def _suffixed_field(existing_lower: set, base: str, qtype) -> QgsField:
     return QgsField(name, qtype)
 
 
+def _relaxed_queries(address: str) -> list[str]:
+
+
+
+
+
+
+    parts = [part.strip() for part in address.split(",") if part.strip()]
+    if len(parts) < 5:
+        return []
+    head, tail = parts[:-3], parts[-3:]
+    forms = []
+    plain = [part for part in head if not any(ch.isdigit() for ch in part)]
+    if plain != head:
+        forms.append(plain + tail)
+    forms += [parts[drop:] for drop in (1, 2) if len(parts) - drop >= 4]
+    out: list[str] = []
+    for form in forms:
+        text = ", ".join(form)
+        if text != address and text not in out:
+            out.append(text)
+    return out[:3]
+
+
 class _GeocodeLayerTask(QgsTask):
     def __init__(self, task_id: str, addresses: list[str], source_fields: QgsFields,
                  rows_by_address: dict, encoding_fixed: dict | None = None):
@@ -1712,6 +1731,16 @@ class _GeocodeLayerTask(QgsTask):
         from .data_tools import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
 
         own_host, through_backend = True, 0
+
+        def ask(query: str):
+            nonlocal own_host, through_backend
+            hit, own_failed = _geocode_one_address(query, own_host)
+            if own_failed:
+                own_host = False
+            if not own_host:
+                through_backend += 1
+            return hit
+
         for number, address in enumerate(self.addresses, 1):
             if self.isCanceled():
                 return False
@@ -1727,14 +1756,26 @@ class _GeocodeLayerTask(QgsTask):
                 self.results.append({"address": address, "error": reason})
                 continue
             try:
-                hit, own_failed = _geocode_one_address(address, own_host)
-                if own_failed:
-                    own_host = False
-                if not own_host:
-                    through_backend += 1
+                hit = ask(address)
+                matched_as = None
+                if not hit:
+
+
+                    for relaxed in _relaxed_queries(address):
+                        if self.isCanceled():
+                            return False
+                        if not own_host and through_backend >= _BACKEND_GEOCODE_BATCH_MAX:
+                            break
+                        hit = ask(relaxed)
+                        if hit:
+                            matched_as = relaxed
+                            break
                 if hit:
-                    self.results.append({"address": address, "lat": hit["lat"], "lon": hit["lon"],
-                                         "display_name": hit.get("display_name")})
+                    row = {"address": address, "lat": hit["lat"], "lon": hit["lon"],
+                           "display_name": hit.get("display_name")}
+                    if matched_as:
+                        row["matched_as"] = matched_as
+                    self.results.append(row)
                 else:
                     self.results.append({"address": address, "error": "not found"})
             except Exception as exc:
@@ -1771,6 +1812,7 @@ class _GeocodeLayerTask(QgsTask):
             _suffixed_field(existing_lower, "latitude", field_type("Double")),
             _suffixed_field(existing_lower, "longitude", field_type("Double")),
             _suffixed_field(existing_lower, "geocode_label", field_type("String")),
+            _suffixed_field(existing_lower, "geocode_match", field_type("String")),
         ])
         layer.updateFields()
 
@@ -1781,7 +1823,7 @@ class _GeocodeLayerTask(QgsTask):
         nf_provider.addAttributes([_suffixed_field(nf_existing_lower, "geocode_error", field_type("String"))])
         not_found_layer.updateFields()
 
-        found_features, not_found_features, not_found_samples = [], [], []
+        found_features, not_found_features, not_found_samples, approximate = [], [], [], []
         matched_addresses = 0
         found_fields = layer.fields()
         not_found_fields = not_found_layer.fields()
@@ -1790,10 +1832,15 @@ class _GeocodeLayerTask(QgsTask):
             rows = self.rows_by_address.get(address, [])
             if "lat" in item:
                 matched_addresses += 1
+                if item.get("matched_as"):
+                    approximate.append({"address": address, "matched_as": item["matched_as"],
+                                        "display_name": item.get("display_name")})
                 for attrs in rows:
                     feature = QgsFeature(found_fields)
                     feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(item["lon"], item["lat"])))
-                    feature.setAttributes(list(attrs) + [item["lat"], item["lon"], item.get("display_name")])
+                    feature.setAttributes(list(attrs) + [item["lat"], item["lon"], item.get("display_name"),
+                                                         "approximate: " + item["matched_as"] if item.get("matched_as")
+                                                         else "address"])
                     found_features.append(feature)
             else:
                 error_text = item.get("error", "not found")
@@ -1809,6 +1856,11 @@ class _GeocodeLayerTask(QgsTask):
         state.update({"status": "complete", "layer_name": layer.name(), "matched": len(found_features)})
         if self.encoding_fixed:
             state["encoding_fixed"] = self.encoding_fixed
+        if approximate:
+
+
+            state["approximate_count"] = len(approximate)
+            state["approximate"] = approximate[:10]
 
         if not_found_features:
             nf_provider.addFeatures(not_found_features)
@@ -1879,7 +1931,7 @@ def _geocode_layer(args: dict) -> dict:
 
     addresses = list(seen)
     if not addresses:
-        return {"_error": "The address field has no non-empty values."}
+        return tool_error("The address field has no non-empty values.", "INVALID_ARGS")
     if over_cap:
 
         return tool_error(
@@ -1928,7 +1980,7 @@ def _geocode_layer(args: dict) -> dict:
 def _get_geocode_layer_status(args: dict) -> dict:
     state = _GEOCODE_LAYER_TASKS.get(args["task_id"])
     if state is None:
-        return {"_error": f"Geocode task not found: {args['task_id']}"}
+        return tool_error(f"Geocode task not found: {args['task_id']}", "INVALID_ARGS")
     result = dict(state)
     if result["status"] == "running":
         result["progress"] = None

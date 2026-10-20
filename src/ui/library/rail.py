@@ -24,11 +24,6 @@
 
 
 
-
-
-
-
-
 from __future__ import annotations
 
 import math
@@ -37,18 +32,14 @@ from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFontMetricsF
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
-from ..icons import pixmap_for
-from ..shared import tr
+from ..icons import has_glyph, pixmap_for
 from ..widgets import ElidedLabel
 from . import common as C
-from .parts import category_badge
 from .pressable import Pressable, labels_through
 
 _ROW_H = 36
 _ROW_PAD = 10
 _GLYPH_PX = 18
-_BADGE_PX = 20
-_CHEVRON_PX = 24
 _RAIL_PAD = 8
 _RAIL_MAX_W = 288
 
@@ -71,16 +62,18 @@ class RailRow(Pressable):
         self._indent = indent
         row.setContentsMargins(C.px(_ROW_PAD) + indent, 0, C.px(_ROW_PAD), 0)
         row.setSpacing(C.px(_ROW_PAD))
-        self._glyph = bool(glyph) or badge is not None
         if badge is not None:
-            row.addWidget(category_badge(self, badge[0], badge[1], C.px(_BADGE_PX)),
-                          0, Qt.AlignmentFlag.AlignVCenter)
-        elif glyph:
-            icon = QLabel(self)
-            icon.setPixmap(pixmap_for(icon, glyph, _GLYPH_PX, QColor(C.T.text)))
-            icon.setStyleSheet("background: transparent;")
-            icon.setFixedWidth(_GLYPH_PX)
-            row.addWidget(icon, 0, Qt.AlignmentFlag.AlignVCenter)
+
+            glyph = badge[0] if has_glyph(badge[0]) else "layers"
+        self._glyph_name = glyph
+        self._glyph = bool(glyph)
+        self._icon = None
+        if glyph:
+            self._icon = QLabel(self)
+            self._icon.setStyleSheet("background: transparent;")
+            self._icon.setFixedWidth(_GLYPH_PX)
+            row.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignVCenter)
+            self._paint_glyph()
         self.text = ElidedLabel(text, self)
         self.text.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text))
         row.addWidget(self.text, 1, Qt.AlignmentFlag.AlignVCenter)
@@ -96,43 +89,49 @@ class RailRow(Pressable):
 
         width = math.ceil(QFontMetricsF(self.text.font()).horizontalAdvance(self.text.full_text()))
         if self._glyph:
-            width += C.px(_BADGE_PX) + C.px(_ROW_PAD)
-        if getattr(self, "chevron", None) is not None:
-            width += C.px(_CHEVRON_PX) + C.px(_ROW_PAD)
+            width += C.px(_GLYPH_PX) + C.px(_ROW_PAD)
         return width + 2 * C.px(_ROW_PAD) + self._indent
 
     def set_current(self, current: bool) -> None:
         if self._current != bool(current):
             self._current = bool(current)
+            self._paint_glyph()
             self.update()
 
+    def _paint_glyph(self) -> None:
 
-    def add_chevron(self) -> _Chevron:
-
-        self.chevron = _Chevron(self)
-        self._row_layout.addWidget(self.chevron, 0, Qt.AlignmentFlag.AlignVCenter)
-        return self.chevron
-
-
-class _Chevron(Pressable):
+        if self._icon is not None:
+            self._icon.setPixmap(pixmap_for(self._icon, self._glyph_name, _GLYPH_PX,
+                                            QColor(C.T.text if self._current else C.T.text_2)))
 
 
-    def __init__(self, parent=None):
-        super().__init__(parent, radius=C.px(6), hover=lambda: C.T.press, press=lambda: C.T.press)
-        self.setFixedSize(C.px(_CHEVRON_PX), C.px(_CHEVRON_PX))
-        self._icon = QLabel(self)
-        self._icon.setStyleSheet("background: transparent;")
-        self._icon.setGeometry(0, 0, C.px(_CHEVRON_PX), C.px(_CHEVRON_PX))
-        self._icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+class RedirectRow(RailRow):
+
+
+
+
+    def __init__(self, key: str, text: str, glyph: str, parent=None):
+        super().__init__(key, text, glyph, parent)
+        self.text.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text_2))
+        self._out = QLabel(self)
+        self._out.setStyleSheet("background: transparent;")
+        self._row_layout.addWidget(self._out, 0, Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
-        self.set_open(True)
+        self._paint_out()
 
-    def set_open(self, open_: bool) -> None:
-        name = "chevron_down" if open_ else "chevron_right"
-        self._icon.setPixmap(pixmap_for(self._icon, name, 14, QColor(C.T.text_2)))
-        text = tr("Hide categories") if open_ else tr("Show categories")
-        self.setToolTip(text)
-        self.setAccessibleName(text)
+    def _paint_out(self) -> None:
+        ink = C.T.text if self._hovered else C.T.text_2
+        self._out.setPixmap(pixmap_for(self._out, "external", 12, QColor(ink)))
+        if self._icon is not None:
+            self._icon.setPixmap(pixmap_for(self._icon, self._glyph_name, _GLYPH_PX, QColor(ink)))
+        self.text.setStyleSheet(C.text_qss(C.BODY_PX, ink))
+
+    def _state_changed(self) -> None:
+        self._paint_out()
+        self.update()
+
+    def natural_width(self) -> int:
+        return super().natural_width() + 12 + C.px(_ROW_PAD)
 
 
 class LibraryRail(QFrame):
@@ -140,7 +139,7 @@ class LibraryRail(QFrame):
 
     selected = pyqtSignal(str)
 
-    def __init__(self, places: list, groups: list, parent=None, looks: dict | None = None):
+    def __init__(self, place: tuple, groups: list, parent=None, looks: dict | None = None):
         super().__init__(parent)
         self.setObjectName("librarySidebar")
         self.setStyleSheet(f"QFrame#librarySidebar {{ background: {C.T.rail}; border: none; }}")
@@ -149,22 +148,38 @@ class LibraryRail(QFrame):
         col.setContentsMargins(C.px(_RAIL_PAD), C.px(12), C.px(_RAIL_PAD), C.px(12))
         col.setSpacing(C.px(2))
         self._col = col
-        self._places: list = [key for key, _glyph, _text in places]
+        key, _glyph, text = place
+        self._places: list = [key]
+        self._names = {key: text}
 
-        self._groups: dict = {key: [] for key in self._places}
-        self._open: dict = dict.fromkeys(self._places, False)
+        self._groups: dict = {key: []}
         self._owner: dict = {}
-        self._active = self._places[0] if self._places else ""
-        for key, glyph, text in places:
-            col.addWidget(self._row(key, text, glyph))
-        col.addStretch(1)
-        if self._places:
-            self.set_groups(self._places[0], groups, looks)
-            self._fold(self._places[0], True)
+        self._active = key
 
-    def _row(self, key: str, text: str, glyph: str = "", indent: int = 0,
-             badge: tuple | None = None) -> RailRow:
-        row = RailRow(key, text, glyph, self, indent, badge)
+
+        col.addWidget(self._row(key, self.tr("Home"), "home"))
+        col.addSpacing(C.px(8))
+        self._first_group = col.count()
+        col.addStretch(1)
+        self.set_groups(key, groups, looks)
+
+    def add_redirect(self, key: str, glyph: str, text: str) -> None:
+
+        rule = QFrame(self)
+        rule.setFixedHeight(1)
+        rule.setStyleSheet(f"background: {C.T.border}; border: none;")
+        self._col.addSpacing(C.px(8))
+        self._col.addWidget(rule)
+        self._col.addSpacing(C.px(8))
+        row = RedirectRow(key, text, glyph, self)
+        row.selected.connect(self.selected.emit)
+        self._col.addWidget(row)
+        self._redirect = row
+        widest = max(self.width(), row.natural_width() + 2 * C.px(_RAIL_PAD))
+        self.setFixedWidth(max(C.px(C.RAIL_W), min(C.px(_RAIL_MAX_W), widest)))
+
+    def _row(self, key: str, text: str, glyph: str = "", badge: tuple | None = None) -> RailRow:
+        row = RailRow(key, text, glyph, self, 0, badge)
         row.selected.connect(self.selected.emit)
         self._rows[key] = row
         return row
@@ -184,42 +199,39 @@ class LibraryRail(QFrame):
                 row.setParent(None)
                 row.deleteLater()
         self._groups[place] = []
-        head = self._rows[place]
-        at = self._col.indexOf(head) + 1
+
+        at = self._first_group + sum(len(self._groups[p]) for p in self._places[
+            :self._places.index(place)])
         for offset, (key, text) in enumerate(groups):
-            row = self._row(key, text, indent=C.px(_ROW_PAD), badge=looks.get(key, ("", "")))
+            row = self._row(key, text, badge=looks.get(key, ("", "")))
             self._col.insertWidget(at + offset, row)
             self._groups[place].append(key)
             self._owner[key] = place
-        if self._groups[place] and getattr(head, "chevron", None) is None:
-            head.add_chevron().clicked.connect(lambda p=place: self._fold(p, not self._open[p]))
-        self._fold(place, self._open[place])
+        self._show_active()
         self._fit_width()
 
     def _fit_width(self) -> None:
-        widest = max((row.natural_width() for row in self._rows.values()), default=0)
+        widest = max([row.natural_width() for row in self._rows.values()] or [0])
         self.setFixedWidth(max(C.px(C.RAIL_W), min(C.px(_RAIL_MAX_W), widest + 2 * C.px(_RAIL_PAD))))
 
     def set_current(self, key: str) -> None:
+
+
         for row_key, row in self._rows.items():
             row.set_current(row_key == key)
-
-
-
-
         place = self._owner.get(key, key if key in self._groups else "")
         if place and place != self._active:
             self._active = place
-            for other in self._places:
-                self._fold(other, other == place)
+            self._show_active()
 
-    def _fold(self, place: str, open_: bool) -> None:
-        self._open[place] = bool(open_)
-        for key in self._groups.get(place, []):
-            self._rows[key].setVisible(self._open[place])
-        head = self._rows.get(place)
-        if head is not None and getattr(head, "chevron", None) is not None:
-            head.chevron.set_open(self._open[place])
+    def place(self) -> str:
+
+        return self._active
+
+    def _show_active(self) -> None:
+        for place, keys in self._groups.items():
+            for key in keys:
+                self._rows[key].setVisible(place == self._active)
 
     def keys(self) -> list:
         return list(self._rows)

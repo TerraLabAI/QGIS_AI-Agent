@@ -29,9 +29,9 @@ from qgis.PyQt.QtWidgets import QApplication, QDialog, QLabel, QPushButton, QVBo
 from ..core.host_platform import os_info, os_label
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
-from .font_scale import scale_px_length
+from .font_scale import scale_px_length, scale_qss_font_px
 from .shared import exec_dialog, get_support_email, plugin_version, tr
-from .style import _BTN_GHOST, _BTN_PRIMARY, BTN_PILL_PX
+from .style import _BTN_GHOST, _BTN_PRIMARY, BTN_PILL_PX, with_platform_font
 
 
 def _clean(text: str) -> str:
@@ -92,6 +92,7 @@ class ErrorReportDialog(QDialog):
 
     def __init__(self, error_message: str = "", run_id: str = "", parent=None, report_provider=None):
         super().__init__(parent)
+        with_platform_font(self)
         self.setWindowTitle(tr("Report a problem"))
         self.setModal(True)
         self.setMinimumWidth(440)
@@ -105,7 +106,7 @@ class ErrorReportDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
         title = QLabel(tr("Tell us what went wrong"), self)
-        title.setStyleSheet("font-weight: 600; font-size: 14px;")
+        title.setStyleSheet(scale_qss_font_px("font-weight: 600; font-size: 14px;"))
         layout.addWidget(title)
         label = QLabel(self._explanation(), self)
         label.setWordWrap(True)

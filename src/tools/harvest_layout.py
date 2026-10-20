@@ -29,7 +29,7 @@ from qgis.PyQt.QtGui import QImage
 from ..core import limits
 from ..core.security import expand_path, validate_path
 from ..core.serialization import CodedText
-from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import enum_value
 from .data_tools import _safe_filename
 from .layer_lookup import require_vector
@@ -185,20 +185,15 @@ def _expression_error(text, field_name: str):
     expression = QgsExpression(text)
     if not expression.hasParserError():
         return None
-    return tool_error(
-        f"{field_name} does not parse: {expression.parserErrorString()}",
-        "INVALID_ARGS",
-        f"Quote field names with \"double quotes\" and strings with 'single quotes'. "
-        f"evaluate_expression checks {field_name} before you pass it here.",
-    )
+    return tool_error(f"{field_name} does not parse: {expression.parserErrorString()}",
+                      "INVALID_ARGS", hint="expression_quoting")
 
 
 def _layout_or_error(name: str):
 
     layout, error = _resolve_layout(name)
-    if error:
-        error.setdefault("code", "INVALID_ARGS")
-        error.setdefault("suggestion", "list_layouts gives the exact name; create_print_layout makes one.")
+    if error and not error.get("hint"):
+        error["hint"] = "layout_not_found"
     return layout, error
 
 
@@ -228,9 +223,7 @@ def _add_layout_picture(args: dict) -> dict:
         return error
     path = expand_path(args["path"])
     if not os.path.isfile(path):
-        return tool_error(f"Picture file not found: {path}", "INVALID_ARGS",
-                          "path must be an existing PNG, JPG or SVG; QGIS ships SVGs under "
-                          "QgsApplication.svgPaths().")
+        return tool_error(f"Picture file not found: {path}", "INVALID_ARGS", hint="layout_picture_missing")
 
     member = _PICTURE_MODE_MEMBERS[args.get("resize_mode") or "zoom"]
     resize_mode = enum_value((QgsLayoutItemPicture, member), (QgsLayoutItemPicture, f"ResizeMode.{member}"))
@@ -289,8 +282,7 @@ def _add_layout_table(args: dict) -> dict:
     if args.get("visible_only"):
         follow_map = _first_map_item(layout)
         if follow_map is None:
-            return tool_error("visible_only needs a map frame in the layout", "INVALID_ARGS",
-                              "add_layout_map adds one")
+            return tool_error("visible_only needs a map frame in the layout", "INVALID_ARGS", hint="layout_no_map")
 
     table = QgsLayoutItemAttributeTable.create(layout)
     table.setVectorLayer(layer)
@@ -372,8 +364,7 @@ def _configure_atlas(args: dict) -> dict:
         "page_names": _leading_page_names(atlas, 5),
     }
     if driven == 0:
-        summary["note"] = ("no map frame in the layout follows the atlas; a frame follows it when "
-                           "configure_atlas runs with that frame already in the layout")
+        summary["note"] = coded_fact(hint="atlas_no_driven_frame")
     if wanted_scale is not None:
         summary["scale"] = int(wanted_scale)
         summary["scale_mode"] = "fixed"
@@ -408,8 +399,7 @@ def _apply_atlas_filter(atlas, args: dict):
     if accepted:
         return None
     atlas.setFilterFeatures(False)
-    return tool_error(f"Invalid filter_expression: {message}", "INVALID_ARGS",
-                      "evaluate_expression checks an expression against the coverage layer.")
+    return tool_error(f"Invalid filter_expression: {message}", "INVALID_ARGS", hint="atlas_expression_check")
 
 
 def _apply_atlas_sort(atlas, args: dict) -> None:
@@ -467,8 +457,7 @@ def _apply_atlas_scale(layout, wanted_scale, layout_name: str):
         return [], tool_error(
             f"Layout '{layout_name}' has no map driven by the atlas, so there is no map to hold "
             "that scale.",
-            "INVALID_ARGS",
-            "configure_atlas with drive_maps true (the default) drives a map; so does add_layout_map.",
+            "INVALID_ARGS", hint="atlas_no_driven_map",
         )
     fixed_mode = enum_value((QgsLayoutItemMap, "Fixed"), (QgsLayoutItemMap, "AtlasScalingMode.Fixed"))
     changed = []
@@ -509,12 +498,11 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
 
     if fmt not in _IMAGE_FORMATS:
         return tool_error(f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
-                          "INVALID_ARGS", "png, jpg and tif take a ground resolution.")
+                          "INVALID_ARGS", hint="layout_ground_size_format")
     reference = layout.referenceMap()
     if reference is None:
         return tool_error(f"Layout '{layout.name()}' has no map item, so a pixel size on the ground has no dpi.",
-                          "INVALID_ARGS", "add_layout_map adds a map; configure_atlas then drives it for "
-                                          "meters_per_pixel.")
+                          "INVALID_ARGS", hint="atlas_ground_size_needs_map")
     exporter = QgsLayoutExporter(layout)
     widths = []
 
@@ -539,8 +527,7 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
     facts = {"meters_per_pixel": round(coarsest, 4)}
     if coarsest > finest * 1.01:
         facts["meters_per_pixel_range"] = [round(finest, 4), round(coarsest, 4)]
-        facts["meters_per_pixel_note"] = ("Each page fits its own feature: the widest page has meters_per_pixel, "
-                                          "narrower pages finer pixels. scale gives one resolution on every page.")
+        facts["meters_per_pixel_note"] = coded_fact(hint="atlas_pixel_size_varies")
     return dpi, facts
 
 
@@ -609,7 +596,7 @@ def _export_atlas_with(args: dict, ready) -> dict:
         return error
     atlas = layout.atlas()
     if not atlas.enabled() or atlas.coverageLayer() is None:
-        return tool_error("Atlas not enabled on this layout", "INVALID_ARGS", "configure_atlas enables it")
+        return tool_error("Atlas not enabled on this layout", "INVALID_ARGS", hint="atlas_not_enabled")
 
     output_path = expand_path(args["output_path"])
     fmt = (args.get("format") or "pdf").lower()
@@ -621,19 +608,20 @@ def _export_atlas_with(args: dict, ready) -> dict:
                   if requested > max_dpi and args.get("meters_per_pixel") is None else {})
     path_error = validate_path(output_path, write=True)
     if path_error:
-        hint = "" if isinstance(path_error, CodedText) else "output_path must be writable"
-        return tool_error(path_error, "INVALID_ARGS", hint)
+        return tool_error(path_error, "INVALID_ARGS",
+                          hint="" if isinstance(path_error, CodedText) else "layout_path_writable",
+                          param="output_path")
 
     if args.get("filename_expression"):
         outcome = atlas.setFilenameExpression(args["filename_expression"])
         ok, detail = (outcome[0], outcome[1]) if isinstance(outcome, (list, tuple)) else (bool(outcome), "")
         if not ok:
             return tool_error(f"Invalid filename_expression: {detail}", "INVALID_ARGS",
-                              "filename_expression needs a distinct string per feature, e.g. 'page_'||\"name\".")
+                              hint="atlas_filename_expression")
     atlas.updateFeatures()
     if atlas.count() == 0:
         return tool_error("The atlas has no page: the coverage layer is empty or the filter matches nothing",
-                          "INVALID_ARGS", "configure_atlas sets the coverage layer and filter_expression.")
+                          "INVALID_ARGS", hint="atlas_no_pages")
 
     wanted_scale = args.get("scale")
     scale_changed = []
@@ -656,14 +644,12 @@ def _export_atlas_with(args: dict, ready) -> dict:
 
         _restore_atlas_scale(scale_changed)
         if ready["stopped"]:
-            return {"_error": "The atlas export was stopped while its maps were being drawn; no file was "
-                              "written.", "code": "CANCELLED"}
+            return tool_error("The atlas export was stopped while its maps were being drawn; no file was "
+                              "written.", "CANCELLED")
         late = ready["unfinished"]
-        return {"_error": (f"The maps of the atlas of '{layout.name()}' did not finish drawing in the time a "
-                           f"call has, so nothing was exported. Still drawing: {', '.join(late[:6])}."),
-                "_code": "TIMEOUT", "slow_layers": late,
-                "_suggestion": "A lower dpi, fewer pages (filter_expression), or hiding a layer drawn over the "
-                               "network, draws less."}
+        return tool_error(f"The maps of the atlas of '{layout.name()}' did not finish drawing in the time a "
+                          f"call has, so nothing was exported. Still drawing: {', '.join(late[:6])}.",
+                          "TIMEOUT", hint="atlas_export_not_drawn", slow_layers=late)
     job = {"layout": layout, "atlas": atlas, "path": output_path, "fmt": fmt, "dpi": dpi,
            "scale": wanted_scale, "at_ceiling": at_ceiling, "ground": ground, "ready": ready}
     if fmt == "pdf" and args.get("single_file") is not False:
@@ -724,12 +710,11 @@ def _atlas_to_folder(job: dict) -> dict:
     if os.path.exists(folder) and not os.path.isdir(folder):
         what = "PDF" if fmt == "pdf" else "image"
         return tool_error(f"Atlas {what} output_path is not a folder: {folder}", "INVALID_ARGS",
-                          "a folder for one file per page")
+                          hint="atlas_output_not_folder")
     try:
         os.makedirs(folder, exist_ok=True)
     except OSError as exc:
-        return tool_error(f"Could not create atlas output folder {folder}: {exc}", "EXECUTION_FAILED",
-                          "the folder must be writable.")
+        return tool_error(f"Could not create atlas output folder {folder}: {exc}", "EXECUTION_FAILED")
 
 
 
@@ -823,8 +808,7 @@ def _atlas_page_names(atlas) -> tuple:
         return [], tool_error(
             f"The page names of this atlas could not be worked out before exporting ({exc}), so the export "
             f"was not started.",
-            "EXECUTION_FAILED",
-            "Without filename_expression, pages are named after the layout.",
+            "EXECUTION_FAILED", hint="atlas_page_names_unresolved",
         )
 
     problems = _bad_page_names(names)
@@ -832,9 +816,7 @@ def _atlas_page_names(atlas) -> tuple:
         return names, tool_error(
             "The filename expression produces page names that are not plain file names: "
             + "; ".join(problems[:5]) + ("" if len(problems) <= 5 else f" (and {len(problems) - 5} more)"),
-            "INVALID_ARGS",
-            "Every page must be one ordinary file name, unique within the folder. replace('\"name\"', '/', '-') "
-            "gives a plain name; the feature id makes duplicates distinct.",
+            "INVALID_ARGS", hint="atlas_page_names_invalid",
         )
     return names, None
 
@@ -891,8 +873,9 @@ def _get_3d_screenshot(args: dict) -> dict:
         keep_at = expand_path(keep_at)
         refused = validate_path(keep_at, write=True)
         if refused:
-            hint = "" if isinstance(refused, CodedText) else "save_path must be writable"
-            return tool_error(refused, "INVALID_ARGS", hint)
+            return tool_error(refused, "INVALID_ARGS",
+                              hint="" if isinstance(refused, CodedText) else "layout_path_writable",
+                              param="save_path")
         png_path = keep_at
     else:
         png_path = os.path.join(tempfile.gettempdir(), f"agent_3d_{uuid.uuid4().hex[:8]}.png")
@@ -902,7 +885,7 @@ def _get_3d_screenshot(args: dict) -> dict:
     code = _render_3d_page(view, dpi, png_path)
     if _export_failed(code) or not os.path.exists(png_path):
         return tool_error(f"3D layout export failed (export code {code})", "EXECUTION_FAILED",
-                          "the 3D view must render on screen; a lower dpi needs less memory.")
+                          hint="layout_3d_render_failed")
 
     picture = QImage(png_path)
     facts = {"width": picture.width(), "height": picture.height(), "format": "png",

@@ -154,8 +154,7 @@ def _target(args: dict, project) -> tuple[str, dict | None]:
                               hint="persist_gpkg_in_scratch")
     error = security.validate_path(path, write=True)
     if error:
-        return "", tool_error(error, "PERMISSION_DENIED",
-                              "The project folder or the user's home folder takes a GeoPackage.")
+        return "", tool_error(error, "PERMISSION_DENIED", hint="persist_gpkg_path_refused")
     if not security.fits_path(path, len("-journal")):
         return "", tool_error(f"{path} is longer than Windows opens.", "INVALID_ARGS",
                               hint="persist_path_too_long")

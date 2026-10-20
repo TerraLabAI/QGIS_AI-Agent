@@ -62,25 +62,23 @@ def snapshot_3d_view(args: dict):
 
 
 
-    no_3d_hint = "take_screenshot covers the 2D canvas."
+    no_3d_hint = "layout_3d_unavailable"
     try:
         from qgis._3d import Qgs3DMapSettings
     except ImportError as exc:
-        return None, tool_error(f"This QGIS build has no 3D module ({exc}).", "EXECUTION_FAILED", no_3d_hint)
+        return None, tool_error(f"This QGIS build has no 3D module ({exc}).", "EXECUTION_FAILED", hint=no_3d_hint)
     views = open_3d_views()
     if views is None:
         return None, tool_error("This QGIS cannot list its 3D views: its 3D support is missing or failed.",
-                                "EXECUTION_FAILED", no_3d_hint)
+                                "EXECUTION_FAILED", hint=no_3d_hint)
     if not views:
         return None, tool_error("No 3D map view is open (closing a view's window deletes the view), and the "
                                 "scene and camera are copied from one.",
-                                "INVALID_ARGS",
-                                "configure_3d_map_view opens one on QGIS 3.36 and newer; older QGIS opens "
-                                "one at View > 3D Map Views > New 3D Map View.")
+                                "INVALID_ARGS", hint="layout_3d_no_view")
     index = int(args.get("view_index") or 0)
     if index not in range(len(views)):
         return None, tool_error(f"view_index {index} names no open 3D view ({len(views)} open).",
-                                "INVALID_ARGS", f"view_index is 0 to {len(views) - 1}.")
+                                "INVALID_ARGS", hint="layout_3d_view_index", last=len(views) - 1)
     source = views[index]
     pose = source.cameraController().cameraPose()
     for key, apply in _CAMERA_OVERRIDES:

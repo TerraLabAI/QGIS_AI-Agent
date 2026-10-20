@@ -164,8 +164,7 @@ def _resolve(ref) -> dict:
 
     text = str(ref or "").strip()
     if not text:
-        return tool_error("raster is empty.", "INVALID_ARGS",
-                          "the image, PDF or KMZ by path, or a loaded layer by name.")
+        return tool_error("raster is empty.", "INVALID_ARGS", hint="georef_raster_empty")
     url = _remote_url(text)
     if url:
         return {"url": url, "layer": "", "page": 0}
@@ -174,13 +173,12 @@ def _resolve(ref) -> dict:
     if os.path.isfile(expanded):
         error = security.validate_path(expanded)
         if error:
-            return tool_error(error, "PERMISSION_DENIED", "Allowed: the project folder or your home folder.")
+            return tool_error(error, "PERMISSION_DENIED", hint="georef_read_scope")
         return {"path": expanded, "layer": "", "page": 0}
     layer = _find_layer(text)
     if layer is None:
         if "/" in text or "\\" in text or os.path.splitext(text)[1]:
-            return tool_error(f"No file at {expanded}.", "INVALID_ARGS",
-                              "The path or the loaded layer name may be wrong.")
+            return tool_error(f"No file at {expanded}.", "INVALID_ARGS", hint="georef_no_such_file")
         return _layer_not_found_error(text)
     source = str(layer.source() or "").split("|", 1)[0]
     page = 0
@@ -192,10 +190,9 @@ def _resolve(ref) -> dict:
     extension = os.path.splitext(urlsplit(url).path if url else source)[1].lower()
     if not url and not os.path.isfile(source):
         return tool_error(f"{layer.name()} is not read from a file on this computer.", "INVALID_ARGS",
-                          "the scan, photo, PDF or KMZ file itself.")
+                          hint="georef_layer_not_file")
     if not isinstance(layer, QgsRasterLayer) and extension not in (".kml", ".kmz"):
-        return tool_error(f"{layer.name()} is a vector layer.", "INVALID_ARGS",
-                          "the image to georeference: a raster layer by name, or its file path.")
+        return tool_error(f"{layer.name()} is a vector layer.", "INVALID_ARGS", hint="georef_not_raster")
     if url:
         return {"url": url, "layer": layer.name(), "page": page}
     return {"path": source, "layer": layer.name(), "page": page}
@@ -241,7 +238,7 @@ def _bbox(points: list) -> list:
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the file was read.", "CANCELLED", "Nothing was written.")
+    return tool_error("Stopped before the file was read.", "CANCELLED", hint="georef_stopped_nothing_written")
 
 
 def _writable_target(beside: str, file_name: str) -> str:
@@ -325,37 +322,36 @@ def _download(url: str, cancelled) -> dict:
         return tool_error(f"HTTP {exc.code} from {host}: "
                           + ("there is no file at this address." if missing else f"{exc.reason}."),
                           "INVALID_ARGS" if 400 <= exc.code < 500 else "EXECUTION_FAILED",
-                          "The address may be wrong; the file itself is another route.")
+                          hint="georef_download_failed")
     except (net.LocalUrlRefused, net.FetchWithdrawn) as exc:
         return tool_error(coded_like(f"This address is not fetched: {exc.reason}", exc.reason), "PERMISSION_DENIED",
-                          "" if isinstance(exc.reason, CodedText) else "The file itself, with a local path, is needed.")
+                          hint="" if isinstance(exc.reason, CodedText) else "georef_file_local_path")
     except net.FetchTooLarge:
         return tool_error(f"The file at {host} is over the {_MAX_DOWNLOAD_SIZE // (1024 * 1024)} MB this tool "
-                          "downloads.", "INVALID_ARGS",
-                          "A downloaded file, with its local path, is needed.")
+                          "downloads.", "INVALID_ARGS", hint="georef_downloaded_file")
     except net.FetchCancelled:
         return _stopped()
     except net.FetchDeadline as exc:
         return tool_error(f"The download from {host} did not finish in time: {exc.reason}", "TIMEOUT",
-                          "A downloaded file, with its local path, is needed.")
+                          hint="georef_downloaded_file")
     except (urllib.error.URLError, OSError) as exc:
         described = net.describe_failure(exc)
         if described:
-            return tool_error(described, net.NETWORK_ERROR, net.NETWORK_SUGGESTION)
+            return tool_error(described, net.NETWORK_ERROR)
         return tool_error(f"The download from {host} failed: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "The address may be wrong; the file itself is another route.")
+                          hint="georef_download_failed")
     body = answer.body
     extension = _signature_extension(body)
     if not extension:
         return tool_error(f"{host} did not answer with an image, a PDF, a KML or a KMZ.", "INVALID_ARGS",
-                          "the address of the file itself, not of a page that shows it.")
+                          hint="georef_address_not_file")
     stem = os.path.splitext(_safe_filename(posixpath.basename(unquote(urlsplit(url).path)), "image"))[0]
     target = os.path.join(folder, f"{stem[:60]}-{key}{extension}")
     if not security.fits_path(target, 48):
         target = os.path.join(folder, f"{key}{extension}")
     refused = security.validate_path(target, write=True)
     if refused:
-        return tool_error(refused, "PERMISSION_DENIED", "The file itself, with a local path, is needed.")
+        return tool_error(refused, "PERMISSION_DENIED", hint="georef_file_local_path")
     part = f"{target}.{uuid.uuid4().hex[:8]}.part"
     try:
         os.makedirs(folder, exist_ok=True)
@@ -365,7 +361,7 @@ def _download(url: str, cancelled) -> dict:
     except OSError as exc:
         remove_quietly(part)
         return tool_error(f"The download could not be written to {folder}: {exc}", "EXECUTION_FAILED",
-                          "Disk space, or the file itself directly, may help.")
+                          hint="georef_download_write_failed")
     return {"path": target, "downloaded": True}
 
 
@@ -499,22 +495,22 @@ def _kml_document(path: str):
             archive = zipfile.ZipFile(path)
         except (OSError, zipfile.BadZipFile) as exc:
             return tool_error(f"{os.path.basename(path)} is not a readable KMZ: {exc}", "INVALID_ARGS",
-                              "a KMZ saved by Google Earth or QGIS, or the image inside it.")
+                              hint="georef_kmz_unreadable")
         entries = [i for i in archive.infolist() if i.filename.lower().endswith(".kml")]
         if not entries:
             archive.close()
             return tool_error(f"{os.path.basename(path)} holds no KML document.", "INVALID_ARGS",
-                              "the image inside it instead.")
+                              hint="georef_kmz_no_kml")
         entry = next((i for i in entries if i.filename.lower() == "doc.kml"),
                      min(entries, key=lambda i: i.filename.count("/")))
         if entry.file_size > KML_MAX_BYTES:
             archive.close()
             return tool_error(f"The KML in {os.path.basename(path)} is {entry.file_size:,} bytes.", "INVALID_ARGS",
-                              "That is vector data, not an image overlay; add_data adds it.")
+                              hint="georef_kml_is_vector")
         return archive.read(entry), archive
     if os.path.getsize(path) > KML_MAX_BYTES:
         return tool_error(f"{os.path.basename(path)} is {os.path.getsize(path):,} bytes.", "INVALID_ARGS",
-                          "That is vector data, not an image overlay; add_data adds it.")
+                          hint="georef_kml_is_vector")
     with open(path, "rb") as handle:
         return handle.read(), None
 
@@ -567,26 +563,26 @@ def _overlay_image(path: str, archive, href: str, cancelled) -> str | dict:
 
     if len(urlsplit(href).scheme) > 1 and "://" in href:
         return tool_error(f"The overlay's image is on the web ({href[:120]}), not in the file.", "INVALID_ARGS",
-                          "The image needs to sit next to the KML, or be given directly.")
+                          hint="georef_overlay_image_web")
     member = unquote(href).replace("\\", "/").lstrip("./")
     if archive is None:
         image = os.path.normpath(os.path.join(os.path.dirname(path), unquote(href)))
         if not os.path.isfile(image):
             return tool_error(f"The overlay's image {href} is not next to the KML.", "INVALID_ARGS",
-                              "The image belongs where the KML says, or is given directly.")
+                              hint="georef_overlay_image_missing")
         return image
     names = {n.lower(): n for n in archive.namelist()}
     stored = names.get(member.lower())
     if stored is None:
         return tool_error(f"The KMZ names the image {href}, which it does not contain.", "INVALID_ARGS",
-                          "the image itself, with points read on it.")
+                          hint="georef_kmz_image_missing")
     stem = os.path.splitext(os.path.basename(path))[0]
     base, extension = os.path.splitext(os.path.basename(stored))
     file_name = output_paths.safe_file_name(f"{stem}_{base}", "overlay") + extension.lower()
     target = _writable_target(path, file_name)
     if not target:
         return tool_error("No folder next to the KMZ or in the exports folder can take its image.",
-                          "PERMISSION_DENIED", "An unzipped image, with its points, works.")
+                          "PERMISSION_DENIED", hint="georef_kmz_image_unwritable")
     size = archive.getinfo(stored).file_size
     if os.path.isfile(target) and os.path.getsize(target) == size:
         return target
@@ -607,7 +603,7 @@ def _overlay_image(path: str, archive, href: str, cancelled) -> str | dict:
         return _stopped()
     except OSError as exc:
         return tool_error(f"The KMZ's image could not be written to {target}: {exc}", "EXECUTION_FAILED",
-                          "An unzipped image, with its points, works.")
+                          hint="georef_kmz_image_unwritable")
     finally:
         if part:
             remove_quietly(part)
@@ -624,9 +620,7 @@ def _from_kml(gdal, found: dict, cancelled) -> dict:
         overlays = _ground_overlays(body)
         if not overlays:
             return tool_error(f"{os.path.basename(path)} has no GroundOverlay with a LatLonBox or gx:LatLonQuad.",
-                              "INVALID_ARGS",
-                              "It holds vector features; add_data adds it. Georeferencing needs the image "
-                              "itself.")
+                              "INVALID_ARGS", hint="georef_kml_no_overlay")
         overlay = overlays[0]
         image = _overlay_image(path, archive, overlay["href"], cancelled)
     finally:
@@ -640,7 +634,7 @@ def _from_kml(gdal, found: dict, cancelled) -> dict:
         dataset = None
     except RuntimeError as exc:
         return tool_error(f"The overlay's image {os.path.basename(image)} does not open: {str(exc)[:160]}",
-                          "EXECUTION_FAILED", "another copy of the image with points read on it.")
+                          "EXECUTION_FAILED", hint="georef_overlay_image_unopenable")
     if "quad" in overlay:
 
         order = ((0, height), (width, height), (width, 0), (0, 0))
@@ -952,7 +946,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
         pages, gdal_reads = 0, False
     if gdal_reads and page > pages:
         return tool_error(f"{os.path.basename(path)} has {pages} page(s); page {page} does not exist.",
-                          "INVALID_ARGS", f"page is 1 to {pages}.")
+                          "INVALID_ARGS", hint="georef_page_out_of_range", pages=int(pages))
     dpi = float(PDF_DPI)
     stem = output_paths.safe_file_name(os.path.splitext(os.path.basename(path))[0], "plan")
     facts = {"page": page, "pages": pages or None, "dpi": PDF_DPI}
@@ -961,7 +955,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
             dataset = _open_pdf_page(gdal, path, page, pages, dpi)
         except RuntimeError as exc:
             return tool_error(f"GDAL could not read page {page} of {os.path.basename(path)}: {str(exc)[:160]}",
-                              "EXECUTION_FAILED", "An exported PNG or JPEG of the page works.")
+                              "EXECUTION_FAILED", hint="georef_pdf_page_export")
         placed = _georeferencing(gdal, osr, dataset, path)
         if placed is not None:
             dataset = None
@@ -977,7 +971,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
     target = _writable_target(path, file_name)
     if not target:
         return tool_error("No folder next to the PDF or in the exports folder can take the page image.",
-                          "PERMISSION_DENIED", "An exported image of the page works.")
+                          "PERMISSION_DENIED", hint="georef_pdf_page_export")
     facts["rasterized_to"] = target
     if os.path.isfile(target) and os.path.getmtime(target) >= os.path.getmtime(path):
         facts["reused"] = True
@@ -992,7 +986,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
             counted, why = _pdf_with_qt(path, page, dpi, part)
             if why:
                 return tool_error(f"{os.path.basename(path)} cannot be drawn here: {why}.", "EXECUTION_FAILED",
-                                  "An exported PNG or JPEG of the page works.")
+                                  hint="georef_pdf_page_export")
             facts["pages"] = counted
         if cancelled is not None and cancelled():
             return _stopped()
@@ -1002,10 +996,10 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
         if cancelled is not None and cancelled():
             return _stopped()
         return tool_error(f"Page {page} of {os.path.basename(path)} could not be drawn: {str(exc)[:160]}",
-                          "EXECUTION_FAILED", "An exported PNG or JPEG of the page works.")
+                          "EXECUTION_FAILED", hint="georef_pdf_page_export")
     except OSError as exc:
         return tool_error(f"The page image could not be written to {target}: {exc}", "EXECUTION_FAILED",
-                          "An exported PNG or JPEG of the page works.")
+                          hint="georef_pdf_page_export")
     finally:
         dataset = None
         if part:
@@ -1033,7 +1027,7 @@ def _base_image(gdal, dataset, long_side: int, cancelled):
 
     options["format"] = "MEM"
 
-    previous = gdal.GetThreadLocalConfigOption("GDAL_PAM_ENABLED", None)
+    previous = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_PAM_ENABLED", None)
     gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
     try:
         memory = gdal.Translate("", dataset, **options)
@@ -1129,7 +1123,7 @@ def _inspect_georeference(args: dict) -> dict:
     gdal.UseExceptions()
     page = args.get("page")
     if page is not None and (not isinstance(page, int) or isinstance(page, bool) or page < 1):
-        return tool_error("page must be a page number, 1 or more.", "INVALID_ARGS", "page 1 is the first page.")
+        return tool_error("page must be a page number, 1 or more.", "INVALID_ARGS", hint="georef_page_number")
     cancelled = net.current_cancel_check()
     found = run_on_main_thread(_resolve, args.get("raster"))
     if "_error" in found:
@@ -1181,7 +1175,7 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         dataset = gdal.Open(image, gdal.GA_ReadOnly)
     except RuntimeError as exc:
         return tool_error(f"GDAL could not open {os.path.basename(image)}: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "an image file (JPEG, PNG, TIFF), a PDF or a KMZ.")
+                          hint="georef_inspect_input_kinds")
     try:
         width, height = dataset.RasterXSize, dataset.RasterYSize
         result["width"], result["height"] = width, height
@@ -1213,12 +1207,12 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         if cancelled is not None and cancelled():
             return _stopped()
         return tool_error(f"{os.path.basename(image)} could not be read: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "another copy of the image (JPEG, PNG or TIFF).")
+                          hint="georef_image_unreadable")
     finally:
         dataset = None
     if base is None:
         return tool_error(f"{os.path.basename(image)} could not be decoded for a preview.", "EXECUTION_FAILED",
-                          "another copy of the image (JPEG, PNG or TIFF).")
+                          hint="georef_image_unreadable")
     preview = _grid_preview(base, width, height)
     result["image_base64"] = image_to_base64(preview, "jpeg", PREVIEW_JPEG_QUALITY)
     result["preview"] = {"width": preview.width(), "height": preview.height(),

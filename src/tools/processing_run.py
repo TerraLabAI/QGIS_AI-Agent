@@ -420,8 +420,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-        return {"_error": f"Algorithm not found: {algorithm_id}", "code": "INVALID_ARGS",
-                **_provider_hint(algorithm_id)}
+        return tool_error(f"Algorithm not found: {algorithm_id}", "INVALID_ARGS", **_provider_hint(algorithm_id))
 
 
     parameters, renamed_outputs, misnamed = _output_names(alg, parameters, algorithm_id)
@@ -485,8 +484,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         return grid_in_degrees
 
 
-    fill_warning = unfilled_dem_warning(alg, algorithm_id, parameters, bool(args.get("confirm_large")))
-    warning = " ".join(part for part in (ground_note, fill_warning) if part)
+    unfilled_dem = unfilled_dem_warning(alg, algorithm_id, parameters, bool(args.get("confirm_large")))
+    warning = ground_note
     undeclared_nodata = _undeclared_nodata_check(algorithm_id, parameters, bool(args.get("confirm_large")))
     if undeclared_nodata:
         return undeclared_nodata
@@ -577,14 +576,13 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                         renamed_for_provider += [renamed] if renamed else []
                     path_error = validate_path(gpkg_path, write=True)
                     if path_error:
-                        return {"_error": path_error}
+                        return tool_error(path_error, "INVALID_ARGS")
                     sink_uri = _gpkg_sink_uri(gpkg_path, table_name)
                     if sink_uri is None:
-                        return {"_error": (
+                        return tool_error(
                             f"{name}: a GeoPackage path cannot contain a single quote and a table name "
                             f"cannot contain a double quote, because the output URI uses them as "
-                            f"delimiters. A different folder or table name has none."),
-                            "code": "INVALID_ARGS"}
+                            f"delimiters.", "INVALID_ARGS", hint="gpkg_sink_quote")
                     plans.append(("table", name, (gpkg_path, table_name, sink_uri)))
                     continue
                 looks_like_path = (
@@ -607,10 +605,10 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                     renamed_for_provider += [renamed] if renamed else []
                     path_error = validate_path(expanded, write=True)
                     if path_error:
-                        return {"_error": path_error}
+                        return tool_error(path_error, "INVALID_ARGS")
                     plans.append(("file", name, expanded))
     except Exception as e:
-        return {"_error": f"Failed to validate processing outputs: {e}"}
+        return tool_error(f"Failed to validate processing outputs: {e}")
 
 
 
@@ -642,10 +640,10 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         elif kind == "table" and (os.path.normcase(os.path.abspath(payload[0])), payload[1].casefold()) in input_tables:
             overwritten = f"{payload[0]}|layername={payload[1]}"
         if overwritten:
-            return {"_error": (f"{name} is {overwritten}, which {algorithm_id} also reads: writing there replaces "
-                               f"the input before it is read, and its data would be lost. Nothing was run."),
-                    "code": "INVALID_ARGS", "hint": "output_overwrites_input",
-                    "algorithm": algorithm_id, "destination": overwritten}
+            return tool_error(f"{name} is {overwritten}, which {algorithm_id} also reads: writing there replaces "
+                              f"the input before it is read, and its data would be lost. Nothing was run.",
+                              "INVALID_ARGS", hint="output_overwrites_input",
+                              algorithm=algorithm_id, destination=overwritten)
 
 
 
@@ -662,10 +660,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
     if any(os.path.exists(path) and not _protects_input(path) for path in replaced):
         missing = _missing_inputs(alg, parameters, layers_only=True)
         if missing:
-            return {"_error": (f"{algorithm_id} needs {', '.join(missing)}, which the call does not give; "
-                               f"nothing was run and no file was replaced."),
-                    "code": "INVALID_ARGS",
-                    "suggestion": f"Input name(s): {', '.join(missing)}."}
+            return tool_error(f"{algorithm_id} needs {', '.join(missing)}, which the call does not give; "
+                              f"nothing was run and no file was replaced.", "INVALID_ARGS")
 
 
 
@@ -687,7 +683,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             else:
                 sanitized_parameters[name] = payload
     except Exception as e:
-        return {"_error": f"Failed to prepare processing output names: {e}"}
+        return tool_error(f"Failed to prepare processing output names: {e}")
     for key, (layer_id, _count, _total, _name, only_selected, expression) in selected.items():
         sanitized_parameters[key] = source_definition(layer_id, only_selected, expression)
 
@@ -710,7 +706,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         if check is None and invalid_geometry_filter == "skip":
             if managed_output_dir is not None:
                 remove_tree(managed_output_dir)
-            return {"_error": "This QGIS version cannot skip invalid geometries through Processing."}
+            return tool_error("This QGIS version cannot skip invalid geometries through Processing.")
         if check is not None:
             context.setInvalidGeometryCheck(check)
 
@@ -794,7 +790,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 if not _protects_input(payload):
                     released.extend(_release_layers_at_path(payload, skip_ids=input_ids, delete_existing=not appends))
     except Exception as e:
-        return {"_error": f"Failed to prepare processing outputs: {e}"}
+        return tool_error(f"Failed to prepare processing outputs: {e}")
 
 
 
@@ -840,7 +836,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
         entry = _PROCESSING_TASKS.get(started.get("task_id"))
         for key, value in (("repairs", repairs), ("selection", selection), ("defaults", defaults),
-                           ("measurement", measurement.get("measurement")), ("warning", warning)):
+                           ("measurement", measurement.get("measurement")), ("warning", warning),
+                           ("unfilled_dem", unfilled_dem)):
             if value:
                 started[key] = value
                 if entry is not None:
@@ -925,7 +922,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         if written:
             failed["files_written"] = written
         external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
-        if external and not failed.get("suggestion"):
+        if external and not failed.get("suggestion") and not failed.get("hint"):
             failed.update(hint="external_provider_wrote_nothing", provider=algorithm_id.split(":", 1)[0])
         return failed
 
@@ -965,6 +962,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         out["defaults"] = defaults
     if warning:
         out["warning"] = warning
+    if unfilled_dem:
+        out["unfilled_dem"] = unfilled_dem
     out.update(measurement)
     if managed_output_dir is not None:
         out["outputs_note"] = f"unspecified outputs were written to a managed temp dir: {managed_output_dir}"
@@ -1774,6 +1773,18 @@ def _cleanup_canceled_destination(entry: dict) -> None:
         log_warning(f"Partial temporary output {folder} not removed after cancel: {exc}")
 
 
+def _carry_advice(entry: dict, explained: dict) -> None:
+
+
+    if explained.get("suggestion"):
+        entry["suggestion"] = explained["suggestion"]
+    if explained.get("hint"):
+        entry["hint"] = explained["hint"]
+        for fact in ("names", "closest_layers"):
+            if explained.get(fact):
+                entry[fact] = explained[fact]
+
+
 def _forget_canceled_destinations(paths) -> None:
 
     def key(value: str) -> str:
@@ -1887,8 +1898,7 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
 
         explained = _processing_error(detail, entry.get("alg"))
         entry["error"] = explained.get("_error") or detail
-        if explained.get("suggestion"):
-            entry["suggestion"] = explained["suggestion"]
+        _carry_advice(entry, explained)
         if written:
             entry["files_written"] = written
     elif ok:
@@ -2098,8 +2108,7 @@ def _finish_outputs(entry: dict, results, context, built=None) -> None:
             entry["status"] = "error"
             explained = _processing_error(f"Processing finished, but {unreadable}", entry.get("alg"))
             entry["error"] = explained.get("_error") or unreadable
-            if explained.get("suggestion"):
-                entry["suggestion"] = explained["suggestion"]
+            _carry_advice(entry, explained)
         else:
             entry["status"] = "complete"
             entry["progress"] = 100
@@ -2363,6 +2372,11 @@ def _get_task_status(args: dict) -> dict:
     if entry.get("sequence") is not None:
 
         out.update(entry["sequence"].report())
+    elif entry["status"] == "running":
+
+        for key in ("features_written", "features_per_s", "eta_s"):
+            if entry.get(key) is not None:
+                out[key] = entry[key]
     elif entry["status"] == "complete":
         out["outputs"] = entry.get("outputs", {})
 
@@ -2394,6 +2408,8 @@ def _get_task_status(args: dict) -> dict:
 
             "warning",
 
+            "unfilled_dem",
+
 
             "note",
         ):
@@ -2402,7 +2418,7 @@ def _get_task_status(args: dict) -> dict:
     elif entry["status"] == "error":
         out["error"] = entry.get("error")
 
-        for key in ("code", "suggestion", "files_written", "hint", "layer", "fid"):
+        for key in ("code", "suggestion", "files_written", "hint", "layer", "fid", "names", "closest_layers"):
             if entry.get(key) is not None and entry.get(key) != "":
                 out[key] = entry[key]
     elif entry["status"] == "canceled":
@@ -2416,6 +2432,9 @@ def _get_task_status(args: dict) -> dict:
             out.update(coded_fact(hint="export_stopped_partial_file", partial_file=entry["partial_file"]))
         elif entry.get("note"):
             out["note"] = entry["note"]
+
+            if entry.get("note_next_hint"):
+                out["note_next_hint"] = entry["note_next_hint"]
 
 
     if entry["status"] in ("complete", "error", "canceled") and not entry.get("_consumed"):
@@ -2448,7 +2467,7 @@ def _cancel_task(args: dict) -> dict:
     task_id = args.get("task_id")
     entry = _PROCESSING_TASKS.get(task_id)
     if entry is None:
-        return {"_error": f"Unknown task_id: {task_id}", "_code": "INVALID_ARGS"}
+        return tool_error(f"Unknown task_id: {task_id}", "INVALID_ARGS", hint="unknown_task_id", task_id=task_id)
     if entry.get("sequence") is not None and entry.get("status") == "running":
 
         entry["status"] = "canceled"

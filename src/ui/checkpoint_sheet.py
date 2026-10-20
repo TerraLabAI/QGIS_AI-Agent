@@ -28,8 +28,6 @@
 
 from __future__ import annotations
 
-import os
-
 from qgis.PyQt.QtCore import QDateTime, QPoint, QRectF, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QPainter
 from qgis.PyQt.QtWidgets import (
@@ -54,6 +52,7 @@ from ..core.checkpoints import (
     NOT_BACKED_OLD_PROJECT_FILE,
     NOT_BACKED_OTHER_PROJECT,
     NOT_BACKED_TOO_LARGE,
+    NOT_PUT_BACK,
 )
 from .attach_menu import place_below
 from .font_scale import scale_qss_font_px
@@ -138,42 +137,6 @@ def _when(stamp) -> str:
         return ""
     moment = QDateTime.fromSecsSinceEpoch(int(seconds))
     return relative_time(moment.toString(Qt.DateFormat.ISODate)) if moment.isValid() else ""
-
-
-def affected_layers(rows, tr, limit: int = 4) -> str:
-
-
-
-
-
-    order: list = []
-    delta: dict = {}
-    for row in rows or []:
-        source = (row.get("after") or row.get("before") or row.get("target") or {}) if isinstance(row, dict) else {}
-        for item in source.get("log") or []:
-            if not isinstance(item, dict):
-                continue
-            name = str(item.get("layer") or os.path.basename(str(item.get("file") or "")) or "")
-            if not name:
-                continue
-            if name not in delta:
-                order.append(name)
-                delta[name] = 0
-            if item.get("what") == "features":
-                delta[name] += _whole(item.get("after")) - _whole(item.get("before"))
-    shown = []
-    for name in order[:limit]:
-        change = delta[name]
-        if change > 0:
-            shown.append(f"{name} (+{change})")
-        elif change < 0:
-            shown.append(f"{name} (\u2212{-change})")
-        else:
-            shown.append(name)
-    text = ", ".join(shown)
-    if len(order) > limit:
-        text = tr("{names} and {n} more").format(names=text, n=len(order) - limit)
-    return text
 
 
 
@@ -271,12 +234,27 @@ def not_restored_line(entry, tr) -> str:
 
 
 def _items_line(items: list, tr) -> str:
-    if not items:
-        return ""
-    if len(items) == 1:
-        return tr("{layer} can't be restored ({reason})").format(
-            layer=str(items[0]["name"]), reason=short_reason(str(items[0].get("reason") or ""), tr))
-    return tr("{n} layers can't be restored").format(n=len(items))
+
+
+
+    lost = losses(items)
+    kept = [item for item in items or [] if item not in lost]
+    parts = []
+    if len(lost) == 1:
+        parts.append(tr("{layer} can't be restored ({reason})").format(
+            layer=str(lost[0]["name"]), reason=short_reason(str(lost[0].get("reason") or ""), tr)))
+    elif lost:
+        parts.append(tr("{n} layers can't be restored").format(n=len(lost)))
+    if len(kept) == 1:
+        parts.append(tr("{file} stays on disk").format(file=str(kept[0]["name"])))
+    elif kept:
+        parts.append(tr("{n} files the request wrote stay on disk").format(n=len(kept)))
+    return " \u00b7 ".join(parts)
+
+
+def losses(items) -> list:
+
+    return [item for item in items or [] if isinstance(item, dict) and item.get("reason") != NOT_BACKED_NEW_FILE]
 
 
 def long_reason(reason: str, tr) -> str:
@@ -297,34 +275,75 @@ def long_reason(reason: str, tr) -> str:
         return tr("it was changed while another project was open")
     if reason == NOT_BACKED_OLD_PROJECT_FILE:
         return tr("the project is saved under another file now, and a restore writes only that one")
+    if reason == NOT_PUT_BACK:
+        return tr("its file could not be written back (another program may hold it), so it was left as it was")
     return tr("no backup was made")
+
+
+def change_lines(row: dict, tr) -> list[str]:
+
+
+
+
+
+
+    source = row.get("after") or row.get("before") or row.get("target") or {}
+    changes = source.get("changes") if isinstance(source, dict) else None
+    lines = []
+    for item in changes or []:
+        if not isinstance(item, dict):
+            continue
+        what = [str(w) for w in item.get("what") or []]
+        name = str(item.get("layer") or "")
+        if not name:
+            if "crs" in what:
+                lines.append(tr("Project CRS changed"))
+            if "layouts" in what:
+                lines.append(tr("Print layouts changed"))
+            continue
+        if what == ["added"]:
+            lines.append(tr("Added {layer}").format(layer=name))
+            continue
+        if what == ["removed"]:
+            lines.append(tr("Removed {layer}").format(layer=name))
+            continue
+        parts = []
+        if "features" in what:
+            delta = _whole(item.get("delta"))
+            parts.append(tr("{n} features deleted").format(n=-delta) if delta < 0 else
+                         tr("{n} features added").format(n=delta) if delta > 0 else tr("features edited"))
+        if "data" in what:
+            parts.append(tr("data edited"))
+        if "style" in what:
+            parts.append(tr("restyled"))
+        if "renamed" in what:
+            parts.append(tr("renamed"))
+        if what == ["changed"]:
+            parts.append(tr("changed"))
+        if parts:
+            lines.append(tr("{layer}: {changes}").format(layer=name, changes=", ".join(parts)))
+    return lines
 
 
 def summary(row: dict, tr) -> str:
 
     if row["type"] == "edits":
         return tr("Changes made in QGIS")
-    source = row.get("after") or row.get("before") or {}
-    seen: dict = {}
-    for item in source.get("log") or []:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("layer") or item.get("file") or "")
-        what = item.get("what")
-        kind = what if what in ("added", "removed") else "changed"
+    lines = change_lines(row, tr)
+    if not lines:
+        return ""
+    if len(lines) == 1:
+        return lines[0]
+    return tr("{first} and {n} more").format(first=lines[0], n=len(lines) - 1)
 
-        if name and seen.get(name) not in ("added", "removed"):
-            seen[name] = kind
-    counts = {kind: sum(1 for v in seen.values() if v == kind) for kind in ("added", "removed", "changed")}
-    parts = []
-    for kind, one, many in (
-            ("added", tr("1 layer added"), tr("{n} layers added")),
-            ("removed", tr("1 layer removed"), tr("{n} layers removed")),
-            ("changed", tr("1 layer changed"), tr("{n} layers changed"))):
-        n = counts[kind]
-        if n:
-            parts.append(one if n == 1 else many.format(n=n))
-    return ", ".join(parts)
+
+def changes_tooltip(row: dict, tr, limit: int = 8) -> str:
+
+    lines = change_lines(row, tr)
+    shown = ["\u2022 " + line for line in lines[:limit]]
+    if len(lines) > limit:
+        shown.append(tr("and {n} more").format(n=len(lines) - limit))
+    return "\n".join(shown)
 
 
 
@@ -668,7 +687,7 @@ class CheckpointSheet(QFrame):
         warning = _items_line(items, self.tr)
         widget = _VersionRow(title, _when(row.get("created_at")), warning or changed, self._host,
                              undone=row["type"] == "request" and row["live"] is False,
-                             current=current, warn=bool(items))
+                             current=current, warn=bool(losses(items)))
         reason = ""
         if isinstance(target, dict) and target.get("other_project"):
             name = str(target.get("project") or "")
@@ -676,8 +695,12 @@ class CheckpointSheet(QFrame):
                       else self.tr("Belongs to a closed project"))
         elif not cid and not current:
             reason = self.tr("No longer kept")
-        tip = reason or (changed if warning else "")
-        widget.setToolTip(tip)
+
+        details = "\n".join(part for part in (
+            row["request"] if row["type"] == "request" else "",
+            changes_tooltip(row, self.tr) if row["type"] == "request" else "",
+            warning) if part)
+        widget.setToolTip(reason or details)
         if current:
             return widget
 

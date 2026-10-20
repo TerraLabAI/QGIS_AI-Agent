@@ -282,6 +282,12 @@ def _outline_test(outline: dict, cut: bool = False):
             return geometry if geometry.Intersects(shape) and not geometry.Touches(shape) else None
         return geometry if shape.Intersects(geometry) else None
 
+
+
+
+    keep.prepared = prepared if cut else None
+    keep.parts = [part for part in (_polys_bbox([(exterior, [])]) for exterior, _holes in outline.get("polys") or [])
+                  if part]
     return keep
 
 
@@ -679,6 +685,112 @@ def _strictly_inside(geometry, bounds) -> bool:
     return west + margin < min_x and max_x < east - margin and south + margin < min_y and max_y < north - margin
 
 
+
+
+_WRITE_EVERY_S = 1.0
+
+
+_WINDOW_GRID = 32
+
+_MAX_WINDOWS = 8
+
+
+def _windows(box, bounds, parts, prepared) -> list:
+
+
+
+
+
+
+
+
+
+
+
+
+    from osgeo import ogr
+
+    west, south, east, north = box
+    if bounds is not None:
+        west, south = max(west, bounds[0]), max(south, bounds[1])
+        east, north = min(east, bounds[2]), min(north, bounds[3])
+        if east <= west or north <= south:
+            return []
+    if prepared is None or not parts:
+        return [(west, south, east, north, None)]
+    rects = []
+    for left, low, right, high in parts:
+        rect = [max(west, left), max(south, low), min(east, right), min(north, high)]
+        if rect[0] <= rect[2] and rect[1] <= rect[3]:
+            rects.append(rect)
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(rects)):
+            for j in range(i + 1, len(rects)):
+                a, b = rects[i], rects[j]
+                if a[0] <= b[2] and b[0] <= a[2] and a[1] <= b[3] and b[1] <= a[3]:
+                    rects[i] = [min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3])]
+                    del rects[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    if len(rects) > _MAX_WINDOWS:
+
+        rects = [[min(r[0] for r in rects), min(r[1] for r in rects), max(r[2] for r in rects),
+                  max(r[3] for r in rects)]]
+    windows = []
+    for left, low, right, high in rects:
+        width, height = (right - left) / _WINDOW_GRID, (high - low) / _WINDOW_GRID
+        cells = []
+        for row in range(_WINDOW_GRID):
+            line = []
+            for column in range(_WINDOW_GRID):
+                x0, y0 = left + column * width, low + row * height
+                ring = ogr.Geometry(ogr.wkbLinearRing)
+                for x, y in ((x0, y0), (x0 + width, y0), (x0 + width, y0 + height), (x0, y0 + height), (x0, y0)):
+                    ring.AddPoint_2D(x, y)
+                cell = ogr.Geometry(ogr.wkbPolygon)
+                cell.AddGeometry(ring)
+                line.append(bool(width > 0 and height > 0 and prepared.Contains(cell)))
+            cells.append(line)
+        windows.append((left, low, right, high, cells))
+    return windows
+
+
+def _within(envelope, window) -> bool:
+
+    min_x, max_x, min_y, max_y = envelope
+    west, south, east, north = window[:4]
+    return west < min_x and max_x < east and south < min_y and max_y < north
+
+
+def _whole(envelope, window) -> bool:
+
+    west, south, east, north, cells = window
+    if not cells:
+        return False
+    min_x, max_x, min_y, max_y = envelope
+    column = int((min_x - west) / (east - west) * _WINDOW_GRID)
+    row = int((min_y - south) / (north - south) * _WINDOW_GRID)
+    if column != int((max_x - west) / (east - west) * _WINDOW_GRID):
+        return False
+    if row != int((max_y - south) / (north - south) * _WINDOW_GRID):
+        return False
+    return 0 <= row < _WINDOW_GRID and 0 <= column < _WINDOW_GRID and cells[row][column]
+
+
+def _window_features(layer, windows: list, failures: list):
+
+    for index, (west, south, east, north, _inside) in enumerate(windows):
+        layer.SetSpatialFilterRect(west, south, east, north)
+        for feature in _features_until_failure(layer, failures):
+            yield index, feature
+        if failures:
+            return
+
+
 class _ExtractRead:
 
 
@@ -717,13 +829,14 @@ class _ExtractRead:
         self.layer_ids: dict = {}
         self.made: dict = {}
 
+        self.share, self.reading = 0.0, False
+
     def read(self, target, deadline: float, cancelled=None, room=None) -> str:
 
         import time
 
         from osgeo import gdal, ogr, osr
 
-        west, south, east, north = self.box
         wgs84 = osr.SpatialReference()
         wgs84.ImportFromEPSG(4326)
         wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -732,6 +845,7 @@ class _ExtractRead:
         stopped = ""
         while self.queue:
             label, url = self.queue.pop(0)
+            self.share, self.reading = 0.0, True
             if cancelled is not None and cancelled():
                 self.queue.insert(0, (label, url))
                 return "cancelled"
@@ -761,7 +875,22 @@ class _ExtractRead:
                     self.missing.append({"tile": label, "reason": reason, "detail": str(message)[:200]})
                     continue
             layer_in = source.GetLayer(0)
-            layer_in.SetSpatialFilterRect(west, south, east, north)
+
+
+
+            in_file = max(layer_in.GetFeatureCount(0), 0)
+            bounds = _tile_bounds(label)
+            windows = _windows(self.box, bounds, getattr(self.inside, "parts", None),
+                               getattr(self.inside, "prepared", None))
+            if not windows:
+
+                source = None
+                if local:
+                    remove_quietly(local)
+                self.pending.pop(label, None)
+                self.skip.pop(label, None)
+                self.finished.append(label)
+                continue
             clause = " AND ".join(part for part in (self.where, self.code_where) if part)
             if clause:
                 try:
@@ -794,44 +923,92 @@ class _ExtractRead:
 
 
             fields_ready: set = set()
-            target.StartTransaction()
             failed: list = []
 
 
 
 
             file_ids = self.pending.setdefault(label, set())
-            bounds = _tile_bounds(label)
             skip = self.skip.get(label, 0)
 
             read_outside = 0
+
+
+            crossing: set = set()
+            windowed = len(windows) > 1 or windows[0][4] is not None
+            areas = [(window[2] - window[0]) * (window[3] - window[1]) for window in windows]
+
+            batch: list = []
+
+            def write(batch=batch, fields_ready=fields_ready, field_names=field_names, definition=definition):
+
+
+
+
+
+
+
+
+
+                if not batch:
+                    return
+                target.StartTransaction()
+                for family, row, shape, piece in batch:
+                    out = outputs.get(family)
+                    if out is None:
+                        table = f"{_safe_extract_stem(self.name)}_{family}"
+                        out = target.CreateLayer(table, wgs84, kinds[family], options=["SPATIAL_INDEX=YES"])
+                        outputs[family] = out
+                        self.tables[family] = table
+                    if family not in fields_ready:
+                        known = {out.GetLayerDefn().GetFieldDefn(i).GetName()
+                                 for i in range(out.GetLayerDefn().GetFieldCount())}
+                        for i, field_name in enumerate(field_names):
+                            if field_name not in known:
+                                out.CreateField(definition.GetFieldDefn(i))
+                        fields_ready.add(family)
+                    written = ogr.Feature(out.GetLayerDefn())
+                    written.SetFrom(row, 1)
+                    written.SetGeometry(ogr.ForceTo(shape.Clone(), kinds[family]))
+                    out.CreateFeature(written)
+                    if piece is not None:
+                        self.edge.setdefault((family, *piece), []).append(written.GetFID())
+                target.CommitTransaction()
+                batch.clear()
+
             gdal.ErrorReset()
-            for number, feature in enumerate(_features_until_failure(layer_in, failed), start=1):
-                if number % _LIFTED_CHECK_EVERY == 0:
+            written_at = time.monotonic()
+            for number, (window, feature) in enumerate(_window_features(layer_in, windows, failed), start=1):
+                if number % _LIFTED_CHECK_EVERY == 0 or time.monotonic() - written_at > _WRITE_EVERY_S:
+                    position = min(feature.GetFID() / in_file, 1.0) if in_file else 0.0
+                    self.share = (sum(areas[:window]) + areas[window] * position) / (sum(areas) or 1.0)
+                    write()
+                    written_at = time.monotonic()
                     if cancelled is not None and cancelled():
                         stopped = "cancelled"
-                    elif time.monotonic() > deadline:
+                    elif written_at > deadline:
                         stopped = "clock"
                     if stopped:
 
 
                         self.skip[label] = number - 1
                         break
-
-
-
-
-
-
-
-
-
-                    target.CommitTransaction()
-                    target.StartTransaction()
+                geometry = feature.GetGeometryRef()
+                if geometry is None:
+                    continue
+                whole = False
+                if windowed:
+                    envelope = geometry.GetEnvelope()
+                    if _within(envelope, windows[window]):
+                        whole = _whole(envelope, windows[window])
+                    else:
+                        fid = feature.GetFID()
+                        if fid in crossing:
+                            continue
+                        crossing.add(fid)
                 if number <= skip:
                     continue
-                geometry = feature.GetGeometryRef()
-                family = _lifted_family(geometry.GetGeometryType()) if geometry is not None else ""
+                family = _lifted_family(geometry.GetGeometryType())
                 if not family:
                     continue
                 if self.in_python is not None and not _overture_matches(
@@ -847,7 +1024,8 @@ class _ExtractRead:
                         and (bounds is None or not _strictly_inside(geometry, bounds))):
                     piece = _osm_piece_key(get)
                 if self.inside is not None:
-                    kept = self.inside(geometry)
+
+                    kept = geometry if whole else self.inside(geometry)
                     if kept is None:
                         self.outside += 1
                         read_outside += 1
@@ -863,32 +1041,15 @@ class _ExtractRead:
                         file_ids.add(identity)
                         if bounds is None or not _strictly_inside(geometry, bounds):
                             self.seen.add(identity)
-                out = outputs.get(family)
-                if out is None:
-                    table = f"{_safe_extract_stem(self.name)}_{family}"
-                    out = target.CreateLayer(table, wgs84, kinds[family], options=["SPATIAL_INDEX=YES"])
-                    outputs[family] = out
-                    self.tables[family] = table
-                if family not in fields_ready:
-                    known = {out.GetLayerDefn().GetFieldDefn(i).GetName()
-                             for i in range(out.GetLayerDefn().GetFieldCount())}
-                    for i, field_name in enumerate(field_names):
-                        if field_name not in known:
-                            out.CreateField(definition.GetFieldDefn(i))
-                    fields_ready.add(family)
-                written = ogr.Feature(out.GetLayerDefn())
-                written.SetFrom(feature, 1)
-                written.SetGeometry(ogr.ForceTo(geometry.Clone(), kinds[family]))
-                out.CreateFeature(written)
-                if piece is not None:
-                    self.edge.setdefault((family, *piece), []).append(written.GetFID())
+                batch.append((family, feature, geometry, piece))
                 self.counts[family] += 1
                 self.classes.add(get)
             if not failed and not stopped and gdal.GetLastErrorType() >= gdal.CE_Failure:
 
 
                 failed.append(gdal.GetLastErrorMsg() or "the read ended on an error")
-            target.CommitTransaction()
+            write()
+            self.reading = False
             source = None
             if local:
                 remove_quietly(local)
@@ -1112,7 +1273,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
 
 
         remove_tree(directory)
-        return {"_error": "The load was stopped before it finished.", "code": "CANCELLED"}
+        return tool_error("The load was stopped before it finished.", "CANCELLED")
 
 
     continuing = stopped == "clock" and bool(reader.queue) and later is not None
@@ -1158,8 +1319,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         return empty
     added = run_on_main_thread(reader.add_layers, timeout=_VSICURL_TIMEOUT_S) if total else []
     if total and not added:
-        return {"_error": f"QGIS could not read the GeoPackage written for {name}.", "code": "EXECUTION_FAILED",
-                "path": path}
+        return {**tool_error(f"QGIS could not read the GeoPackage written for {name}."), "path": path}
     made = {"theme": theme, "mode": "clip", "lifted": True, "crs": "EPSG:4326", "box_km2": area,
             "feature_count": total, "size_bytes": size, "size": _human_bytes(size), "files_read": read,
             "wall_s": round(wall, 1), "path": path, "truncated": stopped == "clock" and not continuing,
@@ -1240,6 +1400,21 @@ class ExtractContinuation(QgsTask):
         self.run_token = layer_order.current_run()
         self.files = sum(len(reader.queue) for reader in readers)
         self.started = 0.0
+        self.written_before = 0
+
+    def _pace(self, share: float) -> None:
+
+        import time
+
+        entry = self.entry
+        elapsed = time.monotonic() - self.started
+        if entry is None or elapsed <= 0:
+            return
+        written = sum(sum(reader.counts.values()) for reader in self.readers) - self.written_before
+        pace = {"features_written": written + self.written_before, "features_per_s": round(written / elapsed)}
+        if share >= 0.02:
+            pace["eta_s"] = round(elapsed * (1.0 - share) / share)
+        entry.update(pace)
 
     def _room(self, path: str):
         import shutil
@@ -1258,6 +1433,7 @@ class ExtractContinuation(QgsTask):
         from osgeo import gdal, ogr
 
         self.started = time.monotonic()
+        self.written_before = sum(sum(reader.counts.values()) for reader in self.readers)
         done = 0
         try:
             gdal.UseExceptions()
@@ -1271,7 +1447,12 @@ class ExtractContinuation(QgsTask):
 
                     def progress_cancelled(reader=reader, before=before, done=done):
 
-                        self.setProgress(100.0 * (done + before - len(reader.queue)) / max(self.files, 1))
+
+
+                        files = done + before - len(reader.queue) - (1 if reader.reading else 0)
+                        share = (files + (reader.share if reader.reading else 0.0)) / max(self.files, 1)
+                        self.setProgress(100.0 * share)
+                        self._pace(share)
                         return self.isCanceled()
                     self.stopped = reader.read(target, math.inf, progress_cancelled, self._room(reader.path))
                     done += before - len(reader.queue)
@@ -1430,10 +1611,11 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     stopped = net.current_cancel_check()
     theme = str(args.get("theme") or "").strip().lower()
     if theme not in _overture_themes():
-        return {"_error": f"theme must be one of: {', '.join(_overture_themes())}."}
+        return tool_error(f"theme must be one of: {', '.join(_overture_themes())}.", "INVALID_ARGS")
     mode = str(args.get("mode") or "clip").strip().lower()
     if mode not in ("clip", "stream"):
-        return {"_error": 'mode must be "clip" (the service clips the box) or "stream" (the tiles in place).'}
+        return tool_error('mode must be "clip" (the service clips the box) or "stream" (the tiles in place).',
+                          "INVALID_ARGS")
     wanted = args.get("filter")
     forced_clip = False
 
@@ -1461,7 +1643,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     else:
         box, problem = _footprint_box(raw_box)
         if box is None:
-            return {"_error": problem, "code": "INVALID_ARGS"}
+            return tool_error(problem, "INVALID_ARGS")
         problem = volume_guard.not_degrees(*box)
         if problem:
             return tool_error(problem, "INVALID_ARGS", hint="overture_bbox_not_degrees", bbox=list(box))
@@ -1547,25 +1729,19 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
 
         if max(east - west, north - south) > max_span:
-            return {"_error": f"Each side of the box must stay under {max_span:.0f} degree.",
 
 
 
-
-
-
-                    "code": "INVALID_ARGS",
-
-                    **volume_guard.coded(hint="overture_too_big", variant="span")}
+            return tool_error(f"Each side of the box must stay under {max_span:.0f} degree.", "INVALID_ARGS",
+                              **volume_guard.coded(hint="overture_too_big", variant="span"))
 
 
 
         if area_km2 > max_km2 * volume_guard.NEAR_MISS:
-            return {"_error": f"This box is {area_km2:.0f} km2 and the Overture service takes at most "
-                    f"{max_km2:.0f} km2.",
-                    "code": "INVALID_ARGS",
-                    "box_km2": round(area_km2, 1),
-                    **volume_guard.coded(hint="overture_too_big", variant="area")}
+            return tool_error(f"This box is {area_km2:.0f} km2 and the Overture service takes at most "
+                              f"{max_km2:.0f} km2.", "INVALID_ARGS",
+                              **volume_guard.coded(hint="overture_too_big", variant="area"),
+                              box_km2=round(area_km2, 1))
 
 
 

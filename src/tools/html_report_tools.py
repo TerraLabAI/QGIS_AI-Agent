@@ -49,7 +49,7 @@ def register_html_report_tools(registry: ToolRegistry):
         danger="write",
         replaces_file_at="path",
         writes_page="html",
-        label=QT_TRANSLATE_NOOP("AIAgent", "Write the report {title}"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Save the report {title}"),
         input_schema={
             "type": "object",
             "properties": {
@@ -91,9 +91,9 @@ def _write_html_report(args: dict) -> dict:
     title = str(args.get("title") or "").strip()
     page = args.get("html")
     if not title:
-        return tool_error("title is empty.", "INVALID_ARGS", "title needs a short name.")
+        return tool_error("title is empty.", "INVALID_ARGS")
     if not isinstance(page, str) or not page.strip():
-        return tool_error("html is empty.", "INVALID_ARGS", "html is the whole page: <!doctype html> to </html>.")
+        return tool_error("html is empty.", "INVALID_ARGS", hint="report_html_empty")
     if len(page.encode("utf-8")) > report_page.MAX_PAGE_BYTES:
         return tool_error(f"html is over {report_page.MAX_PAGE_BYTES} bytes.", "INVALID_ARGS",
                           hint="report_page_too_large", limit=report_page.MAX_PAGE_BYTES,

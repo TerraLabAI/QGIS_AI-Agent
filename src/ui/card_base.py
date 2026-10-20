@@ -19,7 +19,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from .font_scale import scale_point_size
+from .font_scale import scale_point_size, scale_qss_font_px
 from .icons import ink_of, pixmap_for
 from .style import (
     FONT_HINT,
@@ -41,7 +41,7 @@ from .widgets import ChatLabel
 
 
 
-_HINT_QSS = f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;"
+_HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;")
 
 _GLYPH_SLOT_PX = 14
 _GLYPH_PX = 12

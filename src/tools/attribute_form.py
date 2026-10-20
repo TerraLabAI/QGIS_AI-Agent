@@ -154,18 +154,16 @@ def _configure_attribute_form(args: dict) -> dict:
     if layer is None:
         return layer_not_found(args.get("layer_name"))
     if not isinstance(layer, QgsVectorLayer):
-        return tool_error("Only vector layers have attribute forms.", "INVALID_ARGS",
-                          "layer must be a vector layer.")
+        return tool_error("Only vector layers have attribute forms.", "INVALID_ARGS")
     entries = args.get("fields")
     form_args = args.get("form")
     conditional_args = args.get("conditional_styles")
     if entries is None and form_args is None and conditional_args is None:
         return tool_error("fields, form, conditional_styles unset.", "INVALID_ARGS",
-                          "fields changes one field's alias/widget/default/constraints; "
-                          "conditional_styles adds, lists or clears attribute-table highlight rules.")
+                          hint="form_nothing_to_set")
     if entries is not None and (not isinstance(entries, list) or not entries):
         return tool_error("fields must be a non-empty list.", "INVALID_ARGS",
-                          "fields holds one object per field: name plus settings to change.")
+                          hint="form_fields_list")
 
 
     fields = layer.fields()
@@ -174,7 +172,7 @@ def _configure_attribute_form(args: dict) -> dict:
     for entry in (entries or []):
         if not isinstance(entry, dict) or not str(entry.get("name") or "").strip():
             return tool_error("Each fields item needs a name.", "INVALID_ARGS",
-                              "Keys: name, alias, widget_type, widget_config, default_expression.")
+                              hint="form_field_item_keys")
         name = str(entry["name"]).strip()
         index = fields.indexOf(name)
         if index < 0:
@@ -186,7 +184,7 @@ def _configure_attribute_form(args: dict) -> dict:
             config = entry.get("widget_config", {})
             if not isinstance(config, dict):
                 return tool_error(f"widget_config for {name!r} must be an object.", "INVALID_ARGS",
-                                  "widget_config uses the native QGIS keys for the selected widget.")
+                                  hint="form_widget_config_object")
             if widget_type.lower() == "valuerelation":
                 widget_type = "ValueRelation"
                 config, bad = _value_relation_config(layer, name, config)
@@ -197,7 +195,7 @@ def _configure_attribute_form(args: dict) -> dict:
         if constraints is not None and (
                 not isinstance(constraints, list) or any(c not in _CONSTRAINTS for c in constraints)):
             return tool_error(f"Unknown constraints for {name!r}.", "INVALID_ARGS",
-                              "Supported constraints are not_null and unique.")
+                              hint="form_constraints_supported")
         planned.append((index, name, entry, widget))
 
     if unknown and not planned:
@@ -210,19 +208,18 @@ def _configure_attribute_form(args: dict) -> dict:
     if form_args is not None:
         if not isinstance(form_args, dict):
             return tool_error("form must be an object.", "INVALID_ARGS",
-                              "form takes layout, ui_file, label_on_top, suppress, containers or "
-                              "remove_containers.")
+                              hint="form_object_keys")
         layout = str(form_args.get("layout") or "").lower()
         if form_args.get("containers") and layout not in ("", "drag_and_drop"):
             return tool_error(f"form.containers need the drag_and_drop layout, not {layout}.", "INVALID_ARGS",
-                              "Passing containers switches the form to drag_and_drop on its own.")
+                              hint="form_containers_layout")
         if form_args.get("containers"):
             layout = "drag_and_drop"
         if layout:
             layout_enum = _form_layout(layout)
             if layout_enum is None:
                 return tool_error(f"Unsupported form layout: {layout}.", "INVALID_ARGS",
-                                  "auto, drag_and_drop, ui_file work.")
+                                  hint="form_layouts_supported")
 
         source = layer.editFormConfig()
         tree, bad = _plan_form_tree(layer, source, form_args)
@@ -318,7 +315,7 @@ def _rule_error(layer, rule: dict):
     text = str(rule.get("rule") or "").strip()
     if not text:
         return tool_error("Each conditional_styles rule needs 'rule', a boolean expression.", "INVALID_ARGS",
-                          'Example: "population" > 10000, or "status" IS NULL for a full-row rule.')
+                          hint="form_rule_expression")
     bad = _expression_error(layer, text, "Conditional style rule")
     if bad:
         return bad
@@ -373,7 +370,7 @@ def _describe_conditional_style(style: QgsConditionalStyle) -> dict:
 def _apply_conditional_styles(layer, conditional_args) -> dict:
     if not isinstance(conditional_args, dict):
         return tool_error("conditional_styles must be an object.", "INVALID_ARGS",
-                          "Keys: rules, clear, list.")
+                          hint="form_conditional_keys")
     fields = layer.fields()
     styles = layer.conditionalStyles()
 
@@ -386,15 +383,14 @@ def _apply_conditional_styles(layer, conditional_args) -> dict:
     if rules is not None:
         if not isinstance(rules, list) or not rules:
             return tool_error("conditional_styles.rules must be a non-empty list.", "INVALID_ARGS",
-                              "Each rule is one object: {rule, field (omit for a whole row), "
-                              "background, text_color, bold, italic, icon_color, name}.")
+                              hint="form_conditional_rule_keys")
         cleared = bool(conditional_args.get("clear"))
         by_field: dict = {}
         row_rules = []
         for rule in rules:
             if not isinstance(rule, dict):
                 return tool_error("Each conditional_styles rule must be an object.", "INVALID_ARGS",
-                                  "Holds rule, field, background, text_color, bold, italic, icon_color.")
+                                  hint="form_conditional_rule_keys")
             bad = _rule_error(layer, rule)
             if bad:
                 return bad
@@ -440,13 +436,13 @@ def _value_relation_config(layer, name: str, config: dict):
     if not wanted:
         return None, tool_error(
             f"ValueRelation on {name!r} needs widget_config.Layer, the layer that holds the choices.",
-            "INVALID_ARGS", "Needs Layer (name or id), Key (the field stored), Value (the field shown).")
+            "INVALID_ARGS", hint="form_value_relation_keys")
     choices = resolve_layer(wanted)
     if choices is None:
         return None, layer_not_found(wanted)
     if not isinstance(choices, QgsVectorLayer):
         return None, tool_error(f"ValueRelation choices must come from a vector layer, not {choices.name()!r}.",
-                                "INVALID_ARGS", "widget_config.Layer must be a vector or table layer.")
+                                "INVALID_ARGS", hint="form_value_relation_layer")
     config.update({"Layer": choices.id(), "LayerName": choices.name(),
                    "LayerSource": choices.publicSource(), "LayerProviderName": choices.providerType()})
     for key in ("Key", "Value"):
@@ -553,8 +549,8 @@ def _take_field(tree, name: str):
 
 
 def _container_error(message: str, index: dict) -> dict:
-    names = ", ".join(sorted(index))[:400] or "none yet"
-    return tool_error(message, "INVALID_ARGS", f"Containers on this form: {names}.")
+    return tool_error(message, "INVALID_ARGS", hint="form_containers_listed",
+                      containers=sorted(index) or "none yet")
 
 
 def _plan_form_tree(layer, source, form_args: dict):
@@ -566,10 +562,10 @@ def _plan_form_tree(layer, source, form_args: dict):
         return None, None
     if specs and (not isinstance(specs, list) or not all(isinstance(s, dict) for s in specs)):
         return None, tool_error("form.containers must be a list of objects.", "INVALID_ARGS",
-                                "Items: name, fields, parent, show_as, visibility_expression.")
+                                hint="form_containers_items")
     if removals and not isinstance(removals, list):
         return None, tool_error("form.remove_containers must be a list of container names.", "INVALID_ARGS",
-                                "Names the tabs or groups to remove.")
+                                hint="form_remove_containers")
     specs = specs or []
     removals = [str(r).strip() for r in removals or [] if str(r).strip()]
     fields = layer.fields()
@@ -587,16 +583,16 @@ def _plan_form_tree(layer, source, form_args: dict):
     names = [str(spec.get("name") or "").strip() for spec in specs]
     if not all(names):
         return None, tool_error("Each form.containers item needs a name.", "INVALID_ARGS",
-                                "The name is the tab or group title shown in the form.")
+                                hint="form_container_name")
     if len(set(names)) != len(names):
         return None, tool_error("form.containers names a container twice.", "INVALID_ARGS",
-                                "Each container appears once, with all its fields.")
+                                hint="form_container_once")
     for name in removals:
         if name not in index:
             return None, _container_error(f"No container named {name!r} to remove.", index)
         if name in names:
             return None, tool_error(f"{name!r} is both in containers and remove_containers.", "INVALID_ARGS",
-                                    "Not both: update or remove the container.")
+                                    hint="form_container_update_or_remove")
     owner = {}
     parent_of = {name: (item["parent"]["name"] if item["parent"]["kind"] == "container" else None)
                  for name, item in index.items()}
@@ -604,28 +600,28 @@ def _plan_form_tree(layer, source, form_args: dict):
         listed = spec.get("fields") or []
         if not isinstance(listed, list):
             return None, tool_error(f"fields of container {name!r} must be a list of field names.",
-                                    "INVALID_ARGS", "fields orders them as they should appear.")
+                                    "INVALID_ARGS", hint="form_container_fields_order")
         for field_name in listed:
             field_name = str(field_name).strip()
             if fields.indexOf(field_name) < 0:
                 return None, _field_not_found_error(layer, field_name)
             if owner.setdefault(field_name, name) != name:
                 return None, tool_error(f"Field {field_name!r} is listed in {owner[field_name]!r} and {name!r}.",
-                                        "INVALID_ARGS", "A field goes in one container.")
+                                        "INVALID_ARGS", hint="form_field_one_container")
         parent = str(spec.get("parent") or "").strip()
         if parent:
             if parent not in index and parent not in names:
                 return None, _container_error(f"No container named {parent!r} to put {name!r} in.", index)
             if parent in removals:
                 return None, tool_error(f"{parent!r} is being removed, so {name!r} cannot go in it.",
-                                        "INVALID_ARGS", "A removed container parents none.")
+                                        "INVALID_ARGS", hint="form_removed_parent")
             parent_of[name] = parent
         elif name not in index:
             parent_of[name] = None
         show_as = spec.get("show_as")
         if show_as not in (None, "", "tab", "group"):
             return None, tool_error(f"show_as of {name!r} must be tab or group.", "INVALID_ARGS",
-                                    "tab is a page of the form, group a framed box inside a page.")
+                                    hint="form_show_as")
         text = str(spec.get("visibility_expression") or "").strip()
         if text:
             bad = _expression_error(layer, text, f"visibility_expression of {name!r}")
@@ -635,14 +631,14 @@ def _plan_form_tree(layer, source, form_args: dict):
         if columns is not None and (isinstance(columns, bool) or not isinstance(columns, int)
                                     or not 1 <= columns <= 20):
             return None, tool_error(f"columns of {name!r} must be a whole number from 1 to 20.",
-                                    "INVALID_ARGS", "Most forms use 1 or 2 columns.")
+                                    "INVALID_ARGS", hint="form_columns")
     for name in names:
         seen = {name}
         step = parent_of.get(name)
         while step is not None:
             if step in seen:
                 return None, tool_error(f"Container {step!r} would end up inside itself.",
-                                        "INVALID_ARGS", "A container cannot sit inside one of its own groups.")
+                                        "INVALID_ARGS", hint="form_container_cycle")
             seen.add(step)
             step = parent_of.get(step)
 

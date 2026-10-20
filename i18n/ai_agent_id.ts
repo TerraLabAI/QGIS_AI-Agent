@@ -2347,12 +2347,12 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Langkah itu tidak selesai. File yang sudah ditulis oleh proses tetap ada di disk. Layer yang ditambahkannya hanya kembali jika proyek disimpan setelahnya, dan layer sementara hilang. Langkah yang sama bisa menutup QGIS lagi: minta sesuatu yang lebih ringan (area lebih kecil, lebih sedikit layer).</translation>
         </message>
         <message>
-            <source>The agent got stuck on the same step.</source>
-            <translation>Agen macet di langkah yang sama.</translation>
+            <source>The AI agent got stuck on the same step.</source>
+            <translation>Agen AI macet di langkah yang sama.</translation>
         </message>
         <message>
-            <source>The agent service restarted twice during a step.</source>
-            <translation>Layanan agen dimulai ulang dua kali saat satu langkah berjalan.</translation>
+            <source>The AI agent service restarted twice during a step.</source>
+            <translation>Layanan agen AI dimulai ulang dua kali saat satu langkah berjalan.</translation>
         </message>
         <message>
             <source>The answer was cut off. Ask again to carry on.</source>
@@ -2363,8 +2363,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Koneksi ke QGIS terputus dan tidak pulih, jadi langkah itu tidak selesai. Jika QGIS masih terbuka, proyek berada dalam keadaan terakhir dari proses tadi. Jika QGIS tertutup, file yang ditulis proses tetap ada di disk, dan layernya hanya kembali jika proyek disimpan setelahnya. Buka kembali QGIS jika tertutup, lalu tekan Coba lagi.</translation>
         </message>
         <message>
-            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
-            <translation>Model terus mengirim langkah yang tidak bisa dibaca agen. Langkah-langkah sebelumnya tetap tersimpan.</translation>
+            <source>The model kept sending a step the AI agent could not read. Earlier steps are kept.</source>
+            <translation>Model terus mengirim langkah yang tidak bisa dibaca agen AI. Langkah-langkah sebelumnya tetap tersimpan.</translation>
         </message>
         <message>
             <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
@@ -2389,6 +2389,98 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
             <translation>Apa yang dikerjakan proses sebelum langkah itu tetap tersimpan. Permintaan yang lebih ringan (area lebih kecil, resolusi lebih rendah) lebih mungkin selesai daripada mengulang permintaan yang sama.</translation>
+        </message>
+        <message>
+            <source>It replaces {file} in {folder}.</source>
+            <translation>Ini menggantikan {file} di {folder}.</translation>
+        </message>
+        <message>
+            <source>No example matches these words. The AI agent may still do it.</source>
+            <translation>Tidak ada contoh yang cocok dengan kata-kata ini. Asisten AI mungkin tetap bisa melakukannya.</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
+            <translation>Tugas nyata yang dikerjakan asisten AI dari satu kalimat. Buka salah satu untuk mencobanya.</translation>
+        </message>
+        <message>
+            <source>Save the report {title}</source>
+            <translation>Simpan laporan {title}</translation>
+        </message>
+        <message>
+            <source>Saved as {file} in {folder}.</source>
+            <translation>Disimpan sebagai {file} di {folder}.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Coba di obrolan</translation>
+        </message>
+        <message>
+            <source>its file could not be written back (another program may hold it), so it was left as it was</source>
+            <translation>filenya tidak bisa ditulis kembali (mungkin sedang dipakai program lain), jadi dibiarkan seperti semula</translation>
+        </message>
+        <message>
+            <source>Added {layer}</source>
+            <translation>{layer} ditambahkan</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Tata letak cetak diubah</translation>
+        </message>
+        <message>
+            <source>Project CRS changed</source>
+            <translation>CRS proyek diubah</translation>
+        </message>
+        <message>
+            <source>Removed {layer}</source>
+            <translation>{layer} dihapus</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>data edited</source>
+            <translation>data diedit</translation>
+        </message>
+        <message>
+            <source>features edited</source>
+            <translation>fitur diedit</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>diganti namanya</translation>
+        </message>
+        <message>
+            <source>restyled</source>
+            <translation>gayanya diubah</translation>
+        </message>
+        <message>
+            <source>{file} stays on disk</source>
+            <translation>{file} tetap ada di disk</translation>
+        </message>
+        <message>
+            <source>{first} and {n} more</source>
+            <translation>{first} dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>{layer}: {changes}</source>
+            <translation>{layer}: {changes}</translation>
+        </message>
+        <message>
+            <source>{n} features added</source>
+            <translation>{n} fitur ditambahkan</translation>
+        </message>
+        <message>
+            <source>{n} features deleted</source>
+            <translation>{n} fitur dihapus</translation>
+        </message>
+        <message>
+            <source>{n} files the request wrote stay on disk</source>
+            <translation>{n} file yang ditulis oleh permintaan ini tetap ada di disk</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>diubah</translation>
         </message>
     </context>
     <context>
@@ -3557,8 +3649,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>Stopped before the agent answered.</source>
-            <translation>Dihentikan sebelum agen menjawab.</translation>
+            <source>Stopped before the AI agent answered.</source>
+            <translation>Dihentikan sebelum agen AI menjawab.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -3869,6 +3961,22 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
             <translation>File sementara di folder kerja sementara AI Agent. Menyimpan proyek akan menyimpannya di samping proyek.</translation>
         </message>
+        <message>
+            <source>Checking your files before going back. Try again in a moment.</source>
+            <translation>Memeriksa file Anda sebelum kembali. Coba lagi sebentar lagi.</translation>
+        </message>
+        <message>
+            <source>The project moved while your files were checked, so nothing was restored.</source>
+            <translation>Proyek berubah saat file Anda diperiksa, jadi tidak ada yang dipulihkan.</translation>
+        </message>
+        <message>
+            <source>Your files could not be checked, so nothing was restored.</source>
+            <translation>File Anda tidak dapat diperiksa, jadi tidak ada yang dipulihkan.</translation>
+        </message>
+        <message>
+            <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
+            <translation>Versi {file} milik Anda tidak dapat disimpan di Map history, jadi tidak ada yang dipulihkan.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3979,6 +4087,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Add files from your computer</source>
             <translation>Tambahkan file dari komputer Anda</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Sumber data</translation>
         </message>
     </context>
     <context>
@@ -4337,6 +4449,42 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Waiting for the install</source>
             <translation>Menunggu instalasi</translation>
+        </message>
+        <message>
+            <source>{layer} couldn't be restored</source>
+            <translation>{layer} tidak bisa dipulihkan</translation>
+        </message>
+        <message>
+            <source>Redo brings these changes back.</source>
+            <translation>Ulangi mengembalikan perubahan ini.</translation>
+        </message>
+        <message>
+            <source>This request:</source>
+            <translation>Permintaan ini:</translation>
+        </message>
+        <message>
+            <source>Undo takes these changes off the map.</source>
+            <translation>Urungkan menghapus perubahan ini dari peta.</translation>
+        </message>
+        <message>
+            <source>Keep my edits</source>
+            <translation>Pertahankan suntingan saya</translation>
+        </message>
+        <message>
+            <source>Undo anyway</source>
+            <translation>Tetap urungkan</translation>
+        </message>
+        <message>
+            <source>Undo would put back the AI agent's version over your changes. Your version stays in Map history as Your edits.</source>
+            <translation>Mengurungkan akan mengembalikan versi AI agent dan menimpa perubahan Anda. Versi Anda tetap ada di Riwayat peta sebagai Suntingan Anda.</translation>
+        </message>
+        <message>
+            <source>You changed {file} by hand</source>
+            <translation>Anda mengubah {file} secara manual</translation>
+        </message>
+        <message>
+            <source>You changed {n} files by hand</source>
+            <translation>Anda mengubah {n} file secara manual</translation>
         </message>
     </context>
     <context>
@@ -5147,6 +5295,38 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Show less</source>
             <translation>Tampilkan lebih sedikit</translation>
         </message>
+        <message>
+            <source>Datasets ({n})</source>
+            <translation>Dataset ({n})</translation>
+        </message>
+        <message>
+            <source>Held by TerraLab's server, you need none</source>
+            <translation>Dipegang oleh server TerraLab, Anda tidak perlu apa pun</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Kunci</translation>
+        </message>
+        <message>
+            <source>No dataset listed yet.</source>
+            <translation>Belum ada dataset yang terdaftar.</translation>
+        </message>
+        <message>
+            <source>Retry</source>
+            <translation>Coba lagi</translation>
+        </message>
+        <message>
+            <source>See all %n examples</source>
+            <translation>Lihat semua %n contoh</translation>
+        </message>
+        <message>
+            <source>The datasets could not be loaded.</source>
+            <translation>Dataset tidak bisa dimuat.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Coba di obrolan</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5282,6 +5462,50 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>No data source matches these words. The agent may still find the data.</source>
             <translation>Tidak ada sumber data yang cocok dengan kata-kata ini. Agen mungkin tetap dapat menemukan datanya.</translation>
         </message>
+        <message>
+            <source>%n sources</source>
+            <translation>%n sumber</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>Dataset</translation>
+        </message>
+        <message>
+            <source>More sources</source>
+            <translation>Sumber lainnya</translation>
+        </message>
+        <message>
+            <source>No data source matches these words. The AI agent may still find the data.</source>
+            <translation>Tidak ada sumber data yang cocok dengan kata-kata ini. Asisten AI mungkin tetap bisa menemukan datanya.</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>Lihat semua</translation>
+        </message>
+        <message>
+            <source>Sources</source>
+            <translation>Sumber</translation>
+        </message>
+        <message>
+            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
+            <translation>Pustaka data yang bisa dipakai asisten AI. Ia menemukan dan memuat sendiri apa yang dibutuhkan.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Coba di obrolan</translation>
+        </message>
+        <message>
+            <source>countries</source>
+            <translation>negara</translation>
+        </message>
+        <message>
+            <source>datasets</source>
+            <translation>dataset</translation>
+        </message>
+        <message>
+            <source>sources</source>
+            <translation>sumber</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -5375,8 +5599,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <name>EffortChip</name>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>Perencanaan lebih dalam, riset, dan arahan mandiri untuk tugas yang lebih sulit.</translation>
+            <source>The biggest jobs, with more time.</source>
+            <translation>Pekerjaan terbesar, dengan waktu lebih lama.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5390,13 +5614,13 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>Agen cerdas yang merencanakan, memeriksa hasilnya, dan mencari algoritma serta dokumentasi.</translation>
+            <source>Everyday tasks, done with care.</source>
+            <translation>Tugas sehari-hari, dikerjakan dengan teliti.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>Langsung bekerja secepat mungkin. Cocok untuk edit cepat dan pertanyaan. Tidak merencanakan atau meneliti.</translation>
+            <source>Quick answers and small edits.</source>
+            <translation>Jawaban cepat dan perubahan kecil.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5427,6 +5651,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Available after your free trial, if you keep Pro.</source>
+            <translation>Tersedia setelah uji coba gratis Anda, jika Anda tetap memakai Pro.</translation>
         </message>
         <message>
             <source>{level} needs Pro. Pick Low to send.</source>
@@ -5491,6 +5719,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Loads data, styles layers, runs analyses, builds maps.</source>
             <translation>Memuat data, menata gaya layer, menjalankan analisis, membuat peta.</translation>
         </message>
+        <message>
+            <source>Data</source>
+            <translation>Data</translation>
+        </message>
     </context>
     <context>
         <name>ErrorCard</name>
@@ -5537,11 +5769,6 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     </context>
     <context>
         <name>Header</name>
-        <message>
-            <location filename="src/ui/header.py" />
-            <source>Try Pro free</source>
-            <translation>Try Pro free</translation>
-        </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>AI Agent</source>
@@ -6076,6 +6303,14 @@ Klik untuk membuka halamannya.</translation>
             <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
             <translation>Izinkan untuk proses ini juga mencakup skrip berikutnya yang memakai {libs}, termasuk file yang mereka tulis atau hapus. Menghapus layer atau fitur tetap akan ditanyakan.</translation>
         </message>
+        <message>
+            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <translation>Halaman ini menautkan ke situs yang tidak dikenal asisten AI: {hosts}.</translation>
+        </message>
+        <message>
+            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <translation>Halaman ini menautkan ke {hosts}, situs yang tidak dikenal asisten AI.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -6302,6 +6537,11 @@ Klik untuk membuka halamannya.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Company paying by invoice? Get 7 free days</source>
+            <translation>Perusahaan membayar dengan faktur? Dapatkan 7 hari gratis</translation>
+        </message>
+        <message>
             <source>Free AI Agent was already used by other accounts on this computer.</source>
             <translation>AI Agent gratis sudah dipakai oleh akun lain di komputer ini.</translation>
         </message>
@@ -6336,13 +6576,13 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Try Pro free for {n} days</source>
-            <translation>Try Pro free for {n} days</translation>
+            <source>Start 7-day free trial</source>
+            <translation>Mulai uji coba gratis 7 hari</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>No commitment, cancel in one click</source>
-            <translation>No commitment, cancel in one click</translation>
+            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
+            <translation>Gratis 7 hari, lalu {price}/bulan. Batalkan dengan satu klik.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -7730,6 +7970,22 @@ Klik untuk membuka halamannya.</translation>
             <source>Data sources</source>
             <translation>Sumber data</translation>
         </message>
+        <message>
+            <source>Free trial ends {date}</source>
+            <translation>Uji coba gratis berakhir {date}</translation>
+        </message>
+        <message>
+            <source>Then billed monthly</source>
+            <translation>Lalu ditagih bulanan</translation>
+        </message>
+        <message>
+            <source>Then billed yearly</source>
+            <translation>Lalu ditagih tahunan</translation>
+        </message>
+        <message>
+            <source>{plan} · Free trial</source>
+            <translation>{plan} · Uji coba gratis</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -8163,6 +8419,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{name} is installed</source>
             <translation>{name} sudah terpasang</translation>
+        </message>
+        <message>
+            <source>its changes to your project cannot be shown before it runs</source>
+            <translation>perubahannya pada proyek Anda tidak bisa ditampilkan sebelum dijalankan</translation>
         </message>
     </context>
     <context>
@@ -9222,6 +9482,14 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>Restored</source>
             <translation>Dipulihkan</translation>
         </message>
+        <message>
+            <source>Put back as before</source>
+            <translation>Dikembalikan seperti semula</translation>
+        </message>
+        <message>
+            <source>Taken off the map</source>
+            <translation>Dihapus dari peta</translation>
+        </message>
     </context>
     <context>
         <name>_VersionRow</name>
@@ -9454,6 +9722,83 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Waiting for {name} to install</source>
             <translation>Menunggu {name} terpasang</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentStreamFallback</name>
+        <message>
+            <source>{day} UTC, the online source stopped answering ({error}); the layer now reads a local copy of {box} (EPSG:4326) taken from {source}</source>
+            <translation>{day} UTC, sumber online berhenti menjawab ({error}); lapisan kini membaca salinan lokal {box} (EPSG:4326) yang diambil dari {source}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and a local copy of the area on view failed too: {reason}</source>
+            <translation>{name} tidak bisa dibaca secara online, dan salinan lokal area yang sedang tampil juga gagal: {reason}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and its local copy did not open.</source>
+            <translation>{name} tidak bisa dibaca secara online, dan salinan lokalnya tidak terbuka.</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online: it now shows a local copy of the area on view.</source>
+            <translation>{name} tidak bisa dibaca secara online: kini menampilkan salinan lokal area yang sedang tampil.</translation>
+        </message>
+    </context>
+    <context>
+        <name>LibraryRail</name>
+        <message>
+            <source>Home</source>
+            <translation>Beranda</translation>
+        </message>
+    </context>
+    <context>
+        <name>ObjectRow</name>
+        <message>
+            <source>3D view</source>
+            <translation>Tampilan 3D</translation>
+        </message>
+        <message>
+            <source>Attribute table</source>
+            <translation>Tabel atribut</translation>
+        </message>
+        <message>
+            <source>Map theme</source>
+            <translation>Tema peta</translation>
+        </message>
+        <message>
+            <source>Print layout</source>
+            <translation>Tata letak cetak</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>Laporan</translation>
+        </message>
+        <message>
+            <source>Show {name}</source>
+            <translation>Tampilkan {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_DatasetRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Menaruh permintaan ini di kotak obrolan, siap diubah.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_PromptRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Menaruh permintaan ini di kotak obrolan, siap diubah.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Masih menyimpan {layers}. Tidak ada yang diubah: coba lagi dalam beberapa detik.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>a temporary layer</source>
+            <translation>sebuah lapisan sementara</translation>
         </message>
     </context>
 </TS>

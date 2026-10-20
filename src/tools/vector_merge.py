@@ -260,7 +260,7 @@ def _write(gdal, ogr, osr, sources, gpkg, provenance, root, is_canceled, progres
     else:
         reason = gdal.GetLastErrorMsg()
     if out is None:
-        return {"_error": f"Could not create {stage}: {reason or 'GDAL refused it'}"}
+        return tool_error(f"Could not create {stage}: {reason or 'GDAL refused it'}")
     state = {"stem": os.path.splitext(os.path.basename(gpkg))[0], "families": {}, "target": None,
              "no_geometry": 0, "conflicts": set(), "provenance": provenance, "written": []}
     families: dict[str, _Family] = state["families"]
@@ -493,7 +493,7 @@ def _finalise(gdal, stage: str, gpkg: str, tables: list, is_canceled):
             written = None
             return {"canceled": True}
         if written is None:
-            return {"_error": f"Could not write {os.path.basename(gpkg)}: {failure}"}
+            return tool_error(f"Could not write {os.path.basename(gpkg)}: {failure}")
         written = None
         added.append({"family": family_name, "table": table, "count": family.count})
     return added
@@ -525,7 +525,7 @@ class FolderMergeTask(QgsTask):
             self.outcome = write([(path, None) for path in self.paths], self.gpkg, provenance=True,
                                  root=self.folder, is_canceled=self.isCanceled, progress=self.setProgress)
         except Exception as exc:  # noqa: BLE001
-            self.outcome = {"_error": f"The merge stopped: {exc}"}
+            self.outcome = tool_error(f"The merge stopped: {exc}")
         return not self.outcome.get("canceled")
 
     def finished(self, ok: bool) -> None:

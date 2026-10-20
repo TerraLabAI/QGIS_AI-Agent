@@ -78,8 +78,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
         return tool_error(
             "The Python interpreter shipped with QGIS could not be found, so the saved project "
             "cannot be opened anywhere else.",
-            "QGIS_PYTHON_NOT_FOUND",
-            "The file was still written and opens after restarting QGIS.")
+            "QGIS_PYTHON_NOT_FOUND", hint="project_check_no_python")
     kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} \
         if IS_WINDOWS and hasattr(subprocess, "CREATE_NO_WINDOW") else {}
     started = time.monotonic()
@@ -128,7 +127,7 @@ def _check_saved_project(args: dict) -> dict:
                 "This QGIS has no saved project to reopen.", "INVALID_ARGS", hint="no_saved_project")
     path_error = validate_path(path)
     if path_error:
-        return {"_error": path_error, "_code": "INVALID_ARGS"}
+        return tool_error(path_error, "INVALID_ARGS")
     if not os.path.isfile(path):
         return tool_error(f"No project file at {path}.", "INVALID_ARGS", hint="project_file_missing", path=path)
 

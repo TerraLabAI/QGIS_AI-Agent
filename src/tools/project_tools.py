@@ -19,6 +19,7 @@ from ..core.layer_order import is_web_service
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
+from ..core.tool_registry import coded_fact, tool_error
 from ..core.vsi import streamed_in_place
 from ._widgets import AI_EDIT_KEYS, sibling_plugin
 from .layer_lookup import (
@@ -76,11 +77,6 @@ def _layer_kind(layer) -> str:
 
 
 
-_CONTEXT_ALREADY_SENT = (
-    "The project CRS, the canvas extent and scale, and the layer list are already in the context "
-    "block of this turn. verbose true, or a limit, adds layer ids, layer extents, or more layers "
-    "than the block lists."
-)
 
 
 def _get_project_context(args: dict) -> dict:
@@ -195,7 +191,7 @@ def _new_since_the_context_block() -> dict:
     project = QgsProject.instance()
     project_crs = project.crs()
     out = {
-        "note": _CONTEXT_ALREADY_SENT,
+        "note": coded_fact(hint="context_already_sent"),
         "project_crs_description": project_crs.description(),
         "integrations": _project_integrations(),
         "security": get_security_context(),
@@ -443,8 +439,7 @@ def _field_entries(layer, compute_unique: bool) -> tuple[list, dict]:
         notes["field_values_sampled"] = sampled_fields
         notes["field_values_note"] = (
             "layer too large for a distinct-value scan" if not compute_unique
-            else f"distinct values for the first {sampled_fields} of {countable_total} countable fields; "
-            "get_unique_values reads any other field"
+            else coded_fact(hint="field_values_sampled", sampled=sampled_fields, total=countable_total)
         )
     return entries, notes
 
@@ -545,8 +540,7 @@ def _get_layer_info(args: dict) -> dict:
 
     detail = str(args.get("detail") or "summary").strip().casefold()
     if detail not in ("summary", "full"):
-        return {"_error": "detail must be 'summary' or 'full'.", "code": "INVALID_ARGS",
-                "suggestion": "The default summary covers metadata; detail='full' adds samples."}
+        return tool_error("detail must be 'summary' or 'full'.", "INVALID_ARGS", hint="layer_info_detail")
     full_detail = detail == "full"
     remote = _is_remote_vector(layer)
 
@@ -597,10 +591,7 @@ def _get_layer_info(args: dict) -> dict:
     scale = None if skip_remote_extent else ground.layer_metres_per_unit(layer)
     if ground.distorted(scale):
         info["ground_metres_per_unit"] = round(scale, 4)
-        info["crs_note"] = (
-            f"One {layer.crs().authid()} unit is {scale:.4g} m of ground here. A number in these units is "
-            f"wrong by that much: a buffer distance, a Processing distance parameter, a planar distance()."
-        )
+        info["crs_note"] = coded_fact(hint="layer_unit_distorted", crs=layer.crs().authid(), metres=scale)
 
 
 
@@ -611,12 +602,7 @@ def _get_layer_info(args: dict) -> dict:
 
     ellipsoid = _project_ellipsoid()
     if ellipsoid:
-        info["measure_note"] = (
-            f"$area, $perimeter and $length are measured on the {ellipsoid} ellipsoid and come back in "
-            f"ground square metres and metres whatever this layer's CRS is. Reprojecting in order to "
-            f"measure changes nothing and costs a layer: add_field with an expression writes the value "
-            f"onto this layer in place."
-        )
+        info["measure_note"] = coded_fact(hint="measure_on_ellipsoid", ellipsoid=ellipsoid)
     else:
 
 
@@ -624,14 +610,7 @@ def _get_layer_info(args: dict) -> dict:
         ratio = ground.area_expression_error(layer) if samples else None
         if ground.area_distorted(ratio):
             info["area_expression_ratio"] = round(ratio, 4)
-            info["measure_note"] = (
-                f"This project measures planar (Project Properties > General, ellipsoid NONE), so a bare "
-                f"$area here answers {ratio:.3g} times the true ground area. add_field measures $area, "
-                f"$perimeter and $length on the WGS84 ellipsoid for you and writes ground metres onto "
-                f"this layer, so a reprojected copy leaves "
-                f"'{layer.name()}' without the field the user asked for. run_processing measures on the "
-                f"same ellipsoid, but writes a new layer."
-            )
+            info["measure_note"] = coded_fact(hint="measure_planar_project", ratio=ratio, layer=layer.name())
 
     if isinstance(layer, QgsVectorLayer):
         fc = _safe_feature_count(layer)
@@ -653,12 +632,10 @@ def _get_layer_info(args: dict) -> dict:
                 skipped.extend(("extent", "ground_metres_per_unit"))
             info["details_skipped"] = skipped
             info["details_note"] = (
-                "Fast metadata summary: distinct field values and feature samples were not read. "
-                + ("The remote provider's feature count was not queried. " if fc is None else "")
-                + ("Its rows come over the network, so detail='full' reads none either: get_features reads "
-                   "them off the main thread." if remote else
-                   "get_layer_info with detail='full', or get_features/get_field_statistics, reads them.")
+                "Fast metadata summary: distinct field values and feature samples were not read."
+                + (" The remote provider's feature count was not queried." if fc is None else "")
             )
+            info["details_advice"] = coded_fact(hint="layer_info_fast_read", variant="remote" if remote else "")
             return info
 
         compute_unique = fc is not None and 0 <= fc <= 100_000
@@ -690,8 +667,7 @@ def _get_layer_info(args: dict) -> dict:
         if _remote_raster(layer):
 
             info["provider"] = layer.providerType()
-            info["remote"] = ("Its pixels live on the service: every pixel or block read is a request over "
-                              "the network, and QGIS waits for the answer.")
+            info["remote"] = coded_fact(hint="raster_remote_reads")
 
     return info
 
@@ -726,10 +702,8 @@ def _zoom_to_layer(args: dict) -> dict:
 
     corners = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
     if extent.isNull() or not all(math.isfinite(value) for value in corners):
-        return {"_error": (f"Layer {layer.name()!r} has no extent to zoom to: it holds no feature with a "
-                           f"geometry. The view was not moved."),
-                "code": "INVALID_ARGS",
-                "suggestion": "get_layer_info shows feature_count."}
+        return tool_error(f"Layer {layer.name()!r} has no extent to zoom to: it holds no feature with a "
+                          f"geometry. The view was not moved.", "INVALID_ARGS", hint="zoom_layer_empty")
     layer_crs = layer.crs()
     canvas_crs = canvas.mapSettings().destinationCrs()
     framed = True
@@ -746,10 +720,9 @@ def _zoom_to_layer(args: dict) -> dict:
         canvas.refresh()
     reprojected = hold_view(canvas, prefer=layer_crs, target=(layer.extent(), layer_crs))
     if not framed and not reprojected:
-        return {"_error": (f"Layer {layer.name()!r} cannot be drawn in the canvas CRS "
-                           f"{canvas_crs.authid()}. The view was not moved."),
-                "code": "INVALID_ARGS",
-                "suggestion": "The zoom works once the project CRS is the layer's (set_project_crs)."}
+        return tool_error(f"Layer {layer.name()!r} cannot be drawn in the canvas CRS "
+                          f"{canvas_crs.authid()}. The view was not moved.", "INVALID_ARGS",
+                          hint="zoom_crs_cannot_hold")
     canvas_crs = canvas.mapSettings().destinationCrs()
     ext = canvas.extent()
     return {

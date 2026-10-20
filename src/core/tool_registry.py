@@ -614,17 +614,13 @@ class ToolRegistry:
 
             error = tool_error(message, "EXECUTION_FAILED", hint=coded.hint, **coded.facts)
         else:
-            error = tool_error(
-                message,
-                "EXECUTION_FAILED",
-                "" if refused else "The traceback names the error; the same call unchanged fails the same way.",
-                hint=refused,
-            )
+            error = tool_error(message, "EXECUTION_FAILED", hint=refused or "tool_raised")
         error["traceback"] = _short_traceback(e)
         return error
 
     @staticmethod
     def _normalize_result(result: Any) -> Any:
+
 
 
 

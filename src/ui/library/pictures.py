@@ -56,7 +56,6 @@ from qgis.PyQt.QtGui import (
     QFont,
     QFontMetrics,
     QImage,
-    QLinearGradient,
     QPainter,
     QPainterPath,
     QPen,
@@ -869,76 +868,57 @@ class PictureView(QWidget):
 
 
 
+def is_flag(row: dict) -> bool:
 
-_SMALL_WORDS = {"of", "the", "and", "de", "du", "des", "la", "le", "les", "del", "der", "für",
-                "for", "van", "von", "y", "et", "&"}
-
-
-def monogram(name: str, code: str = "", room: int = 2) -> str:
-
+    row = row or {}
+    return (str(row.get("logo_kind") or "") == "flag"
+            or "/_logos/flags/" in str(row.get("logo_url") or ""))
 
 
+def flag_urls(row: dict) -> list:
+
+
+    row = row or {}
+    out = [str(u) for u in (row.get("flags") or ()) if usable(str(u or ""))][:3]
+    url = str(row.get("logo_url") or "")
+    if not out and url and is_flag(row):
+        out = [url]
+    return out
+
+
+def mark_urls(row: dict) -> list:
+
+    url = str((row or {}).get("logo_url") or "")
+    return [url] if url else flag_urls(row)[:2]
+
+
+def neutral_tile_pixmap(row: dict, side: int, ratio: float = 1.0, radius: float = 0.0) -> QPixmap:
 
 
 
-
-
-
-    if code:
-        return str(code)[:2].upper()
-    words = [w for w in str(name or "").replace("-", " ").replace("/", " ").split() if w]
-    if not words:
-        return "?"
-    first = "".join(ch for ch in words[0] if ch.isalnum())
-    if 2 <= len(first) <= 5 and first.isupper():
-        return first if len(first) <= max(2, int(room)) else first[:2]
-    big = [w for w in words if w.lower() not in _SMALL_WORDS and w[:1].isalnum()]
-    if len(big) >= 2:
-        return (big[0][0] + big[1][0]).upper()
-    capitals = [ch for ch in first if ch.isupper()]
-    if len(capitals) >= 2:
-        return "".join(capitals[:2])
-    return first[:2].capitalize() if first else "?"
-
-
-_MARKS: dict = {}
-
-
-def monogram_pixmap(letters: str, accent: str, side: int, ratio: float = 1.0) -> QPixmap:
-
-
+    from ..icons import render_pixmap
+    from . import common as C
 
     ratio = max(1.0, float(ratio or 1.0))
-    key = (letters, accent, int(side), round(ratio, 2))
-    if key in _MARKS:
-        return _MARKS[key]
-    color = QColor(accent)
-    pixmap = QPixmap(int(side * ratio), int(side * ratio))
+    radius = float(radius or (side / 3.0 + 2))
+    pixmap = QPixmap(int(round(side * ratio)), int(round(side * ratio)))
     pixmap.setDevicePixelRatio(ratio)
     pixmap.fill(Qt.GlobalColor.transparent)
+    shape = QPainterPath()
+    shape.addRoundedRect(QRectF(0.5, 0.5, side - 1, side - 1), radius, radius)
+    glyph_px = max(18, int(side * 0.36)) if side > 40 else min(18, max(10, int(side * 0.6)))
+    glyph = render_pixmap(C.category_glyph((row or {}).get("category")),
+                          QColor(C.T.text_2), glyph_px, ratio)
     painter = QPainter(pixmap)
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
-        radius = side / 3.0 + 2
-        box = QRectF(0, 0, side, side)
-        fill = QLinearGradient(0, 0, 0, side)
-        fill.setColorAt(0.0, color.lighter(108))
-        fill.setColorAt(1.0, color.darker(112))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(fill)
-        painter.drawRoundedRect(box, radius, radius)
-        font = QFont(painter.font())
-
-        share = 0.4 if len(letters) <= 2 else (0.3 if len(letters) == 3 else 0.25)
-        font.setPixelSize(max(7, int(side * share)))
-        font.setWeight(QFont.Weight.DemiBold)
-        painter.setFont(font)
-        painter.setPen(QColor(255, 255, 255))
-        painter.drawText(box, int(Qt.AlignmentFlag.AlignCenter), letters)
+        painter.fillPath(shape, QColor(C.T.tile))
+        painter.drawPixmap(int((side - glyph_px) / 2), int((side - glyph_px) / 2), glyph)
+        painter.setPen(QPen(_hairline(), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(shape)
     finally:
         painter.end()
-    _MARKS[key] = pixmap
     return pixmap
 
 
@@ -954,15 +934,191 @@ def source_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0):
             chip = logo_pixmap(path, side, ratio)
             if chip is not None:
                 return chip
-    from ...core.connector_locale import country_of
+    return neutral_tile_pixmap(row, side, ratio)
 
+
+
+
+
+
+
+_MIN_COVER = 0.30
+_MIN_CONTRAST = 1.6
+
+_MIN_INK_SHARE = 0.25
+
+
+def _ink_share(image: QImage, ground: QColor) -> float:
+
+
+    from ..icons import contrast_ratio
+
+    small = image.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio,
+                         Qt.TransformationMode.SmoothTransformation)
+    seen = good = 0
+    for y in range(small.height()):
+        for x in range(small.width()):
+            c = small.pixelColor(x, y)
+            if c.alpha() > 24:
+                seen += 1
+                good += contrast_ratio(QColor(c.red(), c.green(), c.blue()), ground) >= _MIN_CONTRAST
+    return good / seen if seen else 0.0
+
+
+def readable_logo(image: QImage, side: int, inset: float, ground: QColor) -> bool:
+
+
+    if image.isNull() or image.width() < 1 or image.height() < 1:
+        return False
+    room = max(1.0, side - 2 * inset)
+    scale = min(room / image.width(), room / image.height())
+    cover = (image.width() * scale) * (image.height() * scale) / float(side * side)
+    if cover < _MIN_COVER:
+        return False
+    return _ink_share(image, ground) >= _MIN_INK_SHARE
+
+
+def _hairline() -> QColor:
+
+
+    from . import common as C
+
+    text = str(C.T.hairline or "")
+    if text.startswith("rgba(") and text.endswith(")"):
+        parts = [p.strip() for p in text[5:-1].split(",")]
+        try:
+            r, g, b = (int(float(v)) for v in parts[:3])
+            return QColor(r, g, b, int(round(float(parts[3]) * 255)))
+        except (ValueError, IndexError):
+            pass
+    colour = QColor(text)
+    return colour if colour.isValid() else QColor(0, 0, 0, 26)
+
+
+def square_mark_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0,
+                       radius: float = 8.0, inset: float = 3.0) -> QPixmap:
+
+
+
+
+
+
+
+
+    from . import common as C
+
+    ratio = max(1.0, float(ratio or 1.0))
+    url = str((row or {}).get("logo_url") or "")
+    flags = [] if url else flag_urls(row)
+    if len(flags) >= 2:
+        return _flag_pair_pixmap(row, flags[:2], side, ratio, radius)
+    if flags:
+        url = flags[0]
+    path = store().want_file(url) if url else ""
+    image = QImage(str(path)) if path else QImage()
+    if image.isNull():
+        return neutral_tile_pixmap(row, side, ratio, radius)
+    flag = bool(flags) or is_flag(row)
+    image = image.convertToFormat(QImage.Format.Format_ARGB32)
+    if not flag:
+        from ..logo_tile import ink_bounds
+
+        bounds = ink_bounds(image)
+        if bounds is not None:
+            image = image.copy(*bounds)
+        if not readable_logo(image, side, inset, QColor(C.T.mark_bg)):
+            return neutral_tile_pixmap(row, side, ratio, radius)
+    pixmap = QPixmap(int(round(side * ratio)), int(round(side * ratio)))
+    pixmap.setDevicePixelRatio(ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    shape = QPainterPath()
+    shape.addRoundedRect(QRectF(0.5, 0.5, side - 1, side - 1), radius, radius)
+    painter = QPainter(pixmap)
     try:
-        code = country_of(row)
-    except Exception:  # noqa: BLE001
-        code = ""
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.fillPath(shape, QColor(C.T.mark_bg))
+        if flag:
 
-    room = 4 if side >= 32 else 2
-    return monogram_pixmap(monogram(str((row or {}).get("name") or ""), code, room), accent, side, ratio)
+            clip = QPainterPath()
+            clip.addRoundedRect(QRectF(0, 0, side, side), radius, radius)
+            _draw_cover(painter, image, QRectF(0, 0, side, side), clip, ratio)
+        else:
+            painter.setClipPath(shape)
+            room = max(1.0, side - 2 * inset)
+            scale = min(room / max(1, image.width()), room / max(1, image.height()))
+            w, h = image.width() * scale, image.height() * scale
+            art = image.scaled(max(1, int(round(w * ratio))), max(1, int(round(h * ratio))),
+                               Qt.AspectRatioMode.IgnoreAspectRatio,
+                               Qt.TransformationMode.SmoothTransformation)
+            painter.drawImage(QRectF((side - w) / 2.0, (side - h) / 2.0, w, h), art)
+            painter.setClipping(False)
+        painter.setPen(QPen(_hairline(), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(shape)
+    finally:
+        painter.end()
+    return pixmap
+
+
+def _draw_cover(painter: QPainter, image: QImage, rect: QRectF, clip: QPainterPath,
+                ratio: float) -> None:
+
+    scale = max(rect.width() / max(1, image.width()), rect.height() / max(1, image.height()))
+    w, h = image.width() * scale, image.height() * scale
+    art = image.scaled(max(1, int(round(w * ratio))), max(1, int(round(h * ratio))),
+                       Qt.AspectRatioMode.IgnoreAspectRatio,
+                       Qt.TransformationMode.SmoothTransformation)
+    painter.save()
+    painter.setClipPath(clip)
+    painter.drawImage(QRectF(rect.center().x() - w / 2.0, rect.center().y() - h / 2.0, w, h), art)
+    painter.restore()
+
+
+def _flag_pair_pixmap(row: dict, urls: list, side: int, ratio: float, radius: float) -> QPixmap:
+
+
+
+
+    from . import common as C
+
+    images = []
+    for url in urls:
+        path = store().want_file(url)
+        image = QImage(str(path)) if path else QImage()
+        if image.isNull():
+            return neutral_tile_pixmap(row, side, ratio, radius)
+        images.append(image.convertToFormat(QImage.Format.Format_ARGB32))
+    pixmap = QPixmap(int(round(side * ratio)), int(round(side * ratio)))
+    pixmap.setDevicePixelRatio(ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    shape = QPainterPath()
+    shape.addRoundedRect(QRectF(0.5, 0.5, side - 1, side - 1), radius, radius)
+    flag = side * 0.62
+    pad = (side - flag) / 2.0 * 0.55
+    back = QRectF(pad, pad, flag, flag)
+    front = QRectF(side - pad - flag, side - pad - flag, flag, flag)
+    corner = min(4.0, flag / 4.0)
+    ground = QColor(C.T.tile)
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.fillPath(shape, ground)
+        for image, rect in ((images[0], back), (images[1], front)):
+            if rect is front:
+                ring = QPainterPath()
+                ring.addRoundedRect(rect.adjusted(-1.5, -1.5, 1.5, 1.5), corner + 1.5, corner + 1.5)
+                painter.fillPath(ring, ground)
+            clip = QPainterPath()
+            clip.addRoundedRect(rect, corner, corner)
+            _draw_cover(painter, image, rect, clip, ratio)
+        painter.setPen(QPen(_hairline(), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(shape)
+    finally:
+        painter.end()
+    return pixmap
 
 
 class _MarkWatcher(QObject):
@@ -972,27 +1128,32 @@ class _MarkWatcher(QObject):
 
 
 
-    def __init__(self, label, row: dict, accent: str, side: int):
+    def __init__(self, label, row: dict, accent: str, side: int, render=None):
         super().__init__(label)
         self._label, self._row, self._accent, self._side = label, dict(row), accent, side
-        self._url = str(row.get("logo_url") or "")
+        self._render = render or source_pixmap
+        self._urls = set(mark_urls(row))
         store().ready.connect(self._on_ready)
 
     def _on_ready(self, url: str) -> None:
-        if url != self._url:
+        if url not in self._urls:
             return
         try:
-            self._label.setPixmap(source_pixmap(self._row, self._accent, self._side,
-                                                widget_pixel_ratio(self._label)))
+            self._label.setPixmap(self._render(self._row, self._accent, self._side,
+                                               widget_pixel_ratio(self._label)))
         except RuntimeError:
             pass
 
 
-def wear_source_mark(label, row: dict, accent: str, side: int) -> None:
+def wear_square_mark(label, row: dict, accent: str, side: int, radius: float = 8.0,
+                     inset: float = 3.0) -> None:
+
+
+    def render(r, a, s, ratio):
+        return square_mark_pixmap(r, a, s, ratio, radius, inset)
 
     label.setStyleSheet("QLabel { background: transparent; border: none; }")
     label.setFixedSize(side, side)
-    label.setPixmap(source_pixmap(row, accent, side, widget_pixel_ratio(label)))
-    url = str((row or {}).get("logo_url") or "")
-    if usable(url) and not cached_on_disk(url):
-        _MarkWatcher(label, row, accent, side)
+    label.setPixmap(render(row, accent, side, widget_pixel_ratio(label)))
+    if any(usable(u) and not cached_on_disk(u) for u in mark_urls(row)):
+        _MarkWatcher(label, row, accent, side, render)

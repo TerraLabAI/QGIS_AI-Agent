@@ -14,6 +14,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core import layer_order
 from ..core.geometry_budget import VertexBudget
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
@@ -200,16 +201,11 @@ def _unknown_fields_error(layer, unknown: list) -> dict:
 
 
     all_fields = sorted(f.name() for f in layer.fields())
-    return {
-        "_error": (
-            f"Unknown field(s) {', '.join(repr(n) for n in unknown)} on layer {layer.name()!r}. "
-            f"Available: {', '.join(repr(n) for n in all_fields)}"
-        ),
-        "_code": "INVALID_ARGS",
-        "fields": all_fields,
 
-        **coded_fact(hint="unknown_fields", unknown=sorted(unknown), layer=layer.name()),
-    }
+    return tool_error(
+        f"Unknown field(s) {', '.join(repr(n) for n in unknown)} on layer {layer.name()!r}. "
+        f"Available: {', '.join(repr(n) for n in all_fields)}",
+        "INVALID_ARGS", hint="unknown_fields", fields=all_fields, unknown=sorted(unknown), layer=layer.name())
 
 
 def _add_features(args: dict) -> dict:
@@ -219,7 +215,7 @@ def _add_features(args: dict) -> dict:
 
     features_data = args.get("features", [])
     if not features_data:
-        return {"_error": "No features provided"}
+        return tool_error("No features provided", "INVALID_ARGS")
     if len(features_data) > _MAX_FEATURE_BATCH:
         return tool_error(f"{len(features_data)} features given, above the {_MAX_FEATURE_BATCH} this tool "
                           "builds in one call.", "INVALID_ARGS", hint="feature_batch_ceiling",
@@ -248,9 +244,8 @@ def _add_features(args: dict) -> dict:
         if geom_wkt:
             geom = QgsGeometry.fromWkt(geom_wkt)
             if geom.isNull():
-                return {"_error": f"Invalid WKT geometry: {geom_wkt[:100]}", "code": "INVALID_ARGS",
-                        "suggestion": ("valid WKT in the layer's CRS, for example "
-                                       "'POINT(x y)' or 'POLYGON((x y, x y, x y, x y))'.")}
+                return tool_error(f"Invalid WKT geometry: {geom_wkt[:100]}", "INVALID_ARGS",
+                                  hint="feature_wkt_invalid")
 
 
 
@@ -390,7 +385,7 @@ def _update_features(args: dict) -> dict:
 
     updates = args.get("updates", [])
     if not updates:
-        return {"_error": "No updates provided"}
+        return tool_error("No updates provided", "INVALID_ARGS")
     if len(updates) > _MAX_FEATURE_BATCH:
 
 
@@ -481,26 +476,23 @@ def _update_features(args: dict) -> dict:
     if not_found:
         result["not_found"] = not_found
         if not updated and not partial:
-            result["_error"] = "None of the requested feature IDs exist in this layer"
-            result["code"] = "INVALID_ARGS"
-            result["hint"] = "feature_ids_not_found"
+            result.update(tool_error("None of the requested feature IDs exist in this layer", "INVALID_ARGS",
+                                     hint="feature_ids_not_found"))
             return result
     if unknown_fields:
         result["unknown_fields"] = sorted(unknown_fields)
         result["fields"] = [f.name() for f in layer.fields()]
         if not updated and not partial:
-            result["_error"] = (f"The layer {layer.name()!r} has none of the fields "
-                                f"{sorted(unknown_fields)}, so nothing was written.")
-            result["code"] = "INVALID_ARGS"
-            result.update(coded_fact(hint="unknown_fields", unknown=sorted(unknown_fields), layer=layer.name()))
+            result.update(tool_error(f"The layer {layer.name()!r} has none of the fields "
+                                     f"{sorted(unknown_fields)}, so nothing was written.", "INVALID_ARGS",
+                                     hint="unknown_fields", unknown=sorted(unknown_fields), layer=layer.name()))
             return result
     if refused:
         result["refused"] = refused[:20]
         if not updated and not partial:
-            result["_error"] = (f"The provider of {layer.name()!r} refused every attribute write "
-                                f"({len(refused)} of them); the layer reported no error.")
-            result["code"] = "INVALID_ARGS"
-            result["hint"] = "field_refused"
+            result.update(tool_error(f"The provider of {layer.name()!r} refused every attribute write "
+                                     f"({len(refused)} of them); the layer reported no error.", "INVALID_ARGS",
+                                     hint="field_refused"))
     return result
 
 
@@ -538,9 +530,8 @@ def _delete_features(args: dict) -> dict:
         return {
             "deleted": 0,
             "not_found": not_found,
-            "_error": "None of the requested feature IDs exist in this layer",
-            "code": "INVALID_ARGS",
-            "hint": "feature_ids_not_found", "variant": "delete",
+            **tool_error("None of the requested feature IDs exist in this layer", "INVALID_ARGS",
+                         hint="feature_ids_not_found", variant="delete"),
         }
 
     started, error = vector_write.open_edit(layer, "delete features")
@@ -613,6 +604,20 @@ def _select_expression(layer, expression: str, behavior) -> None:
         layer.selectByExpression(expression, behavior)
 
 
+def _selected(layer) -> dict:
+
+
+
+
+
+
+    out = {"selected_count": layer.selectedFeatureCount()}
+    count = None if layer_order.is_remote_vector(layer) else layer.featureCount()
+    if isinstance(count, int) and count >= 0:
+        out["feature_count"] = count
+    return out
+
+
 def _with_behavior(out: dict, behavior: str, previously: int) -> dict:
 
     if behavior != "replace":
@@ -640,8 +645,8 @@ def _select_features(args: dict) -> dict:
 
         fids = None
     if fids is not None and expression:
-        return {"_error": "'fids' and 'expression' both given: which one wins was never defined.",
-                "_code": "INVALID_ARGS"}
+        return tool_error("'fids' and 'expression' both given: which one wins was never defined.",
+                          "INVALID_ARGS")
     if fids is not None:
 
 
@@ -650,12 +655,12 @@ def _select_features(args: dict) -> dict:
     elif expression:
         expr = QgsExpression(expression)
         if expr.hasParserError():
-            return {"_error": f"Invalid expression: {expr.parserErrorString()}"}
+            return tool_error(f"Invalid expression: {expr.parserErrorString()}", "INVALID_ARGS")
         _select_expression(layer, expression, behavior)
     else:
-        return {"_error": "'expression' or 'fids' is required"}
+        return tool_error("'expression' or 'fids' is required", "INVALID_ARGS")
 
-    return _with_behavior({"selected_count": layer.selectedFeatureCount()}, behavior_name, previously)
+    return _with_behavior(_selected(layer), behavior_name, previously)
 
 
 def _get_selection(args: dict) -> dict:
@@ -687,7 +692,7 @@ def _get_selection(args: dict) -> dict:
 
 
     features, _dropped = size_budget(features, 4_000)
-    out = {"layer": args["layer_name"], "selected_count": total, "features": features}
+    out = {"layer": args["layer_name"], **_selected(layer), "features": features}
     if total > len(features):
         out["omitted"] = total - len(features)
     return out
@@ -776,9 +781,8 @@ def _select_by_attribute(args: dict) -> dict:
             try:
                 numeric_val = float(value)
                 if not math.isfinite(numeric_val):
-                    return {"_error": f"{value!r} is not a finite number, so no comparison can be built from it.",
-                            "code": "INVALID_ARGS",
-                            "suggestion": "a real number, or 'is null' through evaluate_expression."}
+                    return tool_error(f"{value!r} is not a finite number, so no comparison can be built from it.",
+                                      "INVALID_ARGS", hint="select_value_not_finite")
                 if numeric_val == int(numeric_val):
                     expr_str = f"{field_ref} {operator} {int(numeric_val)}"
                 else:
@@ -788,9 +792,9 @@ def _select_by_attribute(args: dict) -> dict:
 
     expr = QgsExpression(expr_str)
     if expr.hasParserError():
-        return {"_error": f"The expression built from these arguments does not parse "
+        return tool_error(f"The expression built from these arguments does not parse "
                           f"({expr_str}): {expr.parserErrorString()}",
-                "code": "INVALID_ARGS", "hint": "select_expression_unparsable", "expression": expr_str}
+                          "INVALID_ARGS", hint="select_expression_unparsable", expression=expr_str)
 
     previously = layer.selectedFeatureCount()
     _select_expression(layer, expr_str, behavior)
@@ -804,7 +808,7 @@ def _select_by_attribute(args: dict) -> dict:
     else:
         field_kind = str(field.typeName() or "number").lower()
     return _with_behavior(
-        {"selected_count": layer.selectedFeatureCount(), "expression": expr_str, "field_type": field_kind},
+        {**_selected(layer), "expression": expr_str, "field_type": field_kind},
         behavior_name, previously)
 
 
@@ -829,8 +833,8 @@ def _select_by_geometry(args: dict) -> dict:
         if geom_type == enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"):
 
 
-            return {"_error": f"{mode!r} ranks features by area or length, and a point layer has neither.",
-                    "code": "INVALID_ARGS", "hint": "rank_mode_on_points", "mode": mode}
+            return tool_error(f"{mode!r} ranks features by area or length, and a point layer has neither.",
+                              "INVALID_ARGS", hint="rank_mode_on_points", mode=mode)
         best_fid = None
         best_size = None
         polygons = geom_type == enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
@@ -863,7 +867,7 @@ def _select_by_geometry(args: dict) -> dict:
                 best_fid = feat.id()
 
         if best_fid is None:
-            return {"_error": "No features with valid geometry found"}
+            return tool_error("No features with valid geometry found", "EXECUTION_FAILED")
 
         _select_ids(layer, [best_fid], behavior)
         if calculator is not None:
@@ -875,13 +879,13 @@ def _select_by_geometry(args: dict) -> dict:
                 units = QgsUnitTypes.toString(layer.crs().mapUnits()) + (" squared" if polygons else "")
             except Exception:  # noqa: BLE001
                 units = "layer CRS units" + (" squared" if polygons else "")
-        return _with_behavior({"selected_count": layer.selectedFeatureCount(), "mode": mode, "size": best_size,
+        return _with_behavior({**_selected(layer), "mode": mode, "size": best_size,
                                "size_units": units}, behavior_name, previously)
 
     ref_name = args.get("reference_layer")
     if not ref_name:
-        return {"_error": f"reference_layer is required for mode '{mode}'", "code": "INVALID_ARGS",
-                "suggestion": "reference_layer is the layer the selection is measured against."}
+        return tool_error(f"reference_layer is required for mode '{mode}'", "INVALID_ARGS",
+                          hint="select_reference_layer_required")
 
     ref_layer, ref_error = _feature_layer(ref_name)
     if ref_error:
@@ -908,11 +912,11 @@ def _select_by_geometry(args: dict) -> dict:
                 "INVALID_ARGS", hint="reference_layer_too_detailed", layer=ref_name)
         ref_geoms.append(geom)
     if not ref_geoms:
-        return {"_error": "Reference layer has no valid geometries"}
+        return tool_error("Reference layer has no valid geometries", "EXECUTION_FAILED")
 
     ref_geom = QgsGeometry.unaryUnion(ref_geoms)
     if ref_geom.isNull():
-        return {"_error": "Reference layer has no valid geometries"}
+        return tool_error("Reference layer has no valid geometries", "EXECUTION_FAILED")
 
 
 
@@ -924,12 +928,10 @@ def _select_by_geometry(args: dict) -> dict:
         try:
             result = ref_geom.transform(transform)
         except Exception as exc:
-            return {"_error": f"Failed to reproject reference geometry: {exc}"}
+            return tool_error(f"Failed to reproject reference geometry: {exc}", "EXECUTION_FAILED")
         if result != 0:
-            return {"_error": (
-                f"Failed to reproject reference geometry from "
-                f"{ref_layer.crs().authid()} to {layer.crs().authid()}"
-            )}
+            return tool_error(f"Failed to reproject reference geometry from "
+                              f"{ref_layer.crs().authid()} to {layer.crs().authid()}", "EXECUTION_FAILED")
 
 
 
@@ -981,5 +983,5 @@ def _select_by_geometry(args: dict) -> dict:
             selected_ids.append(feat.id())
 
     _select_ids(layer, selected_ids, behavior)
-    return _with_behavior({"selected_count": layer.selectedFeatureCount(), "mode": mode, "reference_layer": ref_name},
+    return _with_behavior({**_selected(layer), "mode": mode, "reference_layer": ref_name},
                           behavior_name, previously)

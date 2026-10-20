@@ -29,7 +29,7 @@ from qgis.core import QgsProject, QgsRasterLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.provider_uri import encode_uri_url
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 
 
@@ -43,13 +43,6 @@ _INDEX_BANDS = {
     "NDBI": ("swir_band", "nir_band"),
     "NBR": ("nir_band", "swir2_band"),
 }
-
-_EE_NOT_AUTHENTICATED_SUGGESTION = (
-    "`earthengine authenticate` in a terminal, a Google account registered for Earth "
-    "Engine, and (for a Cloud project) the Earth Engine API enabled are needed; "
-    "initialize_earth_engine with the project id follows."
-)
-
 
 def _has_credentials() -> bool:
 
@@ -195,22 +188,16 @@ def _ensure_initialized(project: str | None = None):
     try:
         import ee
     except Exception as exc:
-        return None, {
-            "_error": f"earthengine-api is not importable: {exc}",
-            "_code": "PERMISSION_DENIED",
-            "_suggestion": _EE_NOT_AUTHENTICATED_SUGGESTION,
-        }
+        return None, tool_error(f"earthengine-api is not importable: {exc}", "PERMISSION_DENIED",
+                                hint="gee_not_authenticated")
     try:
         if project:
             ee.Initialize(project=project)
         else:
             ee.Initialize()
     except Exception as exc:
-        return None, {
-            "_error": f"Earth Engine could not initialize: {exc}",
-            "_code": "PERMISSION_DENIED",
-            "_suggestion": _EE_NOT_AUTHENTICATED_SUGGESTION,
-        }
+        return None, tool_error(f"Earth Engine could not initialize: {exc}", "PERMISSION_DENIED",
+                                hint="gee_not_authenticated")
     return ee, None
 
 
@@ -242,14 +229,8 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
         mapid = image.getMapId(vis_params or {})
         tile_url = mapid["tile_fetcher"].url_format
     except Exception as exc:
-        return {
-            "_error": f"Earth Engine could not build map tiles for '{ee_id}': {exc}",
-            "_code": "EE_MAPID_FAILED",
-            "_suggestion": (
-                "vis_params (min/max/bands) may not match the image's bands, or the asset "
-                "id is wrong."
-            ),
-        }
+        return tool_error(f"Earth Engine could not build map tiles for '{ee_id}': {exc}", "EE_MAPID_FAILED",
+                          hint="gee_mapid_failed")
 
     uri = f"type=xyz&url={encode_uri_url(tile_url)}&zmax=24&zmin=0"
 
@@ -264,7 +245,7 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
 
     created = run_on_main_thread(_create, timeout=30)
     if created is None:
-        return {"_error": f"Failed to create XYZ layer from Earth Engine tiles for '{ee_id}'", "_code": "LAYER_INVALID"}
+        return tool_error(f"Failed to create XYZ layer from Earth Engine tiles for '{ee_id}'", "LAYER_INVALID")
 
     _EE_LAYERS[created["layer_id"]] = {"image": image, "vis": vis_params or {}, "ee_id": ee_id}
     return created
@@ -276,7 +257,7 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
 def _add_gee_dataset(args: dict) -> dict:
     ee_id = (args.get("ee_id") or "").strip()
     if not ee_id:
-        return {"_error": "ee_id is required", "_code": "MISSING_EE_ID"}
+        return tool_error("ee_id is required", "MISSING_EE_ID")
 
     ee, err = _ensure_initialized()
     if err:
@@ -327,20 +308,14 @@ def _add_gee_dataset(args: dict) -> dict:
             image = reduce_fn()
             reducer_used = reducer if reducer in reducer_map else "median"
         except Exception as exc:
-            return {
-                "_error": f"Failed to reduce ImageCollection '{ee_id}': {exc}",
-                "_code": "EE_COLLECTION_FAILED",
-                "_suggestion": "The date range, bbox or a single-Image asset id may be why.",
-            }
+            return tool_error(f"Failed to reduce ImageCollection '{ee_id}': {exc}", "EE_COLLECTION_FAILED",
+                              hint="gee_collection_failed")
     else:
         try:
             image = ee.Image(ee_id)
         except Exception as exc:
-            return {
-                "_error": f"'{ee_id}' is neither a usable ImageCollection nor Image: {exc}",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "search_gee_catalog lists valid asset ids.",
-            }
+            return tool_error(f"'{ee_id}' is neither a usable ImageCollection nor Image: {exc}", "INVALID_ARGS",
+                              hint="gee_asset_unknown")
 
     added = _add_ee_image_layer(image, vis_params, name, ee_id)
     if "_error" in added:
@@ -404,29 +379,26 @@ def _resolve_source_image(args: dict, ee):
 
         layer = run_on_main_thread(_find_layer, layer_name)
         if layer is None:
-            return None, {"_error": f"Layer '{layer_name}' not found or ambiguous", "_code": "LAYER_NOT_FOUND"}
+            return None, tool_error(f"Layer '{layer_name}' not found or ambiguous", "LAYER_NOT_FOUND")
         cached = _EE_LAYERS.get(run_on_main_thread(layer.id))
         if cached is None:
-            return None, {
-                "_error": f"Layer '{layer_name}' is not an Earth Engine layer added in this session",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "ee_id loads the asset directly; add_gee_dataset adds it as a layer first.",
-            }
+            return None, tool_error(f"Layer '{layer_name}' is not an Earth Engine layer added in this session",
+                                    "INVALID_ARGS", hint="gee_layer_not_ee")
         return cached["image"], None
 
     if ee_id:
         try:
             return ee.Image(ee_id), None
         except Exception as exc:
-            return None, {"_error": f"Could not load Image '{ee_id}': {exc}", "_code": "INVALID_ARGS"}
+            return None, tool_error(f"Could not load Image '{ee_id}': {exc}", "INVALID_ARGS")
 
-    return None, {"_error": "layer_name or ee_id is required", "_code": "INVALID_ARGS"}
+    return None, tool_error("layer_name or ee_id is required", "INVALID_ARGS")
 
 
 def _gee_compute_index(args: dict) -> dict:
     index = (args.get("index") or "").strip().upper()
     if index not in _INDEX_BANDS:
-        return {"_error": f"Unknown index '{index}'. Valid: NDVI, NDWI, NDBI, NBR.", "_code": "INVALID_ARGS"}
+        return tool_error(f"Unknown index '{index}'. Valid: NDVI, NDWI, NDBI, NBR.", "INVALID_ARGS")
 
     ee, err = _ensure_initialized()
     if err:
@@ -456,16 +428,13 @@ def _gee_compute_index(args: dict) -> dict:
     if available is not None:
         missing = [b for b in (band_a, band_b) if b not in available]
         if missing:
-            return {
-                "_error": f"Bands {missing} not found for {index}. Available bands: {available}",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "nir_band/red_band/green_band/swir_band/swir2_band set the matching bands.",
-            }
+            return tool_error(f"Bands {missing} not found for {index}. Available bands: {available}",
+                              "INVALID_ARGS", hint="gee_index_bands_missing")
 
     try:
         index_image = image.normalizedDifference([band_a, band_b]).rename(index)
     except Exception as exc:
-        return {"_error": f"Failed to compute {index}: {exc}", "_code": "EE_INDEX_FAILED"}
+        return tool_error(f"Failed to compute {index}: {exc}", "EE_INDEX_FAILED")
 
     vis_params = args.get("vis_params") or {
         "min": -1,

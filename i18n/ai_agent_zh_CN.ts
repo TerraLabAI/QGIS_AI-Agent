@@ -2347,12 +2347,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>该步骤未完成。运行已写入的文件仍保留在磁盘上。它添加的图层只有在其后保存过项目时才会恢复，临时图层则已消失。同一步骤可能再次导致 QGIS 关闭：请换一个更轻量的请求（更小的区域、更少的图层）。</translation>
         </message>
         <message>
-            <source>The agent got stuck on the same step.</source>
-            <translation>智能体卡在了同一个步骤上。</translation>
+            <source>The AI agent got stuck on the same step.</source>
+            <translation>AI 智能体卡在了同一个步骤上。</translation>
         </message>
         <message>
-            <source>The agent service restarted twice during a step.</source>
-            <translation>智能体服务在某个步骤中重启了两次。</translation>
+            <source>The AI agent service restarted twice during a step.</source>
+            <translation>AI 智能体服务在某个步骤中重启了两次。</translation>
         </message>
         <message>
             <source>The answer was cut off. Ask again to carry on.</source>
@@ -2363,8 +2363,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>与 QGIS 的连接中断且未恢复，因此该步骤未完成。如果 QGIS 仍处于打开状态，项目保持在运行结束时的状态。如果它已关闭，运行写入的文件仍保留在磁盘上，其图层只有在其后保存过项目时才会恢复。如果 QGIS 已关闭，请重新打开，然后点击“重试”。</translation>
         </message>
         <message>
-            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
-            <translation>模型一直发送智能体无法读取的步骤。之前的步骤已保留。</translation>
+            <source>The model kept sending a step the AI agent could not read. Earlier steps are kept.</source>
+            <translation>模型一直发送 AI 智能体无法读取的步骤。之前的步骤已保留。</translation>
         </message>
         <message>
             <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
@@ -2389,6 +2389,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
             <translation>该步骤之前完成的内容已保留。更轻量的请求（更小的区域、更低的分辨率）比再发一次同样的请求更有可能完成。</translation>
+        </message>
+        <message>
+            <source>It replaces {file} in {folder}.</source>
+            <translation>它会替换 {folder} 中的 {file}。</translation>
+        </message>
+        <message>
+            <source>No example matches these words. The AI agent may still do it.</source>
+            <translation>没有与这些词匹配的示例。AI 助手仍可能完成这件事。</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
+            <translation>AI 助手只需一句话就能完成的真实任务。打开一个试试。</translation>
+        </message>
+        <message>
+            <source>Save the report {title}</source>
+            <translation>保存报告 {title}</translation>
+        </message>
+        <message>
+            <source>Saved as {file} in {folder}.</source>
+            <translation>已在 {folder} 中保存为 {file}。</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>在聊天中试用</translation>
+        </message>
+        <message>
+            <source>its file could not be written back (another program may hold it), so it was left as it was</source>
+            <translation>无法写回其文件（可能被其他程序占用），因此保持原样</translation>
+        </message>
+        <message>
+            <source>Added {layer}</source>
+            <translation>已添加 {layer}</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>打印布局已更改</translation>
+        </message>
+        <message>
+            <source>Project CRS changed</source>
+            <translation>项目坐标参考系已更改</translation>
+        </message>
+        <message>
+            <source>Removed {layer}</source>
+            <translation>已移除 {layer}</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>另外 {n} 个</translation>
+        </message>
+        <message>
+            <source>data edited</source>
+            <translation>数据已编辑</translation>
+        </message>
+        <message>
+            <source>features edited</source>
+            <translation>要素已编辑</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>已重命名</translation>
+        </message>
+        <message>
+            <source>restyled</source>
+            <translation>已重设样式</translation>
+        </message>
+        <message>
+            <source>{file} stays on disk</source>
+            <translation>{file} 仍保留在磁盘上</translation>
+        </message>
+        <message>
+            <source>{first} and {n} more</source>
+            <translation>{first} 等另外 {n} 个</translation>
+        </message>
+        <message>
+            <source>{layer}: {changes}</source>
+            <translation>{layer}：{changes}</translation>
+        </message>
+        <message>
+            <source>{n} features added</source>
+            <translation>已添加 {n} 个要素</translation>
+        </message>
+        <message>
+            <source>{n} features deleted</source>
+            <translation>已删除 {n} 个要素</translation>
+        </message>
+        <message>
+            <source>{n} files the request wrote stay on disk</source>
+            <translation>该请求写入的 {n} 个文件仍保留在磁盘上</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>已修改</translation>
         </message>
     </context>
     <context>
@@ -3557,8 +3649,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>Stopped before the agent answered.</source>
-            <translation>智能体回答之前已停止。</translation>
+            <source>Stopped before the AI agent answered.</source>
+            <translation>AI 智能体回答之前已停止。</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -3869,6 +3961,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
             <translation>AI Agent 暂存文件夹中的临时文件。保存项目后会将其存放在项目旁边。</translation>
         </message>
+        <message>
+            <source>Checking your files before going back. Try again in a moment.</source>
+            <translation>正在回退前检查您的文件。请稍后再试。</translation>
+        </message>
+        <message>
+            <source>The project moved while your files were checked, so nothing was restored.</source>
+            <translation>检查文件期间项目发生了变动，因此没有恢复任何内容。</translation>
+        </message>
+        <message>
+            <source>Your files could not be checked, so nothing was restored.</source>
+            <translation>无法检查您的文件，因此没有恢复任何内容。</translation>
+        </message>
+        <message>
+            <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
+            <translation>无法将您的 {file} 版本保存到“Map history”中，因此没有恢复任何内容。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3979,6 +4087,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Add files from your computer</source>
             <translation>从电脑添加文件</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>数据源</translation>
         </message>
     </context>
     <context>
@@ -4337,6 +4449,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Waiting for the install</source>
             <translation>正在等待安装</translation>
+        </message>
+        <message>
+            <source>{layer} couldn't be restored</source>
+            <translation>无法恢复 {layer}</translation>
+        </message>
+        <message>
+            <source>Redo brings these changes back.</source>
+            <translation>重做会恢复这些更改。</translation>
+        </message>
+        <message>
+            <source>This request:</source>
+            <translation>本次请求：</translation>
+        </message>
+        <message>
+            <source>Undo takes these changes off the map.</source>
+            <translation>撤销会将这些更改从地图上移除。</translation>
+        </message>
+        <message>
+            <source>Keep my edits</source>
+            <translation>保留我的修改</translation>
+        </message>
+        <message>
+            <source>Undo anyway</source>
+            <translation>仍然撤销</translation>
+        </message>
+        <message>
+            <source>Undo would put back the AI agent's version over your changes. Your version stays in Map history as Your edits.</source>
+            <translation>撤销会用 AI 智能体的版本覆盖你的修改。你的版本会以“你的修改”保留在“地图历史”中。</translation>
+        </message>
+        <message>
+            <source>You changed {file} by hand</source>
+            <translation>你手动修改了 {file}</translation>
+        </message>
+        <message>
+            <source>You changed {n} files by hand</source>
+            <translation>你手动修改了 {n} 个文件</translation>
         </message>
     </context>
     <context>
@@ -5147,6 +5295,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Show less</source>
             <translation>收起</translation>
         </message>
+        <message>
+            <source>Datasets ({n})</source>
+            <translation>数据集（{n}）</translation>
+        </message>
+        <message>
+            <source>Held by TerraLab's server, you need none</source>
+            <translation>由 TerraLab 服务器持有，你无需提供</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>密钥</translation>
+        </message>
+        <message>
+            <source>No dataset listed yet.</source>
+            <translation>尚未列出数据集。</translation>
+        </message>
+        <message>
+            <source>Retry</source>
+            <translation>重试</translation>
+        </message>
+        <message>
+            <source>See all %n examples</source>
+            <translation>查看全部 %n 个示例</translation>
+        </message>
+        <message>
+            <source>The datasets could not be loaded.</source>
+            <translation>无法加载数据集。</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>在聊天中试用</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5282,6 +5462,50 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>No data source matches these words. The agent may still find the data.</source>
             <translation>没有与这些词匹配的数据源。智能体仍可能找到数据。</translation>
         </message>
+        <message>
+            <source>%n sources</source>
+            <translation>%n 个数据源</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>数据集</translation>
+        </message>
+        <message>
+            <source>More sources</source>
+            <translation>更多数据源</translation>
+        </message>
+        <message>
+            <source>No data source matches these words. The AI agent may still find the data.</source>
+            <translation>没有与这些词匹配的数据源。AI 助手仍可能找到这些数据。</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>查看全部</translation>
+        </message>
+        <message>
+            <source>Sources</source>
+            <translation>数据源</translation>
+        </message>
+        <message>
+            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
+            <translation>AI 助手可用的数据库。它会自行查找并加载所需数据。</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>在聊天中试用</translation>
+        </message>
+        <message>
+            <source>countries</source>
+            <translation>国家</translation>
+        </message>
+        <message>
+            <source>datasets</source>
+            <translation>数据集</translation>
+        </message>
+        <message>
+            <source>sources</source>
+            <translation>数据源</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -5375,8 +5599,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>EffortChip</name>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>为较难的任务进行更深入的规划、调研和自主决策。</translation>
+            <source>The biggest jobs, with more time.</source>
+            <translation>最大的任务，给足时间。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5390,13 +5614,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>会规划、检查结果并查阅算法和文档的智能体。</translation>
+            <source>Everyday tasks, done with care.</source>
+            <translation>日常任务，细致完成。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>以最快速度开始工作。最适合快速编辑和提问。不做规划或调研。</translation>
+            <source>Quick answers and small edits.</source>
+            <translation>快速解答和小修改。</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5427,6 +5651,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Available after your free trial, if you keep Pro.</source>
+            <translation>免费试用结束后，若继续使用 Pro 即可使用。</translation>
         </message>
         <message>
             <source>{level} needs Pro. Pick Low to send.</source>
@@ -5491,6 +5719,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Loads data, styles layers, runs analyses, builds maps.</source>
             <translation>加载数据、设置图层样式、运行分析、构建地图。</translation>
         </message>
+        <message>
+            <source>Data</source>
+            <translation>数据</translation>
+        </message>
     </context>
     <context>
         <name>ErrorCard</name>
@@ -5537,11 +5769,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>Header</name>
-        <message>
-            <location filename="src/ui/header.py" />
-            <source>Try Pro free</source>
-            <translation>Try Pro free</translation>
-        </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>AI Agent</source>
@@ -6076,6 +6303,14 @@ Click to open its page.</source>
             <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
             <translation>允许本次运行也适用于之后使用 {libs} 的脚本，包括它们写入或删除的文件。删除图层或要素仍会询问。</translation>
         </message>
+        <message>
+            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <translation>该页面链接到 AI 助手不认识的站点：{hosts}。</translation>
+        </message>
+        <message>
+            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <translation>该页面链接到 {hosts}，AI 助手不认识这个站点。</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -6302,6 +6537,11 @@ Click to open its page.</source>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Company paying by invoice? Get 7 free days</source>
+            <translation>公司通过发票付款？免费试用 7 天</translation>
+        </message>
+        <message>
             <source>Free AI Agent was already used by other accounts on this computer.</source>
             <translation>免费版 AI Agent 已被这台电脑上的其他账户使用过。</translation>
         </message>
@@ -6336,13 +6576,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Try Pro free for {n} days</source>
-            <translation>Try Pro free for {n} days</translation>
+            <source>Start 7-day free trial</source>
+            <translation>开始 7 天免费试用</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>No commitment, cancel in one click</source>
-            <translation>No commitment, cancel in one click</translation>
+            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
+            <translation>免费试用 7 天，之后 {price}/月。一键取消。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -7730,6 +7970,22 @@ Click to open its page.</source>
             <source>Data sources</source>
             <translation>数据源</translation>
         </message>
+        <message>
+            <source>Free trial ends {date}</source>
+            <translation>免费试用于 {date} 结束</translation>
+        </message>
+        <message>
+            <source>Then billed monthly</source>
+            <translation>之后按月计费</translation>
+        </message>
+        <message>
+            <source>Then billed yearly</source>
+            <translation>之后按年计费</translation>
+        </message>
+        <message>
+            <source>{plan} · Free trial</source>
+            <translation>{plan} · 免费试用</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -8163,6 +8419,10 @@ Click to open its page.</source>
         <message>
             <source>{name} is installed</source>
             <translation>{name} 已安装</translation>
+        </message>
+        <message>
+            <source>its changes to your project cannot be shown before it runs</source>
+            <translation>运行前无法显示其对你的工程所做的更改</translation>
         </message>
     </context>
     <context>
@@ -9222,6 +9482,14 @@ This file is no longer where the run wrote it.</source>
             <source>Restored</source>
             <translation>已恢复</translation>
         </message>
+        <message>
+            <source>Put back as before</source>
+            <translation>恢复原状</translation>
+        </message>
+        <message>
+            <source>Taken off the map</source>
+            <translation>已从地图上移除</translation>
+        </message>
     </context>
     <context>
         <name>_VersionRow</name>
@@ -9454,6 +9722,83 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Waiting for {name} to install</source>
             <translation>正在等待 {name} 安装</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentStreamFallback</name>
+        <message>
+            <source>{day} UTC, the online source stopped answering ({error}); the layer now reads a local copy of {box} (EPSG:4326) taken from {source}</source>
+            <translation>{day} UTC，在线数据源停止响应（{error}）；图层现在读取取自 {source} 的 {box}（EPSG:4326）本地副本</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and a local copy of the area on view failed too: {reason}</source>
+            <translation>无法在线读取 {name}，当前视图范围的本地副本也失败了：{reason}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and its local copy did not open.</source>
+            <translation>无法在线读取 {name}，其本地副本也未能打开。</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online: it now shows a local copy of the area on view.</source>
+            <translation>无法在线读取 {name}：现在显示的是当前视图范围的本地副本。</translation>
+        </message>
+    </context>
+    <context>
+        <name>LibraryRail</name>
+        <message>
+            <source>Home</source>
+            <translation>主页</translation>
+        </message>
+    </context>
+    <context>
+        <name>ObjectRow</name>
+        <message>
+            <source>3D view</source>
+            <translation>3D 视图</translation>
+        </message>
+        <message>
+            <source>Attribute table</source>
+            <translation>属性表</translation>
+        </message>
+        <message>
+            <source>Map theme</source>
+            <translation>地图主题</translation>
+        </message>
+        <message>
+            <source>Print layout</source>
+            <translation>打印布局</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>报告</translation>
+        </message>
+        <message>
+            <source>Show {name}</source>
+            <translation>显示 {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_DatasetRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>将此请求放入聊天框，可直接编辑。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_PromptRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>将此请求放入聊天框，可直接编辑。</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>仍在保存{layers}。未做任何更改，请几秒后重试。</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>a temporary layer</source>
+            <translation>一个临时图层</translation>
         </message>
     </context>
 </TS>

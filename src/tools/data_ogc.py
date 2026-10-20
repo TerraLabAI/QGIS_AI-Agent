@@ -24,7 +24,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
-from ..core import limits, links, net
+from ..core import limits, links, machine, net, tuning
 from ..core.background import delete_here, hand_over, on_main_thread, run_on_main_thread, take
 from ..core.follow import view_kept
 from ..core.logger import log_warning
@@ -217,26 +217,19 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
 
     described = _wmts_describe(url)
     if not described:
-        return {"_error": f"No answer from the WMTS at {url} that names any layer.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": "inspect_data_source checks the URL."}
+        return tool_error(f"No answer from the WMTS at {url} that names any layer.", hint="ogc_wmts_no_layers")
     built = _wmts_uri(url, layer, described)
     if built is None:
         close = [name for name in described if layer.lower() in name.lower()][:3]
         shown = close or list(described)[:_WFS_NAMES_SHOWN]
         more = "" if len(described) <= len(shown) else f", and {len(described) - len(shown)} more"
-        return {"_error": f"The service does not publish a layer {layer!r}. It offers: "
-                f"{', '.join(shown)}{more}.",
-                "code": "INVALID_ARGS",
-                "suggestion": "add_data again with one layer name from the list."}
+        return tool_error(f"The service does not publish a layer {layer!r}. It offers: "
+                          f"{', '.join(shown)}{more}.", "INVALID_ARGS", hint="ogc_wmts_layer_unknown")
     uri, chosen = built
     if uri is None:
-        return {"_error": (f"The tile matrix set {chosen['tile_matrix_set']!r} of layer {layer!r} is published "
-                           f"in {chosen['unresolved_crs']!r}, which this plugin cannot turn into a CRS QGIS "
-                           f"knows, so the layer was not added."),
-                "code": "EXECUTION_FAILED",
-                "suggestion": ("A tile matrix set in an EPSG code works, or the service loads as a "
-                               "WMS with add_wms_layer.")}
+        return tool_error(f"The tile matrix set {chosen['tile_matrix_set']!r} of layer {layer!r} is published "
+                          f"in {chosen['unresolved_crs']!r}, which this plugin cannot turn into a CRS QGIS "
+                          f"knows, so the layer was not added.", hint="ogc_wmts_matrix_crs")
     ready = _wms_built_here(uri, name)
 
     def _create():
@@ -258,10 +251,8 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
     finally:
         _drop_unused(ready)
     if out.get("_invalid"):
-        return {"_error": f"The WMTS layer {layer!r} would not load from {url}.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": (f"The service publishes it in {', '.join(described[layer]['sets'])}; "
-                               "inspect_data_source checks the layer name.")}
+        return tool_error(f"The WMTS layer {layer!r} would not load from {url}.",
+                          hint="ogc_wmts_layer_invalid", sets=list(described[layer]["sets"]))
     view = out.pop("_canvas_scale", None)
     body = _wmts_body(url)
     _attach_scale_range(out, ogc_inspect.wmts_scale_range(body, layer, chosen["tile_matrix_set"]) if body else None,
@@ -287,8 +278,7 @@ def _add_wcs_layer(args: dict) -> dict:
     if crs:
         problem = crs_problem(crs)
         if problem:
-            return {"_error": problem, "_code": "INVALID_ARGS",
-                    "_suggestion": "The CRS goes on its own, without any other provider parameter."}
+            return tool_error(problem, "INVALID_ARGS", hint="ogc_crs_alone")
 
     net.check_url(base)
     if args.get("bbox"):
@@ -309,10 +299,8 @@ def _add_wcs_layer(args: dict) -> dict:
 
     made = run_on_main_thread(_create, timeout=60)
     if "_invalid" in made:
-        return {"_error": f"The WCS coverage {coverage!r} would not load from {base}: {made['_invalid']}",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": ("inspect_data_source checks the coverage name. QGIS reads WCS 1.0 and 1.1; a "
-                                "service that only speaks 2.0 loads through bbox, or not at all.")}
+        return tool_error(f"The WCS coverage {coverage!r} would not load from {base}: {made['_invalid']}",
+                          hint="ogc_wcs_unloaded")
     held = made["handle"]
     try:
 
@@ -324,7 +312,7 @@ def _add_wcs_layer(args: dict) -> dict:
         def _add():
             layer = held.take()
             if layer is None:
-                return {"_error": "The call ended before the coverage could be added.", "code": "CANCELLED"}
+                return tool_error("The call ended before the coverage could be added.", "CANCELLED")
             styled = ""
             if stretch and elevation:
                 styled = elevation_style.apply_elevation_style(layer, stretch)
@@ -452,19 +440,16 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
     try:
         west, south, east, north = (float(value) for value in bbox)
     except (TypeError, ValueError):
-        return {"_error": "That bbox is not a usable box.", "_code": "INVALID_ARGS",
-                "_suggestion": "west, south, east, north in EPSG:4326."}
+        return tool_error("That bbox is not a usable box.", "INVALID_ARGS", hint="bbox_not_usable")
     described, coverage, failure = _wcs_describe(base, coverage)
     if failure is not None and not described:
-        return {"_error": f"The WCS at {base} did not describe {coverage!r}: {failure}", "_code": "EXECUTION_FAILED",
-                "_suggestion": ("The coverage without bbox streams it; inspect_data_source checks the name.")}
+        return tool_error(f"The WCS at {base} did not describe {coverage!r}: {failure}",
+                          hint="ogc_wcs_describe_failed")
     fmt = ogc_inspect.pick_tiff_format(described.get("formats") or [])
     if described.get("exception") or not fmt:
         reason = described.get("exception") or "it offers no GeoTIFF format"
-        return {"_error": f"The WCS at {base} cannot hand {coverage!r} over as a GeoTIFF: {reason}",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": ("inspect_data_source checks the coverage name. The download speaks WCS 1.0.0; "
-                                "without bbox the coverage is streamed instead.")}
+        return tool_error(f"The WCS at {base} cannot hand {coverage!r} over as a GeoTIFF: {reason}",
+                          hint="ogc_wcs_no_geotiff")
     native = described.get("crs") or ""
     response_crs = crs or native or "EPSG:4326"
     resolution = described.get("resolution") or 0.0 if response_crs == native else 0.0
@@ -484,11 +469,11 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         params.update({"WIDTH": int(cells_x), "HEIGHT": int(cells_y)})
     ceiling = limits.current("MAX_DOWNLOAD_BYTES")
     if cells_x * cells_y * 4 > ceiling:
-        return {"_error": (f"{coverage!r} over that box is about {int(cells_x)} x {int(cells_y)} cells, more than "
-                           f"one download may read ({ceiling // (1024 * 1024)} MB)."),
-                "_code": limits.CEILING_CODE,
-                "_suggestion": limits._with_machine("A smaller box around the area of interest, or a coarser "
-                                                    "coverage of the service, may fit.")}
+
+        note = machine.note()
+        return tool_error(f"{coverage!r} over that box is about {int(cells_x)} x {int(cells_y)} cells, more than "
+                          f"one download may read ({ceiling // (1024 * 1024)} MB)." + (f" {note}" if note else ""),
+                          limits.CEILING_CODE, hint="ogc_wcs_box_cells")
     attempts = [params]
     if "RESX" in params:
 
@@ -505,9 +490,8 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         except net.FetchCancelled:
             raise
         except (urllib.error.URLError, OSError) as exc:
-            return {"_error": f"The GetCoverage of {coverage!r} from {base} failed: {exc}",
-                    "_code": "EXECUTION_FAILED",
-                    "_suggestion": "A smaller box, or the coverage without bbox, may stream it."}
+            return tool_error(f"The GetCoverage of {coverage!r} from {base} failed: {exc}",
+                              hint="ogc_wcs_getcoverage_failed")
         body = answer.body or b""
         if body.startswith(_TIFF_MAGIC):
             break
@@ -516,10 +500,9 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
 
         reason = ogc_inspect.wcs10_description(body).get("exception")
         said = reason or body[:200].decode("utf-8", "replace")
-        return {"_error": (f"The service did not return a GeoTIFF for {coverage!r} over a box of about "
-                           f"{int(cells_x)} x {int(cells_y)} cells: {said}"),
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": None if reason else "The box may not overlap it (wgs84_bbox in inspect_data_source)."}
+        return tool_error(f"The service did not return a GeoTIFF for {coverage!r} over a box of about "
+                          f"{int(cells_x)} x {int(cells_y)} cells: {said}",
+                          hint="" if reason else "ogc_wcs_box_overlap")
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(name or coverage)).strip("_")[:60] or "coverage"
 
     stem = _avoid_reserved_name(stem)
@@ -528,14 +511,13 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         with open(path, "wb") as handle:
             handle.write(body)
     except OSError as exc:
-        return {"_error": f"Could not write the coverage to disk: {exc}", "_code": "EXECUTION_FAILED",
-                "_suggestion": "Freeing space in the temp folder may help."}
+        return tool_error(f"Could not write the coverage to disk: {exc}", hint="ogc_wcs_write_failed")
 
     def _create():
         layer = QgsRasterLayer(path, name, "gdal")
         if not layer.isValid():
-            return {"_error": "The GeoTIFF the service returned is not readable.", "_code": "EXECUTION_FAILED",
-                    "_suggestion": "Another format or box may fit."}
+            return tool_error("The GeoTIFF the service returned is not readable.",
+                              hint="ogc_wcs_geotiff_unreadable")
         QgsProject.instance().addMapLayer(layer)
         return {"layer_name": layer.name(), "layer_id": layer.id(), "url": base, "provider": "gdal, local extract",
                 "layer": coverage, "path": path, "bbox": [west, south, east, north], "size_bytes": len(body),
@@ -672,8 +654,7 @@ def _add_wms_layer(args: dict) -> dict:
     img_format = args.get("format", "image/png")
     problem = crs_problem(crs)
     if problem:
-        return {"_error": problem, "_code": "INVALID_ARGS",
-                "_suggestion": "The CRS goes on its own, without any other provider parameter."}
+        return tool_error(problem, "INVALID_ARGS", hint="ogc_crs_alone")
     if _is_wmts(url):
         return _add_wmts_layer(ogc_inspect.service_base(links.clean(url)), layers,
                                args.get("name") or f"WMTS - {layers}")
@@ -715,8 +696,7 @@ def _add_wms_layer(args: dict) -> dict:
 
     body, silent_why, answered = _wms_capabilities(url)
     if not answered:
-        return tool_error(f"The WMS at {url} did not load: {silent_why}.",
-                          code=net.NETWORK_ERROR, suggestion=net.NETWORK_SUGGESTION)
+        return tool_error(f"The WMS at {url} did not load: {silent_why}.", code=net.NETWORK_ERROR)
     if _wms_advertises_refused_host(body, url):
 
         uri += ("" if dimensions else "&IgnoreGetMapUrl=1") + "&IgnoreGetFeatureInfoUrl=1"
@@ -778,13 +758,12 @@ WFS_WIRE_BYTES_PER_FEATURE = 150
 
 
 
-WFS_WHOLE_BUDGET_S = 30.0
 
 
 
 
-
-WFS_SILENT_PAGES = (100, 500, 1_000, 2_000, 5_000, 10_000, 25_000)
+def _wfs_whole_budget_s() -> float:
+    return tuning.threshold("wfs_whole_budget_s", 60.0, 5.0, 300.0)
 
 
 _WFS_HITS_MAX_BYTES = 64 * 1024
@@ -807,11 +786,15 @@ _WFS_NAMES_SHOWN = 12
 
 
 
-_WFS_CAPS_QUERIES = (
-    {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetCapabilities"},
-    {"SERVICE": "WFS", "ACCEPTVERSIONS": "2.0.0,1.1.0,1.0.0", "REQUEST": "GetCapabilities"},
-    {"SERVICE": "WFS", "VERSION": "1.1.0", "REQUEST": "GetCapabilities"},
-)
+_WFS_CAPS_QUERY = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetCapabilities"}
+
+
+def _wfs_caps_queries() -> list:
+    wfs = (tuning.service_doc("provider_rules") or {}).get("wfs") or {}
+    served = wfs.get("caps_queries") if isinstance(wfs, dict) else None
+    return list(served) if isinstance(served, list) and served else [_WFS_CAPS_QUERY]
+
+
 _WFS_VERSION_RE = re.compile(rb"<(?:\w+:)?WFS_Capabilities\b[^>]*?\sversion\s*=\s*[\"']([\d.]+)[\"']")
 
 
@@ -821,7 +804,7 @@ def _wfs_capabilities(url: str) -> tuple[bytes, str]:
 
 
 
-    for query in _WFS_CAPS_QUERIES:
+    for query in _wfs_caps_queries():
         probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
         try:
             answer = net.fetch(probe, timeout=20, max_bytes=_WFS_CAPS_MAX_BYTES,
@@ -1016,15 +999,13 @@ def _wfs_area(bbox, crs="EPSG:4326"):
         else:
             west, south, east, north = (float(v) for v in bbox)
     except (KeyError, TypeError, ValueError):
-        return {"_error": f"bbox must be [west, south, east, north] in EPSG:4326, got {bbox!r}.",
-                "code": "INVALID_ARGS", "suggestion": "bbox is four numbers in degrees, or left out."}
+        return tool_error(f"bbox must be [west, south, east, north] in EPSG:4326, got {bbox!r}.", "INVALID_ARGS",
+                          hint="ogc_wfs_bbox_shape")
     wrong = volume_guard.not_degrees(west, south, east, north)
     if wrong:
-        return {"_error": wrong, "code": "INVALID_ARGS",
-                "suggestion": "The box is in EPSG:4326 degrees: west, south, east, north."}
+        return tool_error(wrong, "INVALID_ARGS", hint="bbox_not_usable")
     if not (west < east and south < north):
-        return {"_error": "bbox must have west < east and south < north.", "code": "INVALID_ARGS",
-                "suggestion": "bbox: west, south, east, north, in degrees."}
+        return tool_error("bbox must have west < east and south < north.", "INVALID_ARGS", hint="bbox_not_usable")
     dst = QgsCoordinateReferenceSystem(crs or "EPSG:4326")
     wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
     if dst.isValid() and dst != wgs84:
@@ -1034,8 +1015,8 @@ def _wfs_area(bbox, crs="EPSG:4326"):
             box = QgsCoordinateTransform(wgs84, dst, QgsCoordinateTransformContext()).transformBoundingBox(
                 QgsRectangle(west, south, east, north))
         except Exception as exc:  # noqa: BLE001
-            return {"_error": f"bbox cannot be expressed in {crs}: {exc}", "code": "INVALID_ARGS",
-                    "suggestion": "A box inside the area the crs covers, or crs left out."}
+            return tool_error(f"bbox cannot be expressed in {crs}: {exc}", "INVALID_ARGS",
+                              hint="ogc_wfs_bbox_outside_crs")
         west, south, east, north = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
     return _bbox_ring_filter(west, south, east, north)
 
@@ -1059,16 +1040,10 @@ def _wfs_where(where) -> str | dict:
     expression = QgsExpression(text)
     if expression.hasParserError():
         return tool_error(f"where is not an expression QGIS can read: {expression.parserErrorString().strip()}",
-                          "INVALID_ARGS",
-                          "where is a QGIS expression on the type's own fields, field names in double quotes "
-                          "and text in single quotes: \"height\" > 30 AND \"use\" = 'industrial'.")
+                          "INVALID_ARGS", hint="ogc_wfs_where_syntax")
     if QgsOgcUtils.expressionToOgcFilter(expression, QDomDocument()).isNull():
         return tool_error("QGIS has no OGC filter for this where, so the service cannot be asked it; nothing was "
-                          "loaded.", "INVALID_ARGS",
-                          "=, <>, <, >, AND, OR, NOT, IN, LIKE, ILIKE, IS NULL and + - * / on the type's fields "
-                          "have an OGC form, and other functions go to the service by name; BETWEEN, NOT LIKE, "
-                          "CASE, $area, $length and the other $ values, and the %, ^, //, || and ~ operators "
-                          "have none.")
+                          "loaded.", "INVALID_ARGS", hint="ogc_wfs_where_unsupported")
     return text
 
 
@@ -1131,15 +1106,13 @@ def _add_wfs_layer(args: dict) -> dict:
 
         max_features = max(1, min(int(args.get("max_features") or default_cap), ceiling))
     except (TypeError, ValueError):
-        return {"_error": f"max_features must be a whole number from 1 to "
-                f"{ceiling}, got {args.get('max_features')!r}.",
-                "code": "INVALID_ARGS",
-                "suggestion": "max_features is a number; left out, it defaults to 1000."}
+        return tool_error(f"max_features must be a whole number from 1 to "
+                          f"{ceiling}, got {args.get('max_features')!r}.", "INVALID_ARGS",
+                          hint="ogc_wfs_max_features")
 
     problem = crs_problem(crs)
     if problem:
-        return {"_error": problem, "_code": "INVALID_ARGS",
-                "_suggestion": "The CRS goes on its own, without any other provider parameter."}
+        return tool_error(problem, "INVALID_ARGS", hint="ogc_crs_alone")
 
 
     net.check_url(url)
@@ -1199,7 +1172,7 @@ def _add_wfs_layer(args: dict) -> dict:
         return extract(url, typename, name, source.uri(False),
                        count_at=max_features if hits is None and not lifted else None,
                        view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None,
-                       budget_s=WFS_WHOLE_BUDGET_S if whole_read and not view_filter else None)
+                       budget_s=_wfs_whole_budget_s() if whole_read and not view_filter else None)
 
     out = _copy()
     if out.get("_over_budget"):
@@ -1222,7 +1195,7 @@ def _add_wfs_layer(args: dict) -> dict:
             source.setParam("version", spoken)
             out = _copy()
     if out.get("_invalid"):
-        return {"_error": _wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits)}
+        return tool_error(_wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits))
     fields = out.pop("_fields", None)
     if out.get("_error"):
         if where and fields:
@@ -1247,7 +1220,7 @@ def _add_wfs_layer(args: dict) -> dict:
 
         view_filter = view_filter if in_view else ""
         hits = counted if isinstance(counted, int) and counted > 0 else None
-    warning = suggestion = ""
+    warning = advice = ""
     if not lifted and hits is not None:
         out["features_available"] = hits
         out["estimated_bytes"] = hits * WFS_WIRE_BYTES_PER_FEATURE
@@ -1264,8 +1237,7 @@ def _add_wfs_layer(args: dict) -> dict:
                else "the disk cap or the free space was reached")
         warning = (f"Only {count:,} features were written before {why}, "
                    "the first ones in the service's own order, which can all lie in one part of the area.")
-        suggestion = ("A smaller bbox per call, with the same full_extent, reads the rest." if lifted
-                      else "A smaller bbox per call reads the rest.")
+        advice = "wfs_partial_rest_lifted" if lifted else "wfs_partial_rest"
     elif broken:
         out["coverage"] = "partial"
         warning = f"The service broke the download off after {count:,} features. QGIS said: {broken}"
@@ -1275,26 +1247,22 @@ def _add_wfs_layer(args: dict) -> dict:
             out["coverage"] = "partial"
             warning = (f"{count:,} of the {hits:,} features the service counts came back: "
                        "it stops a request there and does not page past it.")
-            suggestion = "Smaller boxes with bbox read the rest of the type."
+            advice = "wfs_partial_rest"
     else:
-        warning, suggestion = _capped_words(out, url, typename, crs, count, hits, max_features, ceiling,
-                                            view_filter, where)
+        warning, advice = _capped_words(out, url, typename, crs, count, hits, max_features, ceiling,
+                                        view_filter, where)
     if over_budget is not None and view_filter:
         warning = (f"The whole type was read first and {over_budget['_written']:,} of its {whole:,} features "
-                   f"had arrived after {WFS_WHOLE_BUDGET_S:.0f} s, so the map view's box was read instead. "
+                   f"had arrived after {_wfs_whole_budget_s():.0f} s, so the map view's box was read instead. "
                    + warning).strip()
     if where and count == 0 and not warning:
         place = " inside the box" if area else (" under the map view" if view_filter else "")
         warning = f"The service returned no feature of {typename} matching the where{place}; the layer is empty."
     if warning:
         out["warning"] = warning
-    if suggestion:
-        out["suggestion"] = suggestion
+    if advice:
+        out["suggestion_hint"] = advice
     return out
-
-
-_WHERE_WORDS = (" add_data with where, an attribute filter the service applies, reads only the matching "
-                "features, and max_features counts those.")
 
 
 def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max_features: int,
@@ -1303,7 +1271,8 @@ def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max
 
 
 
-    warning = suggestion = ""
+
+    warning = advice = ""
     if view_filter:
 
 
@@ -1318,16 +1287,13 @@ def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max
             warning = (f"Only the features under the map view are fetched, up to {max_features:,}: this "
                        f"type name has {hits:,} of them. An expression filter, get_features or a Processing "
                        "run sees nothing outside the current view, however right the field name is.")
-        suggestion = ("The layer is a local copy of that view: a zoom or a pan fetches nothing more, and "
-                      "set_layer_filter filters the features it holds and asks the service nothing. "
-                      "add_data with bbox [west, south, east, north] reads another area from the service.")
-        suggestion += "" if where else _WHERE_WORDS
+        advice = "wfs_view_copy" if where else "wfs_view_copy_no_where"
 
 
 
 
     silent_page = (hits is None and isinstance(count, int)
-                   and count in WFS_SILENT_PAGES and count < max_features)
+                   and count in tuning.service_list("wfs_silent_pages", ()) and count < max_features)
 
 
     if not view_filter and isinstance(count, int) and count > 0 and (
@@ -1349,22 +1315,9 @@ def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max
         else:
             warning = (f"Exactly {count:,} features came back, which is the request cap: the layer "
                        "is probably truncated.")
-        suggestion = (f"add_data with bbox [west, south, east, north] around the area needed reads that box "
-                      f"from the service, which answers it alone, up to {ceiling:,} features for one layer; "
-                      "more than that needs a smaller box, not a larger number. The layer is a local copy: "
-                      "set_layer_filter filters the features it holds and asks the service nothing.")
-        suggestion += "" if where else _WHERE_WORDS
+        out["feature_ceiling"] = ceiling
+        advice = "wfs_truncated" if where else "wfs_truncated_no_where"
     if view_filter and count == 0 and hits:
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1377,8 +1330,8 @@ def _capped_words(out: dict, url: str, typename: str, crs: str, count, hits, max
         if where:
             warning = (f"The layer loaded and holds nothing: the service returned no feature matching the "
                        f"where under the map view, although {hits:,} features of this type name match it.")
-        suggestion = (f"Either the view is over ground this type does not cover, or the service "
-                      f"disagrees about a bbox in {crs}. A view over an area it covers, or "
-                      f"the CRS the service uses natively, answers"
-                      + (f": it also offers {', '.join(offered[:_WFS_CRS_SHOWN])}." if offered else "."))
-    return warning, suggestion
+        out["view_crs"] = crs
+        if offered:
+            out["crs_offered"] = offered[:_WFS_CRS_SHOWN]
+        advice = "wfs_empty_in_view_offered" if offered else "wfs_empty_in_view"
+    return warning, advice

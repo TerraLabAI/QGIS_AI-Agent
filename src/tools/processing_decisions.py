@@ -77,19 +77,10 @@ def _threadable(alg) -> bool:
         return False
 
 
-MAIN_THREAD_NOTE = ("This algorithm runs on QGIS's main thread (it declares NoThreading, or its steps "
-                    "touch what only the main thread may): QGIS does not respond to the user until the "
-                    "whole run ends, however long that is, and run_processing answers only then.")
-
-
-SEPARATE_QGIS_NOTE = ("This algorithm declares NoThreading. When every layer it reads is a file layer "
-                      "(no selection, filter or unsaved edits) and every output is a file, run_processing "
-                      "runs it in a separate QGIS process, which takes a few seconds to start, and this "
-                      "QGIS stays responsive; otherwise it runs on QGIS's main thread and QGIS does not "
-                      "respond to the user until the whole run ends.")
-
-
 def main_thread_facts(alg) -> dict:
+
+
+
 
 
 
@@ -102,8 +93,8 @@ def main_thread_facts(alg) -> dict:
     from .processing_child import child_capable
 
     if str(alg.id()).casefold() not in _unsafe_algorithms() and child_capable(alg):
-        return {"main_thread": "unless_files", "main_thread_note": SEPARATE_QGIS_NOTE}
-    return {"main_thread": True, "main_thread_note": MAIN_THREAD_NOTE}
+        return {"main_thread": "unless_files", "main_thread_hint": "processing_main_thread_unless_files"}
+    return {"main_thread": True, "main_thread_hint": "processing_main_thread"}
 
 
 def _model_steps_may_leave(alg) -> bool:
@@ -611,7 +602,7 @@ def _processing_error(detail: str, alg=None) -> dict:
 
 
 
-    result = {"_error": detail}
+    result = tool_error(detail)
 
 
     layer_miss = _LAYER_ERROR_RE.search(detail)
@@ -619,8 +610,10 @@ def _processing_error(detail: str, alg=None) -> dict:
         try:
             from ._layers import layer_not_found
             missing = layer_not_found(layer_miss.group("value").strip())
-            hint = f"{missing.get('_error') or ''} {missing.get('suggestion') or ''}"
-            result["suggestion"] = hint.strip()
+
+            result["_error"] = f"{detail} {missing.get('_error') or ''}".strip()
+            result.update({key: missing[key] for key in ("hint", "example_id", "closest_id", "closest_name")
+                           if key in missing})
             if missing.get("_suggestions"):
                 result["closest_layers"] = missing["_suggestions"]
         except Exception:  # nosec B110

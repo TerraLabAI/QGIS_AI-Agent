@@ -13,6 +13,7 @@
 
 
 
+
 from __future__ import annotations
 
 import time
@@ -21,6 +22,7 @@ import traceback
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QTimer
 
+from . import background
 from .logger import log_warning
 from .protocol import ClientErrorCode as Err
 
@@ -119,6 +121,10 @@ class _ExecutorHold:
         if on == self._hold_listening:
             return
         manager = QgsApplication.taskManager()
+
+
+
+        background.listen_finished(self._on_task_status, on)
         try:
             if on:
                 manager.statusChanged.connect(self._on_task_status)

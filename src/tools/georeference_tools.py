@@ -162,15 +162,14 @@ def _source_facts(raster, crs_text) -> dict:
     if expanded and os.path.isfile(expanded):
         error = security.validate_path(expanded)
         if error:
-            hint = "" if isinstance(error, CodedText) else "Allowed: the project folder or your home folder."
-            return tool_error(error, "PERMISSION_DENIED", hint)
+            hint = "" if isinstance(error, CodedText) else "georef_read_scope"
+            return tool_error(error, "PERMISSION_DENIED", hint=hint)
         name, source, path, layer_id = os.path.splitext(os.path.basename(expanded))[0], expanded, expanded, None
     else:
         layer = _find_layer(ref)
         if layer is None:
             if "/" in ref or "\\" in ref or os.path.splitext(ref)[1]:
-                return tool_error(f"No file at {expanded}.", "INVALID_ARGS",
-                                  "The path or the loaded raster layer name may be wrong.")
+                return tool_error(f"No file at {expanded}.", "INVALID_ARGS", hint="georef_no_such_file")
             return _layer_not_found_error(ref)
         if not isinstance(layer, QgsRasterLayer):
             return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
@@ -244,7 +243,7 @@ def _parse_points(points: list):
                 value = float("nan")
             if not math.isfinite(value):
                 return tool_error(f"Point {index} has no number for {key}.", "INVALID_ARGS",
-                                  'every point as {"pixel": column, "line": row, "x": map x, "y": map y}.')
+                                  hint="georef_point_fields")
             values[key] = value
         parsed.append(values)
     return parsed
@@ -305,15 +304,14 @@ def _output_target(args: dict, facts: dict):
             target += ".tif"
         elif extension not in (".tif", ".tiff"):
             return None, tool_error(f"{os.path.basename(target)} is not a GeoTIFF name.", "INVALID_ARGS",
-                                    "output_path ends in .tif, a GeoTIFF.")
+                                    hint="georef_output_name")
         if _same_file(target, facts["path"]):
             return None, tool_error(
                 "output_path is the image being georeferenced, and the tool never writes over it.", "INVALID_ARGS",
-                "output_path left out writes <name>_georeferenced.tif next to the image; another name works too.")
+                hint="georef_output_is_source")
         error = security.validate_path(target, write=True)
         if error:
-            return None, tool_error(error, "PERMISSION_DENIED",
-                                    "Allowed: the project folder, your home folder or the temp folder.")
+            return None, tool_error(error, "PERMISSION_DENIED", hint="georef_write_scope")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, tool_error(f"{target} already exists.", "INVALID_ARGS",
                                     hint="georef_output_exists", path=target)
@@ -661,7 +659,8 @@ def _overviews(gdal, path: str, method: str, progress) -> None:
     failure = None
 
     set_local = getattr(gdal, "SetThreadLocalConfigOption", None)
-    previous = gdal.GetThreadLocalConfigOption("GDAL_NUM_THREADS", None) if callable(set_local) else None
+    get_local = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)
+    previous = get_local("GDAL_NUM_THREADS", None) if callable(set_local) else None
     if callable(set_local):
         set_local("GDAL_NUM_THREADS", "ALL_CPUS")
     try:
@@ -684,7 +683,7 @@ def _overviews(gdal, path: str, method: str, progress) -> None:
 
 def _stopped() -> dict:
     return tool_error("Stopped before the georeferenced image was written.", "CANCELLED",
-                      "Nothing was added to the project.")
+                      hint="georef_stopped_nothing_added")
 
 
 def _georeference_raster(args: dict) -> dict:
@@ -710,7 +709,7 @@ def _georeference_raster(args: dict) -> dict:
     resampling = str(args.get("resampling") or "nearest")
     if resampling not in _RESAMPLING:
         return tool_error(f"resampling {resampling!r} is not one this tool knows.", "INVALID_ARGS",
-                          f"Valid: {', '.join(_RESAMPLING)}.")
+                          hint="georef_resampling_unknown", valid=list(_RESAMPLING))
     points = args.get("points") if isinstance(args.get("points"), list) else []
     if len(points) < MIN_POINTS[transform]:
         return _too_few(transform, len(points))
@@ -753,7 +752,7 @@ def _georeference_raster(args: dict) -> dict:
         dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
     except RuntimeError as exc:
         return tool_error(f"GDAL could not open {facts['name']}: {str(exc)[:160]}", "EXECUTION_FAILED",
-                          "the image file itself (JPEG, PNG, TIFF).")
+                          hint="georef_not_image_file")
     width, height = dataset.RasterXSize, dataset.RasterYSize
     refused = _outside(parsed, width, height, facts["name"])
     if refused:

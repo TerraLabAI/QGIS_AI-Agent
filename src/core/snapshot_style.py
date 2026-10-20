@@ -95,6 +95,15 @@ def shutdown() -> None:
     _STYLE_CACHE.clear()
 
 
+def cached_style_digest(layer_id: str) -> str | None:
+
+
+
+
+
+    return _STYLE_CACHE.get(str(layer_id))
+
+
 def _read_style_digest(layer) -> str | None:
     if QgsMapLayerStyle is None:
         return None

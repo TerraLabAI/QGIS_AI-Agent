@@ -73,6 +73,7 @@ import uuid
 
 from qgis.core import (
     Qgis,
+    QgsLayoutItemLegend,
     QgsLayoutItemMap,
     QgsLayoutItemMapItem,
     QgsLayoutObject,
@@ -864,10 +865,11 @@ def drawn(layouts, plan, draw, dpi=None):
 
 
 
-    if not plan or not plan.get("views") or (dpi is not None and int(dpi) != plan["dpi"]):
-        return draw()
     if not isinstance(layouts, (list, tuple)):
         layouts = [layouts]
+    _legend_filters_due(layouts)
+    if not plan or not plan.get("views") or (dpi is not None and int(dpi) != plan["dpi"]):
+        return draw()
     state = {"swapped": {}, "keep": [], "styles": {}}
     switches = []
     try:
@@ -889,6 +891,21 @@ def drawn(layouts, plan, draw, dpi=None):
         state["swapped"].clear()
         state["keep"].clear()
         switches.clear()
+
+
+def _legend_filters_due(layouts) -> None:
+
+
+
+
+
+
+
+
+    for layout in layouts:
+        for item in layout.items():
+            if isinstance(item, QgsLayoutItemLegend):
+                item.updateFilterByMap(False)
 
 
 def _swap(item, layers: list, overrides: dict) -> tuple:

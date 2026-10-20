@@ -80,7 +80,7 @@ def register_relation_tools(registry: ToolRegistry):
 def _configure_relations(args: dict) -> dict:
     action = str(args.get("action") or "").strip().lower()
     if action not in _ACTIONS:
-        return tool_error(f"Unknown action {action!r}.", "INVALID_ARGS", "add, list, remove.")
+        return tool_error(f"Unknown action {action!r}.", "INVALID_ARGS", hint="relation_actions")
     if action == "list":
         return _list_relations(args)
     if action == "remove":
@@ -191,7 +191,7 @@ def _list_relations(args: dict) -> dict:
 def _vector(name, role: str):
     if not str(name or "").strip():
         return None, tool_error(f"{role} is required.", "INVALID_ARGS",
-                                "It takes a layer name or id (list_layers).")
+                                hint="relation_layer_ref")
     return require_vector(name, role)
 
 
@@ -223,9 +223,7 @@ def _type_mismatch(parent_layer, parent_field, child_layer, child_field):
             f"{parent_layer.name()}.{parent_field.name()} is {_kind(parent_field)} and "
             f"{child_layer.name()}.{child_field.name()} is {_kind(child_field)}: no child would ever match "
             "its parent. Nothing was added.",
-            "INVALID_ARGS",
-            "field_calculator into a new field with to_int() or to_string() gives the two keys one type; "
-            "the relation then holds on that field.")
+            "INVALID_ARGS", hint="relation_key_types")
     return None
 
 
@@ -361,8 +359,7 @@ def _add_relation(args: dict) -> dict:
     strength = str(args.get("strength") or "association").strip().lower()
     if strength not in _STRENGTHS:
         return tool_error(f"Unknown strength {strength!r}.", "INVALID_ARGS",
-                          "association keeps children when a parent is deleted; composition deletes them "
-                          "with it (and copies them when the parent is duplicated).")
+                          hint="relation_strengths")
     parent_layer, error = _vector(args.get("parent_layer"), "parent_layer")
     if error:
         return error
@@ -382,7 +379,7 @@ def _add_relation(args: dict) -> dict:
     if not link_name:
         if parent_layer.id() == child_layer.id() and parent_field.name() == child_field.name():
             return tool_error("A relation needs two different keys.", "INVALID_ARGS",
-                              "A layer may reference itself (a parent_id field), through another field.")
+                              hint="relation_self_reference")
         bad = _type_mismatch(parent_layer, parent_field, child_layer, child_field)
         if bad:
             return bad
@@ -399,7 +396,7 @@ def _add_relation(args: dict) -> dict:
                           parent_field.name(), child_layer, child_field.name(), strength)
         if not relation.isValid():
             return tool_error(f"QGIS refused the relation: {_invalid_reason(relation)}", "EXECUTION_FAILED",
-                              "Both layers must be loaded; both fields must exist.")
+                              hint="relation_refused_two")
         checks = _key_checks(parent_layer, parent_field, child_layer, child_field)
         _manager().addRelation(relation)
         _show_on_form(parent_layer, relation)
@@ -424,7 +421,7 @@ def _add_relation(args: dict) -> dict:
         return error
     if link_parent.name() == link_child.name():
         return tool_error("link_parent_field and link_child_field must be two different fields.",
-                          "INVALID_ARGS", "The link table holds one key for each side.")
+                          "INVALID_ARGS", hint="relation_link_keys")
     for bad in (_type_mismatch(parent_layer, parent_field, link_layer, link_parent),
                 _type_mismatch(child_layer, child_field, link_layer, link_child)):
         if bad:
@@ -439,7 +436,7 @@ def _add_relation(args: dict) -> dict:
     for relation in (first, second):
         if not relation.isValid():
             return tool_error(f"QGIS refused the relation: {_invalid_reason(relation)}", "EXECUTION_FAILED",
-                              "The three layers must be loaded; the fields must exist.")
+                              hint="relation_refused_three")
     parent_checks = _key_checks(parent_layer, parent_field, link_layer, link_parent)
     child_checks = _key_checks(child_layer, child_field, link_layer, link_child)
     added = []
@@ -481,7 +478,7 @@ def _remove_relation(args: dict) -> dict:
     key = str(args.get("relation_id") or args.get("name") or "").strip()
     if not key:
         return tool_error("relation_id (or name) names the relation to remove.", "INVALID_ARGS",
-                          "configure_relations with action list shows them.")
+                          hint="relation_remove_key")
     relations = _manager().relations()
     relation = relations.get(key)
     if relation is None:

@@ -37,6 +37,7 @@ class _ControllerProjects:
                 (project.cleared, self._on_project_cleared),
                 (project.readProject, self._on_project_read),
                 (project.layersAdded, self._schedule_scratch_marks),
+                (project.layersAdded, _warm_layer_roots),
                 (project.layerTreeRoot().addedChildren, self._schedule_scratch_marks),
             ]
             for signal, slot in self._project_connections:
@@ -218,6 +219,14 @@ class _ControllerProjects:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Snapshot diff failed: {exc}")
         self._panel_call("set_run_changes", changed, bool(snapshot and snapshot.captured), touched)
+
+
+def _warm_layer_roots(layers) -> None:
+
+
+    from .security import warm_layer_roots
+
+    warm_layer_roots(layers)
 
 
 def _layer_tree_view():

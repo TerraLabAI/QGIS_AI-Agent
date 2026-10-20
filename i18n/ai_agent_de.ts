@@ -2347,12 +2347,12 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <translation>Dieser Schritt wurde nicht beendet. Dateien, die der Lauf schon geschrieben hatte, liegen weiterhin auf der Festplatte. Hinzugefügte Layer kommen nur zurück, wenn das Projekt danach gespeichert wurde, und ein temporärer Layer ist weg. Derselbe Schritt kann QGIS erneut schließen: Bitten Sie um etwas Leichteres (ein kleineres Gebiet, weniger Layer).</translation>
         </message>
         <message>
-            <source>The agent got stuck on the same step.</source>
-            <translation>Der Agent ist beim selben Schritt hängen geblieben.</translation>
+            <source>The AI agent got stuck on the same step.</source>
+            <translation>Der KI-Agent ist beim selben Schritt hängen geblieben.</translation>
         </message>
         <message>
-            <source>The agent service restarted twice during a step.</source>
-            <translation>Der Agent-Dienst wurde während eines Schritts zweimal neu gestartet.</translation>
+            <source>The AI agent service restarted twice during a step.</source>
+            <translation>Der KI-Agent-Dienst wurde während eines Schritts zweimal neu gestartet.</translation>
         </message>
         <message>
             <source>The answer was cut off. Ask again to carry on.</source>
@@ -2363,8 +2363,8 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <translation>Die Verbindung zu QGIS ist abgebrochen und nicht zurückgekehrt, daher wurde dieser Schritt nicht beendet. Wenn QGIS noch geöffnet ist, ist das Projekt so, wie der Lauf es hinterlassen hat. Wenn es geschlossen wurde, liegen die vom Lauf geschriebenen Dateien weiterhin auf der Festplatte, und die Layer kommen nur zurück, wenn das Projekt danach gespeichert wurde. Öffnen Sie QGIS erneut, falls es geschlossen wurde, und klicken Sie dann auf Wiederholen.</translation>
         </message>
         <message>
-            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
-            <translation>Das Modell hat immer wieder einen Schritt gesendet, den der Agent nicht lesen konnte. Frühere Schritte bleiben erhalten.</translation>
+            <source>The model kept sending a step the AI agent could not read. Earlier steps are kept.</source>
+            <translation>Das Modell hat immer wieder einen Schritt gesendet, den der KI-Agent nicht lesen konnte. Frühere Schritte bleiben erhalten.</translation>
         </message>
         <message>
             <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
@@ -2389,6 +2389,98 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
             <translation>Was der Lauf vor diesem Schritt getan hat, bleibt erhalten. Eine leichtere Anfrage (ein kleineres Gebiet, eine niedrigere Auflösung) wird eher fertig als dieselbe noch einmal.</translation>
+        </message>
+        <message>
+            <source>It replaces {file} in {folder}.</source>
+            <translation>Es ersetzt {file} in {folder}.</translation>
+        </message>
+        <message>
+            <source>No example matches these words. The AI agent may still do it.</source>
+            <translation>Kein Beispiel passt zu diesen Wörtern. Der KI-Assistent kann es trotzdem erledigen.</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
+            <translation>Echte Aufgaben, die der KI-Assistent aus einem Satz erledigt. Öffnen Sie eine, um sie auszuprobieren.</translation>
+        </message>
+        <message>
+            <source>Save the report {title}</source>
+            <translation>Bericht {title} speichern</translation>
+        </message>
+        <message>
+            <source>Saved as {file} in {folder}.</source>
+            <translation>Gespeichert als {file} in {folder}.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Im Chat ausprobieren</translation>
+        </message>
+        <message>
+            <source>its file could not be written back (another program may hold it), so it was left as it was</source>
+            <translation>seine Datei konnte nicht zurückgeschrieben werden (möglicherweise hält ein anderes Programm sie geöffnet), daher blieb sie unverändert</translation>
+        </message>
+        <message>
+            <source>Added {layer}</source>
+            <translation>{layer} hinzugefügt</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Drucklayouts geändert</translation>
+        </message>
+        <message>
+            <source>Project CRS changed</source>
+            <translation>Projekt-KBS geändert</translation>
+        </message>
+        <message>
+            <source>Removed {layer}</source>
+            <translation>{layer} entfernt</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>und {n} weitere</translation>
+        </message>
+        <message>
+            <source>data edited</source>
+            <translation>Daten bearbeitet</translation>
+        </message>
+        <message>
+            <source>features edited</source>
+            <translation>Objekte bearbeitet</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>umbenannt</translation>
+        </message>
+        <message>
+            <source>restyled</source>
+            <translation>Darstellung geändert</translation>
+        </message>
+        <message>
+            <source>{file} stays on disk</source>
+            <translation>{file} bleibt auf der Festplatte</translation>
+        </message>
+        <message>
+            <source>{first} and {n} more</source>
+            <translation>{first} und {n} weitere</translation>
+        </message>
+        <message>
+            <source>{layer}: {changes}</source>
+            <translation>{layer}: {changes}</translation>
+        </message>
+        <message>
+            <source>{n} features added</source>
+            <translation>{n} Objekte hinzugefügt</translation>
+        </message>
+        <message>
+            <source>{n} features deleted</source>
+            <translation>{n} Objekte gelöscht</translation>
+        </message>
+        <message>
+            <source>{n} files the request wrote stay on disk</source>
+            <translation>{n} von der Anfrage geschriebene Dateien bleiben auf der Festplatte</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>geändert</translation>
         </message>
     </context>
     <context>
@@ -3557,8 +3649,8 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>Stopped before the agent answered.</source>
-            <translation>Gestoppt, bevor der Agent geantwortet hat.</translation>
+            <source>Stopped before the AI agent answered.</source>
+            <translation>Gestoppt, bevor der KI-Agent geantwortet hat.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -3869,6 +3961,22 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
             <translation>Temporäre Datei im Arbeitsordner des AI Agent. Beim Speichern des Projekts wird sie neben dem Projekt abgelegt.</translation>
         </message>
+        <message>
+            <source>Checking your files before going back. Try again in a moment.</source>
+            <translation>Ihre Dateien werden vor dem Zurücksetzen geprüft. Versuchen Sie es gleich noch einmal.</translation>
+        </message>
+        <message>
+            <source>The project moved while your files were checked, so nothing was restored.</source>
+            <translation>Das Projekt hat sich während der Prüfung Ihrer Dateien geändert, deshalb wurde nichts wiederhergestellt.</translation>
+        </message>
+        <message>
+            <source>Your files could not be checked, so nothing was restored.</source>
+            <translation>Ihre Dateien konnten nicht geprüft werden, deshalb wurde nichts wiederhergestellt.</translation>
+        </message>
+        <message>
+            <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
+            <translation>Ihre Version von {file} konnte nicht im Map history gespeichert werden, deshalb wurde nichts wiederhergestellt.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3979,6 +4087,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Add files from your computer</source>
             <translation>Dateien von Ihrem Computer hinzufügen</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Datenquellen</translation>
         </message>
     </context>
     <context>
@@ -4337,6 +4449,42 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Waiting for the install</source>
             <translation>Warten auf die Installation</translation>
+        </message>
+        <message>
+            <source>{layer} couldn't be restored</source>
+            <translation>{layer} konnte nicht wiederhergestellt werden</translation>
+        </message>
+        <message>
+            <source>Redo brings these changes back.</source>
+            <translation>Wiederholen stellt diese Änderungen wieder her.</translation>
+        </message>
+        <message>
+            <source>This request:</source>
+            <translation>Diese Anfrage:</translation>
+        </message>
+        <message>
+            <source>Undo takes these changes off the map.</source>
+            <translation>Rückgängig nimmt diese Änderungen von der Karte.</translation>
+        </message>
+        <message>
+            <source>Keep my edits</source>
+            <translation>Meine Änderungen behalten</translation>
+        </message>
+        <message>
+            <source>Undo anyway</source>
+            <translation>Trotzdem rückgängig machen</translation>
+        </message>
+        <message>
+            <source>Undo would put back the AI agent's version over your changes. Your version stays in Map history as Your edits.</source>
+            <translation>Rückgängig machen würde die Version des AI Agent über Ihre Änderungen legen. Ihre Version bleibt im Kartenverlauf als „Ihre Änderungen“ erhalten.</translation>
+        </message>
+        <message>
+            <source>You changed {file} by hand</source>
+            <translation>Sie haben {file} von Hand geändert</translation>
+        </message>
+        <message>
+            <source>You changed {n} files by hand</source>
+            <translation>Sie haben {n} Dateien von Hand geändert</translation>
         </message>
     </context>
     <context>
@@ -5147,6 +5295,38 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Show less</source>
             <translation>Weniger anzeigen</translation>
         </message>
+        <message>
+            <source>Datasets ({n})</source>
+            <translation>Datensätze ({n})</translation>
+        </message>
+        <message>
+            <source>Held by TerraLab's server, you need none</source>
+            <translation>Wird vom TerraLab-Server verwaltet, Sie brauchen keinen</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Schlüssel</translation>
+        </message>
+        <message>
+            <source>No dataset listed yet.</source>
+            <translation>Noch kein Datensatz aufgeführt.</translation>
+        </message>
+        <message>
+            <source>Retry</source>
+            <translation>Erneut versuchen</translation>
+        </message>
+        <message>
+            <source>See all %n examples</source>
+            <translation>Alle %n Beispiele anzeigen</translation>
+        </message>
+        <message>
+            <source>The datasets could not be loaded.</source>
+            <translation>Die Datensätze konnten nicht geladen werden.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Im Chat ausprobieren</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5282,6 +5462,50 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>No data source matches these words. The agent may still find the data.</source>
             <translation>Keine Datenquelle passt zu diesen Wörtern. Der Agent findet die Daten vielleicht trotzdem.</translation>
         </message>
+        <message>
+            <source>%n sources</source>
+            <translation>%n Quellen</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>Datensätze</translation>
+        </message>
+        <message>
+            <source>More sources</source>
+            <translation>Weitere Quellen</translation>
+        </message>
+        <message>
+            <source>No data source matches these words. The AI agent may still find the data.</source>
+            <translation>Keine Datenquelle passt zu diesen Wörtern. Der KI-Assistent findet die Daten vielleicht trotzdem.</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>Alle anzeigen</translation>
+        </message>
+        <message>
+            <source>Sources</source>
+            <translation>Quellen</translation>
+        </message>
+        <message>
+            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
+            <translation>Die Bibliothek der Daten, die der KI-Assistent nutzen kann. Er findet und lädt selbst, was er braucht.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Im Chat ausprobieren</translation>
+        </message>
+        <message>
+            <source>countries</source>
+            <translation>Länder</translation>
+        </message>
+        <message>
+            <source>datasets</source>
+            <translation>Datensätze</translation>
+        </message>
+        <message>
+            <source>sources</source>
+            <translation>Quellen</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -5375,8 +5599,8 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <name>EffortChip</name>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>Tiefere Planung, Recherche und eigenständige Steuerung für schwierigere Aufgaben.</translation>
+            <source>The biggest jobs, with more time.</source>
+            <translation>Die größten Aufgaben, mit mehr Zeit.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5390,13 +5614,13 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>Kluger Agent, der plant, seine Ergebnisse prüft und Algorithmen und Dokumentation nachschlägt.</translation>
+            <source>Everyday tasks, done with care.</source>
+            <translation>Alltägliche Aufgaben, sorgfältig erledigt.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>Legt so schnell wie möglich los. Am besten für schnelle Änderungen und Fragen. Plant und recherchiert nicht.</translation>
+            <source>Quick answers and small edits.</source>
+            <translation>Schnelle Antworten und kleine Änderungen.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5427,6 +5651,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Available after your free trial, if you keep Pro.</source>
+            <translation>Verfügbar nach deiner kostenlosen Testphase, wenn du Pro behältst.</translation>
         </message>
         <message>
             <source>{level} needs Pro. Pick Low to send.</source>
@@ -5491,6 +5719,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Loads data, styles layers, runs analyses, builds maps.</source>
             <translation>Lädt Daten, stylt Layer, führt Analysen aus, erstellt Karten.</translation>
         </message>
+        <message>
+            <source>Data</source>
+            <translation>Daten</translation>
+        </message>
     </context>
     <context>
         <name>ErrorCard</name>
@@ -5537,11 +5769,6 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
     </context>
     <context>
         <name>Header</name>
-        <message>
-            <location filename="src/ui/header.py" />
-            <source>Try Pro free</source>
-            <translation>Try Pro free</translation>
-        </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>AI Agent</source>
@@ -6076,6 +6303,14 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
             <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
             <translation>Diese Ausführung erlauben gilt auch für spätere Skripte, die {libs} verwenden, einschließlich der Dateien, die sie schreiben oder löschen. Das Entfernen von Layern oder Objekten wird weiterhin abgefragt.</translation>
         </message>
+        <message>
+            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <translation>Die Seite verweist auf Websites, die der KI-Assistent nicht kennt: {hosts}.</translation>
+        </message>
+        <message>
+            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <translation>Die Seite verweist auf {hosts}, eine Website, die der KI-Assistent nicht kennt.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -6302,6 +6537,11 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Company paying by invoice? Get 7 free days</source>
+            <translation>Unternehmen mit Zahlung per Rechnung? 7 Tage kostenlos</translation>
+        </message>
+        <message>
             <source>Free AI Agent was already used by other accounts on this computer.</source>
             <translation>Der kostenlose AI Agent wurde auf diesem Computer schon von anderen Konten genutzt.</translation>
         </message>
@@ -6336,13 +6576,13 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Try Pro free for {n} days</source>
-            <translation>Try Pro free for {n} days</translation>
+            <source>Start 7-day free trial</source>
+            <translation>7-Tage-Testphase starten</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>No commitment, cancel in one click</source>
-            <translation>No commitment, cancel in one click</translation>
+            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
+            <translation>7 Tage kostenlos, danach {price}/Monat. Mit einem Klick kündbar.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -7730,6 +7970,22 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
             <source>Data sources</source>
             <translation>Datenquellen</translation>
         </message>
+        <message>
+            <source>Free trial ends {date}</source>
+            <translation>Kostenlose Testphase endet am {date}</translation>
+        </message>
+        <message>
+            <source>Then billed monthly</source>
+            <translation>Danach monatliche Abrechnung</translation>
+        </message>
+        <message>
+            <source>Then billed yearly</source>
+            <translation>Danach jährliche Abrechnung</translation>
+        </message>
+        <message>
+            <source>{plan} · Free trial</source>
+            <translation>{plan} · Kostenlose Testphase</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -8163,6 +8419,10 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         <message>
             <source>{name} is installed</source>
             <translation>{name} ist installiert</translation>
+        </message>
+        <message>
+            <source>its changes to your project cannot be shown before it runs</source>
+            <translation>seine Änderungen an Ihrem Projekt können vor der Ausführung nicht angezeigt werden</translation>
         </message>
     </context>
     <context>
@@ -9222,6 +9482,14 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
             <source>Restored</source>
             <translation>Wiederhergestellt</translation>
         </message>
+        <message>
+            <source>Put back as before</source>
+            <translation>Wie zuvor wiederhergestellt</translation>
+        </message>
+        <message>
+            <source>Taken off the map</source>
+            <translation>Von der Karte entfernt</translation>
+        </message>
     </context>
     <context>
         <name>_VersionRow</name>
@@ -9454,6 +9722,83 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
         <message>
             <source>Waiting for {name} to install</source>
             <translation>Warten auf die Installation von {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentStreamFallback</name>
+        <message>
+            <source>{day} UTC, the online source stopped answering ({error}); the layer now reads a local copy of {box} (EPSG:4326) taken from {source}</source>
+            <translation>{day} UTC, die Onlinequelle antwortet nicht mehr ({error}); der Layer liest jetzt eine lokale Kopie von {box} (EPSG:4326) aus {source}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and a local copy of the area on view failed too: {reason}</source>
+            <translation>{name} konnte nicht online gelesen werden, und eine lokale Kopie des angezeigten Bereichs ist ebenfalls fehlgeschlagen: {reason}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and its local copy did not open.</source>
+            <translation>{name} konnte nicht online gelesen werden, und die lokale Kopie ließ sich nicht öffnen.</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online: it now shows a local copy of the area on view.</source>
+            <translation>{name} konnte nicht online gelesen werden: Es zeigt jetzt eine lokale Kopie des angezeigten Bereichs.</translation>
+        </message>
+    </context>
+    <context>
+        <name>LibraryRail</name>
+        <message>
+            <source>Home</source>
+            <translation>Start</translation>
+        </message>
+    </context>
+    <context>
+        <name>ObjectRow</name>
+        <message>
+            <source>3D view</source>
+            <translation>3D-Ansicht</translation>
+        </message>
+        <message>
+            <source>Attribute table</source>
+            <translation>Attributtabelle</translation>
+        </message>
+        <message>
+            <source>Map theme</source>
+            <translation>Kartenthema</translation>
+        </message>
+        <message>
+            <source>Print layout</source>
+            <translation>Drucklayout</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>Bericht</translation>
+        </message>
+        <message>
+            <source>Show {name}</source>
+            <translation>{name} anzeigen</translation>
+        </message>
+    </context>
+    <context>
+        <name>_DatasetRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Legt diese Anfrage ins Chatfeld, bereit zum Bearbeiten.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_PromptRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Legt diese Anfrage ins Chatfeld, bereit zum Bearbeiten.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} wird noch gespeichert. Es wurde nichts geändert: Versuche es in ein paar Sekunden erneut.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>a temporary layer</source>
+            <translation>ein temporärer Layer</translation>
         </message>
     </context>
 </TS>

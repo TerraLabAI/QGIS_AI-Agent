@@ -14,6 +14,7 @@ import urllib.request
 import xml.etree.ElementTree as ET  # nosec B405
 
 from ..core import links, net, tuning
+from ..core.tool_registry import tool_error
 from . import ogc_inspect
 from .data_common import (
     _CACHE_CATALOG_S,
@@ -29,9 +30,16 @@ from .data_common import (
 
 _KIND_BY_EXT = {".pmtiles": "pmtiles", ".tif": "cog", ".tiff": "cog", ".jp2": "raster", ".nc": "raster",
                 ".laz": "pointcloud", ".las": "pointcloud", ".copc": "pointcloud"}
-_FORMAT_EXT = {"geojson": ".geojson", "shp": ".zip", "shapefile": ".zip", "kml": ".kml", "kmz": ".kmz",
-               "gpkg": ".gpkg", "geopackage": ".gpkg", "csv": ".csv", "xlsx": ".xlsx", "json": ".json",
-               "zip": ".zip", "geotiff": ".tif", "tiff": ".tif", "pmtiles": ".pmtiles", "parquet": ".parquet"}
+
+
+def _portal_table(name: str, empty):
+
+
+
+
+    portals = (tuning.service_doc("provider_rules") or {}).get("portals")
+    found = portals.get(name) if isinstance(portals, dict) else None
+    return found if isinstance(found, type(empty)) else empty
 
 
 def _downloads_as_vector(entry: dict) -> bool:
@@ -140,7 +148,7 @@ def _search_open_data(args: dict) -> dict:
     if portal_url:
         custom_portal = _build_custom_portal(portal_url, portal_type)
         if custom_portal is None:
-            return {"_error": f"Unsupported portal_type '{portal_type}' for custom portal_url", "_code": "INVALID_ARGS"}
+            return tool_error(f"Unsupported portal_type '{portal_type}' for custom portal_url", "INVALID_ARGS")
         portals_to_search = [custom_portal]
     elif portal_id:
         portal = _portal_by_name(portal_id)
@@ -149,7 +157,7 @@ def _search_open_data(args: dict) -> dict:
 
 
 
-            return {"_error": f"Unknown portal '{portal_id}'. Available: {named}", "_code": "INVALID_ARGS"}
+            return tool_error(f"Unknown portal '{portal_id}'. Available: {named}", "INVALID_ARGS")
         portals_to_search = [portal]
     else:
         portals_to_search = list(_open_data_portals().values())
@@ -368,28 +376,6 @@ def _parse_opendatasoft_results(data: dict, base_url: str, format_pref: str) -> 
     return results
 
 
-
-_HUB_EXPORT_FORMATS = {
-    "geojson": "geojson", "shp": "shp", "shapefile": "shp", "kml": "kml", "kmz": "kmz",
-    "gpkg": "gpkg", "geopackage": "gpkg", "csv": "csv", "fgb": "fgb", "parquet": "parquet",
-    "gpx": "gpx", "xlsx": "xlsx", "xls": "xls",
-}
-_HUB_FILE_FORMATS = {
-    ".geojson": "geojson", ".gpkg": "gpkg", ".shp": "shp", ".kml": "kml", ".kmz": "kmz",
-    ".csv": "csv", ".fgb": "fgb", ".gpx": "gpx", ".gml": "gml", ".parquet": "parquet",
-    ".xlsx": "xlsx", ".xls": "xls",
-}
-
-_HUB_UNREADABLE_FORMATS = {"json_ld", "jsonld", "application/ld+json", "rdf_xml",
-                           "rdf_turtle", "n3", "jsonl", "ndjson"}
-_HUB_FORMAT_MARKERS = (
-    ("wms", "wms"), ("wfs", "wfs"), ("shp", "shp"), ("shape", "shp"),
-    ("geojson", "geojson"), ("geo+json", "geojson"), ("geo%2bjson", "geojson"),
-    ("gpkg", "gpkg"), ("geopackage", "gpkg"), ("kmz", "kmz"), ("kml", "kml"),
-    ("csv", "csv"), ("html", "html"), ("json", "json"),
-)
-_HUB_LANDING_NAMES = {"about", "about_data", "explore", "information", "overview",
-                      "catalog.search", "item.html"}
 _HUB_FILE_NAME_PARAMS = ("file", "filename", "file_name")
 _HUB_EXPORT_PATH = re.compile(r"/exports/([a-z0-9_]+)$")
 _HUB_DOWNLOAD_PATH = re.compile(r"/api/download/v1/items/[^/]+/([a-z0-9_]+)$")
@@ -397,9 +383,9 @@ _HUB_DOWNLOAD_PATH = re.compile(r"/api/download/v1/items/[^/]+/([a-z0-9_]+)$")
 
 def _hub_declared_format(declared: str) -> str | None:
 
-    if declared in _HUB_UNREADABLE_FORMATS:
+    if declared in _portal_table("hub_unreadable_formats", []):
         return None
-    for marker, fmt in _HUB_FORMAT_MARKERS:
+    for marker, fmt in _portal_table("hub_format_markers", []):
         if marker in declared:
             return fmt
     return declared
@@ -418,6 +404,8 @@ def _hub_resources(distributions) -> list:
 
     if not isinstance(distributions, list):
         return []
+    export_formats = _portal_table("hub_export_formats", {})
+    file_formats = _portal_table("hub_file_formats", {})
     resources = []
     for dist in distributions:
         if not isinstance(dist, dict):
@@ -464,13 +452,13 @@ def _hub_resources(distributions) -> list:
         if export_name:
 
 
-            fmt = _HUB_EXPORT_FORMATS.get(export_name, "")
+            fmt = export_formats.get(export_name, "")
             if not fmt:
                 continue
         else:
             ext = links.extension(url)
-            if ext in _HUB_FILE_FORMATS:
-                fmt = _HUB_FILE_FORMATS[ext]
+            if ext in file_formats:
+                fmt = file_formats[ext]
             elif ext in (".jsonl", ".ndjson"):
                 continue
             elif ext in (".zip", ".json"):
@@ -486,7 +474,7 @@ def _hub_resources(distributions) -> list:
                     for name, value in urllib.parse.parse_qsl(parts.query):
                         if name.lower() in ("format", "f", "outputformat"):
                             query_format = _hub_declared_format(value.lower())
-                            if query_format in _HUB_EXPORT_FORMATS.values():
+                            if query_format in export_formats.values():
                                 fmt = query_format
                                 break
                 file_drop = False
@@ -495,8 +483,8 @@ def _hub_resources(distributions) -> list:
                         if name.lower() not in _HUB_FILE_NAME_PARAMS:
                             continue
                         file_ext = links.extension(value)
-                        if file_ext in _HUB_FILE_FORMATS:
-                            fmt = _HUB_FILE_FORMATS[file_ext]
+                        if file_ext in file_formats:
+                            fmt = file_formats[file_ext]
                             break
                         if file_ext in (".jsonl", ".ndjson"):
                             file_drop = True
@@ -527,7 +515,7 @@ def _hub_resources(distributions) -> list:
 
 
                 continue
-            if (last in _HUB_LANDING_NAMES or last.endswith((".html", ".htm"))
+            if (last in _portal_table("hub_landing_names", []) or last.endswith((".html", ".htm"))
                     or parts.fragment.startswith("/") or parts.fragment == "overview"
                     or normalised == "html"):
                 continue
@@ -739,7 +727,8 @@ def _entry_for(name: str, url: str, fmt: str = "", size=None) -> dict | None:
     if not url:
         return None
     entry = {"name": str(name or os.path.basename(urllib.parse.urlsplit(url).path) or "file")[:120], "url": url}
-    ext = links.extension(entry["name"]) or links.extension(url) or _FORMAT_EXT.get(str(fmt or "").lower(), "")
+    ext = (links.extension(entry["name"]) or links.extension(url)
+           or _portal_table("format_ext", {}).get(str(fmt or "").lower(), ""))
     if ext not in links.DATA_EXTENSIONS:
         return None
     if not links.extension(entry["name"]):

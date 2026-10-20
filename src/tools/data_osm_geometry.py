@@ -10,6 +10,7 @@ import re
 
 from ..core import limits
 from ..core.background import breathe, gc_paused
+from ..core.tool_registry import tool_error
 from .data_common import _is_number, _overpass_timeout
 
 
@@ -293,8 +294,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
     elements = 0
 
     def refused(sentence: str) -> dict:
-        return {"_error": sentence + " Nothing was added.", "code": limits.CEILING_CODE,
-                "suggestion": "", "hint": "osm_node_index_ceiling"}
+        return tool_error(sentence + " Nothing was added.", limits.CEILING_CODE, hint="osm_node_index_ceiling")
 
     def way_coords(el) -> list:
         if isinstance(el.get("geometry"), list) or nodes is None:
@@ -331,10 +331,9 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
                     if not isinstance(member.get("geometry"), list):
                         needs_ways.add(member.get("ref"))
             if len(in_relations) > ceiling:
-                return {"_error": (f"The answer's relations are made of more than {ceiling:,} ways, over what this "
-                                   "computer keeps in memory for one load. Nothing was added."),
-                        "code": limits.CEILING_CODE,
-                        "suggestion": "", "hint": "osm_relations_ceiling", "ceiling": ceiling}
+                return tool_error(f"The answer's relations are made of more than {ceiling:,} ways, over what this "
+                                  "computer keeps in memory for one load. Nothing was added.",
+                                  limits.CEILING_CODE, hint="osm_relations_ceiling", ceiling=ceiling)
     if not elements:
         return {"elements": 0}
 
@@ -353,8 +352,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
     wgs84.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     target = ogr.GetDriverByName("GPKG").CreateDataSource(path)
     if target is None:
-        return {"_error": "The GeoPackage for this load could not be created. Nothing was added.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error("The GeoPackage for this load could not be created. Nothing was added.")
     write_failed = _OSM_STREAM_WRITE_FAILED
     layers: dict = {}
     counts = dict.fromkeys(_LIFTED_FAMILIES, 0)
@@ -450,8 +448,7 @@ def _osm_stream_convert(answer: _OverpassFile, query: str, final_query: str, pat
         layers = {}
         target = None
     if refusal == _OSM_STREAM_WRITE_FAILED:
-        return {"_error": "Writing the GeoPackage failed partway (the disk may be full). Nothing was added.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error("Writing the GeoPackage failed partway (the disk may be full). Nothing was added.")
     if refusal:
         return refused(refusal)
     return {"elements": elements, "counts": counts, "tables": tables, "extent": extent, "stopped": stopped}

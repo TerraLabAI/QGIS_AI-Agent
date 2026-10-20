@@ -60,7 +60,7 @@ BOOK_A_CALL_URL = ""
 
 
 
-FREE_RUNS = 7
+FREE_RUNS = 5
 
 
 LEGACY_FREE_RUNS_MAX = 20
@@ -74,8 +74,9 @@ PRO_RUNS_PER_MONTH = 300
 
 INVOICE_URL = build_utm_url("/pricing", "invoice")
 
-BUSINESS_QUOTE_URL = (f"{SITE_URL}/pricing?business={PRODUCT_ID}&utm_source=qgis&utm_medium=plugin"
-                      f"&utm_campaign={PRODUCT_ID}&utm_content=invoice_quote#company")
+
+BUSINESS_QUOTE_URL = (f"{SITE_URL}/pricing?business={PRODUCT_ID}&request=trial&utm_source=qgis&utm_medium=plugin"
+                      f"&utm_campaign={PRODUCT_ID}&utm_content=trial_request#company")
 
 
 
@@ -126,7 +127,8 @@ _CONNECTOR_FIELDS = ("id", "name", "glyph", "url", "datasets", "kinds", "licence
                      "coverage", "attribution", "highlights", "summary", "terms_url",
                      "status", "status_label", "caveat", "prompts",
                      "tagline", "category", "category_label", "popular",
-                     "country", "also_covers", "languages", "tools", "logo_url", "hosts")
+                     "country", "also_covers", "languages", "tools", "logo_url", "hosts",
+                     "countries", "key_held", "rank", "region", "region_label", "flags")
 
 
 def _connector_store():
@@ -742,6 +744,7 @@ def get_pro_price_excludes_tax() -> bool:
 
 def get_invoice_url() -> str:
     return _served_url("invoice_url", INVOICE_URL)
+
 
 
 def _served_points(key: str, fallback: tuple) -> list:

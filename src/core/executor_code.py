@@ -176,6 +176,13 @@ def _user_layer_reasons(layers, reasons: list) -> list:
     return [said] + [r for r in reasons if r == "writes a file" or str(r).startswith(("saves ", "deletes "))]
 
 
+def _card_words(reasons: list) -> str:
+
+
+    return "; ".join(tr("its changes to your project cannot be shown before it runs")
+                     if r == ce.UNSEEN else str(r) for r in reasons[:4])
+
+
 class _ExecutorCode:
 
 
@@ -342,7 +349,7 @@ class _ExecutorCode:
         if self._code_class_allowed(call):
             return False
         if plan.get("reasons"):
-            call["sentence"] = tr("Run Python code ({what}).").format(what="; ".join(plan["reasons"][:4]))
+            call["sentence"] = tr("Run Python code ({what}).").format(what=_card_words(plan["reasons"]))
         return True
 
     def _code_class_allowed(self, call: dict) -> bool:
@@ -541,7 +548,7 @@ class _ExecutorCode:
         reasons = plan.get("reasons") or []
         call["always"] = True
         if reasons:
-            call["sentence"] = tr("Run Python code ({what}).").format(what="; ".join(reasons[:4]))
+            call["sentence"] = tr("Run Python code ({what}).").format(what=_card_words(reasons))
         self._executing.discard(tool_call_id)
         self._pending[tool_call_id] = call
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)

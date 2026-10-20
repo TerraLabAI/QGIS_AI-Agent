@@ -55,7 +55,7 @@ from qgis.PyQt.QtWidgets import (
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for
 from .image_preview import open_image_preview
-from .style import FONT_BASE, FONT_HINT, INK, INK_2, LINE, SURFACE
+from .style import FONT_BASE, FONT_HINT, INK, INK_2, LINE, SURFACE, with_platform_font
 from .widgets import ElidedLabel, IconButton
 
 
@@ -365,6 +365,7 @@ class FilePreview(QDialog):
         window = anchor.window() if anchor is not None else None
         super().__init__(window)
         self.setObjectName("filePreview")
+        with_platform_font(self)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
@@ -497,6 +498,7 @@ class FilePreview(QDialog):
         view.setCursorWidth(0)
         if self.family == "code" or _suffix(self.name) in ("csv", "tsv"):
             view.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
+            view.setProperty("mono", True)
             view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         if cut:
             text += "\n\n" + self.tr("[The first 512 KB. Open the file to read the rest.]")

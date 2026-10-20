@@ -491,6 +491,7 @@ def _open_attribute_table(args: dict) -> dict:
         "layer_id": layer.id(),
         "layer_name": layer.name(),
         "opened": True,
+        "object": {"kind": "table", "name": layer.name(), "id": layer.id()},
         "feature_count": _feature_count(layer),
         "selected_count": layer.selectedFeatureCount(),
         "window_title": dialog.windowTitle(),
@@ -706,13 +707,14 @@ def _number(args: dict, key: str, default: float, low: float, high: float):
     raw = args.get(key)
     if raw is None:
         return default, None
-    hint = f"{key} is between {low} and {high}."
     try:
         value = float(raw)
     except (TypeError, ValueError):
-        return None, tool_error(f"{key} must be a number.", "INVALID_ARGS", hint)
+        return None, tool_error(f"{key} must be a number.", "INVALID_ARGS",
+                                hint="view_number_range", argument=key, low=low, high=high)
     if value < low or value > high:
-        return None, tool_error(f"{key} must be between {low} and {high}, got {value}.", "INVALID_ARGS", hint)
+        return None, tool_error(f"{key} must be between {low} and {high}, got {value}.", "INVALID_ARGS",
+                                hint="view_number_range", argument=key, low=low, high=high)
     return value, None
 
 

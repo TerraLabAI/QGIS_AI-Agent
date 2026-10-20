@@ -355,7 +355,7 @@ def _execute_sql(args: dict) -> dict:
 
     query = str(args.get("query") or "").strip()
     if not query:
-        return tool_error("query is empty.", "INVALID_ARGS", "A SELECT statement over the layer names.")
+        return tool_error("query is empty.", "INVALID_ARGS", hint="sql_query_empty")
     crs_arg = args.get("crs")
     qgs_crs = None
     if crs_arg:
@@ -366,7 +366,7 @@ def _execute_sql(args: dict) -> dict:
             return tool_error(
                 f"'{crs_arg}' is not a CRS QGIS recognises.",
                 "INVALID_CRS",
-                "An authority id such as 'EPSG:4326' or 'EPSG:2154'.",
+                hint="crs_invalid",
             )
     project = QgsProject.instance()
 
@@ -532,7 +532,7 @@ def _field_calculator(args: dict) -> dict:
         while True:
             if net.is_cancelled():
                 return tool_error("The run was stopped. Nothing was written and the layer is unchanged.",
-                                  "CANCELLED", "The user stopped the run.")
+                                  "CANCELLED")
             if run_on_main_thread(_calc_step, held, timeout=120):
                 break
             slices += 1
@@ -581,7 +581,7 @@ def _calc_open(args: dict) -> dict:
     on_error = str(args.get("on_error") or "abort").lower()
     if on_error not in ("abort", "skip"):
         return tool_error(f"{on_error!r} is not an on_error policy.", "INVALID_ARGS",
-                          "'abort' (default: write nothing when an expression fails) or 'skip'.")
+                          hint="field_calc_on_error")
 
 
 
@@ -623,7 +623,7 @@ def _calc_open(args: dict) -> dict:
         return tool_error(
             f"Could not take the edit session on {layer.name()!r}.",
             "EDIT_FAILED",
-            "This layer's edit session is already open elsewhere.",
+            hint="edit_session_open_elsewhere",
         )
 
 
@@ -706,7 +706,7 @@ def _calc_finish(held) -> dict:
     state = held.take()
     if state is None:
         return tool_error("The call ended before the calculation was written. The layer is unchanged.",
-                          "CANCELLED", "The call is over.")
+                          "CANCELLED")
     try:
         return _calc_commit(state)
     except BaseException:
@@ -732,7 +732,7 @@ def _calc_commit(state: dict) -> dict:
 
         vector_write.force_out_of_edit(layer)
         return tool_error("The call ended before the calculation was written. The layer is unchanged.",
-                          "CANCELLED", "The call is over.")
+                          "CANCELLED")
     if not layer.commitChanges():
         errors = layer.commitErrors()
 
@@ -802,8 +802,7 @@ def _unique_limit(args: dict) -> tuple[int, dict | None]:
         asked = int(args.get("limit") if args.get("limit") is not None else _UNIQUE_VALUES_DEFAULT)
     except (TypeError, ValueError):
         return 0, tool_error(f"limit must be a whole number, got {args.get('limit')!r}.", "INVALID_ARGS",
-                             f"limit defaults to {_UNIQUE_VALUES_DEFAULT}; it can go up to "
-                             f"{ceiling}.")
+                             hint="unique_values_limit", default=_UNIQUE_VALUES_DEFAULT, ceiling=ceiling)
     return (ceiling if asked <= 0 else min(asked, ceiling)), None
 
 
@@ -902,8 +901,7 @@ def _unique_values_off_thread(args: dict) -> dict:
     while not over.wait(_STOP_POLL_S):
         if callable(cancelled) and cancelled():
             halted.set()
-            return tool_error("Stopped while the values were read.", "CANCELLED",
-                              "Nothing was changed.")
+            return tool_error("Stopped while the values were read.", "CANCELLED")
     if failure:
         raise failure[0]
     values = _ordered_values([entry[0] for entry in seen.values()])
@@ -1133,14 +1131,14 @@ def _identify_here(args: dict, ask_services: bool):
     project = QgsProject.instance()
     point = args.get("point") or []
     if len(point) != 2:
-        return tool_error("point must be [x, y].", "INVALID_ARGS", "point is a two-number array."), []
+        return tool_error("point must be [x, y].", "INVALID_ARGS"), []
     x, y = float(point[0]), float(point[1])
     tolerance = float(args.get("tolerance") or 0.0)
     limit = max(1, int(args.get("limit") or 10))
     point_crs = QgsCoordinateReferenceSystem(args["crs"]) if args.get("crs") else project.crs()
     if not point_crs.isValid():
         return tool_error(f"Invalid CRS: {args.get('crs')}", "CRS_INVALID",
-                          "An authority id such as EPSG:4326 fits."), []
+                          hint="crs_invalid"), []
     targets, error = _identify_targets(args)
     if error:
         return error, []
@@ -1304,8 +1302,7 @@ def _identify_off_thread(args: dict) -> dict:
         for ask in asks:
             ask.wait()
     if any(ask.row is None for ask in asks):
-        return tool_error("Stopped while a web service was asked what lies at the point.", "CANCELLED",
-                          "Nothing was changed.")
+        return tool_error("Stopped while a web service was asked what lies at the point.", "CANCELLED")
     for ask in asks:
         if ask.row.get("error") or ask.row.get("features") or ask.row.get("text"):
             out["results"].append(ask.row)

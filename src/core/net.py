@@ -31,7 +31,7 @@ import urllib.request
 import zlib
 from collections import OrderedDict
 
-from . import data_access, limits, tuning
+from . import data_access, limits, read_clock, tuning
 from .host_platform import retry_file_op
 from .logger import log_warning
 from .net_failure import (
@@ -333,6 +333,9 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
                 break
             parts.append(block)
             total += len(block)
+            slow = _pace_refusal(total, expected, time.monotonic() - reading_from, deadline, budget)
+            if slow is not None:
+                raise slow
             if progress is not None:
                 with contextlib.suppress(Exception):
                     progress(total, expected)
@@ -361,6 +364,33 @@ def _declared_length(headers) -> int | None:
 
 def _span(deadline: float) -> float:
     return max(0.0, deadline - time.monotonic())
+
+
+def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float | None,
+                  budget: float | None) -> FetchDeadline | None:
+
+
+
+
+
+
+
+
+
+
+    if not promised or deadline is None or done <= 0 or done >= promised or spent < read_clock.SETTLE_S:
+        return None
+    rate = done / spent
+    rest = (promised - done) / rate
+    allowed = spent + _span(deadline)
+    if spent + rest <= allowed * read_clock.SLACK:
+        return None
+    note_transfer(done, spent)
+    needs = f"{rest / 60:.0f} more minutes" if rest >= 120 else f"{rest:.0f} more seconds"
+    return FetchDeadline(
+        f"{done / (1024 * 1024):.1f} of the {promised / (1024 * 1024):.1f} MB arrived in {spent:.0f} s "
+        f"({rate / 1024:.0f} kB/s), so the rest needs about {needs}, over the {budget or allowed:.0f} "
+        "seconds this call has.")
 
 
 
@@ -1021,6 +1051,9 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                         break
                     wire += len(block)
                     inflater.write(block, handle)
+                    slow = _pace_refusal(wire, promised, time.perf_counter() - reading_from, deadline, budget)
+                    if slow is not None:
+                        raise slow
                 inflater.close(handle)
             note_transfer(wire, time.perf_counter() - reading_from)
             if promised is not None and wire < promised:

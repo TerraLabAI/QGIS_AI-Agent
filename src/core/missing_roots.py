@@ -23,9 +23,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import hashlib
+import os
+import re
+import sys
 
 from .logger import log, log_warning
 
@@ -111,7 +124,56 @@ xw/ogM4cKGR0GQjTQuPOAF1/sdwTsOEFy9EgqoZ0njnnkf3/W9b3raYvAwtt41dU
 """),
 }
 
+_INTERMEDIATES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tls_intermediates.pem")
+_intermediates: bytes | None = None
 _checked = False
+
+
+def intermediates_pem() -> bytes:
+
+    global _intermediates
+    if _intermediates is None:
+        try:
+            with open(_INTERMEDIATES, "rb") as handle:
+                lines = handle.read().splitlines(True)
+        except OSError:
+            lines = []
+        _intermediates = b"".join(line for line in lines if not line.startswith(b"#"))
+    return _intermediates
+
+
+def intermediate_hosts() -> list[str]:
+
+    try:
+        with open(_INTERMEDIATES, encoding="utf-8") as handle:
+            notes = [line for line in handle if line.startswith("#")]
+    except OSError:
+        return []
+    return sorted({match for line in notes for match in re.findall(r"complete[s]? (\S+)", line)})
+
+
+def _complete_chains() -> int:
+
+
+
+
+
+
+    if sys.platform == "win32" or not intermediates_pem():
+        return 0
+    from qgis.PyQt.QtCore import QByteArray
+    from qgis.PyQt.QtNetwork import QSslCertificate, QSslConfiguration
+
+    config = QSslConfiguration.defaultConfiguration()
+    held = config.caCertificates()
+    known = {_sha256(cert) for cert in held}
+    new = [cert for cert in QSslCertificate.fromData(QByteArray(intermediates_pem()))
+           if not cert.isNull() and _sha256(cert) not in known]
+    if new:
+        config.setCaCertificates(list(held) + new)
+        QSslConfiguration.setDefaultConfiguration(config)
+        log(f"QGIS can now complete the chain of servers that leave out one of {len(new)} public intermediates.")
+    return len(new)
 
 
 def _sha256(cert) -> str:
@@ -120,10 +182,25 @@ def _sha256(cert) -> str:
 
 def ensure() -> int:
 
+
+
+
+
+
+
     global _checked
-    if _checked:
-        return 0
-    _checked = True
+    added = 0
+    if not _checked:
+        _checked = True
+        added = _store_roots()
+    try:
+        _complete_chains()
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Public intermediates not added: {exc}")
+    return added
+
+
+def _store_roots() -> int:
     try:
         from qgis.core import QgsApplication
         from qgis.PyQt.QtCore import QByteArray

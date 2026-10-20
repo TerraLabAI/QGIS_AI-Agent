@@ -609,6 +609,9 @@ def register_core_tools(registry: ToolRegistry):
                     "type": "object", "required": ["value"], "properties": {
                         "value": {"type": ["string", "number", "boolean", "null"]}, "label": {"type": "string"},
                         "color": {"type": "string"}, "size": {"type": "number"}, "width": {"type": "number"}}}},
+
+
+                "symbol": {"type": "string"},
             },
             "required": ["layer_name", "style_type"],
 

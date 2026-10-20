@@ -69,11 +69,6 @@ def _message_total_box() -> list:
     return box
 
 
-def _message_total() -> int:
-
-    return _message_total_box()[0]
-
-
 def _connect_message_log():
 
 
@@ -313,4 +308,3 @@ def _get_debug_info(args: dict) -> dict:
         result["recent_errors"] = recent_errors
 
     return result
-

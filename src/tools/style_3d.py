@@ -38,6 +38,8 @@ from qgis.core import (
 )
 from qgis.PyQt.QtGui import QColor
 
+from ..core.tool_registry import tool_error
+
 
 MAX_FLOATING = 500
 LABELS_PROPERTY = "terralab/labels_3d_of"
@@ -426,12 +428,12 @@ def float_labels(layer) -> dict:
     except ImportError:
         QgsAnnotationLayer3DRenderer = None
     if QgsAnnotationLayer3DRenderer is None:
-        return {"_error": "This QGIS draws no text in a 3D view: annotation texts in 3D arrived in QGIS 4.0.",
-                "code": "UNSUPPORTED_QGIS_VERSION", "suggestion": "The labels are set on the 2D map."}
+        return tool_error("This QGIS draws no text in a 3D view: annotation texts in 3D arrived in QGIS 4.0.",
+                          "UNSUPPORTED_QGIS_VERSION", hint="style3d_labels_2d_only")
     labeling = layer.labeling()
     if labeling is None or labeling.type() != "simple":
-        return {"_error": "in_3d reads one set of labels; this layer's labels are rule-based.", "code": "INVALID_ARGS",
-                "suggestion": "A layer labelled by field or expression floats its labels in 3D."}
+        return tool_error("in_3d reads one set of labels; this layer's labels are rule-based.", "INVALID_ARGS",
+                          hint="style3d_labels_simple")
     settings = QgsPalLayerSettings(labeling.settings())
     text = settings.fieldName if settings.isExpression else QgsExpression.quotedColumnRef(settings.fieldName)
     label = QgsExpression(text)
@@ -453,8 +455,8 @@ def float_labels(layer) -> dict:
         points.append((str(name), feature.geometry().pointOnSurface().asPoint()))
         fids.append(feature.id())
         if len(points) > MAX_FLOATING:
-            return {"_error": f"More than {MAX_FLOATING} labels would float in 3D.", "code": "INVALID_ARGS",
-                    "suggestion": "A Show filter in data_defined keeps the ones to float."}
+            return tool_error(f"More than {MAX_FLOATING} labels would float in 3D.", "INVALID_ARGS",
+                              hint="style3d_labels_show_filter")
     project = QgsProject.instance()
     name = f"{layer.name()} labels 3D"
     from .processing_run import remove_layers

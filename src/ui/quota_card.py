@@ -227,15 +227,17 @@ def pro_price_per_month() -> str:
     return QCoreApplication.translate("QuotaCard", "{amount}/month").format(amount=price)
 
 
-def trial_cta(days: int) -> str:
+def trial_cta(_days: int = 7) -> str:
 
-    return QCoreApplication.translate("QuotaCard", "Try Pro free for {n} days").format(n=days)
+    return QCoreApplication.translate("QuotaCard", "Start 7-day free trial")
 
 
 def trial_reassurance() -> str:
 
 
-    return QCoreApplication.translate("QuotaCard", "No commitment, cancel in one click")
+    price = get_pro_price() or "49\u00a0EUR"
+    return QCoreApplication.translate(
+        "QuotaCard", "Free for 7 days, then {price}/month. Cancel in one click.").format(price=price)
 
 
 def trial_promise(days: int, _ends_on: str | None = None) -> str:
@@ -248,6 +250,7 @@ class QuotaCard(QWidget):
 
 
     plans_requested = pyqtSignal(str)
+
 
     invoice_requested = pyqtSignal(str)
 
@@ -462,7 +465,7 @@ class QuotaCard(QWidget):
 
                 self._button.setText(trial_cta(trial[0]))
                 self._promise.setText(trial_reassurance())
-                self._invoice.setText(self.tr("My company pays by quote"))
+                self._invoice.setText(self.tr("Company paying by invoice? Get 7 free days"))
             else:
                 self._button.setText(self.tr("Get Pro"))
                 self._invoice.setText(self.tr("Invoice for my company"))
@@ -488,7 +491,7 @@ class QuotaCard(QWidget):
             w.hide()
         self._button.setText(self.tr("Back to the Pro page"))
         self._route_button(lambda: self.plans_requested.emit("checkout_return"))
-        self._invoice.setText(self.tr("My company pays by quote"))
+        self._invoice.setText(self.tr("Company paying by invoice? Get 7 free days"))
         self._invoice.show()
         self._contact.show()
         self._close.show()

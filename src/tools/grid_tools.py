@@ -255,8 +255,7 @@ def _missing_dependency_error(feature: str) -> dict:
     spec = OPTIONAL_DEPENDENCIES.get(feature) or {}
     package = spec.get("package", feature)
     return tool_error(
-        f"The '{package}' package is not installed, so {feature.upper()} grids are unavailable. "
-        f"Geohash and Open Location Code need no package and work now.",
+        f"The '{package}' package is not installed, so {feature.upper()} grids are unavailable.",
         code="INVALID_ARGS", hint="grid_package_missing", feature=feature,
     )
 
@@ -800,7 +799,7 @@ def _build_grid_layer(name: str, system: str, resolution: int, cells: list) -> d
     )
     layer = QgsVectorLayer(uri, name, "memory")
     if not layer.isValid():
-        return {"_error": "Failed to create the grid memory layer"}
+        return tool_error("Failed to create the grid memory layer")
 
     features = []
     rejected = 0
@@ -821,12 +820,11 @@ def _build_grid_layer(name: str, system: str, resolution: int, cells: list) -> d
         features.append(feature)
 
     if not features:
-        return {"_error": f"None of the {len(cells)} {system} cells converted to a usable geometry, "
-                          f"so no layer was added.",
-                "code": "GRID_FAILED"}
+        return tool_error(f"None of the {len(cells)} {system} cells converted to a usable geometry, "
+                          f"so no layer was added.", "GRID_FAILED")
     ok, _ = layer.dataProvider().addFeatures(features)
     if not ok:
-        return {"_error": "The memory provider refused the grid features"}
+        return tool_error("The memory provider refused the grid features")
     layer.updateExtents()
     QgsProject.instance().addMapLayer(layer)
     return {"name": layer.name(), "layer_id": layer.id(),

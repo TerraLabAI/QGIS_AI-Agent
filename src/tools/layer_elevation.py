@@ -145,10 +145,10 @@ def _pair(value, label: str) -> tuple:
         low, high = (float(v) for v in value)
     except (TypeError, ValueError):
         return None, tool_error(f"{label} must be two numbers, lower then upper.", "INVALID_ARGS",
-                                f"{label} is [lower, upper], for example [0, 100].")
+                                hint="elevation_range_pair", label=label)
     if not (math.isfinite(low) and math.isfinite(high)) or low > high:
         return None, tool_error(f"{label} {value!r} is not a range: lower must not be above upper.",
-                                "INVALID_ARGS", f"{label} is [lower, upper] with lower <= upper.")
+                                "INVALID_ARGS", hint="elevation_range_pair", label=label)
     return (low, high), None
 
 
@@ -173,20 +173,20 @@ def _plan(args: dict) -> dict:
     plan = {"layer_name": str(args.get("layer_name") or "").strip(), "mode": args.get("mode"),
             "given": [key for key, value in args.items() if value is not None]}
     if not plan["layer_name"]:
-        return tool_error("layer_name is required.", "INVALID_ARGS", "The layer name or id.")
+        return tool_error("layer_name is required.", "INVALID_ARGS", hint="elevation_layer_name")
     if plan["mode"] is not None and plan["mode"] not in _MODES:
         return tool_error(f"mode {plan['mode']!r} is not one of {', '.join(_MODES)}.", "INVALID_ARGS",
-                          "Rasters take surface, fixed_range, range_per_band or off; meshes from_vertices, "
-                          "fixed_range or range_per_group.")
+                          hint="elevation_modes")
     for key in ("z_offset", "z_scale", "extrusion_height", "default_height", "size"):
         if args.get(key) is not None:
             try:
                 value = float(args[key])
             except (TypeError, ValueError):
-                return tool_error(f"{key} must be a number.", "INVALID_ARGS", f"{key} takes a number.")
+                return tool_error(f"{key} must be a number.", "INVALID_ARGS")
             if not math.isfinite(value) or (key != "z_offset" and value <= 0):
                 return tool_error(f"{key} {args[key]!r} is out of range.", "INVALID_ARGS",
-                                  f"{key} is finite" + ("." if key == "z_offset" else ", above zero."))
+                                  hint="elevation_number_finite" if key == "z_offset" else "elevation_number_positive",
+                                  argument=key)
             plan[key] = value
     if args.get("band") is not None:
         plan["band"] = int(args["band"])
@@ -200,14 +200,14 @@ def _plan(args: dict) -> dict:
         for item in args["level_ranges"] or []:
             if not isinstance(item, dict) or item.get("index") is None:
                 return tool_error("Each level_ranges entry needs index, lower and upper.", "INVALID_ARGS",
-                                  "level_ranges is [{index: 1, lower: 0, upper: 10}, ...].")
+                                  hint="elevation_level_form")
             pair, error = _pair([item.get("lower"), item.get("upper")], f"level {item.get('index')}")
             if error:
                 return error
             index = int(item["index"])
             if index in seen:
                 return tool_error(f"Level index {index} is given twice.", "INVALID_ARGS",
-                                  "One range per band or dataset group.")
+                                  hint="elevation_level_once")
             seen.add(index)
             levels.append((index, pair[0], pair[1]))
         plan["level_ranges"] = levels
@@ -215,22 +215,19 @@ def _plan(args: dict) -> dict:
         if args.get(key) is not None:
             plan[key] = str(args[key]).strip()
     if plan.get("clamping") is not None and plan["clamping"] not in _CLAMPING:
-        return tool_error(f"clamping {plan['clamping']!r} is not terrain, relative or absolute.", "INVALID_ARGS",
-                          "terrain, relative or absolute.")
+        return tool_error(f"clamping {plan['clamping']!r} is not terrain, relative or absolute.", "INVALID_ARGS")
     if plan.get("binding") is not None and plan["binding"] not in _BINDING:
-        return tool_error(f"binding {plan['binding']!r} is not vertex or centroid.", "INVALID_ARGS",
-                          "vertex or centroid.")
+        return tool_error(f"binding {plan['binding']!r} is not vertex or centroid.", "INVALID_ARGS")
     if plan.get("height_from") and plan.get("extrusion_height") is not None:
         return tool_error("height_from and extrusion_height both give the extrusion height.", "INVALID_ARGS",
-                          "height_from is a field or expression (default_height covers missing "
-                          "values); extrusion_height is one height per feature.")
+                          hint="elevation_height_sources")
     if args.get("extrusion") is not None:
         plan["extrusion"] = bool(args["extrusion"])
     elif plan.get("height_from") or plan.get("extrusion_height") is not None:
         plan["extrusion"] = True
     if plan.get("extrusion") is False and (plan.get("height_from") or plan.get("extrusion_height") is not None):
         return tool_error("extrusion is false but a height was given.", "INVALID_ARGS",
-                          "A height turns extrusion on; no height is the only way to turn it off.")
+                          hint="elevation_extrusion_off")
     return plan
 
 
@@ -245,10 +242,9 @@ def _source(layer, text: str, context) -> dict:
         return {"label": name, "text": QgsExpression.quotedColumnRef(name), "index": index}
     expression = QgsExpression(text)
     if expression.hasParserError():
-        known = ", ".join(fields.names()[:12])
         return tool_error(f"{text[:120]!r} is neither a field of {layer.name()} nor an expression that parses: "
                           f"{' '.join(expression.parserErrorString().split())[:160]}", "INVALID_ARGS",
-                          f"{known} are its fields, or a QGIS expression; field names go in double quotes.")
+                          hint="elevation_source_form", fields=fields.names()[:12])
     for column in expression.referencedColumns():
         everything = getattr(QgsFeatureRequest, "ALL_ATTRIBUTES", "#!allattributes!#")
         if column != everything and fields.lookupField(column) < 0:
@@ -277,10 +273,10 @@ def _open(plan: dict) -> dict:
     kind = _kind(layer)
     if kind == "pointcloud":
         return tool_error(f"{layer.name()} is a point cloud: its elevation is set with {_POINTCLOUD_TOOL}.",
-                          "INVALID_ARGS", f"{_POINTCLOUD_TOOL} takes z_scale or z_offset.")
+                          "INVALID_ARGS", hint="elevation_pointcloud_keys", tool=_POINTCLOUD_TOOL)
     if kind == "other" or layer.elevationProperties() is None:
         return tool_error(f"{layer.name()} has no elevation properties in QGIS.", "INVALID_ARGS",
-                          "A vector, raster or mesh layer.")
+                          hint="elevation_layer_kinds")
     state = {"layer_id": layer.id(), "layer_name": layer.name(), "kind": kind, "plan": plan, "sources": []}
 
     other, where = (_LEVEL_KEYS, "raster or mesh only") if kind == "vector" else (_VECTOR_KEYS, "vector only")
@@ -338,7 +334,7 @@ def _geometry_kind(layer) -> str | None:
 
 def _version_error(what: str) -> dict:
     return tool_error(f"{what} needs QGIS 3.38 or newer.", "UNSUPPORTED_QGIS_VERSION",
-                      "z_offset, z_scale and band work here without an upgrade.")
+                      hint="elevation_version_keys")
 
 
 def _open_raster(layer, props, plan: dict, state: dict) -> dict:
@@ -346,27 +342,26 @@ def _open_raster(layer, props, plan: dict, state: dict) -> dict:
                                 "fixed_range" if plan.get("elevation_range") else "surface")
     if mode not in ("surface", "fixed_range", "range_per_band", "off"):
         return tool_error(f"mode {mode} does not apply to a raster.", "INVALID_ARGS",
-                          "Rasters take surface, fixed_range, range_per_band or off.")
+                          hint="elevation_raster_modes")
     count = layer.bandCount()
     if plan.get("band") is not None and not 1 <= plan["band"] <= count:
         return tool_error(f"band {plan['band']} is not a band of {layer.name()} (it has {count}).", "INVALID_ARGS",
-                          f"Bands run 1 to {count}.")
+                          hint="elevation_raster_bands", count=count)
     if mode != "surface" and mode != "off" and not hasattr(props, "setMode"):
         return _version_error(f"A raster {mode.replace('_', ' ')}")
     if mode == "fixed_range" and not plan.get("elevation_range"):
         return tool_error("mode fixed_range needs elevation_range.", "INVALID_ARGS",
-                          "elevation_range [lower, upper] is the heights the whole raster stands for.")
+                          hint="elevation_fixed_range", kind="raster")
     if mode == "range_per_band":
         levels = plan.get("level_ranges")
         if not levels:
-            names = ", ".join(layer.bandName(b) for b in range(1, min(count, 12) + 1))
+            names = [layer.bandName(b) for b in range(1, min(count, 12) + 1)]
             return tool_error("mode range_per_band needs level_ranges, one [lower, upper] per band.", "INVALID_ARGS",
-                              f"The bands of {layer.name()} are {names}. level_ranges is "
-                              "[{index: band, lower, upper}, ...], the height each band stands for.")
+                              hint="elevation_levels_raster", layer=layer.name(), bands=names)
         wrong = [index for index, _, _ in levels if not 1 <= index <= count]
         if wrong:
             return tool_error(f"Band {wrong[0]} is not a band of {layer.name()} (bands 1 to {count}).",
-                              "INVALID_ARGS", f"Raster bands are numbered 1 to {count}.")
+                              "INVALID_ARGS", hint="elevation_raster_bands", count=count)
     state["mode"] = mode
     return state
 
@@ -376,23 +371,22 @@ def _open_mesh(layer, props, plan: dict, state: dict) -> dict:
                                 "fixed_range" if plan.get("elevation_range") else None)
     if mode is not None and mode not in _MESH_MODES:
         return tool_error(f"mode {mode} does not apply to a mesh.", "INVALID_ARGS",
-                          "Meshes take from_vertices, fixed_range or range_per_group.")
+                          hint="elevation_mesh_modes")
     if plan.get("band") is not None:
         return tool_error("band applies to a raster; a mesh has dataset groups.", "INVALID_ARGS",
-                          "level_ranges takes the dataset group indices of the mesh, numbered from 0.")
+                          hint="elevation_mesh_groups")
     if mode is not None and not hasattr(props, "setMode"):
         return _version_error(f"A mesh {mode.replace('_', ' ')}")
     if mode == "fixed_range" and not plan.get("elevation_range"):
         return tool_error("mode fixed_range needs elevation_range.", "INVALID_ARGS",
-                          "elevation_range [lower, upper] is the heights the whole mesh stands for.")
+                          hint="elevation_fixed_range", kind="mesh")
     if mode == "range_per_group":
         count = layer.datasetGroupCount()
         levels = plan.get("level_ranges")
         if not levels:
-            names = ", ".join(f"{g}: {layer.datasetGroupMetadata(g).name()}" for g in range(min(count, 12)))
+            names = [f"{g}: {layer.datasetGroupMetadata(g).name()}" for g in range(min(count, 12))]
             return tool_error("mode range_per_group needs level_ranges, one [lower, upper] per dataset group.",
-                              "INVALID_ARGS", f"The dataset groups of {layer.name()} are {names}. level_ranges is "
-                              "[{index: group, lower, upper}, ...], the height each group stands for.")
+                              "INVALID_ARGS", hint="elevation_levels_mesh", layer=layer.name(), groups=names)
         wrong = [index for index, _, _ in levels if not 0 <= index < count]
         if wrong:
             return tool_error(f"Dataset group {wrong[0]} is not a group of {layer.name()} (0 to {count - 1}).",
@@ -457,8 +451,7 @@ def _decide(state: dict) -> dict:
                 if not valid:
                     return tool_error(f"{source['label']} holds no height above zero in the {state['read']:,} "
                                       f"features read of {state['layer_name']}.", "INVALID_ARGS",
-                                      "extrusion_height gives one height for every feature; another field "
-                                      "also works.")
+                                      hint="elevation_no_heights")
                 default = round(statistics.median(valid), 1) or 1.0
                 decided["default_from"] = "median of the real heights"
             else:
@@ -483,7 +476,7 @@ def _apply(state: dict, decided: dict) -> dict:
     layer = QgsProject.instance().mapLayer(state["layer_id"])
     if layer is None:
         return tool_error(f"{state['layer_name']} was removed while it was read.", "LAYER_NOT_FOUND",
-                          "Reloading it lets set_layer_elevation run again.")
+                          hint="elevation_layer_removed")
     plan, props = state["plan"], layer.elevationProperties()
     if state.get("unchanged"):
         decided["notes"].insert(0, f"Nothing changed on {layer.name()}: every key sent is for another kind of layer.")
@@ -807,7 +800,7 @@ def _read_back(layer) -> dict:
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped while the layer's heights were read.", "CANCELLED", "The layer was left as it was.")
+    return tool_error("Stopped while the layer's heights were read.", "CANCELLED", hint="elevation_stopped")
 
 
 def _set_layer_elevation(args: dict) -> dict:

@@ -81,10 +81,6 @@ DENIED_MODULES = frozenset({
 _DENIED_MODULE_PREFIXES = ("win32", "_win32")
 DENIED_NAMES = frozenset({
     "eval", "exec", "compile", "__import__", "breakpoint", "input", "exit", "quit", "help", "vars", "memoryview",
-
-
-
-    "globals", "locals",
     "QgsSettings", "QSettings", "QgsAuthMethodConfig", "QgsAuthManager", "QgsAuthConfigSslServer",
     "QgsNetworkAccessManager", "QNetworkAccessManager", "QNetworkRequest", "QProcess", "QFile", "QDir",
     "QSaveFile", "QTemporaryFile",
@@ -153,8 +149,13 @@ DENIED_ATTRS = frozenset({
 
 
 
+
     "GetDriver", "GetDriverByIndex", "CopyDataSource",
     "createAlgorithmDialog",
+
+
+
+    "globals", "locals",
 
 
     "entryList", "entryInfoList", "findFile",
@@ -209,6 +210,8 @@ IN_PROCESS_ALGORITHMS = frozenset({
     "qgis:distancetonearesthublinetohub", "qgis:distancetonearesthubpoints",
     "qgis:heatmapkerneldensityestimation", "qgis:idwinterpolation", "qgis:statisticsbycategories",
     "qgis:tininterpolation",
+
+    "native:heatmapkerneldensityestimation",
 })
 
 
@@ -382,6 +385,24 @@ def _trimmed_module(name: str, source: types.ModuleType, allowed: tuple, extra: 
 INVALID_GEOMETRY: dict = {}
 
 
+def _field_check(algorithm: str, parameters: object) -> None:
+
+
+
+
+
+    if not isinstance(parameters, dict):
+        return
+    from qgis.core import QgsApplication, QgsProcessingException
+
+    from ..tools.processing_guards import field_parameter_problem
+
+    alg = QgsApplication.processingRegistry().algorithmById(algorithm.strip())
+    problem = field_parameter_problem(alg, parameters) if alg is not None else ""
+    if problem:
+        raise QgsProcessingException(problem)
+
+
 def _checked_runner(runner: Callable, runner_name: str = ""):
     def _run(algorithm, *args, **kwargs):
         refused = _processing_refusal(algorithm)
@@ -390,6 +411,8 @@ def _checked_runner(runner: Callable, runner_name: str = ""):
             refused = _parameters_refusal(str(algorithm).strip().lower(), parameters)
         if refused:
             raise PermissionError(refused)
+        if runner_name in ("run", "runAndLoadResults"):
+            _field_check(algorithm, args[0] if args else kwargs.get("parameters"))
         from . import code_tripwire
 
 
@@ -888,15 +911,18 @@ def _checked_options(builder: Callable) -> Callable:
     return _build
 
 
+
+
+_DRIVER_READS = ("ShortName", "LongName", "name", "GetName", "GetDescription", "GetMetadata", "GetMetadataItem")
+
+
 def _driver_lookup(lookup: Callable, writers: dict) -> Callable:
 
     def GetDriverByName(name):  # noqa: N802
         driver = lookup(name)
         if driver is None:
             return None
-        members = {attr: getattr(driver, attr) for attr in ("ShortName", "LongName", "name", "GetName",
-                                                           "GetDescription", "GetMetadata", "GetMetadataItem")
-                   if hasattr(driver, attr)}
+        members = {attr: getattr(driver, attr) for attr in _DRIVER_READS if hasattr(driver, attr)}
         members.update({attr: _checked_writer(getattr(driver, attr), names) for attr, names in writers.items()
                         if hasattr(driver, attr)})
         return types.SimpleNamespace(**members)
@@ -1154,9 +1180,31 @@ def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):  # n
     return module
 
 
+
+_NAMESPACE_VIEWS = ("globals", "locals")
+
+
+def bind_namespace_views(namespace: dict) -> None:
+
+
+
+
+
+
+
+    def names() -> types.MappingProxyType:
+
+        return types.MappingProxyType({key: value for key, value in namespace.items()
+                                       if not (key.startswith("__") and key.endswith("__"))})
+
+    for name in _NAMESPACE_VIEWS:
+        namespace["__builtins__"][name] = names
+
+
 def build_safe_builtins() -> dict[str, Any]:
 
-    safe = {k: v for k, v in py_builtins.__dict__.items() if k not in DENIED_NAMES and k not in DENIED_DUNDERS}
+    safe = {k: v for k, v in py_builtins.__dict__.items()
+            if k not in DENIED_NAMES and k not in DENIED_DUNDERS and k not in _NAMESPACE_VIEWS}
     safe["__import__"] = _guarded_import
     safe["open"] = _guarded_open
     safe["getattr"] = _guarded_getattr

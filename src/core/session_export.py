@@ -335,16 +335,6 @@ def _render_call(index: int, call: dict) -> list:
     return lines
 
 
-def write_json(path: str, export: dict) -> None:
-
-
-
-
-    from .writeback import write_atomic
-
-    write_atomic(path, json.dumps(export, ensure_ascii=False, indent=1, default=str))
-
-
 def default_name(export: dict) -> str:
     thread = (export.get("thread") or {}).get("id") or "session"
     stamp = time.strftime("%Y%m%d-%H%M%S")

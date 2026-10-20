@@ -782,7 +782,7 @@ def _terrain_visualisation(args: dict) -> dict:
         timings["overviews and ranges"] = round(time.monotonic() - mark, 1)
     except InterruptedError:
         failure = tool_error("Stopped before the relief images were finished.", "CANCELLED",
-                             "Nothing was added to the project.")
+                             hint="terrain_stopped_nothing_added")
     except RuntimeError as exc:
         failure = tool_error(f"GDAL failed while computing the relief: {exc}", "EXECUTION_FAILED",
                              hint="terrain_gdal_failed", layer=facts["name"])
@@ -827,7 +827,7 @@ def _terrain_visualisation(args: dict) -> dict:
     except InterruptedError:
         remove_tree(folder)
         return tool_error("Stopped before the relief images were added.", "CANCELLED",
-                          "Nothing was added to the project.")
+                          hint="terrain_stopped_nothing_added")
     by_product = {a["product"]: a for a in added}
     layers = []
     for entry in reversed(entries):
@@ -1138,7 +1138,8 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             sums += np.bincount(index, weights=signed, minlength=size)
             counts += np.bincount(index, minlength=size)
     except InterruptedError:
-        return tool_error("Stopped before the candidates were finished.", "CANCELLED", "Nothing was added.")
+        return tool_error("Stopped before the candidates were finished.", "CANCELLED",
+                          hint="terrain_stopped_nothing_added")
     except RuntimeError as exc:
         return tool_error(f"GDAL failed while extracting the anomalies: {exc}", "EXECUTION_FAILED",
                           hint="terrain_gdal_failed", layer=str(source_name))
@@ -1159,7 +1160,8 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             references = run_on_main_thread(_reference_geometries, list(args["reference_layers"]), grid["wkt"],
                                              int(limits.current("MAX_FEATURES_MATERIALISED")), window, timeout=30)
         except InterruptedError:
-            return tool_error("Stopped before the candidates were finished.", "CANCELLED", "Nothing was added.")
+            return tool_error("Stopped before the candidates were finished.", "CANCELLED",
+                              hint="terrain_stopped_nothing_added")
         except TimeoutError:
             return tool_error("Reading the reference layers took QGIS more than 30 s, so no candidate was added.",
                               "EXECUTION_FAILED",
@@ -1178,7 +1180,8 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
 
 
         if number % 256 == 0 and cancelled is not None and cancelled():
-            return tool_error("Stopped before the candidates were finished.", "CANCELLED", "Nothing was added.")
+            return tool_error("Stopped before the candidates were finished.", "CANCELLED",
+                              hint="terrain_stopped_nothing_added")
         if counts[number] <= 0:
             continue
         geometry_m = QgsGeometry()

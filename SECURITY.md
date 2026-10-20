@@ -7,7 +7,7 @@ plugin refuses to do. What leaves the machine is in the
 
 ## Reporting a vulnerability
 
-Email **security@terra-lab.ai** with the version (`metadata.txt` `version=`),
+Email **yvann.barbot@terra-lab.ai** with the version (`metadata.txt` `version=`),
 your QGIS version and OS, and what an attacker gets. A proof of concept helps; a
 full exploit is not required. We answer within 3 working days and assess within
 10. Please do not open a public issue before a fix ships: the tracker is public

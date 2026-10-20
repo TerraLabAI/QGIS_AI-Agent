@@ -69,6 +69,9 @@ RANK = {R: 0, P: 1, FP: 2, FW: 3, D: 4, ASK: 5}
 DANGER = {R: "read", P: "write", FP: "write", FW: "destructive", D: "destructive", ASK: "destructive"}
 
 
+UNSEEN = "its changes to your project cannot be shown before it runs"
+
+
 def higher(a: str, b: str) -> str:
     return a if RANK.get(a, RANK[ASK]) >= RANK.get(b, RANK[ASK]) else b
 
@@ -586,7 +589,24 @@ class _Owner:
                 return True
             seen.add(node.id)
             return any(self._looked_up(v, seen) for v in values)
+        if isinstance(node, (ast.Call, ast.Subscript, ast.Attribute)) and self._built_text(node):
+            self.unresolved = True
+            return True
         return self.is_user(node)
+
+    @staticmethod
+    def _built_text(node: ast.AST) -> bool:
+
+
+        while True:
+            if isinstance(node, ast.Call):
+                if not isinstance(node.func, ast.Attribute):
+                    return True
+                node = node.func.value
+            elif isinstance(node, (ast.Subscript, ast.Attribute)):
+                node = node.value
+            else:
+                return isinstance(node, ast.Constant)
 
     def call_reaches(self, node: ast.Call) -> bool:
 
@@ -869,7 +889,8 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             if item not in seen:
                 seen.append(item)
 
-        return Verdict(ASK, ["may change things the plugin cannot preview"], seen, level, doors, user,
+
+        return Verdict(ASK, [UNSEEN], seen, level, doors, user,
                        layers=None if owner.unresolved else frozenset(owner.named))
 
     return Verdict(level, [reason for cls, reason in found if cls == level], user=user and level != R,

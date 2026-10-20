@@ -18,7 +18,7 @@ from ..core.geometry_budget import VertexBudget
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
-from ..core.tool_registry import ServedValueMissing
+from ..core.tool_registry import ServedValueMissing, tool_error
 from .data_common import _canvas_viewbox_4326, _fold, _is_number, _service, _viewbox_bounds
 from .data_geocoding import (
     _PLACE_AREA_LAYERS,
@@ -134,16 +134,14 @@ def _outline_of_layer(name: str):
 
                 geometry, tolerance = _within_vertices(geometry, budget)
                 if geometry is None or budget.oversize(geometry):
-                    return {"_error": f"{layer.name()!r} is too detailed to clip to on this machine: one polygon "
-                                      f"of {too_big:,} vertices.",
-                            "code": "INVALID_ARGS", "suggestion": "",
-                            "hint": "clip_layer_too_detailed", "layer": layer.name(), "vertices": too_big}
+                    return tool_error(f"{layer.name()!r} is too detailed to clip to on this machine: one polygon "
+                                      f"of {too_big:,} vertices.", "INVALID_ARGS",
+                                      hint="clip_layer_too_detailed", layer=layer.name(), vertices=too_big)
                 simplified.append((too_big, tolerance))
             if budget.exhausted():
-                return {"_error": f"{layer.name()!r} is too detailed to clip to on this machine: more than "
-                                  f"{budget.total:,} vertices in total.",
-                        "code": "INVALID_ARGS", "suggestion": "",
-                        "hint": "clip_layer_too_detailed", "layer": layer.name(), "vertices": budget.total}
+                return tool_error(f"{layer.name()!r} is too detailed to clip to on this machine: more than "
+                                  f"{budget.total:,} vertices in total.", "INVALID_ARGS",
+                                  hint="clip_layer_too_detailed", layer=layer.name(), vertices=budget.total)
             if xform is not None:
                 moved = QgsGeometry(geometry)
                 if moved.transform(xform) != 0:
@@ -151,9 +149,8 @@ def _outline_of_layer(name: str):
                 geometry = moved
             polys.extend(_rings_of(json.loads(geometry.asJson(7))))
         if not polys:
-            return {"_error": f"{layer.name()!r} holds no polygon to clip to.",
-                    "code": "INVALID_ARGS", "suggestion": "",
-                    "hint": "clip_layer_no_polygon", "layer": layer.name()}
+            return tool_error(f"{layer.name()!r} holds no polygon to clip to.", "INVALID_ARGS",
+                              hint="clip_layer_no_polygon", layer=layer.name())
         made = {"polys": polys, "label": layer.name(), "outline_source": f"layer {layer.name()}",
                 "selected_only": bool(selected)}
         if simplified:
@@ -400,9 +397,8 @@ def _outline_of_place(name: str):
 
         return found
     if not hits:
-        return {"_error": f"No place was found under the name {name!r}.",
-                "code": "INVALID_ARGS", "suggestion": "",
-                "hint": "clip_place_not_found", "place": str(name)}
+        return tool_error(f"No place was found under the name {name!r}.", "INVALID_ARGS",
+                          hint="clip_place_not_found", place=str(name))
     hit = _place_hit(name, hits)
     lon, lat = float(hit["lon"]), float(hit["lat"])
 
@@ -526,8 +522,8 @@ def _outline_of_place(name: str):
             f"{fallback['label']}.", "clip_division_fallback", asked_name=asked, division_label=fallback["label"])
         return fallback
 
-    return dict(_error=f"{name!r} was found, but no administrative outline covers it.",  # noqa: C408
-                code="INVALID_ARGS", hint="no_outline")
+    return tool_error(f"{name!r} was found, but no administrative outline covers it.", "INVALID_ARGS",
+                      hint="no_outline")
 
 
 def _osm_outline(hit: dict, name: str):
@@ -697,7 +693,7 @@ def _resolve_outline(clip_to: str, layers: bool = True):
     if made is None:
         made = _outline_of_place(clip_to)
     if not isinstance(made, dict) or made.get("_error"):
-        return None, (made if isinstance(made, dict) else {"_error": f"Could not resolve {clip_to!r}."})
+        return None, (made if isinstance(made, dict) else tool_error(f"Could not resolve {clip_to!r}."))
     if made.get("parts"):
         _merge_parts(made)
     bounds = _polys_bbox(made.get("polys") or [])
@@ -705,7 +701,7 @@ def _resolve_outline(clip_to: str, layers: bool = True):
         _one_side_of_antimeridian(made)
         bounds = _polys_bbox(made.get("polys") or [])
     if not bounds:
-        return None, {"_error": f"{clip_to!r} resolved to an empty outline.", "code": "INVALID_ARGS",
-                      "suggestion": "", "hint": "clip_outline_empty", "place": str(clip_to)}
+        return None, tool_error(f"{clip_to!r} resolved to an empty outline.", "INVALID_ARGS",
+                                hint="clip_outline_empty", place=str(clip_to))
     made["bbox"] = bounds
     return made, None

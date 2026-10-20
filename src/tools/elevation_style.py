@@ -29,19 +29,38 @@ from __future__ import annotations
 import re
 import urllib.parse
 
-_ELEVATION_WORDS = re.compile(
-    r"(?<![a-z0-9])(dem|dsm|dtm|elevation|elevations|altitude|altimetry|srtm|nasadem|aw3d30|cop30|cop90|"
-    r"copernicus[ _-]?dem|glo[ _-]?30|glo[ _-]?90|eu[ _-]?dem|eu[ _-]?dtm|gmted|mnt|mns|rge[ _-]?alti|"
+from ..core import tuning
+from ..core.tool_registry import tool_error
 
-    r"mdt\d*|mde\d*|elevaci[oó]n\w*|elevac[aã]o|altitud|"
-    r"terrain[ _-]?model|height[ _-]?above[ _-]?sea)(?![a-z])",
-    re.IGNORECASE,
-)
 _SAMPLE_PIXELS = 512
 _LOWEST_M, _HIGHEST_M = -450.0, 8900.0
 
-_STOPS = ((0.0, "#2c7a4b"), (0.2, "#86c06c"), (0.4, "#e8e3a0"), (0.6, "#d6ae72"), (0.8, "#a57c56"),
-          (1.0, "#f5f2ee"))
+
+_WORDS: list = [None, None]
+
+
+def _elevation() -> dict:
+    return (tuning.service_doc("vocab_rules") or {}).get("elevation") or {}
+
+
+def _elevation_words():
+
+    words = _elevation().get("words")
+    if not words:
+        return None
+    if _WORDS[0] is not words:
+        _WORDS[:] = [words, re.compile(r"(?<![a-z0-9])(" + "|".join(words) + r")(?![a-z])", re.IGNORECASE)]
+    return _WORDS[1]
+
+
+
+_GREY = ((0.0, "#000000"), (1.0, "#ffffff"))
+
+
+def _stops() -> tuple:
+
+    stops = _elevation().get("stops")
+    return tuple((float(o), c) for o, c in stops) if stops else _GREY
 
 
 def _file_name(source: str) -> str:
@@ -54,7 +73,10 @@ def _file_name(source: str) -> str:
 
 def names_elevation(name: str | None, source: str | None) -> bool:
 
-    return bool(_ELEVATION_WORDS.search(str(name or "")) or _ELEVATION_WORDS.search(_file_name(source or "")))
+    words = _elevation_words()
+    if words is None:
+        return False
+    return bool(words.search(str(name or "")) or words.search(_file_name(source or "")))
 
 
 def elevation_stretch(source: str, name: str | None) -> dict | None:
@@ -106,7 +128,7 @@ def sample_stretch(source: str) -> dict | None:
 
 def apply_elevation_style(layer, stretch: dict | None) -> str:
 
-    if not stretch:
+    if not stretch or not _elevation().get("stops"):
         return ""
     try:
         from qgis.core import QgsColorRampShader, QgsRasterShader, QgsSingleBandPseudoColorRenderer
@@ -125,7 +147,7 @@ def apply_elevation_style(layer, stretch: dict | None) -> str:
         function.setColorRampType(SHADER_INTERPOLATED)
         function.setClassificationMode(SHADER_CLASS_CONTINUOUS)
         items = []
-        for offset, color in _STOPS:
+        for offset, color in _stops():
             value = low + (high - low) * offset
             items.append(QgsColorRampShader.ColorRampItem(value, QColor(color), f"{value:,.0f}"))
         function.setColorRampItemList(items)
@@ -237,8 +259,8 @@ def _ramp_colors(ramp_name: str, count: int) -> list:
     colors = []
     for i in range(count):
         offset = i / (count - 1) if count > 1 else 0.0
-        before = max(s for s in _STOPS if s[0] <= offset)
-        after = min((s for s in _STOPS if s[0] >= offset), default=before)
+        before = max(s for s in _stops() if s[0] <= offset)
+        after = min((s for s in _stops() if s[0] >= offset), default=before)
         if after[0] == before[0]:
             colors.append(QColor(before[1]))
             continue
@@ -264,14 +286,13 @@ def apply_ramp_style(layer, band: int = 1, ramp_name: str = "", classes: int = 0
 
     band = max(1, int(band or 1))
     if band > layer.bandCount():
-        return {"_error": f"Band {band} does not exist: {layer.name()!r} has {layer.bandCount()}.",
-                "code": "INVALID_ARGS", "suggestion": f"band is 1 to {layer.bandCount()}."}
+        return tool_error(f"Band {band} does not exist: {layer.name()!r} has {layer.bandCount()}.",
+                          "INVALID_ARGS", hint="elevation_raster_bands", count=layer.bandCount())
     if low is None or high is None:
         found = band_range(layer, band)
         if found is None:
-            return {"_error": f"Band {band} of {layer.name()!r} has no readable minimum and maximum.",
-                    "code": "EXECUTION_FAILED",
-                    "suggestion": "get_raster_info shows if the band is empty or all nodata."}
+            return tool_error(f"Band {band} of {layer.name()!r} has no readable minimum and maximum.",
+                              "EXECUTION_FAILED", hint="elevation_band_range_unreadable")
         low, high = found
     low, high = float(low), float(high)
     steps = int(classes or 0)
@@ -324,8 +345,8 @@ def elevation_ramp():
     from qgis.core import QgsGradientColorRamp, QgsGradientStop
     from qgis.PyQt.QtGui import QColor
 
-    ramp = QgsGradientColorRamp(QColor(_STOPS[0][1]), QColor(_STOPS[-1][1]))
-    ramp.setStops([QgsGradientStop(offset, QColor(color)) for offset, color in _STOPS[1:-1]])
+    ramp = QgsGradientColorRamp(QColor(_stops()[0][1]), QColor(_stops()[-1][1]))
+    ramp.setStops([QgsGradientStop(offset, QColor(color)) for offset, color in _stops()[1:-1]])
     return ramp
 
 
@@ -412,7 +433,7 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
             return {"layer": other.name(), "layer_id": other.id(), "reused": True}
     copy = layer.clone()
     if copy is None or not copy.isValid():
-        return {"_error": "The DEM could not be copied for its hillshade."}
+        return tool_error("The DEM could not be copied for its hillshade.", "EXECUTION_FAILED")
     copy.setName(f"{layer.name()} relief")
     renderer = QgsHillshadeRenderer(copy.dataProvider(), int(band), 315.0, 45.0)
     z_factor = degrees_z_factor(layer) or 1.0

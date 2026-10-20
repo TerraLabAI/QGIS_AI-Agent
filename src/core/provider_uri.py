@@ -80,14 +80,17 @@ _URI_SECRET_KEYS = (
 
 _URI_KV_RE = _re.compile(
     r"(?i)\b(" + "|".join(_re.escape(k) for k in _URI_SECRET_KEYS)
-    + r")\s*=\s*('(?:[^'\\]|\\.)*'|\"[^\"]*\"|[^\s&;,'\"]+)"
+    + r")\s*(?:=|%3[dD])\s*('(?:[^'\\]|\\.)*'|\"[^\"]*\"|[^\s&;,'\"]+)"
 )
 
-_URL_QUERY_KEY_RE = _re.compile(r"(?i)([?&](?:key|sig|session|sessionid|auth|credentials?)=)[^&\s'\"]{12,}")
+
+_URL_QUERY_KEY_RE = _re.compile(
+    r"(?i)((?:[?&]|%26)(?:key|sig|session|sessionid|auth|credentials?)(?:=|%3[dD]))[^&\s'\"]{12,}")
 
 
 _URL_QUERY_SUFFIX_RE = _re.compile(
-    r"(?i)([?&;][\w.\-]*(?:token|secret|password|passwd|signature|credential|api_?key|jwt)=)[^&\s'\"#]+")
+    r"(?i)((?:[?&;]|%26)[\w.\-]*(?:token|secret|password|passwd|signature|credential|api[-_]?key|access[-_]?key"
+    r"|subscription[-_]?key|jwt)(?:=|%3[dD]))[^&\s'\"#]+")
 
 
 

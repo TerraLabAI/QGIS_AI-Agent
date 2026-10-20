@@ -32,8 +32,8 @@ import unicodedata
 from functools import lru_cache
 from itertools import islice
 
-__all__ = ["FILES", "LAYER", "PLUGIN", "SOURCE", "group_mentions", "layer_rows",
-           "live_mentions", "mentions_for", "plugin_rows", "rank_mentions", "score_mention",
+__all__ = ["FILES", "LAYER", "PLUGIN", "SOURCE", "layer_rows",
+           "live_mentions", "plugin_rows", "rank_mentions", "score_mention",
            "sheet_rows", "short_detail", "source_rows"]
 
 
@@ -134,56 +134,6 @@ def rank_mentions(query: str, items) -> list[dict]:
         scored.append(((tier, where, inexact, index), item))
     scored.sort(key=lambda pair: pair[0])
     return [item for _key, item in scored]
-
-
-def group_mentions(items, sources_label: str = "") -> list[dict]:
-
-
-
-
-
-
-
-
-
-
-    layers = [i for i in items or [] if isinstance(i, dict) and i.get("kind") == "layer"]
-    others = [i for i in items or [] if isinstance(i, dict) and i.get("kind") != "layer"]
-
-
-
-    root: list[dict] = []
-    grouped: dict[str, list[dict]] = {}
-    for item in layers:
-        group = str(item.get("group") or "")
-        if not group:
-            root.append(item)
-        else:
-            grouped.setdefault(group, []).append(item)
-    out: list[dict] = list(root)
-    for group, rows in grouped.items():
-        out.append({"kind": "header", "label": group})
-        out.extend(rows)
-    if others and sources_label and layers:
-        out.append({"kind": "header", "label": sources_label})
-    out.extend(others)
-    return out
-
-
-def mentions_for(word: str, items, sources_label: str = "") -> list[dict]:
-
-
-
-
-
-
-
-
-
-    ranked = rank_mentions(word, items)
-    if word:
-        return ranked
-    return group_mentions(ranked, sources_label)
 
 
 

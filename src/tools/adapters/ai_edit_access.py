@@ -195,10 +195,6 @@ class AiEditAccess:
     def instance(self) -> tuple[str | None, Any]:
         return _find_plugin()
 
-    def is_loaded(self) -> bool:
-        _, inst = _find_plugin()
-        return inst is not None
-
     def auth(self, inst):
         return _attr(inst, "_auth_manager", "auth_manager")
 
@@ -263,7 +259,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         api = self._mcp_api(inst)
         if api is not None and hasattr(api, "get_presets"):
@@ -285,14 +281,14 @@ class AiEditAccess:
             except Exception:  # nosec B110
                 get_all = None
         if not callable(get_all):
-            return {"_error": "AI Edit preset catalog is not available."}
+            return tool_error("AI Edit preset catalog is not available.", "EXECUTION_FAILED")
 
         dock = self.dock(inst)
         catalog = getattr(dock, "_server_catalog", None) if dock is not None else None
         try:
             categories = get_all(server_catalog=catalog)
         except Exception as err:
-            return {"_error": f"Failed to read presets: {err}"}
+            return tool_error(f"Failed to read presets: {err}", "EXECUTION_FAILED")
         return {"categories": categories, "catalog_loaded": catalog is not None}
 
 
@@ -301,7 +297,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         api = self._mcp_api(inst)
         if api is not None and hasattr(api, "get_credits"):
@@ -312,11 +308,11 @@ class AiEditAccess:
 
         auth = self.auth(inst)
         if auth is None or not hasattr(auth, "get_usage_info"):
-            return {"_error": "AI Edit usage source is not available."}
+            return tool_error("AI Edit usage source is not available.", "EXECUTION_FAILED")
         try:
             return _whitelist_usage(auth.get_usage_info())
         except Exception as err:
-            return {"_error": f"Failed to read credits: {err}"}
+            return tool_error(f"Failed to read credits: {err}", "EXECUTION_FAILED")
 
 
 
@@ -324,7 +320,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         api = self._mcp_api(inst)
         if api is not None and hasattr(api, "get_resolutions"):
@@ -380,13 +376,14 @@ class AiEditAccess:
             try:
                 answer = setter(label)
             except Exception as err:  # noqa: BLE001
-                return {"_error": f"Failed to set resolution: {err}"}
+                return tool_error(f"Failed to set resolution: {err}", "EXECUTION_FAILED")
             if not isinstance(answer, dict) or answer.get("_error") or answer.get("error"):
                 why = (answer.get("_error") or answer.get("error")) if isinstance(answer, dict) else answer
-                return {"_error": str(why or f"Resolution '{label}' was not applied.")}
+                return tool_error(str(why or f"Resolution '{label}' was not applied."), "EXECUTION_FAILED")
             return {"resolution": answer.get("resolution") or label, "applied": bool(answer.get("applied", True))}
         if label not in RESOLUTION_LABELS:
-            return {"_error": f"Unknown resolution '{label}'. Allowed: {', '.join(RESOLUTION_LABELS)}."}
+            return tool_error(f"Unknown resolution '{label}'. Allowed: {', '.join(RESOLUTION_LABELS)}.",
+                              "INVALID_ARGS")
 
         dock = self.dock(inst)
         setter = getattr(dock, "_on_resolution_selected", None) if dock is not None else None
@@ -396,7 +393,7 @@ class AiEditAccess:
         try:
             setter(label)
         except Exception as err:
-            return {"_error": f"Failed to set resolution: {err}"}
+            return tool_error(f"Failed to set resolution: {err}", "EXECUTION_FAILED")
 
         applied = label
         if hasattr(dock, "get_selected_resolution"):
@@ -456,10 +453,10 @@ class AiEditAccess:
 
         dock = self.dock(inst)
         if dock is None:
-            return {"_error": "AI Edit dock is not available for references."}
+            return tool_error("AI Edit dock is not available for references.", "EXECUTION_FAILED")
         widget = _attr(dock, "_reference_widget", "reference_widget")
         if widget is None:
-            return {"_error": "AI Edit reference widget is not available."}
+            return tool_error("AI Edit reference widget is not available.", "EXECUTION_FAILED")
 
 
         try:
@@ -537,14 +534,14 @@ class AiEditAccess:
         params = params or {}
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         from ..integration_handoff import edit_prompt, interactive_state
         try:
             draft = interactive_state(self._mcp_api(inst)) if "prompt" not in params else None
             prompt = edit_prompt(params, draft)
         except (ValueError, TypeError, RuntimeError) as err:
-            return {"_error": str(err), "code": "INVALID_ARGS"}
+            return tool_error(str(err), "INVALID_ARGS")
 
 
 
@@ -564,7 +561,7 @@ class AiEditAccess:
             try:
                 selected = setter(raster_layer(source).id())
             except ValueError as exc:
-                return {"_error": str(exc), "code": "INVALID_ARGS"}
+                return tool_error(str(exc), "INVALID_ARGS")
             if isinstance(selected, dict) and selected.get("_error"):
                 return selected
 
@@ -635,7 +632,7 @@ class AiEditAccess:
                     else:
                         zone(extent)
                 except Exception as err:
-                    return {"_error": f"Zone selection failed: {err}"}
+                    return tool_error(f"Zone selection failed: {err}", "EXECUTION_FAILED")
             else:
                 inst._selected_extent = extent
                 if outline is not None:
@@ -673,13 +670,14 @@ class AiEditAccess:
             generate = _attr(inst, "_on_generate")
             public_generate = getattr(self._mcp_api(inst), "generate", None)
             if not callable(generate) and not callable(public_generate):
-                return {"_error": "AI Edit generation entry point is not available."}
+                return tool_error("AI Edit generation entry point is not available.", "EXECUTION_FAILED")
             try:
                 if callable(public_generate):
                     accepted = public_generate(prompt=prompt, template_id=template_id)
                     if not isinstance(accepted, dict) or not accepted.get("submitted"):
                         return accepted if isinstance(accepted, dict) else {
-                            "_error": "AI Edit did not report accepting the generation.", "submitted": False}
+                            "submitted": False,
+                            **tool_error("AI Edit did not report accepting the generation.", "EXECUTION_FAILED")}
                 else:
                     inst._api_run_requested = True
                     try:
@@ -687,10 +685,10 @@ class AiEditAccess:
                     finally:
                         inst._api_run_requested = False
                     if not self.is_busy(inst):
-                        return {"_error": "AI Edit did not take the run.", "submitted": False}
+                        return {"submitted": False, **tool_error("AI Edit did not take the run.", "EXECUTION_FAILED")}
                     accepted = {"submitted": True}
             except Exception as err:
-                return {"_error": f"Generation start failed: {err}"}
+                return tool_error(f"Generation start failed: {err}", "EXECUTION_FAILED")
             process_events()
             submitted = True
 
@@ -892,12 +890,12 @@ class AiEditAccess:
                     float(bbox["xmax"]), float(bbox["ymax"]),
                 )
             except (KeyError, TypeError, ValueError):
-                return {"_error": "bbox dict needs numeric xmin, ymin, xmax, ymax."}
+                return tool_error("bbox dict needs numeric xmin, ymin, xmax, ymax.", "INVALID_ARGS")
         if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
             try:
                 return QgsRectangle(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
             except (TypeError, ValueError):
-                return {"_error": "bbox must be 4 numbers [xmin,ymin,xmax,ymax]."}
+                return tool_error("bbox must be 4 numbers [xmin,ymin,xmax,ymax].", "INVALID_ARGS")
         held = self.current_zone()
         if held is not None:
             from ..cost_guard import _to_canvas_crs
@@ -991,7 +989,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         from qgis.core import QgsProject
 
@@ -1152,22 +1150,22 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         was_busy = self.is_busy(inst)
         if exit_session:
             fn = _attr(inst, "_on_exit_clicked")
             if not callable(fn):
-                return {"_error": "AI Edit exit handler (_on_exit_clicked) is not available."}
+                return tool_error("AI Edit exit handler (_on_exit_clicked) is not available.", "EXECUTION_FAILED")
             action = "exit"
         else:
             fn = _attr(inst, "_on_stop")
             if not callable(fn):
-                return {"_error": "AI Edit stop handler (_on_stop) is not available."}
+                return tool_error("AI Edit stop handler (_on_stop) is not available.", "EXECUTION_FAILED")
             action = "stop"
         try:
             fn()
         except Exception as err:
-            return {"_error": f"AI Edit {action} failed: {err}"}
+            return tool_error(f"AI Edit {action} failed: {err}", "EXECUTION_FAILED")
         process_events()
 
 
@@ -1194,7 +1192,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         own = getattr(self._mcp_api(inst), "list_versions", None)
         if callable(own):
             return own()
@@ -1205,7 +1203,7 @@ class AiEditAccess:
             count = int(strip.count())
             sel = int(strip.selected_index())
         except Exception as err:
-            return {"_error": f"Failed to read version strip: {err}"}
+            return tool_error(f"Failed to read version strip: {err}", "EXECUTION_FAILED")
         tiles = getattr(strip, "_tiles", []) or []
         versions = []
         for i in range(count):
@@ -1226,7 +1224,7 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
         own = getattr(self._mcp_api(inst), "select_version", None)
         if callable(own):
@@ -1244,9 +1242,9 @@ class AiEditAccess:
         try:
             idx = int(index)
         except (TypeError, ValueError):
-            return {"_error": "index must be an integer."}
+            return tool_error("index must be an integer.", "INVALID_ARGS")
         if idx < 0 or idx >= count:
-            return {"_error": f"index out of range (valid 0..{count - 1}).", "count": count}
+            return {**tool_error(f"index out of range (valid 0..{count - 1}).", "INVALID_ARGS"), "count": count}
         try:
             if hasattr(dock, "select_version"):
                 dock.select_version(idx)
@@ -1254,7 +1252,7 @@ class AiEditAccess:
             if callable(handler):
                 handler(idx)
         except Exception as err:
-            return {"_error": f"Version selection failed: {err}"}
+            return tool_error(f"Version selection failed: {err}", "EXECUTION_FAILED")
         process_events()
         try:
             label = strip.label_for(idx)
@@ -1297,48 +1295,49 @@ class AiEditAccess:
         params = params or {}
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         from qgis.core import QgsProject, QgsRasterLayer
 
         layer_name = (params.get("layer_name") or "").strip()
         if layer_name:
             raster = _find_project_layer(layer_name)
             if raster is None:
-                return {"_error": f"No project layer named '{layer_name}'."}
+                return tool_error(f"No project layer named '{layer_name}'.", "INVALID_ARGS")
         else:
             raster = self._newest_result_raster(QgsProject.instance())
             if raster is None:
-                return {"_error": "No AI Edit result raster in the AI-Edit group; layer_name names one."}
+                return tool_error("No AI Edit result raster in the AI-Edit group; layer_name names one.",
+                                  "INVALID_ARGS")
         if not isinstance(raster, QgsRasterLayer):
-            return {"_error": f"Layer '{raster.name()}' is not a raster."}
+            return tool_error(f"Layer '{raster.name()}' is not a raster.", "INVALID_ARGS")
 
         target_rgb = params.get("target_rgb")
         if not (isinstance(target_rgb, (list, tuple)) and len(target_rgb) == 3):
-            return {"_error": "target_rgb must be [r, g, b] with 0-255 values."}
+            return tool_error("target_rgb must be [r, g, b] with 0-255 values.", "INVALID_ARGS")
         try:
             rgb = tuple(max(0, min(255, int(c))) for c in target_rgb)
         except (TypeError, ValueError):
-            return {"_error": "target_rgb values must be integers 0-255."}
+            return tool_error("target_rgb values must be integers 0-255.", "INVALID_ARGS")
 
         try:
             svc = self._aiedit_submodule(inst, "core.generation.vectorization_service")
         except Exception as err:
-            return {"_error": f"Cannot load AI Edit vectorization service: {err}"}
+            return tool_error(f"Cannot load AI Edit vectorization service: {err}", "EXECUTION_FAILED")
         vbc = getattr(svc, "vectorize_by_color", None)
         if not callable(vbc):
-            return {"_error": "vectorize_by_color is not available in this AI Edit version."}
+            return tool_error("vectorize_by_color is not available in this AI Edit version.", "EXECUTION_FAILED")
 
         kwargs: dict[str, Any] = {}
         if params.get("tolerance") is not None:
             try:
                 kwargs["tolerance"] = int(params["tolerance"])
             except (TypeError, ValueError):
-                return {"_error": "tolerance must be an integer."}
+                return tool_error("tolerance must be an integer.", "INVALID_ARGS")
         if params.get("simplify_factor") is not None:
             try:
                 kwargs["simplify_factor"] = float(params["simplify_factor"])
             except (TypeError, ValueError):
-                return {"_error": "simplify_factor must be a number."}
+                return tool_error("simplify_factor must be a number.", "INVALID_ARGS")
         class_label = str(params.get("class_label") or "")
         out_name = f"{raster.name()} vectorized"
 
@@ -1349,7 +1348,7 @@ class AiEditAccess:
             msg = getattr(err, "message", None) or str(err)
             return tool_error(f"Vectorize failed: {msg}", hint="ai_edit_vectorize_failed")
         if layer is None or not layer.isValid():
-            return {"_error": "Vectorize produced no valid layer."}
+            return tool_error("Vectorize produced no valid layer.", "EXECUTION_FAILED")
 
 
         try:
@@ -1358,7 +1357,7 @@ class AiEditAccess:
             group = self._find_group(root, "AI-Edit")
             (group or root).addLayer(layer)
         except Exception as err:
-            return {"_error": f"Vectorized layer built but adding it failed: {err}"}
+            return tool_error(f"Vectorized layer built but adding it failed: {err}", "EXECUTION_FAILED")
 
         return {
             "ok": True,
@@ -1383,15 +1382,16 @@ class AiEditAccess:
         reader = getattr(api, "get_preset", None)
         found = reader(template_id) if callable(reader) else None
         if not isinstance(found, dict) or not found.get("found"):
-            return {"_error": (found or {}).get("note") or f"No AI Edit preset with id {template_id}."}
+            return tool_error((found or {}).get("note") or f"No AI Edit preset with id {template_id}.",
+                              "INVALID_ARGS")
         dock = self.dock(inst)
         primer = getattr(dock, "prime_prompt_from_preset", None) if dock is not None else None
         if not callable(primer):
-            return {"_error": "This AI Edit version cannot load a preset into its prompt box."}
+            return tool_error("This AI Edit version cannot load a preset into its prompt box.", "EXECUTION_FAILED")
         try:
             primer(found["preset"])
         except Exception as err:  # noqa: BLE001
-            return {"_error": f"Loading the preset failed: {err}"}
+            return tool_error(f"Loading the preset failed: {err}", "EXECUTION_FAILED")
         return {"applied": True, "preset_id": template_id}
 
     def apply_panel_settings(self, params: dict) -> dict:
@@ -1406,7 +1406,7 @@ class AiEditAccess:
 
         _, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         api = self._mcp_api(inst)
         applied: dict = {}
         failed: dict = {}
@@ -1506,10 +1506,10 @@ class AiEditAccess:
 
         key, inst = _find_plugin()
         if inst is None:
-            return {"_error": "AI Edit plugin is not installed."}
+            return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         action = (action or "").strip().lower()
         if action not in ("draw", "clear", "done"):
-            return {"_error": "action must be 'draw', 'clear', or 'done'."}
+            return tool_error("action must be 'draw', 'clear', or 'done'.", "INVALID_ARGS")
 
         in_panel = _attr(inst, "_in_tool_panel")
 
@@ -1522,7 +1522,7 @@ class AiEditAccess:
             try:
                 enter()
             except Exception as err:
-                return {"_error": f"Entering markup mode failed: {err}"}
+                return tool_error(f"Entering markup mode failed: {err}", "EXECUTION_FAILED")
             process_events()
 
         manager = _attr(inst, "_markup_manager")
@@ -1535,9 +1535,9 @@ class AiEditAccess:
                 elif manager is not None and hasattr(manager, "clear_all"):
                     manager.clear_all()
                 else:
-                    return {"_error": "Markup manager unavailable."}
+                    return tool_error("Markup manager unavailable.", "EXECUTION_FAILED")
             except Exception as err:
-                return {"_error": f"Markup clear failed: {err}"}
+                return tool_error(f"Markup clear failed: {err}", "EXECUTION_FAILED")
             process_events()
             count = manager.annotation_count() if (manager is not None and hasattr(manager, "annotation_count")) else 0
             return {"ok": True, "action": "clear", "annotation_count": count}
@@ -1545,26 +1545,28 @@ class AiEditAccess:
         if action == "done":
             fn = _attr(inst, "_on_markup_done_clicked")
             if not callable(fn):
-                return {"_error": "AI Edit markup done handler (_on_markup_done_clicked) not available."}
+                return tool_error("AI Edit markup done handler (_on_markup_done_clicked) not available.",
+                                  "EXECUTION_FAILED")
             try:
                 fn()
             except Exception as err:
-                return {"_error": f"Markup done failed: {err}"}
+                return tool_error(f"Markup done failed: {err}", "EXECUTION_FAILED")
             process_events()
             return {"ok": True, "action": "done",
                     "note": "Marks composited into the zone reference; dock returned to the prompt state."}
 
 
         if not geometry_wkt:
-            return {"_error": "geometry_wkt is required for 'draw' (LINESTRING/MULTILINESTRING/POLYGON in canvas CRS)."}
+            return tool_error("geometry_wkt is required for 'draw' (LINESTRING/MULTILINESTRING/POLYGON in canvas CRS).",
+                              "INVALID_ARGS")
         if manager is None or not hasattr(manager, "commit"):
-            return {"_error": "Markup manager unavailable (launch AI Edit and draw a zone first)."}
+            return tool_error("Markup manager unavailable (launch AI Edit and draw a zone first).", "EXECUTION_FAILED")
         from qgis.core import QgsGeometry, QgsWkbTypes
         from qgis.PyQt.QtGui import QColor
 
         geom = QgsGeometry.fromWkt(str(geometry_wkt))
         if geom is None or geom.isEmpty():
-            return {"_error": "Invalid geometry_wkt."}
+            return tool_error("Invalid geometry_wkt.", "INVALID_ARGS")
         shape = "pencil"
         try:
             gtype = geom.type()
@@ -1587,7 +1589,7 @@ class AiEditAccess:
         try:
             manager.commit(geom, qcolor, shape)
         except Exception as err:
-            return {"_error": f"Markup draw failed: {err}"}
+            return tool_error(f"Markup draw failed: {err}", "EXECUTION_FAILED")
         process_events()
         after = manager.annotation_count() if hasattr(manager, "annotation_count") else None
         added = before is None or after is None or after > before

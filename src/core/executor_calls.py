@@ -291,7 +291,7 @@ class _ExecutorCalls:
                        f"The user declined {name} for this answer.",
                        "Further calls of it in this answer are refused the same way.")
             return
-        if asks and per_answer and name in self._run_allowed.get(run_id, ()):
+        if asks and per_answer and self._allowed_for_answer(run_id, name, danger):
 
 
 
@@ -824,6 +824,11 @@ class _ExecutorCalls:
             return Approval.ASK
         return approval
 
+    def _allowed_for_answer(self, run_id: str, name: str, danger: str) -> bool:
+
+        granted = self._run_allowed.get(run_id, {}).get(name)
+        return granted is not None and Danger.RANK.get(danger, 2) <= Danger.RANK[granted]
+
     @staticmethod
     def _asks(approval: str, danger: str) -> bool:
         return ((approval == Approval.CAREFUL and danger != Danger.READ)
@@ -910,7 +915,8 @@ class _ExecutorCalls:
 
 
 
-            self._run_allowed.setdefault(run_id, set()).add(name)
+            granted = self._run_allowed.setdefault(run_id, {})
+            granted[name] = Danger.most_dangerous(granted.get(name), call.get("danger"))
         if call.get("unvouched") and not edits:
 
 

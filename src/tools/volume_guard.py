@@ -47,7 +47,7 @@ import time
 
 from ..core import limits, tuning
 from ..core.logger import log_warning
-from ..core.tool_registry import spec
+from ..core.tool_registry import spec, tool_error
 
 
 
@@ -714,8 +714,8 @@ def clamp_to_cap(name: str, args: dict) -> dict:
     return {"asked_km2": round(float(area), 1), "box_km2": used,
             "bbox": {"south": south, "west": west, "north": north, "east": east},
             "note": (f"The box asked for measured {area:,.1f} km² and one call covers {hard:,.0f} km², so it "
-                     f"was read at the size that fits, {used:,.1f} km² about the same centre. The bbox in "
-                     "this result is what is on the map; the rest of the zone needs another call.")}
+                     f"was read at the size that fits, {used:,.1f} km² about the same centre."),
+            "note_next_hint": "bbox_clamped_rest"}
 
 
 def largest_fitting_bbox(box, hard: float):
@@ -1022,14 +1022,12 @@ def too_many(count: int, args: dict, what: str = "this source", held: str = "") 
         return None
     if count <= hard_max_features():
         return None
-    return {
-        "_error": (f"{what} holds {count:,} features, over the {hard_max_features():,} QGIS can hold in "
-                   "memory on this computer. It was not added."),
-        "feature_count": count,
 
-        **coded(hint="feature_ceiling", variant="held"), "max_features": hard_max_features(),
-        **_cap_fitting_zone(count, args, hard_max_features()),
-    }
+    return tool_error(
+        f"{what} holds {count:,} features, over the {hard_max_features():,} QGIS can hold in "
+        "memory on this computer. It was not added.",
+        "EXECUTION_FAILED", hint="feature_ceiling", variant="held", feature_count=count,
+        max_features=hard_max_features(), **_cap_fitting_zone(count, args, hard_max_features()))
 
 
 def too_many_features(layer, args: dict, what: str = "this source", held: str = "") -> dict | None:

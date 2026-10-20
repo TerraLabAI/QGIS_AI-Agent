@@ -136,6 +136,17 @@ def _algorithm(job: dict, progress_path: str) -> dict:
 
     for key, value in (job.get("settings") or {}).items():
         settings.setValue(key, value)
+    temp_folder = job.get("temp_folder")
+    if temp_folder:
+
+
+
+
+
+
+
+        for key in ("Processing/Configuration/TEMP_PATH2", "qgis/configuration/temp-path"):
+            settings.setValue(key, temp_folder.replace("\\", "/"))
     project = QgsProject.instance()
     crs = (job.get("project") or {}).get("crs")
     if crs:

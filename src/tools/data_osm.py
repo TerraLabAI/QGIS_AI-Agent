@@ -113,16 +113,14 @@ def _osm_from_hosted(plan: list, box, args: dict, km2: float) -> dict:
         themes = ", ".join(theme for theme, _ in plan)
 
 
-
         first = failures[0] if failures else {}
 
         coded = next((f for f in failures if f.get("hint") == "hosted_unreachable"),
                      next((f for f in failures if f.get("hint")), {}))
-        return {"_error": f"{km2:,.0f} km² of {themes} could not be served from TerraLab's tiles: "
-                + "; ".join(errors),
-                "box_km2": round(km2, 1), "code": first.get("code") or "EXECUTION_FAILED",
-                "suggestion": first.get("suggestion") or "",
-                **{k: coded[k] for k in ("hint", "variant") if k in coded}}
+        return {**tool_error(f"{km2:,.0f} km² of {themes} could not be served from TerraLab's tiles: "
+                             + "; ".join(errors), first.get("code") or "EXECUTION_FAILED",
+                             **{k: coded[k] for k in ("hint", "variant") if k in coded}),
+                "box_km2": round(km2, 1)}
     served = [layer["theme"] for layer in layers]
     made = {"served_by": "TerraLab hosted tiles", "box_km2": round(km2, 1),
             "themes": served, "layers": layers,
@@ -286,9 +284,9 @@ def _osm_area_refusal(km2: float, box=None, args: dict | None = None) -> dict | 
                 "call may cover; the request was not sent.")
 
 
-    return {"_error": what + volume_guard.WHOLE_BEFORE_PART, "box_km2": round(km2, 1),
-            "code": limits.CEILING_CODE, **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
-            "cap_km2": round(ceiling, 1), **fit}
+    return tool_error(what + volume_guard.WHOLE_BEFORE_PART, limits.CEILING_CODE,
+                      **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
+                      box_km2=round(km2, 1), cap_km2=round(ceiling, 1), **fit)
 
 
 
@@ -327,10 +325,10 @@ _FOOTPRINT_TIMEOUT = 75
 def _fetch_building_footprints(args: dict) -> dict:
     box, problem = _footprint_box(args.get("bbox") or {})
     if box is None:
-        return {"_error": problem}
+        return tool_error(problem, "INVALID_ARGS")
     problem = volume_guard.not_degrees(*box)
     if problem:
-        return {"_error": problem, "code": "INVALID_ARGS"}
+        return tool_error(problem, "INVALID_ARGS")
     west, south, east, north = box
 
 
@@ -342,7 +340,7 @@ def _fetch_building_footprints(args: dict) -> dict:
     asked = ["openstreetmap" if source == "osm" else source for source in asked]
     sources = [name for name in _FOOTPRINT_SOURCES if name in asked]
     if not sources:
-        return {"_error": f"sources must name at least one of: {', '.join(_FOOTPRINT_SOURCES)}"}
+        return tool_error(f"sources must name at least one of: {', '.join(_FOOTPRINT_SOURCES)}", "INVALID_ARGS")
 
 
 
@@ -355,11 +353,10 @@ def _fetch_building_footprints(args: dict) -> dict:
     if area_km2 > cap_km2:
 
 
-        return {"_error": f"This box is {area_km2:.0f} km2 and the footprint service takes at most "
-                f"{cap_km2:.0f} km2.",
-                "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                **volume_guard.coded(hint="area_cap", variant="fetch_building_footprints"),
-                "cap_km2": round(cap_km2, 1)}
+        return tool_error(f"This box is {area_km2:.0f} km2 and the footprint service takes at most "
+                          f"{cap_km2:.0f} km2.", limits.CEILING_CODE,
+                          **volume_guard.coded(hint="area_cap", variant="fetch_building_footprints"),
+                          box_km2=round(area_km2, 1), cap_km2=round(cap_km2, 1))
 
     added, empty = [], []
 
@@ -419,14 +416,14 @@ def _fetch_building_footprints(args: dict) -> dict:
 
                 return None, tool_error(message, hint="footprint_request_too_large" if error.code == 413
                                         else "footprint_no_reason", status=error.code)
-            return None, {"_error": message}
+            return None, tool_error(message, "INVALID_ARGS")
         except (net.FetchDeadline, net.FetchTruncated, net.NetworkUnreachable, OSError) as error:
             return None, tool_error(f"Could not reach the footprint service: {error}",
                                     hint="footprint_unreachable")
         try:
             return json.loads(answer.body), None
         except (ValueError, UnicodeDecodeError):
-            return None, {"_error": "The footprint service did not answer with JSON."}
+            return None, tool_error("The footprint service did not answer with JSON.")
 
     payload: dict = {}
     if service_sources:
@@ -494,7 +491,7 @@ def _fetch_building_footprints(args: dict) -> dict:
             def _create(uri=uri, name=name, built=built):
                 layer = _layer_from_source(uri, name, built)
                 if not layer.isValid():
-                    return {"_error": f"Could not build a layer from the {name} footprints."}
+                    return tool_error(f"Could not build a layer from the {name} footprints.")
                 QgsProject.instance().addMapLayer(layer)
                 return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount()}
 
@@ -644,10 +641,9 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
         north = bbox.get("north")
         east = bbox.get("east")
     if None in (south, west, north, east):
-        return {"_error": f"bbox must provide either {{south, west, north, east}} or "
-                f"{{xmin, ymin, xmax, ymax}}; got keys {sorted(bbox)}.",
-                "code": "INVALID_ARGS",
-                "suggestion": "The four numbers are in EPSG:4326 degrees, under one of those two key sets."}
+        return tool_error(f"bbox must provide either {{south, west, north, east}} or "
+                          f"{{xmin, ymin, xmax, ymax}}; got keys {sorted(bbox)}.", "INVALID_ARGS",
+                          hint="osm_bbox_keys")
     try:
         inverted = float(east) <= float(west) or float(north) <= float(south)
     except (TypeError, ValueError):
@@ -655,13 +651,11 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
     if inverted:
 
 
-        return {"_error": f"bbox is inverted: west {west}, east {east}, south {south}, north {north}.",
-                "code": "INVALID_ARGS",
-                "suggestion": "west < east and south < north, in EPSG:4326 degrees."}
+        return tool_error(f"bbox is inverted: west {west}, east {east}, south {south}, north {north}.",
+                          "INVALID_ARGS", hint="osm_bbox_inverted")
     problem = volume_guard.not_degrees(west, south, east, north)
     if problem:
-        return {"_error": problem, "code": "INVALID_ARGS",
-                "suggestion": "The bbox of the place is in EPSG:4326 degrees, longitude and latitude."}
+        return tool_error(problem, "INVALID_ARGS", hint="osm_bbox_degrees")
 
     try:
         area_km2 = _bbox_km2(south, west, north, east)
@@ -677,6 +671,7 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             served["asked_km2"] = clamped["asked_km2"]
             served["bbox"] = clamped["bbox"]
             served["_note"] = clamped["note"] + " " + str(served.get("_note") or "")
+            served["note_next_hint"] = clamped["note_next_hint"]
         return served
     refused = _osm_area_refusal(area_km2, (south, west, north, east), args)
     if refused or check_only:
@@ -711,11 +706,9 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
 
 
 
-        return {
-            "_error": f"Overpass returned {len(elements)} element(s) and none of them could be drawn, "
-            "so no layer was added.",
-            "query": final_query,
-        }
+        return {**tool_error(f"Overpass returned {len(elements)} element(s) and none of them could be drawn, "
+                             "so no layer was added."),
+                "query": final_query}
 
 
 
@@ -741,7 +734,7 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             added.append({"layer_name": layer.name(), "layer_id": layer.id(),
                           "feature_count": layer.featureCount(), "geometry_type": _OSM_GEOMETRY_TYPES[family]})
         if not added:
-            return {"_error": "Failed to create layer from OSM data"}
+            return tool_error("Failed to create layer from OSM data")
         out = {
             "crs": "EPSG:4326",
             "source_endpoint": endpoint_used,
@@ -786,6 +779,7 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             out["asked_km2"] = clamped["asked_km2"]
             out["bbox"] = clamped["bbox"]
             out["_note"] = clamped["note"]
+            out["note_next_hint"] = clamped["note_next_hint"]
         if got.get("tiles"):
 
 
@@ -890,20 +884,19 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
 
 
 
-            return {"_error": (f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
-                               "which is not answering or not served to this session."),
-                    "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
-                    "cap_km2": round(public_cap, 1)}
+            return tool_error(f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
+                              "which is not answering or not served to this session.", limits.CEILING_CODE,
+                              **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
+                              box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
         if raw is None and fell_back and area_km2 > public_cap:
 
 
             if own_failed:
                 volume_guard.note_own_overpass_down()
-            return {"_error": (f"TerraLab's own Overpass instance did not answer{_overpass_why(errors)}, and "
-                               f"{area_km2:,.0f} square kilometres is more than the public mirrors are asked for."),
-                    "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    **coded_fact(hint="overpass_own_down_over_cap", cap_km2=round(public_cap, 1))}
+            return tool_error(f"TerraLab's own Overpass instance did not answer{_overpass_why(errors)}, and "
+                              f"{area_km2:,.0f} square kilometres is more than the public mirrors are asked for.",
+                              limits.CEILING_CODE, hint="overpass_own_down_over_cap",
+                              box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
         if raw is None and fell_back:
 
 
@@ -946,8 +939,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             elements = osm_data["elements"]
             if not elements:
 
-                return {"_error": f"Overpass timed out before answering: {truncated_remark}",
-                        "code": "TIMEOUT",
+                return {**tool_error(f"Overpass timed out before answering: {truncated_remark}", "TIMEOUT"),
                         "query": final_query}
 
 
@@ -956,12 +948,12 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
 
 
 
-            return {"_error": (f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
-                               f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added."),
-                    "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    **volume_guard.coded(hint="feature_ceiling", variant="cap")}
+            return tool_error(f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
+                              f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added.",
+                              limits.CEILING_CODE, **volume_guard.coded(hint="feature_ceiling", variant="cap"),
+                              box_km2=round(area_km2, 1))
         elif any("Invalid response from Overpass API" in str(error) for error in errors):
-            return {"_error": f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data."}
+            return tool_error(f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data.")
         else:
 
 
@@ -980,7 +972,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             turbo_query = urllib.parse.quote(final_query, safe="")
             turbo_url = f"https://overpass-turbo.eu/?Q={turbo_query}&R"
             why = _overpass_why(errors)
-            return {"_error": f"{down_prefix}Overpass API timed out{why}. Fallback overpass_turbo: {turbo_url}"}
+            return tool_error(f"{down_prefix}Overpass API timed out{why}. Fallback overpass_turbo: {turbo_url}")
     else:
         try:
             osm_data = parsed_answers.get(endpoint_used)
@@ -988,7 +980,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
                 osm_data = decode_answer(raw)
         except ValueError:
             _OSM_RECENT.pop(final_query, None)
-            return {"_error": "Invalid response from Overpass API"}
+            return tool_error("Invalid response from Overpass API")
         if cached is None:
             _osm_remember(final_query, endpoint_used, raw)
 
@@ -1045,26 +1037,26 @@ def _overpass_tiled(query: str, tiles: list, args: dict, area_km2: float) -> dic
     first: dict = {}
     for index, tile in enumerate(tiles, 1):
         if cancelled is not None and cancelled():
-            return {"_error": "The load was stopped before it finished.", "code": "CANCELLED"}
+            return tool_error("The load was stopped before it finished.", "CANCELLED")
         if index > 1 and time.monotonic() > deadline:
-            return {"_error": (f"Only {index - 1} of the {len(tiles)} tiles of this {area_km2:,.0f} km² box "
-                               "came back inside the call's clock; nothing was added."),
-                    "box_km2": round(area_km2, 1), "code": "TIMEOUT",
-                    **coded_fact(hint="osm_tiles_timeout", tiles_back=index - 1, tiles=len(tiles))}
+            return tool_error(f"Only {index - 1} of the {len(tiles)} tiles of this {area_km2:,.0f} km² box "
+                              "came back inside the call's clock; nothing was added.", "TIMEOUT",
+                              hint="osm_tiles_timeout", box_km2=round(area_km2, 1),
+                              tiles_back=index - 1, tiles=len(tiles))
         got = _overpass_answer(query, tile, args, limits.bbox_km2(*tile))
         if "elements" not in got:
             if cancelled is not None and cancelled():
-                return {"_error": "The load was stopped before it finished.", "code": "CANCELLED"}
+                return tool_error("The load was stopped before it finished.", "CANCELLED")
             got = dict(got)
             got["_error"] = f"Tile {index} of {len(tiles)}: {got.get('_error', '')}"
             got["box_km2"] = round(area_km2, 1)
             return got
         total += int(got.get("bytes") or 0)
         if total > _MAX_DOWNLOAD_SIZE:
-            return {"_error": (f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
-                               f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added."),
-                    "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                    **volume_guard.coded(hint="feature_ceiling", variant="cap")}
+            return tool_error(f"The OpenStreetMap answer for {area_km2:,.0f} square kilometres is larger than "
+                              f"the {_human_bytes(_MAX_DOWNLOAD_SIZE)} one call reads; nothing was added.",
+                              limits.CEILING_CODE, **volume_guard.coded(hint="feature_ceiling", variant="cap"),
+                              box_km2=round(area_km2, 1))
         if not first:
             first = got
         elif got.get("truncated_remark") and not first.get("truncated_remark"):
@@ -1110,9 +1102,8 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         if free is not None:
             cap = min(cap, max(0, free - net.STREAM_KEEP_FREE_BYTES) // _OSM_STREAM_DISK_SHARE)
         if cap < _OSM_STREAM_MIN_BYTES:
-            return {"_error": (f"The disk has {(free or 0) / 1024 ** 3:.1f} GB free, too little to write a load of "
-                               "this size and convert it."),
-                    "code": limits.CEILING_CODE, **coded_fact(hint="osm_disk_low")}
+            return tool_error(f"The disk has {(free or 0) / 1024 ** 3:.1f} GB free, too little to write a load of "
+                              "this size and convert it.", limits.CEILING_CODE, hint="osm_disk_low")
         fetched = _osm_stream_fetch(final_query, directory, area_km2, args,
                                     started + clock * _OSM_STREAM_DOWNLOAD_SHARE, query_timeout, cap)
         if fetched.get("_error") or fetched.get("empty"):
@@ -1140,7 +1131,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
             if fetched.get("remark"):
 
 
-                return {"_error": f"Overpass timed out before answering: {fetched['remark']}", "code": "TIMEOUT",
+                return {**tool_error(f"Overpass timed out before answering: {fetched['remark']}", "TIMEOUT"),
                         "query": final_query}
             empty = {"features": 0, "empty": True}
             if warning:
@@ -1150,8 +1141,9 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         counts, tables = converted["counts"], converted["tables"]
         total = sum(counts.values())
         if not total:
-            return {"_error": (f"Overpass returned {converted['elements']} element(s) and none of them could be drawn, "
-                               "so no layer was added."), "query": final_query}
+            return {**tool_error(f"Overpass returned {converted['elements']} element(s) and none of them could be "
+                                 "drawn, so no layer was added."),
+                    "query": final_query}
         several = len(tables) > 1
 
         def _create():
@@ -1172,8 +1164,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         check()
         added = run_on_main_thread(_create, timeout=30)
         if not added:
-            return {"_error": f"QGIS could not read the GeoPackage written for {layer_name}.",
-                    "code": "EXECUTION_FAILED"}
+            return tool_error(f"QGIS could not read the GeoPackage written for {layer_name}.")
         kept = True
         size = os.path.getsize(gpkg)
         wall = time.monotonic() - started
@@ -1211,10 +1202,10 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
             out["beyond_bbox"] = reach
         return out
     except (_LoadStopped, net.FetchCancelled):
-        return {"_error": "The load was stopped before it finished.", "code": "CANCELLED"}
+        return tool_error("The load was stopped before it finished.", "CANCELLED")
     except ValueError:
 
-        return {"_error": "Invalid response from Overpass API"}
+        return tool_error("Invalid response from Overpass API")
     finally:
         if not kept:
             remove_tree(directory)
@@ -1289,21 +1280,20 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
     public_cap = (volume_guard.dense_max_km2() if volume_guard.is_dense("fetch_osm_data", args)
                   else limits.current("MAX_FETCH_KM2"))
     if not endpoints and area_km2 > public_cap:
-        return {"_error": (f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
-                           "which is not answering or not served to this session."),
-                "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
-                "cap_km2": round(public_cap, 1)}
+        return tool_error(f"{area_km2:,.0f} square kilometres needs TerraLab's own Overpass instance, "
+                          "which is not answering or not served to this session.", limits.CEILING_CODE,
+                          **volume_guard.coded(hint="area_cap", variant="fetch_osm_data"),
+                          box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
     if path is None and own_failed and area_km2 > public_cap:
 
 
         volume_guard.note_own_overpass_down()
         if links and all(links):
             return link_failure()
-        return {"_error": (f"TerraLab's own Overpass instance is not answering, and {area_km2:,.0f} square "
-                           "kilometres is more than a public mirror is sent."),
-                "box_km2": round(area_km2, 1), "code": limits.CEILING_CODE,
-                **coded_fact(hint="overpass_own_down_over_cap", variant="stream", cap_km2=round(public_cap, 1))}
+        return tool_error(f"TerraLab's own Overpass instance is not answering, and {area_km2:,.0f} square "
+                          "kilometres is more than a public mirror is sent.", limits.CEILING_CODE,
+                          hint="overpass_own_down_over_cap", variant="stream",
+                          box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
     warning = ""
     if path is None and fell_back:
         if own_failed:
@@ -1320,7 +1310,7 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         endpoint_used, (path, remark) = max(partial.items(), key=lambda kv: os.path.getsize(kv[1][0]))
         return {"path": path, "endpoint": endpoint_used, "remark": remark, "warning": warning}
     if any("Invalid response from Overpass API" in str(error) for error in errors):
-        return {"_error": f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data."}
+        return tool_error(f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data.")
     rejected = _overpass_rejection(errors)
     if rejected:
         return tool_error(f"Overpass rejected the query: {rejected}", hint="overpass_query_rejected",

@@ -27,6 +27,10 @@ class PlanRuns(NamedTuple):
     reset_iso: str | None
 
 
+    trial_ends_on: str | None = None
+    trial_interval: str | None = None
+
+
 def _as_int(value) -> int | None:
     if value is None or isinstance(value, bool):
         return None
@@ -54,7 +58,11 @@ def resolve_plan_runs(usage: dict, sub: dict) -> PlanRuns:
         limit = _as_int(sub.get("quota_limit"))
     reset = (usage.get("period_end") or usage.get("reset_date")
              or sub.get("current_period_end"))
-    return PlanRuns(is_subscriber, used, limit, str(reset) if reset else None)
+    trial_end = usage.get("plan_trial_ends_on")
+    interval = usage.get("plan_trial_interval")
+    return PlanRuns(is_subscriber, used, limit, str(reset) if reset else None,
+                    str(trial_end) if trial_end and is_subscriber else None,
+                    interval if interval in ("month", "year") else None)
 
 
 def format_count(value) -> str:

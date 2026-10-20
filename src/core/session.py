@@ -31,7 +31,7 @@ from typing import Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
-from . import crash_note, data_access, protocol, tuning
+from . import crash_note, data_access, protocol, stalls, tuning
 from .logger import log, log_warning
 from .protocol import ProtocolError, ServerErrorCode
 from .security_urls import host_name
@@ -642,12 +642,13 @@ class AgentSession(QObject):
         return out
 
     def send_tool_result(self, tool_call_id: str, run_id: str, result, code_class: str = "") -> bool:
-        return self._send(protocol.tool_result(tool_call_id, run_id, result, code_class),
+        return self._send(protocol.tool_result(tool_call_id, run_id, result, code_class, stalls.run_totals(run_id)),
                           self._answer_clock(tool_call_id))
 
     def send_tool_error(self, tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
                         code_class: str = "", detail: str = "") -> bool:
-        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion, code_class, detail),
+        return self._send(protocol.tool_error(tool_call_id, run_id, code, message, suggestion, code_class, detail,
+                                              stalls.run_totals(run_id)),
                           self._answer_clock(tool_call_id))
 
     def _answer_clock(self, tool_call_id: str) -> tuple | None:
@@ -687,6 +688,12 @@ class AgentSession(QObject):
 
     def send_effort(self, run_id: str, effort: str) -> bool:
         return self._send(protocol.effort_switch(run_id, effort))
+
+    def send_funnel(self, snapshot: dict) -> bool:
+
+        if not self.is_online or not getattr(self, "_funnel", False):
+            return False
+        return self._send(protocol.funnel(snapshot))
 
     def send_unsteer(self, run_id: str, steer_id: str) -> bool:
         return self._send(protocol.unsteer(run_id, steer_id))
@@ -922,6 +929,7 @@ class AgentSession(QObject):
 
 
                 sends_on_ask=["manifest"],
+                machine=identity.get("machine") or None,
             )
         except Exception as exc:  # noqa: BLE001
             log_warning(f"hello could not be built: {exc}")
@@ -1364,6 +1372,7 @@ class AgentSession(QObject):
 
         self._steer = frame.get("steer") is True
         self._unsteer = frame.get("unsteer") is True
+        self._funnel = frame.get("funnel") is True
         self._edit_last = frame.get("edit_last") is True
 
         groups = frame.get("effort_switch")

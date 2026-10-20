@@ -10,7 +10,7 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import active_plugins
 
-from ...core.tool_registry import Tool, ToolRegistry
+from ...core.tool_registry import Tool, ToolRegistry, tool_error
 from .snapshot import _accessibility_snapshot
 from .widgets import (
     find_plugin as _find_plugin,
@@ -91,7 +91,7 @@ def _take_qgis_window_screenshot(args: dict) -> dict:
     max_width = min(max(int(args.get("max_width", 1280) or 1280), 200), limits.current("MAX_RENDER_WIDTH_PX"))
     main_window = iface.mainWindow()
     if main_window is None:
-        return {"_error": "QGIS main window not available"}
+        return tool_error("QGIS main window not available")
     fmt, quality = _capture_format(args)
 
 
@@ -252,7 +252,7 @@ def _open_plugin_panel(args: dict) -> dict:
     key, plugin = _find_plugin(args["plugin_name"])
     if plugin is None:
         return {
-            "_error": f"Plugin not loaded: {args['plugin_name']}",
+            **tool_error(f"Plugin not loaded: {args['plugin_name']}", "INVALID_ARGS"),
             "active_plugins": list(active_plugins or []),
         }
 

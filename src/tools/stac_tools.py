@@ -39,7 +39,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import dataset_docs, limits, net, vsi
+from ..core import data_date, dataset_docs, limits, net, read_clock, tuning, vsi
 from ..core.background import run_on_main_thread, still_awaited, take
 from ..core.context_layers import canvas_bbox_4326
 from ..core.crs_ref import crs_ref
@@ -47,7 +47,7 @@ from ..core.host_platform import remove_tree, retry_file_op
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import encode_uri_url
-from ..core.tool_registry import Tool, ToolRegistry, coded_fact
+from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import volume_guard
 from .data_common import built_here, worker_options
 from .data_tools import _avoid_reserved_name
@@ -122,8 +122,8 @@ _PMTILES_UNREAD_SHOWN = 12
 
 
 
-_NOT_AWAITED = {"_error": "The call this layer was built for had already ended; the layer was not added.",
-                "_code": "TIMEOUT"}
+_NOT_AWAITED = tool_error("The call this layer was built for had already ended; the layer was not added.",
+                          "TIMEOUT")
 
 
 def register_stac_tools(registry: ToolRegistry):
@@ -434,17 +434,11 @@ _ONE_SHOT_TIMEOUT = 60
 
 
 
-_ONE_SHOT_PIECE_BYTES = 1024 * 1024
-_ONE_SHOT_STREAMS = 4
+
+def _one_shot(key: str, shipped: int, low: int, high: int) -> int:
+    return tuning.threshold(f"one_shot_{key}", shipped, low, high)
 
 
-
-
-
-
-
-_ONE_SHOT_PIECE_STALLS = 5
-_ONE_SHOT_PIECE_ASKS = 20
 _ONE_SHOT_RETRY_BASE_S = 1.0
 _ONE_SHOT_RETRY_CODES = (429, 500, 502, 503, 504)
 
@@ -511,7 +505,7 @@ def _read_piece(ask, start: int, end: int, stopped) -> tuple[bytes, dict]:
             got = getattr(exc, "received", b"") or b""
             have += got
             stalls = 0 if got else stalls + 1
-            if stalls >= _ONE_SHOT_PIECE_STALLS or asks >= _ONE_SHOT_PIECE_ASKS:
+            if stalls >= _one_shot("piece_stalls", 3, 1, 20) or asks >= _one_shot("piece_asks", 10, 1, 60):
                 raise net.FetchDropped(
                     f"The download was cut {asks} times on bytes {start} to {end} of the file, the last "
                     f"time with {len(have)} of those {end - start + 1} bytes in hand: {exc}",
@@ -519,7 +513,7 @@ def _read_piece(ask, start: int, end: int, stopped) -> tuple[bytes, dict]:
             delay = 0.0 if got else _ONE_SHOT_RETRY_BASE_S * 2 ** (stalls - 1)
             log_warning(f"Result download: bytes {at} to {end} stopped after {len(got)} ({exc}); "
                         f"asking again from byte {start + len(have)} in {delay:.0f} s "
-                        f"(try {asks + 1} of at most {_ONE_SHOT_PIECE_ASKS}).")
+                        f"(try {asks + 1} of at most {_one_shot('piece_asks', 10, 1, 60)}).")
             waited_until = time.monotonic() + delay
             while time.monotonic() < waited_until:
                 if stopped():
@@ -551,6 +545,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
     import concurrent.futures
 
     part, record_path = _one_shot_part_paths(url)
+    piece_bytes = _one_shot("piece_bytes", 1024 * 1024, 64 * 1024, 16 * 1024 * 1024)
 
 
     cancel = net.current_cancel_check()
@@ -565,6 +560,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
     except (OSError, ValueError):
         record = {}
     if not (isinstance(record, dict) and isinstance(record.get("total"), int)
+            and record.get("piece") == piece_bytes
             and os.path.exists(part) and os.path.getsize(part) == record["total"]):
         record = {}
 
@@ -582,7 +578,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
                          polite=polite, cancel=stopped)
 
     if not record:
-        body, headers = _read_piece(lambda at, end: ask(at, end, whole=True), 0, _ONE_SHOT_PIECE_BYTES - 1, stopped)
+        body, headers = _read_piece(lambda at, end: ask(at, end, whole=True), 0, piece_bytes - 1, stopped)
         total = _content_range_total(headers)
         if total is None or total > _ONE_SHOT_MAX_BYTES:
             if total is not None:
@@ -596,18 +592,18 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
             handle.truncate(total)
             handle.seek(0)
             handle.write(body)
-        record = {"total": total, "done": [0], "headers": headers}
+        record = {"total": total, "done": [0], "headers": headers, "piece": piece_bytes}
         with open(record_path, "w", encoding="utf-8") as handle:
             json.dump(record, handle)
     total = record["total"]
     done = set(record.get("done") or [])
-    missing = [i for i in range(max(1, -(-total // _ONE_SHOT_PIECE_BYTES))) if i not in done]
+    missing = [i for i in range(max(1, -(-total // piece_bytes))) if i not in done]
     lock = threading.Lock()
     failures: list[BaseException] = []
 
     def piece(index: int) -> None:
-        start = index * _ONE_SHOT_PIECE_BYTES
-        end = min(total, start + _ONE_SHOT_PIECE_BYTES) - 1
+        start = index * piece_bytes
+        end = min(total, start + piece_bytes) - 1
         try:
             body, _headers = _read_piece(ask, start, end, stopped)
             if len(body) != end - start + 1:
@@ -628,7 +624,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
                 json.dump(record, handle)
 
     if missing:
-        pool = concurrent.futures.ThreadPoolExecutor(max_workers=_ONE_SHOT_STREAMS)
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=_one_shot("streams", 2, 1, 8))
         try:
             futures = [pool.submit(piece, i) for i in missing]
             concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_EXCEPTION)
@@ -639,7 +635,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
         if failures:
             failure = failures[0]
             with lock:
-                kept = sum(min(total, (i + 1) * _ONE_SHOT_PIECE_BYTES) - i * _ONE_SHOT_PIECE_BYTES
+                kept = sum(min(total, (i + 1) * piece_bytes) - i * piece_bytes
                            for i in record.get("done") or [])
             if isinstance(failure, net.FetchDropped) and kept:
                 raise net.FetchDropped(f"{failure} {kept} of the file's {total} bytes are kept on this "
@@ -689,8 +685,35 @@ def _declare_nan_nodata(path: str) -> None:
         log_warning(f"Downloaded raster: nodata not declared: {exc}")
 
 
+def raster_variables(path: str) -> list:
+
+
+
+
+
+    try:
+        from osgeo import gdal
+    except ImportError:  # nosec B110
+        return []
+    gdal.PushErrorHandler("CPLQuietErrorHandler")
+    try:
+        dataset = gdal.Open(path)
+        meta = {} if dataset is None or dataset.RasterCount else (dataset.GetMetadata("SUBDATASETS") or {})
+        del dataset
+    except Exception:  # noqa: BLE001
+        meta = {}
+    finally:
+        gdal.PopErrorHandler()
+    numbered = sorted((int(key.split("_")[1]), value) for key, value in meta.items()
+                      if key.endswith("_NAME") and key.split("_")[1].isdigit())
+    return [(source, source.rsplit(":", 1)[-1].lstrip("/"), meta.get(f"SUBDATASET_{index}_DESC", ""))
+            for index, source in numbered]
+
+
 def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
-                          one_shot: bool = False) -> dict:
+                          one_shot: bool = False, layer: str | None = None) -> dict:
+
+
 
 
 
@@ -711,37 +734,36 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
             body, headers = response.body, response.headers
     except Exception as exc:  # noqa: BLE001
         if isinstance(exc, net.FetchCancelled):
-            return {"_error": "The raster download was stopped.", "_code": "CANCELLED",
-                    "_suggestion": "The user stopped it; only they restart it.", "url": url}
+            return tool_error("The raster download was stopped.", "CANCELLED", hint="stac_download_stopped",
+                              url=url)
 
 
         if one_shot and isinstance(exc, urllib.error.HTTPError) and exc.code in (403, 404, 410):
-            return {"_error": f"That result is no longer on the server: {exc}",
-                    "_code": "EXECUTION_FAILED",
-                    **coded_fact(hint="download_result_expired", url=url, http_status=exc.code)}
+            return tool_error(f"That result is no longer on the server: {exc}", "EXECUTION_FAILED",
+                              hint="download_result_expired", url=url, http_status=exc.code)
         if isinstance(exc, net.FetchTooLarge):
 
 
 
-            return {"_error": f"That raster cannot be streamed and is too large to download: {exc}",
-                    "_code": "EXECUTION_FAILED",
-                    **coded_fact(hint="download_too_large", url=url)}
+            return tool_error(f"That raster cannot be streamed and is too large to download: {exc}",
+                              "EXECUTION_FAILED", hint="download_too_large", url=url)
         if net.describe_failure(exc):
-            return {"_error": f"The raster download did not finish: {exc}", "_code": "NETWORK_ERROR",
-                    **coded_fact(hint="download_interrupted", url=url)}
-        return {"_error": f"Could not download that raster: {exc}", "_code": "EXECUTION_FAILED",
-                **coded_fact(hint="download_failed", url=url)}
+            return tool_error(f"The raster download did not finish: {exc}", "NETWORK_ERROR",
+                              hint="download_interrupted", url=url)
+        return tool_error(f"Could not download that raster: {exc}", "EXECUTION_FAILED",
+                          hint="download_failed", url=url)
+
 
 
     headers = {str(k).lower(): v for k, v in (headers or {}).items()}
     credit = {key: urllib.parse.unquote(str(headers.get(header) or "")).strip()[:500]
-              for key, header in (("licence", "x-data-licence"), ("attribution", "x-data-attribution"))}
+              for key, header in (("licence", "x-data-licence"), ("attribution", "x-data-attribution"),
+                                  ("data_date", "x-data-date"))}
+    credit["data_date"] = data_date.clean(credit["data_date"])
     credit = {key: value for key, value in credit.items() if value}
     if body is not None and not body:
-        return {"_error": "That address returned an empty file.",
-                "_code": "EXECUTION_FAILED",
-                **(coded_fact(hint="download_empty_one_shot", url=url) if one_shot
-                   else coded_fact(hint="download_empty", url=url))}
+        return tool_error("That address returned an empty file.", "EXECUTION_FAILED",
+                          hint="download_empty_one_shot" if one_shot else "download_empty", url=url)
     if body is not None:
         head = body
     else:
@@ -754,11 +776,16 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
         if downloaded is not None:
             with contextlib.suppress(OSError):
                 os.remove(downloaded)
-        return {"_error": f"This raster is not opened: {refused}.", "_code": "PERMISSION_DENIED",
-                **coded_fact(hint="asset_address_refused", url=url)}
+        return tool_error(f"This raster is not opened: {refused}.", "PERMISSION_DENIED",
+                          hint="asset_address_refused", url=url)
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
 
-    path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}.tif")
+
+
+    own = os.path.splitext(urllib.parse.urlsplit(url).path)[1].lower()
+    suffix = own if own[1:].isascii() and own[1:].isalnum() and len(own) <= 6 else ".tif"
+
+    path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}{suffix}")
     try:
         if downloaded is not None:
 
@@ -768,23 +795,35 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
             with open(path, "wb") as handle:
                 handle.write(body)
     except OSError as exc:
-        return {"_error": f"Could not write the downloaded result to disk: {exc}",
-                "_code": "EXECUTION_FAILED",
-                **coded_fact(hint="download_write_failed", url=url)}
-    _declare_nan_nodata(path)
+        return tool_error(f"Could not write the downloaded result to disk: {exc}", "EXECUTION_FAILED",
+                          hint="download_write_failed", url=url)
+    source = path
+    variables = raster_variables(path)
+    if variables:
+        wanted = str(layer or "").strip().casefold()
+        picked = [entry[0] for entry in variables if wanted and wanted in (entry[1].casefold(), entry[0].casefold())]
+        listed = [{"variable": variable, "description": description} for _, variable, description in variables][:50]
+        if not picked:
+            facts = {"url": url, "variables": listed, "local_path": path}
+            if wanted:
+                return tool_error(f"The file holds no variable named {layer!r}.", "INVALID_ARGS",
+                                  hint="raster_variable_not_found", **facts)
+            return {**facts, "_note": f"The file holds {len(variables)} variables, none added yet.",
+                    "load_note": coded_fact(hint="raster_variables_load", count=len(variables))}
+        source = picked[0]
+    else:
+        _declare_nan_nodata(path)
     from .elevation_style import apply_elevation_style, elevation_stretch
-    stretch = elevation_stretch(path, name)
-    built = _raster_built_here(path, name or "Result")
+    stretch = elevation_stretch(source, name)
+    built = _raster_built_here(source, name or "Result")
 
     def _create():
         layer = take(built)
         if layer is None:
-            layer = QgsRasterLayer(path, name or "Result", "gdal")
+            layer = QgsRasterLayer(source, name or "Result", "gdal")
         if not layer.isValid():
-            return {"_error": "The downloaded file is not a raster QGIS can read.",
-                    "_code": "EXECUTION_FAILED",
-                    **(coded_fact(hint="download_empty_one_shot") if one_shot
-                       else coded_fact(hint="download_not_raster")), "url": url}
+            return tool_error("The downloaded file is not a raster QGIS can read.", "EXECUTION_FAILED",
+                              hint="download_empty_one_shot" if one_shot else "download_not_raster", url=url)
         normalised = normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -865,24 +904,23 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
 
     if final_url.startswith("s3://"):
-        return {"_error": note or ("This s3:// address was not opened: it needs a signature this server "
+        return tool_error(note or ("This s3:// address was not opened: it needs a signature this server "
                                    "did not provide, or its bucket is not public."),
-                "_code": "PERMISSION_DENIED",
-                **coded_fact(hint="s3_address_unsigned", url=final_url)}
+                          "PERMISSION_DENIED", hint="s3_address_unsigned", url=final_url)
 
 
 
     try:
         net.check_url(final_url)
     except Exception as exc:  # noqa: BLE001
-        return {"_error": f"This asset address is not fetched: {exc}", "_code": "PERMISSION_DENIED",
-                **coded_fact(hint="asset_address_refused", url=final_url)}
+        return tool_error(f"This asset address is not fetched: {exc}", "PERMISSION_DENIED",
+                          hint="asset_address_refused", url=final_url)
     local = _localise_one_shot(final_url, name)
     if local is None:
         refused = vsi.remote_dataset_refusal(final_url)
         if refused:
-            return {"_error": f"This asset is not opened: {refused}.", "_code": "PERMISSION_DENIED",
-                    **coded_fact(hint="asset_address_refused", url=final_url)}
+            return tool_error(f"This asset is not opened: {refused}.", "PERMISSION_DENIED",
+                              hint="asset_address_refused", url=final_url)
     if local is not None:
         if note and not local.get("_error"):
             local["_note"] = f"{note} {local.get('_note', '')}".strip()
@@ -906,13 +944,9 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         if layer is None:
             layer = QgsRasterLayer(source, name or "COG", "gdal")
         if not layer.isValid():
-            return {
-                "_error": "Could not open the raster.",
-                "_code": "INVALID_ARGS",
 
 
-                **coded_fact(hint="cog_unopened", url=final_url),
-            }
+            return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url)
         normalised = normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -943,18 +977,17 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             if status:
                 result["http_status"] = status
             if status in (401, 403):
-                result["_code"] = "PERMISSION_DENIED"
+                result["code"] = "PERMISSION_DENIED"
                 result.update(coded_fact(hint="cog_host_refused", url=final_url, http_status=status))
             elif status and status != 200 and status != 206:
-                result["_code"] = "NETWORK_ERROR" if status >= 500 or status == 429 else "INVALID_ARGS"
+                result["code"] = "NETWORK_ERROR" if status >= 500 or status == 429 else "INVALID_ARGS"
                 if status in (404, 410):
-                    result.pop("hint", None)
-                    result["_suggestion"] = "Nothing is served at this address."
+                    result.update(coded_fact(hint="cog_nothing_served", url=final_url))
                 else:
                     result.update(coded_fact(hint="cog_host_not_serving", url=final_url, http_status=status))
             if note == _PC_SIGN_FAILED:
                 result["_error"] = note
-                result["_code"] = "NETWORK_ERROR"
+                result["code"] = "NETWORK_ERROR"
                 result.update(coded_fact(hint="pc_signing_failed", url=final_url))
         return result
     if note:
@@ -994,19 +1027,20 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
 
     from osgeo import gdal, osr
 
+    clock = read_clock.ReadClock()
     vsi.apply_persistent()
     try:
         dataset = gdal.Open(f"/vsicurl/{url}")
     except RuntimeError:
         dataset = None
     if dataset is None:
-        return {"_error": f"Could not open the raster: {gdal.GetLastErrorMsg() or 'GDAL could not read it'}",
-                "_code": "INVALID_ARGS", "url": url, "_unopened": True}
+        return {**tool_error(f"Could not open the raster: {gdal.GetLastErrorMsg() or 'GDAL could not read it'}",
+                             "INVALID_ARGS"), "url": url, "_unopened": True}
     transform = dataset.GetGeoTransform()
     wkt = dataset.GetProjection()
     if not wkt or transform[2] or transform[4]:
-        return {"_error": "This raster has no CRS or a rotated grid, so a bbox cannot be placed on it.",
-                "_code": "INVALID_ARGS", **coded_fact(hint="cog_bbox_unplaceable", url=url)}
+        return tool_error("This raster has no CRS or a rotated grid, so a bbox cannot be placed on it.",
+                          "INVALID_ARGS", hint="cog_bbox_unplaceable", url=url)
     target = osr.SpatialReference()
     target.ImportFromWkt(wkt)
     target.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -1027,9 +1061,8 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
         corners = _bounds(osr.CoordinateTransformation(target, wgs84),
             transform[0], transform[3] + height * transform[5], transform[0] + width * transform[1],
             transform[3])
-        return {"_error": "The bbox does not overlap this raster.", "_code": "INVALID_ARGS",
-                "_suggestion": "The raster covers [west, south, east, north] "
-                               f"{[round(v, 5) for v in corners]} in EPSG:4326.", "url": url}
+        return tool_error("The bbox does not overlap this raster.", "INVALID_ARGS", hint="cog_bbox_no_overlap",
+                          covers=str([round(v, 5) for v in corners]), url=url)
     cols, rows = x1 - x0, y1 - y0
     band_bytes = sum(gdal.GetDataTypeSize(dataset.GetRasterBand(i + 1).DataType) // 8
                      for i in range(dataset.RasterCount))
@@ -1038,28 +1071,30 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
 
     ceiling = limits.MAX_STREAM_BYTES
     if size > ceiling:
-        return {"_error": (f"The window of this raster under that bbox is {cols} x {rows} cells "
-                           f"({size // 1048576} MB), over the limit of {ceiling // 1048576} MB."),
-                "_code": limits.CEILING_CODE,
-                **coded_fact(hint="cog_window_too_large", url=url, cells=[cols, rows], size_mb=size // 1048576,
-                             limit_mb=ceiling // 1048576)}
+        return tool_error(f"The window of this raster under that bbox is {cols} x {rows} cells "
+                          f"({size // 1048576} MB), over the limit of {ceiling // 1048576} MB.",
+                          limits.CEILING_CODE, hint="cog_window_too_large", url=url, cells=[cols, rows],
+                          size_mb=size // 1048576, limit_mb=ceiling // 1048576)
     directory = create_managed_temp_dir("cog")
     path = os.path.join(directory, f"{_safe_file_stem(name or 'raster')}.tif")
+    late: dict = {}
     try:
         failure = _copy_window(gdal, dataset, path, x0, y0, cols, rows,
-                               horizontal.ExportToWkt() if horizontal is not None else None)
+                               horizontal.ExportToWkt() if horizontal is not None else None, clock, late)
     except Exception as exc:  # noqa: BLE001
         remove_tree(directory)
-        return {"_error": (f"This QGIS's GDAL {gdal.__version__} could not copy the window "
-                           f"({type(exc).__name__}: {exc})."), "_code": "EXECUTION_FAILED",
-                **coded_fact(hint="cog_window_copy_failed", url=url)}
+        return tool_error(f"This QGIS's GDAL {gdal.__version__} could not copy the window "
+                          f"({type(exc).__name__}: {exc}).", "EXECUTION_FAILED",
+                          hint="cog_window_copy_failed", url=url)
     if failure is not None:
         remove_tree(directory)
+        if late:
+            return _window_late(url, bbox, cols, rows, size, late["share"], clock)
         if failure == "":
-            return {"_error": "Stopped before the window was read.", "_code": "CANCELLED",
-                    "_suggestion": "The user stopped it; nothing was added.", "url": url}
-        return {"_error": f"Could not read that window of the raster: {failure}", "_code": "NETWORK_ERROR",
-                **coded_fact(hint="cog_window_read_cut", url=url)}
+            return tool_error("Stopped before the window was read.", "CANCELLED",
+                              hint="stac_stopped_nothing_added", url=url)
+        return tool_error(f"Could not read that window of the raster: {failure}", "NETWORK_ERROR",
+                          hint="cog_window_read_cut", url=url)
     left_x, top_y = transform[0] + x0 * transform[1], transform[3] + y0 * transform[5]
     target = horizontal or target
     return {"path": path, "pixels": [cols, rows], "offset": [x0, y0], "size_bytes": os.path.getsize(path),
@@ -1078,6 +1113,28 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
 
 _WINDOW_SWATH_BYTES = 1024 * 1024
 _WINDOW_SWATH_MAX_BYTES = 64 * 1024 * 1024
+
+
+def _window_late(url: str, bbox: list, cols: int, rows: int, size: int, share: float,
+                 clock: read_clock.ReadClock) -> dict:
+
+
+    spent = clock.spent()
+    needs = clock.needs(share)
+    west, south, east, north = bbox
+    smaller = None
+    if needs:
+        area = limits.bbox_km2(south, west, north, east)
+        smaller = limits.shrink_bbox((south, west, north, east), area * clock.allowed / needs)
+    pace = (f"in {spent:.0f} s {share:.0%} of it arrived, so the whole window needs about {needs / 60:.0f} minutes"
+            if needs else f"{spent:.0f} s were not enough")
+    out = tool_error(f"The window of this raster under that bbox is {cols} x {rows} cells ({size // 1048576} MB); "
+                     f"{pace}, over the {clock.allowed:.0f} s one call has. Nothing was added.",
+                     limits.CEILING_CODE, hint="cog_window_late", url=url, cells=[cols, rows],
+                     share_read=round(share, 3), seconds=round(spent))
+    if smaller:
+        out["bbox_that_fits"] = [smaller[1], smaller[0], smaller[3], smaller[2]]
+    return out
 
 
 def _horizontal_part(osr, srs):
@@ -1104,15 +1161,25 @@ def _horizontal_part(osr, srs):
 
 
 def _copy_window(gdal, dataset, path: str, x0: int, y0: int, cols: int, rows: int,
-                 srs_wkt: str | None = None) -> str | None:
+                 srs_wkt: str | None = None, clock: read_clock.ReadClock | None = None,
+                 late: dict | None = None) -> str | None:
 
 
 
 
 
 
-    def keep_going(_complete, _message, _data):
-        return 0 if _pmtiles_cancelled() else 1
+
+
+
+    def keep_going(complete, _message, _data):
+        if _pmtiles_cancelled():
+            return 0
+        if clock is not None and clock.over(complete):
+            if late is not None:
+                late["share"] = float(complete or 0.0)
+            return 0
+        return 1
 
 
     set_option = getattr(gdal, "SetThreadLocalConfigOption", None)
@@ -1191,14 +1258,13 @@ def _crs_label(crs) -> str:
 def _add_cog_layer(args: dict) -> dict:
     url = args.get("url")
     if not url:
-        return {"_error": "url is required"}
+        return tool_error("url is required", "INVALID_ARGS")
     name = args.get("name")
     bbox = None
     if args.get("bbox"):
         bbox = _parse_bbox(args["bbox"])
         if bbox is None:
-            return {"_error": "That bbox is not a usable box.", "_code": "INVALID_ARGS",
-                    **coded_fact(hint="bbox_not_usable")}
+            return tool_error("That bbox is not a usable box.", "INVALID_ARGS", hint="bbox_not_usable")
     final_url, note = _signed_href(url)
     result = _add_cog(final_url, name, note=note, bbox=bbox)
 
@@ -1363,15 +1429,14 @@ def _add_stac_layer(args: dict) -> dict:
     if args.get("bbox"):
         bbox = _parse_bbox(args["bbox"])
         if bbox is None:
-            return {"_error": "That bbox is not a usable box.", "_code": "INVALID_ARGS",
-                    **coded_fact(hint="bbox_not_usable")}
+            return tool_error("That bbox is not a usable box.", "INVALID_ARGS", hint="bbox_not_usable")
     item_url = args.get("item_url")
     if not item_url:
         stac_url = _stac_root(args)
         collection = args.get("collection")
         item_id = args.get("item_id")
         if not (collection and item_id):
-            return {"_error": "item_url, or stac_url + collection + item_id, is needed."}
+            return tool_error("item_url, or stac_url + collection + item_id, is needed.", "INVALID_ARGS")
 
 
         item_url = (f"{stac_url}/collections/{urllib.parse.quote(collection, safe='')}"
@@ -1380,12 +1445,12 @@ def _add_stac_layer(args: dict) -> dict:
     try:
         item = _stac_get(item_url)
     except (urllib.error.URLError, OSError, ValueError) as e:
-        return {"_error": f"Failed to fetch STAC item: {e}", "item_url": item_url}
+        return {**tool_error(f"Failed to fetch STAC item: {e}"), "item_url": item_url}
 
     assets = item.get("assets", {}) or {}
     href, chosen_key, choice_note, err = _pick_asset_href(assets, args.get("asset"))
     if err:
-        return {"_error": err, "item_url": item_url}
+        return {**tool_error(err, "INVALID_ARGS"), "item_url": item_url}
 
 
 
@@ -1484,35 +1549,22 @@ def _probe_pmtiles(url: str) -> dict:
         head = net.fetch(request, timeout=_PMTILES_PROBE_TIMEOUT, max_bytes=_PMTILES_PROBE_BYTES,
                          total_timeout=_PMTILES_PROBE_TIMEOUT * _TOTAL_TIMEOUT_FACTOR).body
     except net.FetchTooLarge:
-        return {
-            "_error": (f"The server ignored the byte range and began sending the whole archive at {url}. "
-                       "A PMTiles archive is read in place over range requests, so this host cannot serve it."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="pmtiles_no_range_requests", url=url),
-        }
+        return tool_error(f"The server ignored the byte range and began sending the whole archive at {url}. "
+                          "A PMTiles archive is read in place over range requests, so this host cannot serve it.",
+                          "INVALID_ARGS", hint="pmtiles_no_range_requests", url=url)
     except (urllib.error.URLError, OSError, ValueError) as e:
-        return {
-            "_error": f"The PMTiles archive at {url} could not be read: {e}",
-            "code": "EXECUTION_FAILED",
-            **coded_fact(hint="pmtiles_unreadable_url", url=url),
-        }
+        return tool_error(f"The PMTiles archive at {url} could not be read: {e}", "EXECUTION_FAILED",
+                          hint="pmtiles_unreadable_url", url=url)
 
     if not head.startswith(_PMTILES_MAGIC):
         opening = head[:48].decode("utf-8", errors="replace").replace("\n", " ").strip()
-        return {
-            "_error": (f"{url} is not a PMTiles archive: it begins with '{opening}' instead of the PMTiles "
-                       "magic bytes."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="pmtiles_bad_magic", url=url, begins_with=opening),
-        }
+        return tool_error(f"{url} is not a PMTiles archive: it begins with '{opening}' instead of the PMTiles "
+                          "magic bytes.", "INVALID_ARGS", hint="pmtiles_bad_magic", url=url, begins_with=opening)
     version = head[len(_PMTILES_MAGIC)] if len(head) > len(_PMTILES_MAGIC) else 0
     if version != _PMTILES_VERSION:
-        return {
-            "_error": (f"This archive is PMTiles version {version}; only version {_PMTILES_VERSION} can be read "
-                       "in place."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="pmtiles_version_unsupported", url=url, version=version, supported=_PMTILES_VERSION),
-        }
+        return tool_error(f"This archive is PMTiles version {version}; only version {_PMTILES_VERSION} can be read "
+                          "in place.", "INVALID_ARGS", hint="pmtiles_version_unsupported", url=url, version=version,
+                          supported=_PMTILES_VERSION)
 
 
 
@@ -1635,12 +1687,8 @@ def _pmtiles_cancelled() -> bool:
 
 
 def _pmtiles_stopped(url: str) -> dict:
-    return {
-        "_error": "Stopped before the extract finished.",
-        "code": "CANCELLED",
-        "suggestion": "The user stopped it; nothing was added.",
-        "url": url,
-    }
+    return tool_error("Stopped before the extract finished.", "CANCELLED", hint="stac_stopped_nothing_added",
+                      url=url)
 
 
 def _safe_file_stem(text: str) -> str:
@@ -1714,13 +1762,13 @@ def _pmtiles_read_blocks(gdal, dataset, url: str, bbox: list, chosen: str, zoom:
                 stopped = _pmtiles_cancelled()
                 break
             if not index:
-                return {"_error": f"The extract from {url} failed: {exc}", "code": "EXECUTION_FAILED",
-                        **coded_fact(hint="pmtiles_extract_failed", url=url)}
+                return tool_error(f"The extract from {url} failed: {exc}", "EXECUTION_FAILED",
+                                  hint="pmtiles_extract_failed", url=url)
             break
         if written is None:
             if not index:
-                return {"_error": f"The extract from {url} produced nothing.", "code": "EXECUTION_FAILED",
-                        **coded_fact(hint="pmtiles_extract_failed", url=url)}
+                return tool_error(f"The extract from {url} produced nothing.", "EXECUTION_FAILED",
+                                  hint="pmtiles_extract_failed", url=url)
             break
         del written
         rescue = _rescue_oversized_tiles(gdal, url, block, chosen, zoom, path)
@@ -1752,11 +1800,8 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
     try:
         from osgeo import gdal
     except ImportError:
-        return {
-            "_error": "GDAL's Python bindings are not available, so this archive cannot be extracted.",
-            "code": "EXECUTION_FAILED",
-            **coded_fact(hint="pmtiles_no_gdal_bindings", url=url),
-        }
+        return tool_error("GDAL's Python bindings are not available, so this archive cannot be extracted.",
+                          "EXECUTION_FAILED", hint="pmtiles_no_gdal_bindings", url=url)
 
 
     net.check_url(url)
@@ -1771,13 +1816,11 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
             dataset = gdal.OpenEx(f"/vsicurl/{url}", gdal.OF_VECTOR,
                                   open_options=[f"ZOOM_LEVEL={zoom}"])
         except RuntimeError as exc:
-            return {"_error": f"GDAL could not open the PMTiles archive at {url}: {exc}",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_unreadable_url", url=url)}
+            return tool_error(f"GDAL could not open the PMTiles archive at {url}: {exc}", "EXECUTION_FAILED",
+                              hint="pmtiles_unreadable_url", url=url)
         if dataset is None:
-            return {"_error": f"GDAL could not open the PMTiles archive at {url}.",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_unreadable_url", url=url)}
+            return tool_error(f"GDAL could not open the PMTiles archive at {url}.", "EXECUTION_FAILED",
+                              hint="pmtiles_unreadable_url", url=url)
 
         available = []
         for index in range(dataset.GetLayerCount()):
@@ -1785,16 +1828,12 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
             if layer is not None:
                 available.append(layer.GetName())
         if not available:
-            return {"_error": f"The archive at {url} carries no vector layer at zoom {zoom}.",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_no_vector_layer", url=url, zoom=zoom)}
+            return tool_error(f"The archive at {url} carries no vector layer at zoom {zoom}.", "EXECUTION_FAILED",
+                              hint="pmtiles_no_vector_layer", url=url, zoom=zoom)
         chosen = str(sublayer) if sublayer else available[0]
         if chosen not in available:
-            return {"_error": f"'{chosen}' is not a layer of this archive.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": f"layer is one of: {', '.join(available)}.",
-                    "layers_available": available,
-                    "url": url}
+            return tool_error(f"'{chosen}' is not a layer of this archive.", "INVALID_ARGS",
+                              hint="pmtiles_layer_unknown", layers_available=available, url=url)
         if _pmtiles_cancelled():
             return _pmtiles_stopped(url)
 
@@ -1823,13 +1862,11 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
                 layers=[chosen],
             )
         except RuntimeError as exc:
-            return {"_error": f"The extract from {url} failed: {exc}",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_extract_failed", url=url)}
+            return tool_error(f"The extract from {url} failed: {exc}", "EXECUTION_FAILED",
+                              hint="pmtiles_extract_failed", url=url)
         if written is None:
-            return {"_error": f"The extract from {url} produced nothing.",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_extract_failed", url=url)}
+            return tool_error(f"The extract from {url} produced nothing.", "EXECUTION_FAILED",
+                              hint="pmtiles_extract_failed", url=url)
         out_layer = written.GetLayer(0)
         count = int(out_layer.GetFeatureCount()) if out_layer is not None else 0
         del out_layer
@@ -2060,26 +2097,16 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
 
     bbox, origin = _bbox_4326(args)
     if bbox is None:
-        return {
-            "_error": f"A PMTiles archive is loaded by extracting an area, and {origin}.",
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="pmtiles_needs_area", url=url),
-        }
+        return tool_error(f"A PMTiles archive is loaded by extracting an area, and {origin}.", "INVALID_ARGS",
+                          hint="pmtiles_needs_area", url=url)
     area = _bbox_area_km2(bbox)
 
 
     lifted = volume_guard.lifted(args) and area > _PMTILES_MAX_AREA_KM2
     if area > _PMTILES_MAX_AREA_KM2 and not lifted:
-        return {
-            "_error": (f"The area asked for is {area:,.0f} km2, over the {_PMTILES_MAX_AREA_KM2:,.0f} km2 "
-                       "one extract may cover."),
-            "code": "INVALID_ARGS",
-            **coded_fact(hint="pmtiles_extract_area_cap"),
-            "cap_km2": _PMTILES_MAX_AREA_KM2,
-            "bbox": bbox,
-            "box_km2": round(area, 1),
-            "url": url,
-        }
+        return tool_error(f"The area asked for is {area:,.0f} km2, over the {_PMTILES_MAX_AREA_KM2:,.0f} km2 "
+                          "one extract may cover.", "INVALID_ARGS", hint="pmtiles_extract_area_cap",
+                          cap_km2=_PMTILES_MAX_AREA_KM2, bbox=bbox, box_km2=round(area, 1), url=url)
 
     started = time.monotonic()
     deadline = (started + limits.current("CALL_MAX_SECONDS_BACKGROUND") * _PMTILES_LIFTED_CLOCK_SHARE
@@ -2098,9 +2125,8 @@ def _add_pmtiles_extract(url: str, name: str | None, args: dict, max_zoom: int |
     def _create():
         layer = QgsVectorLayer(source, label, "ogr")
         if not layer.isValid():
-            return {"_error": f"QGIS could not read the extract written to {path}.",
-                    "code": "EXECUTION_FAILED",
-                    **coded_fact(hint="pmtiles_extract_failed", url=url)}
+            return tool_error(f"QGIS could not read the extract written to {path}.", "EXECUTION_FAILED",
+                              hint="pmtiles_extract_failed", url=url)
         if not still_awaited():
             return dict(_NOT_AWAITED)
         QgsProject.instance().addMapLayer(layer)
@@ -2170,14 +2196,9 @@ def _add_pmtiles_as_tiles(url: str, name: str | None, args: dict) -> dict:
     def _create():
         layer = QgsVectorTileLayer(uri, name or "PMTiles")
         if not layer.isValid():
-            return {
-                "_error": (
-                    "This QGIS has no PMTiles vector tile provider, so the archive could not be opened as "
-                    "vector tiles. It is reachable and valid: the probe read its header first."
-                ),
-                "_code": "INVALID_ARGS",
-                "url": url,
-            }
+            return {**tool_error("This QGIS has no PMTiles vector tile provider, so the archive could not be "
+                                 "opened as vector tiles. It is reachable and valid: the probe read its header "
+                                 "first.", "INVALID_ARGS"), "url": url}
         if not still_awaited():
             return dict(_NOT_AWAITED)
         QgsProject.instance().addMapLayer(layer)
@@ -2195,12 +2216,9 @@ def _add_pmtiles_as_tiles(url: str, name: str | None, args: dict) -> dict:
 
 
 
-        return {
-            "_error": (f"QGIS was still opening {url} after {_PMTILES_BUILD_TIMEOUT} seconds and the window is "
-                       "blocked until it finishes."),
-            "code": "EXECUTION_FAILED",
-            **coded_fact(hint="pmtiles_build_timeout", url=url, seconds=_PMTILES_BUILD_TIMEOUT),
-        }
+        return tool_error(f"QGIS was still opening {url} after {_PMTILES_BUILD_TIMEOUT} seconds and the window is "
+                          "blocked until it finishes.", "EXECUTION_FAILED", hint="pmtiles_build_timeout", url=url,
+                          seconds=_PMTILES_BUILD_TIMEOUT)
     if result.get("_error"):
 
 
@@ -2237,11 +2255,8 @@ def _pmtiles_unreadable_here() -> dict | None:
             return None
     except Exception:  # noqa: BLE001
         return None
-    return {
-        "_error": "This QGIS build has no PMTiles driver, so a PMTiles archive cannot be read here.",
-        "code": "EXECUTION_FAILED",
-        **coded_fact(hint="pmtiles_driver_missing"),
-    }
+    return tool_error("This QGIS build has no PMTiles driver, so a PMTiles archive cannot be read here.",
+                      "EXECUTION_FAILED", hint="pmtiles_driver_missing")
 
 
 def _add_pmtiles_layer(args: dict) -> dict:
@@ -2254,13 +2269,12 @@ def _add_pmtiles_layer(args: dict) -> dict:
 
     url = args.get("url")
     if not url:
-        return {"_error": "url is required"}
+        return tool_error("url is required", "INVALID_ARGS")
     name = args.get("name")
     mode = str(args.get("mode") or "extract").strip().lower()
     if mode not in ("extract", "auto", "tiles"):
-        return {"_error": f"'{mode}' is not a way to load a PMTiles archive.",
-                "code": "INVALID_ARGS",
-                "suggestion": "mode is 'extract' (the default) or 'tiles'."}
+        return tool_error(f"'{mode}' is not a way to load a PMTiles archive.", "INVALID_ARGS",
+                          hint="pmtiles_mode_unknown")
 
     refusal = _pmtiles_unreadable_here()
     if refusal:

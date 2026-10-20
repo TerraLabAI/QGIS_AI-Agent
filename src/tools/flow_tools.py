@@ -133,7 +133,7 @@ def _normalize_key(text) -> str:
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the flow lines were written.", "CANCELLED", "No file was written.")
+    return tool_error("Stopped before the flow lines were written.", "CANCELLED", hint="georef_stopped_nothing_written")
 
 
 
@@ -145,7 +145,7 @@ def _plan(args: dict) -> dict:
         return _layer_not_found_error(ref)
     if not isinstance(table, QgsVectorLayer):
         return tool_error(f"{table.name()} is not a vector layer or table.", "INVALID_ARGS",
-                          "the origin-destination table, a vector layer or a geometryless CSV.")
+                          hint="flow_table_layer_kind")
     fields = table.fields()
     plan: dict = {"table_id": table.id(), "table_name": table.name(), "notes": []}
     for key in ("origin_field", "destination_field"):
@@ -185,7 +185,7 @@ def _plan(args: dict) -> dict:
             return _layer_not_found_error(places_name)
         if not isinstance(places, QgsVectorLayer) or not places.isSpatial():
             return tool_error(f"{places.name()} has no geometry to draw a flow line to.", "INVALID_ARGS",
-                              "places_layer takes a point, line or polygon layer.")
+                              hint="flow_places_layer_kind")
         key_name = str(args.get("places_key_field") or "").strip()
         key_index = places.fields().indexOf(key_name)
         if key_index < 0:
@@ -208,7 +208,7 @@ def _plan(args: dict) -> dict:
         crs = QgsCoordinateReferenceSystem(crs_text) if crs_text else None
         if crs_text and not crs.isValid():
             return tool_error(f"coordinate_crs {crs_text!r} is not a CRS QGIS recognises.", "INVALID_ARGS",
-                              "an EPSG code, for example EPSG:4326.")
+                              hint="flow_coordinate_crs_form")
         table_crs_known = table.isSpatial() and table.crs().isValid()
         if crs is None:
             crs = table.crs() if table_crs_known else QgsCoordinateReferenceSystem("EPSG:4326")
@@ -248,11 +248,10 @@ def _output_target(args: dict, layer_name: str):
             target += ".gpkg"
         elif extension != ".gpkg":
             return None, None, tool_error(f"{os.path.basename(target)} is not a GeoPackage name.", "INVALID_ARGS",
-                                          "output_path ends in .gpkg, a GeoPackage.")
+                                          hint="flow_gpkg_name")
         error = security.validate_path(target, write=True)
         if error:
-            return None, None, tool_error(error, "PERMISSION_DENIED",
-                                          "Allowed: the project folder, your home folder or the temp folder.")
+            return None, None, tool_error(error, "PERMISSION_DENIED", hint="output_folder_refused")
         if os.path.exists(target) and args.get("overwrite") is not True:
             return None, None, tool_error(f"{target} already exists.", "INVALID_ARGS",
                                           hint="flow_output_exists", path=target)
@@ -671,7 +670,7 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
     uri = "MultiLineString?" + "&".join(f"field={spec}" for spec in field_specs)
     memory = QgsVectorLayer(uri, "flow_lines", "memory")
     if not memory.isValid():
-        return {"_error": "Could not build the flow lines layer.", "code": "EXECUTION_FAILED"}
+        return tool_error("Could not build the flow lines layer.", "EXECUTION_FAILED")
 
 
     memory.setCrs(plan["crs"])
@@ -705,17 +704,17 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
         features.append(feature)
 
     if not features:
-        return {"_error": "No row matched both ends and drew a line: nothing was written.", "code": "INVALID_ARGS"}
+        return tool_error("No row matched both ends and drew a line: nothing was written.", "INVALID_ARGS")
     ok, _ = memory.dataProvider().addFeatures(features)
     if not ok:
-        return {"_error": "The memory provider refused the flow line features."}
+        return tool_error("The memory provider refused the flow line features.", "EXECUTION_FAILED")
     memory.updateExtents()
 
     folder = os.path.dirname(plan["target"])
     os.makedirs(folder, exist_ok=True)
     written = _write_vector(memory, plan["target"], plan["gpkg_table"])
     if written:
-        return {"_error": f"The flow lines could not be written: {written[:200]}", "code": "EXECUTION_FAILED"}
+        return tool_error(f"The flow lines could not be written: {written[:200]}", "EXECUTION_FAILED")
 
     outputs = _process_outputs({"OUTPUT": f"{plan['target']}|layername={plan['gpkg_table']}"},
                                output_name=plan["layer_name"])

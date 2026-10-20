@@ -40,12 +40,7 @@ OPTIONAL_DEPENDENCIES = {
     "earthengine": {
         "package": "earthengine-api",
         "import_name": "ee",
-        "unlocks": (
-            "Google Earth Engine tools (add_gee_dataset, gee_compute_index, "
-            "initialize_earth_engine), on the user's own Earth Engine account: they appear once "
-            "this computer is signed in (ee.Authenticate() in the QGIS Python console) and the "
-            "plugin reloads. search_gee_catalog is answered by the server and needs no install."
-        ),
+        "unlocks": "Google Earth Engine tools",
 
         "session_state": "earthengine_tools",
     },
@@ -55,10 +50,7 @@ OPTIONAL_DEPENDENCIES = {
     "pdf": {
         "package": "pypdf",
         "import_name": "pypdf",
-        "unlocks": (
-            "Reading, splitting, merging, rotating and stamping PDF pages in execute_code "
-            "(pypdf). Exporting a layout to PDF needs nothing extra."
-        ),
+        "unlocks": "PDF pages in execute_code (pypdf)",
     },
 
 
@@ -66,10 +58,7 @@ OPTIONAL_DEPENDENCIES = {
     "images": {
         "package": "pillow",
         "import_name": "PIL",
-        "unlocks": (
-            "Reading and editing PNG and JPEG files in execute_code (PIL). Qt's QImage and "
-            "QPainter draw without it, and this QGIS may already ship it."
-        ),
+        "unlocks": "PNG and JPEG files in execute_code (PIL)",
     },
 }
 
@@ -162,9 +151,7 @@ def _resolve_feature(args: dict):
     if feature:
         spec = OPTIONAL_DEPENDENCIES.get(feature)
         if not spec:
-            return None, {"_error": f"Unknown feature '{feature}'. Allowed features: {allowed}",
-                          "code": "INVALID_ARGS",
-                          "suggestion": f"features: {allowed}."}
+            return None, tool_error(f"Unknown feature '{feature}'. Allowed features: {allowed}", "INVALID_ARGS")
         return feature, spec
 
     package = (args.get("package") or "").strip()
@@ -473,6 +460,8 @@ def _check(args: dict) -> dict:
             "package": spec["package"],
             "installed": installed,
             "unlocks": spec["unlocks"],
+
+            "unlocks_hint": "dependency_unlocks",
             **(_session_state(spec) if installed else {}),
             **coded_fact(hint="dependency_post_install", variant=feature, package=spec["package"],
                          import_name=spec["import_name"]),
@@ -637,7 +626,7 @@ def _install(args: dict) -> dict:
             t["error"] = "timed out"
             t["finished_at"] = time.time()
             continue
-        return {"_error": f"Install task {tid} is already running. Poll it or wait."}
+        return tool_error(f"Install task {tid} is already running. Poll it or wait.")
 
     task_id = "depinstall-" + uuid.uuid4().hex[:8]
     task = {
@@ -663,7 +652,7 @@ def _install(args: dict) -> dict:
 def _install_status(args: dict) -> dict:
     t = _INSTALL_TASKS.get(args.get("task_id", ""))
     if not t:
-        return {"_error": "Unknown task_id", "known": list(_INSTALL_TASKS.keys())}
+        return {**tool_error("Unknown task_id", "INVALID_ARGS"), "known": list(_INSTALL_TASKS.keys())}
 
     elapsed = round((t["finished_at"] or time.time()) - t["started_at"], 1)
     installed_now = _is_installed(t["import_name"])

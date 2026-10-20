@@ -39,7 +39,7 @@ from ..shared import tr
 from . import common as C
 from .common import escape, link_html, source_rows
 from .parts import Breadcrumb, InfoTable, PageHeader, UserBubble, label, primary_button, section_title
-from .pictures import wear_source_mark
+from .pictures import wear_square_mark
 from .pressable import Pressable, labels_through
 
 
@@ -53,7 +53,7 @@ class SourceChip(Pressable):
         lay.setContentsMargins(C.px(4), C.px(2), C.px(10), C.px(2))
         lay.setSpacing(C.px(8))
         mark = QLabel(self)
-        wear_source_mark(mark, row, str(row.get("_accent") or "#5d5d5d"), C.px(20))
+        wear_square_mark(mark, row, str(row.get("_accent") or "#5d5d5d"), C.px(20), C.px(5), 2)
         lay.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
         lay.addWidget(label(self, str(row.get("name") or self.key), C.BODY_PX, C.T.text), 0,
                       Qt.AlignmentFlag.AlignVCenter)
@@ -83,13 +83,13 @@ class ExampleDetail(QWidget):
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet(C.scroll_qss())
+        C.keep_gutter(self._scroll)
         self._body = QWidget(self._scroll)
         self._page = QVBoxLayout(self._body)
         self._page.setSpacing(0)
         self._crumbs = Breadcrumb(self._body)
         self._crumbs.crumb.connect(self.crumb_requested.emit)
         self._page.addWidget(self._crumbs)
-        self._page.addSpacing(C.px(C.SPACE_3))
         self._column = QWidget(self._body)
         self._col = QVBoxLayout(self._column)
         self._col.setContentsMargins(0, 0, 0, 0)
@@ -100,7 +100,7 @@ class ExampleDetail(QWidget):
         outer.addWidget(self._scroll, 1)
         self._scroll.viewport().installEventFilter(self)
 
-        self._use = primary_button(self, tr("Use this example"))
+        self._use = primary_button(self, tr("Try in chat"))
 
         use = self._use
         use.setAutoDefault(True)
@@ -124,9 +124,9 @@ class ExampleDetail(QWidget):
 
             viewport = self.width() - C.px(10)
         room = viewport - 2 * C.px(C.SPACE_4)
-        width = max(C.px(C.TILE_MIN_W), min(room, C.px(C.DETAIL_W)))
-        side = max(C.px(C.SPACE_4), (viewport - width) // 2)
-        self._page.setContentsMargins(side, C.px(C.SPACE_3), side, C.px(C.SPACE_5))
+        width = max(C.px(C.TILE_MIN_W), min(room, C.px(C.COLUMN_W)))
+        side = max(C.px(C.SPACE_4), (viewport - width) // 2) - C.px(C.EDGE)
+        self._page.setContentsMargins(side, 0, side, C.px(C.SPACE_5))
         if self._hero is not None:
             try:
                 self._hero.setFixedHeight(self._hero.heightForWidth(max(1, width)))
@@ -173,16 +173,26 @@ class ExampleDetail(QWidget):
                                 split=case.split,
                                 fallback=small if small[0] else (case.image_small,))
         self._hero.setAccessibleName(str(case.outcome or ""))
-        self._col.addWidget(self._hero)
+        self._col.addWidget(self._edged(self._hero))
         self._col.addSpacing(C.px(C.SPACE_3))
-        self._col.addWidget(UserBubble(str(case.prompt or ""), self._column))
+        self._col.addWidget(self._edged(UserBubble(str(case.prompt or ""), self._column)))
         self._col.addSpacing(C.px(C.SPACE_5))
         self._col.addWidget(section_title(self._column, tr("Information")))
         self._col.addSpacing(C.px(12))
-        self._col.addWidget(self._information(case))
+        self._col.addWidget(self._edged(self._information(case)))
         self._centre()
         self._use.setFocus()
         self._hero.play_intro()
+
+    def _edged(self, widget: QWidget) -> QWidget:
+
+        holder = QWidget(self._column)
+        lay = QVBoxLayout(holder)
+        lay.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        lay.setSpacing(0)
+        widget.setParent(holder)
+        lay.addWidget(widget)
+        return holder
 
     def _information(self, case) -> QWidget:
         table = InfoTable(self._column)

@@ -722,7 +722,7 @@ def _find_local_data(args: dict) -> dict:
         except sqlite3.Error as e:
             if not running:
                 return tool_error(
-                    f"The index is unreadable: {e}", "INDEX_UNREADABLE", "refresh=true rebuilds it.",
+                    f"The index is unreadable: {e}", "INDEX_UNREADABLE", hint="index_unreadable",
                 )
 
     if running and not complete:

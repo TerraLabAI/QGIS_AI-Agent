@@ -87,14 +87,14 @@ def _set_raster_nodata(args: dict) -> dict:
     setter = getattr(provider, "setNoDataValue", None)
     if setter is None:
         return tool_error("This raster provider cannot persist a NoData value.", "UNSUPPORTED",
-                          "A writable raster with a NoData option keeps it.")
+                          hint="raster_nodata_unsupported")
     try:
         changed = setter(band, value)
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"QGIS could not set NoData on band {band}: {exc}", "WRITE_FAILED")
     if changed is False:
         return tool_error("The raster provider refused the NoData value.", "WRITE_FAILED",
-                          "A writable GeoTIFF or another provider with raster metadata writes keeps it.")
+                          hint="raster_nodata_refused")
     layer.triggerRepaint()
     declared = provider.sourceNoDataValue(band) if provider.sourceHasNoDataValue(band) else None
     return {"layer_name": layer.name(), "layer_id": layer.id(), "band": band,

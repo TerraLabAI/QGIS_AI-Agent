@@ -45,12 +45,12 @@ from . import keys
 from .cards import ExampleTile, tile_height
 from .parts import (
     ArrowButton,
+    Breadcrumb,
     EmptyState,
     PageHeader,
-    category_badge,
+    SectionHead,
+    label,
     search_pill,
-    section_title,
-    text_button,
 )
 from .pictures import watch_scroll
 
@@ -73,26 +73,23 @@ class _SideScroll(QScrollArea):
 class Carousel(QWidget):
 
 
-    def __init__(self, title: str, cases: list, opener, see_all, parent=None,
-                 look: tuple = ("", "")):
+    def __init__(self, title: str, cases: list, opener, see_all, parent=None):
         super().__init__(parent)
         self.tiles: list = []
         self._width = 0
         self._page = 0
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(C.px(12))
+        col.setSpacing(C.px(C.SPACE_2))
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
+
+        head.setContentsMargins(0, 0, C.px(C.EDGE), 0)
         head.setSpacing(C.px(8))
-        head.addWidget(category_badge(self, look[0], look[1], C.px(24)), 0,
-                       Qt.AlignmentFlag.AlignVCenter)
-        head.addSpacing(C.px(2))
-        head.addWidget(section_title(self, title), 0, Qt.AlignmentFlag.AlignVCenter)
+        title_head = SectionHead(title, self)
+        title_head.clicked.connect(see_all)
+        head.addWidget(title_head, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
-        more = text_button(self, tr("See all"))
-        more.clicked.connect(lambda _c=False: see_all())
-        head.addWidget(more, 0, Qt.AlignmentFlag.AlignVCenter)
         self._prev = ArrowButton("chevron_left", self)
         self._prev.setToolTip(tr("Previous"))
         self._prev.clicked.connect(self.previous_page)
@@ -120,7 +117,12 @@ class Carousel(QWidget):
             self.tiles.append(tile)
         self._scroll.setWidget(self._strip)
         self._scroll.viewport().setStyleSheet("background: transparent;")
-        col.addWidget(self._scroll)
+
+        holder = QWidget(self)
+        lay = QVBoxLayout(holder)
+        lay.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        lay.addWidget(self._scroll)
+        col.addWidget(holder)
         bar = self._scroll.horizontalScrollBar()
         bar.valueChanged.connect(self._arrows)
         bar.rangeChanged.connect(self._arrows)
@@ -192,19 +194,25 @@ class ExamplesHome(QWidget):
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet(C.scroll_qss())
+        C.keep_gutter(self._scroll)
         self._body = QWidget(self._scroll)
         self._page = QVBoxLayout(self._body)
         self._page.setSpacing(0)
+
+        self._crumbs = Breadcrumb(self._body)
+        self._crumbs.crumb.connect(lambda _i: self.group_requested.emit(""))
+        self._crumbs.hide()
+        self._page.addWidget(self._crumbs)
         self._search = search_pill(self._body, "librarySearch", tr("Search examples"))
         self._header = PageHeader(self._body, tr("Examples"), "", self._search)
         self._page.addWidget(self._header)
-        self._page.addSpacing(C.px(C.SPACE_4))
+        self._page.addSpacing(C.px(C.SPACE_5))
         self._content = QWidget(self._body)
         self._content_col = QVBoxLayout(self._content)
         self._content_col.setContentsMargins(0, 0, 0, 0)
 
 
-        self._content_col.setSpacing(C.px(C.SPACE_2))
+        self._content_col.setSpacing(C.px(C.SPACE_3))
         self._page.addWidget(self._content)
         self._page.addStretch(1)
         self._scroll.setWidget(self._body)
@@ -263,11 +271,16 @@ class ExamplesHome(QWidget):
 
     def repaint_tiles(self) -> None:
         self._clear()
+        self._crumbs.setVisible(bool(self._group) and not self.query())
+
+
+        self._header.set_hero(not self._group or bool(self.query()))
+        if self._group:
+            self._crumbs.set_trail([tr("Examples"), self._label_of(self._group)])
         query = self.query()
         self.query_changed.emit(query)
         if query:
             hits = match_cases(self._cases, query)
-            self._header.set_badge(None)
             self._header.set_text(tr("Examples"), self._home_line())
             if hits:
                 title = tr("1 result") if len(hits) == 1 else tr("%n results", "", len(hits))
@@ -277,19 +290,16 @@ class ExamplesHome(QWidget):
         elif self._group:
             cases = [c for c in self._cases if c.group == self._group and c.listed]
             count = tr("1 example") if len(cases) == 1 else tr("%n examples", "", len(cases))
-            self._header.set_badge(self._looks.get(self._group, ("", "")))
             self._header.set_text(self._label_of(self._group), count)
             self._grid("", cases)
         else:
-            self._header.set_badge(None)
             self._header.set_text(tr("Examples"), self._home_line())
             for key, text in self._groups:
                 cases = [c for c in self._cases if c.group == key and c.listed]
                 if not cases:
                     continue
                 carousel = Carousel(text, cases, self.case_opened.emit,
-                                    lambda k=key: self.group_requested.emit(k), self._content,
-                                    self._looks.get(key, ("", "")))
+                                    lambda k=key: self.group_requested.emit(k), self._content)
                 self._content_col.addWidget(carousel)
                 self._carousels.append(carousel)
             if not self._carousels:
@@ -309,24 +319,24 @@ class ExamplesHome(QWidget):
         if first:
             actions.append((tr("Browse {group}").format(group=self._label_of(first)),
                             lambda k=first: self.group_requested.emit(k)))
-        actions.append((tr("Ask the agent"), lambda q=query: self.ask_requested.emit(q)))
+        actions.append((tr("Try in chat"), lambda q=query: self.ask_requested.emit(q)))
         return EmptyState(self._content, query,
-                          tr("No example matches these words. The agent may still do it."), actions)
+                          tr("No example matches these words. The AI agent may still do it."), actions)
 
     def _clear_and_focus(self) -> None:
         self.clear_search()
         self._search.setFocus()
 
     def _home_line(self) -> str:
-        return tr("Real tasks the agent runs from one sentence. Open one to see its prompt.")
+        return tr("Real tasks the AI agent does from one sentence. Open one to try it.")
 
     def _grid(self, title: str, cases: list) -> None:
         holder = QWidget(self._content)
         col = QVBoxLayout(holder)
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(C.px(12))
+        col.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        col.setSpacing(C.px(C.SPACE_2))
         if title:
-            col.addWidget(section_title(holder, title))
+            col.addWidget(label(holder, title, C.SECTION_PX, C.T.text, C.MEDIUM))
         host = QWidget(holder)
         grid = QGridLayout(host)
         grid.setContentsMargins(0, 0, 0, 0)
@@ -362,8 +372,10 @@ class ExamplesHome(QWidget):
 
         viewport = self._scroll.viewport().width()
         width = self.column_width()
-        side = max(C.px(C.SPACE_4), (viewport - width) // 2)
-        self._page.setContentsMargins(side, C.px(C.SPACE_5), side, C.px(C.SPACE_5))
+        side = max(C.px(C.SPACE_4), (viewport - width) // 2) - C.px(C.EDGE)
+
+        top = 0 if self._crumbs.isVisibleTo(self) else C.px(C.TOP_BAR_H)
+        self._page.setContentsMargins(side, top, side, C.px(C.SPACE_5))
         if width == self._built_width:
             return
         self._built_width = width

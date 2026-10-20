@@ -850,9 +850,24 @@ _CREATE_COUNT_KEYS = ("count", "num_features", "number_of_points", "point_count"
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 _OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fetch_overture",
                              "create_grid_layer", "add_data", "map_drainage",
-                             "add_cog_layer", "add_stac_layer", "raster_calculator"})
+                             "add_cog_layer", "add_stac_layer", "raster_calculator",
+                             "add_arcgis_rest_layer", "add_vector_from_url"})
 
 
 

@@ -21,7 +21,7 @@ from ..core.background import on_main_thread, run_on_main_thread
 from ..core.logger import log_debug
 from ..core.security import safe_read_text, validate_path
 from ..core.serialization import carried_code, cut_string
-from ..core.tool_registry import coded_fact
+from ..core.tool_registry import coded_fact, tool_error
 from . import code_runtime, isolated_code
 
 
@@ -109,13 +109,13 @@ def _run_code_in_qgis(args: dict) -> dict:
 
     code = args.get("code", "")
     if not code.strip():
-        return {"_error": "No code provided"}
+        return tool_error("No code provided", "INVALID_ARGS")
 
 
 
     refused = code_guard.refusal_for(code)
     if refused:
-        return {"_error": refused.pop("error"), "_code": refused.pop("code"), **refused}
+        return tool_error(refused.pop("error"), refused.pop("code"), **refused)
 
 
 
@@ -129,9 +129,8 @@ def _run_code_in_qgis(args: dict) -> dict:
 
         compiled = code_owners.compile_snippet(code, "<snippet>")
     except SyntaxError as exc:
-        return {"executed": False, "_code": "INVALID_ARGS",
-                "_error": f"execute_code raised SyntaxError: {exc.msg} (line {exc.lineno})",
-                "suggestion": "", "hint": "code_syntax_error", "line": exc.lineno}
+        return tool_error(f"execute_code raised SyntaxError: {exc.msg} (line {exc.lineno})", "INVALID_ARGS",
+                          hint="code_syntax_error", executed=False, line=exc.lineno)
 
     context = code_runtime.current()
     project = QgsProject.instance()
@@ -163,6 +162,7 @@ def _run_code_in_qgis(args: dict) -> dict:
     })
     for alias, module in code_namespace.prelude(code_split.names_mentioned(code), safe_builtins["__import__"]).items():
         namespace.setdefault(alias, module)
+    code_guard.bind_namespace_views(namespace)
     bound = set(namespace) - set(code_runtime.kept(context.chat))
 
     if not _SIP_LAYER_CONTAINERS_WARM[0]:
@@ -210,44 +210,33 @@ def _run_code_in_qgis(args: dict) -> dict:
         code_guard.restore_gdal_config()
     trip = getattr(arm, "trip", None)
     if isinstance(trip, code_tripwire.NeedsPermission):
-        return {
-            "executed": False,
-            "_code": "NEEDS_PERMISSION",
-            "_error": f"The snippet {trip.reason}, which needs the user's permission. Nothing after that call ran.",
-            "needs_permission": {"class": trip.cls, "reason": trip.reason},
-            "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "",
-            "hint": "code_needs_permission",
-        }
+        return tool_error(
+            f"The snippet {trip.reason}, which needs the user's permission. Nothing after that call ran.",
+            "NEEDS_PERMISSION", hint="code_needs_permission", executed=False,
+            needs_permission={"class": trip.cls, "reason": trip.reason},
+            stdout=_cap(stdout_capture.getvalue()),
+        )
     if isinstance(trip, code_tripwire.Refused):
-        out = {
-            "executed": False,
-            "_code": "PERMISSION_DENIED",
-            "_error": f"execute_code stopped: the snippet {trip.reason}. Nothing after that call ran.",
-            "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "",
-            "hint": trip.hint or "code_permission_refused",
-            "reason": trip.reason,
-        }
+        out = tool_error(
+            f"execute_code stopped: the snippet {trip.reason}. Nothing after that call ran.",
+            "PERMISSION_DENIED", hint=trip.hint or "code_permission_refused", executed=False,
+            stdout=_cap(stdout_capture.getvalue()), reason=trip.reason,
+        )
 
 
         _partial_state(out, _changed(before, project, edits))
         return out
     if error == "stopped":
-        out = {"executed": False, "_error": "execute_code was stopped.", "_code": "CANCELLED",
+        out = {**tool_error("execute_code was stopped.", "CANCELLED"), "executed": False,
                "stdout": _cap(stdout_capture.getvalue())}
         _partial_state(out, _changed(before, project, edits))
         return out
     if error == "timeout":
-        out = {
-            "executed": False,
-            "_error": f"execute_code stopped after {int(context.timeout_s)} s.",
-            "_code": "EXEC_TIMEOUT",
-            "stdout": _cap(stdout_capture.getvalue()),
-            "suggestion": "",
-            "hint": "code_timeout",
-            "timeout_s": int(context.timeout_s),
-        }
+        out = tool_error(
+            f"execute_code stopped after {int(context.timeout_s)} s.", "EXEC_TIMEOUT",
+            hint="code_timeout", executed=False, stdout=_cap(stdout_capture.getvalue()),
+            timeout_s=int(context.timeout_s),
+        )
         _partial_state(out, _changed(before, project, edits))
         return out
     if error is not None:
@@ -255,9 +244,8 @@ def _run_code_in_qgis(args: dict) -> dict:
 
 
         out = {
+            **tool_error(f"execute_code raised {type(error).__name__}: {error}", "EXEC_RUNTIME_ERROR"),
             "executed": False,
-            "_error": f"execute_code raised {type(error).__name__}: {error}",
-            "_code": "EXEC_RUNTIME_ERROR",
             "stdout": _cap(stdout_capture.getvalue()),
         }
 
@@ -431,12 +419,11 @@ def _preflight(code: str) -> dict | None:
             first = node.args[0]
             if isinstance(first, (ast.List, ast.ListComp)) or (isinstance(first, ast.Name) and first.id in lists):
                 return {
+                    **tool_error(f"QgsSpatialIndex is given a list on line {getattr(node, 'lineno', 0)}, which "
+                                 f"raises TypeError: none of its overloads takes one. Nothing was run.",
+                                 "INVALID_ARGS"),
                     "executed": False,
-                    "_error": (f"QgsSpatialIndex is given a list on line {getattr(node, 'lineno', 0)}, which "
-                               f"raises TypeError: none of its overloads takes one. Nothing was run."),
-                    "_code": "INVALID_ARGS",
                     "api": dict(_SPATIAL_INDEX_HINT),
-                    "suggestion": "",
                 }
         missing = []
         for name, lineno in _subscripted_layer_names(tree):
@@ -446,19 +433,14 @@ def _preflight(code: str) -> dict | None:
             existing = [layer.name() for layer in QgsProject.instance().mapLayers().values()][:20]
             first_name, first_line = missing[0]
             near = difflib.get_close_matches(first_name, existing, n=3, cutoff=0.5)
-            return {
-                "executed": False,
-                "_error": (f"No layer in this project is called {first_name!r}, so "
-                           f"mapLayersByName({first_name!r})[0] on line {first_line} would raise IndexError. "
-                           f"Nothing was run."),
-                "_code": "INVALID_ARGS",
-                "layers": existing,
-                "suggestion": "",
-                "hint": "layer_name_not_found",
-                "name": first_name,
-                "line": first_line,
+            return tool_error(
+                f"No layer in this project is called {first_name!r}, so "
+                f"mapLayersByName({first_name!r})[0] on line {first_line} would raise IndexError. "
+                f"Nothing was run.",
+                "INVALID_ARGS", hint="layer_name_not_found", executed=False, layers=existing,
+                name=first_name, line=first_line,
                 **({"variant": "closest", "closest": near} if near else {}),
-            }
+            )
     except Exception:  # noqa: BLE001
         return None
     return None

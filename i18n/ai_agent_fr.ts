@@ -2347,12 +2347,12 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <translation>Cette étape ne s'est pas terminée. Les fichiers déjà écrits par l'exécution sont toujours sur le disque. Les couches ajoutées ne reviennent que si le projet a été enregistré après elles, et une couche temporaire a disparu. La même étape peut fermer QGIS de nouveau : demandez quelque chose de plus léger (une zone plus petite, moins de couches).</translation>
         </message>
         <message>
-            <source>The agent got stuck on the same step.</source>
-            <translation>L'agent est resté bloqué sur la même étape.</translation>
+            <source>The AI agent got stuck on the same step.</source>
+            <translation>L'agent IA est resté bloqué sur la même étape.</translation>
         </message>
         <message>
-            <source>The agent service restarted twice during a step.</source>
-            <translation>Le service de l'agent a redémarré deux fois pendant une étape.</translation>
+            <source>The AI agent service restarted twice during a step.</source>
+            <translation>Le service de l'agent IA a redémarré deux fois pendant une étape.</translation>
         </message>
         <message>
             <source>The answer was cut off. Ask again to carry on.</source>
@@ -2363,8 +2363,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <translation>La connexion à QGIS s'est interrompue et n'est pas revenue, donc cette étape ne s'est pas terminée. Si QGIS est toujours ouvert, le projet est dans l'état où l'exécution l'a laissé. S'il s'est fermé, les fichiers écrits par l'exécution sont toujours sur le disque, et ses couches ne reviennent que si le projet a été enregistré après elles. Rouvrez QGIS s'il s'est fermé, puis appuyez sur Réessayer.</translation>
         </message>
         <message>
-            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
-            <translation>Le modèle a continué d'envoyer une étape que l'agent ne pouvait pas lire. Les étapes précédentes sont conservées.</translation>
+            <source>The model kept sending a step the AI agent could not read. Earlier steps are kept.</source>
+            <translation>Le modèle a continué d'envoyer une étape que l'agent IA ne pouvait pas lire. Les étapes précédentes sont conservées.</translation>
         </message>
         <message>
             <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
@@ -2389,6 +2389,98 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
             <translation>Ce que l'exécution a fait avant cette étape est conservé. Une requête plus légère (une zone plus petite, une résolution plus basse) a plus de chances d'aboutir que la même renvoyée.</translation>
+        </message>
+        <message>
+            <source>It replaces {file} in {folder}.</source>
+            <translation>Il remplace {file} dans {folder}.</translation>
+        </message>
+        <message>
+            <source>No example matches these words. The AI agent may still do it.</source>
+            <translation>Aucun exemple ne correspond à ces mots. L'assistant IA peut quand même le faire.</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
+            <translation>Des tâches réelles que l'assistant IA réalise à partir d'une phrase. Ouvrez-en une pour l'essayer.</translation>
+        </message>
+        <message>
+            <source>Save the report {title}</source>
+            <translation>Enregistrer le rapport {title}</translation>
+        </message>
+        <message>
+            <source>Saved as {file} in {folder}.</source>
+            <translation>Enregistré sous {file} dans {folder}.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Essayer dans le chat</translation>
+        </message>
+        <message>
+            <source>its file could not be written back (another program may hold it), so it was left as it was</source>
+            <translation>son fichier n'a pas pu être réécrit (un autre programme le tient peut-être ouvert), il a donc été laissé tel quel</translation>
+        </message>
+        <message>
+            <source>Added {layer}</source>
+            <translation>{layer} ajoutée</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Mises en page modifiées</translation>
+        </message>
+        <message>
+            <source>Project CRS changed</source>
+            <translation>SCR du projet modifié</translation>
+        </message>
+        <message>
+            <source>Removed {layer}</source>
+            <translation>{layer} retirée</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>et {n} autres</translation>
+        </message>
+        <message>
+            <source>data edited</source>
+            <translation>données modifiées</translation>
+        </message>
+        <message>
+            <source>features edited</source>
+            <translation>entités modifiées</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>renommée</translation>
+        </message>
+        <message>
+            <source>restyled</source>
+            <translation>style modifié</translation>
+        </message>
+        <message>
+            <source>{file} stays on disk</source>
+            <translation>{file} reste sur le disque</translation>
+        </message>
+        <message>
+            <source>{first} and {n} more</source>
+            <translation>{first} et {n} autres</translation>
+        </message>
+        <message>
+            <source>{layer}: {changes}</source>
+            <translation>{layer} : {changes}</translation>
+        </message>
+        <message>
+            <source>{n} features added</source>
+            <translation>{n} entités ajoutées</translation>
+        </message>
+        <message>
+            <source>{n} features deleted</source>
+            <translation>{n} entités supprimées</translation>
+        </message>
+        <message>
+            <source>{n} files the request wrote stay on disk</source>
+            <translation>{n} fichiers écrits par la demande restent sur le disque</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>modifiée</translation>
         </message>
     </context>
     <context>
@@ -3557,8 +3649,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>Stopped before the agent answered.</source>
-            <translation>Arrêté avant que l’agent ne réponde.</translation>
+            <source>Stopped before the AI agent answered.</source>
+            <translation>Arrêté avant que l’agent IA ne réponde.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -3869,6 +3961,22 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
             <translation>Fichier temporaire dans le dossier de travail de AI Agent. Enregistrer le projet le range à côté du projet.</translation>
         </message>
+        <message>
+            <source>Checking your files before going back. Try again in a moment.</source>
+            <translation>Vérification de vos fichiers avant le retour en arrière. Réessayez dans un instant.</translation>
+        </message>
+        <message>
+            <source>The project moved while your files were checked, so nothing was restored.</source>
+            <translation>Le projet a changé pendant la vérification de vos fichiers, donc rien n'a été restauré.</translation>
+        </message>
+        <message>
+            <source>Your files could not be checked, so nothing was restored.</source>
+            <translation>Vos fichiers n'ont pas pu être vérifiés, donc rien n'a été restauré.</translation>
+        </message>
+        <message>
+            <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
+            <translation>Votre version de {file} n'a pas pu être conservée dans l'historique de la carte (Map history), donc rien n'a été restauré.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3979,6 +4087,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Add files from your computer</source>
             <translation>Ajouter des fichiers depuis votre ordinateur</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Sources de données</translation>
         </message>
     </context>
     <context>
@@ -4337,6 +4449,42 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Waiting for the install</source>
             <translation>En attente de l'installation</translation>
+        </message>
+        <message>
+            <source>{layer} couldn't be restored</source>
+            <translation>{layer} n'a pas pu être restaurée</translation>
+        </message>
+        <message>
+            <source>Redo brings these changes back.</source>
+            <translation>Rétablir ramène ces changements.</translation>
+        </message>
+        <message>
+            <source>This request:</source>
+            <translation>Cette demande :</translation>
+        </message>
+        <message>
+            <source>Undo takes these changes off the map.</source>
+            <translation>Annuler retire ces changements de la carte.</translation>
+        </message>
+        <message>
+            <source>Keep my edits</source>
+            <translation>Garder mes modifications</translation>
+        </message>
+        <message>
+            <source>Undo anyway</source>
+            <translation>Annuler quand même</translation>
+        </message>
+        <message>
+            <source>Undo would put back the AI agent's version over your changes. Your version stays in Map history as Your edits.</source>
+            <translation>Annuler remettrait la version de l'AI Agent par-dessus vos modifications. Votre version reste dans l'Historique de la carte sous le nom Vos modifications.</translation>
+        </message>
+        <message>
+            <source>You changed {file} by hand</source>
+            <translation>Vous avez modifié {file} à la main</translation>
+        </message>
+        <message>
+            <source>You changed {n} files by hand</source>
+            <translation>Vous avez modifié {n} fichiers à la main</translation>
         </message>
     </context>
     <context>
@@ -5147,6 +5295,38 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Show less</source>
             <translation>Afficher moins</translation>
         </message>
+        <message>
+            <source>Datasets ({n})</source>
+            <translation>Jeux de données ({n})</translation>
+        </message>
+        <message>
+            <source>Held by TerraLab's server, you need none</source>
+            <translation>Gérée par le serveur de TerraLab, vous n'en avez pas besoin</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Clé</translation>
+        </message>
+        <message>
+            <source>No dataset listed yet.</source>
+            <translation>Aucun jeu de données listé pour l'instant.</translation>
+        </message>
+        <message>
+            <source>Retry</source>
+            <translation>Réessayer</translation>
+        </message>
+        <message>
+            <source>See all %n examples</source>
+            <translation>Voir les %n exemples</translation>
+        </message>
+        <message>
+            <source>The datasets could not be loaded.</source>
+            <translation>Les jeux de données n'ont pas pu être chargés.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Essayer dans le chat</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5282,6 +5462,50 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>No data source matches these words. The agent may still find the data.</source>
             <translation>Aucune source de données ne correspond à ces mots. L’agent peut quand même trouver les données.</translation>
         </message>
+        <message>
+            <source>%n sources</source>
+            <translation>%n sources</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>Jeux de données</translation>
+        </message>
+        <message>
+            <source>More sources</source>
+            <translation>Plus de sources</translation>
+        </message>
+        <message>
+            <source>No data source matches these words. The AI agent may still find the data.</source>
+            <translation>Aucune source de données ne correspond à ces mots. L'assistant IA peut quand même trouver les données.</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>Tout voir</translation>
+        </message>
+        <message>
+            <source>Sources</source>
+            <translation>Sources</translation>
+        </message>
+        <message>
+            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
+            <translation>La bibliothèque de données que l'assistant IA peut utiliser. Il trouve et charge seul ce dont il a besoin.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Essayer dans le chat</translation>
+        </message>
+        <message>
+            <source>countries</source>
+            <translation>pays</translation>
+        </message>
+        <message>
+            <source>datasets</source>
+            <translation>jeux de données</translation>
+        </message>
+        <message>
+            <source>sources</source>
+            <translation>sources</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -5375,8 +5599,8 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <name>EffortChip</name>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>Planification approfondie, recherches et autonomie pour les tâches plus difficiles.</translation>
+            <source>The biggest jobs, with more time.</source>
+            <translation>Les plus gros travaux, avec plus de temps.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5390,13 +5614,13 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>Agent plus réfléchi : il planifie, vérifie ses résultats et consulte les algorithmes et la documentation.</translation>
+            <source>Everyday tasks, done with care.</source>
+            <translation>Les tâches du quotidien, faites avec soin.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>Se met au travail tout de suite. Idéal pour les petites modifications et les questions. Ne planifie pas et ne fait pas de recherches.</translation>
+            <source>Quick answers and small edits.</source>
+            <translation>Réponses rapides et petites modifications.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5427,6 +5651,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Available after your free trial, if you keep Pro.</source>
+            <translation>Disponible après l’essai si vous gardez Pro.</translation>
         </message>
         <message>
             <source>{level} needs Pro. Pick Low to send.</source>
@@ -5491,6 +5719,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Loads data, styles layers, runs analyses, builds maps.</source>
             <translation>Charge des données, style les couches, lance des analyses, construit des cartes.</translation>
         </message>
+        <message>
+            <source>Data</source>
+            <translation>Données</translation>
+        </message>
     </context>
     <context>
         <name>ErrorCard</name>
@@ -5537,11 +5769,6 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
     </context>
     <context>
         <name>Header</name>
-        <message>
-            <location filename="src/ui/header.py" />
-            <source>Try Pro free</source>
-            <translation>Essayer Pro gratuitement</translation>
-        </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>AI Agent</source>
@@ -6076,6 +6303,14 @@ Cliquez pour ouvrir sa page.</translation>
             <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
             <translation>Autoriser pour cette exécution couvre aussi les scripts suivants qui utilisent {libs}, y compris les fichiers qu’ils écrivent ou suppriment. La suppression de couches ou d’entités demande toujours confirmation.</translation>
         </message>
+        <message>
+            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <translation>La page renvoie vers des sites que l'assistant ne connaît pas : {hosts}.</translation>
+        </message>
+        <message>
+            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <translation>La page renvoie vers {hosts}, un site que l'assistant ne connaît pas.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -6302,6 +6537,11 @@ Cliquez pour ouvrir sa page.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Company paying by invoice? Get 7 free days</source>
+            <translation>Entreprise payant sur facture ? 7 jours offerts</translation>
+        </message>
+        <message>
             <source>Free AI Agent was already used by other accounts on this computer.</source>
             <translation>L’AI Agent gratuit a déjà été utilisé par d’autres comptes sur cet ordinateur.</translation>
         </message>
@@ -6336,13 +6576,13 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Try Pro free for {n} days</source>
-            <translation>Essayez Pro gratuitement {n} jours</translation>
+            <source>Start 7-day free trial</source>
+            <translation>Essai gratuit 7 jours</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>No commitment, cancel in one click</source>
-            <translation>Sans engagement, résiliable en un clic</translation>
+            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
+            <translation>Gratuit pendant 7 jours, puis {price}/mois. Résiliable en un clic.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -7730,6 +7970,22 @@ Cliquez pour ouvrir sa page.</translation>
             <source>Data sources</source>
             <translation>Sources de données</translation>
         </message>
+        <message>
+            <source>Free trial ends {date}</source>
+            <translation>L'essai gratuit se termine le {date}</translation>
+        </message>
+        <message>
+            <source>Then billed monthly</source>
+            <translation>Puis facturé chaque mois</translation>
+        </message>
+        <message>
+            <source>Then billed yearly</source>
+            <translation>Puis facturé chaque année</translation>
+        </message>
+        <message>
+            <source>{plan} · Free trial</source>
+            <translation>{plan} · Essai gratuit</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -8163,6 +8419,10 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{name} is installed</source>
             <translation>{name} est installé</translation>
+        </message>
+        <message>
+            <source>its changes to your project cannot be shown before it runs</source>
+            <translation>ses modifications de votre projet ne peuvent pas être affichées avant son exécution</translation>
         </message>
     </context>
     <context>
@@ -9230,6 +9490,14 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <source>Restored</source>
             <translation>Rétablie</translation>
         </message>
+        <message>
+            <source>Put back as before</source>
+            <translation>Remis comme avant</translation>
+        </message>
+        <message>
+            <source>Taken off the map</source>
+            <translation>Retiré de la carte</translation>
+        </message>
     </context>
     <context>
         <name>_VersionRow</name>
@@ -9462,6 +9730,83 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
         <message>
             <source>Waiting for {name} to install</source>
             <translation>En attente de l'installation de {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentStreamFallback</name>
+        <message>
+            <source>{day} UTC, the online source stopped answering ({error}); the layer now reads a local copy of {box} (EPSG:4326) taken from {source}</source>
+            <translation>{day} UTC, la source en ligne a cessé de répondre ({error}) ; la couche lit maintenant une copie locale de {box} (EPSG:4326) prise depuis {source}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and a local copy of the area on view failed too: {reason}</source>
+            <translation>{name} n'a pas pu être lue en ligne, et une copie locale de la zone affichée a aussi échoué : {reason}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and its local copy did not open.</source>
+            <translation>{name} n'a pas pu être lue en ligne, et sa copie locale ne s'est pas ouverte.</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online: it now shows a local copy of the area on view.</source>
+            <translation>{name} n'a pas pu être lue en ligne : elle affiche maintenant une copie locale de la zone affichée.</translation>
+        </message>
+    </context>
+    <context>
+        <name>LibraryRail</name>
+        <message>
+            <source>Home</source>
+            <translation>Accueil</translation>
+        </message>
+    </context>
+    <context>
+        <name>ObjectRow</name>
+        <message>
+            <source>3D view</source>
+            <translation>Vue 3D</translation>
+        </message>
+        <message>
+            <source>Attribute table</source>
+            <translation>Table attributaire</translation>
+        </message>
+        <message>
+            <source>Map theme</source>
+            <translation>Thème de carte</translation>
+        </message>
+        <message>
+            <source>Print layout</source>
+            <translation>Mise en page</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>Rapport</translation>
+        </message>
+        <message>
+            <source>Show {name}</source>
+            <translation>Afficher {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_DatasetRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Place cette demande dans la zone de chat, prête à être modifiée.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_PromptRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Place cette demande dans la zone de chat, prête à être modifiée.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Enregistrement de {layers} en cours. Rien n'a été modifié : réessayez dans quelques secondes.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>a temporary layer</source>
+            <translation>une couche temporaire</translation>
         </message>
     </context>
 </TS>

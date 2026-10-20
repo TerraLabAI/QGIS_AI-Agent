@@ -116,6 +116,10 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
 
 
         self._output_files: dict[str, list[dict]] = {}
+
+
+        self._objects: dict[str, list[dict]] = {}
+        self._ended_objects: tuple = ()
         self._call_warnings: dict[str, list[dict]] = {}
 
         self._ended_run: tuple = ("", (), ())
@@ -132,7 +136,8 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
         self._inflight: dict[str, tuple[str, str, float, bool]] = {}
 
 
-        self._dialog_waits: dict[str, tuple[float, float, str]] = {}
+
+        self._dialog_waits: dict[str, tuple[float, float, str, tuple[str, ...]]] = {}
         self._dialog_tick: float | None = None
 
 
@@ -152,7 +157,9 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
 
 
 
-        self._run_allowed: dict[str, set[str]] = {}
+
+
+        self._run_allowed: dict[str, dict[str, str]] = {}
 
 
 

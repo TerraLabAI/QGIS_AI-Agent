@@ -15,7 +15,7 @@ from ..core.logger import log_warning
 
 from ..core.qgis_plugins import explore_menu as _explore_menu
 from ..core.qgis_plugins import menu_of as _menu_of
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 
 def _known() -> dict:
@@ -343,12 +343,12 @@ def _resolve_menu_action(root_menu, action_path: str):
                 if i + span >= len(parts):
                     if action.menu():
                         return None, {
-                            "_error": f"'{action_path}' is a submenu, not a triggerable action.",
+                            **tool_error(f"'{action_path}' is a submenu, not a triggerable action.", "INVALID_ARGS"),
                             "available_actions": _explore_menu(action.menu(), action_path + "/"),
                         }
                     return action, None
                 if not action.menu():
-                    return None, {"_error": f"'{part}' is not a submenu, cannot navigate further."}
+                    return None, tool_error(f"'{part}' is not a submenu, cannot navigate further.", "INVALID_ARGS")
                 current_menu = action.menu()
                 found = True
                 break
@@ -365,13 +365,14 @@ def _resolve_menu_action(root_menu, action_path: str):
 
         deeper = _paths_to(root_menu, part, key)
         if deeper:
-            return None, {"_error": msg, "hint": "menu_action_nested", "paths": [repr(d) for d in deeper]}
+            return None, tool_error(msg, "INVALID_ARGS", hint="menu_action_nested",
+                                    paths=[repr(d) for d in deeper])
         if suggestions:
             msg += f" Did you mean: {', '.join(repr(s) for s in suggestions)}?"
         else:
             msg += f" Available: {', '.join(repr(s) for s in siblings[:15])}"
-        return None, {"_error": msg}
-    return None, {"_error": f"Could not resolve action path: {action_path}"}
+        return None, tool_error(msg, "INVALID_ARGS")
+    return None, tool_error(f"Could not resolve action path: {action_path}", "INVALID_ARGS")
 
 
 def _trigger_plugin_action(args: dict) -> dict:
@@ -380,7 +381,7 @@ def _trigger_plugin_action(args: dict) -> dict:
     action_path = args.get("action_path")
     plugin = plugins.get(name)
     if not plugin:
-        return {"_error": f"Plugin '{asked}' is not loaded.", "hint": "plugin_not_loaded", "plugin": asked}
+        return tool_error(f"Plugin '{asked}' is not loaded.", "INVALID_ARGS", hint="plugin_not_loaded", plugin=asked)
 
     menu = _menu_of(name)
     if menu is None:
@@ -388,13 +389,8 @@ def _trigger_plugin_action(args: dict) -> dict:
 
 
 
-        return {
-            "_error": f"Plugin '{name}' registers no menu, so there is no action to trigger.",
-            "code": "INVALID_ARGS",
-            "suggestion": "",
-            "hint": "plugin_no_menu",
-            "plugin": name,
-        }
+        return tool_error(f"Plugin '{name}' registers no menu, so there is no action to trigger.",
+                          "INVALID_ARGS", hint="plugin_no_menu", plugin=name)
 
     available = _explore_menu(menu)
 
@@ -534,7 +530,8 @@ def _get_plugin_info(args: dict) -> dict:
     asked = args["plugin_name"]
     name = resolve_plugin(asked)
     if not name:
-        return {"_error": f"Plugin not found: {asked}", "hint": "plugin_folder_name_needed", "plugin": asked}
+        return tool_error(f"Plugin not found: {asked}", "INVALID_ARGS", hint="plugin_folder_name_needed",
+                          plugin=asked)
     fields = ["name", "version", "description", "author", "email", "homepage", "category", "qgisMinimumVersion"]
     enabled = name in (active_plugins or [])
     info = {"plugin_dir": name, "enabled": enabled}
@@ -602,8 +599,8 @@ def _open_plugin_manager(args: dict) -> dict:
 
     asked = str(args.get("plugin_name") or "").strip()
     if not asked:
-        return {"_error": "plugin_name is empty; it takes the name as the QGIS Plugin Manager lists it.",
-                "code": "INVALID_ARGS"}
+        return tool_error("plugin_name is empty; it takes the name as the QGIS Plugin Manager lists it.",
+                          "INVALID_ARGS")
     from ..ui.cross_plugin_discovery import open_plugin_manager_later
     from .sibling_setup import presence
 
@@ -654,18 +651,16 @@ def _reload_plugin(args: dict) -> dict:
     asked = args["plugin_name"]
     folder = resolve_plugin(asked) or asked
     if folder in ("AI_Agent", "QGIS_AI-Agent", "QGIS_AI-Agent-Team", "QGIS_AI_Agent", "qgis_ai_agent"):
-        return {
-            "_error": "AI Agent cannot reload itself mid-run.",
-            "code": "PERMISSION_DENIED",
-            "hint": "reload_self_refused",
-        }
+        return tool_error("AI Agent cannot reload itself mid-run.", "PERMISSION_DENIED",
+                          hint="reload_self_refused")
 
     if folder not in (active_plugins or []):
-        return {"_error": f"Plugin '{folder}' is not active. Only active plugins can be reloaded."}
+        return tool_error(f"Plugin '{folder}' is not active. Only active plugins can be reloaded.",
+                          "INVALID_ARGS")
 
     try:
         reloadPlugin(folder)
     except Exception as e:
-        return {"_error": f"Failed to reload plugin: {e}"}
+        return tool_error(f"Failed to reload plugin: {e}")
 
     return {"reloaded": folder}

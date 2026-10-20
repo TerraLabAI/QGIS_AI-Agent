@@ -43,6 +43,13 @@
 
 
 
+
+
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, Qt, QTimer, pyqtSignal
@@ -53,6 +60,7 @@ from ..connector_page import ConnectorPage
 from ..connectors_page import POPULAR_KEY, ConnectorsPage, accent_of, cases_of, shelves, sources_by_id
 from ..font_scale import apply_font_scale_to_tree
 from ..shared import size_within_screen, tr, watch_connectors
+from ..style import with_platform_font
 from ..use_cases import use_case_group_looks, use_case_groups, use_cases
 from . import common as C
 from . import keys
@@ -60,7 +68,7 @@ from .detail import ExampleDetail
 from .home import ExamplesHome
 from .rail import LibraryRail
 
-_GRID_PAGE, _DETAIL_PAGE, _SOURCES_PAGE, _SOURCE_PAGE = 0, 1, 2, 3
+_GRID_PAGE, _DETAIL_PAGE, _SOURCES_PAGE, _SOURCE_PAGE, _SECTION_PAGE = 0, 1, 2, 3, 4
 
 HOME_KEY = "__examples__"
 SOURCES_KEY = "__sources__"
@@ -68,16 +76,7 @@ SOURCES_KEY = "__sources__"
 
 _SHELF_PREFIX = "__shelf__:"
 
-_SHELF_GLYPHS = {
-    "worldwide": "globe",
-    "imagery": "satellite",
-    "terrain": "terrain",
-    "nature": "points",
-    "people": "person",
-    "national": "pin",
-    "catalogs": "book",
-}
-
+_REDIRECT_KEY = "__redirect__"
 
 class ExamplesDialog(QDialog):
 
@@ -86,10 +85,13 @@ class ExamplesDialog(QDialog):
     prompt_chosen = pyqtSignal(str, object)
     example_chosen = pyqtSignal(str)
 
-    def __init__(self, parent=None, opened_from: str = "composer"):
+    def __init__(self, parent=None, opened_from: str = "composer", place: str = HOME_KEY):
         super().__init__(parent)
         self.setObjectName("AIAgentExamplesDialog")
-        self.setWindowTitle(tr("Examples"))
+
+        self._place = SOURCES_KEY if place == SOURCES_KEY else HOME_KEY
+        self._home_page = _SOURCES_PAGE if self._place == SOURCES_KEY else _GRID_PAGE
+        self.setWindowTitle(tr("Data sources") if self._place == SOURCES_KEY else tr("Examples"))
         try:
             from ...core import telemetry
             from ...core import telemetry_events as ev
@@ -99,6 +101,7 @@ class ExamplesDialog(QDialog):
             pass
         self.setModal(True)
         self.setStyleSheet(C.page_qss("AIAgentExamplesDialog"))
+        with_platform_font(self)
         size_within_screen(self, C.px(C.DIALOG_W), C.px(C.DIALOG_H), C.px(760), C.px(480))
 
         self._cases = list(use_cases())
@@ -120,11 +123,8 @@ class ExamplesDialog(QDialog):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        self._rail = LibraryRail([(HOME_KEY, "image", tr("Examples")),
-                                  (SOURCES_KEY, "globe", tr("Data sources"))],
-                                 self._group_rows, self, self._looks)
-        self._rail.selected.connect(self._on_rail)
-        self._set_shelves()
+        self._root = root
+        self._rail = self._build_rail()
         self._unwatch = watch_connectors(self._on_sources_changed)
         root.addWidget(self._rail)
 
@@ -148,20 +148,25 @@ class ExamplesDialog(QDialog):
 
 
         self._directory: ConnectorsPage | None = None
+        self._section: ConnectorsPage | None = None
         self._source = ConnectorPage(right)
         self._source.crumb_requested.connect(self._on_crumb)
         self._source.prompt_chosen.connect(self._on_source_prompt)
         self._source.example_opened.connect(self.open_case)
         self._pages.addWidget(QWidget(right))
         self._pages.addWidget(self._source)
+        self._pages.addWidget(QWidget(right))
         col.addWidget(self._pages, 1)
         root.addWidget(right, 1)
 
-        self._rail.set_current(HOME_KEY)
+        self._rail.set_current(self._place)
         self._painted = False
         apply_font_scale_to_tree(self)
-        self._home.search_field().setFocus()
         self._home.search_field().installEventFilter(self)
+        if self._place == SOURCES_KEY:
+            self.open_sources()
+        else:
+            self._home.search_field().setFocus()
         from ..shared import QShortcut
 
         find = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
@@ -172,6 +177,43 @@ class ExamplesDialog(QDialog):
         self._app = QApplication.instance()
         if self._app is not None:
             self._app.installEventFilter(self)
+
+    def _build_rail(self) -> LibraryRail:
+
+        if self._place == SOURCES_KEY:
+            rail = LibraryRail((SOURCES_KEY, "globe", tr("Data sources")), [], self)
+            rail.add_redirect(_REDIRECT_KEY, "image", tr("Examples"))
+        else:
+            rail = LibraryRail((HOME_KEY, "image", tr("Examples")),
+                               self._group_rows, self, self._looks)
+            rail.add_redirect(_REDIRECT_KEY, "globe", tr("Data sources"))
+        rail.selected.connect(self._on_rail)
+        self._rail = rail
+        self._set_shelves()
+        return rail
+
+    def switch_place(self, place: str) -> None:
+
+
+        place = SOURCES_KEY if place == SOURCES_KEY else HOME_KEY
+        if place == self._place:
+            return
+        self.setUpdatesEnabled(False)
+        try:
+            self._place = place
+            self._home_page = _SOURCES_PAGE if place == SOURCES_KEY else _GRID_PAGE
+            self.setWindowTitle(tr("Data sources") if place == SOURCES_KEY else tr("Examples"))
+            old = self._rail
+            rail = self._build_rail()
+            self._root.replaceWidget(old, rail)
+            old.hide()
+            old.setParent(None)
+            old.deleteLater()
+            apply_font_scale_to_tree(rail)
+            self._history = []
+            self._on_rail(place)
+        finally:
+            self.setUpdatesEnabled(True)
 
     def eventFilter(self, watched, event):  # noqa: N802
 
@@ -247,6 +289,10 @@ class ExamplesDialog(QDialog):
             self._paint_directory()
             if self._directory.search_field().text() != query:
                 self._directory.search_field().setText(query)
+        elif page == _SECTION_PAGE:
+            self._show_section(str(payload or ""))
+            if self._section.search_field().text() != query:
+                self._section.search_field().setText(query)
         elif page == _GRID_PAGE:
             field = self._home.search_field()
             self._home.set_group(group)
@@ -268,9 +314,16 @@ class ExamplesDialog(QDialog):
         if page == _DETAIL_PAGE:
             return str(getattr(payload, "title", "") or "")
         if page == _SOURCE_PAGE:
+            if self._is_other(str(payload)):
+                from ..connectors_page import other_row
+
+                return str(other_row()["name"])
             return str((self._connectors.get(str(payload)) or {}).get("name") or payload)
         if page == _SOURCES_PAGE:
             return tr("Data sources")
+        if page == _SECTION_PAGE:
+            return next((text for key, text in shelves(list(self._connectors.values()))
+                         if key == payload), str(payload or ""))
         if snap[1].strip():
             return tr("Results for \u201c{query}\u201d").format(query=snap[1].strip())
         return self._group_label(snap[2]) if snap[2] else tr("Examples")
@@ -279,7 +332,7 @@ class ExamplesDialog(QDialog):
 
 
 
-        if page == _SOURCE_PAGE:
+        if page in (_SOURCE_PAGE, _SECTION_PAGE):
             return [(tr("Data sources"), ("rail", SOURCES_KEY))]
         if page == _GRID_PAGE and payload:
             return [(tr("Examples"), ("rail", HOME_KEY))]
@@ -296,7 +349,7 @@ class ExamplesDialog(QDialog):
     def _paint_trail(self) -> None:
 
         page, payload = self._state
-        if page not in (_DETAIL_PAGE, _SOURCE_PAGE):
+        if page not in (_DETAIL_PAGE, _SOURCE_PAGE, _SECTION_PAGE):
             return
         path = [*self._history, (page, payload, ("", "", ""))]
         first = path[0]
@@ -304,7 +357,8 @@ class ExamplesDialog(QDialog):
         crumbs += [(self._name_of(*entry), ("back", index)) for index, entry in enumerate(path)]
         self._crumb_actions = [action for _name, action in crumbs]
         names = [name for name, _action in crumbs]
-        (self._detail if page == _DETAIL_PAGE else self._source).set_trail(names)
+        {_DETAIL_PAGE: self._detail, _SOURCE_PAGE: self._source,
+         _SECTION_PAGE: self._section}[page].set_trail(names)
 
     def _on_crumb(self, index: int) -> None:
 
@@ -326,7 +380,7 @@ class ExamplesDialog(QDialog):
 
     def _back_key(self) -> None:
 
-        if self._history or self._pages.currentIndex() != _GRID_PAGE:
+        if self._history or self._pages.currentIndex() != self._home_page:
             self._back()
 
     def _mark_rail(self) -> None:
@@ -336,7 +390,9 @@ class ExamplesDialog(QDialog):
         if page == _GRID_PAGE:
             self._rail.set_current("" if self._home.query() else (self._home.group() or HOME_KEY))
         elif page == _SOURCES_PAGE:
-            self._rail.set_current(self._shelf_key())
+            self._rail.set_current(SOURCES_KEY)
+        elif page == _SECTION_PAGE:
+            self._rail.set_current(_SHELF_PREFIX + str(payload or ""))
         elif page == _SOURCE_PAGE:
             self._rail.set_current(self._category_key(str(payload or "")))
         elif getattr(payload, "listed", True):
@@ -357,6 +413,8 @@ class ExamplesDialog(QDialog):
         self._set_shelves()
         if self._directory is not None:
             self._paint_directory()
+        if self._section is not None and self._state[0] == _SECTION_PAGE:
+            self._show_section(str(self._state[1] or ""))
         self._mark_rail()
 
     def done(self, result: int) -> None:  # noqa: N802
@@ -373,10 +431,10 @@ class ExamplesDialog(QDialog):
         if self._history:
             self._restore(*self._history.pop())
         elif len(self._crumb_actions) > 1 and self._pages.currentIndex() in (
-                _DETAIL_PAGE, _SOURCE_PAGE):
+                _DETAIL_PAGE, _SOURCE_PAGE, _SECTION_PAGE):
             self._on_crumb(len(self._crumb_actions) - 2)
         else:
-            self._go(_GRID_PAGE, push=False)
+            self._on_rail(self._place)
 
     def _set_shelves(self) -> None:
 
@@ -385,28 +443,44 @@ class ExamplesDialog(QDialog):
         for key, text in shelves(rows):
             rail_key = _SHELF_PREFIX + key
             groups.append((rail_key, text))
-            glyph = "sparkles" if key == POPULAR_KEY else _SHELF_GLYPHS.get(key, "layers")
+            glyph = "sparkles" if key == POPULAR_KEY else C.category_glyph(key)
             looks[rail_key] = (glyph, accent_of(key))
         self._rail.set_groups(SOURCES_KEY, groups, looks)
 
     def _on_rail(self, key: str) -> None:
 
+        if key == _REDIRECT_KEY:
+            self.switch_place(HOME_KEY if self._place == SOURCES_KEY else SOURCES_KEY)
+            return
         self._history = []
-        if key == SOURCES_KEY or key.startswith(_SHELF_PREFIX):
-
-            self._to_directory(key[len(_SHELF_PREFIX):] if key != SOURCES_KEY else "")
+        if key == SOURCES_KEY:
+            self._to_directory()
             self._directory.focus_search()
+            return
+        if key.startswith(_SHELF_PREFIX):
+            self._open_section(key[len(_SHELF_PREFIX):], push=False)
             return
         self._home.set_group("" if key == HOME_KEY else key)
         self._drop_focus()
         self._go(_GRID_PAGE, push=False)
 
-    def _to_directory(self, shelf: str | None = None) -> None:
+    def _to_directory(self) -> None:
 
         self._ensure_directory()
-        self._paint_directory(shelf)
+        self._paint_directory()
+        self._directory.clear_search()
         self._history = []
         self._go(_SOURCES_PAGE, push=False)
+        bar = self._scroll_bar()
+        if bar is not None:
+            bar.setValue(0)
+
+    def _open_section(self, key: str, push: bool = True) -> None:
+
+        self._show_section(key)
+        self._section.clear_search()
+        self._go(_SECTION_PAGE, key, push=push)
+        self._section.focus_search()
 
     def _source_of(self, case) -> str:
         return next((str(k) for k in (case.connectors or ()) if str(k) in self._connectors), "")
@@ -436,42 +510,56 @@ class ExamplesDialog(QDialog):
 
 
 
-        if str(key) not in self._connectors:
+        if str(key) not in self._connectors and not self._is_other(str(key)):
             return
         self._show_source(str(key))
 
         self._go(_SOURCE_PAGE, str(key), push=self.isVisible())
 
+    @staticmethod
+    def _is_other(key: str) -> bool:
+
+        from ...core import source_rows
+
+        return key == source_rows.OTHER and source_rows.available()
+
     def _show_source(self, key: str) -> None:
         row = self._connectors.get(key)
+        if row is None and self._is_other(key):
+            from ..connectors_page import other_row
+
+            row = other_row()
         if row is not None:
             self._source.set_connector(row, cases_of(key, self._cases))
 
 
 
-    def _ensure_directory(self) -> None:
-        if self._directory is not None:
-            return
+    def _build_sources_page(self, slot: int) -> ConnectorsPage:
         page = ConnectorsPage(self._right)
         page.connector_opened.connect(self.open_connector)
+        page.section_opened.connect(self._open_section)
+        page.crumb_requested.connect(self._on_crumb)
         page.ask_requested.connect(self._on_ask)
-        page.shelf_changed.connect(lambda _key: self._mark_rail())
         page.search_field().installEventFilter(self)
-        old = self._pages.widget(_SOURCES_PAGE)
-        self._pages.insertWidget(_SOURCES_PAGE, page)
+        old = self._pages.widget(slot)
+        self._pages.insertWidget(slot, page)
         self._pages.removeWidget(old)
         old.deleteLater()
         apply_font_scale_to_tree(page)
-        self._directory = page
+        return page
 
-    def _paint_directory(self, shelf: str | None = None) -> None:
+    def _ensure_directory(self) -> None:
+        if self._directory is None:
+            self._directory = self._build_sources_page(_SOURCES_PAGE)
+
+    def _paint_directory(self) -> None:
         if self._directory is not None:
-            self._directory.set_data(list(self._connectors.values()), self._cases, shelf)
+            self._directory.set_data(list(self._connectors.values()), self._cases)
 
-    def _shelf_key(self) -> str:
-
-        shelf = self._directory.shelf() if self._directory is not None else ""
-        return _SHELF_PREFIX + shelf if shelf else SOURCES_KEY
+    def _show_section(self, key: str) -> None:
+        if self._section is None:
+            self._section = self._build_sources_page(_SECTION_PAGE)
+        self._section.set_data(list(self._connectors.values()), self._cases, section=key or POPULAR_KEY)
 
 
 
@@ -506,8 +594,8 @@ class ExamplesDialog(QDialog):
         page = self._pages.currentIndex()
         if page == _GRID_PAGE:
             return self._home.tiles()
-        if page == _SOURCES_PAGE and self._directory is not None:
-            return self._directory.cards()
+        if page in (_SOURCES_PAGE, _SECTION_PAGE) and self._sources_page() is not None:
+            return self._sources_page().cards()
         if page == _SOURCE_PAGE:
             return self._source.tiles()
         return []
@@ -516,9 +604,13 @@ class ExamplesDialog(QDialog):
         page = self._pages.currentIndex()
         if page == _GRID_PAGE:
             return self._home.search_field()
-        if page == _SOURCES_PAGE and self._directory is not None:
-            return self._directory.search_field()
+        if page in (_SOURCES_PAGE, _SECTION_PAGE) and self._sources_page() is not None:
+            return self._sources_page().search_field()
         return None
+
+    def _sources_page(self) -> ConnectorsPage | None:
+
+        return self._section if self._pages.currentIndex() == _SECTION_PAGE else self._directory
 
     def _drop_focus(self) -> None:
         for tile in self._focus_tiles:
@@ -580,11 +672,14 @@ class ExamplesDialog(QDialog):
                 self._back_key()
                 return
             if key == Qt.Key.Key_Escape:
-                if page == _SOURCES_PAGE and self._directory is not None and \
-                        self._directory.clear_search():
+                if page in (_SOURCES_PAGE, _SECTION_PAGE) and self._sources_page() is not None \
+                        and self._sources_page().clear_search():
                     return
                 if page == _SOURCES_PAGE and not self._history:
-                    self._on_rail(HOME_KEY)
+                    if self._place == SOURCES_KEY:
+                        self.reject()
+                    else:
+                        self._on_rail(HOME_KEY)
                 else:
                     self._back()
                 return

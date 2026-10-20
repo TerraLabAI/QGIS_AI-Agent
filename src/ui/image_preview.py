@@ -20,7 +20,7 @@ from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout, QWidget
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .image_guard import read_bounded_image
 from .shared import event_pos
-from .style import FONT_HINT
+from .style import FONT_HINT, with_platform_font
 from .widgets import IconButton
 
 _MAX_IMAGE_BASE64 = 16 * 1024 * 1024
@@ -140,6 +140,7 @@ class ImagePreview(QDialog):
     def __init__(self, image: QImage, caption: str, anchor: QWidget | None = None):
         window = anchor.window() if anchor is not None else None
         super().__init__(window)
+        with_platform_font(self)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)

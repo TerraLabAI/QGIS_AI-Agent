@@ -11,16 +11,18 @@
 from __future__ import annotations
 
 import math
+import threading
 
 from qgis.core import (
     QgsCoordinateTransform,
     QgsProject,
     QgsRasterLayer,
     QgsVectorLayer,
+    QgsVectorLayerFeatureSource,
     QgsWkbTypes,
 )
 
-from . import ground, tuning
+from . import background, ground, tuning
 from .crs_ref import crs_ref
 from .feature_requests import feature_request, first_feature
 from .layer_order import is_web_service
@@ -349,13 +351,40 @@ def field_card(layer) -> tuple[list[dict], int]:
     return out, max(0, len(fields) - cap)
 
 
+
+
+
+
+
+
+_SAMPLE_WAIT_S = 0.2
+_samples: dict = {}
+_samples_reading: set = set()
+_samples_lock = threading.Lock()
+
+
+def _sample_row(feature, chosen) -> dict | None:
+    out: dict = {}
+    for index, field in chosen:
+        value = feature[index]
+        if isinstance(value, (bytes, bytearray)):
+            continue
+        if type(value).__name__ in ("QDate", "QDateTime", "QTime"):
+            value = qt_temporal_text(value)
+        out[field.name()] = str(value)[:MAX_SAMPLE_VALUE_CHARS]
+    return out or None
+
+
 def sample_attributes(layer) -> dict | None:
 
 
 
 
 
-    if source_kind(layer) not in ("memory", "file"):
+
+
+    kind = source_kind(layer)
+    if kind not in ("memory", "file"):
         return None
     try:
         fields = list(layer.fields())
@@ -364,23 +393,53 @@ def sample_attributes(layer) -> dict | None:
         chosen = eligible[:MAX_FIELDS]
         if not chosen:
             return None
-        feature = first_feature(layer, feature_request(
-            attributes=[index for index, _field in chosen], geometry=False, limit=1))
-        if feature is None:
+        request = feature_request(attributes=[index for index, _field in chosen], geometry=False, limit=1)
+        if kind == "memory" or is_editing(layer):
+            feature = first_feature(layer, request)
+            row = _sample_row(feature, chosen) if feature is not None else None
+        else:
+            row = _sample_off_thread(layer, request, chosen)
+        if row is None:
             return None
-        out: dict = {}
-        for index, field in chosen:
-            value = feature[index]
-            if isinstance(value, (bytes, bytearray)):
-                continue
-            if type(value).__name__ in ("QDate", "QDateTime", "QTime"):
-                value = qt_temporal_text(value)
-            out[field.name()] = str(value)[:MAX_SAMPLE_VALUE_CHARS]
+        out = dict(row)
         if len(eligible) > len(chosen):
             out["_more_fields"] = len(eligible) - len(chosen)
-        return out or None
+        return out
     except Exception:
         return None
+
+
+def _sample_off_thread(layer, request, chosen) -> dict | None:
+
+    lid = layer.id()
+    key = (str(layer.subsetString() or ""), tuple(field.name() for _index, field in chosen))
+    done = threading.Event()
+    with _samples_lock:
+        reading = lid in _samples_reading
+        _samples_reading.add(lid)
+    if not reading:
+        def read(source, request):
+            row = None
+            try:
+                feature = first_feature(source, request)
+                row = _sample_row(feature, chosen) if feature is not None else None
+            finally:
+                with _samples_lock:
+                    _samples[lid] = (key, row)
+                    _samples_reading.discard(lid)
+                done.set()
+
+        try:
+            background.start_kept_thread(read, QgsVectorLayerFeatureSource(layer), request,
+                                         name="context sample read")
+        except Exception:  # noqa: BLE001
+            with _samples_lock:
+                _samples_reading.discard(lid)
+            return None
+        done.wait(_SAMPLE_WAIT_S)
+    with _samples_lock:
+        kept = _samples.get(lid)
+    return kept[1] if kept is not None and kept[0] == key else None
 
 
 def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:

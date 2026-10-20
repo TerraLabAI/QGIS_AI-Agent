@@ -131,7 +131,7 @@ def select_qss(name: str) -> str:
 
 
 
-    return _BTN_MODE + (
+    return _BTN_MODE + scale_qss_font_px(
 
 
         f"QToolButton#{name} {{ border-color: transparent; color: {INK_2};"
@@ -139,10 +139,6 @@ def select_qss(name: str) -> str:
         f"QToolButton#{name}:hover {{ color: {INK}; }}"
         f'QToolButton#{name}:pressed, QToolButton#{name}[active="true"] {{ color: {INK}; }}'
     )
-
-
-
-chip_qss = select_qss
 
 
 _CHIP_QSS = select_qss("permissionChip")
@@ -451,9 +447,6 @@ class PermissionChip(QToolButton):
             self._popover.set_current(self._mode)
         self._paint()
 
-    def is_paid(self) -> bool:
-        return self._paid
-
     def _names(self) -> dict:
         return {approval: name for approval, name, _note in mode_texts(self)}
 
@@ -473,9 +466,6 @@ class PermissionChip(QToolButton):
             return
         self._compact = compact
         self._paint()
-
-    def is_compact(self) -> bool:
-        return self._compact
 
     def width_for(self, compact: bool) -> int:
 

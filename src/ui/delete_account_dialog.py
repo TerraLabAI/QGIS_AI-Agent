@@ -19,8 +19,10 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
+from .font_scale import scale_qss_font_px
 from .settings_pages import DANGER_GHOST_BTN_QSS, GHOST_BTN_QSS, INPUT_QSS, MUTED
 from .shared import exec_dialog, tr
+from .style import with_platform_font
 
 
 class DeleteAccountDialog(QDialog):
@@ -28,6 +30,7 @@ class DeleteAccountDialog(QDialog):
 
     def __init__(self, email: str, parent=None):
         super().__init__(parent)
+        with_platform_font(self)
         self._email = str(email or "").strip()
         self.setWindowTitle(tr("Delete my account"))
         self.setModal(True)
@@ -37,7 +40,7 @@ class DeleteAccountDialog(QDialog):
         layout.setSpacing(12)
 
         title = QLabel(tr("Delete your TerraLab account"), self)
-        title.setStyleSheet("font-size: 14px; font-weight: 600;")
+        title.setStyleSheet(scale_qss_font_px("font-size: 14px; font-weight: 600;"))
         title.setWordWrap(True)
         layout.addWidget(title)
 
@@ -58,7 +61,7 @@ class DeleteAccountDialog(QDialog):
 
         ask = QLabel(tr("Type that address to confirm."), self)
         ask.setWordWrap(True)
-        ask.setStyleSheet(f"font-size: 11px; color: {MUTED};")
+        ask.setStyleSheet(scale_qss_font_px(f"font-size: 11px; color: {MUTED};"))
         layout.addWidget(ask)
 
         self._line = QLineEdit(self)

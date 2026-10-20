@@ -28,7 +28,6 @@ from qgis.core import (
 from ..core import limits
 from ..core.qt_compat import enum_member, field_type
 from ..core.tool_registry import tool_error
-from .hydrology_terrain import _OUTLET_FORMS
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 
@@ -56,7 +55,7 @@ def _dem_facts(dem_name: str) -> dict:
 
 
 def _outlet_error(message: str) -> dict:
-    return tool_error(message, "INVALID_ARGS", _OUTLET_FORMS)
+    return tool_error(message, "INVALID_ARGS", hint="hydrology_outlet_forms")
 
 
 def _finite(value) -> float | None:

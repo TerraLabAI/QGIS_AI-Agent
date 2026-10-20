@@ -94,10 +94,10 @@ def _frames(args: dict, total: int):
         if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value < total:
             return tool_error(f"{key} {value!r} is not a frame of this animation, which has {total} "
                               f"(0 to {total - 1}).", "INVALID_ARGS",
-                              f"Frame numbers run 0 to {total - 1}; leaving both out gives every frame.")
+                              hint="animation_frame_number", highest=total - 1)
     if last < first:
         return tool_error(f"last_frame {last} is before first_frame {first}.", "INVALID_ARGS",
-                          "Both left out gives every frame.")
+                          hint="animation_frame_order")
     ceiling = int(limits.current("ANIMATION_MAX_FRAMES"))
     count = last - first + 1
     if count > ceiling:
@@ -162,13 +162,13 @@ def _folder(args: dict, layer: str, prefix: str, first: int, last: int):
 
     problem = _prepare_frame_folder(folder, prefix + "0.part")
     if problem:
-        return tool_error(problem, "INVALID_ARGS", "out_dir must differ.")
+        return tool_error(problem, "INVALID_ARGS", hint="animation_frame_folder_unusable")
     if existed:
         names = set(os.listdir(folder))
         clash = next((_name(prefix, n) for n in range(first, last + 1) if _name(prefix, n) in names), None)
         if clash:
             return tool_error(f"{os.path.join(folder, clash)} already exists.", "INVALID_ARGS",
-                              "prefix or out_dir must differ: an export never replaces frames already there.")
+                              hint="animation_frames_exist")
     return folder, not existed
 
 
@@ -207,7 +207,7 @@ def export_animation_frames(args: dict) -> dict:
     canvas, controller = _canvas_and_controller()
     if canvas is None or controller is None:
         return tool_error("There is no map canvas with a temporal controller in this QGIS window.",
-                          "EXECUTION_FAILED", "The export needs the QGIS main window open.")
+                          "EXECUTION_FAILED", hint="animation_needs_main_window")
     animation = _animation(controller)
     if "_error" in animation:
         return animation
@@ -222,8 +222,7 @@ def export_animation_frames(args: dict) -> dict:
         rectangle = QgsRectangle(extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
         if rectangle.width() <= 0 or rectangle.height() <= 0:
             return tool_error("extent is empty: xmax must be above xmin and ymax above ymin.", "INVALID_ARGS",
-                              f"An extent in the map's CRS, {base.destinationCrs().authid()}, or none "
-                              "for the current view.")
+                              hint="animation_extent_crs", crs=base.destinationCrs().authid())
     else:
         rectangle = canvas.extent()
     size = _size(args, base.outputSize(), rectangle)

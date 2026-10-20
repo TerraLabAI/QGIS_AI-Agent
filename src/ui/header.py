@@ -50,17 +50,20 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QIcon, QKeySequence, QPainter, QPixmap, QTextOption
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QIcon, QKeySequence, QPainter, QPixmap, QTextOption
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from .checkpoint_sheet import CheckpointSheet, history_rows, row_target
 from .font_scale import scale_px_length, widget_pixel_ratio
 from .history_popup import HistoryPopup
 from .icons import icon_for, logo_pixmap, logo_size
+from .quota_card import trial_cta
 from .shared import CHECKPOINTS_KEYS
 from .style import (
     _BTN_PRO_PILL,
     _HEADER_QSS,
+    FONT_BODY,
+    FONT_HINT,
     PRO_PILL_PX,
     RADIUS_CONTROL,
     SPACE_CARD,
@@ -134,7 +137,9 @@ class Header(QWidget):
         self._dock = None
         self._sidebar = None
         row = QHBoxLayout(self)
-        row.setContentsMargins(12, 4, 8, 4)
+
+
+        row.setContentsMargins(12, 2, 8, 2)
         row.setSpacing(SPACE_CARD)
 
 
@@ -264,7 +269,7 @@ class Header(QWidget):
     def set_pro_pill_trial(self, promise: str) -> None:
 
 
-        label = self.tr("Try Pro free") if promise else self.tr("Get Pro")
+        label = trial_cta() if promise else self.tr("Get Pro")
         tip = promise or self.tr("See what Pro unlocks")
         if self._pro_pill.text() == label and self._pro_pill.toolTip() == tip:
             return
@@ -298,7 +303,9 @@ class Header(QWidget):
         used += sum(w.sizeHint().width() for w in others)
         used += row.spacing() * (len(others) + 1)
         room = self.width() - used
-        word_only = self._pro_pill_full_width - _PRO_GLYPH - 4
+
+
+        word_only = self._compact_pill_width()
         compact = room < self._pro_pill_full_width
         self._pro_pill.setVisible(room >= word_only)
         if bool(self._pro_pill.property("compact")) == compact:
@@ -307,6 +314,17 @@ class Header(QWidget):
         self._pro_pill.setIcon(QIcon() if compact
                                else icon_for(self._pro_pill, "sparkles", _PRO_GLYPH, accent_color()))
         repolish(self._pro_pill)
+
+    def _compact_pill_width(self) -> int:
+
+
+        font = QFont(self._pro_pill.font())
+        if font.pixelSize() > 0:
+            font.setPixelSize(max(1, round(font.pixelSize() * FONT_HINT / FONT_BODY)))
+        else:
+            font.setPointSizeF(font.pointSizeF() * FONT_HINT / FONT_BODY)
+        font.setWeight(QFont.Weight.Medium)
+        return QFontMetrics(font).horizontalAdvance(self._pro_pill.text()) + 8
 
     def _toggle_floating(self) -> None:
         if self._dock is not None:

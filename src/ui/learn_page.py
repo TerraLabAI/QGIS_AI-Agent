@@ -45,7 +45,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.host_platform import retry_file_op
-from .font_scale import scale_px_length
+from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .image_guard import read_bounded_image
 from .settings_pages import HAIRLINE, MUTED, ROW_NOTE_QSS, Page
@@ -77,14 +77,14 @@ _DEFAULT_ACCENT = "#3E86D6"
 _KIND_GLYPHS = {"video": "play", "article": "book"}
 
 _CARD_QSS = (
-    f"QFrame#learnCard {{ background: transparent; border: 1px solid {HAIRLINE};"
+    scale_qss_font_px(f"QFrame#learnCard {{ background: transparent; border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_CARD}px; }}"
     f"QFrame#learnCard:hover {{ background: {ACCENT_TINT}; border-color: {ACCENT_BORDER}; }}"
     f"QLabel#learnTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
     " background: transparent; }"
     f"QLabel#learnNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}"
     f"QLabel#learnKind {{ font-size: {FONT_HINT}px; font-weight: 600; color: {MUTED};"
-    " background: transparent; }"
+    " background: transparent; }")
 )
 
 
@@ -385,6 +385,6 @@ class LearnPage(Page):
                 f'<a href="{item.get("url")}" style="color: palette(text);">'
                 f'{item.get("title")}</a>', self)
             more.setOpenExternalLinks(True)
-            more.setStyleSheet(f"font-size: {FONT_BASE}px; background: transparent;")
+            more.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_BASE}px; background: transparent;"))
             more.setContentsMargins(4, 2, 4, 0)
             self.add(more)

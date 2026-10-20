@@ -62,6 +62,9 @@ def register_harvest_remote_tools(registry: ToolRegistry):
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the ArcGIS layer[ {name}]"),
         input_schema={
             "type": "object",
+
+
+            "x-box-counted": True,
             "properties": {
                 "url": {
                     "type": "string",
@@ -285,6 +288,21 @@ def _arcgis_wkid(info: dict) -> str | None:
     return f"EPSG:{wkid}" if wkid else None
 
 
+def _arcgis_crs(info: dict):
+
+
+
+
+    known = QgsCoordinateReferenceSystem(_arcgis_wkid(info) or "")
+    if known.isValid():
+        return known
+    for reference in (info.get("sourceSpatialReference"), info.get("spatialReference"),
+                      *((info.get(key) or {}).get("spatialReference") for key in ("extent", "fullExtent"))):
+        if isinstance(reference, dict) and reference.get("wkt"):
+            return QgsCoordinateReferenceSystem.fromWkt(str(reference["wkt"]))
+    return known
+
+
 def _arcgis_name(args: dict, info: dict | None, root: str, layer_id: str | None) -> str:
 
     name = str(args.get("name") or "").strip()
@@ -344,8 +362,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     raw_box = args.get("bbox")
     box = _stac._parse_bbox(raw_box) if raw_box not in (None, "", [], {}) else None
     if raw_box not in (None, "", [], {}) and box is None:
-        return tool_error("That bbox is not a usable box.", "INVALID_ARGS",
-                          "[west, south, east, north] in EPSG:4326, west below east, south below north.")
+        return tool_error("That bbox is not a usable box.", "INVALID_ARGS", hint="arcgis_bbox_form")
     kind = str(args.get("kind") or "auto").lower()
     if kind == "auto":
         kind = "feature" if (service == "featureserver" or layer_id is not None) else "map"
@@ -364,8 +381,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
                     url = f"{root}/{layer_id}"
     if kind == "map" and where:
         return tool_error("A where clause selects features; a map layer draws the whole service as images.",
-                          "INVALID_ARGS",
-                          "kind feature with a /<id> layer URL takes where; kind map does not.")
+                          "INVALID_ARGS", hint="arcgis_where_kind")
     if kind == "feature" and layer_id is None:
         info = _arcgis_describe(root, token)
         layers = (info or {}).get("layers") or []
@@ -384,8 +400,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     info = _arcgis_describe(url, token)
     if info and info.get("_unreachable"):
         return tool_error(f"{url} sent no answer to its description request ({info['_unreachable']}), so "
-                          "no layer was opened.", "NETWORK_ERROR",
-                          "The host may be down or slow right now.")
+                          "no layer was opened.", "NETWORK_ERROR")
     if info and isinstance(info.get("error"), dict):
         err = info["error"]
         code = err.get("code")
@@ -402,7 +417,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
 
     def _native_crs():
 
-        native = QgsCoordinateReferenceSystem(_arcgis_wkid(info or {}) or "")
+        native = _arcgis_crs(info or {})
         if native.isValid():
             return native
 
@@ -423,7 +438,7 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
                if (box is not None or url_envelope is not None) and kind == "feature" else None)
     if box is None and url_envelope is not None and kind == "feature":
 
-        box = _box_from(url_envelope, QgsCoordinateReferenceSystem(_arcgis_wkid(info or {}) or ""), context)
+        box = _box_from(url_envelope, _arcgis_crs(info or {}), context)
 
     def _feature_layer(options):
         uri = QgsDataSourceUri()
@@ -443,7 +458,15 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             uri.setParam("token", token)
         if where:
             uri.setSql(where)
-        return QgsVectorLayer(uri.uri(False), name, "arcgisfeatureserver", options)
+        layer = QgsVectorLayer(uri.uri(False), name, "arcgisfeatureserver", options)
+        if not known and layer.isValid():
+
+
+
+            own = _arcgis_crs(info or {})
+            if own.isValid():
+                layer.setCrs(own)
+        return layer
 
     built = built_here(lambda: _feature_layer(worker_options())) if kind == "feature" else None
 
@@ -592,7 +615,7 @@ def _get_stac_item_assets(args: dict) -> dict:
     except net.FetchCancelled:
 
 
-        return tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
+        return tool_error("The run was stopped.", "CANCELLED")
     except (urllib.error.URLError, OSError, ValueError) as e:
         return tool_error(
             f"Failed to fetch the STAC item: {e}",
@@ -603,8 +626,7 @@ def _get_stac_item_assets(args: dict) -> dict:
     if not isinstance(item, dict) or not isinstance(item.get("assets"), dict):
         return tool_error(
             "The URL did not return a STAC item with assets.",
-            "INVALID_ARGS",
-            "item_url must be an item (.../collections/<collection>/items/<id>), not a collection or a search.",
+            "INVALID_ARGS", hint="stac_item_not_item",
         )
     rows = [_asset_row(key, asset) for key, asset in item["assets"].items() if isinstance(asset, dict)]
     rows.sort(key=_asset_rank)

@@ -107,6 +107,10 @@ def _apply_qgis_trust(net) -> None:
 
 
         ca_pem, _ = resolve_tls("")
+
+        extra = missing_roots.intermediates_pem()
+        if extra:
+            ca_pem = (ca_pem or b"") + extra
         if net.set_trust(ca_pem):
             log("Tool fetches now also trust the certificates QGIS trusts.")
     except Exception as exc:  # noqa: BLE001

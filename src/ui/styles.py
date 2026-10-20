@@ -150,16 +150,16 @@ _UPDATE_CARD_STYLE = (
     "QLabel { background: transparent; border: none; }"
 )
 _UPDATE_TITLE_STYLE = (
-    "font-size: 13px; font-weight: 600; color: palette(text);"
-    " background: transparent;"
+    _scale_qss_font_px("font-size: 13px; font-weight: 600; color: palette(text);"
+    " background: transparent;")
 )
 _UPDATE_NOTE_STYLE = (
-    f"font-size: 11px; color: {MUTED_TEXT}; background: transparent;"
+    _scale_qss_font_px(f"font-size: 11px; color: {MUTED_TEXT}; background: transparent;")
 )
 _UPDATE_LATER_STYLE = (
-    f"QPushButton {{ background: transparent; color: {MUTED_TEXT};"
+    _scale_qss_font_px(f"QPushButton {{ background: transparent; color: {MUTED_TEXT};"
     f" border: none; font-size: 11px; padding: 2px 6px; {_BTN_LABEL_WEIGHT} }}"
-    "QPushButton:hover { color: palette(text); text-decoration: underline; }"
+    "QPushButton:hover { color: palette(text); text-decoration: underline; }")
 )
 
 

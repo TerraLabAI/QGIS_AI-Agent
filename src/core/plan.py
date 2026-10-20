@@ -35,7 +35,13 @@ _DEFAULTS = {
 
     "efforts": ["low", "medium", "high"],
     "effort_default": "low",
+
+    "efforts_trial_locked": [],
+
+    "efforts_trial_note": "",
 }
+
+_MAX_TRIAL_NOTE_CHARS = 200
 
 _features: dict = dict(_DEFAULTS)
 
@@ -87,6 +93,12 @@ def set_plan_features(raw) -> None:
     default = effort_name(raw.get("effort_default"))
     if default and default in out["efforts"]:
         out["effort_default"] = default
+    trial = raw.get("efforts_trial_locked")
+    if isinstance(trial, (list, tuple)):
+        out["efforts_trial_locked"] = [n for n in (effort_name(i) for i in trial) if n]
+    note = raw.get("efforts_trial_note")
+    if isinstance(note, str):
+        out["efforts_trial_note"] = note.strip()[:_MAX_TRIAL_NOTE_CHARS]
     _features = out
     _said = said
 
@@ -112,6 +124,16 @@ def step_cap() -> int:
 def efforts_allowed() -> tuple:
 
     return tuple(_features.get("efforts") or ("low", "medium", "high"))
+
+
+def efforts_trial_locked() -> tuple:
+
+    return tuple(_features.get("efforts_trial_locked") or ())
+
+
+def efforts_trial_note() -> str:
+
+    return str(_features.get("efforts_trial_note") or "")
 
 
 def effort_allowed(effort: str) -> bool:

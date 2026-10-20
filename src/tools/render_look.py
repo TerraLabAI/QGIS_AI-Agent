@@ -22,6 +22,7 @@ from qgis.PyQt.QtCore import QSize
 
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
+from ..core.tool_registry import tool_error
 
 
 
@@ -42,20 +43,15 @@ def crop_box(args: dict):
     if crop in (None, {}, ""):
         return None
     if not isinstance(crop, dict):
-        return {"_error": "crop is an object with x, y, width and height as fractions of the page, "
-                          'for example {"x": 0.0, "y": 0.6, "width": 0.4, "height": 0.4}.',
-                "_code": "INVALID_ARGS"}
+        return tool_error("crop is not an object.", "INVALID_ARGS", hint="render_crop_shape")
     try:
         box = tuple(float(crop.get(key, default))
                     for key, default in (("x", 0.0), ("y", 0.0), ("width", 1.0), ("height", 1.0)))
     except (TypeError, ValueError):
-        return {"_error": "crop takes numbers: x, y, width and height as fractions of the page.",
-                "_code": "INVALID_ARGS"}
+        return tool_error("crop holds a value that is not a number.", "INVALID_ARGS", hint="render_crop_shape")
     x, y, width, height = box
     if width <= 0 or height <= 0 or not (0.0 <= x < 1.0 and 0.0 <= y < 1.0):
-        return {"_error": f"crop {box} is not a piece of the page.", "_code": "INVALID_ARGS",
-                "_suggestion": "x and y are the top-left corner from 0 to 1, width and height the size "
-                               "from just over 0 to 1."}
+        return tool_error(f"crop {box} is not a piece of the page.", "INVALID_ARGS", hint="render_crop_box")
 
 
     return (x, y, min(width, 1.0 - x), min(height, 1.0 - y))
@@ -146,27 +142,25 @@ def layout_page_start(args: dict) -> dict:
     layout = manager.layoutByName(wanted) if wanted else (layouts[0] if len(layouts) == 1 else None)
     if layout is None:
         if not names:
-            return {"_error": "This project has no print layout to look at.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": "create_print_layout and add_layout_map build one."}
+            return tool_error("This project has no print layout to look at.", "INVALID_ARGS",
+                              hint="render_no_layout")
         if wanted:
-            return {"_error": f"Layout not found: {wanted}", "_code": "INVALID_ARGS",
-                    "_suggestion": f"Layouts: {', '.join(names[:8])}."}
-        return {"_error": "This project has more than one print layout.", "_code": "INVALID_ARGS",
-                "_suggestion": f"Layouts: {', '.join(names[:8])}."}
+            return tool_error(f"Layout not found: {wanted}", "INVALID_ARGS", hint="render_layouts_named",
+                              layouts=names[:8])
+        return tool_error("This project has more than one print layout.", "INVALID_ARGS",
+                          hint="render_layouts_named", layouts=names[:8])
 
     pages = layout.pageCollection()
     count = int(pages.pageCount())
     if count <= 0:
-        return {"_error": f"Layout '{layout.name()}' has no page.", "_code": "INVALID_ARGS",
-                "_suggestion": "A layout made with a page size has a page."}
+        return tool_error(f"Layout '{layout.name()}' has no page.", "INVALID_ARGS")
     try:
         page = int(args.get("page") or 1)
     except (TypeError, ValueError):
         page = 1
     if not 1 <= page <= count:
-        return {"_error": f"Layout '{layout.name()}' has {count} page(s), so page {page} does not exist.",
-                "_code": "INVALID_ARGS", "_suggestion": f"Pages run 1 to {count}."}
+        return tool_error(f"Layout '{layout.name()}' has {count} page(s), so page {page} does not exist.",
+                          "INVALID_ARGS")
 
     facts = assess_layout(layout)
     page_box = next((row for row in facts.get("pages_mm") or [] if row.get("page") == page), None)
@@ -184,10 +178,8 @@ def layout_page_start(args: dict) -> dict:
         out["page_mm"] = {key: value for key, value in page_box.items() if key != "page"}
     if outside:
         out["items_outside_page"] = outside
-        out["note"] = (f"Off the page and cut on export: {', '.join(str(name) for name in outside[:8])}. "
-                       "The boxes are in millimetres in layout_items: move or resize each one inside "
-                       "page_mm with a short execute_code script (attemptMove, attemptResize), then look "
-                       "at this page again.")
+        out["note"] = f"Off the page and cut on export: {', '.join(str(name) for name in outside[:8])}."
+        out["note_next_hint"] = "layout_items_outside_page"
     if facts.get("warnings"):
         out["layout_warnings"] = facts["warnings"][:8]
     return {"layout_name": layout.name(), "page": page, "width": width, "height": height, "facts": out,
@@ -208,15 +200,14 @@ def layout_page_draw(started: dict) -> dict:
 
     layout = QgsProject.instance().layoutManager().layoutByName(started["layout_name"])
     if layout is None:
-        return {"_error": f"Layout not found: {started['layout_name']}", "_code": "INVALID_ARGS",
-                "_suggestion": "list_layouts names the layouts of this project."}
+        return tool_error(f"Layout not found: {started['layout_name']}", "INVALID_ARGS",
+                          hint="render_layout_list")
     page, size = started["page"], QSize(started["width"], started["height"])
     image = layout_ready.drawn(layout, started["ready"],
                                lambda: QgsLayoutExporter(layout).renderPageToImage(page - 1, size, 0))
     if image is None or image.isNull():
-        return {"_error": f"QGIS could not draw page {page} of '{layout.name()}'.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "get_layout_info shows the page size and the map item's extent."}
+        return tool_error(f"QGIS could not draw page {page} of '{layout.name()}'.", "EXECUTION_FAILED",
+                          hint="render_page_not_drawn")
     return {"image": image, "facts": started["facts"]}
 
 
@@ -332,15 +323,13 @@ def file_image(args: dict) -> dict:
 
     path = str(args.get("path") or "").strip()
     if not path:
-        return {"_error": "render_map with target file needs path, the file to look at.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "export_file returns the path this needs, for example the PDF it wrote."}
+        return tool_error("render_map with target file needs path, the file to look at.", "INVALID_ARGS",
+                          hint="render_file_path")
     path_error = validate_path(path)
     if path_error:
-        return {"_error": path_error, "_code": "INVALID_ARGS"}
+        return tool_error(path_error, "INVALID_ARGS")
     if not os.path.isfile(path):
-        return {"_error": f"No file at {path}.", "_code": "INVALID_ARGS",
-                "_suggestion": "export_file answers with the path it wrote; that is what this needs."}
+        return tool_error(f"No file at {path}.", "INVALID_ARGS", hint="render_file_missing")
     try:
         page = int(args.get("page") or 1)
     except (TypeError, ValueError):
@@ -362,33 +351,27 @@ def file_image(args: dict) -> dict:
 
 
 
-            return {"_error": f"This QGIS cannot turn {os.path.basename(path)} into a picture: "
-                              f"{why or gdal_why}.",
-                    "_code": "EXECUTION_FAILED",
-                    "pdf": structure,
-                    "_suggestion": "A PNG from export_file opens here; target layout shows the layout "
-                                   "page itself."}
+            return tool_error(f"This QGIS cannot turn {os.path.basename(path)} into a picture: "
+                              f"{why or gdal_why}.", "EXECUTION_FAILED", hint="render_pdf_unreadable",
+                              pdf=structure)
         return {"image": image, "facts": {"source_file": path, "page": page, "pdf": structure}}
 
     if suffix == ".svg":
         image, why = _svg_image(path, args)
         if image is None:
-            return {"_error": f"Could not read {os.path.basename(path)}: {why}.",
-                    "_code": "EXECUTION_FAILED",
-                    "_suggestion": "A PNG from export_file opens here."}
+            return tool_error(f"Could not read {os.path.basename(path)}: {why}.", "EXECUTION_FAILED",
+                              hint="render_png_opens")
         return {"image": image, "facts": {"source_file": path}}
 
     if suffix not in _PIXMAP_SUFFIXES:
-        return {"_error": f"render_map cannot draw {suffix or 'that file'}.", "_code": "INVALID_ARGS",
-                "_suggestion": "It reads PNG, JPG, WebP, GIF, BMP, TIFF, SVG and PDF. For a layout, "
-                               "pass target layout and the layout name."}
+        return tool_error(f"render_map cannot draw {suffix or 'that file'}.", "INVALID_ARGS",
+                          hint="render_file_kinds")
     from qgis.PyQt.QtGui import QImage
 
     image = QImage(path)
     if image.isNull():
-        return {"_error": f"{os.path.basename(path)} did not decode as a picture.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "A run that wrote it can export it again."}
+        return tool_error(f"{os.path.basename(path)} did not decode as a picture.", "EXECUTION_FAILED",
+                          hint="render_png_opens")
     facts = {"source_file": path, "file_pixels": {"width": image.width(), "height": image.height()}}
     return {"image": _under_render_cap(image, args), "facts": facts}
 

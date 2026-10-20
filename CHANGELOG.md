@@ -9,6 +9,37 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-20
+
+### Added
+
+- The panel, the Examples library and the data-source pages speak Vietnamese, Arabic, Russian,
+  Ukrainian, Turkish and Korean, and the server's status lines follow.
+- Examples and Data sources open as two windows: a searchable home, sections by country and region,
+  a page per source with its examples and datasets, and a Data sources pill under the chat box.
+- `set_layer_style` can use a symbol from the style library, an SVG or image marker, or a marker
+  shape on every class. Geocoding retries a missed address in looser forms and flags it approximate.
+- A run that ends without a result says what happened, whether the project changed and what to do,
+  in the user's language. The 7-day Pro trial is offered from the panel, with a company invoice route.
+
+### Changed
+
+- The history says what each request changed and lives as long as its chat. Undo never empties a
+  project it cannot read back, never writes an older copy over a file edited by hand, and frees
+  Windows' hold on a removed layer's file.
+- Each tool result names the object it opened, and a loaded layer carries its licence and attribution.
+
+### Fixed
+
+- The first Send in a large project, and the first read on a network share, no longer freeze QGIS.
+- On Windows the panel follows the logical DPI and draws Segoe UI with each script's own face, and
+  GRASS writes its output for a user with an accented name.
+- Remote data: boxes read once on the call's clock, ten catalog hosts with incomplete TLS chains
+  load, NetCDF variables and zipped text tables load, and older GDAL builds no longer fail on zips
+  and previews.
+- A CRS change no longer waits on the Select Transformation dialog, and layout legends filtered by
+  their map are recomputed before each export.
+
 ## [1.8.1] - 2026-10-16
 
 ### Added

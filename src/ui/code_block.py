@@ -30,7 +30,6 @@
 
 from __future__ import annotations
 
-import difflib
 import math
 import re
 
@@ -309,6 +308,7 @@ class _Body(QPlainTextEdit):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFont(mono_font(FONT_BODY))
+        self.setProperty("mono", True)
         self.viewport().setAutoFillBackground(False)
         self.document().setDocumentMargin(0)
         self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse
@@ -623,41 +623,6 @@ class CodeBlock(QFrame):
         self._body.set_lines(lines, diff=False)
         self._detach_highlighter()
         self._highlighter = _Highlighter(self._body.document(), language)
-
-    def set_diff(self, before: str, after: str, name: str = "") -> None:
-
-
-
-        self._detach_highlighter()
-        self._text = ""
-
-
-
-
-
-        raw = list(difflib.unified_diff((before or "").splitlines(), (after or "").splitlines(),
-                                        lineterm="", n=3))
-        rows = []
-        for index, line in enumerate(raw):
-
-
-
-            if index < 2 and line.startswith(("---", "+++")):
-                continue
-            prefix = line[:1]
-            if line.startswith("@@"):
-                rows.append(("@", line))
-            elif prefix in ("+", "-"):
-                rows.append((prefix, line[1:]))
-            else:
-                rows.append(("", line[1:] if prefix == " " else line))
-        if not rows:
-            rows = [("", self.tr("No changes"))]
-            self._text = ""
-        else:
-            self._text = "\n".join(raw)
-        self._name.setText(name or self.tr("changes"))
-        self._body.set_lines(rows, diff=True)
 
     def text(self) -> str:
         return self._text

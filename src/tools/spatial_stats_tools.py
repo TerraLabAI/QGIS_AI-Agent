@@ -146,7 +146,7 @@ def _check_args(args: dict) -> dict | None:
     neighbours = str(args.get("neighbours") or "")
     if neighbours and neighbours not in NEIGHBOURS:
         return tool_error(f"neighbours {neighbours!r} is not one this tool knows.", "INVALID_ARGS",
-                          "queen or rook (polygons), distance_band or k_nearest.")
+                          hint="spatial_stats_neighbours_kinds")
     if method != "standard_deviational_ellipse" and not str(args.get("field") or "").strip():
         return tool_error(f"{method} needs the numeric field it tests.", "INVALID_ARGS",
                           hint="spatial_stats_field_needed", method=method)
@@ -156,15 +156,16 @@ def _check_args(args: dict) -> dict | None:
                               hint="spatial_stats_ellipse_spread", std_devs=args.get("std_devs"),
                               confidence=args.get("confidence"))
         if args.get("std_devs") is not None and args.get("std_devs") not in (1, 2, 3):
-            return tool_error("std_devs is 1, 2 or 3.", "INVALID_ARGS", "1, 2 or 3.")
+            return tool_error("std_devs is 1, 2 or 3.", "INVALID_ARGS", hint="spatial_stats_std_devs_values")
         confidence = args.get("confidence")
         if confidence is not None and not (isinstance(confidence, (int, float)) and 0 < confidence < 1):
-            return tool_error("confidence is a share between 0 and 1.", "INVALID_ARGS", "0.95 means 95%.")
+            return tool_error("confidence is a share between 0 and 1.", "INVALID_ARGS",
+                              hint="spatial_stats_confidence_share")
     permutations = args.get("permutations")
     most = tuning.ceiling("spatial_stats_max_permutations", MAX_PERMUTATIONS, 99)
     if permutations is not None and (not isinstance(permutations, int) or not 99 <= permutations <= most):
         return tool_error(f"permutations is a whole number from 99 to {most}.", "INVALID_ARGS",
-                          "Left out, it is 999.")
+                          hint="spatial_stats_permutations_default")
     if neighbours == "distance_band" and args.get("distance") is not None:
         try:
             if not float(args["distance"]) > 0:
@@ -173,7 +174,8 @@ def _check_args(args: dict) -> dict | None:
             return tool_error("distance is a positive number of metres.", "INVALID_ARGS",
                               hint="spatial_stats_distance_default", distance=str(args.get("distance")))
     if args.get("k") is not None and (not isinstance(args["k"], int) or args["k"] < 1):
-        return tool_error("k is a whole number of neighbours, 1 or more.", "INVALID_ARGS", "Left out, it is 8.")
+        return tool_error("k is a whole number of neighbours, 1 or more.", "INVALID_ARGS",
+                          hint="spatial_stats_k_default")
     return None
 
 
@@ -217,7 +219,7 @@ def _plan(args: dict) -> dict:
     kind = _geometry_kind(layer)
     if not kind:
         return tool_error(f"{layer.name()} has no geometry.", "INVALID_ARGS",
-                          "point, line or polygon layer needed.")
+                          hint="spatial_stats_layer_no_geometry")
     method = str(args["method"])
     plan: dict = {"layer_id": layer.id(), "layer": layer.name(), "method": method, "kind": kind, "notes": []}
 
@@ -300,7 +302,7 @@ def _plan(args: dict) -> dict:
         ids = list(layer.selectedFeatureIds())
         if not ids:
             return tool_error(f"selected_only was asked and nothing is selected in {layer.name()}.", "INVALID_ARGS",
-                              "Without selected_only the whole layer is used.")
+                              hint="spatial_stats_selected_only_empty")
         plan["selected_ids"] = ids
 
 
@@ -346,7 +348,7 @@ def _open(plan: dict, state: dict) -> dict | None:
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{plan['layer']} left the project before it was read.", "EXECUTION_FAILED",
-                          "Loading it again makes it available.")
+                          hint="spatial_stats_layer_left_project")
     request = QgsFeatureRequest()
     if plan["method"] == "standard_deviational_ellipse":
         columns = [plan[key]["index"] for key in ("weight_field", "group_field") if plan.get(key)]
@@ -525,7 +527,8 @@ def _analyse(plan: dict, rows: list, cancelled) -> dict:
     if len(usable) < 4:
         return {"_refusal": tool_error(
             f"{len(usable)} feature(s) of {plan['layer']} have a value in {plan['field']['name']!r} and a geometry; "
-            "the statistic needs at least 4.", "INVALID_ARGS", "A layer or selection with more features.")}
+            "the statistic needs at least 4.", "INVALID_ARGS",
+            hint="spatial_stats_too_few_features")}
     values = [row["value"] for row in usable]
     if max(values) == min(values):
         return {"_refusal": tool_error(
@@ -658,7 +661,7 @@ def _ellipses(plan: dict, rows: list) -> dict:
     if not shapes:
         return {"_refusal": tool_error(
             "No group has 3 points with a positive total weight, so no ellipse can be drawn.", "INVALID_ARGS",
-            "A layer with more points, or no weight_field/group_field, is needed.")}
+            hint="spatial_stats_ellipse_no_group")}
     size = (f"{plan['confidence']:.0%} confidence ellipse, k = sqrt(-2 ln(1 - p)) = {scale:.3f} sigma for a "
             "bivariate normal" if plan["confidence"] is not None else
             f"{plan['std_devs']} standard deviation(s), ArcGIS's formula with its sqrt(2) correction: semi-axes "
@@ -783,7 +786,7 @@ def _add_layer(plan: dict, path: str, table: str, field: str, name: str) -> dict
     layer = QgsVectorLayer(f"{path}|layername={table}", name, "ogr")
     if not layer.isValid():
         return tool_error(f"The output {path} was written but QGIS cannot open it.", "EXECUTION_FAILED",
-                          "The QGIS log has the reason; the disk may be full.")
+                          hint="spatial_stats_output_unreadable")
     kind = _geometry_kind(layer)
     if field and kind:
         classes = _GI_CLASSES if plan["method"] == "getis_ord_gi_star" else _LISA_CLASSES
@@ -812,7 +815,7 @@ def _add_layer(plan: dict, path: str, table: str, field: str, name: str) -> dict
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the statistics were written.", "CANCELLED", "No layer was added.")
+    return tool_error("Stopped before the statistics were written.", "CANCELLED", hint="spatial_stats_stopped")
 
 
 def _spatial_statistics(args: dict) -> dict:
@@ -878,7 +881,7 @@ def _spatial_statistics(args: dict) -> dict:
         if path:
             remove_quietly(path)
         return tool_error(f"The output could not be written: {str(exc)[:200]}", "EXECUTION_FAILED",
-                          "A full disk is a likely cause.")
+                          hint="spatial_stats_write_failed")
     result["output"] = added
     if plan["work_crs"] != plan["crs"] or plan["method"] == "standard_deviational_ellipse":
         result["distance_crs"] = plan["work_crs"].authid() or "the layer's own coordinates"

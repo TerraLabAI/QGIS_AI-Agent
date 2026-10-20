@@ -45,6 +45,9 @@ MAX_INDEX_BYTES = 32 * 1024 * 1024
 
 
 ORPHAN_GRACE_SECONDS = 24 * 60 * 60
+
+
+UNREADABLE_KEEP_SECONDS = 7 * 24 * 60 * 60
 _SHAPEFILE_SIDECARS = (".shx", ".dbf", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".qpj")
 _LAYER_ARG_KEYS = ("layer_name", "layer", "layer_id", "input", "INPUT", "target_layer",
                    "output_path", "path", "file_path")
@@ -486,7 +489,17 @@ def _remove_tree(path: str, what: str) -> bool:
     return True
 
 
-def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk_mb: float = 0) -> None:
+def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk_mb: float = 0,
+                    threads_dir: str = "") -> None:
+
+
+
+
+
+
+
+
+
 
 
 
@@ -519,10 +532,24 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
         names = os.listdir(index_dir)
     except OSError:
         names = []
+    now = time.time()
+    chats = None
+    if threads_dir:
+        try:
+            chats = set(os.listdir(threads_dir))
+        except OSError:
+            chats = None
     for name in names:
-        if not name.endswith(".json"):
-            continue
         path = os.path.join(index_dir, name)
+        if not name.endswith(".json"):
+            leftover = name.endswith(".json.unreadable") and UNREADABLE_KEEP_SECONDS or (
+                name.startswith(".agent-") and name.endswith(".tmp") and ORPHAN_GRACE_SECONDS)
+            try:
+                if leftover and now - os.path.getmtime(path) > leftover and not os.path.islink(path):
+                    retry_file_op(os.remove, path)
+            except OSError:
+                pass
+            continue
         try:
             if os.path.islink(path) or os.path.getsize(path) > MAX_INDEX_BYTES:
                 continue
@@ -543,13 +570,24 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
                 folder = snapshot.get("dir") if isinstance(snapshot, dict) else None
                 if isinstance(folder, str) and folder:
                     dirs.add(os.path.normpath(resolved(folder)))
-        referenced.update(dirs)
         try:
             mtime = os.path.getmtime(path)
         except OSError:
             mtime = 0.0
+        chat_gone = chats is not None and name not in chats
+        if now - mtime > ORPHAN_GRACE_SECONDS and not dirs & held and (
+                chat_gone or not any(os.path.isdir(folder) for folder in dirs)):
+
+            for folder in dirs:
+                if folder not in held and inside(base, folder) and os.path.isdir(folder):
+                    _remove_tree(folder, "Snapshot of a deleted chat")
+            try:
+                retry_file_op(os.remove, path)
+            except OSError:
+                pass
+            continue
+        referenced.update(dirs)
         indexes.append((mtime, path, dirs))
-    now = time.time()
     for mtime, path in entries:
         if os.path.normpath(resolved(path)) in referenced:
             continue

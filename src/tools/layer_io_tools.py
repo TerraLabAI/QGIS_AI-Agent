@@ -58,8 +58,8 @@ _CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".g
 
 
 
-_NOT_AWAITED = {"_error": "The call this layer was read for had already ended; the layer was not added.",
-                "code": "TIMEOUT"}
+_NOT_AWAITED = tool_error("The call this layer was read for had already ended; the layer was not added.",
+                          "TIMEOUT")
 
 
 def _checked_path(path: str) -> str | None:
@@ -172,6 +172,8 @@ def _is_sidecar(name: str, lowered: set) -> bool:
 
 _SAME_FORMAT_PROOF = 20
 
+_TEXT_TABLE = "text"
+
 
 def _vector_driver(gdal, path: str) -> str:
 
@@ -216,7 +218,8 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
     found: dict = {}
     verdicts: dict = {}
 
-    readdir = gdal.GetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", None)
+
+    readdir = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_DISABLE_READDIR_ON_OPEN", None)
     gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
     gdal.PushErrorHandler("CPLQuietErrorHandler")
     try:
@@ -230,15 +233,21 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
 
                 driver_name = seen[0]
             else:
-                driver_name = _vector_driver(gdal, gdal_path(name))
+
+
+
+                driver_name = _vector_driver(gdal, gdal_path(name)) or (_TEXT_TABLE if ext in CSV_EXTENSIONS else "")
                 verdicts.setdefault(ext, []).append(driver_name)
             if driver_name:
                 found.setdefault((os.path.splitext(name)[0].lower(), driver_name), []).append(name)
     finally:
         gdal.PopErrorHandler()
         gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", readdir)
-    vectors, tables = [], []
+    vectors, tables, texts = [], [], []
     for (_stem, driver_name), members in found.items():
+        if driver_name == _TEXT_TABLE:
+            texts.append(min(members))
+            continue
         own = "." + str(gdal.GetDriverByName(driver_name).GetMetadataItem("DMD_EXTENSION") or "").lower()
         member = next((m for m in members if m.lower().endswith(own)), min(members))
         (tables if driver_name == "CSV" else vectors).append(member)
@@ -246,7 +255,8 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
     def order(name: str) -> tuple:
         return name.count("/"), name.lower()
 
-    return sorted(vectors, key=order), sorted(tables, key=order)
+
+    return sorted(vectors, key=order), sorted(tables or texts, key=order)
 
 
 def _zip_member_uri(path: str, member: str) -> str:
@@ -306,12 +316,6 @@ def members_matching(names: list, wanted: str) -> list:
         return [member for member in names
                 if any(fnmatch.fnmatchcase(key.casefold(), folded) for key in keys(member))]
     return []
-
-
-
-MERGE_OFFER = ("layer=<extension> (for example layer='shp') or a pattern (layer='zones/*.shp') merges the files "
-               "it names into one layer per geometry type in the background, attributes kept and each row "
-               "keeping its source_file.")
 
 
 def describe_sublayers(path: str, names: list) -> list:
@@ -389,20 +393,21 @@ def _cad_crs_question(path: str, name: str) -> dict:
         if not probe.isValid():
 
 
-            return {"_error": f"GDAL cannot read {os.path.basename(path)}; nothing was imported.",
-                    "code": "EXECUTION_FAILED", **coded_fact(hint="cad_unreadable")}
+            return tool_error(f"GDAL cannot read {os.path.basename(path)}; nothing was imported.",
+                              "EXECUTION_FAILED", hint="cad_unreadable")
         found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False)
         found = found or {"verdict": "missing", "crs": "", "candidates": []}
         candidate_crs = [authid for authid, _why in found["candidates"]]
-        return {"_error": ("CAD import needs the CRS the drawing was made in, and a drawing does not say it: "
-                           "nothing was imported." + (f" {found['detail']}" if found.get("detail") else "")),
-                "code": "INVALID_ARGS",
-                "candidate_crs": candidate_crs,
+        return tool_error(
+            "CAD import needs the CRS the drawing was made in, and a drawing does not say it: "
+            "nothing was imported." + (f" {found['detail']}" if found.get("detail") else ""),
+            "INVALID_ARGS",
+            candidate_crs=candidate_crs,
+            variant="candidates" if candidate_crs else "none", layer=name, cad=True,
+            declared=found.get("crs") or "", candidates=candidate_crs,
 
 
-                "variant": "candidates" if candidate_crs else "none", "layer": name, "cad": True,
-                "declared": found.get("crs") or "", "candidates": candidate_crs,
-                **_VERDICT_FACT.get(found["verdict"], {})}
+            **_VERDICT_FACT.get(found["verdict"], {}))
 
     if on_main_thread():
         probe = QgsVectorLayer(path, name, "ogr")
@@ -445,9 +450,8 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
         return _cad_crs_question(path, name)
     target = QgsCoordinateReferenceSystem(str(crs).strip())
     if not target.isValid():
-        return {"_error": f"The CRS {crs!r} is not known to QGIS; the CAD file was not imported.",
-                "code": "INVALID_ARGS",
-                **coded_fact(hint="cad_bad_crs", crs=str(crs))}
+        return tool_error(f"The CRS {crs!r} is not known to QGIS; the CAD file was not imported.",
+                          "INVALID_ARGS", hint="cad_bad_crs", crs=str(crs))
     try:
         from osgeo import gdal, ogr
         driver_names = ("CAD", "DWG") if path.lower().endswith(".dwg") else ("DXF", "CAD")
@@ -455,17 +459,12 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
                             if ogr.GetDriverByName(candidate) is not None), driver_names[0])
         driver = ogr.GetDriverByName(driver_name)
     except Exception as exc:  # noqa: BLE001
-        return {
-            "_error": f"GDAL CAD support is unavailable ({exc}).",
-            "code": "EXECUTION_FAILED",
-            **coded_fact(hint="cad_no_driver"),
-        }
+        return tool_error(f"GDAL CAD support is unavailable ({exc}).", "EXECUTION_FAILED",
+                          hint="cad_no_driver")
     if driver is None:
-        return {
-            "_error": f"This QGIS/GDAL build has no {driver_name} driver, so {os.path.basename(path)} cannot be read.",
-            "code": "EXECUTION_FAILED",
-            **coded_fact(hint="cad_no_driver", driver=driver_name),
-        }
+        return tool_error(
+            f"This QGIS/GDAL build has no {driver_name} driver, so {os.path.basename(path)} cannot be read.",
+            "EXECUTION_FAILED", hint="cad_no_driver", driver=driver_name)
     directory = create_managed_temp_dir("cad")
     gpkg = os.path.join(directory, _safe_cad_stem(name) + ".gpkg")
     try:
@@ -481,9 +480,8 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
             raise RuntimeError("GDAL returned no output dataset")
         del translated
     except Exception as exc:  # noqa: BLE001
-        return {"_error": f"Could not convert {os.path.basename(path)} to GeoPackage: {exc}",
-                "code": "EXECUTION_FAILED",
-                **coded_fact(hint="cad_convert_failed")}
+        return tool_error(f"Could not convert {os.path.basename(path)} to GeoPackage: {exc}",
+                          "EXECUTION_FAILED", hint="cad_convert_failed")
     table = _safe_cad_stem(name)
     parts = _geometry_parts(gpkg, table) or [(f"{gpkg}|layername={table}", "")]
 
@@ -515,9 +513,8 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
                     part["facts"].clear()
                 taken.append(layer)
                 if not layer.isValid():
-                    return {"_error": f"GDAL created {gpkg}, but QGIS could not open its GeoPackage layer.",
-                            "code": "EXECUTION_FAILED",
-                            **coded_fact(hint="cad_open_failed")}
+                    return tool_error(f"GDAL created {gpkg}, but QGIS could not open its GeoPackage layer.",
+                                      "EXECUTION_FAILED", hint="cad_open_failed")
                 layers.append((layer, part["word"], _cad_layer_style(layer, colours), part["facts"].get("count")))
             if not still_awaited():
                 return dict(_NOT_AWAITED)
@@ -757,7 +754,7 @@ def _add_vector_layer(args: dict) -> dict:
     real_path = _virtual_source_path(file_part) or file_part
     path_error = _checked_path(real_path)
     if path_error:
-        return {"_error": path_error}
+        return tool_error(path_error, "INVALID_ARGS")
 
     if not os.path.exists(real_path):
         return missing_file(real_path, f"File not found: {real_path}")
@@ -869,8 +866,8 @@ def _add_vector_layer(args: dict) -> dict:
     if names is not None:
         if wanted:
             if names and wanted not in names:
-                return {"_error": f"No layer named {wanted!r} in {os.path.basename(source)}.",
-                        "sublayers": names, "suggestion": "layer names one of the listed layers."}
+                return tool_error(f"No layer named {wanted!r} in {os.path.basename(source)}.", "INVALID_ARGS",
+                                  hint="container_layer_not_found", sublayers=names)
             uri = f"{source}|layername={wanted}"
             if not args.get("name"):
                 name = wanted
@@ -930,7 +927,7 @@ def _add_vector_layer(args: dict) -> dict:
             if archive_members:
                 return tool_error(f"Failed to load vector layer from: {uri}", hint="archive_member_load_failed",
                                   layers=archive_members[:50])
-            return {"_error": f"Failed to load vector layer from: {uri}"}
+            return tool_error(f"Failed to load vector layer from: {uri}")
         split = facts.get("split") if built is not None else on_main.get("split")
         crs_outcome = _apply_requested_crs(layer, args.get("crs"))
         if not still_awaited():
@@ -1034,15 +1031,29 @@ def _add_raster_layer(args: dict) -> dict:
 
     path_error = _checked_path(path)
     if path_error:
-        return {"_error": path_error}
+        return tool_error(path_error, "INVALID_ARGS")
 
     if not _source_exists(path):
         return missing_file(path, f"File not found: {path}")
 
+    from .stac_tools import normalise_crs, raster_variables
+
     source = path
     subdataset = str(args.get("layer") or "").strip()
-    if path.lower().endswith((".nc", ".hdf")) and subdataset:
-        source = f'NETCDF:"{path}":{subdataset}'
+    variables = [] if path.lower().endswith(".zip") else raster_variables(path)
+    if variables:
+
+        picked = [entry[0] for entry in variables
+                  if subdataset and subdataset.casefold() in (entry[1].casefold(), entry[0].casefold())]
+        if not picked:
+            listed = [{"variable": variable, "description": description} for _, variable, description in variables]
+            if subdataset:
+                return tool_error(f"{os.path.basename(path)} holds no variable named {subdataset!r}.", "INVALID_ARGS",
+                                  hint="raster_variable_not_found", variables=listed[:50], local_path=path)
+            return {"variables": listed[:50], "local_path": path,
+                    "_note": f"The file holds {len(variables)} variables, none added yet.",
+                    "load_note": coded_fact(hint="raster_variables_load", count=len(variables))}
+        source = picked[0]
     elif path.lower().endswith(".zip") and subdataset:
 
 
@@ -1050,15 +1061,15 @@ def _add_raster_layer(args: dict) -> dict:
         names, problem = _zip_names(path)
         picked = members_matching([n for n in names if not n.endswith("/")], subdataset)
         if problem or len(picked) != 1:
-            return {"_error": (f"{path} could not be read: {problem}" if problem else
-                               f"layer '{subdataset}' names {len(picked)} files of {os.path.basename(path)}, "
-                               "and a raster loads from one."),
+            return {**tool_error(f"{path} could not be read: {problem}" if problem else
+                                 f"layer '{subdataset}' names {len(picked)} files of {os.path.basename(path)}, "
+                                 "and a raster loads from one.",
+                                 "EXECUTION_FAILED" if problem else "INVALID_ARGS"),
                     "files": [n for n in names if not n.endswith("/")][:50]}
         source = _zip_member_uri(path, picked[0])
         if not args.get("name"):
             name = os.path.splitext(os.path.basename(picked[0]))[0]
     from .elevation_style import apply_elevation_style, elevation_stretch
-    from .stac_tools import normalise_crs
 
 
 
@@ -1067,7 +1078,7 @@ def _add_raster_layer(args: dict) -> dict:
 
     def add(layer) -> dict:
         if not layer.isValid():
-            return {"_error": f"Failed to load raster layer from: {source}"}
+            return tool_error(f"Failed to load raster layer from: {source}")
         normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -1132,11 +1143,11 @@ def _add_point_cloud_layer(args: dict) -> dict:
 
     source = str(args.get("path") or args.get("source") or "").strip()
     if not source:
-        return {"_error": "A point cloud needs a file path or a URL."}
+        return tool_error("A point cloud needs a file path or a URL.", "INVALID_ARGS")
 
     provider = point_cloud_provider(source)
     if not provider:
-        return {"_error": f"Not a point cloud source: {source}"}
+        return tool_error(f"Not a point cloud source: {source}", "INVALID_ARGS")
 
     remote = source.lower().startswith(("http://", "https://", "ftp://", "/vsicurl/"))
     if remote:
@@ -1147,9 +1158,9 @@ def _add_point_cloud_layer(args: dict) -> dict:
     else:
         path_error = validate_path(source, write=False)
         if path_error:
-            return {"_error": path_error}
+            return tool_error(path_error, "INVALID_ARGS")
         if not os.path.exists(source):
-            return {"_error": f"File not found: {source}"}
+            return tool_error(f"File not found: {source}")
 
     if not _provider_available(provider):
         return tool_error(f"This QGIS build has no {provider} provider, so it cannot open point clouds.",
@@ -1158,8 +1169,7 @@ def _add_point_cloud_layer(args: dict) -> dict:
     try:
         from qgis.core import QgsPointCloudLayer
     except ImportError:
-        return {"_error": "This QGIS version has no point cloud support.",
-                "suggestion": "Point clouds need QGIS 3.26 or newer."}
+        return tool_error("This QGIS version has no point cloud support.", hint="point_cloud_qgis_version")
 
     name = args.get("name") or os.path.splitext(os.path.basename(source.split("?", 1)[0]))[0] or "point cloud"
     layer = QgsPointCloudLayer(source, name, provider)
@@ -1598,7 +1608,7 @@ def shapefile_field_name_error(layer, field_name: str) -> dict | None:
 _FIELD_MISMATCH_MARKERS = ("ESRI Shapefile", "typeName")
 
 
-def commit_failure_error(layer, errors: list, suggestion: str = "", hint: str = "") -> dict:
+def commit_failure_error(layer, errors: list, hint: str = "") -> dict:
 
     joined = "; ".join(str(line) for line in (errors or []))
     collapsed, _ = _collapse_repeats(joined)
@@ -1607,11 +1617,8 @@ def commit_failure_error(layer, errors: list, suggestion: str = "", hint: str = 
             f"Commit failed: {collapsed}",
             code="EXECUTION_FAILED", hint="shapefile_field_stored_short", max_chars=SHAPEFILE_FIELD_NAME_MAX,
         )
-    if hint:
 
-        return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED", hint=hint)
-    return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED",
-                      suggestion=suggestion or "The layer is unchanged; read the message and change the approach.")
+    return tool_error(f"Commit failed: {collapsed}", code="EXECUTION_FAILED", hint=hint or "layer_commit_failed")
 
 
 def _field_kind_name(field) -> str:
@@ -1677,9 +1684,8 @@ def _delete_with_retry(path: str, attempts: int = 8, pause: float = 0.02) -> boo
 
 
 def _staging_failure(path: str, exc: Exception) -> dict:
-    return {"_error": f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
-            "_code": "EXECUTION_FAILED",
-            "suggestion": "The volume needs room, and the folder needs write access."}
+    return tool_error(f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
+                      "EXECUTION_FAILED", hint="export_staging_failed")
 
 
 def _copy_into_staging(_task, source: str, staging: str) -> bool:
@@ -1855,8 +1861,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
     ext = os.path.splitext(path)[1].lower()
     driver = _RASTER_DRIVERS.get(ext)
     if not driver:
-        return tool_error(f"Unsupported raster format '{ext}'.", "INVALID_ARGS",
-                          ".tif works for a raster layer.")
+        return tool_error(f"Unsupported raster format '{ext}'.", "INVALID_ARGS", hint="export_raster_format")
     if args.get("crs") and args["crs"] != layer.crs().authid():
         return tool_error(
             f"export_layer copies a raster on its own grid and does not reproject it ({layer.crs().authid()} "
@@ -1899,8 +1904,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
     except Exception as exc:  # noqa: BLE001
         for produced in _raster_staged_files(staging):
             remove_quietly(produced)
-        return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
-                          "The folder needs write access, or another folder works.")
+        return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED", hint="export_raster_write_failed")
     written = QgsRasterLayer(path, "check")
     out = {"exported": path, "format": driver, "kind": "raster",
            "width": written.width(), "height": written.height(), "band_count": written.bandCount(),
@@ -1951,7 +1955,7 @@ def _export_layer(args: dict) -> dict:
     path = args["path"]
     path_error = validate_path(path, write=True)
     if path_error:
-        return {"_error": path_error}
+        return tool_error(path_error, "INVALID_ARGS")
 
 
     path = os.path.abspath(os.path.expanduser(path))
@@ -1961,7 +1965,7 @@ def _export_layer(args: dict) -> dict:
     if isinstance(layer, QgsRasterLayer):
         return _export_raster(layer, path, args)
     if not isinstance(layer, QgsVectorLayer):
-        return {"_error": f"Layer '{args['layer_name']}' is neither a vector nor a raster layer"}
+        return tool_error(f"Layer '{args['layer_name']}' is neither a vector nor a raster layer", "INVALID_ARGS")
 
     ext = os.path.splitext(path)[1].lower()
     if ext == ".dxf":
@@ -1984,12 +1988,13 @@ def _export_layer(args: dict) -> dict:
     }
     driver = driver_map.get(ext)
     if not driver:
-        return {"_error": f"Unsupported format '{ext}'. Formats: .gpkg, .geojson, .shp, .csv, .kml, .xlsx, .dxf"}
+        return tool_error(f"Unsupported format '{ext}'. Formats: .gpkg, .geojson, .shp, .csv, .kml, .xlsx, .dxf",
+                          "INVALID_ARGS")
 
     crs = QgsCoordinateReferenceSystem(args["crs"]) if args.get("crs") else layer.crs()
 
     if not crs.isValid() and (layer.isSpatial() or args.get("crs")):
-        return {"_error": f"Invalid CRS: {args.get('crs')}"}
+        return tool_error(f"Invalid CRS: {args.get('crs')}", "INVALID_ARGS")
 
     geometry_written = None
     if driver == "CSV" and layer.isSpatial() and not args.get("geometryless"):
@@ -2133,17 +2138,17 @@ def _export_layer(args: dict) -> dict:
     publish_failure, refreshed = _publish_export(staging, path, driver)
     if publish_failure:
         _discard_staged_write(staging)
-        return {**publish_failure,
-                "_error": f"The export was written but could not be put in place at {path}: "
-                          f"{publish_failure['_error']}"}
+        publish_failure["_error"] = (f"The export was written but could not be put in place at {path}: "
+                                     f"{publish_failure['_error']}")
+        return publish_failure
 
     if shapefile_mapping:
         expected_names = [shapefile_mapping[field.name()] for field in layer.fields()]
         written = QgsVectorLayer(path, "shapefile export verification", "ogr")
         actual_names = written.fields().names() if written.isValid() else []
         if actual_names != expected_names:
-            return {"_error": (f"The shapefile was written, but its field names were not preserved: expected "
-                               f"{expected_names!r}, got {actual_names!r}. The export is not reported as successful.")}
+            return tool_error(f"The shapefile was written, but its field names were not preserved: expected "
+                              f"{expected_names!r}, got {actual_names!r}. The export is not reported as successful.")
 
     out = {"exported": path, "format": driver, "feature_count": count, "selected_only": options.onlySelectedFeatures}
     if geometry_written:
@@ -2191,17 +2196,14 @@ def _add_field(args: dict) -> dict:
 
     qtype = FIELD_TYPES.get(kind)
     if qtype is None:
-        return {
-            "_error": f"field_type {args.get('field_type')!r} is not a field kind this tool builds.",
-            "code": "INVALID_ARGS",
-            "suggestion": f"One of: {', '.join(sorted(FIELD_TYPES))}.",
-        }
+        return tool_error(f"field_type {args.get('field_type')!r} is not a field kind this tool builds.",
+                          "INVALID_ARGS", hint="field_type_unknown", kinds=sorted(FIELD_TYPES))
 
 
 
     measurement_mode = args.get("measurement_mode", "ground")
     if not isinstance(measurement_mode, str) or measurement_mode not in {"ground", "planar_project"}:
-        return {"_error": "measurement_mode must be ground or planar_project", "_code": "INVALID_ARGS"}
+        return tool_error("measurement_mode must be ground or planar_project", "INVALID_ARGS")
     expr = None
     measured_on = ""
     planar_transform = None
@@ -2222,8 +2224,7 @@ def _add_field(args: dict) -> dict:
                 project = QgsProject.instance()
                 planar_crs = project.crs()
                 if not planar_crs.isValid() or not layer.crs().isValid():
-                    return {"_error": "Planar measurement requires valid layer and project CRS",
-                            "_code": "INVALID_ARGS"}
+                    return tool_error("Planar measurement requires valid layer and project CRS", "INVALID_ARGS")
                 planar_transform = QgsCoordinateTransform(layer.crs(), planar_crs, project)
                 calculator = QgsDistanceArea()
                 calculator.setSourceCrs(planar_crs, project.transformContext())
@@ -2232,7 +2233,7 @@ def _add_field(args: dict) -> dict:
                 expr.setDistanceUnits(planar_crs.mapUnits())
                 expr.setAreaUnits(QgsUnitTypes.distanceToAreaUnit(planar_crs.mapUnits()))
         if expr.hasParserError():
-            return {"_error": f"Invalid expression: {expr.parserErrorString()}", "_code": "INVALID_ARGS"}
+            return tool_error(f"Invalid expression: {expr.parserErrorString()}", "INVALID_ARGS")
 
 
 
@@ -2351,14 +2352,13 @@ def _add_field(args: dict) -> dict:
                     try:
                         geometry.transform(planar_transform)
                     except QgsCsException as exc:
-                        return {"_error": f"Planar geometry transformation failed: {exc}",
-                                "_code": "INVALID_ARGS"}
+                        return tool_error(f"Planar geometry transformation failed: {exc}", "INVALID_ARGS")
                     evaluated_feature = QgsFeature(feat)
                     evaluated_feature.setGeometry(geometry)
                 context.setFeature(evaluated_feature)
                 value = expr.evaluate(context)
                 if expr.hasEvalError():
-                    return {"_error": f"Expression evaluation error: {expr.evalErrorString()}", "_code": "INVALID_ARGS"}
+                    return tool_error(f"Expression evaluation error: {expr.evalErrorString()}", "INVALID_ARGS")
                 if not layer.changeAttributeValue(feat.id(), idx, value):
                     return tool_error(
                         f"QGIS refused the calculated value for feature {feat.id()} in {field_name!r}.",
@@ -2418,10 +2418,6 @@ def _add_field(args: dict) -> dict:
             "(squared for area), without ellipsoidal correction. Source geometries are unchanged."
         )
     if measured_on:
-        result["measure_note"] = (
-            f"This project measures planar (Project Properties > General, ellipsoid NONE), so $area and "
-            f"$length would have answered in {layer.crs().authid()} units. They were measured on the "
-            f"{measured_on} ellipsoid instead, so '{field_name}' holds ground square metres or metres. "
-            f"No reprojection was needed and '{layer.name()}' itself carries the field."
-        )
+        result["measure_note"] = coded_fact(hint="measure_field_on_ellipsoid", crs=layer.crs().authid(),
+                                            ellipsoid=measured_on, field=field_name, layer=layer.name())
     return result

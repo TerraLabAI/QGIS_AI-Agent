@@ -31,6 +31,7 @@ import sqlite3
 import threading
 import time
 import uuid
+import zipfile
 
 from qgis.core import QgsProject, QgsVectorLayer
 
@@ -112,7 +113,6 @@ __all__ = [
     "diff_changed",
     "feature_signatures",
     "folder_bytes",
-    "forget_styles",
     "held_features",
     "hold_snapshot",
     "INLINE_BACKUP_BYTES",
@@ -127,13 +127,13 @@ __all__ = [
     "MAX_SIGNATURE_TOTAL",
     "ORPHAN_GRACE_SECONDS",
     "prune_snapshots",
+    "prune_soon",
     "REASON_MEMORY_LOST",
     "REASON_UNSAVED_EDITS",
     "RESTORE_COPY_WAIT_S",
     "refill_from_copy",
     "release_snapshot",
     "remember_style",
-    "remembered_style",
     "resolve_layers",
     "RESTORE_FILE",
     "RunSnapshot",
@@ -270,14 +270,6 @@ def remember_style(layer, xml: str) -> str:
     return path
 
 
-def remembered_style(layer_id: str) -> dict | None:
-
-    entry = _style_memory.get(str(layer_id or ""))
-    if entry and os.path.isfile(entry["path"]):
-        return dict(entry)
-    return None
-
-
 def _prune_style_memory() -> None:
 
 
@@ -288,10 +280,21 @@ def _prune_style_memory() -> None:
         entry = _style_memory.pop(next(iter(_style_memory)))
         with contextlib.suppress(OSError):
             os.remove(entry["path"])
-    kept = {entry["path"] for entry in _style_memory.values()}
-    cutoff = time.time() - STYLE_MEMORY_HOURS * 3600
     try:
         folder = style_memory_dir()
+    except OSError:
+        return
+    _prune_style_files(folder, {entry["path"] for entry in _style_memory.values()})
+
+
+def _prune_style_files(folder: str, kept=()) -> None:
+
+
+
+
+
+    cutoff = time.time() - STYLE_MEMORY_HOURS * 3600
+    try:
         stale = [os.path.join(folder, name) for name in os.listdir(folder) if name.endswith(".qml")]
     except OSError:
         return
@@ -305,15 +308,6 @@ def _prune_style_memory() -> None:
             continue
 
 
-def forget_styles() -> None:
-
-    for entry in list(_style_memory.values()):
-        with contextlib.suppress(OSError):
-            os.remove(entry["path"])
-    _style_memory.clear()
-
-
-
 def _layout_digests(rows) -> dict[str, str]:
 
     return {str(row[0]): str(row[1] or "") for row in rows or []
@@ -323,6 +317,28 @@ def _layout_digests(rows) -> dict[str, str]:
 
 
 _LEAVING: set[str] = set()
+
+
+def _unreadable_copy(path: str) -> str:
+
+
+
+
+
+
+    try:
+        if not os.path.isfile(path):
+            return "the copy is missing"
+        if os.path.splitext(path)[1].lower() == ".qgz":
+            with zipfile.ZipFile(path) as archive:
+                if not any(name.lower().endswith(".qgs") and archive.getinfo(name).file_size > 0
+                           for name in archive.namelist()):
+                    return "the copy holds no project"
+        elif os.path.getsize(path) == 0:
+            return "the copy is empty"
+    except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
+        return f"unreadable: {exc}"
+    return ""
 
 
 def _folder_key(path: str) -> str:
@@ -368,6 +384,36 @@ _COUNT_KEPT_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "gpx", "spa
 def _keeps_count(layer) -> bool:
     return (str(layer.providerType() or "") in _COUNT_KEPT_PROVIDERS
             and not is_remote_vector(layer))
+
+
+def prune_soon(protect: str = "") -> None:
+
+
+
+
+
+
+    from .settings import account_dir
+
+    try:
+        base = snapshots_dir()
+        index_dir = checkpoints_dir()
+        threads_dir = os.path.join(account_dir(), "threads")
+        style_dir = style_memory_dir()
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Snapshot prune not scheduled: {exc}")
+        return
+    try:
+        from . import limits
+
+        disk_mb = float(limits.current("CHECKPOINT_DISK_MB"))
+    except Exception:  # noqa: BLE001
+        disk_mb = 0.0
+
+    kept = {entry["path"] for entry in _style_memory.values()}
+    _jobs().schedule_job(lambda: prune_snapshots(protect=protect, base=base, index_dir=index_dir,
+                                                 disk_mb=disk_mb, threads_dir=threads_dir))
+    _jobs().schedule_job(lambda: _prune_style_files(style_dir, kept))
 
 
 class RunSnapshot:
@@ -816,18 +862,7 @@ class RunSnapshot:
         self.captured_at = time.time()
         log(f"Snapshot {'captured' if ok else 'FAILED'} for run {self.run_id[:8]} in "
             f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers, {len(self.layers) - light} in full)")
-
-
-        base = snapshots_dir()
-        index_dir = checkpoints_dir()
-        try:
-            from . import limits
-
-            disk_mb = float(limits.current("CHECKPOINT_DISK_MB"))
-        except Exception:  # noqa: BLE001
-            disk_mb = 0.0
-        _jobs().schedule_job(lambda: prune_snapshots(protect=self.dir, base=base,
-                                                     index_dir=index_dir, disk_mb=disk_mb))
+        prune_soon(protect=self.dir)
         return ok
 
     def record_layers(self, layer_ids) -> int:
@@ -1523,14 +1558,25 @@ class RunSnapshot:
 
     def _restore_now(self, file_name: str | None = None, extra_copies=()) -> dict:
         project = QgsProject.instance()
+
+        source = self._source_to_read(project)
+
+        unreadable = _unreadable_copy(source)
+        if unreadable and source != self.project_path and not _unreadable_copy(self.project_path):
+            log_warning(f"Snapshot merged copy not readable ({unreadable}), the copy is read as it is")
+            source, unreadable = self.project_path, ""
+        if unreadable:
+            log_warning(f"Restore of run {self.run_id[:8]} refused before any change: {unreadable}")
+            return {"ok": False, "project_read": False, "unreadable_copy": True, "layers": 0,
+                    "files_restored": [], "files_put_back": [],
+                    "file_restore_errors": [], "memory_layers_refilled": 0, "memory_layers_incomplete": [],
+                    "message": f"The snapshot's project copy could not be read ({unreadable}); nothing was changed."}
         for layer in list(project.mapLayers().values()):
             try:
                 if isinstance(layer, QgsVectorLayer) and layer.isEditable():
                     layer.rollBack()
             except Exception:  # nosec B110
                 pass
-
-        source = self._source_to_read(project)
         kept = self.original_file if file_name is None else file_name
 
         saved = self._same_as_saved(kept)
@@ -1859,6 +1905,11 @@ class RunSnapshot:
         release_snapshot(self.dir)
         feature_pass = self._pass
         if feature_pass is not None and not feature_pass.done:
+
+
+
+            _LEAVING.add(_folder_key(self.dir))
+
             def remove_now() -> None:
                 forget_copies(self.dir)
                 _remove_soon(self.dir, "Snapshot")

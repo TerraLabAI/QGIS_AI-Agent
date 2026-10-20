@@ -353,8 +353,7 @@ def register_facade_tools(registry: ToolRegistry):
 
 def _ask_user_direct(args: dict) -> dict:
 
-    return tool_error("ask_user needs the chat panel to show the question.",
-                      suggestion="A question written in the answer reaches the user; their next message replies.")
+    return tool_error("ask_user needs the chat panel to show the question.", hint="ask_user_direct")
 
 
 def _is_url(source: str) -> bool:
@@ -511,21 +510,20 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         return tool_error(
             "That bbox is not a usable box.",
             "INVALID_ARGS",
-            "[west, south, east, north] in EPSG:4326, west below east and south below north.",
+            hint="bbox_not_usable",
         )
     drawn = bbox and _drawn_service(kind, source)
     if drawn:
 
 
         return tool_error(f"bbox is not read for {drawn}; nothing was loaded.", "INVALID_ARGS",
-                          "The same call without bbox adds the service, drawn for whatever the map shows.")
+                          hint="add_data_drawn_service")
     where = str(args.get("where") or "").strip()
     if where and not (kind == "wfs" or (kind in ("vector", "raster") and _is_url(source)
                                         and _arcgis_parse(source) is not None)):
 
         return tool_error("where is read for a WFS type or an ArcGIS feature layer, and this source is "
-                          "neither; nothing was loaded.", "INVALID_ARGS",
-                          "Without where the source loads whole, and set_layer_filter filters a loaded layer.")
+                          "neither; nothing was loaded.", "INVALID_ARGS", hint="add_data_where_unused")
     if kind == "vector":
         if _is_url(source):
 
@@ -571,12 +569,12 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
 
-            if streamed.get("_error") and streamed.get("_code") != "PERMISSION_DENIED" and (
+            if streamed.get("_error") and (streamed.get("code") or streamed.get("_code")) != "PERMISSION_DENIED" and (
                     not bbox or str(streamed["_error"]).startswith("Could not open the raster")):
 
 
 
-                downloaded = _stac.add_raster_downloaded(address, name)
+                downloaded = _stac.add_raster_downloaded(address, name, layer=layer)
                 if bbox and not downloaded.get("_error"):
                     downloaded["warning"] = ("The bbox was not applied: this file cannot be streamed, so it "
                                              "was downloaded and added whole.")
@@ -614,7 +612,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WMS source needs the layer name to show.",
                 "INVALID_ARGS",
-                "layer=<WMS layer name>. inspect_data_source lists what the service serves.",
+                hint="add_data_service_layer_missing", what="WMS layer name",
             )
         wms_args = {"url": source, "layers": layer, "name": name}
         if crs:
@@ -625,7 +623,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WFS source needs the type name to load.",
                 "INVALID_ARGS",
-                "layer=<WFS typename>. inspect_data_source lists what the service serves.",
+                hint="add_data_service_layer_missing", what="WFS typename",
             )
 
 
@@ -639,7 +637,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return tool_error(
                 "A WCS source needs the coverage to load.",
                 "INVALID_ARGS",
-                "layer=<coverage id>. inspect_data_source lists what the service serves.",
+                hint="add_data_service_layer_missing", what="coverage id",
             )
         return _add_wcs_layer({"url": source, "coverage": layer, "name": name, "crs": crs, "bbox": bbox})
     return tool_error(f"Unknown kind: {kind}", "INVALID_ARGS", f"kind must be one of {list(ADD_DATA_KINDS)}.")
@@ -769,7 +767,7 @@ def _merge_crs_check(described: dict, found: dict) -> None:
 def _add_data(args: dict) -> dict:
     source = hosted_department_url(str(args.get("source") or "").strip())
     if not source:
-        return tool_error("source is empty.", "INVALID_ARGS", "a path, URL, service endpoint or basemap name.")
+        return tool_error("source is empty.", "INVALID_ARGS", hint="add_data_source_empty")
     args = dict(args, source=source)
     archive = _remote_zip_member(source)
     if archive:
@@ -785,16 +783,13 @@ def _add_data(args: dict) -> dict:
         names = ", ".join(sorted(set(unfilled)))
         return tool_error(
             f"The URL still carries the template field {{{names}}}: it stands for several files.",
-            "INVALID_ARGS",
-            f"{{{names}}} takes a value the dataset's notes list (find_datasets shows them), "
-            "one call per file.")
+            "INVALID_ARGS", hint="add_data_template_field", fields=names)
 
 
 
     refusal = net.withdrawn_reason(urllib.parse.urlsplit(source).hostname or "")
     if refusal:
-        return tool_error(refusal, "INVALID_ARGS",
-                          "find_datasets lists rows for the same theme to add instead.")
+        return tool_error(refusal, "INVALID_ARGS", hint="add_data_withdrawn_source")
 
 
 
@@ -889,7 +884,7 @@ def _plugin_missing(label: str, tool: str) -> dict:
     return tool_error(
         f"{label} is not installed in this QGIS.",
         "PERMISSION_DENIED",
-        f"{tool} action setup opens the Plugin Manager on {label} (its card is the yes).",
+        hint="sibling_not_installed", tool=tool, label=label,
     )
 
 
@@ -898,7 +893,7 @@ def _signed_out(tool: str, label: str) -> dict:
     return tool_error(
         f"{label} is not connected to a TerraLab account.",
         "PERMISSION_DENIED",
-        f"{tool} action setup opens the one-click sign-in page (its card is the yes).",
+        hint="sibling_signed_out", tool=tool,
     )
 
 
@@ -918,8 +913,8 @@ def _aiseg_not_running(presence: dict) -> dict:
     return tool_error(
         f"AI Segmentation by TerraLab is installed but not running ({status['state']}).",
         "PERMISSION_DENIED",
-        ("ai_segment action setup switches the plugin on." if status["state"] == "PLUGIN_DISABLED"
-         else status["action_required"]),
+        hint="sibling_disabled" if status["state"] == "PLUGIN_DISABLED" else "sibling_not_started",
+        tool="ai_segment",
     )
 
 
@@ -938,19 +933,18 @@ def _ai_edit(args: dict) -> dict:
             return _plugin_missing("AI Edit by TerraLab", "ai_edit")
         return tool_error(
             "AI Edit by TerraLab is installed but not running.", "PERMISSION_DENIED",
-            ("ai_edit action setup switches the plugin on." if found["state"] == "disabled"
-             else _setup.not_running("ai_edit", found)["action_required"]),
+            hint="sibling_disabled" if found["state"] == "disabled" else "sibling_not_started",
+            tool="ai_edit",
         )
     if _setup.outdated("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]):
         return tool_error(
             "AI Edit by TerraLab is older than this agent supports.", "PLUGIN_OUTDATED",
-            "ai_edit action setup opens the Plugin Manager on AI Edit, where the person clicks Upgrade.",
+            hint="ai_edit_outdated",
         )
     if action == "generate":
         if "prompt" in args and not str(args.get("prompt") or "").strip():
             return tool_error(
-                "The supplied prompt is empty.", "INVALID_ARGS",
-                "Supply the edit to apply, or omit prompt to use the prepared AI Edit prompt.",
+                "The supplied prompt is empty.", "INVALID_ARGS", hint="ai_edit_prompt_missing",
             )
         if _setup.signed_in("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]) is False:
             return _signed_out("ai_edit", "AI Edit")
@@ -960,15 +954,13 @@ def _ai_edit(args: dict) -> dict:
     if action == "select_version":
         if args.get("index") is None:
             return tool_error(
-                "select_version needs index.", "INVALID_ARGS",
-                "index: 0 = Original, 1 = V1, 2 = V2.",
+                "select_version needs index.", "INVALID_ARGS", hint="ai_edit_select_version_index",
             )
         return _integration._aiedit_select_version(args)
     if action == "vectorize":
         if not args.get("target_rgb"):
             return tool_error(
-                "vectorize needs target_rgb.", "INVALID_ARGS",
-                "target_rgb is [r, g, b] 0-255, the color to trace.",
+                "vectorize needs target_rgb.", "INVALID_ARGS", hint="ai_edit_vectorize_target_rgb",
             )
         return _integration._aiedit_vectorize(args)
     if action == "cancel":
@@ -977,7 +969,8 @@ def _ai_edit(args: dict) -> dict:
         return _integration._aiedit_get_presets(args)
     if action == "credits":
         return _integration._aiedit_get_credits(args)
-    return tool_error(f"Unknown action: {action}", "INVALID_ARGS", f"action must be one of {list(AI_EDIT_ACTIONS)}.")
+    return tool_error(f"Unknown action: {action}", "INVALID_ARGS", hint="facade_action_unknown",
+                      actions=list(AI_EDIT_ACTIONS))
 
 
 def _setup_label(tool: str):
@@ -1024,7 +1017,8 @@ def _ai_segment(args: dict) -> dict:
         return _integration._aiseg_get_presets(args)
     if action == "cancel":
         return _integration._aiseg_auto_cancel(args)
-    return tool_error(f"Unknown action: {action}", "INVALID_ARGS", f"action must be one of {list(AI_SEGMENT_ACTIONS)}.")
+    return tool_error(f"Unknown action: {action}", "INVALID_ARGS", hint="facade_action_unknown",
+                      actions=list(AI_SEGMENT_ACTIONS))
 
 
 

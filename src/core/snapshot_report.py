@@ -152,6 +152,10 @@ def run_change_items(report, touched=None, answer: str = "") -> dict:
 
 
 
+
+
+
+
     try:
         return _run_change_items(report if isinstance(report, dict) else {},
                                  [x for x in touched if isinstance(x, dict)]
@@ -231,13 +235,31 @@ def _run_change_items(report: dict, touched: list, answer: str = "") -> dict:
     if layers:
         out["layers"] = layers
     files = [_made_file(entry) for entry in listed("files_made")]
-    files = [entry for entry in files if entry]
+    files = [entry for entry in files if entry and entry.get("exists") is not False]
     if files:
         out["files"] = files
+    objects = [_made_object(entry) for entry in listed("objects_made")]
+    objects = [entry for entry in objects if entry]
+    if objects:
+        out["objects"] = objects
     return out
 
 
-_MADE_KEYS = frozenset({"kind", "exists", "size_bytes"})
+_OBJECT_KINDS = frozenset({"layout", "view3d", "table", "theme"})
+
+
+def _made_object(entry: dict) -> dict:
+
+    kind, name, ident = entry.get("kind"), entry.get("name"), entry.get("id")
+    if kind not in _OBJECT_KINDS or not isinstance(name, str) or not name.strip():
+        return {}
+    out = {"kind": kind, "name": name.strip()}
+    if isinstance(ident, str) and ident.strip():
+        out["id"] = ident.strip()
+    return out
+
+
+_MADE_KEYS = frozenset({"kind", "exists", "size_bytes", "written"})
 
 
 def _made_file(entry: dict) -> dict:

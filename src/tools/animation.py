@@ -163,8 +163,9 @@ def _check_args(args: dict) -> dict | None:
         return tool_error(f"{folder} is not a folder.", "INVALID_ARGS", hint="frames_folder_source")
     error = security.validate_path(folder, write=False)
     if error:
-        return tool_error(error, "PERMISSION_DENIED", "" if isinstance(error, CodedText)
-                          else "Frames folders sit under your home folder or the project folder.")
+        if isinstance(error, CodedText):
+            return tool_error(error, "PERMISSION_DENIED")
+        return tool_error(error, "PERMISSION_DENIED", hint="animation_frames_folder_refused")
     return None
 
 
@@ -241,7 +242,7 @@ def _build_palette(gdal, frames: list[str], sizes: list[tuple[int, int]], cancel
         tile_ds = _as_rgb_mem(gdal, frames[frame_index], min(width, _MOSAIC_TILE_W), min(height, _MOSAIC_TILE_H))
         if tile_ds is None:
             return tool_error(f"{os.path.basename(frames[frame_index])} could not be read for the palette.",
-                              "EXECUTION_FAILED", "The frame is not a readable PNG.")
+                              "EXECUTION_FAILED", hint="partial_export_png")
         tile_w, tile_h = tile_ds.RasterXSize, tile_ds.RasterYSize
         for band in range(3):
 
@@ -465,15 +466,14 @@ def _encode_mp4(ffmpeg: str, frames: list[str], fps: float, width: int | None, h
                           "already stands.", "EXECUTION_FAILED", hint="mp4_timeout", timeout_s=int(timeout_s))
     except OSError as exc:
         remove_quietly(part_path)
-        return tool_error(f"ffmpeg could not be started: {exc}", "EXECUTION_FAILED",
-                          "The GIF this call made is unaffected.")
+        return tool_error(f"ffmpeg could not be started: {exc}", "EXECUTION_FAILED", hint="mp4_gif_unaffected")
     finally:
         remove_quietly(list_path)
     if completed.returncode != 0 or not os.path.isfile(part_path):
         remove_quietly(part_path)
         tail = (completed.stderr or "")[-800:]
         return tool_error(f"ffmpeg exited {completed.returncode}: {tail}", "EXECUTION_FAILED",
-                          "The GIF this call made is unaffected.")
+                          hint="mp4_gif_unaffected")
     try:
         retry_file_op(os.replace, part_path, mp4_target)
     except OSError as exc:
@@ -502,12 +502,10 @@ def _targets(args: dict, frames_folder: str):
             expanded += ".gif"
         elif extension != ".gif":
             return None, None, tool_error(f"{os.path.basename(expanded)} is not a GIF name.", "INVALID_ARGS",
-                                          "output_path must end in .gif: this tool always writes a GIF.")
+                                          hint="animation_gif_name")
         error = security.validate_path(expanded, write=True)
         if error:
-            return None, None, tool_error(error, "PERMISSION_DENIED",
-                                          "Paths sit under the project folder, your home folder or the temp "
-                                          "folder.")
+            return None, None, tool_error(error, "PERMISSION_DENIED", hint="chart_output_path_refused")
         mp4_candidate = os.path.splitext(expanded)[0] + ".mp4"
         if args.get("overwrite") is not True:
             taken = expanded if os.path.exists(expanded) else mp4_candidate if os.path.exists(mp4_candidate) else None
@@ -541,7 +539,7 @@ def _targets(args: dict, frames_folder: str):
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the animation was written.", "CANCELLED", "No file was written.")
+    return tool_error("Stopped before the animation was written.", "CANCELLED", hint="georef_stopped_nothing_written")
 
 
 
@@ -637,7 +635,7 @@ def _make_animation(args: dict) -> dict:
         os.makedirs(os.path.dirname(gif_path) or ".", exist_ok=True)
     except OSError as exc:
         return tool_error(f"The folder for {gif_path} could not be created: {exc}", "EXECUTION_FAILED",
-                          "output_path can name a folder that exists.")
+                          hint="animation_output_folder")
     part_path = gif_path + ".part"
     if not security.fits_path(part_path):
         part_path = os.path.join(os.path.dirname(gif_path), f".make_animation_{uuid.uuid4().hex[:12]}.gif.part")

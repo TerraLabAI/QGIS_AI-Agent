@@ -21,7 +21,7 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.logger import log_warning
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 ACTIONS = ("status", "set", "objects", "remove", "merge", "undo")
 SAVE_TOOL = "ai_segment_review_save"
@@ -123,16 +123,16 @@ def _api():
 
 
 def _outdated(method: str) -> dict:
-    return {"_error": f"The installed AI Segmentation has no {method}; a newer AI Segmentation has it.",
-            "code": "PLUGIN_OUTDATED"}
+    return tool_error(f"The installed AI Segmentation has no {method}; a newer AI Segmentation has it.",
+                      "PLUGIN_OUTDATED")
 
 
 def _review(args: dict) -> dict:
     action = str(args.get("action") or "")
     api = _api()
     if api is None:
-        return {"_error": ("AI Segmentation is not running, or its version has no agent review "
-                           "(a newer AI Segmentation has it)."), "code": "PLUGIN_OUTDATED"}
+        return tool_error("AI Segmentation is not running, or its version has no agent review "
+                          "(a newer AI Segmentation has it).", "PLUGIN_OUTDATED")
     try:
         if action == "status":
             fn = getattr(api, "review_status", None)
@@ -146,12 +146,12 @@ def _review(args: dict) -> dict:
         if action == "set":
             settings = args.get("settings")
             if not isinstance(settings, dict) or not settings:
-                return {"_error": "set takes settings, one or more review settings."}
+                return tool_error("set takes settings, one or more review settings.", "INVALID_ARGS")
             fn = getattr(api, "review_set", None)
             return fn(settings) if callable(fn) else _outdated("review_set")
         if action == "remove":
             if args.get("index") is None:
-                return {"_error": "remove takes index, from objects."}
+                return tool_error("remove takes index, from objects.", "INVALID_ARGS")
             fn = getattr(api, "review_remove_object", None)
             return fn(int(args["index"])) if callable(fn) else _outdated("review_remove_object")
         if action == "merge":
@@ -162,16 +162,16 @@ def _review(args: dict) -> dict:
             return fn() if callable(fn) else _outdated("review_undo_last")
     except Exception as e:  # noqa: BLE001
         log_warning(f"AI Segmentation review {action} failed: {e}")
-        return {"_error": f"AI Segmentation review {action} failed: {e}"}
-    return {"_error": f"action must be one of {list(ACTIONS)}."}
+        return tool_error(f"AI Segmentation review {action} failed: {e}", "EXECUTION_FAILED")
+    return tool_error(f"action must be one of {list(ACTIONS)}.", "INVALID_ARGS")
 
 
 def _save(_args: dict) -> dict:
 
     api = _api()
     if api is None:
-        return {"_error": "AI Segmentation is not running, or its version has no agent review.",
-                "code": "PLUGIN_OUTDATED"}
+        return tool_error("AI Segmentation is not running, or its version has no agent review.",
+                          "PLUGIN_OUTDATED")
     fn = getattr(api, "review_save", None)
     if not callable(fn):
         return _outdated("review_save")
@@ -179,7 +179,7 @@ def _save(_args: dict) -> dict:
         return fn()
     except Exception as e:  # noqa: BLE001
         log_warning(f"AI Segmentation review save failed: {e}")
-        return {"_error": f"AI Segmentation review save failed: {e}"}
+        return tool_error(f"AI Segmentation review save failed: {e}", "EXECUTION_FAILED")
 
 
 def review_open() -> bool:

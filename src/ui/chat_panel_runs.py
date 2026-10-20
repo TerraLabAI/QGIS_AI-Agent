@@ -17,9 +17,10 @@ from .cards import RunSummaryCard, ToolCard
 from .chat_panel_shared import _is_nothing_changed, _Run
 from .external_links import open_local_path
 from .file_card import FileCardStack
-from .file_links import gis_data_path, is_safe_to_open, path_from_url, reveal_target
-from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_layers
+from .file_links import gis_data_path, is_safe_to_open, note_written_page, path_from_url, reveal_target
+from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_files, linkify_layers
 from .loader import user_waiting, waited_between
+from .markdown_view import SOURCE_SCHEME
 from .plan_card import PlanCard
 from .trace import RunTrace
 
@@ -496,7 +497,7 @@ class _ChatPanelRuns:
 
 
 
-        if href.startswith("source:"):
+        if href.startswith(SOURCE_SCHEME):
 
             return
         layer_id = layer_id_from_url(href)
@@ -565,7 +566,11 @@ class _ChatPanelRuns:
 
 
         data = changes if isinstance(changes, dict) else {}
-        stack = FileCardStack(data.get("files"))
+        for entry in data.get("files") or ():
+
+            if isinstance(entry, dict) and entry.get("written") is True:
+                note_written_page(str(entry.get("path") or ""))
+        stack = FileCardStack(data.get("files"), objects=data.get("objects"))
         row = RunChangesRow(data)
         if row.is_empty() and stack.is_empty():
             row.deleteLater()
@@ -575,12 +580,14 @@ class _ChatPanelRuns:
         bubble = run.bubble if run is not None else None
         if run is not None:
             run.produced = True
-        if row.layers():
+        on_disk = [card.path for card in stack.cards() if getattr(card, "on_disk", False)]
+        if row.layers() or on_disk:
+
 
 
             for said in self.message_list.widgets():
                 if isinstance(said, AgentBubble) and (said is bubble or (run_id and said.run_id == run_id)):
-                    linked = linkify_layers(said.text(), row.layers())
+                    linked = linkify_files(linkify_layers(said.text(), row.layers()), on_disk)
                     if linked != said.text():
                         said.set_linked_text(linked)
         row.layer_action_requested.connect(self.layer_action_requested.emit)
@@ -611,7 +618,10 @@ class _ChatPanelRuns:
             return
         if action == "open" and self._open_in_qgis(path):
             return
-        target = reveal_target(path) if action == "reveal" else path
+
+
+
+        target = path if action == "open" and is_safe_to_open(path) else reveal_target(path)
         open_local_path(target, self)
 
     def _open_in_qgis(self, path: str, layername: str = "") -> bool:

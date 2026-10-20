@@ -32,6 +32,7 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.security import fits_path
+from ..core.tool_registry import tool_error
 from .processing_destinations import _gpkg_sink_uri, _gpkg_table_target
 
 
@@ -306,6 +307,11 @@ def _file_behind(item: str, project, destination: bool) -> tuple[str, str, str]:
         path = item.split("|", 1)[0]
         return (path, item[len(path):], "") if os.path.isabs(path) else ("", "", "")
     layer = project.mapLayer(item) if project is not None else None
+    if layer is None and project is not None:
+
+
+        found = project.mapLayersByName(item)
+        layer = found[0] if len(found) == 1 else None
     if layer is not None:
         subset = getattr(layer, "subsetString", None)
 
@@ -353,18 +359,11 @@ def alias_fragile_paths(algorithm_id: str, parameters: dict, destination_names) 
                 reason = aliases.problem or ("its alias would pass the 260 characters Windows opens"
                                              if built else "no short name or link of its folder could be made")
                 aliases.remove()
-                return parameters, [], None, {
-                    "_error": (f"{key} is {real}, and {provider} cannot open a path with {_what_breaks()} in it; "
-                               f"no safe alias of it could be made here: {reason}. Nothing was run."),
-                    "code": "INVALID_ARGS",
-                    "suggestion": "",
-                    "hint": "processing_path_unsafe",
-                    "parameter": key,
-                    "provider": provider,
-                    "path": real,
-                    "reason": reason,
-                    **({"variant": "windows"} if IS_WINDOWS else {}),
-                }
+                return parameters, [], None, tool_error(
+                    f"{key} is {real}, and {provider} cannot open a path with {_what_breaks()} in it; "
+                    f"no safe alias of it could be made here: {reason}. Nothing was run.",
+                    "INVALID_ARGS", hint="processing_path_unsafe", parameter=key, provider=provider,
+                    path=real, reason=reason, **({"variant": "windows"} if IS_WINDOWS else {}))
             items[index] = built
             changed = True
             notes.append(f"{key}: {provider} cannot take {_what_breaks()} in a path, so it was handed {alias} "

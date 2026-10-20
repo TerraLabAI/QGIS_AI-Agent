@@ -176,6 +176,15 @@ def _ssl_context():
     global _SSL_CONTEXT
     if _SSL_CONTEXT is None:
         _SSL_CONTEXT = ssl.create_default_context()
+
+
+
+        try:
+            _SSL_CONTEXT.set_ciphers(
+                "@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:kRSA+AESGCM"
+                ":!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM")
+        except ssl.SSLError as exc:
+            log_warning(f"TLS suites left as Python's default: {exc}")
         if _SSL_CA_PEM:
             try:
 
@@ -768,6 +777,15 @@ def _explain_url_error(exc: urllib.error.URLError) -> urllib.error.URLError:
         return urllib.error.URLError(
             f"{reason}. The server's TLS certificate was not accepted. If this host uses a private "
             "or company certificate authority, add it in QGIS Settings > Options > Authentication.")
+    if lowered.startswith("tunnel connection failed"):
+
+
+
+        return urllib.error.URLError(
+            f"{reason}. A network proxy refused to open a connection to this host (its own answer "
+            f"to CONNECT), so the host itself was never reached. The proxy in use: "
+            f"{proxy_in_use() or 'the system settings'}; this network's administrator decides which "
+            "hosts it opens.")
     if proxy_in_use() and ("proxy" in lowered or "refused" in lowered or "timed out" in lowered):
         return urllib.error.URLError(
             f"{reason}. Requests go through the proxy set in QGIS Settings > Options > Network "

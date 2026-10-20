@@ -87,6 +87,7 @@ def _reads_what_fits(name: str, handler):
             out["box_km2"] = clamped["box_km2"]
             out["asked_km2"] = clamped["asked_km2"]
             out["_note"] = (out.get("_note") + " " if out.get("_note") else "") + clamped["note"]
+            out["note_next_hint"] = clamped["note_next_hint"]
         return out
 
     read.__name__ = getattr(handler, "__name__", name)

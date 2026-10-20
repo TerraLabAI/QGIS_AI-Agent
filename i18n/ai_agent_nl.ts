@@ -2347,12 +2347,12 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Die stap is niet afgerond. Bestanden die de run al had geschreven, staan nog op schijf. Lagen die de run toevoegde, komen alleen terug als het project daarna is opgeslagen, en een tijdelijke laag is weg. Dezelfde stap kan QGIS opnieuw sluiten: vraag om iets lichters (een kleiner gebied, minder lagen).</translation>
         </message>
         <message>
-            <source>The agent got stuck on the same step.</source>
-            <translation>De agent bleef hangen op dezelfde stap.</translation>
+            <source>The AI agent got stuck on the same step.</source>
+            <translation>De AI-agent bleef hangen op dezelfde stap.</translation>
         </message>
         <message>
-            <source>The agent service restarted twice during a step.</source>
-            <translation>De agentservice is tijdens een stap twee keer opnieuw gestart.</translation>
+            <source>The AI agent service restarted twice during a step.</source>
+            <translation>De AI-agentservice is tijdens een stap twee keer opnieuw gestart.</translation>
         </message>
         <message>
             <source>The answer was cut off. Ask again to carry on.</source>
@@ -2363,8 +2363,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>De verbinding met QGIS viel weg en kwam niet terug, dus die stap is niet afgerond. Als QGIS nog open is, staat het project zoals de run het achterliet. Als QGIS is gesloten, staan de bestanden die de run schreef nog op schijf, en de lagen komen alleen terug als het project daarna is opgeslagen. Open QGIS opnieuw als het is gesloten en druk dan op Opnieuw proberen.</translation>
         </message>
         <message>
-            <source>The model kept sending a step the agent could not read. Earlier steps are kept.</source>
-            <translation>Het model bleef een stap sturen die de agent niet kon lezen. Eerdere stappen blijven bewaard.</translation>
+            <source>The model kept sending a step the AI agent could not read. Earlier steps are kept.</source>
+            <translation>Het model bleef een stap sturen die de AI-agent niet kon lezen. Eerdere stappen blijven bewaard.</translation>
         </message>
         <message>
             <source>The step on that card has not run, unless it was clicked just before. Earlier steps are kept; sending the same message again brings the card back.</source>
@@ -2389,6 +2389,98 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>What the run did before that step is kept. A lighter request (a smaller area, a lower resolution) is more likely to finish than the same one again.</source>
             <translation>Wat de run vóór die stap deed, blijft bewaard. Een lichtere vraag (een kleiner gebied, een lagere resolutie) wordt eerder afgerond dan dezelfde vraag nog eens.</translation>
+        </message>
+        <message>
+            <source>It replaces {file} in {folder}.</source>
+            <translation>Het vervangt {file} in {folder}.</translation>
+        </message>
+        <message>
+            <source>No example matches these words. The AI agent may still do it.</source>
+            <translation>Geen voorbeeld past bij deze woorden. De AI-assistent kan het misschien toch doen.</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
+            <translation>Echte taken die de AI-assistent uitvoert op basis van één zin. Open er een om het te proberen.</translation>
+        </message>
+        <message>
+            <source>Save the report {title}</source>
+            <translation>Sla het rapport {title} op</translation>
+        </message>
+        <message>
+            <source>Saved as {file} in {folder}.</source>
+            <translation>Opgeslagen als {file} in {folder}.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Probeer in de chat</translation>
+        </message>
+        <message>
+            <source>its file could not be written back (another program may hold it), so it was left as it was</source>
+            <translation>het bestand kon niet worden teruggeschreven (een ander programma houdt het misschien vast), dus het is gelaten zoals het was</translation>
+        </message>
+        <message>
+            <source>Added {layer}</source>
+            <translation>{layer} toegevoegd</translation>
+        </message>
+        <message>
+            <source>Print layouts changed</source>
+            <translation>Afdruklay-outs gewijzigd</translation>
+        </message>
+        <message>
+            <source>Project CRS changed</source>
+            <translation>Project-CRS gewijzigd</translation>
+        </message>
+        <message>
+            <source>Removed {layer}</source>
+            <translation>{layer} verwijderd</translation>
+        </message>
+        <message>
+            <source>and {n} more</source>
+            <translation>en nog {n}</translation>
+        </message>
+        <message>
+            <source>data edited</source>
+            <translation>gegevens bewerkt</translation>
+        </message>
+        <message>
+            <source>features edited</source>
+            <translation>objecten bewerkt</translation>
+        </message>
+        <message>
+            <source>renamed</source>
+            <translation>hernoemd</translation>
+        </message>
+        <message>
+            <source>restyled</source>
+            <translation>stijl aangepast</translation>
+        </message>
+        <message>
+            <source>{file} stays on disk</source>
+            <translation>{file} blijft op de schijf staan</translation>
+        </message>
+        <message>
+            <source>{first} and {n} more</source>
+            <translation>{first} en nog {n}</translation>
+        </message>
+        <message>
+            <source>{layer}: {changes}</source>
+            <translation>{layer}: {changes}</translation>
+        </message>
+        <message>
+            <source>{n} features added</source>
+            <translation>{n} objecten toegevoegd</translation>
+        </message>
+        <message>
+            <source>{n} features deleted</source>
+            <translation>{n} objecten verwijderd</translation>
+        </message>
+        <message>
+            <source>{n} files the request wrote stay on disk</source>
+            <translation>{n} bestanden die de opdracht heeft geschreven, blijven op de schijf staan</translation>
+        </message>
+        <message>
+            <source>changed</source>
+            <translation>gewijzigd</translation>
         </message>
     </context>
     <context>
@@ -3557,8 +3649,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>Stopped before the agent answered.</source>
-            <translation>Gestopt voordat de agent antwoordde.</translation>
+            <source>Stopped before the AI agent answered.</source>
+            <translation>Gestopt voordat de AI-agent antwoordde.</translation>
         </message>
         <message>
             <location filename="src/core/controller.py" />
@@ -3869,6 +3961,22 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Temporary file in the AI Agent's scratch folder. Saving the project stores it beside the project.</source>
             <translation>Tijdelijk bestand in de werkmap van AI Agent. Als je het project opslaat, wordt het naast het project bewaard.</translation>
         </message>
+        <message>
+            <source>Checking your files before going back. Try again in a moment.</source>
+            <translation>Je bestanden worden gecontroleerd voordat je teruggaat. Probeer het zo meteen opnieuw.</translation>
+        </message>
+        <message>
+            <source>The project moved while your files were checked, so nothing was restored.</source>
+            <translation>Het project is gewijzigd terwijl je bestanden werden gecontroleerd, dus er is niets hersteld.</translation>
+        </message>
+        <message>
+            <source>Your files could not be checked, so nothing was restored.</source>
+            <translation>Je bestanden konden niet worden gecontroleerd, dus er is niets hersteld.</translation>
+        </message>
+        <message>
+            <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
+            <translation>Jouw versie van {file} kon niet in de Map history worden bewaard, dus er is niets hersteld.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3979,6 +4087,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Add files from your computer</source>
             <translation>Bestanden van je computer toevoegen</translation>
+        </message>
+        <message>
+            <source>Data sources</source>
+            <translation>Gegevensbronnen</translation>
         </message>
     </context>
     <context>
@@ -4337,6 +4449,42 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Waiting for the install</source>
             <translation>Wachten op de installatie</translation>
+        </message>
+        <message>
+            <source>{layer} couldn't be restored</source>
+            <translation>{layer} kon niet worden hersteld</translation>
+        </message>
+        <message>
+            <source>Redo brings these changes back.</source>
+            <translation>Opnieuw uitvoeren brengt deze wijzigingen terug.</translation>
+        </message>
+        <message>
+            <source>This request:</source>
+            <translation>Deze opdracht:</translation>
+        </message>
+        <message>
+            <source>Undo takes these changes off the map.</source>
+            <translation>Ongedaan maken haalt deze wijzigingen van de kaart.</translation>
+        </message>
+        <message>
+            <source>Keep my edits</source>
+            <translation>Mijn wijzigingen behouden</translation>
+        </message>
+        <message>
+            <source>Undo anyway</source>
+            <translation>Toch ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Undo would put back the AI agent's version over your changes. Your version stays in Map history as Your edits.</source>
+            <translation>Ongedaan maken zet de versie van de AI-agent terug over je wijzigingen heen. Jouw versie blijft in de Kaartgeschiedenis staan als Jouw wijzigingen.</translation>
+        </message>
+        <message>
+            <source>You changed {file} by hand</source>
+            <translation>Je hebt {file} handmatig gewijzigd</translation>
+        </message>
+        <message>
+            <source>You changed {n} files by hand</source>
+            <translation>Je hebt {n} bestanden handmatig gewijzigd</translation>
         </message>
     </context>
     <context>
@@ -5147,6 +5295,38 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Show less</source>
             <translation>Minder tonen</translation>
         </message>
+        <message>
+            <source>Datasets ({n})</source>
+            <translation>Datasets ({n})</translation>
+        </message>
+        <message>
+            <source>Held by TerraLab's server, you need none</source>
+            <translation>Beheerd door de server van TerraLab, je hebt er geen nodig</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Sleutel</translation>
+        </message>
+        <message>
+            <source>No dataset listed yet.</source>
+            <translation>Nog geen dataset vermeld.</translation>
+        </message>
+        <message>
+            <source>Retry</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>See all %n examples</source>
+            <translation>Bekijk alle %n voorbeelden</translation>
+        </message>
+        <message>
+            <source>The datasets could not be loaded.</source>
+            <translation>De datasets konden niet worden geladen.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Probeer in de chat</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5282,6 +5462,50 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>No data source matches these words. The agent may still find the data.</source>
             <translation>Geen gegevensbron past bij deze woorden. De agent kan de gegevens misschien toch vinden.</translation>
         </message>
+        <message>
+            <source>%n sources</source>
+            <translation>%n bronnen</translation>
+        </message>
+        <message>
+            <source>Datasets</source>
+            <translation>Datasets</translation>
+        </message>
+        <message>
+            <source>More sources</source>
+            <translation>Meer bronnen</translation>
+        </message>
+        <message>
+            <source>No data source matches these words. The AI agent may still find the data.</source>
+            <translation>Geen gegevensbron past bij deze woorden. De AI-assistent kan de gegevens misschien toch vinden.</translation>
+        </message>
+        <message>
+            <source>See all</source>
+            <translation>Alles bekijken</translation>
+        </message>
+        <message>
+            <source>Sources</source>
+            <translation>Bronnen</translation>
+        </message>
+        <message>
+            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
+            <translation>De bibliotheek met gegevens die de AI-assistent kan gebruiken. Hij zoekt en laadt zelf wat hij nodig heeft.</translation>
+        </message>
+        <message>
+            <source>Try in chat</source>
+            <translation>Probeer in de chat</translation>
+        </message>
+        <message>
+            <source>countries</source>
+            <translation>landen</translation>
+        </message>
+        <message>
+            <source>datasets</source>
+            <translation>datasets</translation>
+        </message>
+        <message>
+            <source>sources</source>
+            <translation>bronnen</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -5375,8 +5599,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <name>EffortChip</name>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Deeper planning, research and independent direction for harder tasks.</source>
-            <translation>Dieper plannen, onderzoeken en zelfstandig aansturen voor moeilijkere taken.</translation>
+            <source>The biggest jobs, with more time.</source>
+            <translation>De grootste klussen, met meer tijd.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5390,13 +5614,13 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Smart agent that plans, checks its results and looks up algorithms and documentation.</source>
-            <translation>Slimme agent die plant, zijn resultaten controleert en algoritmen en documentatie opzoekt.</translation>
+            <source>Everyday tasks, done with care.</source>
+            <translation>Dagelijkse taken, zorgvuldig uitgevoerd.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Starts working as fast as possible. Best for quick edits and questions. Does not plan or research.</source>
-            <translation>Begint zo snel mogelijk. Het best voor snelle bewerkingen en vragen. Plant en onderzoekt niets.</translation>
+            <source>Quick answers and small edits.</source>
+            <translation>Snelle antwoorden en kleine aanpassingen.</translation>
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
@@ -5427,6 +5651,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Pro · {price}</source>
             <translation>Pro · {price}</translation>
+        </message>
+        <message>
+            <source>Available after your free trial, if you keep Pro.</source>
+            <translation>Beschikbaar na je gratis proefperiode, als je Pro behoudt.</translation>
         </message>
         <message>
             <source>{level} needs Pro. Pick Low to send.</source>
@@ -5491,6 +5719,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Loads data, styles layers, runs analyses, builds maps.</source>
             <translation>Laadt gegevens, stylet lagen, voert analyses uit, bouwt kaarten.</translation>
         </message>
+        <message>
+            <source>Data</source>
+            <translation>Gegevens</translation>
+        </message>
     </context>
     <context>
         <name>ErrorCard</name>
@@ -5537,11 +5769,6 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
     </context>
     <context>
         <name>Header</name>
-        <message>
-            <location filename="src/ui/header.py" />
-            <source>Try Pro free</source>
-            <translation>Try Pro free</translation>
-        </message>
         <message>
             <location filename="src/ui/header.py" />
             <source>AI Agent</source>
@@ -6076,6 +6303,14 @@ Klik om de pagina te openen.</translation>
             <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
             <translation>Allow for this run geldt ook voor latere scripts die {libs} gebruiken, inclusief bestanden die ze schrijven of verwijderen. Voor het verwijderen van lagen of objecten wordt nog steeds toestemming gevraagd.</translation>
         </message>
+        <message>
+            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <translation>De pagina verwijst naar sites die de assistent niet kent: {hosts}.</translation>
+        </message>
+        <message>
+            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <translation>De pagina verwijst naar {hosts}, een site die de assistent niet kent.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -6302,6 +6537,11 @@ Klik om de pagina te openen.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Company paying by invoice? Get 7 free days</source>
+            <translation>Bedrijf dat op factuur betaalt? Krijg 7 gratis dagen</translation>
+        </message>
+        <message>
             <source>Free AI Agent was already used by other accounts on this computer.</source>
             <translation>Gratis AI Agent is al gebruikt door andere accounts op deze computer.</translation>
         </message>
@@ -6336,13 +6576,13 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Try Pro free for {n} days</source>
-            <translation>Try Pro free for {n} days</translation>
+            <source>Start 7-day free trial</source>
+            <translation>Start gratis proef van 7 dagen</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>No commitment, cancel in one click</source>
-            <translation>No commitment, cancel in one click</translation>
+            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
+            <translation>7 dagen gratis, daarna {price}/maand. Met één klik opzegbaar.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -7730,6 +7970,22 @@ Klik om de pagina te openen.</translation>
             <source>Data sources</source>
             <translation>Gegevensbronnen</translation>
         </message>
+        <message>
+            <source>Free trial ends {date}</source>
+            <translation>Gratis proefperiode eindigt op {date}</translation>
+        </message>
+        <message>
+            <source>Then billed monthly</source>
+            <translation>Daarna maandelijks gefactureerd</translation>
+        </message>
+        <message>
+            <source>Then billed yearly</source>
+            <translation>Daarna jaarlijks gefactureerd</translation>
+        </message>
+        <message>
+            <source>{plan} · Free trial</source>
+            <translation>{plan} · Gratis proefperiode</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -8163,6 +8419,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{name} is installed</source>
             <translation>{name} is geïnstalleerd</translation>
+        </message>
+        <message>
+            <source>its changes to your project cannot be shown before it runs</source>
+            <translation>de wijzigingen in je project kunnen niet worden getoond voordat het wordt uitgevoerd</translation>
         </message>
     </context>
     <context>
@@ -9222,6 +9482,14 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <source>Restored</source>
             <translation>Hersteld</translation>
         </message>
+        <message>
+            <source>Put back as before</source>
+            <translation>Teruggezet zoals eerst</translation>
+        </message>
+        <message>
+            <source>Taken off the map</source>
+            <translation>Van de kaart gehaald</translation>
+        </message>
     </context>
     <context>
         <name>_VersionRow</name>
@@ -9454,6 +9722,83 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Waiting for {name} to install</source>
             <translation>Wachten tot {name} is geïnstalleerd</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentStreamFallback</name>
+        <message>
+            <source>{day} UTC, the online source stopped answering ({error}); the layer now reads a local copy of {box} (EPSG:4326) taken from {source}</source>
+            <translation>{day} UTC, de online bron reageerde niet meer ({error}); de laag leest nu een lokale kopie van {box} (EPSG:4326) afkomstig van {source}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and a local copy of the area on view failed too: {reason}</source>
+            <translation>{name} kon niet online worden gelezen en een lokale kopie van het zichtbare gebied mislukte ook: {reason}</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online, and its local copy did not open.</source>
+            <translation>{name} kon niet online worden gelezen en de lokale kopie kon niet worden geopend.</translation>
+        </message>
+        <message>
+            <source>{name} could not be read online: it now shows a local copy of the area on view.</source>
+            <translation>{name} kon niet online worden gelezen: het toont nu een lokale kopie van het zichtbare gebied.</translation>
+        </message>
+    </context>
+    <context>
+        <name>LibraryRail</name>
+        <message>
+            <source>Home</source>
+            <translation>Start</translation>
+        </message>
+    </context>
+    <context>
+        <name>ObjectRow</name>
+        <message>
+            <source>3D view</source>
+            <translation>3D-weergave</translation>
+        </message>
+        <message>
+            <source>Attribute table</source>
+            <translation>Attributentabel</translation>
+        </message>
+        <message>
+            <source>Map theme</source>
+            <translation>Kaartthema</translation>
+        </message>
+        <message>
+            <source>Print layout</source>
+            <translation>Afdrukopmaak</translation>
+        </message>
+        <message>
+            <source>Report</source>
+            <translation>Rapport</translation>
+        </message>
+        <message>
+            <source>Show {name}</source>
+            <translation>Toon {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_DatasetRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Zet dit verzoek in het chatvak, klaar om te bewerken.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_PromptRow</name>
+        <message>
+            <source>Puts this request in the chat box, ready to edit.</source>
+            <translation>Zet dit verzoek in het chatvak, klaar om te bewerken.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} wordt nog opgeslagen. Er is niets gewijzigd: probeer het over een paar seconden opnieuw.</translation>
+        </message>
+        <message>
+            <location filename="src/core/controller_actions.py" />
+            <source>a temporary layer</source>
+            <translation>een tijdelijke laag</translation>
         </message>
     </context>
 </TS>

@@ -337,10 +337,10 @@ def _set_canvas_scale(args: dict) -> dict:
     wanted_scale = args.get("scale")
     wanted_rotation = args.get("rotation")
     if wanted_scale is None and wanted_rotation is None:
-        return tool_error("No scale or rotation given", "INVALID_ARGS", "scale is the denominator, e.g. 25000.")
+        return tool_error("No scale or rotation given", "INVALID_ARGS", hint="layout_scale_invalid")
     if wanted_scale is not None and float(wanted_scale) <= 0:
         return tool_error(f"scale must be a positive denominator, got {wanted_scale}", "INVALID_ARGS",
-                          "25000 means 1:25000.")
+                          hint="layout_scale_invalid")
     canvas = iface.mapCanvas()
     if wanted_scale is not None:
         canvas.zoomScale(float(wanted_scale))
@@ -367,12 +367,11 @@ def _checked_geometry(layer, position: int, update: dict):
     shape = QgsGeometry.fromWkt(wkt)
     if shape.isNull():
         return tool_error(f"Update {position}: invalid geometry_wkt: {wkt[:100]!r}", "INVALID_ARGS",
-                          "WKT axis order is (x y) in the layer's CRS.")
+                          hint="update_geometry_wkt_axis")
     if shape.type() != layer.geometryType():
         return tool_error(
             f"Update {position}: geometry is {QgsWkbTypes.displayString(shape.wkbType())}, the layer holds "
-            f"{QgsWkbTypes.displayString(layer.wkbType())}", "INVALID_ARGS",
-            "geometry_wkt takes the layer's type.")
+            f"{QgsWkbTypes.displayString(layer.wkbType())}", "INVALID_ARGS")
     if QgsWkbTypes.isMultiType(layer.wkbType()) and not QgsWkbTypes.isMultiType(shape.wkbType()):
         shape.convertToMultiType()
     return shape
@@ -386,12 +385,12 @@ def _write_geometries(layer, shapes: dict, own_session: bool):
         if own_session:
             layer.rollBack()
         return tool_error(f"Failed to update the geometry of fid {fid}", "EXECUTION_FAILED",
-                          "get_provider_capabilities shows if geometry changes are allowed.")
+                          hint="update_geometry_failed")
     if own_session and not layer.commitChanges():
         reasons = layer.commitErrors()
         layer.rollBack()
         return tool_error("; ".join(reasons) or "Commit failed", "EXECUTION_FAILED",
-                          "The change was rolled back.")
+                          hint="update_geometry_rolled_back")
     return None
 
 
@@ -413,7 +412,7 @@ def _update_feature_geometry(args: dict) -> dict:
     session_open = layer.isEditable()
     if not session_open and not layer.startEditing():
         return tool_error("Cannot start editing on this layer", "EXECUTION_FAILED",
-                          "The provider is read-only. export_layer makes a writable copy.")
+                          hint="update_geometry_read_only")
     refusal = _write_geometries(layer, shapes, own_session=not session_open)
     if refusal:
         return refusal

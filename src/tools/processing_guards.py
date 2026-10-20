@@ -29,6 +29,7 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
+    QgsVectorLayer,
 )
 
 from ..core import ground, limits, tuning, vsi
@@ -39,6 +40,14 @@ from ..core.tool_registry import tool_error
 from .layer_lookup import _find_layer
 from .processing_crs_checks import _TERRAIN_BY_CELL
 from .project_tools import _is_remote_vector
+
+
+
+
+
+_DISTANCE_DEGREES_MAX = 10.0
+_DISTANCE_SPAN_RATIO = 100.0
+_DISTANCE_FLOOR = 100_000.0
 
 
 def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
@@ -56,9 +65,11 @@ def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
     extent = layer.extent()
     span = max(extent.width(), extent.height()) if not extent.isEmpty() else 0.0
     if layer.crs().isValid() and layer.crs().isGeographic():
-        limit, unit = 5.0, "degrees"
+        limit, unit = tuning.threshold("distance_degrees_max", _DISTANCE_DEGREES_MAX, 1.0, 90.0), "degrees"
     else:
-        limit, unit = max(100_000.0, 50.0 * span), "layer units"
+        ratio = tuning.threshold("distance_span_ratio", _DISTANCE_SPAN_RATIO, 5.0, 1000.0)
+        floor = tuning.threshold("distance_floor", _DISTANCE_FLOOR, 1_000.0, 10_000_000.0)
+        limit, unit = max(floor, ratio * span), "layer units"
     if abs(float(distance)) <= limit:
         return None
 
@@ -470,15 +481,13 @@ def _local_copy(layer, algorithm_id: str, key: str) -> dict:
 
 
     if raw > cap:
-        return {
-            "_error": (f"{key} is {layer.name()}, streamed over HTTP, and {provider} only reads files; a local copy "
-                       f"would be {raw / 1e6:,.0f} MB, over the {cap / 1e6:,.0f} MB copied before a call."),
-            "code": "INVALID_ARGS",
-        }
+        return tool_error(f"{key} is {layer.name()}, streamed over HTTP, and {provider} only reads files; a local copy "
+                          f"would be {raw / 1e6:,.0f} MB, over the {cap / 1e6:,.0f} MB copied before a call.",
+                          "INVALID_ARGS")
     try:
         from osgeo import gdal
     except ImportError:
-        return {"_error": "GDAL is missing, so the streamed raster cannot be copied.", "code": "EXECUTION_FAILED"}
+        return tool_error("GDAL is missing, so the streamed raster cannot be copied.")
     stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", layer.name())[:60] or "raster"
     path = os.path.join(create_managed_temp_dir("streamed_inputs"), f"{stem}.tif")
     reason = ""
@@ -491,8 +500,7 @@ def _local_copy(layer, algorithm_id: str, key: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         copied, reason = False, " ".join(str(exc).split())[:200]
     if not copied or not os.path.exists(path):
-        return {"_error": f"{layer.name()} could not be copied from where it is streamed. {reason}".strip(),
-                "code": "EXECUTION_FAILED"}
+        return tool_error(f"{layer.name()} could not be copied from where it is streamed. {reason}".strip())
     _STREAMED_COPIES[source] = path
     return {"path": path, "megabytes": os.path.getsize(path) / 1e6}
 
@@ -862,15 +870,12 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
         kind = _type_of(definition) if definition is not None else ""
         if (unknown or not isinstance(source, str) or not source.strip()
                 or not (expression is None or isinstance(expression, str))):
-            return plain, selected, {
-                "_error": (f"{key} of {algorithm} is an object, and the only form it reads is "
-                           f'{{"source": "<layer name or id>", "selected_only": true, '
-                           f'"expression": "<QGIS expression>"}}, both options optional. '
-                           + (f"It does not read {', '.join(unknown)}. " if unknown else "")
-                           + "Nothing was run."),
-                "code": "INVALID_ARGS",
-                "suggestion": f"{key} takes the layer name, or source, selected_only and expression only.",
-            }
+            return plain, selected, tool_error(
+                f"{key} of {algorithm} is an object, and the only form it reads is "
+                f'{{"source": "<layer name or id>", "selected_only": true, '
+                f'"expression": "<QGIS expression>"}}, both options optional. '
+                + (f"It does not read {', '.join(unknown)}. " if unknown else "")
+                + "Nothing was run.", "INVALID_ARGS")
         plain[key] = source.strip()
         expression = (expression or "").strip()
         only_selected = _truthy(value.get("selected_only"))
@@ -878,24 +883,18 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
 
             continue
         if kind != "source":
-            return plain, selected, {
-                "_error": (f"{key} of {algorithm} is a {kind or 'non-vector'} input, and only a vector feature "
-                           f"source reads a selection or an expression (QGIS's 'Selected features only' box). "
-                           f"Nothing was run."),
-                "code": "INVALID_ARGS",
-                "suggestion": ("export_layer with selected_only true, or "
-                               f"native:extractbyexpression, writes those features to a file usable as {key}."),
-            }
+            return plain, selected, tool_error(
+                f"{key} of {algorithm} is a {kind or 'non-vector'} input, and only a vector feature "
+                f"source reads a selection or an expression (QGIS's 'Selected features only' box). "
+                f"Nothing was run.", "INVALID_ARGS", hint="processing_subset_not_vector", parameter=key)
         layer = None if any(mark in source for mark in _NOT_A_LAYER_NAME) else _find_layer(source.strip())
         if layer is None or not hasattr(layer, "selectedFeatureCount"):
             if layer is None and not any(mark in source for mark in _NOT_A_LAYER_NAME):
                 return plain, selected, _no_such_layers(alg, key, [source.strip()])
-            return plain, selected, {
-                "_error": (f"{key} names {source.strip()!r}, which is not a vector layer of this project, and "
-                           f"only a project layer holds a selection or takes an expression here. Nothing was run."),
-                "code": "INVALID_ARGS",
-                "suggestion": "add_data loads it as a project layer this call can then name.",
-            }
+            return plain, selected, tool_error(
+                f"{key} names {source.strip()!r}, which is not a vector layer of this project, and "
+                f"only a project layer holds a selection or takes an expression here. Nothing was run.",
+                "INVALID_ARGS", hint="processing_subset_not_project_layer")
         try:
             total = -1 if _is_remote_vector(layer) else int(layer.featureCount())
         except (AttributeError, RuntimeError, TypeError, ValueError):
@@ -915,33 +914,25 @@ def _subset_count(layer, key: str, only_selected: bool, expression: str) -> tupl
     except (AttributeError, RuntimeError, TypeError, ValueError):
         selection = 0
     if only_selected and selection <= 0:
-        return 0, {
-            "_error": (f"Layer '{layer.name()}' {EMPTY_SELECTION_MARK}, so {key} with selected_only would "
-                       f"read nothing. Nothing was run."),
-            "code": "INVALID_ARGS",
-            "suggestion": ("select_by_attribute, select_features or "
-                           "select_by_geometry make a selection; selected_only off uses "
-                           "the whole layer instead."),
-        }
+        return 0, tool_error(
+            f"Layer '{layer.name()}' {EMPTY_SELECTION_MARK}, so {key} with selected_only would "
+            f"read nothing. Nothing was run.", "INVALID_ARGS", hint="processing_selection_empty")
     if not expression:
         return selection, None
     parsed = QgsExpression(expression)
     if parsed.hasParserError():
-        return 0, {
-            "_error": (f"The expression of {key} does not parse: "
-                       f"{' '.join(parsed.parserErrorString().split())}. Nothing was run."),
-            "code": "INVALID_ARGS",
-            "suggestion": "Field names take double quotes, text takes single quotes: \"name\" = 'value'.",
-        }
+        return 0, tool_error(
+            f"The expression of {key} does not parse: "
+            f"{' '.join(parsed.parserErrorString().split())}. Nothing was run.",
+            "INVALID_ARGS", hint="processing_expression_quotes")
     fields = [field.name() for field in layer.fields()]
     missing = sorted(set(parsed.referencedColumns()) - set(fields) - {QgsFeatureRequest.ALL_ATTRIBUTES})
     if missing:
-        return 0, {
-            "_error": (f"The expression of {key} names {', '.join(missing)}, which '{layer.name()}' does not "
-                       f"have. Nothing was run."),
-            "code": "INVALID_ARGS",
-            "suggestion": f"The fields of '{layer.name()}' are {', '.join(fields[:30])}.",
-        }
+
+        return 0, tool_error(
+            f"The expression of {key} names {', '.join(missing)}, which '{layer.name()}' does not "
+            f"have. Nothing was run.", "INVALID_ARGS",
+            f"The fields of '{layer.name()}' are {', '.join(fields[:30])}.")
     if _is_remote_vector(layer):
 
         return -1, None
@@ -955,12 +946,10 @@ def _subset_count(layer, key: str, only_selected: bool, expression: str) -> tupl
 
     request.setLimit(1)
     if next(iter(layer.getFeatures(request)), None) is None:
-        return 0, {
-            "_error": (f"No feature of '{layer.name()}'" + (" selected" if only_selected else "")
-                       + f" matches {expression}, so {key} would read nothing. Nothing was run."),
-            "code": "INVALID_ARGS",
-            "suggestion": (f"get_features or get_field_statistics give the values on '{layer.name()}'."),
-        }
+        return 0, tool_error(
+            f"No feature of '{layer.name()}'" + (" selected" if only_selected else "")
+            + f" matches {expression}, so {key} would read nothing. Nothing was run.",
+            "INVALID_ARGS", hint="processing_subset_no_match", layer=layer.name())
     return -1, None
 
 
@@ -1032,8 +1021,7 @@ def _no_such_layers(alg, key: str, missing: list) -> dict:
                    f"{alg.id() if alg is not None else 'this algorithm'} has nothing to read."),
         "code": "INVALID_ARGS",
         "layers": names,
-        "suggestion": "A name above, or the layer_id the tool that made the layer returned, "
-                      "names it. list_layers gives both.",
+        "hint": "processing_layer_not_found",
     }
 
 
@@ -1117,6 +1105,78 @@ def _enum_problem(definition, value) -> str:
     return ""
 
 
+_FIELDS_LISTED = 60
+
+
+def _field_parent_layer(value):
+
+    if isinstance(value, QgsVectorLayer):
+        return value
+    source = getattr(value, "source", None)
+    if source is not None:
+        try:
+            value = source.staticValue()
+        except (AttributeError, RuntimeError):
+            return None
+    if not _names_a_layer(value):
+        return None
+    layer = QgsProject.instance().mapLayer(value.strip()) or _find_layer(value.strip())
+    return layer if isinstance(layer, QgsVectorLayer) else None
+
+
+def _field_problem(definition, value, parameters: dict) -> str:
+
+
+
+
+
+
+    try:
+        parent = definition.parentLayerParameterName()
+    except (AttributeError, RuntimeError):
+        return ""
+    layer = _field_parent_layer(parameters.get(parent)) if parent else None
+    if layer is None:
+        return ""
+    try:
+        fields = layer.fields()
+        names = list(fields.names())
+    except RuntimeError:
+        return ""
+    listed = ", ".join(names[:_FIELDS_LISTED]) + (f" and {len(names) - _FIELDS_LISTED} more"
+                                                   if len(names) > _FIELDS_LISTED else "")
+    items = value if isinstance(value, (list, tuple)) else [value]
+    for item in items:
+        if item is None or isinstance(item, bool):
+            continue
+        text = str(item).strip()
+        if not text or fields.lookupField(text) >= 0:
+            continue
+        if ";" in text and all(fields.lookupField(part.strip()) >= 0 for part in text.split(";") if part.strip()):
+            continue
+        if isinstance(item, (int, float)) or text.lstrip("-").isdigit():
+            return (f"is {text}, a position, and a field parameter takes the field's name: QGIS finds no field "
+                    f"named {text} in '{layer.name()}' ({parent}). Its fields: {listed}")
+        return f"is '{text}', and '{layer.name()}' ({parent}) has no field of that name. Its fields: {listed}"
+    return ""
+
+
+def field_parameter_problem(alg, parameters: dict) -> str:
+
+
+
+
+    algorithm = alg.id() if alg is not None else "this algorithm"
+    for definition in _definitions(alg):
+        value = parameters.get(definition.name())
+        if value is None or _type_of(definition) != "field":
+            continue
+        problem = _field_problem(definition, value, parameters)
+        if problem:
+            return f"{PARAMETER_MARK} {algorithm} parameter '{definition.name()}' {problem}. Nothing was run."
+    return ""
+
+
 def _parameter_sanity(alg, parameters: dict) -> dict | None:
 
     definitions = _definitions(alg)
@@ -1145,12 +1205,10 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
         if near:
             definition = by_name[near[0]]
             return {
-                "_error": (f"{PARAMETER_MARK} {algorithm} has no parameter '{key}'. Its parameter "
-                           f"'{near[0]}' ({_type_of(definition) or 'value'}) is the one this spelling means. "
-                           f"Nothing was run."),
-                "code": "INVALID_ARGS",
+                **tool_error(f"{PARAMETER_MARK} {algorithm} has no parameter '{key}'. Its parameter "
+                             f"'{near[0]}' ({_type_of(definition) or 'value'}) is the one this spelling means. "
+                             f"Nothing was run.", "INVALID_ARGS"),
                 "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
-                "suggestion": f"'{near[0]}' is the parameter; '{key}' is not. Full list above.",
             }
 
 
@@ -1173,11 +1231,9 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
         absent.append(f"{name} ({_type_of(definition) or 'value'})")
     if absent:
         return {
-            "_error": (f"{PARAMETER_MARK} {algorithm} needs {', '.join(absent)}, and the call gives "
-                       f"no value for {'them' if len(absent) > 1 else 'it'}. Nothing was run."),
-            "code": "INVALID_ARGS",
+            **tool_error(f"{PARAMETER_MARK} {algorithm} needs {', '.join(absent)}, and the call gives "
+                         f"no value for {'them' if len(absent) > 1 else 'it'}. Nothing was run.", "INVALID_ARGS"),
             "parameters": [f"{d.name()} ({_type_of(d) or 'value'})" for d in definitions],
-            "suggestion": ", ".join(absent) + " needs a value; brackets above name the type.",
         }
 
 
@@ -1192,22 +1248,22 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
         if kind == "enum":
             problem = _enum_problem(definition, value)
             if problem:
-                return {
-                    "_error": f"{PARAMETER_MARK} {algorithm} parameter '{name}' {problem}. Nothing was run.",
-                    "code": "INVALID_ARGS",
-                    "suggestion": f"'{name}' takes the integer from the choices above.",
-                }
+                return tool_error(f"{PARAMETER_MARK} {algorithm} parameter '{name}' {problem}. Nothing was run.",
+                                  "INVALID_ARGS")
+            continue
+        if kind == "field":
+            problem = _field_problem(definition, value, parameters)
+            if problem:
+                return tool_error(f"{PARAMETER_MARK} {algorithm} parameter '{name}' {problem}. Nothing was run.",
+                                  "INVALID_ARGS")
             continue
         if kind in _NUMERIC_TYPES and isinstance(value, str) and value.strip():
             try:
                 float(value.strip())
             except ValueError:
-                return {
-                    "_error": (f"{PARAMETER_MARK} {algorithm} parameter '{name}' is a {kind} and the call "
-                               f"sends the text '{value}'. Nothing was run."),
-                    "code": "INVALID_ARGS",
-                    "suggestion": f"'{name}' is a number, in the units of the input layer's CRS.",
-                }
+                return tool_error(f"{PARAMETER_MARK} {algorithm} parameter '{name}' is a {kind} and the call "
+                                  f"sends the text '{value}'. Nothing was run.",
+                                  "INVALID_ARGS", hint="processing_number_units", parameter=str(name))
     return None
 
 
@@ -1256,16 +1312,9 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
             continue
         if count != 0:
             return None
-        return {
-            "_error": (
-                f"Layer '{layer.name()}' has no features, so {alg.id() if alg is not None else 'this algorithm'} "
-                f"would produce an empty layer."
-            ),
-            "code": "INVALID_ARGS",
-            "suggestion": (
-                "A filter or selection on it may be hiding the features, or it is the wrong layer."
-            ),
-        }
+        return tool_error(
+            f"Layer '{layer.name()}' has no features, so {alg.id() if alg is not None else 'this algorithm'} "
+            f"would produce an empty layer.", "INVALID_ARGS", hint="processing_input_empty")
     return None
 
 
@@ -1320,17 +1369,10 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
     sentinel = _nodata_sentinel(layer, band)
     if sentinel is None:
         return None
-    return {
-        "_error": (
-            f"UNDECLARED_NODATA: '{layer.name()}' band {band} declares no NoData, and its minimum is {sentinel:g}, "
-            f"the usual missing-data marker: every statistic would count those cells as {sentinel:g}."
-        ),
-        "code": "INVALID_ARGS",
-        "suggestion": (
-            f"zonal_statistics with nodata={sentinel:g} leaves those cells out without touching the "
-            f"source. confirm_large true keeps {sentinel:g} as a real measurement here."
-        ),
-    }
+    return tool_error(
+        f"UNDECLARED_NODATA: '{layer.name()}' band {band} declares no NoData, and its minimum is {sentinel:g}, "
+        f"the usual missing-data marker: every statistic would count those cells as {sentinel:g}.",
+        "INVALID_ARGS", hint="processing_undeclared_nodata", sentinel=sentinel)
 
 
 
@@ -1403,15 +1445,10 @@ def hillshade_of_hillshade(layer, what: str) -> dict | None:
     if not found:
         return None
     dem = f"'{found['dem']}'" if found["dem"] else "the elevation raster (DEM) it was computed from"
-    return {
-        "_error": (f"HILLSHADE_OF_HILLSHADE: '{layer.name()}' is already a hillshade ({found['how']}): its values "
-                   f"are light, not heights, so {what} on it would shade the shading. Nothing was changed."),
-        "code": "INVALID_ARGS",
-        "suggestion": (f"{dem} is the DEM: set_raster_style on it with its colour ramp "
-                       "and hillshade_overlay true adds the relief blended with multiply, or style_type hillshade "
-                       "does the same. This computed hillshade over the coloured DEM needs "
-                       "singleband_gray and set_layer_symbology blend_mode multiply."),
-    }
+    return tool_error(
+        f"HILLSHADE_OF_HILLSHADE: '{layer.name()}' is already a hillshade ({found['how']}): its values "
+        f"are light, not heights, so {what} on it would shade the shading. Nothing was changed.",
+        "INVALID_ARGS", hint="processing_hillshade_of_hillshade", dem=dem)
 
 
 def _hillshade_input_check(algorithm_id: str, parameters: dict) -> dict | None:

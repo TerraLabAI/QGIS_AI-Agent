@@ -216,7 +216,7 @@ def read(spec: dict) -> dict:
             halted.set()
             feedback.cancel()
             return tool_error("Stopped while the layer's rows were read.", "CANCELLED",
-                              "Nothing was changed: the layer keeps its style.")
+                              hint="style_stopped_unchanged")
     if failure:
         raise failure[0]
     return out["facts"]

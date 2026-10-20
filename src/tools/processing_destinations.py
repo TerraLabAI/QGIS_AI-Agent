@@ -10,6 +10,7 @@ from qgis.core import QgsApplication, QgsProject
 
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.tool_registry import tool_error
 from .danger import _OGR_DBNAME_PATTERN
 from .layer_io_tools import _same_file
 from .layer_lookup import _find_layer
@@ -204,10 +205,8 @@ def _output_names(alg, parameters, label: str) -> tuple:
         if len(same) > 1 or same[0] in parameters:
             said = (f"'{key}' matches {' and '.join(same)} of {label} without case" if len(same) > 1
                     else f"'{key}' and '{same[0]}' both give the output {same[0]} of {label}")
-            return parameters, [], {
-                "_error": f"{said}; nothing was run.",
-                "code": "INVALID_ARGS",
-                "suggestion": f"Each output takes one exact name. Output names: {listed}."}
+            return parameters, [], tool_error(f"{said}; nothing was run.", "INVALID_ARGS",
+                                              hint="processing_output_one_name", outputs=outputs)
         fixed[same[0]] = fixed.pop(key)
         renamed.append(f"{key} read as the output {same[0]}")
     stray = [key for key in unknown if _reads_as_destination(parameters[key])]
@@ -217,11 +216,10 @@ def _output_names(alg, parameters, label: str) -> tuple:
     taken = [key for key in stray if _names_a_kept_file(parameters[key], fixed, inputs)]
     missing = _missing_inputs(alg, fixed)
     if not taken and not missing:
-        return parameters, [], {
-            "_error": (f"{label} has no parameter named {', '.join(stray)}, so its output would have gone to a "
-                       f"temporary file instead of the path given; nothing was run. Output names: {listed}."),
-            "code": "INVALID_ARGS",
-            "suggestion": f"An output's path goes under its exact name. Output names: {listed}."}
+        return parameters, [], tool_error(
+            f"{label} has no parameter named {', '.join(stray)}, so its output would have gone to a "
+            f"temporary file instead of the path given; nothing was run. Output names: {listed}.",
+            "INVALID_ARGS", hint="processing_output_exact_name")
     said = f"{label} has no parameter named {', '.join(stray)}"
     if missing:
         said += (f", and its input {missing[0]} is not given" if len(missing) == 1
@@ -232,11 +230,12 @@ def _output_names(alg, parameters, label: str) -> tuple:
                  f"so it is not read as where to write.")
     if inputs:
         said += f" Input names: {', '.join(inputs)}."
-    suggestion = "Each value goes under the exact name of the input it is for"
-    suggestion += f"; missing: {', '.join(missing)}." if missing else "."
-    if len(taken) < len(stray):
-        suggestion += f" A new file to write goes under an output name: {listed}."
-    return parameters, [], {"_error": said, "code": "INVALID_ARGS", "suggestion": suggestion}
+
+    new_file = len(taken) < len(stray)
+    variant = "_".join(([] if not missing else ["missing"]) + ([] if not new_file else ["new_file"]))
+    facts = {**({"missing": missing} if missing else {}), **({"outputs": outputs} if new_file else {})}
+    return parameters, [], tool_error(said, "INVALID_ARGS", hint="processing_input_names",
+                                      **({"variant": variant} if variant else {}), **facts)
 
 
 _LAYER_INPUT_TYPES = frozenset({"source", "vector", "raster", "layer", "mesh", "pointcloud", "multilayer"})
@@ -451,6 +450,9 @@ def _provider_hint(algorithm_id: str) -> dict:
 
 
 
+
+
+
     text = str(algorithm_id or "").strip()
     registry = QgsApplication.processingRegistry()
     try:
@@ -462,24 +464,19 @@ def _provider_hint(algorithm_id: str) -> dict:
         registered = {p.id() for p in registry.providers()}
     except Exception:  # noqa: BLE001
         return {}
+    providers = sorted(counts, key=lambda prefix: (-counts[prefix], prefix))
     if ":" not in text:
-        return {"suggestion": "An algorithm id is provider:name, for example native:buffer. "
-                              "Providers here: " + ", ".join(sorted(counts)) + "."}
+        return {"hint": "algorithm_id_no_provider", "providers": providers}
     prefix, name = text.split(":", 1)
     if prefix in registered and not counts.get(prefix):
-        product = _OPTIONAL_PROVIDERS.get(prefix, prefix)
-        return {"suggestion": f"The {prefix} provider is loaded but offers no algorithms in this "
-                              f"QGIS, which means {product} was not installed with it. "
-                              f"Algorithms here: " + ", ".join(sorted(counts)) + "."}
+        return {"hint": "algorithm_provider_empty", "prefix": prefix,
+                "product": _OPTIONAL_PROVIDERS.get(prefix, prefix), "providers": providers}
     if prefix not in registered:
         product = _OPTIONAL_PROVIDERS.get(prefix)
         if product:
-            return {"suggestion": f"There is no {prefix} provider in this QGIS. {product} is "
-                                  "optional: it has to be installed, and its provider plugin "
-                                  "enabled in the Plugin Manager. Providers here: "
-                                  + ", ".join(sorted(counts)) + "."}
-        return {"suggestion": "No provider is called " + prefix + " here. Providers: "
-                              + ", ".join(sorted(counts)) + "."}
+            return {"hint": "algorithm_provider_optional", "prefix": prefix, "product": product,
+                    "providers": providers}
+        return {"hint": "algorithm_provider_unknown", "prefix": prefix, "providers": providers}
 
 
 
@@ -492,17 +489,14 @@ def _provider_hint(algorithm_id: str) -> dict:
     elsewhere = sorted({other for other in every_id
                         if other.split(":", 1)[-1].casefold() == name.casefold() and other != text})
     if elsewhere:
-        return {"suggestion": f"There is no {text}, but the same algorithm name is registered as "
-                              + ", ".join(elsewhere) + ".",
-                "closest_algorithms": elsewhere}
+        return {"hint": "algorithm_name_elsewhere", "algorithm": text, "closest_algorithms": elsewhere}
     import difflib
     pool = [a for a in every_id if a.startswith(prefix + ":")]
     close = difflib.get_close_matches(text, pool, n=3, cutoff=0.6) or \
         difflib.get_close_matches(name, [p.split(":", 1)[1] for p in pool], n=3, cutoff=0.6)
     if close:
         close = [c if ":" in c else f"{prefix}:{c}" for c in close]
-        return {"suggestion": "Closest ids in " + prefix + ": " + ", ".join(close) + ".",
-                "closest_algorithms": close}
+        return {"hint": "algorithm_close_ids", "prefix": prefix, "closest_algorithms": close}
     return {}
 
 

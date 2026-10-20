@@ -16,6 +16,7 @@ from qgis.gui import QgsDockWidget
 from qgis.PyQt.QtCore import Qt
 
 from ..chat_panel import ChatPanel
+from ..style import with_platform_font
 
 DOCK_OBJECT_NAME = "AIAgentDock"
 
@@ -29,6 +30,9 @@ class AIAgentDock(QgsDockWidget):
         self.setObjectName(DOCK_OBJECT_NAME)
         self.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+
+
+        with_platform_font(self)
         self.panel = ChatPanel(self)
         self.setWidget(self.panel)
         header = self.panel.detach_header()

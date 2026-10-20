@@ -36,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ...core.tool_registry import tool_error
 from .._images import (  # noqa: F401
     image_to_base64,
     normalize_fmt,
@@ -90,7 +91,7 @@ def grab_widget(
             target = content
             scrolled = area.metaObject().className()
     if target.width() <= 0 or target.height() <= 0:
-        return {"_error": "Widget has no size"}
+        return tool_error("Widget has no size")
     fmt = normalize_fmt(fmt)
     if pixmap is None:
         pixmap = target.grab()
@@ -106,7 +107,7 @@ def grab_widget(
         if ext:
             out["format"] = normalize_fmt(ext, ext)
         if not image.save(save_path):
-            return {"_error": f"Could not write screenshot to {save_path}"}
+            return tool_error(f"Could not write screenshot to {save_path}")
         out["saved_path"] = save_path
     else:
         out["image_base64"] = image_to_base64(image, fmt, quality)

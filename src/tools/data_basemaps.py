@@ -129,8 +129,7 @@ def _resolve_qms_source(catalog: dict, source: str):
         return matches[0], None
     if len(matches) > 1:
         labels = [f"{getattr(d, 'id', '?')} ({getattr(d, 'group', '?')})" for d in matches]
-        return None, {"_error": f"Ambiguous basemap '{source}', matches: {', '.join(labels)}.",
-                      "_code": "INVALID_ARGS"}
+        return None, tool_error(f"Ambiguous basemap '{source}', matches: {', '.join(labels)}.", "INVALID_ARGS")
 
 
 
@@ -161,9 +160,8 @@ def _resolve_qms_source(catalog: dict, source: str):
             best = [(ds_id, ds) for extra, ds_id, ds in scored if extra == fewest]
             if len(best) == 1:
                 return best[0][1], None
-            return None, {"_error": f"Several basemaps match '{source}': "
-                          f"{', '.join(ds_id for ds_id, _ in sorted(best)[:6])}.",
-                          "_code": "INVALID_ARGS"}
+            return None, tool_error(f"Several basemaps match '{source}': "
+                                    f"{', '.join(ds_id for ds_id, _ in sorted(best)[:6])}.", "INVALID_ARGS")
     return None, None
 
 
@@ -388,7 +386,7 @@ def _add_preset_chain(preset: dict, source) -> dict:
         else:
             raster = current
             why = _raster_unreachable(raster) if raster.get("fallback") else ""
-            out = {"_error": why} if why else run_on_main_thread(
+            out = tool_error(why) if why else run_on_main_thread(
                 lambda raster=raster, label=label: _build_raw_xyz(
                     raster["url"], label, raster["max_zoom"], 0, source, attribution=raster.get("attribution", "")),
                 timeout=60)
@@ -454,7 +452,7 @@ def _add_xyz_layer(args: dict) -> dict:
             try:
                 from quick_map_services.qgis_map_helpers import add_layer_to_map
             except Exception as exc:
-                return {"_error": f"QuickMapServices present but add_layer_to_map unavailable: {exc}"}
+                return tool_error(f"QuickMapServices present but add_layer_to_map unavailable: {exc}")
             project = QgsProject.instance()
             before = dict(project.mapLayers())
             try:
@@ -463,8 +461,7 @@ def _add_xyz_layer(args: dict) -> dict:
                 with view_kept():
                     add_layer_to_map(ds)
             except Exception as exc:
-                return {"_error": f"QMS failed to add '{getattr(ds, 'alias', source)}': {exc}",
-                        "_code": "QMS_ADD_FAILED"}
+                return tool_error(f"QMS failed to add '{getattr(ds, 'alias', source)}': {exc}", "QMS_ADD_FAILED")
             added = [layer for lid, layer in project.mapLayers().items()
                      if lid not in before and layer is not None]
 
@@ -765,14 +762,13 @@ def _add_oapif_layer(args: dict) -> dict:
     url = args.get("url") or ""
     collection = _oapif_collection(url)
     if not collection:
-        return {"_error": f"{url} is not an OGC API - Features items endpoint.",
-                "code": "INVALID_ARGS",
-                "suggestion": "url must have the shape .../collections/<id>/items."}
+        return tool_error(f"{url} is not an OGC API - Features items endpoint.", "INVALID_ARGS",
+                          hint="oapif_url_shape")
     name = args.get("name") or collection.rsplit("/", 1)[-1]
     box = _oapif_box(url, args.get("bbox"))
     local = _oapif_local_copy(collection, name, box)
     if local is not None and local.get("cancelled"):
-        return {"_error": "The run was stopped while the collection was being read.", "code": "CANCELLED"}
+        return tool_error("The run was stopped while the collection was being read.", "CANCELLED")
     if local is not None:
         built = built_here(lambda: QgsVectorLayer(local["path"], name, "ogr", worker_options()))
 
@@ -853,15 +849,13 @@ def _add_vector_tile_layer(args: dict) -> dict:
         probe = template.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0").replace("{s}", "a")
         template_error = security.validate_url(probe)
         if template_error:
-            return {"_error": f"The TileJSON at {url} names a tile template that is not fetched: {template_error}",
-                    "_code": "PERMISSION_DENIED"}
+            return tool_error(f"The TileJSON at {url} names a tile template that is not fetched: {template_error}",
+                              "PERMISSION_DENIED")
         tilejson_note = f"tile template read from the TileJSON at {url}"
         url, resolved_zoom = template, (a, b)
     if not _looks_like_xyz_url(url):
-        return {"_error": "A vector tile source is a template with {z}, {x} and {y}.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "source is the tile template, e.g. "
-                               "https://host/tms/1.0.0/LAYER/{z}/{x}/{y}.pbf"}
+        return tool_error("A vector tile source is a template with {z}, {x} and {y}.", "INVALID_ARGS",
+                          hint="tile_source_not_template")
 
     base = posixpath.basename(urllib.parse.urlparse(url).path)
     if "{" in base:
@@ -977,7 +971,7 @@ def _build_raw_xyz(url: str, name: str, zmax, zmin, source_label: str, attributi
     uri = f"type=xyz&url={encode_uri_url(url)}&zmax={zmax}&zmin={zmin}"
     layer = QgsRasterLayer(uri, name, "wms")
     if not layer.isValid():
-        return {"_error": f"Failed to create XYZ layer from: {source_label}"}
+        return tool_error(f"Failed to create XYZ layer from: {source_label}")
     _credit(layer, attribution)
 
 

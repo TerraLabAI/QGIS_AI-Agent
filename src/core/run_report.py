@@ -335,13 +335,20 @@ def _stopped_output():
     return canceled_output
 
 
-def _made_files(declared) -> list:
+def _made_files(declared, written=()) -> list:
 
 
 
 
 
 
+
+
+
+
+
+    wrote = {os.path.normcase(resolved(path)) for path in written or ()
+             if isinstance(path, str) and path}
     entries: list = []
     seen: set = set()
     for raw in declared or ():
@@ -360,6 +367,8 @@ def _made_files(declared) -> list:
                 entry["size_bytes"] = int(os.path.getsize(path))
         except (OSError, ValueError):
             entry["exists"] = False
+        if wrote and os.path.normcase(resolved(path)) in wrote:
+            entry["written"] = True
         entries.append(entry)
     return entries
 
@@ -471,7 +480,8 @@ def _build_report(snapshot, written, view, call_warnings=(), diff=None, working=
 
         view = _view()
     report = _empty_report()
-    report["files_made"] = _made_files(declared)
+    written = tuple(written or ())
+    report["files_made"] = _made_files(declared, written)
     empty_outputs: list[str] = []
     report["working_copies"] = _working_copies(working)
 

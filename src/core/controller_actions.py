@@ -13,9 +13,9 @@ import uuid
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from . import telemetry
+from . import restore_guard, telemetry
 from . import telemetry_events as ev
-from .checkpoints import KIND_BEFORE, KIND_EDITS
+from .checkpoints import KIND_BEFORE, KIND_EDITS, NOT_PUT_BACK
 from .context import mention_candidates
 from .host_platform import resolved
 from .logger import log, log_warning
@@ -42,25 +42,50 @@ def _restore_layers(rows) -> list:
 
 
 
+
+
     order: list = []
     groups: dict = {}
     for row in rows or []:
         source = (row.get("after") or row.get("before") or {}) if isinstance(row, dict) else {}
-        for item in source.get("log") or []:
+        for item in source.get("changes") or []:
             if not isinstance(item, dict):
                 continue
             name = str(item.get("layer") or "")
             if not name:
                 continue
-            what = str(item.get("what") or "")
-            group = "removed" if what == "added" else "restored" if what else ""
+            group = "removed" if item.get("what") == ["added"] else "restored"
             if name not in groups:
                 order.append(name)
                 groups[name] = group
-            elif group == "removed" or not groups[name]:
+            elif group == "removed":
 
-                groups[name] = group or groups[name]
+                groups[name] = group
     return [{"name": name, "group": groups[name]} for name in order]
+
+
+def _not_kept(snapshot, hand, target_pairs=()) -> list:
+
+
+
+
+    if not hand:
+        return []
+    from .snapshot_files import _same_content
+
+    kept = set()
+    for record in (getattr(snapshot, "file_backups", None) or {}).values():
+        for src, dst in (record.get("copies") or []) if isinstance(record, dict) else []:
+            if os.path.isfile(dst):
+                kept.add(os.path.normcase(str(src)))
+    target = {os.path.normcase(resolved(str(src))): dst for src, dst in target_pairs or ()}
+    lost = []
+    for path in hand:
+        key = os.path.normcase(resolved(str(path)))
+        if key in kept or (key in target and _same_content(target[key], path)):
+            continue
+        lost.append(path)
+    return lost
 
 
 def _restore_error_code(result: dict) -> str:
@@ -68,6 +93,8 @@ def _restore_error_code(result: dict) -> str:
     message = str(result.get("message") or "")
     if result.get("refused"):
         return "STILL_SAVING"
+    if result.get("unreadable_copy"):
+        return "COPY_UNREADABLE"
     if message.startswith("No snapshot"):
         return "NO_SNAPSHOT"
     if not result.get("layers") and "project" in message:
@@ -186,7 +213,10 @@ class PanelActionsMixin:
             return
         self._on_restore(entry.id, confirmed, discard=True)
 
-    def _on_restore(self, checkpoint_id: str, confirmed: bool = False, discard: bool = False) -> None:
+    def _on_restore(self, checkpoint_id: str, confirmed: bool = False, discard: bool = False,
+                    hand: list | None = None) -> None:
+
+
 
 
 
@@ -229,7 +259,12 @@ class PanelActionsMixin:
         current = history.current(thread_id)
         if current is not None and current.id == entry.id and not discard:
             return
-        edits = self._manual_changes_since(current)
+        if hand is None:
+            self._check_hand_edits(checkpoint_id, confirmed, discard, entry, current)
+            return
+
+
+        edits = bool(hand) or self._manual_changes_since(current)
         if not discard and not edits and history.same_state(thread_id, entry):
 
 
@@ -242,9 +277,9 @@ class PanelActionsMixin:
 
             whole = not discard or history.start_reachable(thread_id)
             self._panel_call("show_restore_warning", checkpoint_id, discard, edits, whole,
-                             len(removed), _restore_layers(removed))
+                             len(removed), _restore_layers(removed), [os.path.basename(path) for path in hand])
             return
-        refusal = self._capture_edits(thread_id, current, entry) if edits else ""
+        refusal = self._capture_edits(thread_id, current, entry, hand) if edits else ""
         if refusal:
 
 
@@ -274,6 +309,15 @@ class PanelActionsMixin:
         if not ok:
 
             track_plugin_error("restore", _restore_error_code(result), where=str(entry.kind))
+        if result.get("refused"):
+
+
+            waiting = [str(name) for name in result.get("still_saving") or [] if name]
+            named = ", ".join(waiting[:3]) + (f" (+{len(waiting) - 3})" if len(waiting) > 3 else "")
+            self.notice.emit("warning", tr("Still saving {layers}. Nothing was changed: try again in a few seconds.")
+                             .format(layers=named or tr("a temporary layer")))
+            self._send_history()
+            return
         if result.get("project_read"):
 
 
@@ -284,7 +328,89 @@ class PanelActionsMixin:
         back = steps >= 0
 
         revert = left.id if (ok and left is not None and left.id != entry.id and left.available) else ""
-        self._panel_call("show_restore_result", ok, back, revert, self._missing_layers(entry, result))
+
+        missing = self._missing_layers(entry, result) if result.get("project_read") else []
+        self._panel_call("show_restore_result", ok, back, revert, missing)
+
+    def _check_hand_edits(self, checkpoint_id: str, confirmed: bool, discard: bool, entry, current) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if getattr(self, "_hand_check_pending", False):
+            self.notice.emit("info", tr("Checking your files before going back. Try again in a moment."))
+            return
+        history = self._executor.history
+        thread_id = self._thread_id or ""
+        current_id = current.id if current is not None else ""
+        reference = current or next(iter(reversed(history.entries(thread_id))), None)
+        try:
+            pairs = restore_guard.files_to_check(history, thread_id, entry, reference)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Hand-edit check not prepared: {exc}")
+            pairs = []
+        if not pairs:
+            self._on_restore(checkpoint_id, confirmed, discard, hand=[])
+            return
+
+        def done(changed: list) -> None:
+            self._hand_check_pending = False
+            if getattr(self, "_shut_down", False):
+                return
+            here = history.current(self._thread_id or "")
+            if (self._thread_id or "") != thread_id or (here.id if here is not None else "") != current_id:
+                log("Hand-edit check answered after the chat or its point moved: nothing restored")
+                if (self._thread_id or "") == thread_id:
+                    self.notice.emit("info", tr("The project moved while your files were checked, "
+                                                "so nothing was restored."))
+                return
+            if changed:
+                log(f"Changed by hand since the current point: {', '.join(os.path.basename(p) for p in changed)}")
+            self._on_restore(checkpoint_id, confirmed, discard, hand=list(changed))
+
+        invoker = None
+        try:
+            if QCoreApplication.instance() is not None:
+                from .background import main_thread_invoker
+
+                invoker = main_thread_invoker()
+        except Exception:  # noqa: BLE001
+            invoker = None
+        if invoker is None:
+            done(restore_guard.hand_changed_files(pairs))
+            return
+
+        def compare() -> None:
+            try:
+                changed = restore_guard.hand_changed_files(pairs)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Hand-edit check failed: {exc}")
+                changed = [original for original, _copy in pairs]
+            try:
+                invoker.invoke(lambda: done(changed))
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Hand-edit check answer lost: {exc}")
+                self._hand_check_pending = False
+
+        self._hand_check_pending = True
+        try:
+            from .snapshot_features import _jobs
+
+            _jobs().schedule_job(compare)
+        except Exception as exc:  # noqa: BLE001
+            self._hand_check_pending = False
+            log_warning(f"Hand-edit check not started: {exc}")
+            self.notice.emit("warning", tr("Your files could not be checked, so nothing was restored."))
 
     def _on_restore_after_stop(self, run_id: str) -> None:
 
@@ -344,7 +470,7 @@ class PanelActionsMixin:
             log(f"Checkpoint diff failed: {exc}")
             return False
 
-    def _capture_edits(self, thread_id: str, current, entry) -> str:
+    def _capture_edits(self, thread_id: str, current, entry, hand=()) -> str:
 
 
 
@@ -380,6 +506,14 @@ class PanelActionsMixin:
             captured = snapshot.capture()
             if captured:
                 snapshot.keep_files_restored_by(entry.snapshot, history.file_versions(thread_id, entry))
+                lost = _not_kept(snapshot, hand, [pair for group in entry.snapshot.data_groups(
+                    history.file_versions(thread_id, entry)) for pair in group])
+                if lost:
+
+
+                    snapshot.discard()
+                    return tr("Your version of {file} could not be kept in Map history, so nothing was "
+                              "restored.").format(file=os.path.basename(lost[0]))
         except Exception as exc:  # noqa: BLE001
             log(f"Edits snapshot failed: {exc}")
             captured = False
@@ -413,6 +547,14 @@ class PanelActionsMixin:
             if name and name not in known:
                 known.add(name)
                 items.append({"name": name, "reason": ""})
+
+
+
+        for error in result.get("file_restore_errors") or []:
+            name = str((error or {}).get("layer") or "") if isinstance(error, dict) else ""
+            if name and name not in known:
+                known.add(name)
+                items.append({"name": name, "reason": NOT_PUT_BACK})
         return items
 
     def _on_layer_action(self, layer_id: str, action: str) -> None:
@@ -523,6 +665,7 @@ class PanelActionsMixin:
 
         telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "invoice", "where": where, "checkout_link": "invoice",
                                                     "offer": get_pro_offer()})
+
 
 
         trial_offer = getattr(self._panel, "trial_offer", None)

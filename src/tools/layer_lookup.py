@@ -133,14 +133,12 @@ def _field_not_found_error(layer, field_name: str) -> dict:
     elif all_fields:
         msg += f" Available: {', '.join(repr(n) for n in all_fields[:12])}"
     if suggestions:
-        advice = f"{suggestions[0]!r} is the closest field; other fields also work."
+        coded = {"hint": "field_closest", "closest": suggestions[0]}
     elif all_fields:
-        advice = ("get_layer_info lists every field. "
-                  "The layer exists; the field name is wrong.")
+        coded = {"hint": "field_not_on_layer"}
     else:
-        advice = "This layer carries no attribute fields, so no field name will work on it."
-    return {"_error": msg, "code": "INVALID_ARGS", "suggestion": advice,
-            "_suggestions": suggestions, "fields": all_fields}
+        coded = {"hint": "layer_no_fields"}
+    return tool_error(msg, "INVALID_ARGS", **coded, _suggestions=suggestions, fields=all_fields)
 
 
 def _duplicate_layer_names(project) -> set[str]:

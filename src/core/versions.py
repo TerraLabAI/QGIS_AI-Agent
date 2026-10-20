@@ -34,17 +34,6 @@ def read_version(text: object) -> tuple[int, int, int] | None:
     return tuple(int(g or 0) for g in match.groups())   # type: ignore[return-value]
 
 
-def parse_version(text: object) -> tuple[int, int, int]:
-
-
-
-
-
-
-
-    return read_version(text) or (0, 0, 0)
-
-
 def is_newer(candidate: object, installed: object) -> bool:
 
 

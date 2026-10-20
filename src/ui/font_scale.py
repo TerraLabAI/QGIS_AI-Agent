@@ -13,6 +13,12 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 import re
@@ -50,7 +56,21 @@ def _measure_font_scale() -> float:
         chosen_points = _qgis_chosen_font_points()
         if os_points <= 0.0 or chosen_points <= 0.0:
             return 1.0
-        return max(1.0, min(_MAX_FONT_SCALE, chosen_points / os_points))
+        return max(1.0, min(_MAX_FONT_SCALE, chosen_points / os_points * _unscaled_dpi_factor()))
+    except Exception:  # noqa: BLE001
+        return 1.0
+
+
+def _unscaled_dpi_factor() -> float:
+
+    try:
+        from qgis.PyQt.QtGui import QGuiApplication
+
+        screen = QGuiApplication.primaryScreen()
+        if screen is None or float(screen.devicePixelRatio()) != 1.0:
+            return 1.0
+        dpi = float(screen.logicalDotsPerInch())
+        return dpi / 96.0 if dpi > 96.0 else 1.0
     except Exception:  # noqa: BLE001
         return 1.0
 

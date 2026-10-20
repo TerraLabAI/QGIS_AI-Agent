@@ -58,6 +58,28 @@ def _open_dialog() -> str | None:
     return str(dialog.windowTitle())
 
 
+def _press_datum_ok() -> bool:
+
+
+
+
+
+
+
+
+
+    try:
+        from qgis.PyQt.QtWidgets import QApplication
+
+        dialog = QApplication.activeModalWidget()
+        if dialog is None or dialog.metaObject().className() != "QgsDatumTransformDialog":
+            return False
+        dialog.accept()
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
 def _stop_snippet_algorithm(run_id: str) -> None:
 
     try:
@@ -226,10 +248,14 @@ class _ExecutorRuns:
 
 
 
-
-
         last, self._dialog_tick = self._dialog_tick, now
         title = _open_dialog() if self._inflight else None
+        main_calls = [tool_call_id for tool_call_id, entry in self._inflight.items() if not entry[3]]
+        if title is not None and main_calls and _press_datum_ok():
+            for tool_call_id in main_calls:
+                looped, on_dialog, seen, pressed = self._dialog_waits.get(tool_call_id, (0.0, 0.0, "", ()))
+                self._dialog_waits[tool_call_id] = (looped, on_dialog, seen, pressed + (title,))
+            title = None
 
         if title is None:
             code_guard.WAITING_ON_USER.clear()
@@ -242,9 +268,9 @@ class _ExecutorRuns:
             return
         for tool_call_id, (_run_id, _name, _started, in_background) in self._inflight.items():
             if not in_background:
-                looped, on_dialog, seen = self._dialog_waits.get(tool_call_id, (0.0, 0.0, ""))
+                looped, on_dialog, seen, pressed = self._dialog_waits.get(tool_call_id, (0.0, 0.0, "", ()))
                 self._dialog_waits[tool_call_id] = (looped + step, on_dialog + (step if title is not None else 0.0),
-                                                    title if title is not None else seen)
+                                                    title if title is not None else seen, pressed)
 
     def _answer_once(self, tool_call_id: str) -> None:
 
@@ -284,6 +310,7 @@ class _ExecutorRuns:
     def begin_run(self, run_id: str, mode: str, approval: str, thread_id: str = "",
                   prompt: str = "") -> None:
         self._wake_watchdog()
+        stalls.run_began(run_id)
 
 
 
@@ -406,6 +433,7 @@ class _ExecutorRuns:
         self._main_line.clear()
         self._listen_tasks(False)
         self.watchdog.stop()
+        stalls.run_ended()
         background.cancel_all()
 
 
@@ -455,6 +483,7 @@ class _ExecutorRuns:
                 or any((call or {}).get("run_id") == run_id for _kind, call, _start in self._main_line)):
             self.cancel_run(run_id, halt=False)
         layer_egress.end_run(run_id)
+        stalls.run_ended(run_id)
         licence.note_project_run(run_id)
         self._run_mode.pop(run_id, None)
         self._touched.pop(run_id, None)
@@ -465,6 +494,7 @@ class _ExecutorRuns:
         self._own_files.pop(run_id, None)
         warnings = self._call_warnings.pop(run_id, None)
         outputs = self._output_files.pop(run_id, None)
+        objects = self._objects.pop(run_id, None)
         self._run_allowed.pop(run_id, None)
         self._run_denied.pop(run_id, None)
         self._task_ids.pop(run_id, None)
@@ -484,6 +514,7 @@ class _ExecutorRuns:
         self._replaced.discard(run_id)
         self._ended_run = (("", (), (), ()) if replaced
                            else (run_id, tuple(written or ()), tuple(warnings or ()), tuple(outputs or ())))
+        self._ended_objects = () if replaced else tuple(objects or ())
         if snapshot is not None and snapshot.captured and not replaced:
             self._record_after(run_id, thread_id, run_index, snapshot, prompt)
 
@@ -616,6 +647,11 @@ class _ExecutorRuns:
         diff = getattr(snapshot, "last_diff", None) if snapshot is not None else None
         with stalls.probe("run_report.build"):
 
-            return scrub_result(build_report(snapshot, written, call_warnings=warnings, diff=diff,
-                                             working_copies=self.scratch.working_copies(),
-                                             hidden=self.scratch.hidden_ids(), declared=outputs))
+            report = scrub_result(build_report(snapshot, written, call_warnings=warnings, diff=diff,
+                                               working_copies=self.scratch.working_copies(),
+                                               hidden=self.scratch.hidden_ids(), declared=outputs))
+
+        objects, self._ended_objects = self._ended_objects, ()
+        if objects and isinstance(report, dict):
+            report["objects_made"] = list(objects)
+        return report

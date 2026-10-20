@@ -50,7 +50,7 @@ from collections import Counter, defaultdict
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
-from ..core import limits, net, security
+from ..core import limits, net, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
@@ -77,11 +77,10 @@ _ROUTE_TYPE_WORDS = {
     "0": "tram", "1": "metro", "2": "rail", "3": "bus", "4": "ferry", "5": "cable_tram",
     "6": "aerial_lift", "7": "funicular", "11": "trolleybus", "12": "monorail",
 }
-_ROUTE_TYPE_COLORS = {
-    "tram": "#8E44AD", "metro": "#2C3E50", "rail": "#C0392B", "bus": "#2980B9",
-    "ferry": "#16A085", "cable_tram": "#D35400", "aerial_lift": "#E67E22",
-    "funicular": "#7F8C8D", "trolleybus": "#27AE60", "monorail": "#F39C12", "other": "#616A6B",
-}
+
+
+
+_ROUTE_GREY = "#616A6B"
 
 
 
@@ -135,11 +134,10 @@ def register_gtfs_tools(registry: ToolRegistry):
 def _check_args(args: dict) -> dict | None:
     source = str(args.get("source") or "").strip()
     if not source:
-        return tool_error("source is missing.", "INVALID_ARGS",
-                          "a GTFS zip's path, a folder holding its .txt files, or an https URL.")
+        return tool_error("source is missing.", "INVALID_ARGS", hint="gtfs_source_kinds")
     date = str(args.get("date") or "").strip()
     if date and not _VALID_DATE.match(date):
-        return tool_error(f"date {date!r} is not YYYY-MM-DD.", "INVALID_ARGS", "a date as YYYY-MM-DD.")
+        return tool_error(f"date {date!r} is not YYYY-MM-DD.", "INVALID_ARGS")
     merge_distance_m = args.get("merge_distance_m")
     if merge_distance_m is not None:
         try:
@@ -147,7 +145,7 @@ def _check_args(args: dict) -> dict | None:
                 raise ValueError
         except (TypeError, ValueError):
             return tool_error("merge_distance_m must be a positive number of metres.", "INVALID_ARGS",
-                              "It is optional, or a distance in metres such as 50.")
+                              hint="gtfs_merge_distance")
     return None
 
 
@@ -264,14 +262,14 @@ def _local_source(source: str) -> tuple[_GtfsSource | None, dict | None]:
     error = security.validate_path(expanded)
     if error:
         return None, tool_error(error, "PERMISSION_DENIED",
-                                "" if isinstance(error, CodedText) else "a path under your home folder or the project.")
+                                hint="" if isinstance(error, CodedText) else "gtfs_path_refused")
     if os.path.isdir(expanded):
         gtfs = _GtfsSource()
         gtfs.open_dir(expanded)
         return gtfs, None
     if not os.path.isfile(expanded):
         return None, tool_error(f"{source} does not exist.", "INVALID_ARGS",
-                                "a GTFS zip's path, a folder of its .txt files, or an https URL.")
+                                hint="gtfs_source_kinds")
     try:
         gtfs = _GtfsSource()
         gtfs.open_zip(expanded)
@@ -300,13 +298,12 @@ def _download(url: str, tmp_dir: str) -> tuple[str | None, dict | None]:
             f"That feed is over the {_human_bytes(cap)} this tool downloads.", "INVALID_ARGS",
             hint="gtfs_feed_too_large", max_size=_human_bytes(cap))
     except net.FetchCancelled:
-        return None, tool_error("The run was stopped.", "CANCELLED", "No file was loaded.")
+        return None, tool_error("The run was stopped.", "CANCELLED", hint="gtfs_download_stopped")
     except net.FetchDeadline as exc:
         return None, tool_error(f"The download did not finish in time: {exc}", "TIMEOUT",
                                 hint="gtfs_download_timeout")
     except (urllib.error.URLError, OSError) as exc:
-        return None, tool_error(f"The download failed: {net.describe_failure(exc) or exc}", "EXECUTION_FAILED",
-                                net.NETWORK_SUGGESTION)
+        return None, tool_error(f"The download failed: {net.describe_failure(exc) or exc}", "NETWORK_ERROR")
     return target, None
 
 
@@ -342,13 +339,13 @@ def _resolve_date(args: dict, calendar_rows: list, calendar_dates_rows: list) ->
         try:
             _yyyymmdd(compact)
         except ValueError:
-            return None, "", tool_error(f"{asked_date} is not a real date.", "INVALID_ARGS", "a valid date.")
+            return None, "", tool_error(f"{asked_date} is not a real date.", "INVALID_ARGS")
         return compact, f"the date you asked for ({asked_date})", None
     lo, hi = _feed_validity(calendar_rows, calendar_dates_rows)
     if lo is None:
         return None, "", tool_error(
             "This feed names no service date in calendar.txt or calendar_dates.txt.", "INVALID_ARGS",
-            "The feed is not usable without at least one of those files.")
+            hint="gtfs_no_service_dates")
     lo_date = _yyyymmdd(lo)
     hi_date = _yyyymmdd(hi) if hi else None
     asked_weekday = str(args.get("weekday") or "").strip().lower()
@@ -909,13 +906,15 @@ def _style_routes(layer) -> None:
 
     from qgis.core import QgsLineSymbol, QgsProperty, QgsSingleSymbolRenderer, QgsSymbolLayer
 
+    colors = (tuning.service_doc("vocab_rules") or {}).get("gtfs_route_colors") or {}
     cases = " ".join(f"WHEN \"route_type\" = '{word}' THEN '{color}'"
-                     for word, color in _ROUTE_TYPE_COLORS.items() if word != "other")
-    other = _ROUTE_TYPE_COLORS["other"]
+                     for word, color in colors.items() if word != "other")
+    other = colors.get("other") or _ROUTE_GREY
+    fallback = f"CASE {cases} ELSE '{other}' END" if cases else f"'{other}'"
     expression = (
         'CASE WHEN "route_color" IS NOT NULL AND "route_color" != \'\' '
         'THEN \'#\' || "route_color" '
-        f"ELSE CASE {cases} ELSE '{other}' END END"
+        f"ELSE {fallback} END"
     )
     symbol = QgsLineSymbol.createSimple({"line_width": "0.8"})
     symbol.symbolLayer(0).setDataDefinedProperty(
@@ -926,7 +925,7 @@ def _style_routes(layer) -> None:
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the feed finished loading.", "CANCELLED", "No layer was added.")
+    return tool_error("Stopped before the feed finished loading.", "CANCELLED", hint="gtfs_stopped")
 
 
 def _load_gtfs(args: dict) -> dict:
@@ -943,7 +942,7 @@ def _load_gtfs(args: dict) -> dict:
         if is_url:
             if not source_text.lower().startswith("https://"):
                 return tool_error("Only an https URL is downloaded.", "INVALID_ARGS",
-                                  "an https link, a local zip's path, or a folder.")
+                                  hint="gtfs_source_kinds")
             zip_path, refusal = _download(source_text, tmp_dir)
             if refusal:
                 return refusal
@@ -963,7 +962,7 @@ def _load_gtfs(args: dict) -> dict:
                               hint="gtfs_missing_files", missing=", ".join(missing))
         if not gtfs.has("calendar.txt") and not gtfs.has("calendar_dates.txt"):
             return tool_error("This feed has neither calendar.txt nor calendar_dates.txt.", "INVALID_ARGS",
-                              "Without one of them no date can say which trips run.")
+                              hint="gtfs_no_calendar")
         if net.is_cancelled(cancel):
             return _stopped()
 
@@ -1021,7 +1020,7 @@ def _load_gtfs(args: dict) -> dict:
         stops, merged_away, used_parent_station = _merge_stops(stop_rows, stream, merge_distance_m)
         if not stops:
             return tool_error("No stop has usable coordinates in this feed.", "INVALID_ARGS",
-                              "stops.txt needs stop_lat and stop_lon both as numbers.")
+                              hint="gtfs_stops_no_coordinates")
 
         stop_coords = {row["stop_id"]: (float(row["stop_lon"]), float(row["stop_lat"]))
                       for row in stop_rows

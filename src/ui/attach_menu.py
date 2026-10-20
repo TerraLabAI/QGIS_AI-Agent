@@ -17,6 +17,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
@@ -36,6 +37,8 @@ _MIN_WIDTH = 200
 
 FILES_ACCENT = "#a78bfa" if DARK else "#7c3aed"
 LAYER_ACCENT = ACCENT
+
+SOURCES_ACCENT = "#60a5fa" if DARK else "#2563eb"
 
 _SHEET_QSS = _POPOVER_QSS + (
     f"QFrame#attachPopover {{ background: {SURFACE};"
@@ -97,6 +100,8 @@ class AttachPopover(QFrame):
     add_files_requested = pyqtSignal()
     add_layer_requested = pyqtSignal()
 
+    sources_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         round_popup_corners(self)
@@ -122,6 +127,9 @@ class AttachPopover(QFrame):
 
             self._layer_row,
             self.add_layer_requested)
+        self._add_row(
+            _Row("globe", SOURCES_ACCENT, self.tr("Data sources"), "", "", self),
+            self.sources_requested)
 
     def set_layers_available(self, available: bool) -> None:
 

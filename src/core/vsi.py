@@ -204,7 +204,9 @@ def _qgis_extra_cas() -> bytes:
         added = list(manager.databaseCAs()) + list(manager.extraFileCAs())
         if not added:
             return b""
-        trusted = {bytes(cert.digest()).hex() for cert in manager.trustedCaCerts()}
+
+
+        trusted = {bytes(cert.digest()).hex() for cert in manager.trustedCaCertsCache()}
         extra = [cert for cert in added if bytes(cert.digest()).hex() in trusted]
         return b"".join(bytes(cert.toPem()) for cert in extra)
     except Exception:  # noqa: BLE001
@@ -237,7 +239,7 @@ def _ca_bundle_with_qgis_extras():
     try:
         from osgeo import gdal
 
-        current = gdal.GetConfigOption("GDAL_HTTP_CAINFO")
+        current = gdal.GetConfigOption("GDAL_CURL_CA_BUNDLE")
     except Exception:  # noqa: BLE001  # nosec B110
         pass
     current = current or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")
@@ -265,6 +267,83 @@ def _ca_bundle_with_qgis_extras():
     except OSError:
         return target if os.path.exists(target) else None
     return target
+
+
+
+_CHAIN_PREFIXES = ("/vsicurl/", "/vsicurl_streaming/", "")
+
+
+def _qgis_trusted_pem() -> bytes:
+
+    try:
+        from qgis.core import QgsApplication
+
+        manager = QgsApplication.authManager()
+        return bytes(manager.trustedCaCertsPemText()) if manager is not None else b""
+    except Exception:  # noqa: BLE001
+        return b""
+
+
+def _chain_bundle():
+
+
+
+
+
+
+
+
+    from . import missing_roots
+    from .background import on_main_thread, run_on_main_thread
+
+    intermediates = missing_roots.intermediates_pem()
+    if not intermediates:
+        return None
+    trusted = _qgis_trusted_pem() if on_main_thread() else run_on_main_thread(_qgis_trusted_pem, timeout=10)
+    current = None
+    try:
+        from osgeo import gdal
+
+        current = gdal.GetConfigOption("GDAL_CURL_CA_BUNDLE")
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+    current = current or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")
+    base = b""
+    if current and os.path.exists(current):
+        with open(current, "rb") as handle:
+            base = handle.read()
+    if not base and not trusted:
+
+        return None
+    from .host_platform import retry_file_op
+    from .policy import AGENT_HOME
+
+    target = os.path.join(AGENT_HOME, "certs", "gdal-chain-bundle.pem")
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    temp = target + ".new"
+    with open(temp, "wb") as handle:
+        for part in (base, trusted, intermediates):
+            if part:
+                handle.write(part if part.endswith(b"\n") else part + b"\n")
+    try:
+        retry_file_op(os.replace, temp, target)
+    except OSError:
+
+        return target if os.path.exists(target) else None
+    return target
+
+
+def _apply_chain_bundle(gdal, per_path) -> None:
+    from . import missing_roots
+
+    if per_path is None:
+        return
+    bundle = _chain_bundle()
+    if not bundle:
+        return
+    for host in missing_roots.intermediate_hosts():
+        for prefix in _CHAIN_PREFIXES:
+            per_path(f"{prefix}https://{host}/", "GDAL_CURL_CA_BUNDLE", bundle)
 
 
 def apply_persistent() -> bool:
@@ -299,7 +378,15 @@ def apply_persistent() -> bool:
     except Exception:  # noqa: BLE001
         bundle = None
     if bundle:
-        gdal.SetConfigOption("GDAL_HTTP_CAINFO", bundle)
+        gdal.SetConfigOption("GDAL_CURL_CA_BUNDLE", bundle)
+    try:
+        _apply_chain_bundle(gdal, per_path)
+    except MainThreadBusy:
+        return True
+    except Exception as exc:  # noqa: BLE001
+        from .logger import log_warning
+
+        log_warning(f"Intermediates not handed to GDAL: {exc}")
     _state["applied"] = True
     return True
 

@@ -52,6 +52,7 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from .processing_paths import _short_path, unsafe_path
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
                        "processing_worker.py")
@@ -226,6 +227,25 @@ def _end(process) -> None:
         pass
 
 
+def _safe_spelling(folder: str) -> str:
+
+
+
+
+
+
+
+
+
+
+
+    if unsafe_path(folder):
+        short = _short_path(folder)
+        if short and not unsafe_path(short):
+            return short
+    return folder
+
+
 class ChildRun(QgsTask):
 
 
@@ -247,6 +267,9 @@ class ChildRun(QgsTask):
                                                  "so no separate QGIS could run the algorithm."}
             return False
         work_dir = create_managed_temp_dir("processing-child")
+        safe = _safe_spelling(work_dir)
+        if safe != work_dir:
+            self.job = {**self.job, "temp_folder": safe}
         paths = {name: os.path.join(work_dir, name) for name in ("job.json", "status.json", "progress.txt",
                                                                   "worker.log")}
         with open(paths["job.json"], "w", encoding="utf-8") as handle:
@@ -260,7 +283,7 @@ class ChildRun(QgsTask):
         with open(paths["worker.log"], "wb") as log_handle:
             process = subprocess.Popen(  # nosec B603
                 [python, "-s", _WORKER, paths["job.json"], paths["status.json"], paths["progress.txt"]],
-                cwd=work_dir, env=_environment(python, work_dir), stdin=subprocess.DEVNULL,
+                cwd=safe, env=_environment(python, safe), stdin=subprocess.DEVNULL,
                 stdout=log_handle, stderr=subprocess.STDOUT, **kwargs)
             while process.poll() is None:
                 if self.isCanceled():

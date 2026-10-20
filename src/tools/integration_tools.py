@@ -69,6 +69,12 @@ def _no_mcp_api() -> dict:
                       hint="aiseg_update_in_plugin_manager", command="mcp_api")
 
 
+def _aiseg_absent() -> dict:
+
+    return tool_error("AI Segmentation plugin is not installed.", "PERMISSION_DENIED",
+                      hint="sibling_not_installed", tool="ai_segment", label="AI Segmentation by TerraLab")
+
+
 def aiseg_not_running_status(presence: dict) -> dict:
 
     out = _setup.not_running("ai_segment", presence)
@@ -312,14 +318,14 @@ def _aiedit_get_presets(args: dict) -> dict:
     try:
         return AIEDIT.presets()
     except Exception as e:
-        return {"_error": f"Failed to get presets: {str(e)}"}
+        return tool_error(f"Failed to get presets: {str(e)}")
 
 
 def _aiedit_get_credits(args: dict) -> dict:
     try:
         return AIEDIT.credits()
     except Exception as e:
-        return {"_error": f"Failed to get credits: {str(e)}"}
+        return tool_error(f"Failed to get credits: {str(e)}")
 
 
 def _aiedit_status(args: dict) -> dict:
@@ -339,10 +345,9 @@ def _aiedit_status(args: dict) -> dict:
         if status.get("state") == "NO_PANEL":
 
             status["name"], status["label"] = _setup._name("ai_edit"), _setup._label("ai_edit")
-            status["next_step"] = _setup.SETUP_HINT.format(tool="ai_edit")
         return status
     except Exception as e:
-        return {"ready": False, "_error": f"AI Edit status failed: {e}"}
+        return {**tool_error(f"AI Edit status failed: {e}"), "ready": False}
 
 
 def _aiedit_generate(args: dict) -> dict:
@@ -353,8 +358,7 @@ def _aiedit_generate(args: dict) -> dict:
     use_canvas = bool(args.get("use_canvas_extent"))
     use_zone = bool(args.get("use_zone"))
     if args.get("bbox") is None and not use_canvas and not use_zone and AIEDIT.current_zone() is None:
-        return {"_error": ("Needs use_zone:true (the project's zone of interest), bbox "
-                           "[xmin,ymin,xmax,ymax], use_canvas_extent:true, or a zone prepared in AI Edit.")}
+        return tool_error("No zone was given for the generation.", "INVALID_ARGS", hint="ai_edit_needs_zone")
 
 
     shown = _setup.show_panel("ai_edit")
@@ -376,12 +380,11 @@ def _aiedit_generate(args: dict) -> dict:
             result["note"] = result["note"].replace("ai_edit_generation_status", "ai_edit action generation_status")
         if shown and isinstance(result, dict) and "_error" not in result:
             result["panel_opened"] = True
-            result["tell_user"] = ("The AI Edit panel is open beside the chat: the generation, its versions "
-                                   "and the before and after slider are there.")
+            result["tell_user_hint"] = coded_fact(hint="aiedit_panel_open")["hint"]
         return result
     except Exception as e:
         log_warning(f"AI Edit generation failed: {e}")
-        return {"_error": f"AI Edit generation failed: {str(e)}"}
+        return tool_error(f"AI Edit generation failed: {str(e)}")
 
 
 def _aiedit_cancel(args: dict) -> dict:
@@ -389,7 +392,7 @@ def _aiedit_cancel(args: dict) -> dict:
         return AIEDIT.cancel(bool(args.get("exit", False)))
     except Exception as e:
         log_warning(f"AI Edit cancel failed: {e}")
-        return {"_error": f"AI Edit cancel failed: {str(e)}"}
+        return tool_error(f"AI Edit cancel failed: {str(e)}")
 
 
 def _aiedit_vectorize(args: dict) -> dict:
@@ -403,7 +406,7 @@ def _aiedit_vectorize(args: dict) -> dict:
         })
     except Exception as e:
         log_warning(f"AI Edit vectorize failed: {e}")
-        return {"_error": f"AI Edit vectorize failed: {str(e)}"}
+        return tool_error(f"AI Edit vectorize failed: {str(e)}")
 
 
 def _show_sibling(which: str) -> bool:
@@ -427,7 +430,7 @@ def _aiedit_select_version(args: dict) -> dict:
         return AIEDIT.select_version(args.get("index"))
     except Exception as e:
         log_warning(f"AI Edit select_version failed: {e}")
-        return {"_error": f"AI Edit select_version failed: {str(e)}"}
+        return tool_error(f"AI Edit select_version failed: {str(e)}")
 
 
 def _aiseg_status(args: dict) -> dict:
@@ -452,14 +455,13 @@ def _aiseg_status(args: dict) -> dict:
 
 
             return {"installed": True, "ready": False, "state": "NEEDS_UPDATE", "installed_version": version,
-                    "needs_version": "1.3.0", "name": _setup._name("ai_segment"),
-                    "next_step": _setup.SETUP_HINT.format(tool="ai_segment")}
+                    "needs_version": "1.3.0", "name": _setup._name("ai_segment")}
 
 
         status = (api.get_status(mode="automatic") if callable(getattr(api, "get_interactive_state", None))
                   else api.get_status())
         if not isinstance(status, dict):
-            return {"ready": False, "_error": "AI Segmentation returned no status."}
+            return {**tool_error("AI Segmentation returned no status."), "ready": False}
         if status.get("state") in ("MODEL_NOT_DOWNLOADED", "MODEL_NOT_LOADED"):
             status = _aiseg_cloud_ready(status)
         for key in ("model_loaded", "register_url"):
@@ -476,7 +478,7 @@ def _aiseg_status(args: dict) -> dict:
         return status
     except Exception as e:
 
-        return {"ready": False, "_error": f"AI Segmentation status failed: {e}"}
+        return {**tool_error(f"AI Segmentation status failed: {e}"), "ready": False}
 
 
 def _aiseg_add_balance(plugin, status: dict) -> None:
@@ -499,8 +501,7 @@ def _aiseg_add_balance(plugin, status: dict) -> None:
 
 
                 status["can_run_auto"] = False
-                status["blocker"] = ("auto_km2_left_this_month is 0.0: the account has no Automatic detection "
-                                     "area left, and detect_auto is refused for credits until it renews")
+                status["blocker_hint"] = coded_fact(hint="aiseg_auto_area_exhausted")["hint"]
                 if status.get("hint") == _DETECT_READY_HINT:
                     status.pop("hint")
     except Exception as exc:  # noqa: BLE001
@@ -540,7 +541,7 @@ def _aiseg_load_model(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
         api = getattr(plugin, "mcp_api", None)
         fn = getattr(api, "load_model", None) if api is not None else None
         if fn is None:
@@ -553,14 +554,14 @@ def _aiseg_load_model(args: dict) -> dict:
         return result
     except Exception as e:
         log_warning(f"AI Segmentation load_model failed: {e}")
-        return {"_error": f"AI Segmentation load_model failed: {e}"}
+        return tool_error(f"AI Segmentation load_model failed: {e}")
 
 
 def _aiseg_set_mode(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -574,14 +575,14 @@ def _aiseg_set_mode(args: dict) -> dict:
         return fn(mode=args["mode"])
     except Exception as e:
         log_warning(f"AI Segmentation set_mode failed: {e}")
-        return {"_error": f"AI Segmentation set_mode failed: {str(e)}"}
+        return tool_error(f"AI Segmentation set_mode failed: {str(e)}")
 
 
 def _aiseg_set_zone(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -610,7 +611,7 @@ def _aiseg_set_zone(args: dict) -> dict:
         return result
     except Exception as e:
         log_warning(f"AI Segmentation set_auto_zone failed: {e}")
-        return {"_error": f"AI Segmentation set_auto_zone failed: {str(e)}"}
+        return tool_error(f"AI Segmentation set_auto_zone failed: {str(e)}")
 
 
 def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> None:
@@ -656,7 +657,7 @@ def _aiseg_detect_points(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
         api = getattr(plugin, "mcp_api", None)
         fn = getattr(api, "detect_points", None) if api is not None else None
         if fn is None:
@@ -664,7 +665,7 @@ def _aiseg_detect_points(args: dict) -> dict:
                               hint="aiseg_update_in_plugin_manager", command="detect_points")
         positive = args.get("positive_points")
         if not positive:
-            return {"_error": "positive_points needs at least one [x, y] point."}
+            return tool_error("positive_points needs at least one [x, y] point.", "INVALID_ARGS")
         kwargs = {
             "positive": positive,
             "negative": args.get("negative_points") or [],
@@ -674,7 +675,7 @@ def _aiseg_detect_points(args: dict) -> dict:
         return fn(**kwargs)
     except Exception as e:
         log_warning(f"AI Segmentation point detection failed: {e}")
-        return {"_error": f"AI Segmentation point detection failed: {e}"}
+        return tool_error(f"AI Segmentation point detection failed: {e}")
 
 
 def _aiseg_class_preflight(api, object_class: str, args: dict) -> dict | None:
@@ -972,7 +973,7 @@ def _aiseg_detect_auto(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -1059,8 +1060,7 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
         if shown and isinstance(result, dict) and "_error" not in result:
             result["panel_opened"] = True
-            result["tell_user"] = ("The AI Segmentation panel is open beside the chat: the run, its "
-                                   "progress and what it costs are shown there.")
+            result["tell_user_hint"] = coded_fact(hint="aiseg_panel_open")["hint"]
         if detached and isinstance(result, dict) and "_error" not in result and result.get("running"):
             result["poll"] = {
                 "tool": "ai_segment", "args": {"action": "auto_status"},
@@ -1068,27 +1068,22 @@ def _aiseg_detect_auto(args: dict) -> dict:
             }
             if result.get("run_id"):
                 result["poll"]["args"]["run_id"] = result["run_id"]
-            result["tell_user"] = ("The sweep is running in the AI Segmentation panel, showing "
-                                   "the tiles, progress and cost. Its result is available after "
-                                   "processing and saving finish; another run would spend credits again.")
-            if result.get("keep_review"):
-                result["tell_user"] = ("The sweep is running in the AI Segmentation panel, showing "
-                                       "the tiles, progress and cost. It ends on the panel's review "
-                                       "step with nothing saved; another run would spend credits again.")
+            result["tell_user_hint"] = coded_fact(
+                hint="aiseg_sweep_review" if result.get("keep_review") else "aiseg_sweep_running")["hint"]
         return result
     except Exception as e:
         log_warning(f"AI Segmentation detect_auto failed: {e}")
-        return {"_error": f"AI Segmentation detect_auto failed: {str(e)}"}
+        return tool_error(f"AI Segmentation detect_auto failed: {str(e)}")
 
 
 def _aiseg_get_presets(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
         mod = _aiseg_module(plugin, "core.presets.segmentation_presets")
         if mod is None:
-            return {"_error": "AI Segmentation preset library (segmentation_presets) not found in this version."}
+            return tool_error("AI Segmentation preset library (segmentation_presets) not found in this version.")
         out = {}
         all_presets = getattr(mod, "all_presets", None)
         fallback_categories = getattr(mod, "fallback_categories", None)
@@ -1107,25 +1102,25 @@ def _aiseg_get_presets(args: dict) -> dict:
         except Exception as err:
             log_warning(f"AI Segmentation all_presets failed: {err}")
         if not out:
-            return {"_error": "AI Segmentation presets could not be read."}
+            return tool_error("AI Segmentation presets could not be read.")
         return out
     except Exception as e:
         log_warning(f"AI Segmentation get_presets failed: {e}")
-        return {"_error": f"AI Segmentation get_presets failed: {str(e)}"}
+        return tool_error(f"AI Segmentation get_presets failed: {str(e)}")
 
 
 def _aiseg_review_filter(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
         conf = args.get("confidence")
         if conf is None:
-            return {"_error": "confidence is required (0.05-0.95)."}
+            return tool_error("confidence is required (0.05-0.95).", "INVALID_ARGS")
         try:
             conf = max(0.05, min(0.95, float(conf)))
         except (TypeError, ValueError):
-            return {"_error": "confidence must be a number 0.05-0.95."}
+            return tool_error("confidence must be a number 0.05-0.95.", "INVALID_ARGS")
 
         objects = getattr(plugin, "_auto_objects", None)
         review = getattr(plugin, "_auto_review", None)
@@ -1140,7 +1135,7 @@ def _aiseg_review_filter(args: dict) -> dict:
         try:
             plugin._auto_confidence = conf
         except (AttributeError, RuntimeError):
-            return {"_error": "Cannot set the review confidence on this plugin version."}
+            return tool_error("Cannot set the review confidence on this plugin version.")
         try:
             dock = getattr(plugin, "dock_widget", None)
             spin = getattr(dock, "auto_confidence_spin", None) if dock is not None else None
@@ -1181,28 +1176,28 @@ def _aiseg_review_filter(args: dict) -> dict:
                 "kept_instances": kept, "total_found": len(objects)}
     except Exception as e:
         log_warning(f"AI Segmentation review_filter failed: {e}")
-        return {"_error": f"AI Segmentation review_filter failed: {str(e)}"}
+        return tool_error(f"AI Segmentation review_filter failed: {str(e)}")
 
 
 def _aiseg_set_display_mode(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
         mode = (args.get("mode") or "").strip().lower()
         if mode not in ("normal", "outline", "confidence", "random"):
-            return {"_error": "mode must be one of: normal, outline, confidence, random."}
+            return tool_error("mode must be one of: normal, outline, confidence, random.", "INVALID_ARGS")
         dock = getattr(plugin, "dock_widget", None)
         setter = getattr(dock, "set_auto_display_mode", None) if dock is not None else None
         if not callable(setter):
-            return {
-                "_error": "AI Segmentation display-mode control (set_auto_display_mode) not available in this version."
-            }
+            return tool_error(
+                "AI Segmentation display-mode control (set_auto_display_mode) not available in this version."
+            )
         _show_sibling("ai_segment")
         try:
             setter(mode)
         except Exception as err:
-            return {"_error": f"Set display mode failed: {err}"}
+            return tool_error(f"Set display mode failed: {err}")
 
 
         applier = getattr(plugin, "_on_auto_display_mode_changed", None)
@@ -1214,7 +1209,7 @@ def _aiseg_set_display_mode(args: dict) -> dict:
         return {"ok": True, "mode": mode}
     except Exception as e:
         log_warning(f"AI Segmentation set_display_mode failed: {e}")
-        return {"_error": f"AI Segmentation set_display_mode failed: {str(e)}"}
+        return tool_error(f"AI Segmentation set_display_mode failed: {str(e)}")
 
 
 def _aiseg_progress_sentence(status: dict) -> str:
@@ -1262,7 +1257,7 @@ def _aiseg_auto_status(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -1291,14 +1286,14 @@ def _aiseg_auto_status(args: dict) -> dict:
         return status
     except Exception as e:
         log_warning(f"AI Segmentation auto_detect_status failed: {e}")
-        return {"_error": f"AI Segmentation auto_detect_status failed: {str(e)}"}
+        return tool_error(f"AI Segmentation auto_detect_status failed: {str(e)}")
 
 
 def _aiseg_auto_cancel(args: dict) -> dict:
     try:
         _, plugin = _find_plugin(AISEG_KEYS)
         if not plugin:
-            return {"_error": "AI Segmentation plugin is not installed."}
+            return _aiseg_absent()
 
         api = getattr(plugin, "mcp_api", None)
         if api is None:
@@ -1311,4 +1306,4 @@ def _aiseg_auto_cancel(args: dict) -> dict:
         return fn()
     except Exception as e:
         log_warning(f"AI Segmentation cancel_auto failed: {e}")
-        return {"_error": f"AI Segmentation cancel_auto failed: {str(e)}"}
+        return tool_error(f"AI Segmentation cancel_auto failed: {str(e)}")

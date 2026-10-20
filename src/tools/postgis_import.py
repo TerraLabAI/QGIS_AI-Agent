@@ -113,18 +113,18 @@ def _connection(name: str):
     metadata = QgsProviderRegistry.instance().providerMetadata("postgres")
     if metadata is None:
         return None, tool_error("The PostgreSQL provider is not available in this QGIS installation.",
-                                "EXECUTION_FAILED", "")
+                                "EXECUTION_FAILED")
     try:
         connections = metadata.connections(False)
     except Exception as exc:  # noqa: BLE001
-        return None, tool_error(f"PostgreSQL saved connections are unavailable: {exc}", "EXECUTION_FAILED", "")
+        return None, tool_error(f"PostgreSQL saved connections are unavailable: {exc}", "EXECUTION_FAILED")
     connection = connections.get(name)
     if connection is None:
         return None, tool_error(f"No saved PostgreSQL connection named {name!r}.", "INVALID_ARGS",
                                 hint="pg_connection_unknown", connection=name,
                                 saved_connections=sorted(connections)[:20])
     if not isinstance(connection, QgsAbstractDatabaseProviderConnection):
-        return None, tool_error(f"Connection {name!r} is not a database connection.", "INVALID_ARGS", "")
+        return None, tool_error(f"Connection {name!r} is not a database connection.", "INVALID_ARGS")
     return connection, None
 
 
@@ -253,7 +253,7 @@ def _import_to_postgis(args: dict) -> dict:
     schema = str(args.get("schema") or "public").strip()
     table = _table_name(str(args.get("table") or layer.name()), lowercase)
     if not table:
-        return tool_error("The table name is empty.", "INVALID_ARGS", "table.")
+        return tool_error("The table name is empty.", "INVALID_ARGS", hint="pg_table_name_empty")
     overwrite = bool(args.get("overwrite"))
     has_geometry = layer.isSpatial()
     geometry_column = ""
@@ -279,7 +279,7 @@ def _import_to_postgis(args: dict) -> dict:
                               hint="pg_target_crs_unknown", target_crs=target)
     if has_geometry and (not crs.isValid() or not layer.crs().isValid()):
         return tool_error(f"{layer.name()!r} has no known CRS, so its SRID in PostGIS would be 0.",
-                          "INVALID_ARGS", "The import needs the layer's CRS declared.")
+                          "INVALID_ARGS", hint="pg_layer_crs_unknown")
 
     primary_key = str(args.get("primary_key") or "").strip()
     if primary_key:
@@ -384,8 +384,8 @@ def _import_to_postgis(args: dict) -> dict:
 
         def stopped() -> None:
             entry.pop("source_copy", None)
-            entry.setdefault("note", f"The import was stopped. {schema}.{table} may hold part of the rows: "
-                                     "check it with list_connection_tables before importing again.")
+            entry.setdefault("note", f"The import was stopped. {schema}.{table} may hold part of the rows.")
+            entry.setdefault("note_next_hint", "pg_import_stopped")
 
         task.exportComplete.connect(complete)
         task.errorOccurred.connect(failed)

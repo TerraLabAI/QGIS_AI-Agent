@@ -16,7 +16,7 @@ def _outside_a_run(args: dict) -> dict:
     return tool_error(
         "verify_run is answered by the executor inside a run.",
         "INVALID_ARGS",
-        "The server asks for it itself, before the final answer.",
+        hint="verify_run_server_asks",
     )
 
 

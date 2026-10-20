@@ -46,14 +46,14 @@ def _save_custom_crs(args: dict) -> dict:
     raw = str(args.get("wkt") or args.get("source") or "").strip()
     if not name or not raw:
         return tool_error(
-            "Both name and WKT are required.", "INVALID_ARGS", "name and wkt need values: a short name, full WKT."
+            "Both name and WKT are required.", "INVALID_ARGS"
         )
     if len(name) > 120:
-        return tool_error("The custom CRS name is too long.", "INVALID_ARGS", "120 characters is the cap.")
+        return tool_error("The custom CRS name is too long.", "INVALID_ARGS", hint="crs_custom_name_cap", limit=120)
     crs = _crs_from_text(raw)
     if crs is None:
         return tool_error(
-            "The supplied definition is not a valid QGIS CRS.", "INVALID_ARGS", "wkt needs a complete WKT."
+            "The supplied definition is not a valid QGIS CRS.", "INVALID_ARGS", hint="crs_custom_wkt_incomplete"
         )
 
 
@@ -61,7 +61,7 @@ def _save_custom_crs(args: dict) -> dict:
     srsid = registry.addUserCrs(crs, name)
     if int(srsid) < 0:
         return tool_error(
-            "QGIS could not save the custom CRS.", "EXECUTION_FAILED", "Another name may save."
+            "QGIS could not save the custom CRS.", "EXECUTION_FAILED", hint="crs_custom_not_saved"
         )
     return {
         "saved": True,
@@ -91,7 +91,7 @@ def _raster_facts(value):
         return tool_error(
             f"Raster not found or invalid: {value}",
             "INVALID_ARGS",
-            "value must be a raster layer name/id or an allowed file path.",
+            hint="crs_raster_value_kinds",
         )
     extent = layer.extent()
     return {
@@ -145,16 +145,16 @@ def _compare_rasters(args: dict) -> dict:
         return tool_error(
             "At least two rasters are required.",
             "INVALID_ARGS",
-            "rasters is a list of loaded layer names/ids or file paths.",
+            hint="crs_rasters_list",
         )
     if len(values) > 100:
         return tool_error(
-            "At most 100 rasters can be compared in one call.", "INVALID_ARGS", "A smaller batch fits."
+            "At most 100 rasters can be compared in one call.", "INVALID_ARGS"
         )
     tolerance = float(args.get("tolerance", 1e-9))
     if not math.isfinite(tolerance) or tolerance < 0:
         return tool_error(
-            "tolerance must be a finite non-negative number.", "INVALID_ARGS", "A small value fits, e.g. 1e-9."
+            "tolerance must be a finite non-negative number.", "INVALID_ARGS"
         )
     facts = []
     for value in values:

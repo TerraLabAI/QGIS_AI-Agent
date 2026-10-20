@@ -135,7 +135,7 @@ def verdict(layer, crs, declared: bool = True) -> dict:
                            f"only with x and y swapped.")}
 
 
-    box = box_to_4326(crs, extent)
+    box = box_to_4326(extent, crs)
     lands = (f"; read in it they land at lon {box.xMinimum():.3f} to {box.xMaximum():.3f}, lat "
              f"{box.yMinimum():.3f} to {box.yMaximum():.3f} (EPSG:4326)" if box is not None else "")
     return {"verdict": "outside_area_of_use", "crs": label, "candidates": projected_candidates(crs.authid()),

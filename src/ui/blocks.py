@@ -17,6 +17,7 @@ from qgis.PyQt.QtGui import QBrush, QPainter
 from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ..core import openui
+from .font_scale import scale_qss_font_px
 from .shared import tr
 from .style import (
     ACCENT,
@@ -48,7 +49,8 @@ _SHOWN_COL_PX = 64
 def _label(text: str, px: int, color: str, weight: int = 400, wrap: bool = True,
            elide: bool = False, align=None) -> QLabel:
     label = ElidedLabel(text) if elide else ChatLabel(text, wrap=wrap, selectable=True)
-    label.setStyleSheet(f"font-size: {px}px; color: {color}; font-weight: {weight}; background: transparent;")
+    label.setStyleSheet(scale_qss_font_px(f"font-size: {px}px; color: {color}; font-weight: {weight};"
+                                          " background: transparent;"))
     if align is not None:
         label.setAlignment(align)
     if wrap and not elide:
@@ -59,8 +61,9 @@ def _label(text: str, px: int, color: str, weight: int = 400, wrap: bool = True,
 def _tag(text: str, tone: str) -> QLabel:
     background, ink = TAGS.get(tone, TAGS["neutral"])
     label = ElidedLabel(text)
-    label.setStyleSheet(f"font-size: {FONT_HINT}px; font-weight: 600; color: {ink}; background: {background};"
-                        f" border-radius: {RADIUS_CHIP - 1}px; padding: 0 6px;")
+    label.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_HINT}px; font-weight: 600; color: {ink};"
+                                          f" background: {background};"
+                        f" border-radius: {RADIUS_CHIP - 1}px; padding: 0 6px;"))
     label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
     return label
 
@@ -101,7 +104,7 @@ class BlockPlaceholder(QLabel):
     def __init__(self, parent=None):
         super().__init__(tr("Preparing a summary…"), parent)
         self.setObjectName("answerBlockPending")
-        self.setStyleSheet(f"font-size: {FONT_BODY}px; color: {INK_3}; background: transparent;")
+        self.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_BODY}px; color: {INK_3}; background: transparent;"))
 
 
 class BlockView(QFrame):

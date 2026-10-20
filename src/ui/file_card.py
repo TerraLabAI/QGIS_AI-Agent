@@ -327,8 +327,11 @@ class FileOutputCard(QWidget):
 
     def _open_words(self) -> str:
 
+
         if self.kind == "html":
-            return self.tr("Open in the browser")
+            from .file_links import is_safe_to_open
+
+            return self.tr("Open in the browser") if is_safe_to_open(self.path) else self.tr("Show in folder")
         return self.tr("Open")
 
     def _set_tooltip(self) -> None:
@@ -394,6 +397,141 @@ class FileOutputCard(QWidget):
         self._place_actions()
 
 
+
+_OBJECT_ICONS = {
+    "layout": ("/mIconLayout.svg", "/mActionNewLayout.svg"),
+    "report": ("/mIconReport.svg", "/mActionNewReport.svg"),
+    "view3d": ("/mActionNew3DMap.svg", "/3d.svg"),
+    "table": ("/mActionOpenTable.svg",),
+    "theme": ("/mActionShowAllLayers.svg",),
+}
+OBJECT_ICON = 16
+
+
+class ObjectRow(QWidget):
+
+
+
+
+
+
+
+    gone = pyqtSignal()
+
+    def __init__(self, entry: dict, parent=None):
+        super().__init__(parent)
+        from ..core import run_objects
+
+        self._objects = run_objects
+        self.entry = dict(entry)
+        self.name = str(self.entry.get("name") or "")
+        kind = self.entry.get("kind")
+        if kind == "layout" and run_objects.is_report(self.name):
+            kind = "report"
+        self.kind = kind
+        self.setObjectName("fileRowHost")
+        frame = QFrame(self)
+        frame.setObjectName("fileRow")
+        frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        frame.setFixedHeight(ROW_PX)
+        row = QHBoxLayout(frame)
+        row.setContentsMargins(ROW_PAD_X, 0, ROW_PAD_X, 0)
+        row.setSpacing(ROW_GAP)
+
+        font = QFont(self.font())
+        font.setPixelSize(FONT_MICRO)
+        font.setWeight(QFont.Weight.DemiBold)
+        slot = QLabel(frame)
+        slot.setFixedSize(max(BADGE_W, QFontMetrics(font).horizontalAdvance(BADGE_WIDEST) + 8), BADGE_H)
+        slot.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        from .icons import theme_pixmap
+
+        for icon in _OBJECT_ICONS.get(kind, ()):
+            pixmap = theme_pixmap(slot, icon, OBJECT_ICON)
+            if pixmap is not None:
+                slot.setPixmap(pixmap)
+                break
+        row.addWidget(slot, 0, Qt.AlignmentFlag.AlignVCenter)
+        label = ElidedLabel(self.name, frame, Qt.TextElideMode.ElideMiddle)
+        label.setObjectName("fileName")
+        label.setMinimumWidth(NAME_MIN_WIDTH)
+        row.addWidget(label, 1)
+        words = {
+            "layout": self.tr("Print layout"),
+            "report": self.tr("Report"),
+            "view3d": self.tr("3D view"),
+            "table": self.tr("Attribute table"),
+            "theme": self.tr("Map theme"),
+        }.get(kind, "")
+        hint = QLabel(words, frame)
+        hint.setObjectName("fileKind")
+        row.addWidget(hint, 0)
+        for widget in (slot, label, hint):
+            widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(frame)
+        self.setFixedHeight(ROW_PX)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAccessibleName(f"{self.name}, {words}")
+        self.setToolTip(self.tr("Show {name}").format(name=self.name))
+        self._watch()
+
+    def _watch(self) -> None:
+
+        try:
+            from qgis.core import QgsProject
+
+            project = QgsProject.instance()
+            if self.kind in ("layout", "report"):
+                project.layoutManager().layoutRemoved.connect(self.check)
+            elif self.kind == "theme":
+                project.mapThemeCollection().mapThemesChanged.connect(self.check)
+            elif self.kind == "table":
+                project.layersRemoved.connect(self.check)
+        except Exception:  # nosec B110
+            pass
+
+    def check(self, *_args) -> bool:
+
+        try:
+            alive = self._objects.exists(self.entry)
+            if not alive and not self.isHidden():
+                self.hide()
+                self.gone.emit()
+            return alive
+        except RuntimeError:
+            return False
+
+    def _fire(self) -> None:
+        if self.check() and not self._objects.bring_back(self.entry):
+            self.check()
+
+    def keyPressEvent(self, event):  # noqa: N802
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self._fire()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.rect().contains(event_pos(event)):
+                self._fire()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
 class _FilesMore(_MoreChip):
 
 
@@ -422,7 +560,7 @@ class FileCardStack(QWidget):
 
     action_requested = pyqtSignal(str, str)
 
-    def __init__(self, files, parent=None):
+    def __init__(self, files, parent=None, objects=None):
         super().__init__(parent)
         self.setObjectName("fileCardStack")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
@@ -445,12 +583,22 @@ class FileCardStack(QWidget):
         for entry in listed:
             self._add_card(rows, entry)
 
+        self._rows: list = list(self._cards)
+        for entry in (x for x in (objects or ()) if isinstance(x, dict) and x.get("name")):
+            card = ObjectRow(entry, self._group)
+            if not card.check():
+                card.deleteLater()
+                continue
+            card.gone.connect(self._fold)
+            self._rows.append(card)
+            rows.addWidget(card)
+
         self._more = None
         self._all = False
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 0, 0, 0)
         footer.setSpacing(2)
-        if len(self._cards) > FOLD_AT:
+        if len(self._rows) > FOLD_AT:
             self._more = _FilesMore(self)
             self._more.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             self._more.clicked.connect(self._toggle)
@@ -466,7 +614,7 @@ class FileCardStack(QWidget):
         self.setVisible(not self.is_empty())
 
     def is_empty(self) -> bool:
-        return not self._cards
+        return not self._rows
 
     def cards(self) -> list:
         return list(self._cards)
@@ -487,11 +635,15 @@ class FileCardStack(QWidget):
         self._fold()
 
     def _fold(self) -> None:
-        for index, card in enumerate(self._cards):
-            card.setVisible(self._all or index < FOLD_AT)
+        live = [card for card in self._rows if not (isinstance(card, ObjectRow) and not card.check())]
+        for card in self._rows:
+            card.setVisible(card in live and (self._all or live.index(card) < FOLD_AT))
         if self._more is not None:
-            self._more.set_count(0 if self._all else len(self._cards) - FOLD_AT)
+            self._more.set_count(0 if self._all else max(0, len(live) - FOLD_AT))
+            self._more.setVisible(len(live) > FOLD_AT)
             self._more.updateGeometry()
+        if not live:
+            self.setVisible(False)
         self.updateGeometry()
 
     def follow_disk(self) -> None:

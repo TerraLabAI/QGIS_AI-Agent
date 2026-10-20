@@ -23,6 +23,7 @@
 
 
 
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,6 +31,15 @@ from dataclasses import dataclass
 from ...core.host_platform import IS_WINDOWS
 from ..font_scale import scale_px_length, scale_qss_font_px
 from ..style import DARK
+
+try:
+    from qgis.PyQt.QtCore import QT_VERSION_STR as _QT_VERSION
+except ImportError:  # pragma: no cover
+    _QT_VERSION = "5"
+import sys as _sys
+
+_QT5 = str(_QT_VERSION).startswith("5.")
+_MAC = _sys.platform == "darwin"
 
 
 @dataclass(frozen=True)
@@ -49,6 +59,9 @@ class Palette:
     on_primary: str
     primary_hover: str
     shade: float
+    mark_bg: str = "#fcfcfc"
+    hairline: str = "#e5e5e5"
+    panel: str = "#f7f7f7"
 
 
 LIGHT = Palette(
@@ -62,7 +75,26 @@ DARK_PALETTE = Palette(
     hover="#2f2f2f", selected="#303030", press="#3a3a3a", border="#383838",
     tile="#2a2a2a", shimmer="#343434", bubble="#303030",
     primary="#ffffff", on_primary="#0d0d0d", primary_hover="#dcdcdc", shade=0.16,
+
+    mark_bg="#f4f4f4", hairline="#383838", panel="#2a2a2a",
 )
+
+
+
+
+CATEGORY_GLYPHS = {
+    "worldwide": "globe",
+    "imagery": "satellite",
+    "terrain": "terrain",
+    "nature": "points",
+    "people": "person",
+    "national": "pin",
+    "catalogs": "book",
+}
+
+
+def category_glyph(category: str) -> str:
+    return CATEGORY_GLYPHS.get(str(category or ""), "layers")
 
 
 def palette(dark: bool | None = None) -> Palette:
@@ -74,10 +106,43 @@ def palette(dark: bool | None = None) -> Palette:
 T = palette()
 
 SPACE_1, SPACE_2, SPACE_3, SPACE_4, SPACE_5 = 8, 16, 24, 32, 40
-TITLE_PX, SECTION_PX, BODY_PX, SMALL_PX = 24, 16, 14, 13
+
+
+EDGE = 8
+
+
+TITLE_PX, SECTION_PX, NAME_PX, BODY_PX, SMALL_PX = 24, 18, 16, 14, 13
+
+HERO_PX = 32
+
+READ_PX, CAPTION_PX, LINE_HEIGHT, MEASURE_W = 16, 15, 155, 680
+
+TOP_BAR_H = 48
+LEAD_PX = NAME_PX
+
+FIGURE_PX = 22
 
 
 MEDIUM = 600 if IS_WINDOWS else 500
+
+
+def weight_css(weight: int) -> str:
+
+
+
+
+
+
+
+
+    weight = int(weight)
+    if weight == 400:
+        return ""
+    if not _QT5:
+        return f" font-weight: {weight};"
+    qt = {500: 57, 600: 63, 700: 75}.get(weight, max(1, weight // 8))
+    family = ' font-family: "Helvetica Neue", "Segoe UI";' if _MAC and weight == 500 else ""
+    return f"{family} font-weight: {qt * 8};"
 RADIUS_TILE, RADIUS_HERO, RADIUS_ROW = 12, 16, 10
 
 
@@ -86,13 +151,12 @@ RAIL_W = 232
 
 
 COLUMN_W = 820
-DETAIL_W = 720
 
 TILE_MIN_W = 200
 TILE_GAP = SPACE_2
-COLUMNS = 3
 
-TILE_TEXT_H = 90
+
+TILE_TEXT_H = 120
 
 
 def px(value: int) -> int:
@@ -106,7 +170,7 @@ def qss(text: str) -> str:
 
 def text_qss(size: int = BODY_PX, colour: str = "", weight: int = 400) -> str:
     colour = colour or T.text
-    bold = f" font-weight: {weight};" if weight != 400 else ""
+    bold = weight_css(weight)
     return qss(f"font-size: {size}px; color: {colour};{bold} background: transparent;")
 
 
@@ -119,43 +183,74 @@ def scroll_qss() -> str:
         "QScrollBar::handle:vertical { background: rgba(128,128,128,0.35); border: none;"
         " border-radius: 3px; min-height: 32px; margin: 2px 3px; }"
         "QScrollBar::handle:vertical:hover { background: rgba(128,128,128,0.6); }"
+        "QScrollBar::handle:vertical:disabled { background: transparent; }"
         "QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; border: none;"
         " background: transparent; }"
         "QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }"
     )
 
 
-def search_qss(name: str) -> str:
+def keep_gutter(area) -> None:
 
+
+    from qgis.PyQt.QtCore import Qt
+
+    area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
+
+def ui_locale():
+
+
+    from qgis.PyQt.QtCore import QLocale
+
+    try:
+        from qgis.core import QgsApplication
+
+        name = str(QgsApplication.locale() or "")
+    except Exception:  # noqa: BLE001
+        name = ""
+    return QLocale(name or "en")
+
+
+def search_qss(name: str, height: int = 36) -> str:
+
+
+
+    inner = height - 2
     return qss(
         f"QLineEdit#{name} {{ background: {T.bg}; border: 1px solid {T.border};"
-        f" border-radius: 18px; padding: 0 12px 0 36px; font-size: {BODY_PX}px;"
+        f" border-radius: {height // 2}px; padding: 0 14px 0 40px; font-size: {BODY_PX}px;"
         f" color: {T.text}; selection-background-color: {T.selected};"
-        f" selection-color: {T.text}; min-height: 34px; max-height: 34px; }}"
+        f" selection-color: {T.text}; min-height: {inner}px; max-height: {inner}px; }}"
         f"QLineEdit#{name}:focus {{ border-color: {T.text_2}; }}"
     )
+
+
+
+BUTTON_H = 36
 
 
 def primary_qss() -> str:
 
     return qss(
         f"QPushButton {{ background: {T.primary}; color: {T.on_primary}; border: none;"
-        f" border-radius: 8px; padding: 0 18px; min-height: 36px; max-height: 36px;"
-        f" font-size: {BODY_PX}px; font-weight: {MEDIUM}; }}"
+        f" border-radius: {BUTTON_H // 2}px; padding: 0 16px; min-height: {BUTTON_H}px;"
+        f" max-height: {BUTTON_H}px; font-size: {BODY_PX}px;{weight_css(MEDIUM)} }}"
         f"QPushButton:hover {{ background: {T.primary_hover}; }}"
         f"QPushButton:pressed {{ background: {T.text_2}; }}"
         f"QPushButton:focus {{ outline: none; }}"
     )
 
 
-def ghost_qss() -> str:
+def secondary_qss() -> str:
 
     return qss(
         f"QPushButton {{ background: {T.bg}; color: {T.text}; border: 1px solid {T.border};"
-        f" border-radius: 8px; padding: 0 12px; min-height: 28px; max-height: 28px;"
-        f" font-size: {SMALL_PX}px; font-weight: {MEDIUM}; }}"
+        f" border-radius: {BUTTON_H // 2}px; padding: 0 15px; min-height: {BUTTON_H - 2}px;"
+        f" max-height: {BUTTON_H - 2}px; font-size: {BODY_PX}px;{weight_css(MEDIUM)} }}"
         f"QPushButton:hover {{ background: {T.hover}; }}"
         f"QPushButton:pressed {{ background: {T.press}; }}"
+        f"QPushButton:focus {{ outline: none; }}"
     )
 
 

@@ -440,7 +440,7 @@ class _ControllerRuns:
 
 
 
-            summary = (tr("Stopped before the agent answered.") if cancelled
+            summary = (tr("Stopped before the AI agent answered.") if cancelled
                        else tr("The run ended without a summary from TerraLab."))
         self._finish_run(run["run_id"], status, summary, {}, None)
 

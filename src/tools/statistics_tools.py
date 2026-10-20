@@ -33,7 +33,7 @@ from ..core import net, tuning
 from ..core.background import run_on_main_thread
 from ..core.licence import set_layer_attribution
 from ..core.policy import create_managed_temp_dir
-from ..core.tool_registry import Tool, ToolRegistry
+from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .data_tools import _avoid_reserved_name
 
 
@@ -92,20 +92,17 @@ def _numeric_domain_error(layer, field: str) -> dict | None:
     try:
         if not layer.fields().at(index).isNumeric():
             numeric = [f.name() for f in layer.fields() if f.isNumeric()]
-            return {"_error": f"{field!r} is not a numeric field, so it cannot be graduated.",
-                    "code": "INVALID_ARGS",
-                    "fields": numeric,
-                    "suggestion": (f"{numeric[0]!r} and the other numeric fields in 'fields' fit as "
-                                   "value_field." if numeric else
-                                   "This table carries no numeric column, so no choropleth can be built from it.")}
+            message = f"{field!r} is not a numeric field, so it cannot be graduated."
+            if numeric:
+                return tool_error(message, "INVALID_ARGS", hint="statistics_numeric_fields",
+                                  field_name=numeric[0], fields=numeric)
+            return tool_error(message, "INVALID_ARGS", hint="statistics_no_numeric_column", fields=numeric)
     except Exception:  # nosec B110
         pass
     values = layer.uniqueValues(index, 2)
     real = [v for v in values if v is not None and str(v) != "NULL"]
     if not real:
-        return {"_error": f"Every value of {field!r} is empty, so no class could be built.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": "The fields the layer carries are listed in 'fields'."}
+        return tool_error(f"Every value of {field!r} is empty, so no class could be built.")
     return None
 
 
@@ -113,20 +110,17 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
            credit: str, abstract: str, licence: str = "", source: str = "", source_url: str = "") -> dict:
     layer = QgsVectorLayer(path, name, "ogr")
     if not layer.isValid():
-        return {"_error": "The statistics layer could not be read as a vector layer.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error("The statistics layer could not be read as a vector layer.")
     if layer.fields().indexOf(field) < 0:
         names = [f.name() for f in layer.fields()]
         close = difflib.get_close_matches(field, names, n=3, cutoff=0.5)
-        return {"_error": (f"The layer carries no field named {field!r}."
-                           + (f" Did you mean {close[0]!r}?" if close else "")),
-                "code": "INVALID_ARGS",
-                "fields": names,
-                "suggestion": (f"{close[0]!r} is the nearest field name." if close else
-                               "The names in 'fields' work as value_field.")}
+        message = (f"The layer carries no field named {field!r}."
+                   + (f" Did you mean {close[0]!r}?" if close else ""))
+        if close:
+            return {**tool_error(message, "INVALID_ARGS"), "fields": names}
+        return tool_error(message, "INVALID_ARGS", hint="statistics_value_field_names", fields=names)
     if layer.featureCount() == 0:
-        return {"_error": "The statistics layer is empty, so nothing was added.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error("The statistics layer is empty, so nothing was added.")
 
 
 
@@ -135,9 +129,8 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
         return domain_error
     ranges = _classify(layer, field, classes, mode_name, ramp_name)
     if not ranges:
-        return {"_error": f"No class could be built from {field!r}, so no map was drawn.",
-                "code": "EXECUTION_FAILED",
-                "suggestion": "Too few distinct numbers for this many classes."}
+        return tool_error(f"No class could be built from {field!r}, so no map was drawn.",
+                          hint="statistics_too_few_distinct", classes=classes)
     metadata = QgsLayerMetadata()
     metadata.setTitle(name)
     metadata.setAbstract(abstract)
@@ -183,16 +176,16 @@ def _map_statistic(args: dict) -> dict:
     url = str(args.get("url") or "").strip()
     field = str(args.get("value_field") or "").strip()
     if not url or not field:
-        return {"_error": "map_statistic needs the url find_statistic returned and its value_field.",
-                "code": "INVALID_ARGS"}
+        return tool_error("map_statistic needs the url find_statistic returned and its value_field.",
+                          "INVALID_ARGS")
     mode_name = _MODES.get(str(args.get("classification") or "quantile").lower())
     if mode_name is None:
-        return {"_error": f"{args.get('classification')!r} is not a classification.", "code": "INVALID_ARGS",
+        return {**tool_error(f"{args.get('classification')!r} is not a classification.", "INVALID_ARGS"),
                 "classification": sorted(_MODES)}
     try:
         classes = max(2, min(int(args.get("classes") or 5), 12))
     except (TypeError, ValueError):
-        return {"_error": "classes must be a whole number between 2 and 12.", "code": "INVALID_ARGS"}
+        return tool_error("classes must be a whole number between 2 and 12.", "INVALID_ARGS")
     name = str(args.get("name") or "").strip() or field.replace("_", " ").title()
     source = str(args.get("source") or "").strip()
     year = str(args.get("year") or "").strip()
@@ -207,11 +200,9 @@ def _map_statistic(args: dict) -> dict:
         parsed = json.loads(body.decode("utf-8"))
         count = len(parsed.get("features") or []) if isinstance(parsed, dict) else 0
     except (UnicodeDecodeError, ValueError):
-        return {"_error": "That address did not return GeoJSON.", "code": "EXECUTION_FAILED",
-                "hint": "find_statistic's url, unchanged, serves GeoJSON."}
+        return tool_error("That address did not return GeoJSON.", hint="statistics_url_not_geojson")
     if not count:
-        return {"_error": "That layer carries no features, so no map was drawn.",
-                "code": "EXECUTION_FAILED"}
+        return tool_error("That layer carries no features, so no map was drawn.")
 
     path = Path(create_managed_temp_dir("statistics")) / f"{_slug(name)}.geojson"
     path.write_bytes(body)

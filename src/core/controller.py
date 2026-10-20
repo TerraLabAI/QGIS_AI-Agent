@@ -17,7 +17,7 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 from ..api.account import Account
 from ..api.terralab_client import plugin_version
-from . import telemetry
+from . import first_run_funnel, telemetry
 from . import telemetry_events as ev
 from .context import mention_candidates
 from .controller_account import _ControllerAccount
@@ -174,6 +174,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         telemetry.set_auth_provider(self._account.get_auth_header)
         telemetry.new_session()
         telemetry.start_flush_timer()
+        first_run_funnel.set_sender(self._session.send_funnel)
         if telemetry.first_open_recorded():
             telemetry.track(ev.PLUGIN_FIRST_OPEN)
 
@@ -231,6 +232,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             pass
 
     def shutdown(self) -> None:
+
+        self._shut_down = True
         self._unwatch_project()
         if hasattr(self._account, "unwatch_focus"):
             self._account.unwatch_focus()
@@ -309,10 +312,16 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         from ..tools.deps_tools import importable_libraries
 
+        facts = getattr(self, "_open_facts", None) or {}
         return {"plugin_version": plugin_version(), "qgis_version": qgis_version(),
                 "os": os_label(), "locale": self._settings.locale,
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
-                "libraries": list(importable_libraries())}
+                "libraries": list(importable_libraries()),
+
+
+                "machine": {key: value for key, value in (("load_ms", facts.get("load_ms")),
+                                                          ("panel_ms", facts.get("open_ms")))
+                            if isinstance(value, int)}}
 
     def _manifest(self) -> tuple:
 

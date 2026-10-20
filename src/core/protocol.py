@@ -77,10 +77,13 @@ class FrameType:
     EFFORT = "effort"
 
 
+    FUNNEL = "funnel"
+
+
     SEND_MANIFEST = "send_manifest"
 
     CLIENT = frozenset({HELLO, USER_MESSAGE, TOOL_RESULT, TOOL_ERROR, PERMISSION_RESPONSE, CANCEL, PING, FEEDBACK,
-                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, MANIFEST})
+                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, FUNNEL, MANIFEST})
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
          POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST}
@@ -210,7 +213,7 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
           telemetry: bool = True, improve: bool = True, last_seq: int | None = None,
           python_version: str = "", libraries: list | None = None,
           crash: dict | None = None, catalog_tag: str = "", last_drop: dict | None = None,
-          sends_on_ask: list | None = None) -> dict:
+          sends_on_ask: list | None = None, machine: dict | None = None) -> dict:
     frame = {
         "type": FrameType.HELLO,
         "activation_key": activation_key,
@@ -283,6 +286,12 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
         frame["sends_on_ask"] = [str(item) for item in sends_on_ask]
+    machine = {key: int(value) for key, value in (machine or {}).items()
+               if key in ("load_ms", "panel_ms") and isinstance(value, int) and value >= 0}
+    if machine:
+
+
+        frame["machine"] = machine
     return frame
 
 
@@ -376,10 +385,19 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
     return frame
 
 
-def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "") -> dict:
+def tool_result(tool_call_id: str, run_id: str, result: Any, code_class: str = "",
+                run_stalls: dict | None = None) -> dict:
     frame = {"type": FrameType.TOOL_RESULT, "tool_call_id": tool_call_id,
              "run_id": run_id, "result": result}
-    return _with_code_class(frame, code_class)
+    return _with_stalls(_with_code_class(frame, code_class), run_stalls)
+
+
+def _with_stalls(frame: dict, run_stalls: dict | None) -> dict:
+
+
+    if run_stalls:
+        frame["run_stalls"] = dict(run_stalls)
+    return frame
 
 
 def call_timing(arrived: float, started: float, answered: float, sent: float, phases: dict | None = None) -> dict:
@@ -463,7 +481,7 @@ def error_disposition(code: str) -> str:
 
 
 def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
-               code_class: str = "", detail: str = "") -> dict:
+               code_class: str = "", detail: str = "", run_stalls: dict | None = None) -> dict:
 
 
     frame = _with_code_class({"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
@@ -472,7 +490,7 @@ def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggesti
                               "disposition": error_disposition(code)}, code_class)
     if detail:
         frame["detail"] = str(detail)
-    return frame
+    return _with_stalls(frame, run_stalls)
 
 
 def permission_response(tool_call_id: str, run_id: str, decision: str) -> dict:
@@ -511,6 +529,12 @@ def effort_switch(run_id: str, effort: str) -> dict:
 
 
     return {"type": FrameType.EFFORT, "run_id": run_id, "effort": effort}
+
+
+def funnel(snapshot: dict) -> dict:
+
+
+    return {"type": FrameType.FUNNEL, "snapshot": snapshot}
 
 
 def ping() -> dict:

@@ -276,8 +276,3 @@ def _as_text(value: Any) -> str:
         return str(value)
     except Exception as exc:  # noqa: BLE001
         return f"<{type(value).__name__} that cannot be rendered: {type(exc).__name__}>"
-
-
-def has_secret(value: Any) -> bool:
-
-    return scrub_result(value) != value

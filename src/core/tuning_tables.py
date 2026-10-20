@@ -442,6 +442,7 @@ def _clean_withdrawn(value: Any, where: str) -> dict | None:
 
 
 
+
 _RULES_VERSION = 1
 _MAX_RULE_ROWS = 100
 _MAX_RULE_TEXT = 300
@@ -596,6 +597,54 @@ def _clean_processing_rules(value: Any, where: str) -> dict | None:
     if grids:
         out["grids"] = grids
         out["grid_reasons"] = reasons
+    out.update(_crs_rules(value, where))
+    return out
+
+
+def _crs_rules(value: dict, where: str) -> dict:
+
+
+
+    out: dict = {}
+    raw = value.get("distance_parameters")
+    if isinstance(raw, list):
+        names = [n for n in raw[:_MAX_RULE_ROWS] if isinstance(n, str) and _PARAMETER.fullmatch(n)]
+        if names:
+            out["distance_parameters"] = list(dict.fromkeys(names))
+    degrees: dict = {}
+    raw = value.get("on_degrees")
+    for alg, row in list(raw.items() if isinstance(raw, dict) else ())[:_MAX_RULE_ROWS]:
+        key = _alg_id(alg)
+        if not key or not isinstance(row, dict) or not isinstance(row.get("always"), bool):
+            continue
+        source, parameter, default = row.get("source", ""), row.get("parameter", ""), row.get("default")
+        if not isinstance(source, str) or (source and not _PARAMETER.fullmatch(source)):
+            continue
+        clean = {"always": row["always"], "source": source}
+        if isinstance(parameter, str) and _PARAMETER.fullmatch(parameter):
+            clean["parameter"] = parameter
+            if isinstance(default, (int, float)) and not isinstance(default, bool) and math.isfinite(default):
+                clean["default"] = default
+        degrees[key] = clean
+    if degrees:
+        out["on_degrees"] = degrees
+    raw = value.get("sink_fill")
+    if isinstance(raw, dict):
+        fill: dict = {}
+        marks = raw.get("marks")
+        if isinstance(marks, list):
+            kept = [m.casefold() for m in marks[:_MAX_RULE_ROWS] if isinstance(m, str) and 2 < len(m) <= 40]
+            if kept:
+                fill["marks"] = kept
+        algorithms = raw.get("algorithms")
+        if isinstance(algorithms, list):
+            kept = [a for a in (_alg_id(item) for item in algorithms[:_MAX_RULE_ROWS]) if a]
+            if kept:
+                fill["algorithms"] = kept
+        if fill:
+            out["sink_fill"] = fill
+    elif raw is not None:
+        log_warning(f"Server policy {where}.sink_fill is not a table, ignored")
     return out
 
 
@@ -617,6 +666,33 @@ def _clean_stack_rules(value: Any, where: str) -> dict | None:
     return out
 
 
+_FURNITURE = ("title", "legend", "scale bar", "north arrow")
+_FLAG = _one_of((True, False))
+
+
+def _clean_layout_rules(value: Any, where: str) -> dict | None:
+
+
+
+    if not _versioned(value, where):
+        return None
+    sections = {
+        "furniture": {"required": _subset_of(_FURNITURE), "title_points": _in_range(6.0, 72.0),
+                      "follow_main_map": _FLAG, "overlaps": _FLAG, "legend_basemaps": _FLAG},
+        "legend": dict.fromkeys(("leave_out_basemaps", "readable_names", "drop_empty_catch_all",
+                                 "drop_band_heading", "round_ramp_labels"), _FLAG),
+        "placement": {"item_gap_mm": _in_range(0.0, 30.0), "page_edge_mm": _in_range(0.0, 30.0),
+                      "inset_area_ratio": _in_range(0.0, 1.0), "subject_margin": _in_range(0.0, 0.5),
+                      "covered_share": _in_range(0.1, 1.0), "min_fill": _in_range(0.0, 1.0)},
+    }
+    out: dict = {"version": _RULES_VERSION}
+    for section, fields in sections.items():
+        part = _rule_part(value.get(section), f"{where}.{section}", fields)
+        if part:
+            out[section] = part
+    return out
+
+
 def _clean_context_rules(value: Any, where: str) -> dict | None:
     if not _versioned(value, where):
         return None
@@ -631,7 +707,259 @@ def _clean_context_rules(value: Any, where: str) -> dict | None:
     return out
 
 
+_PROVIDER_WORD = re.compile(r"[A-Za-z0-9_.+%/:,-]{1,60}")
+
+
+def _provider_word(value: Any) -> str:
+    return value if isinstance(value, str) and _PROVIDER_WORD.fullmatch(value) else ""
+
+
+def _clean_provider_rules(value: Any, where: str) -> dict | None:
+
+
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    wfs = value.get("wfs")
+    queries = wfs.get("caps_queries") if isinstance(wfs, dict) else None
+    if isinstance(queries, list):
+        kept = [dict(query) for query in queries[:6] if isinstance(query, dict) and 0 < len(query) <= 6
+                and all(_provider_word(k) and _provider_word(v) for k, v in query.items())]
+        if kept:
+            out["wfs"] = {"caps_queries": kept}
+    portals = value.get("portals")
+    if isinstance(portals, dict):
+        part: dict = {}
+        for name in ("format_ext", "hub_export_formats", "hub_file_formats"):
+            table = portals.get(name)
+            if isinstance(table, dict):
+                part[name] = {k: v for k, v in list(table.items())[:_MAX_RULE_ROWS]
+                              if _provider_word(k) and _provider_word(v)}
+        for name in ("hub_unreadable_formats", "hub_landing_names"):
+            words = portals.get(name)
+            if isinstance(words, list):
+                part[name] = [w for w in words[:_MAX_RULE_ROWS] if _provider_word(w)]
+        markers = portals.get("hub_format_markers")
+        if isinstance(markers, list):
+            part["hub_format_markers"] = [list(pair) for pair in markers[:_MAX_RULE_ROWS]
+                                          if isinstance(pair, list) and len(pair) == 2
+                                          and _provider_word(pair[0]) and _provider_word(pair[1])]
+        if part:
+            out["portals"] = part
+    return out
+
+
+_WORD = re.compile(r"[^\s]{1,40}")
+_HEX_COLOUR = re.compile(r"#[0-9A-Fa-f]{6}")
+_MAX_WORDS = 200
+
+
+def _words(value: Any, spot: str, lower: bool = True) -> list | None:
+
+    if not isinstance(value, list):
+        log_warning(f"Server policy {spot} is not a list, ignored")
+        return None
+    out = [w.strip().lower() if lower else w.strip() for w in value[:_MAX_WORDS]
+           if isinstance(w, str) and _WORD.fullmatch(w.strip()) and w.isprintable()]
+    return list(dict.fromkeys(out))
+
+
+def _word_lists(value: Any, spot: str) -> dict:
+
+    out: dict = {}
+    for name, words in list(value.items() if isinstance(value, dict) else ())[:_MAX_RULE_ROWS]:
+        clean = _words(words, f"{spot}.{name}") if isinstance(name, str) and _WORD.fullmatch(name) else None
+        if clean:
+            out[name.lower()] = clean
+    return out
+
+
+def _colours(value: Any, spot: str) -> list | None:
+    if isinstance(value, list) and value and all(isinstance(c, str) and _HEX_COLOUR.fullmatch(c)
+                                                 for c in value[:_MAX_RULE_ROWS]):
+        return list(value[:_MAX_RULE_ROWS])
+    log_warning(f"Server policy {spot} is not a list of #RRGGBB colours, ignored")
+    return None
+
+
+def _hit_rows(value: Any, spot: str, tiered: bool) -> list | None:
+
+    if not isinstance(value, list):
+        log_warning(f"Server policy {spot} is not a list, ignored")
+        return None
+    rows = []
+    for i, row in enumerate(value[:_MAX_RULE_ROWS]):
+        if not isinstance(row, dict):
+            continue
+        clean: dict = {}
+        if isinstance(row.get("type"), str) and _WORD.fullmatch(row["type"]):
+            clean["type"] = row["type"].lower()
+        if isinstance(row.get("class"), str) and _WORD.fullmatch(row["class"]):
+            clean["class"] = row["class"].lower()
+        if "osm_value" in row:
+            values = _words(row["osm_value"], f"{spot}[{i}].osm_value")
+            if not values:
+                continue
+            clean["osm_value"] = values
+        if row.get("natural") is True:
+            clean["natural"] = True
+        if tiered:
+            tier = _rule_number(row.get("tier"), 0, 9, f"{spot}[{i}].tier", whole=True)
+            if tier is None:
+                continue
+            clean["tier"] = tier
+        if len(clean) > (1 if tiered else 0):
+            rows.append(clean)
+    return rows
+
+
+def _clean_geocode_rules(value: Any, where: str) -> dict | None:
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    for name, tiered in (("tiers", True), ("big_places", False)):
+        if name in value:
+            rows = _hit_rows(value[name], f"{where}.{name}", tiered)
+            if rows:
+                out[name] = rows
+    natural = _word_lists(value.get("natural_places"), f"{where}.natural_places")
+    if natural:
+        out["natural_places"] = natural
+    if "feature_words" in value:
+        words = _words(value["feature_words"], f"{where}.feature_words")
+        if words:
+            out["feature_words"] = words
+    raw = value.get("country_words")
+    countries = {k.strip().lower(): " ".join(v.split()) for k, v in
+                 list(raw.items() if isinstance(raw, dict) else ())[:_MAX_RULE_ROWS]
+                 if isinstance(k, str) and _WORD.fullmatch(k.strip()) and isinstance(v, str)
+                 and 0 < len(v.strip()) <= 60 and v.isprintable()}
+    if countries:
+        out["country_words"] = countries
+    out.update(_rule_part(value, where, {"local_view_deg": _in_range(0.0, 20.0),
+                                         "candidates": _in_range(1, 50, whole=True)}))
+    return out
+
+
+def _clean_isochrone_rules(value: Any, where: str) -> dict | None:
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    raw = value.get("speeds_kmh")
+    speeds = {mode: speed for mode, speed in (raw.items() if isinstance(raw, dict) else ())
+              if isinstance(mode, str) and _WORD.fullmatch(mode)
+              and _rule_number(speed, 0.5, 200.0, f"{where}.speeds_kmh.{mode}") is not None}
+    if speeds:
+        out["speeds_kmh"] = speeds
+    classes = _word_lists(value.get("travel_classes"), f"{where}.travel_classes")
+    if classes:
+        out["travel_classes"] = classes
+    if "linked_classes" in value:
+        linked = _words(value["linked_classes"], f"{where}.linked_classes")
+        if linked is not None:
+            out["linked_classes"] = linked
+    return out
+
+
+def _clean_vocab_rules(value: Any, where: str) -> dict | None:
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    columns = _word_lists(value.get("csv_columns"), f"{where}.csv_columns")
+    if columns:
+        out["csv_columns"] = columns
+    raw = value.get("elevation")
+    elevation: dict = {}
+    if isinstance(raw, dict):
+        listed = raw.get("words")
+        words = [w for w in (listed[:_MAX_WORDS] if isinstance(listed, list) else ())
+                 if isinstance(w, str) and 0 < len(w) <= 60]
+        if listed is not None and not isinstance(listed, list):
+            log_warning(f"Server policy {where}.elevation.words is not a list, ignored")
+        try:
+            if words:
+                re.compile("|".join(words))
+                elevation["words"] = words
+        except re.error:
+            log_warning(f"Server policy {where}.elevation.words do not compile, ignored")
+        stops = raw.get("stops")
+        if (isinstance(stops, list) and 2 <= len(stops) <= 32
+                and all(isinstance(s, list) and len(s) == 2 and isinstance(s[1], str) and _HEX_COLOUR.fullmatch(s[1])
+                        and _rule_number(s[0], 0.0, 1.0, f"{where}.elevation.stops") is not None for s in stops)):
+            ramp = [[float(s[0]), s[1]] for s in stops]
+            offsets = [s[0] for s in ramp]
+
+            if offsets[0] == 0.0 and offsets[-1] == 1.0 and offsets == sorted(offsets):
+                elevation["stops"] = ramp
+            else:
+                log_warning(f"Server policy {where}.elevation.stops do not run in order from 0 to 1, ignored")
+        elif stops is not None:
+            log_warning(f"Server policy {where}.elevation.stops is not a list of [offset, #RRGGBB], ignored")
+    if elevation:
+        out["elevation"] = elevation
+    if "diagram_palette" in value:
+        palette = _colours(value["diagram_palette"], f"{where}.diagram_palette")
+        if palette:
+            out["diagram_palette"] = palette
+    raw = value.get("gtfs_route_colors")
+    routes = {k: c for k, c in list(raw.items() if isinstance(raw, dict) else ())[:_MAX_RULE_ROWS]
+              if isinstance(k, str) and re.fullmatch(r"[a-z_]{1,20}", k)
+              and isinstance(c, str) and _HEX_COLOUR.fullmatch(c)}
+    if routes:
+        out["gtfs_route_colors"] = routes
+    return out
+
+
+_UNKNOWN_SERVICE = object()
+
+
+def _clean_service(key: str, value: Any, where: str) -> Any:
+
+    if key in _SERVICE_URLS:
+        return _clean_service_url(value, where)
+    if key in _SERVICE_TOKENS:
+        return _clean_tokens(value, where)
+    if key in _SERVICE_HOSTS:
+        return _clean_hosts(value, where)
+    if key == "hosted_caps":
+        return _clean_caps(value, where)
+    if key == "wfs_silent_pages":
+        return _clean_silent_pages(value, where)
+    if key == "open_data_portals":
+        return _clean_portals(value, where)
+    if key == "osm_routing":
+        return _clean_osm_routing(value, where)
+    if key in ("code_classes", "code_tables"):
+        return _clean_code_classes(value, where)
+    if key == "withdrawn_hosts":
+        return _clean_withdrawn(value, where)
+    if key == "style_rules":
+        return _clean_style_rules(value, where)
+    if key == "processing_rules":
+        return _clean_processing_rules(value, where)
+    if key == "context_rules":
+        return _clean_context_rules(value, where)
+    if key == "stack_rules":
+        return _clean_stack_rules(value, where)
+    if key == "layout_rules":
+        return _clean_layout_rules(value, where)
+    if key == "provider_rules":
+        return _clean_provider_rules(value, where)
+    if key == "geocode_rules":
+        return _clean_geocode_rules(value, where)
+    if key == "isochrone_rules":
+        return _clean_isochrone_rules(value, where)
+    if key == "vocab_rules":
+        return _clean_vocab_rules(value, where)
+    return _UNKNOWN_SERVICE
+
+
 def _read_services(raw: Any) -> dict:
+
 
     out: dict = {}
     if not isinstance(raw, dict):
@@ -640,35 +968,12 @@ def _read_services(raw: Any) -> dict:
         if not isinstance(key, str):
             continue
         where = f"services.{key}"
-        if key in _SERVICE_URLS:
-            clean = _clean_service_url(value, where)
-        elif key in _SERVICE_TOKENS:
-            clean = _clean_tokens(value, where)
-        elif key in _SERVICE_HOSTS:
-            clean = _clean_hosts(value, where)
-        elif key == "hosted_caps":
-            clean = _clean_caps(value, where)
-        elif key == "wfs_silent_pages":
-            clean = _clean_silent_pages(value, where)
-        elif key == "open_data_portals":
-            clean = _clean_portals(value, where)
-        elif key == "osm_routing":
-            clean = _clean_osm_routing(value, where)
-        elif key in ("code_classes", "code_tables"):
-            clean = _clean_code_classes(value, where)
-        elif key == "withdrawn_hosts":
-            clean = _clean_withdrawn(value, where)
-        elif key == "style_rules":
-            clean = _clean_style_rules(value, where)
-        elif key == "processing_rules":
-            clean = _clean_processing_rules(value, where)
-        elif key == "context_rules":
-            clean = _clean_context_rules(value, where)
-        elif key == "stack_rules":
-            clean = _clean_stack_rules(value, where)
-        else:
+        try:
+            clean = _clean_service(key, value, where)
+        except Exception as exc:  # noqa: BLE001  # nosec B112
+            log_warning(f"Server policy {where} could not be read ({type(exc).__name__}), ignored")
             continue
-        if clean is not None:
+        if clean is not None and clean is not _UNKNOWN_SERVICE:
             out[key] = clean
     return out
 
@@ -706,6 +1011,7 @@ _CHECK_TABLES = frozenset({
     "raster_masked",
     "unsafe_threading",
     "terrain_by_cell",
+    "flow_from_dem",
     "zonal_algorithms",
     "never_grows",
     "slope_algorithms",
@@ -720,7 +1026,8 @@ _CHECK_TABLES = frozenset({
 })
 
 
-_ALG_ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789_:"
+
+_ALG_ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789_:."
 _MAX_ALG_NAMES = 200
 _MAX_ALG_CHARS = 80
 

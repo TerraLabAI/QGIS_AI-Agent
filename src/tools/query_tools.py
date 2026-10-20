@@ -265,7 +265,8 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     if isinstance(fields_arg, list) and fields_arg:
         selected = [f for f in fields_arg if f in available]
         if not selected:
-            return {"_error": f"None of the requested fields exist: {fields_arg}", "fields": names}
+            return {**tool_error(f"None of the requested fields exist: {fields_arg}", "INVALID_ARGS"),
+                    "fields": names}
 
 
         missing = [f for f in fields_arg if f not in available]
@@ -290,7 +291,7 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
         from qgis.core import QgsExpressionContext, QgsExpressionContextUtils
         expr = QgsExpression(expression)
         if expr.hasParserError():
-            return {"_error": f"Invalid expression: {expr.parserErrorString()}", "_code": "INVALID_ARGS"}
+            return tool_error(f"Invalid expression: {expr.parserErrorString()}", "INVALID_ARGS")
         request.setFilterExpression(expression)
 
 
@@ -306,12 +307,12 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     order_by = str(args.get("order_by") or "").strip()
     order_expr = None
     if args.get("descending") and not order_by:
-        return {"_error": "descending sorts by order_by, and the call gives none.", "_code": "INVALID_ARGS",
-                "_suggestion": "order_by names the field or expression the rows are sorted by."}
+        return tool_error("descending sorts by order_by, and the call gives none.", "INVALID_ARGS",
+                          hint="query_descending_needs_order_by")
     if order_by:
         order_expr = QgsExpression(order_by)
         if order_expr.hasParserError():
-            return {"_error": f"Invalid order_by: {order_expr.parserErrorString()}", "_code": "INVALID_ARGS"}
+            return tool_error(f"Invalid order_by: {order_expr.parserErrorString()}", "INVALID_ARGS")
         descending = bool(args.get("descending"))
         request.setOrderBy(QgsFeatureRequest.OrderBy([
             QgsFeatureRequest.OrderByClause(order_by, not descending, False)
@@ -507,8 +508,7 @@ def _get_features_off_thread(args: dict) -> dict:
         if callable(cancelled) and cancelled():
             halted.set()
             plan["feedback"].cancel()
-            return tool_error("Stopped while the features were read from the service.", "CANCELLED",
-                              "Nothing was changed.")
+            return tool_error("Stopped while the features were read from the service.", "CANCELLED")
     if failure:
         raise failure[0]
     collected, over_budget = out.get("page", ([], False))
@@ -593,10 +593,10 @@ def _evaluate_expression(args: dict) -> dict:
 
     expression = args.get("expression")
     if not expression:
-        return {"_error": "expression is required"}
+        return tool_error("expression is required", "INVALID_ARGS")
     expr = QgsExpression(expression)
     if expr.hasParserError():
-        return {"_error": f"Expression parser error: {expr.parserErrorString()}", "_code": "INVALID_ARGS"}
+        return tool_error(f"Expression parser error: {expr.parserErrorString()}", "INVALID_ARGS")
 
     ctx = QgsExpressionContext()
     layer = None
@@ -627,7 +627,7 @@ def _evaluate_expression(args: dict) -> dict:
             if int(feature_id) <= 0 and not needs_feature:
                 value = expr.evaluate(ctx)
                 if expr.hasEvalError():
-                    return {"_error": f"Expression evaluation error: {expr.evalErrorString()}", "_code": "INVALID_ARGS"}
+                    return tool_error(f"Expression evaluation error: {expr.evalErrorString()}", "INVALID_ARGS")
                 return {"expression": expression, "layer": layer.name(), "result": _jsonable_value(value),
                         "note": "evaluated in the layer scope, no feature: an aggregate over the whole layer",
                         **measurement}
@@ -638,7 +638,7 @@ def _evaluate_expression(args: dict) -> dict:
         ctx.setFeature(feat)
         value = expr.evaluate(ctx)
         if expr.hasEvalError():
-            return {"_error": f"Expression evaluation error: {expr.evalErrorString()}", "_code": "INVALID_ARGS"}
+            return tool_error(f"Expression evaluation error: {expr.evalErrorString()}", "INVALID_ARGS")
         return {"expression": expression, "feature_id": int(feature_id), "result": _jsonable_value(value),
                 **measurement}
 
@@ -654,10 +654,8 @@ def _evaluate_expression(args: dict) -> dict:
             ctx.setFeature(feat)
             value = expr.evaluate(ctx)
             if expr.hasEvalError():
-                return {
-                    "_error": f"Expression evaluation error on feature {feat.id()}: {expr.evalErrorString()}",
-                    "_code": "INVALID_ARGS",
-                }
+                return tool_error(f"Expression evaluation error on feature {feat.id()}: {expr.evalErrorString()}",
+                                  "INVALID_ARGS")
             results.append({"feature_id": feat.id(), "result": _jsonable_value(value)})
         return {
             "expression": expression,
@@ -673,7 +671,7 @@ def _evaluate_expression(args: dict) -> dict:
 
     value = expr.evaluate(ctx)
     if expr.hasEvalError():
-        return {"_error": f"Expression evaluation error: {expr.evalErrorString()}", "_code": "INVALID_ARGS"}
+        return tool_error(f"Expression evaluation error: {expr.evalErrorString()}", "INVALID_ARGS")
     out = {"expression": expression, "result": _jsonable_value(value), **measurement}
     if value is None and needs_feature and not is_vector:
         out["_note"] = "Result is null: the expression needs a feature but no vector layer_name was given."
@@ -790,8 +788,7 @@ def _scan_field(args: dict) -> dict:
     try:
         while True:
             if net.is_cancelled():
-                return {"_error": "The run was stopped.", "_code": "CANCELLED",
-                        "_suggestion": "The user stopped the run."}
+                return tool_error("The run was stopped.", "CANCELLED")
             if remote is not None:
                 if _stats_read(state):
                     break
@@ -845,9 +842,9 @@ def _stats_expression(layer, text: str, what: str):
 
     expr = QgsExpression(text)
     if expr.hasParserError():
-        return None, None, {"_error": f"{what} {text!r} is not a field of {layer.name()!r} and does not parse as "
-                                      f"an expression: {expr.parserErrorString()}",
-                            "code": "INVALID_ARGS", "fields": [f.name() for f in layer.fields()]}
+        return None, None, {**tool_error(f"{what} {text!r} is not a field of {layer.name()!r} and does not parse as "
+                                         f"an expression: {expr.parserErrorString()}", "INVALID_ARGS"),
+                            "fields": [f.name() for f in layer.fields()]}
     fields = layer.fields()
     for column in sorted(expr.referencedColumns()):
         if column != QgsFeatureRequest.ALL_ATTRIBUTES and fields.lookupField(column) < 0:
@@ -869,10 +866,9 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
     if not isinstance(layer, QgsVectorLayer):
         return _not_a_vector_error(layer, field)
     if not field:
-        return {"_error": f"Which field of {layer.name()!r}? This tool summarises one attribute column.",
-                "code": "INVALID_ARGS",
-                "fields": [f.name() for f in layer.fields()],
-                "suggestion": "'fields' lists the names 'field' accepts."}
+        return tool_error(f"Which field of {layer.name()!r}? This tool summarises one attribute column.",
+                          "INVALID_ARGS", hint="query_stats_field_missing",
+                          fields=[f.name() for f in layer.fields()])
     fields = layer.fields()
     index = fields.indexOf(field)
     expr = context = None
@@ -1338,11 +1334,11 @@ def _raster_sample(args: dict) -> dict:
     provider_type = layer.providerType()
     if provider_type == "wms":
         return {
-            "_error": (
+            **tool_error(
                 f"Layer '{layer.name()}' is a WMS/WMTS/XYZ tile layer and has no sampleable pixel "
-                "values (it serves rendered image tiles, not numeric bands)."
+                "values (it serves rendered image tiles, not numeric bands).",
+                "INVALID_ARGS",
             ),
-            "_code": "INVALID_ARGS",
             "provider_type": provider_type,
         }
 
@@ -1352,24 +1348,23 @@ def _raster_sample(args: dict) -> dict:
         from qgis.core import QgsCoordinateReferenceSystem
         src = QgsCoordinateReferenceSystem(crs_id)
         if not src.isValid():
-            return {"_error": f"Invalid coordinate CRS: {crs_id}", "_code": "INVALID_ARGS",
-                    "_suggestion": "An EPSG code such as EPSG:4326 is valid."}
+            return tool_error(f"Invalid coordinate CRS: {crs_id}", "INVALID_ARGS", hint="query_crs_invalid")
         if src.isValid() and src != layer.crs():
             try:
                 point = QgsCoordinateTransform(src, layer.crs(), QgsProject.instance()).transform(point)
             except Exception as e:
-                return {"_error": f"Coordinate transform failed: {e}"}
+                return tool_error(f"Coordinate transform failed: {e}", "EXECUTION_FAILED")
 
     band = int(args.get("band", 1))
     if band < 1 or band > layer.bandCount():
-        return {"_error": f"Band {band} is outside the raster's 1..{layer.bandCount()} range.",
-                "_code": "INVALID_ARGS", "_suggestion": "Bands are numbered from 1."}
+        return tool_error(f"Band {band} is outside the raster's 1..{layer.bandCount()} range.",
+                          "INVALID_ARGS", hint="raster_band_numbering")
     try:
         value, ok = layer.dataProvider().sample(point, band)
     except Exception as e:
-        return {"_error": f"Sampling failed: {e}"}
+        return tool_error(f"Sampling failed: {e}", "EXECUTION_FAILED")
     if not ok:
-        return {"_error": "No data at this location (outside extent or nodata)", "_code": "INVALID_ARGS"}
+        return tool_error("No data at this location (outside extent or nodata)", "INVALID_ARGS")
 
 
 
@@ -1713,16 +1708,15 @@ def _range_counts(np, values, read: dict, factor: float, areas=None) -> dict:
 def _get_raster_band_stats(args: dict) -> dict:
     for low, high in args.get("ranges") or ():
         if low is not None and high is not None and float(low) > float(high):
-            return {"_error": f"Range [{low}, {high}] has its low above its high, so it holds no value.",
-                    "code": "INVALID_ARGS", "suggestion": "Each range is [low, high], low first."}
+            return tool_error(f"Range [{low}, {high}] has its low above its high, so it holds no value.",
+                              "INVALID_ARGS", hint="raster_range_order")
     out = run_on_main_thread(_band_stats_on_main, args, True, timeout=limits.current("CALL_MAX_SECONDS_MAIN"))
     cancelled = net.current_cancel_check()
     sampled = out.pop("_sampled_read", None) if isinstance(out, dict) else None
     if sampled:
         measured = _sampled_band_stats(sampled, cancelled)
         if cancelled is not None and cancelled():
-            return {"_error": "The run was stopped.", "code": "CANCELLED",
-                    "suggestion": "The user stopped the run."}
+            return tool_error("The run was stopped.", "CANCELLED")
         if measured is not None:
             out.update(measured)
             return out
@@ -1736,8 +1730,7 @@ def _get_raster_band_stats(args: dict) -> dict:
         return out
     exact = _exact_band_stats(source, int(args.get("band", 1)), cancelled)
     if cancelled is not None and cancelled():
-        return {"_error": "The run was stopped.", "code": "CANCELLED",
-                "suggestion": "The user stopped the run."}
+        return tool_error("The run was stopped.", "CANCELLED")
     if exact is None:
         return out
     out.update(exact)
@@ -1886,8 +1879,8 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
 
     band = int(args.get("band", 1))
     if band < 1 or band > layer.bandCount():
-        return {"_error": f"Band {band} is outside the raster's 1..{layer.bandCount()} range.",
-                "_code": "INVALID_ARGS", "_suggestion": "Bands are numbered from 1."}
+        return tool_error(f"Band {band} is outside the raster's 1..{layer.bandCount()} range.",
+                          "INVALID_ARGS", hint="raster_band_numbering")
     provider = layer.dataProvider()
     window, why = _measured_window(layer)
     if sample_in_worker and str(layer.providerType() or "") == "gdal" and _remote_raster(layer):
@@ -1904,7 +1897,7 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
         try:
             stats = provider.bandStatistics(band)
         except Exception as e:
-            return {"_error": f"Band statistics failed: {e}"}
+            return tool_error(f"Band statistics failed: {e}", "EXECUTION_FAILED")
     out = {
         "layer": layer.name(),
         "band": band,
@@ -2103,7 +2096,6 @@ def _get_provider_capabilities(args: dict) -> dict:
         result["writable"] = False
         result["not_writable_reason"] = blocked.get("reason")
         result["not_writable_detail"] = blocked.get("_error")
-        result["not_writable_fix"] = blocked.get("suggestion")
     else:
         result["writable"] = bool(names)
     if result["field_name_limit"]:

@@ -94,26 +94,6 @@ class _SiblingsView(Mapping):
 SIBLINGS = _SiblingsView()
 
 
-
-
-
-
-
-
-
-
-
-
-_QUICKMAPSERVICES_LOCAL = {"keys": ("quick_map_services", "QuickMapServices"), "folder": "quick_map_services"}
-
-
-def quickmapservices_info() -> dict:
-
-    served = catalog.plugin_roster().get("quickmapservices") or {}
-    return {**_QUICKMAPSERVICES_LOCAL, "name": served.get("name") or "QuickMapServices",
-            "url": served.get("url") or ""}
-
-
 def _find_installed_plugin(keys: tuple[str, ...]):
     try:
         import qgis.utils
@@ -426,4 +406,3 @@ def reveal_in_open_manager(plugin_name: str, tab: int = -1, filter_text: bool = 
 def _reveal_plugin(plugin_name: str) -> None:
 
     reveal_in_open_manager(plugin_name, tab=0, filter_text=True)
-

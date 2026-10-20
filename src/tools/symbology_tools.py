@@ -441,7 +441,7 @@ def _effect_stack(specs, where: str) -> tuple:
             valid = [n for n in registry.effects() if n != "effectStack"]
             asked = spec.get("type") if isinstance(spec, dict) else spec
             return None, [], tool_error(f"{where}: unknown effect {asked!r}. Nothing was changed.",
-                                        "INVALID_ARGS", f"Effects: {', '.join(valid)}.")
+                                        "INVALID_ARGS", hint="symbology_effect_unknown", effects=valid)
         defaults = registry.createEffect(name, {}).properties()
         props, error = _merged_properties(f"{where} effect {name}", defaults,
                                           spec.get("properties") if isinstance(spec, dict) else None)
@@ -612,7 +612,7 @@ def _symbol_layer(layer, spec, allowed: list, where: str, depth: int = 0) -> tup
     created = registry.createSymbolLayer(type_name, props)
     if created is None:
         return None, None, False, tool_error(f"{where}: QGIS refused these {type_name} properties.",
-                                             "INVALID_ARGS", "Start from the defaults and change one key at a time.")
+                                             "INVALID_ARGS", hint="symbology_properties_refused")
 
 
     known = {key.lower(): key for key in defaults}
@@ -671,9 +671,10 @@ def _sub_symbol(layer, owner, allowed: list, spec, where: str, depth: int) -> tu
             probe = registry.createSymbolLayer(name, {})
             if probe is not None and probe.subSymbol() is not None:
                 owners.append(name)
-        return None, False, tool_error(
-            f"{where} draws no symbol of its own, so it takes no sub_symbol. Nothing was changed.", "INVALID_ARGS",
-            f"Types with a sub_symbol here: {', '.join(owners)}." if owners else "")
+        message = f"{where} draws no symbol of its own, so it takes no sub_symbol. Nothing was changed."
+        if not owners:
+            return None, False, tool_error(message, "INVALID_ARGS")
+        return None, False, tool_error(message, "INVALID_ARGS", hint="symbology_sub_symbol_owners", types=owners)
     if depth >= _SUB_SYMBOL_DEPTH:
         return None, False, tool_error(f"{where}: sub_symbol nests at most {_SUB_SYMBOL_DEPTH} deep.", "INVALID_ARGS")
     if isinstance(spec, list):
@@ -682,8 +683,7 @@ def _sub_symbol(layer, owner, allowed: list, spec, where: str, depth: int) -> tu
     if not isinstance(spec, dict) or unknown:
         return None, False, tool_error(
             f"{where}: sub_symbol takes symbol_layers only{' (not ' + ', '.join(unknown) + ')' if unknown else ''}. "
-            "Nothing was changed.", "INVALID_ARGS",
-            'sub_symbol: {"symbol_layers": [{"type": ..., "properties": {...}}]}, as the top-level ones.')
+            "Nothing was changed.", "INVALID_ARGS", hint="symbology_sub_symbol_shape")
     kind = {0: "marker", 1: "line", 2: "fill"}.get(int(getattr(current.type(), "value", current.type())), "symbol")
     built, summaries, error = _build_layers(layer, spec.get("symbol_layers"), _allowed_types(current.type()),
                                             f"{where} sub_symbol ({kind})", depth + 1)
@@ -969,7 +969,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     symbol_type, _symbol = _symbol_type(layer)
     if symbol_type is None:
         return None, tool_error(f"Layer {layer.name()!r} has no geometry, so it draws no symbols.", "INVALID_ARGS",
-                                "Style the layer that draws these rows, or join this table to it first.")
+                                hint="style_table_no_geometry", layer=layer.name())
     allowed = _allowed_types(symbol_type)
     registry = QgsApplication.rendererRegistry()
     try:
@@ -988,7 +988,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
         if not name:
             return None, tool_error(
                 f"{wanted!r} is not a renderer for {layer.name()!r} (a {_geometry_word(symbol_type)} layer). "
-                "Nothing was changed.", "INVALID_ARGS", f"Renderers for this layer: {', '.join(compatible)}.")
+                "Nothing was changed.", "INVALID_ARGS", hint="symbology_renderer_unknown", renderers=compatible)
 
     specs = args.get("symbol_layers")
     layers = summaries = None
@@ -1009,8 +1009,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     if name in _CLASSED and name != current_type:
         return None, tool_error(
             f"{name} classes come from a field, a ramp and a class count, which set_layer_style builds.",
-            "INVALID_ARGS", "set_layer_style (categorized or graduated), then this tool without renderer, "
-            "gives every class these symbol layers.")
+            "INVALID_ARGS", hint="symbology_classed_renderer")
     if not name or name in _CLASSED:
 
         if layers is None:
@@ -1018,14 +1017,14 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
         renderer = current.clone() if current is not None else None
         if renderer is None:
             return None, tool_error(f"Layer {layer.name()!r} has no renderer to restyle.", "INVALID_ARGS",
-                                    "renderer singleSymbol accepts the symbol_layers.")
+                                    hint="symbology_symbol_layers_renderer")
         count, error = _restyle_symbols(renderer, symbol_type, layers, keep_size=not _any_size_given(specs))
         if error:
             return None, error
         if not count:
             return None, tool_error(f"The {current_type} renderer of {layer.name()!r} draws no symbol these layers "
                                     "could go on.", "INVALID_ARGS",
-                                    "renderer singleSymbol accepts the symbol_layers.")
+                                    hint="symbology_symbol_layers_renderer")
         result["symbols_restyled"] = count
         return renderer, None
 
@@ -1040,7 +1039,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     cls = _renderer_class(name)
     if cls is None or not hasattr(cls, "convertFromRenderer"):
         return None, tool_error(f"The {name} renderer cannot be built from a call on this QGIS.", "INVALID_ARGS",
-                                "apply_style_qml with a .qml saved from the Layer Styling panel sets any renderer.")
+                                hint="symbology_renderer_not_buildable")
     if layers is not None and name in _NO_SYMBOL_LAYERS:
 
 
@@ -1064,7 +1063,7 @@ def _vector_renderer(layer, args: dict, result: dict) -> tuple:
     renderer = cls.convertFromRenderer(base)
     if renderer is None:
         return None, tool_error(f"QGIS cannot turn the {base.type()} renderer into {name}.", "INVALID_ARGS",
-                                "symbol_layers wraps a single symbol.")
+                                hint="symbology_renderer_conversion")
     if name == "RuleRenderer" and layers is not None:
         count, error = _restyle_symbols(renderer, symbol_type, layers, keep_size=not _any_size_given(specs))
         if error:
@@ -1110,23 +1109,21 @@ _VECTOR_ONLY = ("renderer", "symbol_layers", "rules", "renderer_options", "effec
 def _set_layer_symbology(args: dict) -> dict:
     target = args.get("layer_name")
     if not target:
-        return tool_error("layer_name is required.", "INVALID_ARGS", "It takes the layer name or id.")
+        return tool_error("layer_name is required.", "INVALID_ARGS", hint="style_layer_name_missing")
     layer = _find_layer(target)
     if not layer:
         return _layer_not_found_error(target)
     is_vector = isinstance(layer, QgsVectorLayer)
     is_raster = isinstance(layer, QgsRasterLayer)
     if not (is_vector or is_raster):
+        kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "unknown"
         return tool_error(f"Layer {layer.name()!r} is neither a vector nor a raster layer.", "INVALID_ARGS",
-                          "apply_style_qml sets the style of any other kind of layer.")
+                          hint="style_layer_kind_unsupported", layer=layer.name(), kind=kind)
     wrong = [k for k in (_VECTOR_ONLY if is_raster else _RASTER_ONLY) if args.get(k) not in (None, "", [], {})]
     if wrong:
         kind = "raster" if is_raster else "vector"
-        hint = ("A raster's renderer is set_raster_style (hillshade, pseudocolor); here it takes blend_mode, "
-                "opacity, resampling, brightness, contrast, saturation, gamma, min_max and stretch."
-                if is_raster else "resampling, brightness, contrast, saturation, gamma, min_max and stretch are "
-                "raster settings.")
-        return tool_error(f"Not for a {kind} layer: {', '.join(wrong)}. Nothing was changed.", "INVALID_ARGS", hint)
+        return tool_error(f"Not for a {kind} layer: {', '.join(wrong)}. Nothing was changed.", "INVALID_ARGS",
+                          hint="symbology_args_wrong_kind", variant=kind)
 
     result: dict = {"styled": layer.name()}
     renderer = None
@@ -1165,8 +1162,7 @@ def _set_layer_symbology(args: dict) -> dict:
         if error:
             return error
     if not (renderer is not None or modes or any(args.get(k) is not None for k in ("opacity",) + _RASTER_ONLY)):
-        return tool_error("Nothing to change: pass renderer, symbol_layers, rules, effect, blend_mode, opacity "
-                          "or a raster setting.", "INVALID_ARGS")
+        return tool_error("Nothing to change.", "INVALID_ARGS", hint="symbology_nothing_to_change")
 
 
     kept_style = _style_to_put_back(layer)
@@ -1249,8 +1245,7 @@ def _range_plan(layer, args: dict) -> tuple:
     if kind not in _RANGED_RENDERERS:
         return None, tool_error(
             f"{', '.join(given)}: the {kind or 'current'} renderer of {layer.name()!r} has no min/max to set. "
-            "Nothing was changed.", "INVALID_ARGS",
-            "set_raster_style singleband_gray, singleband_pseudocolor or multiband_color first, then this tool.")
+            "Nothing was changed.", "INVALID_ARGS", hint="symbology_range_renderer")
     limits = args.get("min_max") or ("cumulative_cut" if args.get("cumulative_cut") else
                                      "std_dev" if args.get("std_dev_factor") else None)
     if limits is not None and limits not in MIN_MAX:
@@ -1264,8 +1259,8 @@ def _range_plan(layer, args: dict) -> tuple:
         current = QgsRasterMinMaxOrigin.limitsString(renderer.minMaxOrigin().limits())
         limits = next((name for name, qgis in MIN_MAX.items() if qgis == current), None)
         if limits is None:
-            return None, tool_error("This layer's range was typed by hand: pass min_max with min_max_extent or "
-                                    "min_max_accuracy.", "INVALID_ARGS")
+            return None, tool_error("This layer's range was typed by hand.", "INVALID_ARGS",
+                                    hint="symbology_range_by_hand")
     plan = {"kind": kind, "limits": limits, "extent": args.get("min_max_extent") or "whole_raster",
             "accuracy": args.get("min_max_accuracy") or "estimate", "rect": None, "stretch": args.get("stretch"),
             "algorithm": None, "cut": None, "std_dev": None}
@@ -1280,7 +1275,7 @@ def _range_plan(layer, args: dict) -> tuple:
             low = high = -1.0
         if not 0 <= low < high <= 100:
             return None, tool_error(f"cumulative_cut {cut!r} is not [lower, upper] percent with 0 <= lower < "
-                                    "upper <= 100.", "INVALID_ARGS", "QGIS's default is [2, 98].")
+                                    "upper <= 100.", "INVALID_ARGS", hint="symbology_cut_default")
         plan["cut"] = (low, high)
     if limits == "std_dev":
         try:
@@ -1294,13 +1289,13 @@ def _range_plan(layer, args: dict) -> tuple:
     if limits is not None and plan["extent"] != "whole_raster":
         rect, problem = _canvas_extent(layer)
         if problem:
-            return None, tool_error(problem, "INVALID_ARGS", "min_max_extent whole_raster reads the whole raster.")
+            return None, tool_error(problem, "INVALID_ARGS", hint="symbology_extent_whole_raster")
         plan["rect"] = rect
     if plan["stretch"]:
         if kind == "singlebandpseudocolor" and plan["stretch"] == "no_stretch":
             return None, tool_error("A pseudocolor ramp always spans its min and max: no_stretch is for gray and "
                                     "multiband color. Nothing was changed.", "INVALID_ARGS",
-                                    "clip_to_min_max leaves the values outside the range undrawn.")
+                                    hint="symbology_no_stretch_pseudocolor")
         plan["algorithm"] = enum_member(QgsContrastEnhancement, "ContrastEnhancementAlgorithm",
                                         STRETCH[plan["stretch"]])
     return plan, None

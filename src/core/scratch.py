@@ -192,10 +192,6 @@ class ScratchLedger:
         self.last_report = self.report()
         return self.last_report
 
-    @property
-    def watching(self) -> bool:
-        return self._project is not None
-
     def mark(self) -> int:
 
         return len(self._order)

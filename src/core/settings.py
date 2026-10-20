@@ -352,6 +352,27 @@ def _cache_path(name: str) -> str:
     return os.path.join(state_dir(), "server-cache", f"{profile}-{name}.json")
 
 
+_CHINESE_SCRIPTS = {"hans": "zh_CN", "hant": "zh_TW"}
+_CHINESE_REGIONS = ("CN", "TW", "HK", "MO", "SG")
+
+
+def plugin_locale(tag: str) -> str:
+
+
+
+
+
+
+
+
+
+    parts = str(tag or "").replace("_", "-").split("-")
+    if parts[0].lower() == "zh" and len(parts) > 1 and parts[1].lower() in _CHINESE_SCRIPTS:
+        region = parts[2].upper() if len(parts) > 2 else ""
+        return "zh_" + region if region in _CHINESE_REGIONS else _CHINESE_SCRIPTS[parts[1].lower()]
+    return str(tag or "")[:5]
+
+
 class Settings:
     def __init__(self, settings=None):
 
@@ -817,12 +838,10 @@ class Settings:
             override = self._s.value("locale/overrideFlag", False, type=bool)
             user = self._s.value("locale/userLocale", "", type=str)
             if override and user:
-
-
-                return user[:5]
+                return plugin_locale(user)
         except Exception:  # nosec B110
             pass
-        return (QLocale.system().name() or "en")[:5]
+        return plugin_locale(QLocale.system().name() or "en")
 
 
 
@@ -1110,18 +1129,6 @@ class Settings:
                 out[project] = {str(name): "" for name in tools}
         return out
 
-    def grants(self) -> dict:
-
-
-
-
-
-
-        data = self._allow_map()
-        if _unsaved_grants:
-            data[UNSAVED_KEY] = dict(_unsaved_grants)
-        return data
-
     @staticmethod
     def _grant_key(project_path: str) -> str:
 
@@ -1164,25 +1171,6 @@ class Settings:
         tools = data.setdefault(self._grant_key(project_path), {})
         tools.setdefault(tool_name, datetime.now(timezone.utc).replace(microsecond=0).isoformat())
         self._set("allow_project", json.dumps(data))
-
-    def revoke(self, project_path: str, tool_name: str) -> bool:
-
-        if self._grant_key(project_path) == UNSAVED_KEY:
-            return _unsaved_grants.pop(tool_name, None) is not None
-        data = self._allow_map()
-        dropped = False
-        for key in self._grant_keys(project_path):
-            tools = data.get(key)
-            if not isinstance(tools, dict) or tool_name not in tools:
-                continue
-            tools.pop(tool_name, None)
-            dropped = True
-            if not tools:
-                data.pop(key, None)
-        if not dropped:
-            return False
-        self._set("allow_project", json.dumps(data))
-        return True
 
 
 

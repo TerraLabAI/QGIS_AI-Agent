@@ -376,8 +376,7 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
         background.heartbeat()
         if cancelled is not None and cancelled():
             drop()
-            return {"_error": "Stopped while the WFS was being written to disk; nothing was added.",
-                    "code": "CANCELLED", "suggestion": "The user stopped the run."}
+            return tool_error("Stopped while the WFS was being written to disk; nothing was added.", "CANCELLED")
         if budget_s is not None and time.monotonic() > started + budget_s and not halted.is_set():
             written_by_then = int(state.get("written") or 0)
             drop()
@@ -395,12 +394,12 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
         return {"_invalid": True, "_qgis_message": state["invalid"]}
     if failure:
         remove_tree(directory)
-        return {"_error": f"Writing {typename} to a GeoPackage failed: {failure[0]}", "code": "EXECUTION_FAILED"}
+        return tool_error(f"Writing {typename} to a GeoPackage failed: {failure[0]}", "EXECUTION_FAILED")
     written = int(state.get("written") or 0)
     if state.get("service_error") and not written:
         remove_tree(directory)
-        return {"_error": f"The service answered an error instead of the features of {typename}. "
-                          f"QGIS said: {state['service_error']}", "code": "EXECUTION_FAILED",
+        return {**tool_error(f"The service answered an error instead of the features of {typename}. "
+                             f"QGIS said: {state['service_error']}", "EXECUTION_FAILED"),
                 "_fields": [field_name for field_name, _number in state.get("fields") or ()]}
     if not os.path.exists(path):
         remove_tree(directory)
@@ -424,15 +423,14 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
 
             if built is not None:
                 built.release()
-            return {"_error": "The call ended before the layer could be added.", "code": "CANCELLED"}
+            return tool_error("The call ended before the layer could be added.", "CANCELLED")
         layer = background.take(built)
         if layer is None:
             layer = QgsVectorLayer(source, name, "ogr")
         if not layer.isValid():
 
             background.delete_here(layer)
-            return {"_error": f"QGIS could not read the GeoPackage written to {path}.",
-                    "code": "EXECUTION_FAILED"}
+            return tool_error(f"QGIS could not read the GeoPackage written to {path}.", "EXECUTION_FAILED")
         added["layer"] = True
         QgsProject.instance().addMapLayer(layer)
         out = {"layer_name": layer.name(), "layer_id": layer.id(),

@@ -12,6 +12,7 @@ import contextlib
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 
+from ..core import first_run_funnel
 from ..core.layer_mime import mime_has_layers
 from ..core.telemetry_errors import slot_guard
 from .bubbles import UserBubble
@@ -75,6 +76,8 @@ class _ChatPanelLayout:
         a.account_clicked.connect(self.open_settings_requested.emit)
 
         self.empty_state.examples_requested.connect(self.open_examples)
+        self.empty_state.sources_requested.connect(
+            lambda: self.composer.open_data_sources("empty_state_sources"))
         self.empty_state.tutorial_requested.connect(lambda: self._on_help("tutorial"))
         h.checkpoints_requested.connect(self.history_requested.emit)
         h.restore_requested.connect(lambda cid: self.restore_requested.emit(cid, False))
@@ -186,6 +189,7 @@ class _ChatPanelLayout:
         if self._privacy_dialog is not None:
             self._privacy_dialog.raise_()
             return
+        first_run_funnel.note_notice(declined=False)
         dialog = PrivacyNoticeDialog(self)
         dialog.accepted.connect(self._on_privacy_accepted)
         dialog.rejected.connect(self._on_privacy_declined)
@@ -210,6 +214,7 @@ class _ChatPanelLayout:
 
 
         self._privacy_on_accept = None
+        first_run_funnel.note_notice(declined=True)
         self.composer.show_warning(
             self.tr("Nothing was sent. Send again to read the notice."))
 
@@ -585,6 +590,7 @@ class _ChatPanelLayout:
             state = "error"
         detail = str(detail or "")[:500]
         self._connection = state
+        first_run_funnel.note_connection(state)
         if state == "signed_out":
             self._signed_in = False
             self._checkout_return = False

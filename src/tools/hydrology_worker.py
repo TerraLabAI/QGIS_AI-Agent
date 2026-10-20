@@ -122,7 +122,7 @@ def _delineate_watershed(args: dict) -> dict:
     try:
         return _delineate(args, _stop_checkpoint())
     except InterruptedError:
-        return tool_error("delineate_watershed was stopped: no layer was added.", "CANCELLED", "Nothing to undo.")
+        return tool_error("delineate_watershed was stopped: no layer was added.", "CANCELLED")
 
 
 def _delineate(args: dict, checkpoint) -> dict:
@@ -342,7 +342,7 @@ def _extract_stream_network(args: dict) -> dict:
     try:
         return _extract_streams(args, _stop_checkpoint())
     except InterruptedError:
-        return tool_error("extract_stream_network was stopped: no layer was added.", "CANCELLED", "Nothing to undo.")
+        return tool_error("extract_stream_network was stopped: no layer was added.", "CANCELLED")
 
 
 def _extract_streams(args: dict, checkpoint) -> dict:
@@ -838,8 +838,7 @@ def _coarsened_note(coarsened, cell_m: float, max_cells: int, dem_name: str) -> 
 
 def _stopped_answer(progress: dict) -> dict:
     loaded = " (the DEM it loaded stays)" if progress.get("dem_loaded") else ""
-    return tool_error(f"map_drainage was stopped: no watershed or stream layer was added{loaded}.", "CANCELLED",
-                      "Nothing to undo.")
+    return tool_error(f"map_drainage was stopped: no watershed or stream layer was added{loaded}.", "CANCELLED")
 
 
 def _clock_refusal(progress: dict, elapsed: float, budget: float) -> dict:

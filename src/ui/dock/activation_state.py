@@ -27,7 +27,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..font_scale import scale_px_length
+from ..font_scale import scale_px_length, scale_qss_font_px
 from ..header import letter_badge
 from ..icons import logo_pixmap, logo_size, pixmap_for
 from ..style import (
@@ -50,8 +50,8 @@ from ..styles import _CARD_MARGINS, _msg_label_qss
 from ..widgets import Spinner
 
 
-_TITLE_QSS = (f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: palette(text);"
-              " background: transparent; border: none;")
+_TITLE_QSS = (scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: palette(text);"
+              " background: transparent; border: none;"))
 _HINT_CARD_QSS = (
     f"QFrame#signinHintCard {{ background: palette(base); border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_CARD}px; }}"
@@ -61,7 +61,7 @@ _HINT_CARD_QSS = (
 
 _TOP_MARGIN = 18
 _TITLE_GAP = 14
-_HINT_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; border: none;"
+_HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; border: none;")
 
 
 class ActivationCard(QWidget):
@@ -160,7 +160,8 @@ class ActivationCard(QWidget):
             row.addWidget(check, 0, Qt.AlignmentFlag.AlignTop)
             label = QLabel(text, hint_card)
             label.setWordWrap(True)
-            label.setStyleSheet("font-size: 11px; color: palette(text); border: none; background: transparent;")
+            label.setStyleSheet(scale_qss_font_px("font-size: 11px; color: palette(text); border: none;"
+                                                  " background: transparent;"))
             row.addWidget(label, 1)
             hint_col.addLayout(row)
         connect_col.addWidget(hint_card)
@@ -177,7 +178,7 @@ class ActivationCard(QWidget):
         self._spinner = Spinner(16, parent=self._wait_section)
         status_row.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
         self._wait_status = QLabel(self.tr("Waiting for your browser sign-in..."), self._wait_section)
-        self._wait_status.setStyleSheet("font-size: 12px; color: palette(text);")
+        self._wait_status.setStyleSheet(scale_qss_font_px("font-size: 12px; color: palette(text);"))
         status_row.addWidget(self._wait_status, 0, Qt.AlignmentFlag.AlignVCenter)
         status_row.addStretch(1)
         wait_col.addLayout(status_row)
@@ -208,7 +209,7 @@ class ActivationCard(QWidget):
         code_label = QLabel(self.tr("Type the code shown in your browser:"), self._code_section)
         code_label.setWordWrap(True)
         code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        code_label.setStyleSheet("font-size: 12px; color: palette(text);")
+        code_label.setStyleSheet(scale_qss_font_px("font-size: 12px; color: palette(text);"))
         code_col.addWidget(code_label)
         code_row = QHBoxLayout()
         code_row.setSpacing(SPACE_CARD)
@@ -263,10 +264,10 @@ class ActivationCard(QWidget):
         id_col.setSpacing(2)
         self._email_label = QLabel(self._account_section)
         self._email_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._email_label.setStyleSheet("font-size: 13px; font-weight: 600; color: palette(text);")
+        self._email_label.setStyleSheet(scale_qss_font_px("font-size: 13px; font-weight: 600; color: palette(text);"))
         id_col.addWidget(self._email_label)
         connected = QLabel("✓ " + self.tr("Connected"), self._account_section)
-        connected.setStyleSheet(f"font-size: 11px; color: {MUTED};")
+        connected.setStyleSheet(scale_qss_font_px(f"font-size: 11px; color: {MUTED};"))
         id_col.addWidget(connected)
         chip_row.addLayout(id_col, 1)
         account_btn = QPushButton(self.tr("Account"), self._account_section)

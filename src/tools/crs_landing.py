@@ -90,7 +90,7 @@ def anchors(exclude_ids: tuple = ()) -> list:
             continue
         if not crs.isValid() or extent.isNull():
             continue
-        box = box_to_4326(crs, extent)
+        box = box_to_4326(extent, crs)
         if box is None or box.width() > _ANCHOR_MAX_DEGREES or box.height() > _ANCHOR_MAX_DEGREES:
             continue
         found.append((layer.name(), box))
@@ -112,7 +112,7 @@ def _km(a: QgsPointXY, b: QgsPointXY) -> float:
 
 def landing(crs, extent: QgsRectangle, anchor_list: list) -> tuple[list, float | None]:
 
-    box = box_to_4326(crs, extent)
+    box = box_to_4326(extent, crs)
     if box is None:
         return [], None
     centre = box.center()
@@ -219,7 +219,7 @@ def layer_check(layer) -> dict:
         return {}
     if not crs.isValid() or extent.isNull():
         return {}
-    own = box_to_4326(crs, extent)
+    own = box_to_4326(extent, crs)
     if own is not None and (own.width() > _ANCHOR_MAX_DEGREES or own.height() > _ANCHOR_MAX_DEGREES):
         return {}
     anchor_list = anchors(exclude_ids=(layer.id(),))

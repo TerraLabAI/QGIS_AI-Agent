@@ -32,6 +32,7 @@ import os
 import re
 
 from ..core.logger import log_debug
+from ..core.tool_registry import tool_error
 
 
 _FILLER_WORDS = frozenset(["a", "an", "the", "of", "in", "for", "layer", "data", "dataset"])
@@ -557,18 +558,14 @@ def layer_not_found(name_or_id: str) -> dict:
     names = sorted({layer.name() for layer in layers})
     text = str(name_or_id or "")
     if len(text) > 1024:
-        return {"_error": f"The layer reference has {len(text):,} characters; use the layer's name or id, "
-                         "not its provider URI or geometry.",
-                "code": "LAYER_NOT_FOUND",
-                "suggestion": "list_layers gives every layer's id.",
+        return {**tool_error(f"The layer reference has {len(text):,} characters; use the layer's name or id, "
+                             "not its provider URI or geometry.", "LAYER_NOT_FOUND", hint="layer_ref_too_long"),
                 "_candidates": [{"id": layer.id(), "name": layer.name()} for layer in layers[:6]]}
     if not text.strip():
-        return {"_error": "No layer name was given.", "code": "INVALID_ARGS",
-                "suggestion": "layer_name takes the layer's name or its id; list_layers shows both."}
+        return tool_error("No layer name was given.", "INVALID_ARGS", hint="layer_name_empty")
     if not layers:
-        return {"_error": f"Layer not found: {text!r}. The project holds no layer.",
-                "code": "LAYER_NOT_FOUND",
-                "suggestion": "The project holds no layer; add_data loads one."}
+        return tool_error(f"Layer not found: {text!r}. The project holds no layer.", "LAYER_NOT_FOUND",
+                          hint="layer_none_in_project")
     matched, _stage = match_names(text, names)
     if len(matched) > 1:
 
@@ -576,33 +573,29 @@ def layer_not_found(name_or_id: str) -> dict:
         candidates = [{"id": layer.id(), "name": layer.name()}
                       for layer in layers if layer.name() in matched][:6]
         listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in candidates)
-        return {
-            "_error": f"Layer {text!r} matches several layers: {listing}.",
-            "code": "LAYER_NOT_FOUND",
-            "suggestion": f"One of those ids, for example {candidates[0]['id']!r}, names a specific layer.",
-            "_suggestions": [c["name"] for c in candidates],
-            "_candidates": candidates,
-        }
+        return {**tool_error(f"Layer {text!r} matches several layers: {listing}.", "LAYER_NOT_FOUND",
+                             hint="layer_name_ambiguous", example_id=candidates[0]["id"]),
+                "_suggestions": [c["name"] for c in candidates], "_candidates": candidates}
     close = closest_layers(text, layers)
     msg = f"Layer not found: {text!r}."
     if close:
         listing = ", ".join(f"{c['name']!r} (id {c['id']})" for c in close)
         msg += f" Did you mean: {listing}?"
-        suggestion = f"The id {close[0]['id']!r} names {close[0]['name']!r} specifically."
+        coded = {"hint": "layer_did_you_mean", "closest_id": close[0]["id"], "closest_name": close[0]["name"]}
     else:
 
 
         shown = closest_layers(text, layers, limit=6, floor=0)
         msg += " Available: " + ", ".join(f"{c['name']!r} (id {c['id']})" for c in shown)
         msg += f" (+{len(layers) - len(shown)} more)." if len(layers) > len(shown) else "."
-        suggestion = "One of the ids here, or list_layers, names a specific layer."
+        coded = {"hint": "layer_not_found_listed"}
     added = _added_here(project)
     if added and not close:
 
 
         msg += (" This conversation added: "
                 + ", ".join(f"{c['name']!r} (id {c['id']})" for c in added) + ".")
-    return {"_error": msg, "code": "LAYER_NOT_FOUND", "suggestion": suggestion,
+    return {**tool_error(msg, "LAYER_NOT_FOUND", **coded),
             "_suggestions": [c["name"] for c in close], "_candidates": close}
 
 
@@ -745,8 +738,7 @@ def pinned_layer_gone(args: dict, pins: dict) -> dict | None:
         return {
             "_error": message,
             "code": "LAYER_NOT_FOUND",
-            "suggestion": ("The layer this call named is gone; a candidate above needs the user's own "
-                           "choice before it changes anything."),
+            "hint": "layer_write_target_gone",
             "_candidates": holds,
         }
     return None
@@ -770,8 +762,7 @@ def _loose_name_refusal(value: str, candidates: list[dict]) -> dict:
     return {
         "_error": message,
         "code": "LAYER_NOT_FOUND",
-        "suggestion": ("The id of the layer you mean names the target; changing an unnamed layer needs "
-                       "the user's own choice through ask_user first."),
+        "hint": "layer_write_target_unnamed",
         "_ambiguous": len(candidates) > 1,
         "_candidates": shown,
     }

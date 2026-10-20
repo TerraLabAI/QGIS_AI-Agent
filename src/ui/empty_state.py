@@ -12,11 +12,12 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
-    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
@@ -36,6 +37,7 @@ from .style import (
     SPACE_OUTER,
     SPACE_TIGHT,
 )
+from .widgets import FlowLayout
 
 
 
@@ -68,7 +70,8 @@ def _row(parent: QWidget, glyph: str, text: str) -> QPushButton:
     button.setStyleSheet(_ROW_QSS)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setAutoDefault(False)
-    button.setIcon(icon_for(button, glyph, _ROW_GLYPH))
+
+    button.setIcon(icon_for(button, glyph, _ROW_GLYPH, QColor(MUTED)))
     button.setIconSize(QSize(_ROW_GLYPH, _ROW_GLYPH))
     return button
 
@@ -77,6 +80,7 @@ class EmptyState(QWidget):
 
 
     examples_requested = pyqtSignal()
+    sources_requested = pyqtSignal()
     tutorial_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -109,10 +113,9 @@ class EmptyState(QWidget):
         rows_outer.setContentsMargins(0, 0, 0, 0)
         rows_outer.setSpacing(SPACE_TIGHT)
         pills = QWidget(rows)
-        rows_col = QHBoxLayout(pills)
-        rows_col.setContentsMargins(0, 0, 0, 0)
-        rows_col.setSpacing(SPACE_TIGHT)
-        rows_col.addStretch(1)
+        rows_col = FlowLayout(pills, h_spacing=SPACE_TIGHT, v_spacing=SPACE_TIGHT,
+                              centred=True)
+
 
 
 
@@ -120,10 +123,13 @@ class EmptyState(QWidget):
         self._examples_row = _row(pills, "book", self.tr("Examples"))
         self._examples_row.clicked.connect(self.examples_requested.emit)
         rows_col.addWidget(self._examples_row)
+
         self._tutorial_row = _row(pills, "play", self.tr("Tutorial"))
         self._tutorial_row.clicked.connect(self.tutorial_requested.emit)
         rows_col.addWidget(self._tutorial_row)
-        rows_col.addStretch(1)
+        self._sources_row = _row(pills, "lu.database", self.tr("Data"))
+        self._sources_row.clicked.connect(self.sources_requested.emit)
+        rows_col.addWidget(self._sources_row)
         rows_outer.addWidget(pills)
 
 

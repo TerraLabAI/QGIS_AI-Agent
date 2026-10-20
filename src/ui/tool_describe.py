@@ -624,6 +624,9 @@ def card_effect(name: str, args) -> str:
             return _processing_effect(name, args)
         if card == "gpkg":
             return _gpkg_effect(name, args)
+        declared = spec(name)
+        if declared is not None and declared.writes_page and declared.replaces_file_at:
+            return _page_effect(str(args.get(declared.replaces_file_at) or ""))
     except Exception:  # noqa: BLE001
         return ""
     return ""
@@ -659,6 +662,20 @@ def _processing_effect(name: str, args: dict) -> str:
     else:
         parts.append(tr("The input is only read, not changed."))
     return " ".join(parts)
+
+
+def _page_effect(raw: str) -> str:
+
+    from ..core import security
+
+    if not raw.strip():
+        return ""
+    path = security.expand_path(raw.strip())
+    file_name = os.path.basename(path)
+    folder = os.path.basename(os.path.dirname(path)) or os.path.dirname(path)
+    if os.path.isfile(path):
+        return tr("It replaces {file} in {folder}.").format(file=file_name, folder=folder)
+    return tr("Saved as {file} in {folder}.").format(file=file_name, folder=folder)
 
 
 def _gpkg_effect(name: str, args: dict) -> str:

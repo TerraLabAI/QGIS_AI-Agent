@@ -109,8 +109,7 @@ def _print_layout(name, role: str):
     what = "is a report, and a report cannot hold another report" if layout is not None else "is not a print layout"
     return None, tool_error(
         f"{role} '{name}' {what}. Print layouts in this project: {existing[:20]}.",
-        "INVALID_ARGS",
-        "list_layouts names the print layouts; create_print_layout makes one.")
+        "INVALID_ARGS", hint="report_print_layout_names")
 
 
 def _level_specs(args: dict):
@@ -118,19 +117,19 @@ def _level_specs(args: dict):
     levels = args.get("levels") or []
     if not isinstance(levels, list) or not 1 <= len(levels) <= MAX_LEVELS:
         return None, tool_error(f"levels takes 1 to {MAX_LEVELS} levels, outermost first.", "INVALID_ARGS",
-                                "levels is [{layer, field, body_layout}] for one level, the next inside it.")
+                                hint="report_levels_shape")
     specs = []
     for index, level in enumerate(levels, start=1):
         if not isinstance(level, dict):
             return None, tool_error(f"Level {index} is not an object.", "INVALID_ARGS",
-                                    "Each level is {layer, field, body_layout}.")
+                                    hint="report_level_object")
         layer = _find_layer(str(level.get("layer") or ""))
         if layer is None:
             return None, _layer_not_found_error(str(level.get("layer") or ""))
         if not isinstance(layer, QgsVectorLayer):
             return None, tool_error(f"Level {index}: {layer.name()} is not a vector layer, and a report section "
                                     "walks the features of one.", "INVALID_ARGS",
-                                    "list_layers names them.")
+                                    hint="stats_layer_not_vector")
         field_index = layer.fields().lookupField(str(level.get("field") or ""))
         if field_index < 0:
             return None, _field_not_found_error(layer, str(level.get("field") or ""))
@@ -149,7 +148,7 @@ def _level_specs(args: dict):
         return None, tool_error(
             f"The innermost level ({specs[-1]['layer'].name()} by {specs[-1]['field']}) has no body_layout, so "
             "the report would print no page for it.", "INVALID_ARGS",
-            "body_layout on the last level is the print layout each of its features gets a page of.")
+            hint="report_last_level_body")
     return specs, None
 
 
@@ -169,8 +168,7 @@ def _nesting_error(specs: list):
             f"(no relation or expression can stand in), so without it every feature of "
             f"{child['layer'].name()} would print under every {parent['field']}.",
             "INVALID_ARGS",
-            f"{child['layer'].name()} needs a {parent['field']} field holding the value of the level above "
-            f"(for features inside the parent's shapes, run_processing native:joinattributesbylocation).")
+            hint="report_level_needs_parent_field", child=child["layer"].name(), field=parent["field"])
     return None
 
 
@@ -206,9 +204,7 @@ def _repeat_error(specs: list):
             f"{spec['field']} = {repeated}: each of them would get its own page, with every page of the level "
             f"inside printed again after each one.",
             "INVALID_ARGS",
-            f"Without body_layout, level {spec['level']} walks each {spec['field']} value once, and "
-            f"header_layout on the level inside gives each value its opening page; a layer with one "
-            f"feature per {spec['field']} also works.")
+            hint="report_level_body_repeats", level=spec["level"], field=spec["field"])
     return None
 
 
@@ -240,17 +236,16 @@ def _follow_feature(layout) -> int:
 def _create_report(args: dict) -> dict:
     name = str(args.get("name") or "").strip()
     if not name:
-        return tool_error("name is empty.", "INVALID_ARGS", "name is what the report gets in the Layout Manager.")
+        return tool_error("name is empty.", "INVALID_ARGS", hint="report_name_is")
     manager = QgsProject.instance().layoutManager()
     existing = manager.layoutByName(name)
     if existing is not None:
         if getattr(existing, "pageCollection", None) is not None:
             return tool_error(f"A print layout is already called '{name}', and a report never replaces one.",
-                              "INVALID_ARGS", "Another name works too.")
+                              "INVALID_ARGS", hint="report_layout_name_taken")
         if not args.get("replace"):
             return tool_error(f"A report called '{name}' already exists.", "INVALID_ARGS",
-                              "replace:true rebuilds it, when the user wants that; another name also "
-                              "works.")
+                              hint="report_name_taken")
 
 
 
@@ -312,10 +307,10 @@ def _create_report(args: dict) -> dict:
         manager.removeLayout(existing)
     if not manager.addLayout(report):
         return tool_error(f"QGIS did not add the report '{name}' to the project.", "EXECUTION_FAILED",
-                          "list_layouts shows whether a layout of that name appeared meanwhile.")
+                          hint="report_not_added")
 
     counted = walk(report, _INFO_WALK_SECONDS)
-    out = {"report": name, "levels": described, "pages": counted["pages"]}
+    out = {"report": name, "object": {"kind": "layout", "name": name}, "levels": described, "pages": counted["pages"]}
     if not counted["complete"]:
         out["pages"] = f"more than {counted['pages']}"
     out["pages_by_part"] = counted["by_part"]
@@ -331,8 +326,10 @@ def _create_report(args: dict) -> dict:
     for spec, level in zip(specs, described):
 
         if level.get("maps_following_feature") == 0 and spec["layer"].isSpatial():
-            notes.append(f"No map of level {level['level']}'s body follows its feature; add_layout_map on "
-                         f"{level['body_layout']} adds one, and replace:true rebuilds it.")
+            notes.append(f"No map of level {level['level']}'s body follows its feature.")
+            if "map_missing_hint" not in out:
+                out["map_missing_layout"] = level["body_layout"]
+                out["map_missing_hint"] = "report_level_map_missing"
     for position, (outer, inner) in enumerate(zip(specs, specs[1:])):
 
 
@@ -343,11 +340,14 @@ def _create_report(args: dict) -> dict:
                       if any(part.startswith(f"level {spec['level']} ") for spec in deeper))
         if counted["complete"] and outer["layer"].featureCount() > 0 and not printed:
             notes.append(f"No feature of {inner['layer'].name()} matched a {outer['field']} of level "
-                         f"{outer['level']}: the two {outer['field']} fields must hold the same values.")
+                         f"{outer['level']}.")
+            out["no_match_field"] = outer["field"]
+            out["no_match_hint"] = "report_levels_no_match"
             break
     if notes:
         out["notes"] = notes
-    out["next"] = f"export_layout with layout_name '{name}' and a .pdf output_path writes every page into one PDF."
+    out["report_name"] = name
+    out["next_hint"] = "report_export_pdf"
     return out
 
 
@@ -468,8 +468,7 @@ def report_summary(report) -> dict:
            "pages_by_part": counted["by_part"]}
     if counted["preview"]:
         out["first_pages"] = counted["preview"]
-    out["note"] = ("A report's pages are copies of print layouts, made when it was created; replace:true "
-                   "on create_report rebuilds them after a layout change.")
+    out["note_hint"] = "report_pages_are_copies"
     return out
 
 
@@ -542,15 +541,11 @@ def _refuse_over_budget(report, plan: dict, dpi: int, budget: float) -> dict:
     sections = report.childSections()
     if sections and isinstance(sections[0], QgsReportSectionFieldGroup):
         first_field = sections[0].field()
-    advice = (f"About {fit} pages fit in one export here. " if fit else
-              "Not even the first pages fit in one export here. ")
-    advice += (f"A dpi under {dpi} draws each page faster (pages drawn from rasters or tiles most of all), or "
-               f"run create_report on a layer holding fewer {first_field or 'groups'} "
-               "(native:extractbyexpression) and export each part.")
     return limits.refusal(
         f"Report '{report.name()}'", f"{total} pages at about {per_page:.2f} s each, measured on its first "
         f"pages, so about {plan['seconds']:.0f} s of export", f"{budget:.0f} s that one export may hold QGIS",
-        advice)
+        "", hint="report_export_pages_fit" if fit else "report_export_none_fit", fit=fit,
+        dpi=int(dpi), groups=first_field or "groups")
 
 
 def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> dict:
@@ -567,18 +562,17 @@ def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> d
     name = report.name()
     if fmt not in ("pdf",) + _IMAGE_FORMATS:
         return tool_error(f"A report exports to pdf, png, jpg or tif, not {fmt}.", "INVALID_ARGS",
-                          "A .pdf output_path gives one file with every page.")
+                          hint="report_export_pdf_one_file")
     for key, why in (("scale", "each body map follows its own feature"),
                      ("meters_per_pixel", "each body map follows its own feature, at its own scale"),
                      ("georeference", "its pages show different places")):
         if args.get(key) not in (None, False):
             return tool_error(f"{key} does not apply to a report: {why}.", "INVALID_ARGS",
-                              f"A report export without {key} works; a standalone layout export supports "
-                              "one page at an exact scale or resolution.")
+                              hint="report_export_key_not_applicable", key=key)
     parts = _parts(report)
     if not parts:
         return tool_error(f"The report '{name}' has no section to print.", "INVALID_ARGS",
-                          "create_report builds it, giving every level a body.")
+                          hint="report_export_no_section")
 
 
     asked_dpi = dpi
@@ -605,7 +599,7 @@ def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> d
     plan = _plan(report, fmt, dpi, base, ext, budget, started)
     if plan["pages"] == 0:
         return tool_error(f"The report '{name}' has no page: its coverage layers have no feature.",
-                          "INVALID_ARGS", "get_layout_info on the report shows the layers.")
+                          "INVALID_ARGS", hint="report_export_no_page")
     if plan["fit"] is not None or not plan["complete"]:
         return _refuse_over_budget(report, plan, dpi, budget)
     names = plan["names"]
@@ -613,8 +607,7 @@ def export_report(report, args: dict, fmt: str, output_path: str, dpi: int) -> d
     taken = [path for path in names if os.path.exists(path)]
     if taken and not overwrite:
         return tool_error(f"{len(taken)} of the {len(names)} page files already exist, the first "
-                          f"{taken[0]}.", "INVALID_ARGS",
-                          "overwrite:true replaces them; that is the user's call.")
+                          f"{taken[0]}.", "INVALID_ARGS", hint="report_pages_exist")
 
     if fmt == "pdf":
         settings = QgsLayoutExporter.PdfExportSettings()

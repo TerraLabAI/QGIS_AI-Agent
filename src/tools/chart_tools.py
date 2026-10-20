@@ -127,10 +127,10 @@ def _check_args(args: dict) -> dict | None:
     y_field = str(args.get("y_field") or "").strip()
     aggregate = str(args.get("aggregate") or "").strip()
     if not x_field:
-        return tool_error("x_field is missing.", "INVALID_ARGS", "x_field names the field the chart is about.")
+        return tool_error("x_field is missing.", "INVALID_ARGS", hint="chart_x_field_missing")
     if aggregate and aggregate not in AGGREGATES:
         return tool_error(f"aggregate {aggregate!r} is not one this tool knows.", "INVALID_ARGS",
-                          "count, sum or mean fits.")
+                          hint="chart_aggregate_values")
     if kind == "histogram" and y_field:
         return tool_error(
             "A histogram counts the values of one field, so it takes no y_field.", "INVALID_ARGS",
@@ -175,7 +175,9 @@ def _not_numeric(layer, field: dict, kind: str, axis: str) -> dict:
     message = (f"{field['name']!r} holds {_KIND_WORDS[field['kind']]} values, and the {axis} axis of a {kind} "
                "needs numbers.")
     if kind != "histogram":
-        return tool_error(message, "INVALID_ARGS", listed)
+        facts = {} if numeric else {"variant": "none"}
+        return tool_error(message, "INVALID_ARGS", hint="chart_numeric_fields", layer=layer.name(),
+                          numeric=numeric[:12], **facts)
     return tool_error(f"{message} {listed}", "INVALID_ARGS", hint="chart_not_numeric", field=field["name"],
                       field_kind=_KIND_WORDS[field["kind"]],
                       **({"variant": "text"} if field["kind"] == "text" else {}))
@@ -227,7 +229,7 @@ def _plan(args: dict) -> dict:
         expression = QgsExpression(text)
         if expression.hasParserError():
             return tool_error(f"filter does not parse: {expression.parserErrorString()[:200]}", "INVALID_ARGS",
-                              "A QGIS expression, for example \"height\" > 5 AND \"species\" = 'oak'.")
+                              hint="chart_filter_expression")
         everything = getattr(QgsFeatureRequest, "ALL_ATTRIBUTES", "#!allattributes!#")
         referenced = set(expression.referencedColumns())
         unknown = sorted(c for c in referenced if c != everything and fields.indexOf(c) < 0)
@@ -301,7 +303,7 @@ def _output_target(args: dict, plan: dict):
             target += ".png"
         elif extension != ".png":
             return None, tool_error(f"{os.path.basename(target)} is not a PNG name.", "INVALID_ARGS",
-                                    "output_path ends in .png: a PNG is written.")
+                                    hint="chart_png_name")
         error = security.validate_path(target, write=True)
         if error:
             return None, tool_error(error, "PERMISSION_DENIED", hint="chart_output_path_refused")
@@ -318,8 +320,9 @@ def _output_target(args: dict, plan: dict):
         if not os.path.exists(candidate):
             error = security.validate_path(candidate, write=True)
             if error:
-                hint = "" if isinstance(error, CodedText) else "output_path sits under your home folder."
-                return None, tool_error(error, "PERMISSION_DENIED", hint)
+                if isinstance(error, CodedText):
+                    return None, tool_error(error, "PERMISSION_DENIED")
+                return None, tool_error(error, "PERMISSION_DENIED", hint="chart_output_path_refused")
             return candidate, None
     return None, tool_error(f"{folder} already holds 999 charts named {stem}.", "INVALID_ARGS",
                             hint="chart_name_space_full", folder=folder, stem=stem)
@@ -954,7 +957,7 @@ def _render(plan: dict, chart: dict, note: str):
 
 
 def _stopped() -> dict:
-    return tool_error("Stopped before the chart was written.", "CANCELLED", "No file was written.")
+    return tool_error("Stopped before the chart was written.", "CANCELLED", hint="georef_stopped_nothing_written")
 
 
 def _remove(path: str) -> None:

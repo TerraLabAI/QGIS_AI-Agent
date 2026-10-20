@@ -16,6 +16,7 @@ from ..core import licence, limits, output_paths
 from ..core.host_platform import retry_file_op
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
+from ..core.tool_registry import tool_error
 from .layout_pixel_units import PixelSizeHold
 
 
@@ -104,29 +105,26 @@ def _dpi_for_ground(exporter, reference, metres, max_dpi: int, measure=None):
     except (TypeError, ValueError):
         metres = 0.0
     if not metres > 0 or not math.isfinite(metres):
-        return {"_error": "meters_per_pixel must be a positive number.", "_code": "INVALID_ARGS",
-                "_suggestion": "The ground size of one pixel, in metres, for example 1.0."}
+        return tool_error("meters_per_pixel must be a positive number.", "INVALID_ARGS",
+                          hint="layout_ground_size_invalid")
     if _metres_per_map_unit(reference.crs()) is None:
-        return {"_error": "The layout's map is in degrees, so a pixel size in metres has no single dpi.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "A projected CRS (the UTM zone of the area), or dpi directly, gives one dpi."}
+        return tool_error("The layout's map is in degrees, so a pixel size in metres has no single dpi.",
+                          "INVALID_ARGS", hint="layout_pixel_size_geographic")
     at_100 = measure() if measure is not None else _ground_per_pixel(exporter, reference, 100)[0]
     if not at_100 > 0:
-        return {"_error": "The layout's map has no extent to measure a pixel size from.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "get_layout_info shows whether the map item covers the area."}
+        return tool_error("The layout's map has no extent to measure a pixel size from.",
+                          "EXECUTION_FAILED", hint="layout_map_extent_empty")
     dpi = 100.0 * at_100 / metres
     if dpi > max_dpi:
         finest = at_100 * 100.0 / max_dpi
-        return limits.refusal(
-            f"meters_per_pixel {metres:g}", f"{dpi:,.0f} dpi on this layout", f"{max_dpi} dpi",
-            f"meters_per_pixel {math.ceil(finest * 100) / 100:.2f} or more fits here, or run_processing "
-            f"native:rasterize with MAP_UNITS_PER_PIXEL {metres:g} and async=true for a GeoTIFF.")
+        refused = limits.refusal(
+            f"meters_per_pixel {metres:g}", f"{dpi:,.0f} dpi on this layout", f"{max_dpi} dpi", "")
+        refused.update(hint="layout_pixel_size_too_fine", finest=math.ceil(finest * 100) / 100, metres=metres)
+        return refused
     if dpi < 10:
         coarsest = at_100 * 10.0
-        return {"_error": f"meters_per_pixel {metres:g} is coarser than 10 dpi on this layout.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": f"meters_per_pixel {coarsest:.2f} or less fits here, or a smaller layout page."}
+        return tool_error(f"meters_per_pixel {metres:g} is coarser than 10 dpi on this layout.",
+                          "INVALID_ARGS", hint="layout_pixel_size_coarse", coarsest=coarsest)
     return round(dpi, 4)
 
 
@@ -166,13 +164,11 @@ def _write_georeference(exporter, reference, image_path: str, dpi: float, fmt: s
         with open(world, "w", encoding="ascii", newline="") as handle:
             handle.write("".join(f"{value:.12f}\r\n" for value in lines))
     except OSError as exc:
-        return {"_error": f"{os.path.basename(image_path)} was written, but its world file could not be: {exc}",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "The image is not georeferenced; a writable folder allows the world file."}
+        return tool_error(f"{os.path.basename(image_path)} was written, but its world file could not be: {exc}",
+                          "EXECUTION_FAILED", hint="layout_world_file_unwritable")
     if not os.path.isfile(world):
-        return {"_error": f"{os.path.basename(image_path)} was written, but no world file is on disk.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "The image is not georeferenced."}
+        return tool_error(f"{os.path.basename(image_path)} was written, but no world file is on disk.",
+                          "EXECUTION_FAILED", hint="layout_world_file_missing")
     crs = reference.crs()
     out = {"georeferenced": True, "world_file": world, "crs": crs.authid() or crs.description()}
     wkt = _crs_wkt(crs) if fmt != "tif" else ""
@@ -418,13 +414,10 @@ def _export_failure(result) -> dict:
     if result == enum_member(QgsLayoutExporter, "ExportResult", "FileError", None):
 
 
-        suggestion = "Another folder, such as the project folder, may accept it."
+        hint = "layout_export_file_refused"
     else:
-        suggestion = ("A lower dpi, the heaviest layer hidden with set_layers_visibility, or a "
-                      "smaller page reduces it.")
-    return {"_error": f"The layout was not exported: {name}.",
-            "_code": "EXECUTION_FAILED",
-            "_suggestion": suggestion}
+        hint = "layout_export_heavy"
+    return tool_error(f"The layout was not exported: {name}.", "EXECUTION_FAILED", hint=hint)
 
 
 def _open_to_append(path: str) -> None:
@@ -444,16 +437,15 @@ def _unwritable_target(output_path: str) -> dict | None:
         return None
     stem, extension = os.path.splitext(os.path.basename(output_path))
     if not os.access(output_path, os.W_OK):
-        why, then = "is read-only", "making it writable also works"
+        why, hint = "is read-only", "layout_export_target_readonly"
     else:
         try:
             retry_file_op(_open_to_append, output_path)
             return None
         except OSError:
-            why, then = "is open in another program", "closing it there also works"
-    return {"_error": f"{output_path} {why}, so the layout cannot be exported over it.",
-            "_code": "EXECUTION_FAILED",
-            "_suggestion": f"Another file name, such as {stem}_2{extension}, avoids it; {then}."}
+            why, hint = "is open in another program", "layout_export_target_open"
+    return tool_error(f"{output_path} {why}, so the layout cannot be exported over it.", "EXECUTION_FAILED",
+                      hint=hint, alternative=f"{stem}_2{extension}")
 
 
 def _page_text(layout) -> str:
@@ -486,20 +478,18 @@ def _apply_scale(reference_map, wanted, layout_name: str):
     except (TypeError, ValueError):
         wanted = 0.0
     if not math.isfinite(wanted) or wanted < 1:
-        return {"_error": "scale must be a number of 1 or more, the denominator of 1:scale.",
-                "_code": "INVALID_ARGS", "_suggestion": "25000 gives a map at 1:25000."}
+        return tool_error("scale must be a number of 1 or more, the denominator of 1:scale.",
+                          "INVALID_ARGS", hint="layout_scale_invalid")
     if reference_map is None:
-        return {"_error": f"Layout '{layout_name}' has no map item, so it has no scale to set.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "add_layout_map adds a map; scale then applies to it."}
+        return tool_error(f"Layout '{layout_name}' has no map item, so it has no scale to set.",
+                          "INVALID_ARGS", hint="layout_no_map")
     before = QgsRectangle(reference_map.extent())
     reference_map.setScale(wanted)
     got = reference_map.scale()
     if not got > 0 or abs(got - wanted) > wanted * 0.001:
         reference_map.zoomToExtent(before)
-        return {"_error": f"The map could not be set to 1:{wanted:,.0f}; it reads 1:{got:,.0f}.",
-                "_code": "EXECUTION_FAILED",
-                "_suggestion": "get_layout_info shows whether the map item has a CRS and an extent."}
+        return tool_error(f"The map could not be set to 1:{wanted:,.0f}; it reads 1:{got:,.0f}.",
+                          "EXECUTION_FAILED", hint="layout_scale_not_applied")
     after = reference_map.extent()
     if after.width() < before.width() * 0.999 or after.height() < before.height() * 0.999:
         return (f"At 1:{wanted:,.0f} the map frame shows {_ground_text(reference_map, after)} around "
@@ -527,7 +517,7 @@ def _save_template(layout, output_path: str, created_folder: str, scale_note: st
     context = QgsReadWriteContext()
     context.setPathResolver(QgsProject.instance().pathResolver())
     if not layout.saveAsTemplate(output_path, context) or not os.path.isfile(output_path):
-        return {"_error": f"QGIS could not write the template {output_path}.", "_code": "EXECUTION_FAILED"}
+        return tool_error(f"QGIS could not write the template {output_path}.", "EXECUTION_FAILED")
     out = {"exported": output_path, "format": "qpt", "file_size": os.path.getsize(output_path),
            "reuse": "create_print_layout(name, template_path) makes a new layout from this file."}
     if scale_note:
@@ -551,10 +541,8 @@ def _output_folder(output_path: str, args: dict) -> tuple:
         return "", None
     meant = "" if args.get("create_folder") else output_paths.near_existing_folder(folder)
     if meant:
-        return "", {"_error": f"The folder {folder} does not exist, and {meant} does.",
-                    "_code": "INVALID_ARGS",
-                    "_suggestion": f"{meant} exists; create_folder:true makes a new folder, which the user "
-                                   "asks for."}
+        return "", tool_error(f"The folder {folder} does not exist, and {meant} does.", "INVALID_ARGS",
+                              hint="layout_export_folder_misspelt")
     os.makedirs(folder, exist_ok=True)
     return folder, None
 
@@ -660,14 +648,12 @@ def _not_drawn(ready: dict, layout_name: str) -> dict:
 
 
     if ready["stopped"]:
-        return {"_error": "The export was stopped while its maps were being drawn; no file was written.",
-                "code": "CANCELLED"}
+        return tool_error("The export was stopped while its maps were being drawn; no file was written.",
+                          "CANCELLED")
     late = ready["unfinished"]
-    return {"_error": (f"The maps of '{layout_name}' did not finish drawing in the time a call has, so "
-                       f"nothing was exported. Still drawing: {', '.join(late[:6])}."),
-            "_code": "TIMEOUT", "slow_layers": late,
-            "_suggestion": "A lower dpi, a smaller page or map frame, or hiding a layer drawn over the "
-                           "network, draws less."}
+    return tool_error(f"The maps of '{layout_name}' did not finish drawing in the time a call has, so "
+                      f"nothing was exported. Still drawing: {', '.join(late[:6])}.",
+                      "TIMEOUT", hint="layout_export_not_drawn", slow_layers=late)
 
 
 def _export_layout(args: dict) -> dict:
@@ -689,9 +675,7 @@ def _export_layout_with(args: dict, ready) -> dict:
     output_path = args["output_path"]
     fmt, fmt_error = _export_format(args, output_path)
     if fmt_error:
-        return {"_error": fmt_error, "_code": "INVALID_ARGS",
-                "_suggestion": "format matching the file name, or no format at all, lets the "
-                               "extension decide."}
+        return tool_error(fmt_error, "INVALID_ARGS", hint="layout_format_mismatch")
     dpi, requested, ceiling_note, max_dpi = _asked_dpi(args)
     wanted_ground = args.get("meters_per_pixel")
 
@@ -704,10 +688,10 @@ def _export_layout_with(args: dict, ready) -> dict:
 
     path_error = validate_path(output_path, write=True)
     if path_error:
-        return {"_error": path_error}
+        return tool_error(path_error, "INVALID_ARGS")
 
     if not overwrite and os.path.exists(output_path):
-        return {"_error": f"File already exists: {output_path}. overwrite:true replaces it."}
+        return tool_error(f"File already exists: {output_path}. overwrite:true replaces it.", "INVALID_ARGS")
     refused = _unwritable_target(output_path)
     if refused:
         return refused
@@ -715,7 +699,7 @@ def _export_layout_with(args: dict, ready) -> dict:
     manager = QgsProject.instance().layoutManager()
     layout = manager.layoutByName(layout_name)
     if not layout:
-        return {"_error": f"Layout not found: {layout_name}"}
+        return tool_error(f"Layout not found: {layout_name}", "INVALID_ARGS")
     if getattr(layout, "pageCollection", None) is None:
 
 
@@ -742,20 +726,18 @@ def _export_layout_with(args: dict, ready) -> dict:
     reference_map = layout.referenceMap()
 
     if wanted_ground is not None and fmt not in _IMAGE_FORMATS:
-        return {"_error": f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
-                "_code": "INVALID_ARGS", "_suggestion": "png, jpg and tif take a ground resolution."}
+        return tool_error(f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
+                          "INVALID_ARGS", hint="layout_ground_size_format")
     if georeference and fmt in ("svg", "qpt"):
-        return {"_error": f"{'An SVG' if fmt == 'svg' else 'A layout template'} cannot carry a georeference.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "pdf gives a GeoPDF; png, jpg and tif give an image with a world file."}
+        return tool_error(f"{'An SVG' if fmt == 'svg' else 'A layout template'} cannot carry a georeference.",
+                          "INVALID_ARGS", hint="layout_georeference_format")
     exporter = QgsLayoutExporter(layout)
 
 
     reference = reference_map if georeference and fmt in _IMAGE_FORMATS else None
     if georeference and fmt in _IMAGE_FORMATS and reference is None:
-        return {"_error": f"Layout '{layout_name}' has no map item, so the image cannot be georeferenced.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "add_layout_map adds a map; without georeference the export needs none."}
+        return tool_error(f"Layout '{layout_name}' has no map item, so the image cannot be georeferenced.",
+                          "INVALID_ARGS", hint="layout_georeference_needs_map")
     scale_note = ""
     pre_scale_extent = None
     if wanted_scale is not None:
@@ -833,7 +815,7 @@ def _export_layout_with(args: dict, ready) -> dict:
     exported = False
     try:
         if fmt not in _IMAGE_FORMATS and fmt not in ("pdf", "svg"):
-            return {"_error": f"Unsupported format: {fmt}"}
+            return tool_error(f"Unsupported format: {fmt}", "INVALID_ARGS")
 
         result = layout_ready.drawn(layout, ready, export, paint_dpi)
         exported = True
@@ -863,7 +845,8 @@ def _export_layout_with(args: dict, ready) -> dict:
             actual_path = generated
         else:
             _restore_scale_on_refusal(reference_map, pre_scale_extent)
-            return {"_error": f"Export reported success but no output file was found at {output_path}"}
+            return tool_error(f"Export reported success but no output file was found at {output_path}",
+                              "EXECUTION_FAILED")
 
     out = {
         "exported": actual_path,

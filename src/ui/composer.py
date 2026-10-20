@@ -42,7 +42,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import drafts, limits
+from ..core import drafts, first_run_funnel, limits
 from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
 from ..core.settings import account_tag
@@ -59,6 +59,7 @@ from .attachments import (
 )
 from .composer_input import ComposerInput
 from .effort_chip import EffortChip, effort_texts
+from .font_scale import scale_qss_font_px
 from .icons import icon_for, paper_of
 from .layer_card import LayerCard
 from .layer_icons import layer_name, resolve_layer
@@ -91,9 +92,10 @@ _SEND_SIZE = BTN_PX
 _DISC_GLYPH = 16
 _HINT_MS = 2500
 _OFFLINE_GRACE_MS = 15000
-_HINT_QSS = f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;"
+_HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;")
 
-_HINT_WARN_QSS = f"font-size: {FONT_HINT}px; color: {WARNING_TEXT}; background: transparent; border: none;"
+_HINT_WARN_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {WARNING_TEXT};"
+                                   " background: transparent; border: none;")
 _HINT_WARN_MS = 6000
 _ROW_PAD_X = SPACE_OUTER
 _CHIP_GAP = SPACE_TIGHT
@@ -456,7 +458,9 @@ class Composer(QFrame):
     def _on_draft_edit(self) -> None:
         if self._draft_busy:
             return
-        if self.text().strip():
+        text = self.text()
+        first_run_funnel.note_text(len(text))
+        if text.strip():
             self._draft_timer.start()
         else:
 
@@ -728,7 +732,7 @@ class Composer(QFrame):
 
 
 
-    def examples_dialog(self) -> ExamplesDialog:
+    def examples_dialog(self, place: str = "", opened_from: str = "composer") -> ExamplesDialog:
 
 
 
@@ -737,7 +741,10 @@ class Composer(QFrame):
 
 
 
-        dialog = ExamplesDialog(self.window() or self)
+        from .library.dialog import HOME_KEY
+
+        dialog = ExamplesDialog(self.window() or self, opened_from=opened_from,
+                                place=place or HOME_KEY)
         dialog.prompt_chosen.connect(self._on_example_prompt)
         dialog.example_chosen.connect(self.example_chosen.emit)
         return dialog
@@ -765,6 +772,18 @@ class Composer(QFrame):
 
 
 
+            dialog.deleteLater()
+
+    def open_data_sources(self, opened_from: str = "composer") -> None:
+
+        if self._blocked:
+            return
+        from .library.dialog import SOURCES_KEY
+
+        dialog = self.examples_dialog(SOURCES_KEY, opened_from)
+        try:
+            exec_dialog(dialog)
+        finally:
             dialog.deleteLater()
 
     def take_example_prompt(self, text: str, chip=None) -> None:
@@ -809,6 +828,7 @@ class Composer(QFrame):
             self._attach = AttachPopover(self)
             self._attach.add_files_requested.connect(self._on_add_files)
             self._attach.add_layer_requested.connect(self._input.begin_layer_mention)
+            self._attach.sources_requested.connect(self.open_data_sources)
             self._attach.installEventFilter(self)
         return self._attach
 
@@ -1308,7 +1328,9 @@ class Composer(QFrame):
             return
         if self._blocked:
             return
+        first_run_funnel.note_send_pressed()
         if self._offline and not self._effort_locked:
+            first_run_funnel.note_banner("send_offline")
 
 
 
@@ -1350,6 +1372,7 @@ class Composer(QFrame):
 
             reason = check_prompt(self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat)
             if reason:
+                first_run_funnel.note_banner(f"prompt_{reason}")
                 self.show_warning(self._refusal(reason), offer_send_anyway=True)
                 return
 
@@ -1433,6 +1456,7 @@ class Composer(QFrame):
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._input:
             if event.type() == QEvent.Type.FocusIn:
+                first_run_funnel.note_focus()
                 self._set_flag("focused", True)
             elif event.type() == QEvent.Type.FocusOut:
                 self._set_flag("focused", False)

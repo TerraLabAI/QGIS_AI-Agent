@@ -144,25 +144,23 @@ def _read_grid(args: dict) -> dict:
         if values is None or len(values) != 4:
             return {"error": tool_error(
                 "extent must be four numbers: [xmin, ymin, xmax, ymax], in the layer's own CRS.",
-                "INVALID_ARGS",
-                f"Extent left out means the whole DEM; give it in {layer.crs().authid() or 'the layer CRS'}.")}
+                "INVALID_ARGS", hint="mesh_extent_shape", crs=layer.crs().authid() or "the layer CRS")}
         try:
             xmin, ymin, xmax, ymax = (float(v) for v in values)
         except (TypeError, ValueError):
             return {"error": tool_error("extent must be four numbers.", "INVALID_ARGS",
-                                        "For example [420000, 6500000, 425000, 6505000].")}
+                                        hint="mesh_extent_numbers")}
         if xmax <= xmin or ymax <= ymin:
             return {"error": tool_error(
                 "extent must read [xmin, ymin, xmax, ymax] with the maxima larger.", "INVALID_ARGS",
-                "The second pair is the larger, north-east corner.")}
+                hint="mesh_extent_order")}
         rect = QgsRectangle(xmin, ymin, xmax, ymax).intersect(full)
         if rect.isEmpty():
             return {"error": tool_error(
                 f"That extent does not meet {layer.name()!r}, which covers "
                 f"[{full.xMinimum():.6g}, {full.yMinimum():.6g}, {full.xMaximum():.6g}, "
                 f"{full.yMaximum():.6g}] in {layer.crs().authid() or 'its own CRS'}.",
-                "INVALID_ARGS",
-                "Extent reads in the layer's CRS; left out, it covers the whole DEM.")}
+                "INVALID_ARGS", hint="mesh_extent_outside")}
     else:
         rect = QgsRectangle(full)
 
@@ -443,10 +441,10 @@ def _number(args: dict, key: str, default: float, low: float, high: float):
         number = float(value)
     except (TypeError, ValueError):
         return default, tool_error(f"{key} must be a number.", "INVALID_ARGS",
-                                   f"{key} takes a number between {low} and {high}, or nothing.")
+                                   hint="mesh_number_invalid", key=key, low=low, high=high)
     if math.isnan(number) or number < low or number > high:
         return default, tool_error(f"{key} must be between {low} and {high}.", "INVALID_ARGS",
-                                   f"Omitting {key} uses {default}.")
+                                   hint="mesh_number_default", key=key, default=default)
     return number, None
 
 
@@ -469,7 +467,7 @@ def _format_for(path: str, asked) -> tuple[str, dict | None]:
     if wanted and wanted != from_path:
         return "", tool_error(
             f"format is {wanted!r} but path ends in {extension}.", "INVALID_ARGS",
-            f"Either leave format out, or write the path as <name>.{wanted}.")
+            hint="mesh_format_mismatch", wanted=wanted)
     return from_path, None
 
 
@@ -479,8 +477,7 @@ def _export_3d_model(args: dict) -> dict:
 
     path = str(args.get("path") or "").strip()
     if not path:
-        return tool_error("path is required.", "INVALID_ARGS",
-                          "For example, ~/Desktop/terrain.stl.")
+        return tool_error("path is required.", "INVALID_ARGS", hint="mesh_path_required")
     fmt, error = _format_for(path, args.get("format"))
     if error:
         return error
@@ -506,8 +503,7 @@ def _export_3d_model(args: dict) -> dict:
     if missing and filled < missing:
         return tool_error(
             f"Band {grid['band']} of {grid['layer_name']!r} has no elevation at all over that extent "
-            f"({missing} of {nx * ny} cells are NoData).", "INVALID_ARGS",
-            "An extent the DEM covers, or a band with elevation, is needed.")
+            f"({missing} of {nx * ny} cells are NoData).", "INVALID_ARGS", hint="mesh_no_elevation")
 
     z_min = min(values) * z_factor
     z_max = max(values) * z_factor
@@ -526,7 +522,7 @@ def _export_3d_model(args: dict) -> dict:
     if not security.fits_path(staging, margin=8):
         return tool_error(
             f"The path is too long for this system to write beside: {path}", "INVALID_ARGS",
-            "A shorter folder or file name fits.")
+            hint="mesh_path_too_long")
 
     title = f"TerraLab AI Agent for QGIS: {grid['layer_name']} terrain"
     try:

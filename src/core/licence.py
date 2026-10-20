@@ -210,6 +210,7 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
 
 
 
+
     from qgis.core import QgsDateTimeRange
     from qgis.PyQt.QtCore import QDate, QDateTime, QTime
 
@@ -220,7 +221,7 @@ def write_source_sheet(layer, facts: dict, licence: str, attribution: str) -> No
     if title and not str(metadata.title() or "").strip():
         metadata.setTitle(title)
         changed = True
-    provider = provider_of(attribution, page_url)
+    provider = str(facts.get("provider") or "").strip() or provider_of(attribution, page_url)
     if provider:
 
         changed = _add_contact(metadata, provider, "originator") or changed
@@ -756,6 +757,10 @@ def credit_added(layers, result, tool: str = "", args=None, facts=None) -> None:
                 url = _address_of([*holders, args] if isinstance(args, dict) else holders, url)
                 sublayer = next((str(h["typename"]) for h in holders if h.get("typename")), sublayer)
             row = catalog.source_licence(url, sublayer) if url else None
+            asked = str(args.get("source") or args.get("url") or "") if isinstance(args, dict) else ""
+            if row is None and asked.startswith(("http://", "https://")) and asked != url:
+
+                row = catalog.source_licence(asked, sublayer or str(args.get("layer") or ""))
             for key, prefix in (("collection", "stac:"), ("theme", "overture:")):
                 if row is not None:
                     break
@@ -965,7 +970,8 @@ def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: st
     try:
         row = row or {}
         loaded = _loaded_date(holders)
-        facts = {"title": str(row.get("title") or ""), "data_date": loaded or str(row.get("data_date") or ""),
+        facts = {"title": str(row.get("title") or ""), "provider": str(row.get("provider") or ""),
+                 "data_date": loaded or str(row.get("data_date") or ""),
                  "page_url": str(row.get("page_url") or ""),
                  "date_note": "" if loaded else str(row.get("date_note") or "")}
         known = credit["licence"] != UNKNOWN or bool(credit.get("attribution"))

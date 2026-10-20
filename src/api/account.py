@@ -93,7 +93,9 @@ def usage_to_runs(payload: dict) -> dict:
             "trial_days_available": payload.get("trial_days_available"),
             "trial_ends_on": payload.get("trial_ends_on"),
 
-            "plan_trial_ends_on": payload.get("plan_trial_ends_on")}
+            "plan_trial_ends_on": payload.get("plan_trial_ends_on"),
+
+            "plan_trial_interval": payload.get("plan_trial_interval")}
 
 
 def get_dashboard_url() -> str:

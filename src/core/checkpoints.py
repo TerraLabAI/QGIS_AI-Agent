@@ -156,6 +156,9 @@ NOT_BACKED_OTHER_PROJECT = "other_project"
 NOT_BACKED_OLD_PROJECT_FILE = "old_project_file"
 
 
+NOT_PUT_BACK = "not_put_back"
+
+
 def _clean_log(value) -> list:
 
     from . import limits
@@ -312,13 +315,123 @@ def _same_state(older, newer) -> bool:
         other = b.layers.get(lid) or {}
         if not isinstance(record, dict):
             return False
+
+
+
+
+
+
+        light = bool(record.get("light") or other.get("light"))
+        if light and (record.get("style") is None or other.get("style") is None):
+
+
+            return False
         for key in _SAME_KEYS:
+            if light and key == "stamp":
+                continue
             left, right = record.get(key), other.get(key)
             if key == "stamp":
                 left, right = tuple(left or ()), tuple(right or ())
             if left != right:
                 return False
     return True
+
+
+def _run_changes(before, after) -> list[dict]:
+
+
+
+
+
+
+
+
+
+
+
+    a, b = getattr(before, "snapshot", None), getattr(after, "snapshot", None)
+    if a is None or b is None:
+        return []
+    then = getattr(a, "layers", None) or {}
+    now = getattr(b, "layers", None) or {}
+    known_then = set(getattr(a, "layer_ids", None) or then)
+    known_now = set(getattr(b, "layer_ids", None) or now)
+    items: dict[str, dict] = {}
+
+    def item(lid: str, name: str) -> dict:
+        return items.setdefault(lid, {"layer": name, "what": [], "delta": None})
+
+    for lid in [*now, *[lid for lid in known_now if lid not in now]]:
+        if lid not in known_then:
+            item(lid, str((now.get(lid) or {}).get("name") or lid))["what"] = ["added"]
+    for lid in [*then, *[lid for lid in known_then if lid not in then]]:
+        if lid not in known_now:
+            item(lid, str((then.get(lid) or {}).get("name") or lid))["what"] = ["removed"]
+    for lid in then.keys() & now.keys():
+        old, new = then[lid] or {}, now[lid] or {}
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            continue
+        aspects = []
+        if isinstance(old.get("feature_count"), int) and isinstance(new.get("feature_count"), int) \
+                and old["feature_count"] != new["feature_count"]:
+            aspects.append("features")
+        full = not (old.get("light") or new.get("light"))
+        if full and old.get("style") and new.get("style") and old["style"] != new["style"]:
+            aspects.append("style")
+        if old.get("name") != new.get("name"):
+            aspects.append("renamed")
+        if aspects:
+            entry = item(lid, str(new.get("name") or lid))
+            entry["what"] = aspects
+            if "features" in aspects:
+                entry["delta"] = new["feature_count"] - old["feature_count"]
+
+
+    for call in getattr(before, "log", None) or []:
+        for logged in call.get("layers") or []:
+            lid, what = str(logged.get("id") or ""), logged.get("what")
+            if not lid or lid in items and items[lid]["what"] in (["added"], ["removed"]):
+                continue
+            if what in ("added", "removed"):
+                if lid not in known_then and what == "added" or lid not in known_now and what == "removed":
+                    item(lid, str(logged.get("name") or lid))["what"] = [what]
+                continue
+            entry = item(lid, str((now.get(lid) or {}).get("name") or logged.get("name") or lid))
+            if what == "features" and "features" not in entry["what"]:
+                old_n, new_n = logged.get("before"), logged.get("after")
+                if isinstance(old_n, int) and isinstance(new_n, int) and old_n != new_n:
+                    entry["what"].append("features")
+                    entry["delta"] = (entry["delta"] or 0) + new_n - old_n
+                elif "data" not in entry["what"]:
+                    entry["what"].append("data")
+            elif logged.get("file_changed") and "data" not in entry["what"] and "features" not in entry["what"]:
+                entry["what"].append("data")
+            elif not entry["what"]:
+
+
+                entry["what"].append("changed")
+    rows = [entry for entry in items.values() if entry["what"]]
+    state_then = getattr(a, "project_state", None) or {}
+    state_now = getattr(b, "project_state", None) or {}
+    if state_then.get("crs") and state_now.get("crs") and state_then["crs"] != state_now["crs"]:
+        rows.append({"layer": "", "what": ["crs"], "delta": None})
+    if "layouts" in state_then and "layouts" in state_now and state_then["layouts"] != state_now["layouts"]:
+        rows.append({"layer": "", "what": ["layouts"], "delta": None})
+    return rows
+
+
+def _light_styles(snapshot) -> None:
+
+
+
+
+
+
+    from .snapshot_style import cached_style_digest
+
+    for lid, record in (getattr(snapshot, "layers", None) or {}).items():
+        if isinstance(record, dict) and record.get("light") and record.get("style") is None:
+            record["style"] = cached_style_digest(lid)
 
 
 class Checkpoint:
@@ -1014,6 +1127,11 @@ class CheckpointHistory:
 
         behind = entries[current] if current is not None and current < len(entries) else (
             entries[-1] if entries else None)
+        if kind == KIND_BEFORE:
+            try:
+                _light_styles(snapshot)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Checkpoint styles not read: {exc}")
         if kind == KIND_BEFORE and behind is not None:
             try:
                 entry.twin = _same_state(behind, entry)
@@ -1181,14 +1299,19 @@ class CheckpointHistory:
         twins = self.twins(thread_id)
         return all(entries[i].id in twins for i in range(low + 1, high + 1))
 
-    def previous(self, thread_id: str) -> Checkpoint | None:
+    def previous(self, thread_id: str, same: frozenset = frozenset()) -> Checkpoint | None:
+
+
+
+
+
 
         self._ensure(thread_id)
         index = self.current_index(thread_id)
         entries = self._entries.get(thread_id, [])
         if index is None:
             index = len(entries)
-        twins = self.twins(thread_id)
+        twins = self.twins(thread_id) | set(same)
 
         while 0 < index < len(entries) and entries[index].id in twins:
             index -= 1
@@ -1264,6 +1387,16 @@ class CheckpointHistory:
 
         logs = {entry.run_id: _log_rows(entry) for entry in entries
                 if entry.kind == KIND_BEFORE and entry.run_id and entry.log}
+
+
+        befores = {entry.run_id: entry for entry in entries if entry.kind == KIND_BEFORE and entry.run_id}
+        changes = {}
+        for entry in entries:
+            if entry.kind == KIND_AFTER and entry.run_id in befores:
+                try:
+                    changes[entry.run_id] = _run_changes(befores[entry.run_id], entry)
+                except Exception as exc:  # noqa: BLE001
+                    log_warning(f"Run changes not read: {exc}")
         twins = self.twins(thread_id)
         rows = []
         for i, entry in enumerate(entries):
@@ -1274,6 +1407,8 @@ class CheckpointHistory:
             log = logs.get(entry.run_id) if entry.kind != KIND_EDITS else None
             if log:
                 row["log"] = log
+            if entry.kind != KIND_EDITS and entry.run_id in changes:
+                row["changes"] = changes[entry.run_id]
             if log and entry.kind == KIND_BEFORE:
                 named = {item["name"] for item in row["not_backed_up"]}
                 for item in log:

@@ -12,6 +12,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import re
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -98,47 +99,51 @@ def _answers_by_name(query: str, results: list) -> bool:
 
 
 
+_RULES: list = [None, None]
 
-_NATURAL_PLACES = {
-    "natural": frozenset({"peak", "volcano", "massif", "mountain_range", "ridge", "glacier", "water", "bay",
-                          "strait", "cape", "peninsula", "valley", "plateau", "desert"}),
-    "water": frozenset({"lake", "reservoir", "lagoon", "river"}),
-    "waterway": frozenset({"river"}),
-    "place": frozenset({"island", "archipelago"}),
-}
+
+def _rules() -> dict:
+
+    doc = tuning.service_doc("geocode_rules")
+    if doc is None:
+        return {}
+    if _RULES[0] is not doc:
+        _RULES[:] = [doc, {
+            "tiers": list(doc.get("tiers") or ()),
+            "big_places": list(doc.get("big_places") or ()),
+            "natural": {cls: frozenset(values) for cls, values in (doc.get("natural_places") or {}).items()},
+            "feature_words": frozenset(doc.get("feature_words") or ()),
+            "country_words": dict(doc.get("country_words") or {}),
+            "local_view_deg": float(doc.get("local_view_deg") or 0.0),
+            "candidates": int(doc.get("candidates") or 0),
+        }]
+    return _RULES[1]
+
+
 
 
 _PLACE_TAGS = ("natural", "water", "waterway", "place:island", "place:archipelago")
 
 
-_LOCAL_VIEW_DEG = 2.0
-
-_PLACE_CANDIDATES = 10
-
-
 def _natural_place(hit: dict) -> bool:
-    return str(hit.get("osm_value") or "").lower() in _NATURAL_PLACES.get(str(hit.get("class") or "").lower(), ())
+    natural = _rules().get("natural") or {}
+    return str(hit.get("osm_value") or "").lower() in natural.get(str(hit.get("class") or "").lower(), ())
+
+
+def _matches(row: dict, hit: dict) -> bool:
+
+    if "type" in row and str(hit.get("type") or "").lower() != row["type"]:
+        return False
+    if "osm_value" in row and str(hit.get("osm_value") or "").lower() not in row["osm_value"]:
+        return False
+    if "class" in row and _fold(hit.get("class")) != row["class"]:
+        return False
+    return not row.get("natural") or _natural_place(hit)
 
 
 def _geo_tier(hit: dict) -> int:
 
-    kind = str(hit.get("type") or "").lower()
-    if kind == "country":
-        return 5
-    if kind == "state" or _natural_place(hit):
-        return 4
-    if kind == "county" or (kind == "city" and str(hit.get("osm_value") or "").lower() in ("city", "town")):
-        return 3
-    if kind == "city":
-        return 2
-    return 1 if kind in ("district", "locality") else 0
-
-
-
-
-_FEATURE_WORDS = frozenset({"mount", "mont", "monte", "mt", "mountain", "lake", "lac", "lago", "see", "loch",
-                            "river", "rio", "riviere", "fleuve", "isla", "ile", "island", "isola", "volcan",
-                            "volcano", "vulcano", "pic", "pico", "peak", "cerro", "nevado", "le", "la", "the"})
+    return next((int(row["tier"]) for row in _rules().get("tiers", ()) if _matches(row, hit)), 0)
 
 
 def _named_as(asked: str, hit: dict, exact: bool = False) -> bool:
@@ -148,24 +153,25 @@ def _named_as(asked: str, hit: dict, exact: bool = False) -> bool:
 
 
 
+
     words = re.findall(r"\w+", _fold(asked))
     name = re.findall(r"\w+", _fold(str(hit.get("display_name") or "").split(",")[0]))
-    distinctive = {word for word in words if word not in _FEATURE_WORDS} or set(words)
+    kind = _fold(hit.get("type"))
+    feature_words = _rules().get("feature_words", frozenset())
+    distinctive = {word for word in words if word not in feature_words and word != kind} or set(words)
     if not distinctive or not distinctive <= set(name):
         return False
-    return not exact or ({word for word in name if word not in _FEATURE_WORDS} or set(name)) == distinctive
+    return not exact or ({word for word in name if word not in feature_words} or set(name)) == distinctive
 
 
 def _big_place(hit: dict) -> bool:
 
-
-    kind = str(hit.get("type") or "").lower()
-    return kind in ("country", "state") or (kind == "city" and str(hit.get("osm_value") or "").lower() == "city")
+    return any(_matches(row, hit) for row in _rules().get("big_places", ()))
 
 
 def _in_local_view(hit: dict, viewbox) -> bool:
     bounds = _viewbox_bounds(viewbox)
-    if not bounds or max(bounds[2] - bounds[0], bounds[3] - bounds[1]) > _LOCAL_VIEW_DEG:
+    if not bounds or max(bounds[2] - bounds[0], bounds[3] - bounds[1]) > _rules().get("local_view_deg", 0.0):
         return False
     return bounds[0] <= float(hit["lon"]) <= bounds[2] and bounds[1] <= float(hit["lat"]) <= bounds[3]
 
@@ -179,7 +185,8 @@ def _photon_place_hits_by(base: str, query: str, viewbox, lang: str, filters: li
 
     extra = filters + ([("lang", lang)] if lang else [])
     try:
-        payload = _geocode_fetch(_photon_forward_url(base, query, _PLACE_CANDIDATES, None, viewbox, extra=extra))
+        payload = _geocode_fetch(_photon_forward_url(base, query, _rules().get("candidates") or 5, None, viewbox,
+                                                     extra=extra))
     except (urllib.error.URLError, OSError, ValueError) as exc:
         log_warning(f"Place lookup by kind failed for {query!r}: {exc}")
         return []
@@ -229,7 +236,7 @@ def _better_among(query: str, hits: list):
 
 def _needs_place_lookups(query: str, hits: list, viewbox) -> bool:
 
-    if not hits or re.search(r"\d", query):
+    if not hits or re.search(r"\d", query) or not _rules().get("tiers"):
         return False
     first = hits[0]
     tier = _geo_tier(first)
@@ -248,7 +255,7 @@ def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None) ->
 
 
 
-    if not hits or re.search(r"\d", query):
+    if not hits or re.search(r"\d", query) or not _rules().get("tiers"):
         return hits
     asked = query.split(",")[0]
     first = hits[0]
@@ -382,27 +389,29 @@ def _parse_nominatim_reverse(payload) -> dict | None:
 
 
 
-
-
-
-
-_PHOTON_COUNTRY_WORDS = {"usa": "United States", "us": "United States", "u.s.": "United States",
-                         "u.s.a.": "United States", "uk": "United Kingdom", "u.k.": "United Kingdom",
-                         "uae": "United Arab Emirates"}
-
-
 def _photon_query(query: str) -> str:
+
 
     parts = str(query or "").split(",")
     if len(parts) > 1:
-        full = _PHOTON_COUNTRY_WORDS.get(parts[-1].strip().lower())
+        full = (_rules().get("country_words") or {}).get(parts[-1].strip().lower())
         if full:
             parts[-1] = " " + full
     return ",".join(parts)
 
 
+def _latin_script(text: str) -> bool:
+
+    return all(unicodedata.name(ch, "").startswith("LATIN") for ch in text if ch.isalpha())
+
+
 def _photon_forward_url(base, query, limit, country_codes, viewbox, layers=(), extra=()) -> str:
     params: dict = {"q": _photon_query(query), "limit": limit}
+    if not (layers or extra) and _latin_script(query):
+
+
+
+        params["lang"] = "en"
     if viewbox:
 
 
@@ -854,7 +863,7 @@ def _provider_refusal(error: ValueError) -> dict:
     if isinstance(error, _NoEndpoint):
         return tool_error(str(error), "INVALID_ARGS", hint="geocode_endpoint_missing",
                           provider=error.provider_name)
-    return {"_error": str(error)}
+    return tool_error(str(error), "INVALID_ARGS")
 
 
 def _resolve_geocode_provider(args: dict) -> tuple:
@@ -1020,16 +1029,15 @@ def _geocode(args: dict) -> dict:
 
     query = _without_generic_place_words(str(args.get("query") or "").strip())
     if not query:
-        return {"_error": "The place to look up is empty.", "code": "INVALID_ARGS",
-                "suggestion": "query is the place, address or postcode."}
+        return tool_error("The place to look up is empty.", "INVALID_ARGS", hint="geocode_query_empty")
 
 
 
     try:
         limit = max(1, min(int(args.get("limit") or 5), 10))
     except (TypeError, ValueError):
-        return {"_error": f"limit must be a whole number from 1 to 10, got {args.get('limit')!r}.",
-                "code": "INVALID_ARGS", "suggestion": "limit is an integer; left out, it defaults to 5."}
+        return tool_error(f"limit must be a whole number from 1 to 10, got {args.get('limit')!r}.",
+                          "INVALID_ARGS", hint="geocode_limit")
     country_codes = (args.get("country_codes") or "").strip()
 
     try:
@@ -1046,7 +1054,7 @@ def _geocode(args: dict) -> dict:
 
 
 
-    fetched = max(limit, _PLACE_CANDIDATES) if provider_id == "photon" else limit
+    fetched = max(limit, _rules().get("candidates") or 0) if provider_id == "photon" else limit
     url = provider["forward_url"](base, query, fetched, country_codes, viewbox)
 
     def ask(address: str):
@@ -1071,25 +1079,24 @@ def _geocode(args: dict) -> dict:
 
                 payload = None
         if payload is None:
-            failure = {"_error": f"Geocoding request failed: {e}"}
+            failure = tool_error(f"Geocoding request failed: {e}")
             fell_back = True
         else:
             failure = None
     except (urllib.error.URLError, OSError) as e:
         broken = net.describe_failure(e)
-        failure = ({"_error": f"Geocoding request failed: {broken}", "code": net.NETWORK_ERROR,
-                    "suggestion": net.NETWORK_SUGGESTION} if broken
-                   else {"_error": f"Geocoding request failed: {e}"})
+        failure = (tool_error(f"Geocoding request failed: {broken}", net.NETWORK_ERROR) if broken
+                   else tool_error(f"Geocoding request failed: {e}"))
         payload, fell_back = None, True
     except ValueError:
-        failure = {"_error": "The geocoding answer was unreadable.", "hint": "geocode_unreadable"}
+        failure = tool_error("The geocoding answer was unreadable.", hint="geocode_unreadable")
         payload, fell_back = None, True
     else:
         failure = None
 
     results = provider["parse_forward"](payload, bool(args.get("verbose", False))) if payload is not None else []
     if results is None:
-        failure = {"_error": f"Geocoding service error: {str(payload)[:200]}"}
+        failure = tool_error(f"Geocoding service error: {str(payload)[:200]}")
         results, fell_back = [], True
 
 
@@ -1257,10 +1264,10 @@ def _reverse_geocode(args: dict) -> dict:
     try:
         payload = _geocode_fetch(url)
     except (urllib.error.URLError, OSError) as e:
-        payload, failure = None, {"_error": f"Reverse geocoding failed: {e}"}
+        payload, failure = None, tool_error(f"Reverse geocoding failed: {e}")
     except ValueError:
         payload = None
-        failure = {"_error": "Reverse geocoding gave an unreadable answer.", "hint": "geocode_unreadable"}
+        failure = tool_error("Reverse geocoding gave an unreadable answer.", hint="geocode_unreadable")
     else:
         failure = None
 
@@ -1273,7 +1280,7 @@ def _reverse_geocode(args: dict) -> dict:
 
         answer = _backend_geo("/geo/reverse", {"lat": lat, "lon": lon}, cache_ttl=_CACHE_GEOCODE_S)
         if not (answer or {}).get("display_name"):
-            return failure or {"_error": f"{provider['name']} found no address at that point."}
+            return failure or tool_error(f"{provider['name']} found no address at that point.")
         out, provider_id = dict(answer), _fallback_provider(answer)
     out["provider"] = provider_id
 
@@ -1306,9 +1313,9 @@ def _get_route(args: dict) -> dict:
     layer_name = args.get("layer_name", "Route")
 
     if len(waypoints) < 2:
-        return {"_error": "At least 2 waypoints required"}
+        return tool_error("At least 2 waypoints required", "INVALID_ARGS")
     if len(waypoints) > _MAX_ROUTE_WAYPOINTS:
-        return {"_error": f"Too many waypoints (max {_MAX_ROUTE_WAYPOINTS} per route)"}
+        return tool_error(f"Too many waypoints (max {_MAX_ROUTE_WAYPOINTS} per route)", "INVALID_ARGS")
 
     coords_str = ";".join(f"{wp['lon']},{wp['lat']}" for wp in waypoints)
     base = _osrm_base(profile)
@@ -1322,36 +1329,24 @@ def _get_route(args: dict) -> dict:
         data = _http_get(url, timeout=budget, cache_ttl=_CACHE_CATALOG_S)
     except (urllib.error.URLError, OSError) as e:
         reason = str(e) or repr(e) or "network timeout"
-        failure = {
-            "_error": f"OSRM routing request failed: {reason}",
-            "_code": "OSRM_UNREACHABLE",
-            "hint": _osrm_hint,
-            "waypoints": len(waypoints),
-        }
+        failure = tool_error(f"OSRM routing request failed: {reason}", "OSRM_UNREACHABLE",
+                             hint=_osrm_hint, waypoints=len(waypoints))
     else:
         try:
             result = json.loads(data)
         except (ValueError, TypeError) as e:
             snippet = (data[:200].decode("utf-8", "replace") if isinstance(data, (bytes, bytearray))
                        else str(data)[:200])
-            failure = {
-                "_error": f"OSRM returned a non-JSON response ({e}): {snippet}",
-                "_code": "OSRM_BAD_RESPONSE",
-                "hint": _osrm_hint,
-                "waypoints": len(waypoints),
-            }
+            failure = tool_error(f"OSRM returned a non-JSON response ({e}): {snippet}", "OSRM_BAD_RESPONSE",
+                                 hint=_osrm_hint, waypoints=len(waypoints))
         else:
             if result.get("code") != "Ok":
                 detail = result.get("message") or result.get("code") or "unknown OSRM error"
-                failure = {"_error": f"OSRM error: {detail}", "_code": "OSRM_ERROR",
-                           "hint": _osrm_hint, "waypoints": len(waypoints)}
+                failure = tool_error(f"OSRM error: {detail}", "OSRM_ERROR",
+                                     hint=_osrm_hint, waypoints=len(waypoints))
             elif not result.get("routes"):
-                failure = {
-                    "_error": "No route found between the given waypoints",
-                    "_code": "INVALID_ARGS",
-                    "hint": _osrm_hint,
-                    "waypoints": len(waypoints),
-                }
+                failure = tool_error("No route found between the given waypoints", "INVALID_ARGS",
+                                     hint=_osrm_hint, waypoints=len(waypoints))
 
     fell_back = failure is not None
     if fell_back:
@@ -1389,7 +1384,7 @@ def _get_route(args: dict) -> dict:
     def _create():
         layer = _layer_from_geojson_str(geojson_str, layer_name, "route")
         if not layer.isValid():
-            return {"_error": "Failed to create route layer"}
+            return tool_error("Failed to create route layer")
         QgsProject.instance().addMapLayer(layer)
         return {
             "layer_name": layer.name(),

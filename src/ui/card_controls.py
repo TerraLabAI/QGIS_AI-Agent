@@ -81,7 +81,6 @@ _ASK_CARD_QSS = (
 
 _ASK_MARGINS = (16, 14, 16, 14)
 
-_ASK_MAX_PX = 320
 _PROPOSAL_MAX_PX = 380
 
 _ASK_DONE_QSS = "QWidget#{name} { background: transparent; border: none; }"
@@ -580,7 +579,6 @@ __all__ = [
     "_ASK_INPUT_QSS",
     "_ASK_LABEL_QSS",
     "_ASK_MARGINS",
-    "_ASK_MAX_PX",
     "_ASK_TEXT_QSS",
     "_BTN_GHOST_PILL",
     "_BTN_PRIMARY_PILL",

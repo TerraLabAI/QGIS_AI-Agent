@@ -3,7 +3,7 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=AI Agent by TerraLab: an AI agent for QGIS 3.28 to 4 on Windows, macOS and Linux. Free tier, no card. Hand it the work: it finds the data, runs the analysis, styles the map and builds the layout. 227 tools, 72 open data connectors.
+description=AI Agent by TerraLab: an AI agent for QGIS 3.28 to 4 on Windows, macOS and Linux. Free tier with no card, and Pro starts with a 7-day free trial. Hand it the work: it finds the data, runs the analysis, styles the map and builds the layout. 227 tools, 72 open data connectors.
 about=
     AI Agent by TerraLab is an AI agent for QGIS. It works on your own layers, in the project you already have open, and shows each step as it goes.
 
@@ -17,7 +17,7 @@ about=
 
     • Fits your habits: one conversation per project, and attach files, layers, selections or the map view to a message
 
-    • Free tier, no card. Plans and limits: https://terra-lab.ai/pricing
+    • Free tier with no card. Pro starts with a 7-day free trial. Plans and limits: https://terra-lab.ai/pricing
 
     • QGIS 3.28 to QGIS 4, on Windows, macOS and Linux
 
@@ -30,7 +30,7 @@ about=
     • Sends your request and a description of the open project to agent.terra-lab.ai, in the European Union. Your layers and files stay on your machine. See https://terra-lab.ai/privacy-policy
 
     By TerraLab, terra-lab.ai
-version=1.8.1
+version=1.9.0
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -38,6 +38,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.9.0
+    - Speaks six more languages: Vietnamese, Arabic, Russian, Ukrainian, Turkish and Korean
+    - Examples and Data sources open in their own windows, with search, countries and dataset lists
+    - Undo keeps your project and hand edits safe, and the history says what each request changed
+    - No freeze on the first Send in a large project or a network share; more data loads on Windows
+
     1.8.1
     - Passes the plugin store's Qt6 check for QGIS 4
     - A Pro card shows in the panel once your plan turns Pro; free accounts land on a level they can run
@@ -59,12 +65,6 @@ changelog=
     - Answers show clean tables, figures and short charts; memory notes save at once, with Undo
     - Data sources on one page with logos; AI Segmentation and AI Edit runs show their zone before paying
     - Processing run from code no longer freezes QGIS and Stop ends it; Pro chats survive a restart
-
-    1.6.0
-    - Safer sign-in: the key reaches only the QGIS that started it, with a 6-character code as backup
-    - QGIS stays responsive while rasters are read over the network, and the plugin starts faster
-    - Over 60 new open data sources; WFS 1.1.0, folder layers, raster ZIPs and OGC API boxes load
-    - Watersheds, grouped statistics and distances in metres come out right; menu dialogs never hang
 
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,terra lab,ai edit,ai segmentation,geoai,pyqgis

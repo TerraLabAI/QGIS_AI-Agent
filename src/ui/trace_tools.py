@@ -152,8 +152,6 @@ SEARCH_TOOLS = frozenset({
     "search_earthdata_collections", "search_earthdata_granules", "search_gee_catalog",
     "search_web", "find_data_on_web", "qgis_docs", "search_plugin_repository", "list_stac_collections",
 })
-CODE_TOOLS = frozenset({"execute_code", "run_processing", "evaluate_expression", "run_code",
-                        "run_python", "run_model"})
 
 _LIST_KEYS = ("results", "items", "datasets", "collections", "granules", "matches",
               "sections", "plugins", "sources", "hits")
@@ -166,10 +164,6 @@ def is_search_tool(name: str, args=None) -> bool:
 
     name = str(name or "")
     return name in SEARCH_TOOLS or name.startswith(("search_", "find_"))
-
-
-def is_code_tool(name: str) -> bool:
-    return name in CODE_TOOLS
 
 
 def search_results(detail: str) -> list[tuple[str, str, dict]]:
@@ -564,42 +558,76 @@ class ActivityRow(QWidget):
 
 
 
-        verb_min = min(_VERB_MIN_PX, self._label.sizeHint().width())
+
+
+
+
+
+
+
+
+        label_whole = self._label.sizeHint().width()
+        verb_min = min(_VERB_MIN_PX, label_whole)
         measure = MEASURE_HEAD_RE.match(self._label.full_text())
         if getattr(self, "_outcome_whole", False):
-            verb_min = min(_VERB_WHOLE_OUTCOME_PX, self._label.sizeHint().width())
+            verb_min = min(_VERB_WHOLE_OUTCOME_PX, label_whole)
         elif measure:
             head = self._label.fontMetrics().horizontalAdvance(measure.group(0) + "\u2026")
-            verb_min = min(max(verb_min, head), self._label.sizeHint().width())
-        self._label.setMinimumWidth(verb_min)
-        if not self._secondary.isVisibleTo(self):
-            self._secondary.setMinimumWidth(0)
-            self._secondary.setMaximumWidth(_QWIDGETSIZE_MAX)
-            return
-        if self._second_is_source:
-            verb = self._label.sizeHint().width()
-            shown = min(self._secondary.sizeHint().width(), self._secondary.maximumWidth())
-            others = self._head.sizeHint().width() - shown - verb
-            room = self._head.width() - others - min(_VERB_MIN_PX, verb)
+            verb_min = min(max(verb_min, head), label_whole)
+        shown = self._outcome.isVisibleTo(self._head)
+        outcome_min = getattr(self, "_outcome_floor", 0) if shown else 0
+        outcome_whole = self._outcome.sizeHint().width() if shown else 0
+        room = self._text_room()
+        second_min = 0
+        second_max = _QWIDGETSIZE_MAX
+        if self._secondary.isVisibleTo(self._head):
             whole = self._secondary.sizeHint().width()
-            keep = max(0, min(whole, room))
-            if keep < min(whole, _SOURCE_MIN_PX):
+            if self._second_is_source:
+                keep = max(0, min(whole, room - outcome_whole - min(_VERB_MIN_PX, label_whole)))
+                keep = max(0, min(keep, room - verb_min - outcome_min))
+                if keep < min(whole, _SOURCE_MIN_PX):
 
 
-                keep = 0
-            self._secondary.setMinimumWidth(keep)
-            self._secondary.setMaximumWidth(keep)
-            return
-        self._secondary.setMinimumWidth(0)
-
-        shown = min(self._secondary.sizeHint().width(), self._secondary.maximumWidth())
-        others = self._head.sizeHint().width() - shown
-        keep = max(0, self._head.width() - others)
-        if getattr(self, "_outcome_whole", False) and keep < min(self._secondary.sizeHint().width(), _SOURCE_MIN_PX):
+                    keep = 0
+                second_min = second_max = keep
+            else:
+                keep = max(0, room - label_whole - outcome_whole)
+                if getattr(self, "_outcome_whole", False) and keep < min(whole, _SOURCE_MIN_PX):
 
 
-            keep = 0
-        self._secondary.setMaximumWidth(keep)
+                    keep = 0
+                second_max = keep
+        over = verb_min + second_min + outcome_min - room
+        if over > 0:
+            cut = min(verb_min, over)
+            verb_min -= cut
+            outcome_min = max(0, outcome_min - (over - cut))
+        self._label.setMinimumWidth(verb_min)
+        self._secondary.setMinimumWidth(second_min)
+        self._secondary.setMaximumWidth(second_max)
+        self._outcome.setMinimumWidth(outcome_min)
+
+    def _text_room(self) -> int:
+
+
+
+        lay = self._head.layout()
+        margins = lay.contentsMargins()
+        fixed = 0
+        shown = 0
+        for widget in (self._icon, self._spinner, self._count, self._chevron,
+                       self._label, self._secondary, self._outcome):
+            if not widget.isVisibleTo(self._head):
+                continue
+            shown += 1
+            if widget in (self._label, self._secondary, self._outcome):
+                continue
+            if widget.minimumWidth() == widget.maximumWidth():
+                fixed += widget.minimumWidth()
+            else:
+                fixed += widget.sizeHint().width()
+        gaps = max(0, shown - 1) * max(0, lay.spacing())
+        return max(0, self._head.width() - margins.left() - margins.right() - fixed - gaps)
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
@@ -861,7 +889,9 @@ class ActivityRow(QWidget):
 
         self._outcome_whole = bool(text) and (running or (failed and self.blocked()))
         whole = self._outcome.sizeHint().width()
-        self._outcome.setMinimumWidth((whole if self._outcome_whole else min(_OUTCOME_MIN_PX, whole)) if text else 0)
+
+        self._outcome_floor = (whole if self._outcome_whole else min(_OUTCOME_MIN_PX, whole)) if text else 0
+        self._outcome.setMinimumWidth(self._outcome_floor)
         self._outcome.setVisible(bool(text))
 
     @staticmethod
@@ -976,5 +1006,5 @@ class ActivityRow(QWidget):
         return "\n".join(card.to_markdown() for card in self.cards)
 
 
-__all__ = ["CODE_TOOLS", "SEARCH_TOOLS", "ActivityRow", "is_code_tool", "is_search_tool",
+__all__ = ["SEARCH_TOOLS", "ActivityRow", "is_search_tool",
            "search_results", "secondary_of"]

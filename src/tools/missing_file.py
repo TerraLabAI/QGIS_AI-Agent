@@ -21,6 +21,7 @@ import re
 from qgis.core import QgsProject
 
 from ..core.background import run_on_main_thread
+from ..core.tool_registry import tool_error
 
 _MAX_LAYERS = 5
 _MAX_NEARBY = 5
@@ -77,21 +78,15 @@ def _nearby(path: str) -> tuple[str, list[str]]:
 
 def missing_file(path: str, message: str) -> dict:
 
-    out: dict = {"_error": message, "code": "INVALID_ARGS"}
+    facts: dict = {}
     stem = os.path.splitext(os.path.basename(path.rstrip("/\\")))[0]
     layers = run_on_main_thread(_project_layers, stem)
     folder, close = _nearby(path)
     if layers:
-        out["project_layers"] = layers
+        facts["project_layers"] = layers
     if close:
-        out["closest_in_folder"] = close
+        facts["closest_in_folder"] = close
     elif folder and folder != os.path.dirname(path):
-        out["deepest_existing_folder"] = folder
-    if layers:
-        out["suggestion"] = ("A project layer carries this name; project_layers gives its real path, "
-                             "which does not always match the layer name.")
-    elif close:
-        out["suggestion"] = "closest_in_folder lists close matches in that folder."
-    else:
-        out["suggestion"] = "No project layer or nearby file matches this path or layer name."
-    return out
+        facts["deepest_existing_folder"] = folder
+    variant = "layer" if layers else ("closest" if close else "")
+    return tool_error(message, "INVALID_ARGS", hint="missing_file", variant=variant, **facts)

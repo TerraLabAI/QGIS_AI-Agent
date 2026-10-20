@@ -939,23 +939,19 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                 if cancel_check is not None and cancel_check():
                     _stop(process)
                     return {
+                        **tool_error("execute_code was stopped.", "CANCELLED"),
                         "executed": False,
-                        "_error": "execute_code was stopped.",
-                        "_code": "CANCELLED",
                         "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
                         "isolated": True,
                     }
                 if time.monotonic() - started > timeout_s:
                     _stop(process)
-                    return {
-                        "executed": False,
-                        "_error": f"execute_code stopped after {int(timeout_s)} s.",
-                        "_code": "EXEC_TIMEOUT",
-                        "stdout": _cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
-                        "hint": "exec_timeout",
-                        "timeout_s": int(timeout_s),
-                        "isolated": True,
-                    }
+                    return tool_error(
+                        f"execute_code stopped after {int(timeout_s)} s.", "EXEC_TIMEOUT",
+                        hint="exec_timeout", executed=False,
+                        stdout=_cap(_read_text(stdout_path, code_guard.MAX_OUTPUT_CHARS)),
+                        timeout_s=int(timeout_s), isolated=True,
+                    )
                 time.sleep(poll_s)
         finally:
             if process.poll() is None:
@@ -1025,9 +1021,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             written = [str(entry.get("path")) for entry in (status.get("files") or [])
                        if isinstance(entry, dict) and entry.get("path")]
             out = {
+                **tool_error(f"execute_code raised {exc_type}: {message}", "EXEC_RUNTIME_ERROR"),
                 "executed": False,
-                "_error": f"execute_code raised {exc_type}: {message}",
-                "_code": "EXEC_RUNTIME_ERROR",
                 "stdout": _cap(stdout),
                 "traceback": _cap(str(status.get("traceback") or "")),
                 "_exc_type": exc_type,
@@ -1042,16 +1037,12 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             _put_names(out, status, names_dir)
             return out
         if phase == "running":
-            return {
-                "executed": False,
-                "_error": f"The separate Python process running this snippet ended with exit code "
-                          f"{process.returncode} before it finished. QGIS itself was not affected.",
-                "_code": "EXEC_CRASHED",
-                "stdout": _cap(stdout),
-                "hint": "exec_crashed",
-                "exit_code": process.returncode,
-                "isolated": True,
-            }
+            return tool_error(
+                f"The separate Python process running this snippet ended with exit code "
+                f"{process.returncode} before it finished. QGIS itself was not affected.",
+                "EXEC_CRASHED", hint="exec_crashed", executed=False, stdout=_cap(stdout),
+                exit_code=process.returncode, isolated=True,
+            )
         detail = str(status.get("setup_error") or _tail(log_path) or f"exit code {process.returncode}")
         if os.path.exists(stdout_path):
 
@@ -1060,15 +1051,12 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
 
 
 
-            return {
-                "executed": False,
-                "_error": f"The snippet ran in a separate Python process, but its answer could not be "
-                          f"read back: {detail}",
-                "_code": "EXEC_RUNTIME_ERROR",
-                "stdout": _cap(stdout),
-                "hint": "exec_answer_unreadable",
-                "isolated": True,
-            }
+            return tool_error(
+                f"The snippet ran in a separate Python process, but its answer could not be "
+                f"read back: {detail}",
+                "EXEC_RUNTIME_ERROR", hint="exec_answer_unreadable", executed=False,
+                stdout=_cap(stdout), isolated=True,
+            )
         return {"_fallback": "setup", "detail": detail}
     finally:
         remove_tree(work_dir)
@@ -1085,26 +1073,19 @@ def _tripped(status: dict, stdout: str) -> dict:
                if isinstance(entry, dict) and entry.get("path")]
     need = status.get("needs_permission")
     if need:
-        out = {
-            "executed": False,
-            "isolated": True,
-            "_code": "NEEDS_PERMISSION",
-            "_error": f"The snippet {need.get('reason') or 'went past its class'}, which needs the user's "
-                      "permission. Nothing after that call ran.",
-            "needs_permission": {"class": str(need.get("class") or ce.D), "reason": str(need.get("reason") or "")},
-            "stdout": _cap(stdout),
-            "hint": "exec_needs_permission",
-        }
+        out = tool_error(
+            f"The snippet {need.get('reason') or 'went past its class'}, which needs the user's "
+            "permission. Nothing after that call ran.",
+            "NEEDS_PERMISSION", hint="exec_needs_permission", executed=False, isolated=True,
+            needs_permission={"class": str(need.get("class") or ce.D), "reason": str(need.get("reason") or "")},
+            stdout=_cap(stdout),
+        )
     else:
-        out = {
-            "executed": False,
-            "isolated": True,
-            "_code": "PERMISSION_DENIED",
-            "_error": f"execute_code stopped: the snippet {status.get('refused')}. Nothing after that call ran.",
-            "stdout": _cap(stdout),
-            "hint": "snippet_call_refused",
-            "refused": str(status.get("refused") or ""),
-        }
+        out = tool_error(
+            f"execute_code stopped: the snippet {status.get('refused')}. Nothing after that call ran.",
+            "PERMISSION_DENIED", hint="snippet_call_refused", executed=False, isolated=True,
+            stdout=_cap(stdout), refused=str(status.get("refused") or ""),
+        )
     if written:
         out["files_written"] = written
         out["execution_state"] = "partial"
@@ -1182,8 +1163,8 @@ def _read_web_services(code: str, cancel_check) -> dict | None:
         while not over.wait(POLL_S):
             if callable(cancel_check) and cancel_check():
                 feedback.cancel()
-                return tool_error(f"Stopped while the layer {name!r} was read from its service.", "CANCELLED",
-                                  "Nothing was changed.")
+                return tool_error(f"Stopped while the layer {name!r} was read from its service. "
+                                  f"Nothing was changed.", "CANCELLED")
         if failure:
             log_warning(f"execute_code could not read {name!r} ahead of the snippet: {failure[0]}")
     return None
@@ -1267,17 +1248,13 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
 
 
 
-        return {
-            "executed": False,
-            "isolated": True,
-            "_error": f"execute_code stopped at {trapped}, which changes the project: the snippet ran "
-                      f"in a separate Python process up to that call and stopped there, so the lines "
-                      f"before it ran (a file they wrote is written) and the project was not changed.",
-            "_code": "EXEC_RUNTIME_ERROR",
-            "stdout": outcome.get("stdout", ""),
-            "hint": "exec_stopped_at_project_change",
-            "stopped_at": str(trapped),
-        }
+        return tool_error(
+            f"execute_code stopped at {trapped}, which changes the project: the snippet ran "
+            f"in a separate Python process up to that call and stopped there, so the lines "
+            f"before it ran (a file they wrote is written) and the project was not changed.",
+            "EXEC_RUNTIME_ERROR", hint="exec_stopped_at_project_change", executed=False, isolated=True,
+            stdout=outcome.get("stdout", ""), stopped_at=str(trapped),
+        )
     if fallback == "setup":
         detail = outcome.get("detail") or "no detail"
         if planned.get("needs_qgis"):

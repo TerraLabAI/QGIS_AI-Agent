@@ -156,7 +156,7 @@ def _configure_3d_map_view(args: dict) -> dict:
         return tool_error(
             "This QGIS version does not expose the public 3D map-view API (QGIS 3.36 or newer is required).",
             "UNSUPPORTED_QGIS_VERSION",
-            "An older QGIS version has no automatic 3D Map View; 3.36 and newer open one here.",
+            hint="map3d_qgis_version",
         )
     create, terrain_type, flat_type = api
     dem = None
@@ -249,8 +249,7 @@ def _configure_3d_map_view(args: dict) -> dict:
     try:
         camera = _point_camera(canvas, settings, args, created)
     except ValueError as exc:
-        return tool_error(str(exc), "INVALID_ARGS",
-                          "center is [x, y] in crs (default the project CRS), for example EPSG:4326 lon, lat.")
+        return tool_error(str(exc), "INVALID_ARGS", hint="map3d_center_form")
     ground = None
     if created and camera:
         ground = ground_square(settings, camera["center"][0], camera["center"][1], camera["distance"])
@@ -261,7 +260,7 @@ def _configure_3d_map_view(args: dict) -> dict:
     try:
         _scene_setters(settings, args)
     except ValueError as exc:
-        return tool_error(str(exc), "INVALID_ARGS", "background_color is a colour such as #0b1026 or navy.")
+        return tool_error(str(exc), "INVALID_ARGS", hint="map3d_background_colour")
 
 
     edit = _scene_xml(args, (camera or {}).get("distance"))
@@ -291,6 +290,8 @@ def _configure_3d_map_view(args: dict) -> dict:
         "layers_3d": [layer.name() for layer in settings.layers() if _has_3d_renderer(layer)][:20],
         "ground_layers": _ground_layers(settings)[:20],
     }
+    if result["view"].get("name"):
+        result["object"] = {"kind": "view3d", "name": result["view"]["name"]}
     if hasattr(settings, "terrainRenderingEnabled"):
         result["terrain_shown"] = settings.terrainRenderingEnabled() if show is None else bool(show)
     flat = [layer.name() for layer in settings.layers() if layer is not None and hasattr(layer, "labelsEnabled")

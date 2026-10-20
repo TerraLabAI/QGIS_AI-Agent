@@ -6,6 +6,7 @@ from __future__ import annotations
 from qgis.core import QgsApplication
 
 from ..core.policy import MAX_LIST_CHARS
+from ..core.tool_registry import tool_error
 from .processing_destinations import _is_optional, _provider_hint
 
 
@@ -94,8 +95,7 @@ def _get_algorithm_help(args: dict) -> dict:
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
     if not alg:
 
-        return {"_error": f"Algorithm not found: {algorithm_id}", "code": "INVALID_ARGS",
-                **_provider_hint(algorithm_id)}
+        return tool_error(f"Algorithm not found: {algorithm_id}", "INVALID_ARGS", **_provider_hint(algorithm_id))
 
     params = [_parameter_help(param) for param in alg.parameterDefinitions()]
 

@@ -394,9 +394,15 @@ def _layer_items(all_layers: list, root, ambiguous: set, places: dict, tree_ids:
 
 
     items = []
+
+
+    try:
+        nodes = {node.layerId(): node for node in root.findLayers()}
+    except Exception:  # noqa: BLE001
+        nodes = {}
     for lid, layer in all_layers:
         try:
-            record = layer_record(layer, root.findLayer(lid), ambiguous)
+            record = layer_record(layer, nodes.get(lid), ambiguous)
         except Exception as exc:
             name_attr = getattr(layer, "name", None)
             name = name_attr() if callable(name_attr) else lid

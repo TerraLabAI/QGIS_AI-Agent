@@ -127,7 +127,7 @@ def _local_url_error(url: str) -> dict:
 def _fetch(url: str) -> tuple[object | None, dict | None]:
 
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
-        return None, tool_error("URL must use http or https.", "INVALID_ARGS", "http(s) only.")
+        return None, tool_error("URL must use http or https.", "INVALID_ARGS")
     if is_local_url(url):
         return None, _local_url_error(url)
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT})
@@ -141,11 +141,11 @@ def _fetch(url: str) -> tuple[object | None, dict | None]:
     except net.FetchDeadline as e:
         return None, tool_error(f"{url} did not answer in time: {e}", "NETWORK_ERROR", hint="fetch_timeout")
     except net.FetchCancelled:
-        return None, tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
+        return None, tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
         return None, tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR", hint="http_error_json", status=e.code)
     except (urllib.error.URLError, OSError) as e:
-        return None, tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR", "The URL or connection, likely.")
+        return None, tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR")
     try:
 
 
@@ -205,8 +205,7 @@ def _fetch_json(args: dict) -> dict:
         try:
             doc, error = json.loads(link["inline"]), None
         except ValueError as e:
-            doc, error = None, tool_error(f"The data inside the link is not JSON: {e}", "NOT_JSON",
-                                          "A file export has valid JSON.")
+            doc, error = None, tool_error(f"The data inside the link is not JSON: {e}", "NOT_JSON")
     else:
         doc, error = _fetch(url)
     if error is not None:
@@ -214,8 +213,7 @@ def _fetch_json(args: dict) -> dict:
     path = str(args.get("path") or "")
     part = _walk(doc, path) if path else doc
     if path and part is None:
-        return tool_error(f"Nothing at path '{path}'.", "INVALID_ARGS",
-                          "Without path, this shows the document's shape.")
+        return tool_error(f"Nothing at path '{path}'.", "INVALID_ARGS", hint="json_path_missing")
     try:
         max_chars = max(200, min(int(args.get("max_chars") or _DEFAULT_MAX_CHARS), _MAX_CHARS_CAP))
     except (TypeError, ValueError):
@@ -294,7 +292,7 @@ _BINARY_EXTS = (".zip", ".tif", ".tiff", ".gpkg", ".kmz", ".fgb", ".parquet", ".
 def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
 
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
-        return None, "", tool_error("URL must use http or https.", "INVALID_ARGS", "http(s) only.")
+        return None, "", tool_error("URL must use http or https.", "INVALID_ARGS")
     if is_local_url(url):
         return None, "", _local_url_error(url)
     req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT_TEXT})
@@ -310,12 +308,11 @@ def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
         return None, "", tool_error(f"{url} did not answer in time: {e}", "NETWORK_ERROR",
                                     hint="fetch_timeout")
     except net.FetchCancelled:
-        return None, "", tool_error("The run was stopped.", "CANCELLED", "The user stopped the run.")
+        return None, "", tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
-        return None, "", tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR", "The HTTP status says why.")
+        return None, "", tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR")
     except (urllib.error.URLError, OSError) as e:
-        return None, "", tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR",
-                                    "The URL or connection, likely.")
+        return None, "", tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR")
 
 
 def _cell_text(fragment: str) -> str:
@@ -670,8 +667,7 @@ def _add_points_from_json(args: dict) -> dict:
     lat_key = str(args.get("lat_key") or "").strip()
     lon_key = str(args.get("lon_key") or "").strip()
     if not lat_key or not lon_key:
-        return tool_error("lat_key and lon_key are required.", "INVALID_ARGS",
-                          "They name the record keys holding the latitude and the longitude.")
+        return tool_error("lat_key and lon_key are required.", "INVALID_ARGS", hint="lat_lon_keys")
     doc, error = _fetch(url)
     if error is not None:
         return error

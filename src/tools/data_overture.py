@@ -71,9 +71,6 @@ def _overture_limit() -> int:
 
 _OVERTURE_TILE_ZOOM = 8
 _OVERTURE_MAX_TILES = 4
-
-_OVERTURE_DIVISION_SUBTYPES = ("country", "dependency", "region", "county", "localadmin", "locality",
-                               "macrohood", "neighborhood")
 class _ThemeLicences(dict):
 
 
@@ -421,14 +418,15 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
 
 
 
-        said = {"_error": detail or f"The Overture service answered {error.code}.",
-                "status": int(error.code)}
+        message = detail or f"The Overture service answered {error.code}."
         if error.code not in (400, 413):
-            said.update(coded_fact(hint="overture_http_status", variant="retry", status=int(error.code)))
+            said = tool_error(message, hint="overture_http_status", variant="retry", status=int(error.code))
         elif not detail:
 
-            said.update(coded_fact(hint="overture_http_status", status=int(error.code),
-                                   variant="too_large" if error.code == 413 else "no_reason"))
+            said = tool_error(message, "INVALID_ARGS", hint="overture_http_status", status=int(error.code),
+                              variant="too_large" if error.code == 413 else "no_reason")
+        else:
+            said = {**tool_error(message, "INVALID_ARGS"), "status": int(error.code)}
         said.update(_overture_trace(getattr(error, "headers", None)))
         return said
     except net.FetchTooLarge as error:
@@ -436,10 +434,9 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
 
 
 
-        return {"_error": f"The Overture answer for this box is larger than one download on this computer "
-                          f"may read ({error.reason}).",
-                "code": limits.CEILING_CODE, "too_large": True,
-                **coded_fact(hint="overture_answer_too_large", reason=str(error.reason))}
+        return tool_error(f"The Overture answer for this box is larger than one download on this computer "
+                          f"may read ({error.reason}).", limits.CEILING_CODE,
+                          hint="overture_answer_too_large", reason=str(error.reason), too_large=True)
     except (net.FetchDeadline, net.FetchTruncated, net.NetworkUnreachable, OSError,
             http.client.HTTPException) as error:
 
@@ -449,23 +446,23 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
 
 
 
-            return {"_error": broken, "code": net.NETWORK_ERROR, "suggestion": net.NETWORK_SUGGESTION}
+            return tool_error(broken, net.NETWORK_ERROR)
         if isinstance(error, net.FetchDeadline):
 
-            return {"_error": f"The Overture service's answer did not arrive in time. {error.reason}",
-                    **coded_fact(hint="overture_answer_late", reason=str(error.reason))}
+            return tool_error(f"The Overture service's answer did not arrive in time. {error.reason}",
+                              hint="overture_answer_late", reason=str(error.reason))
 
-        return {"_error": f"Could not reach the Overture service: {error}",
-                **volume_guard.coded(hint="hosted_unreachable")}
+        return tool_error(f"Could not reach the Overture service: {error}",
+                          **volume_guard.coded(hint="hosted_unreachable"))
     try:
 
 
         payload = _json_object(answer.body.decode("utf-8"), "features")
     except (ValueError, UnicodeDecodeError):
-        return {"_error": "The Overture service did not answer with JSON.",
+        return {**tool_error("The Overture service did not answer with JSON."),
                 **_overture_trace(getattr(answer, "headers", None))}
     if not isinstance(payload, dict):
-        return {"_error": "The Overture service answered no object.",
+        return {**tool_error("The Overture service answered no object."),
                 **_overture_trace(getattr(answer, "headers", None))}
 
 
@@ -578,7 +575,7 @@ def _overture_layer(features: list, name: str, args: dict, uri: str = "") -> dic
     def _create():
         layer = _layer_from_source(uri, name, built)
         if not layer.isValid():
-            return {"_error": f"Could not build a layer from the Overture answer for {name}."}
+            return tool_error(f"Could not build a layer from the Overture answer for {name}.")
         QgsProject.instance().addMapLayer(layer)
 
 
@@ -641,18 +638,16 @@ def _stream_split_refusal(theme: str, box, count: int) -> dict:
     if pieces and len(pieces) <= _STREAM_SPLIT_MAX_CALLS and all(
             len(_overture_tiles(piece)) <= _OVERTURE_MAX_TILES for piece in pieces):
         listed = "; ".join("[" + ", ".join(f"{value:g}" for value in piece) + "]" for piece in pieces)
-        return {"_error": (f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}. "
-                           f"These {len(pieces)} boxes [west, south, east, north] cover it, each within "
-                           f"{_OVERTURE_MAX_TILES} tiles: {listed}."),
-                "code": limits.CEILING_CODE,
 
-                **volume_guard.coded(hint="overture_too_big", variant="tiles")}
+        return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}. "
+                          f"These {len(pieces)} boxes [west, south, east, north] cover it, each within "
+                          f"{_OVERTURE_MAX_TILES} tiles: {listed}.", limits.CEILING_CODE,
+                          **volume_guard.coded(hint="overture_too_big", variant="tiles"))
     calls = len(pieces) or -(-count // _OVERTURE_MAX_TILES)
-    return {"_error": (f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}: "
-                       f"covering it would take {calls} calls, each adding its tiles as layers."
-                       + volume_guard.WHOLE_BEFORE_PART),
-            "code": limits.CEILING_CODE,
-            **volume_guard.coded(hint="overture_too_big", variant="tiles")}
+    return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}: "
+                      f"covering it would take {calls} calls, each adding its tiles as layers."
+                      + volume_guard.WHOLE_BEFORE_PART, limits.CEILING_CODE,
+                      **volume_guard.coded(hint="overture_too_big", variant="tiles"))
 
 
 def _stream_refusal(theme: str, box) -> dict | None:
@@ -723,10 +718,8 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
         layers.append(made)
     refused = [entry for entry in missing if entry["reason"] != "absent"]
     if not layers:
-        return {"_error": f"None of the {_overture_source(theme)} {theme} tiles for this box could be opened.",
-                "missing_tiles": missing,
-                "coverage": "none",
-                **coded_fact(hint="overture_stream_unopened", theme=theme)}
+        return tool_error(f"None of the {_overture_source(theme)} {theme} tiles for this box could be opened.",
+                          hint="overture_stream_unopened", theme=theme, missing_tiles=missing, coverage="none")
     out = {"mode": "stream", "theme": theme, "layers": layers, "tiles": [label for label, _ in urls],
            "missing_tiles": missing, "crs": "EPSG:4326",
            "coverage": "partial" if refused else "complete",
@@ -977,22 +970,6 @@ def _outline_contains(x: float, y: float, outline: dict) -> bool:
     return False
 
 
-def _split_box(box, max_km2: float, max_span: float, outline: dict | None = None) -> list:
-
-
-
-
-
-
-
-
-
-
-
-
-    return _clip_grid(box, max_km2, max_span, outline)[0]
-
-
 def _clip_grid(box, max_km2: float, max_span: float, outline: dict | None = None):
 
     import math
@@ -1054,7 +1031,8 @@ def _divisions_subtypes_asked(wanted) -> tuple:
     raw = wanted.get("subtype") if isinstance(wanted, dict) else None
     asked = raw if isinstance(raw, (list, tuple)) else [raw]
     names = [name for name in dict.fromkeys(str(one or "").strip().lower() for one in asked) if name]
-    known = _OVERTURE_DIVISION_SUBTYPES
+
+    known = tuning.service_list("division_subtypes", ())
     if not names:
 
 
@@ -1064,7 +1042,8 @@ def _divisions_subtypes_asked(wanted) -> tuple:
 
         return [], tool_error("Divisions are one whole-world file per subtype, so the subtype is not optional.",
                               "INVALID_ARGS", hint="overture_divisions_subtype_required", subtypes=list(known))
-    unknown = [name for name in names if name not in known]
+
+    unknown = [name for name in names if known and name not in known]
     if unknown and all(_DIVISION_WORDS.get(name) in known for name in unknown):
 
 
@@ -1133,11 +1112,10 @@ def _clip_split_refusal(theme: str, box, max_km2: float, touching: int | None = 
         size = (f"This outline is {_bbox_km2(south, west, north, east):,.0f} km2 and would "
                 f"take more than {_CLIP_MAX_BOXES} clips of the {max_km2:,.0f} km2 one "
                 f"{theme} call covers.")
-    return {"_error": size + volume_guard.WHOLE_BEFORE_PART,
 
 
-            "code": limits.CEILING_CODE,
-            **volume_guard.coded(hint="overture_too_big", variant="clips")}
+    return tool_error(size + volume_guard.WHOLE_BEFORE_PART, limits.CEILING_CODE,
+                      **volume_guard.coded(hint="overture_too_big", variant="clips"))
 
 
 
@@ -1336,7 +1314,6 @@ __all__ = [
     "_overture_tiles",
     "_polys_bbox",
     "_rings_of",
-    "_split_box",
     "_clip_grid",
     "_clip_grid",
     "_stop_if_cancelled",

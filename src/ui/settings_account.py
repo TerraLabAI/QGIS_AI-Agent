@@ -318,6 +318,15 @@ class AccountPageMixin:
 
         title = plan_name if plan.is_subscriber else self.tr(
             "{plan} · Personal, non-commercial use").format(plan=plan_name)
+
+
+        trial_end = format_reset_date(getattr(plan, "trial_ends_on", None) or "")
+        if trial_end:
+            title = self.tr("{plan} · Free trial").format(plan=plan_name)
+            then = {"month": self.tr("Then billed monthly"),
+                    "year": self.tr("Then billed yearly")}.get(getattr(plan, "trial_interval", None) or "", "")
+            reset = " · ".join(part for part in (
+                self.tr("Free trial ends {date}").format(date=trial_end), then) if part)
         row = QFrame(parent)
         row.setObjectName("settingsRow")
         row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)

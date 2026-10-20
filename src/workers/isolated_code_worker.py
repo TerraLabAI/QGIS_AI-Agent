@@ -471,6 +471,7 @@ def _run(job: dict, status_path: str) -> int:
     for alias, module in helpers.prelude(code_split.names_mentioned(str(job.get("code") or "")),
                                          namespace["__builtins__"]["__import__"]).items():
         namespace[alias] = module
+    guard.bind_namespace_views(namespace)
     bound = set(namespace)
     missing = _load_names(job, namespace)
     if missing:

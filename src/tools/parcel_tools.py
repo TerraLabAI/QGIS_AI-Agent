@@ -81,7 +81,7 @@ def _parcel(layer, args: dict):
         feature = layer.getFeature(int(args["feature_id"]))
         if not feature.isValid() or not feature.hasGeometry():
             return None, tool_error(f"'{layer.name()}' has no feature {args['feature_id']} with a geometry.",
-                                    "INVALID_ARGS", "get_features gives the ids; a selected parcel also picks it.")
+                                    "INVALID_ARGS", hint="parcel_feature_ids")
         return feature, None
     selected = layer.selectedFeatureIds()
     if len(selected) == 1:
@@ -90,7 +90,7 @@ def _parcel(layer, args: dict):
         return first_feature(layer, feature_request()), None
     what = f"{len(selected)} are selected" if selected else f"it has {layer.featureCount()} features"
     return None, tool_error(f"Which parcel of '{layer.name()}'? {what}.", "INVALID_ARGS",
-                            "feature_id or one selected parcel picks it.")
+                            hint="parcel_which")
 
 
 def _azimuth(dx: float, dy: float) -> float:
@@ -105,14 +105,14 @@ def _reference_azimuth(args: dict, calc_crs):
     if not isinstance(reference, QgsVectorLayer) or \
             QgsWkbTypes.geometryType(reference.wkbType()) != enum_member(Qgis, "GeometryType", "Line"):
         return None, tool_error(f"'{reference.name()}' is not a line layer.", "INVALID_ARGS",
-                                "A line layer's line gives the cut direction; direction takes degrees instead.")
+                                hint="parcel_cut_direction")
     ids = reference.selectedFeatureIds()
 
     feature = (reference.getFeature(ids[0]) if ids
               else first_feature(reference, feature_request(attributes=[])))
     if feature is None or not feature.hasGeometry():
         return None, tool_error(f"'{reference.name()}' has no line.", "INVALID_ARGS",
-                                "A reference line or a direction in degrees sets it.")
+                                hint="parcel_cut_direction")
     geometry = QgsGeometry(feature.geometry())
     transform = QgsCoordinateTransform(reference.crs(), calc_crs, QgsProject.instance())
     geometry.transform(transform)
@@ -120,7 +120,7 @@ def _reference_azimuth(args: dict, calc_crs):
     first, last = vertices[0], vertices[-1]
     if math.hypot(last.x() - first.x(), last.y() - first.y()) == 0:
         return None, tool_error(f"The line in '{reference.name()}' starts and ends at one point.", "INVALID_ARGS",
-                                "A straight line, or a direction, sets it.")
+                                hint="parcel_cut_direction")
     return _azimuth(last.x() - first.x(), last.y() - first.y()), None
 
 
@@ -192,16 +192,14 @@ def _split_parcel(args: dict) -> dict:
     if not isinstance(layer, QgsVectorLayer) or QgsWkbTypes.geometryType(layer.wkbType()) != enum_member(
         Qgis, "GeometryType", "Polygon"
     ):
-        return tool_error(
-            f"'{layer.name()}' is not a polygon layer.", "INVALID_ARGS", "layer needs a polygon layer."
-        )
+        return tool_error(f"'{layer.name()}' is not a polygon layer.", "INVALID_ARGS")
     parts, lot_area = args.get("parts"), args.get("lot_area")
     if (parts is None) == (lot_area is None):
         return tool_error("parts (equal lots) or lot_area (square metres per lot) is needed, not both.",
-                          "INVALID_ARGS", "parts: 4 for four equal lots; lot_area: 2000 for lots of 2,000 m2.")
+                          "INVALID_ARGS", hint="parcel_parts_or_lot_area")
     if args.get("direction") is not None and args.get("reference_layer"):
         return tool_error("direction or reference_layer, not both.", "INVALID_ARGS",
-                          "reference_layer when the user drew or named a line, direction for a bearing.")
+                          hint="parcel_direction_or_reference")
     feature, refusal = _parcel(layer, args)
     if refusal:
         return refusal
@@ -209,7 +207,7 @@ def _split_parcel(args: dict) -> dict:
     max_vertices = tuning.ceiling("parcel_max_vertices", MAX_VERTICES, 2_000)
     if geometry.constGet().nCoordinates() > max_vertices:
         return tool_error(f"The parcel has over {max_vertices} vertices.", "INVALID_ARGS",
-                          "run_processing native:simplifygeometries reduces vertices before a split.")
+                          hint="parcel_too_many_vertices")
     if not geometry.isGeosValid():
         geometry = geometry.makeValid()
 
@@ -225,7 +223,7 @@ def _split_parcel(args: dict) -> dict:
         geometry.transform(to_calc)
     total = geometry.area()
     if total <= 0:
-        return tool_error("The parcel has no area.", "INVALID_ARGS", "check_geometry_validity shows why.")
+        return tool_error("The parcel has no area.", "INVALID_ARGS", hint="parcel_no_area")
 
     if args.get("reference_layer"):
         azimuth, refusal = _reference_azimuth(args, calc_crs)
@@ -247,11 +245,11 @@ def _split_parcel(args: dict) -> dict:
         count = math.ceil(total / wanted - 1e-9)
         if count < 2:
             return tool_error(f"The parcel is {total * square_metres:,.0f} m2, not more than one lot of "
-                              f"{float(lot_area):,.0f} m2.", "INVALID_ARGS", "A smaller lot_area helps.")
+                              f"{float(lot_area):,.0f} m2.", "INVALID_ARGS", hint="parcel_lot_larger_than_parcel")
         max_lots = tuning.ceiling("parcel_max_lots", MAX_LOTS, 10)
         if count > max_lots:
             return tool_error(f"That makes {count} lots; the limit is {max_lots}.", "INVALID_ARGS",
-                              "Larger lots or a smaller parcel fit.")
+                              hint="parcel_too_many_lots")
         targets = [wanted * k for k in range(1, count)]
 
     sweep = _Sweep(geometry, azimuth)

@@ -111,7 +111,7 @@ def snapshot(args: dict) -> dict:
         output = os.path.splitext(output)[0] + ".gpkg"
     error = validate_path(output, write=True)
     if error:
-        return {"_error": error}
+        return tool_error(error, "INVALID_ARGS")
     folder = os.path.dirname(output)
     name = os.path.splitext(os.path.basename(output))[0]
     stage = os.path.join(folder, f".{name}.{uuid.uuid4().hex[:8]}.part.gpkg")
@@ -128,7 +128,7 @@ def snapshot(args: dict) -> dict:
         path = _source_path(layer)
         if path and os.path.normcase(os.path.normpath(path)) == wanted:
             return tool_error(f"{layer.name()!r} reads {output}; the package cannot replace a file the project uses.",
-                              "INVALID_ARGS", "Another file name avoids it.")
+                              "INVALID_ARGS")
         entry = {"id": layer.id(), "name": layer.name()}
         if isinstance(layer, QgsVectorLayer) and layer.providerType() in _WRITTEN_PROVIDERS and (
                 layer.providerType() in ("memory", "virtual") or _is_local_file(path)):
@@ -406,7 +406,7 @@ def finish(snap: dict, written: dict) -> dict:
         package.setPresetHomePath("")
         uri = f"geopackage:{output}?projectName={quote(snap['name'])}"
         if not package.write(uri):
-            return {"_error": f"QGIS could not store the project in {output}: {package.error()}"}
+            return tool_error(f"QGIS could not store the project in {output}: {package.error()}")
     finally:
         tables = [copied.source() for copied in added if copied.providerType() == "ogr"
                   and copied.source().startswith(output)]

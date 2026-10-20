@@ -38,11 +38,14 @@ class FlowLayout(QLayout):
 
 
 
-    def __init__(self, parent=None, h_spacing: int = 6, v_spacing: int = 6):
+    def __init__(self, parent=None, h_spacing: int = 6, v_spacing: int = 6,
+                 centred: bool = False):
         super().__init__(parent)
         self._items = []
         self._h = h_spacing
         self._v = v_spacing
+
+        self._centred = centred
         self.setContentsMargins(0, 0, 0, 0)
 
     def addItem(self, item):  # noqa: N802
@@ -129,6 +132,14 @@ class FlowLayout(QLayout):
             slots.append((item, QRect(left, top, width, height)))
             left += width + self._h
             row_height = max(row_height, height)
+        if self._centred:
+            rows: dict = {}
+            for _item, slot in slots:
+                rows.setdefault(slot.top(), []).append(slot)
+            for row in rows.values():
+                shift = max(0, (edge - (row[-1].right() + 1)) // 2)
+                for slot in row:
+                    slot.translate(shift, 0)
         return slots, top + row_height
 
     def _arrange(self, rect: QRect, dry_run: bool) -> int:
@@ -223,6 +234,8 @@ class ElidedLabel(QLabel):
 
         self._elide_mode = mode
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        self.setTextFormat(Qt.TextFormat.PlainText)
         self.setText(text)
 
     def set_elide_mode(self, mode: Qt.TextElideMode) -> None:
@@ -485,18 +498,3 @@ class IconButton(QToolButton):
             return
         self.setProperty("active", active)
         repolish(self)
-
-    def attach_menu(self, menu) -> None:
-
-        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.setMenu(menu)
-        menu.aboutToShow.connect(lambda: self.set_active(True))
-        menu.aboutToHide.connect(self._menu_closed)
-
-    def _menu_closed(self) -> None:
-        self.setDown(False)
-        self.set_hovered(False)
-        self.set_active(False)
-        self._set_glyph_hover(self.underMouse())
-
-

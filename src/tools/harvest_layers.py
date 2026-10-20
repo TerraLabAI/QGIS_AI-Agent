@@ -381,7 +381,8 @@ def _raster_option(args: dict, name: str):
     constant = choices.get(word)
     if constant is not None:
         return constant, None
-    return None, tool_error(f"Unknown {name}: {word!r}.", "INVALID_ARGS", f"One of {sorted(choices)}.")
+    return None, tool_error(f"Unknown {name}: {word!r}.", "INVALID_ARGS",
+                              hint="raster_option_values", option=name, values=sorted(choices))
 
 
 
@@ -406,11 +407,11 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
             colour = qcolor_from_text(str(value))
             if not colour.isValid():
                 return None, "", tool_error(f"color_stops: {value!r} is not a colour.", "INVALID_ARGS",
-                                            "Hex colours such as ['#ffffff', '#add8e6'], lowest value first.")
+                                            hint="style_color_stops_format")
             colours.append(colour)
         if len(colours) < 2:
             return None, "", tool_error("color_stops needs at least two colours, lowest value first.",
-                                        "INVALID_ARGS", "['#ffffff', '#add8e6'] is white to light blue.")
+                                        "INVALID_ARGS", hint="style_color_stops_format")
         if invert:
             colours.reverse()
         last = len(colours) - 1
@@ -511,7 +512,7 @@ def _limits_plan(args: dict) -> tuple:
             low = high = -1.0
         if not 0 <= low < high <= 100:
             return None, tool_error(f"cumulative_cut {raw!r} is not [lower, upper] percent with 0 <= lower < upper "
-                                    "<= 100.", "INVALID_ARGS", "QGIS's default is [2, 98].")
+                                    "<= 100.", "INVALID_ARGS", hint="raster_cumulative_cut_default")
         cut = (low, high)
     return {"limits": limits, "cut": cut}, None
 
@@ -643,7 +644,8 @@ def _style_raster(layer, args: dict) -> dict:
                 class_count=len(codes))
     build = _RASTER_BUILDERS.get(style_type) if isinstance(style_type, str) else None
     if build is None:
-        return tool_error(f"Unknown style_type: {style_type!r}.", "INVALID_ARGS", f"One of {list(RASTER_STYLES)}.")
+        return tool_error(f"Unknown style_type: {style_type!r}.", "INVALID_ARGS",
+                          hint="raster_style_types", types=list(RASTER_STYLES))
     job = {"layer": layer, "provider": provider, "bands": band_count, "args": args, "plan": plan,
            "notes": notes, "codes": codes, "low": min_value, "high": max_value}
     renderer, fields, error = build(job)
@@ -703,7 +705,7 @@ def _band_arg(job: dict, name: str, fallback: int):
     return None, tool_error(
         f"{name}={number} is out of range: {job['layer'].name()!r} has {count} band(s).",
         "INVALID_ARGS",
-        f"band is between 1 and {count}.",
+        hint="raster_band_range", argument=name, count=count,
     )
 
 
@@ -885,8 +887,7 @@ def _apply_style_qml(args: dict) -> dict:
     path = _expand(args["path"])
     extension = os.path.splitext(path)[1].lower()
     if extension not in (".qml", ".sld"):
-        return tool_error("Style path must end in .qml or .sld.", "INVALID_ARGS",
-                          "path is local, not a URL.")
+        return tool_error("Style path must end in .qml or .sld.", "INVALID_ARGS", hint="style_path_local")
     if not os.path.isfile(path):
         return tool_error(
             f"Style file not found: {path}", "INVALID_ARGS", hint="style_file_missing", path=path,
@@ -906,8 +907,7 @@ def _apply_style_qml(args: dict) -> dict:
 
     classification_field = str(args.get("classification_field") or "").strip()
     if classification_field and hasattr(layer, "fields") and layer.fields().indexOf(classification_field) < 0:
-        return tool_error(f"Classification field not found: {classification_field}", "INVALID_ARGS",
-                          "It must be a field of the target layer.")
+        return tool_error(f"Classification field not found: {classification_field}", "INVALID_ARGS")
     if extension == ".sld" and not hasattr(layer, "loadSldStyle"):
         return tool_error("This QGIS version cannot load SLD styles.", "STYLE_FAILED", hint="style_sld_unsupported")
     message, success = (layer.loadSldStyle(path) if extension == ".sld" else layer.loadNamedStyle(path))
@@ -919,8 +919,7 @@ def _apply_style_qml(args: dict) -> dict:
                 _refresh(layer)
         return tool_error(
             f"Failed to apply style: {message}", "STYLE_FAILED",
-            "The QML must match the layer type (vector QML on a vector layer). "
-            "The layer keeps the style it had.",
+            hint="style_apply_failed", layer=layer.name(),
         )
     if classification_field:
         renderer = getattr(layer, "renderer", lambda: None)()
@@ -949,7 +948,7 @@ def _save_style_qml(args: dict) -> dict:
         os.makedirs(directory, exist_ok=True)
     message, success = layer.saveNamedStyle(path)
     if not success:
-        return tool_error(f"Failed to save style: {message}", "STYLE_FAILED", "path is writable and ends in .qml.")
+        return tool_error(f"Failed to save style: {message}", "STYLE_FAILED", hint="style_save_failed")
     return {
         "layer_id": layer.id(),
         "name": layer.name(),
@@ -980,7 +979,7 @@ def _set_layer_property(args: dict) -> dict:
             if not 0.0 <= opacity <= 1.0:
                 return tool_error(
                     f"opacity {opacity} is outside 0.0-1.0.", "INVALID_ARGS",
-                    "0 is transparent, 1 is opaque.",
+                    hint="opacity_invalid", variant="range", opacity=opacity,
                 )
             layer.setOpacity(opacity)
             applied = opacity
@@ -999,11 +998,11 @@ def _set_layer_property(args: dict) -> dict:
             applied = float(value)
             layer.setMaximumScale(applied)
         else:
-            return tool_error(f"Unknown property: {prop!r}.", "INVALID_ARGS", f"One of {list(LAYER_PROPERTIES)}.")
+            return tool_error(f"Unknown property: {prop!r}.", "INVALID_ARGS",
+                          hint="layer_property_unknown", properties=list(LAYER_PROPERTIES))
     except (TypeError, ValueError) as e:
         return tool_error(
-            f"Bad value for {prop}: {e}", "INVALID_ARGS",
-            "opacity, min_scale and max_scale take numbers; scale_visibility takes true or false.",
+            f"Bad value for {prop}: {e}", "INVALID_ARGS", hint="layer_property_value_type",
         )
     _refresh(layer)
     out = {"layer_id": layer.id(), "name": layer.name(), "property": prop, "value": applied}
@@ -1040,13 +1039,11 @@ def _set_layer_order(args: dict) -> dict:
                 hint="layer_no_tree_node", layer=layer.name(),
             )
         if node in nodes:
-            return tool_error(f"Layer {layer.name()!r} is listed twice.", "INVALID_ARGS", "Each layer once.")
+            return tool_error(f"Layer {layer.name()!r} is listed twice.", "INVALID_ARGS")
         nodes.append(node)
         resolved.append(layer)
     if not nodes:
-        return tool_error("Nothing to reorder.", "INVALID_ARGS",
-                          "One layer takes layer_name and position (top, bottom, above, below); "
-                          "a whole group takes layers, top to bottom.")
+        return tool_error("Nothing to reorder.", "INVALID_ARGS", hint="layer_order_forms")
     parent = nodes[0].parent()
     for node in nodes[1:]:
         if node.parent() is not parent:
@@ -1111,12 +1108,10 @@ def _move_one_layer(args: dict) -> dict:
 
     name = str(args.get("layer_name") or "").strip()
     if not name:
-        return tool_error("layer_name is empty.", "INVALID_ARGS",
-                          "layer_name is the layer or group to move; layers is a whole order.")
+        return tool_error("layer_name is empty.", "INVALID_ARGS", hint="layer_order_forms")
     position = str(args.get("position") or "").strip().lower()
     if position not in ("top", "bottom", "above", "below"):
-        return tool_error("position is top, bottom, above or below.", "INVALID_ARGS",
-                          "above and below also need reference_layer.")
+        return tool_error("position is top, bottom, above or below.", "INVALID_ARGS", hint="layer_move_reference")
     project = QgsProject.instance()
     root = project.layerTreeRoot()
     node, layer, error = _tree_node(name, root)
@@ -1128,20 +1123,17 @@ def _move_one_layer(args: dict) -> dict:
 
     if position in ("above", "below"):
         if not reference:
-            return tool_error(f"{position} needs reference_layer.", "INVALID_ARGS",
-                              "top or bottom need no reference_layer.")
+            return tool_error(f"{position} needs reference_layer.", "INVALID_ARGS", hint="layer_move_reference")
         other_node, _other, error = _tree_node(reference, root)
         if error:
             return error
         if other_node is node:
-            return tool_error("A node cannot be moved relative to itself.", "INVALID_ARGS",
-                              "It must be a different layer or group.")
+            return tool_error("A node cannot be moved relative to itself.", "INVALID_ARGS")
         parent = other_node.parent() or root
         ancestor = parent
         while ancestor is not None:
             if ancestor is node:
-                return tool_error(f"{reference!r} is inside the group {name!r} being moved.", "INVALID_ARGS",
-                                  "reference_layer must be outside the group being moved.")
+                return tool_error(f"{reference!r} is inside the group {name!r} being moved.", "INVALID_ARGS")
             ancestor = ancestor.parent()
         siblings = [child for child in parent.children() if child is not node]
         index = siblings.index(other_node)
@@ -1301,7 +1293,6 @@ def _rename_field(args: dict) -> dict:
     if layer.fields().indexOf(new_name) >= 0:
         return tool_error(
             f"Field {new_name!r} already exists on {layer.name()!r}.", "INVALID_ARGS",
-            "new_name must be unused.",
         )
     if layer.isEditable():
         return tool_error(
@@ -1594,7 +1585,7 @@ def _set_layer_metadata(args: dict) -> dict:
         metadata.setRights([rights.strip()[:500]])
         applied["rights"] = metadata.rights()
     if not applied:
-        return tool_error("Nothing to set.", "INVALID_ARGS", "title, abstract, keywords or rights.")
+        return tool_error("Nothing to set.", "INVALID_ARGS", hint="layer_metadata_fields")
     if not metadata.identifier():
         metadata.setIdentifier(layer.id())
     if not metadata.type():
@@ -1609,11 +1600,10 @@ def _set_field_aliases(args: dict) -> dict:
     if error:
         return error
     if not isinstance(layer, QgsVectorLayer):
-        return tool_error("Only vector layers have fields.", "INVALID_ARGS", "Vector layers only.")
+        return tool_error("Only vector layers have fields.", "INVALID_ARGS")
     aliases = args.get("aliases")
     if not isinstance(aliases, dict) or not aliases:
-        return tool_error("aliases must map field names to aliases.", "INVALID_ARGS",
-                          "Example: {'POP_2021': 'Population 2021'}.")
+        return tool_error("aliases must map field names to aliases.", "INVALID_ARGS", hint="field_aliases_shape")
     fields = layer.fields()
     applied: dict = {}
     unknown: list[str] = []

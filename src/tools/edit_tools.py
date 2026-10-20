@@ -219,12 +219,12 @@ def _set_snapping_config(args: dict) -> dict:
     units_name = args.get("units", "pixels")
     tolerance = float(args.get("tolerance", 12))
     if tolerance < 0:
-        return {"_error": "tolerance must be zero or greater."}
+        return tool_error("tolerance must be zero or greater.", "INVALID_ARGS")
     try:
         mode = _snapping_mode(mode_name)
         units = _snapping_units(units_name)
     except ValueError as exc:
-        return {"_error": str(exc)}
+        return tool_error(str(exc), "INVALID_ARGS")
     cfg = proj.snappingConfig()
     try:
         cfg.setEnabled(enabled)
@@ -239,11 +239,11 @@ def _set_snapping_config(args: dict) -> dict:
             return tool_error(
                 "This QGIS version cannot configure intersection snapping.",
                 "UNSUPPORTED_QGIS_VERSION",
-                "intersection_snapping needs a newer QGIS.",
+                hint="snapping_intersection_unsupported",
             )
         proj.setSnappingConfig(cfg)
     except (AttributeError, TypeError, ValueError) as exc:
-        return {"_error": f"QGIS rejected the snapping configuration: {exc}"}
+        return tool_error(f"QGIS rejected the snapping configuration: {exc}", "EXECUTION_FAILED")
 
     applied, unsupported = [], []
     for override in args.get("layer_overrides", []):
@@ -457,24 +457,24 @@ def _edit_commit(args: dict) -> dict:
 
 
         remaining = layer.editBuffer()
-        return {
-            "_error": (f"QGIS could not finish saving the edits to {layer.name()!r}: "
-                       + ("; ".join(errors) or "the provider gave no detail")
-                       + ". Uncommitted edits remain in the open edit session. "
-                         "Some provider stages may already have been saved."),
-            "code": "EXECUTION_FAILED",
-            "layer": layer.name(),
-            "editing": layer.isEditable(),
-            "rolled_back": False,
-            "provider_errors": errors[:8],
-            "remaining": {
+        return tool_error(
+            f"QGIS could not finish saving the edits to {layer.name()!r}: "
+            + ("; ".join(errors) or "the provider gave no detail")
+            + ". Uncommitted edits remain in the open edit session. "
+              "Some provider stages may already have been saved.",
+            "EXECUTION_FAILED",
+            hint="edit_commit_incomplete",
+            layer=layer.name(),
+            editing=layer.isEditable(),
+            rolled_back=False,
+            provider_errors=errors[:8],
+            remaining={
                 "added": len(remaining.addedFeatures()),
                 "changed_geometries": len(remaining.changedGeometries()),
                 "changed_attributes": len(remaining.changedAttributeValues()),
                 "deleted": len(remaining.deletedFeatureIds()),
             } if remaining is not None else {},
-            **coded_fact(hint="edit_commit_incomplete", layer=layer.name()),
-        }
+        )
 
     return {
         "committed": True,
@@ -503,12 +503,13 @@ def _edit_rollback(args: dict) -> dict:
     if not left_edit_mode:
 
 
-        return {
-            "_error": f"rollBack failed on layer '{layer.name()}', which is still in edit mode.",
-            "code": "EXECUTION_FAILED",
-            "aids_restored": aids_restored,
-            **coded_fact(hint="edit_rollback_failed", layer=layer.name()),
-        }
+        return tool_error(
+            f"rollBack failed on layer '{layer.name()}', which is still in edit mode.",
+            "EXECUTION_FAILED",
+            hint="edit_rollback_failed",
+            layer=layer.name(),
+            aids_restored=aids_restored,
+        )
 
     return {
         "rolled_back": True,
@@ -521,16 +522,14 @@ def _edit_rollback(args: dict) -> dict:
 def _edit_restore_aids(args: dict) -> dict:
     token = args.get("state_token")
     if not token:
-        return {"_error": "state_token is required (returned by qgis_edit_begin)."}
+        return tool_error("state_token is required (returned by qgis_edit_begin).", "INVALID_ARGS")
     snap = _edit_sessions.pop(token, None)
     if snap is None:
         active = list(_edit_sessions.keys())
-        return {
-            "_error": (
-                f"Unknown state_token '{token}'. "
-                f"Active tokens: {active or 'none'}."
-            )
-        }
+        return tool_error(
+            f"Unknown state_token '{token}'. Active tokens: {active or 'none'}.",
+            "INVALID_ARGS",
+        )
     _layer_tokens.pop(snap.get("layer_id", ""), None)
     _apply_aids_snapshot(QgsProject.instance(), snap)
     return {
@@ -575,13 +574,9 @@ def _find_mainwindow_action(object_name: str):
 def _arm_tool(args: dict) -> dict:
     name = args["name"]
     if name not in _ARM_ACTIONS:
-        return {
-            "_error": (
-                f"Unknown tool '{name}'. Valid: {sorted(_ARM_ACTIONS.keys())}"
-            )
-        }
+        return tool_error(f"Unknown tool '{name}'. Valid: {sorted(_ARM_ACTIONS.keys())}", "INVALID_ARGS")
     if iface is None:
-        return {"_error": "No QGIS GUI (iface unavailable); cannot arm a map tool."}
+        return tool_error("No QGIS GUI (iface unavailable); cannot arm a map tool.", "EXECUTION_FAILED")
 
     getter, object_name = _ARM_ACTIONS[name]
     action = None
@@ -596,7 +591,7 @@ def _arm_tool(args: dict) -> dict:
         action = _find_mainwindow_action(object_name)
         source = f"mainWindow action '{object_name}'"
     if action is None:
-        return {"_error": f"Could not resolve a QGIS action to arm '{name}'."}
+        return tool_error(f"Could not resolve a QGIS action to arm '{name}'.", "EXECUTION_FAILED")
     if not action.isEnabled():
         return tool_error(f"The '{name}' action is disabled right now.",
                           hint="edit_action_disabled", action=name)
@@ -642,12 +637,12 @@ def _translate_feature(args: dict) -> dict:
         return err
     fid = args["fid"]
     if not layer.getFeature(fid).isValid():
-        return {"_error": f"No feature with fid {fid} in layer '{layer.name()}'."}
+        return tool_error(f"No feature with fid {fid} in layer '{layer.name()}'.", "INVALID_ARGS")
     result = layer.translateFeature(fid, float(args["dx"]), float(args["dy"]))
     code = int(result)
     if code != 0:
         return {"translated": False, "layer": layer.name(), "fid": fid, "result_code": code,
-                "_error": f"translateFeature returned code {code} (0=Success)."}
+                **tool_error(f"translateFeature returned code {code} (0=Success).", "EXECUTION_FAILED")}
     layer.triggerRepaint()
     return {"translated": True, "layer": layer.name(), "fid": fid,
             "dx": float(args["dx"]), "dy": float(args["dy"]), "committed": False}
@@ -662,25 +657,25 @@ def _merge_features(args: dict) -> dict:
         return err
     fids = args["fids"]
     if len(fids) < 2:
-        return {"_error": "fids needs at least 2 to merge."}
+        return tool_error("fids needs at least 2 to merge.", "INVALID_ARGS")
     geoms = []
     for fid in fids:
         f = layer.getFeature(fid)
         if not f.isValid():
-            return {"_error": f"No feature with fid {fid} in layer '{layer.name()}'."}
+            return tool_error(f"No feature with fid {fid} in layer '{layer.name()}'.", "INVALID_ARGS")
         g = f.geometry()
         if g.isNull():
-            return {"_error": f"Feature {fid} has no geometry."}
+            return tool_error(f"Feature {fid} has no geometry.", "INVALID_ARGS")
         geoms.append(g)
     merged = QgsGeometry.unaryUnion(geoms)
     if merged.isNull() or merged.isEmpty():
-        return {"_error": "Union of the features produced an empty geometry."}
+        return tool_error("Union of the features produced an empty geometry.", "EXECUTION_FAILED")
     keep = fids[0]
     drop = fids[1:]
     if not layer.changeGeometry(keep, merged):
-        return {"_error": f"changeGeometry failed for the kept fid {keep}."}
+        return tool_error(f"changeGeometry failed for the kept fid {keep}.", "EXECUTION_FAILED")
     if not layer.deleteFeatures(drop):
-        return {"_error": f"Failed to delete merged-away fids {drop}."}
+        return tool_error(f"Failed to delete merged-away fids {drop}.", "EXECUTION_FAILED")
     layer.triggerRepaint()
     return {"merged": True, "layer": layer.name(), "kept_fid": keep,
             "deleted_fids": drop, "committed": False,
@@ -696,19 +691,19 @@ def _add_part(args: dict) -> dict:
         return err
     fid = args["fid"]
     if not layer.getFeature(fid).isValid():
-        return {"_error": f"No feature with fid {fid} in layer '{layer.name()}'."}
+        return tool_error(f"No feature with fid {fid} in layer '{layer.name()}'.", "INVALID_ARGS")
     part = QgsGeometry.fromWkt(args["part_wkt"])
     if part.isNull():
-        return {"_error": f"Invalid WKT: {args['part_wkt'][:100]}"}
+        return tool_error(f"Invalid WKT: {args['part_wkt'][:100]}", "INVALID_ARGS")
     geometry = QgsGeometry(layer.getFeature(fid).geometry())
     result = geometry.addPartGeometry(part)
     code = int(result)
     if code != 0:
-        return {"part_added": False, "layer": layer.name(), "fid": fid, "result_code": code,
-                "_error": f"addPartGeometry returned code {code} (0=Success).",
-                **coded_fact(hint="digitize_addpart", result_code=code, layer=layer.name(), fid=fid)}
+        return tool_error(f"addPartGeometry returned code {code} (0=Success).", "EXECUTION_FAILED",
+                          hint="digitize_addpart", part_added=False, result_code=code,
+                          layer=layer.name(), fid=fid)
     if not layer.changeGeometry(fid, geometry):
-        return {"_error": f"changeGeometry failed for fid {fid}."}
+        return tool_error(f"changeGeometry failed for fid {fid}.", "EXECUTION_FAILED")
     layer.triggerRepaint()
     return {"part_added": True, "layer": layer.name(), "fid": fid, "committed": False,
             **_validity(layer, fid)}
@@ -721,9 +716,8 @@ def _undo_saved(layer) -> dict:
 
     context = current()
     if context.restore_previous is None or not context.chat:
-        return {"undone": False, "layer": layer.name(),
-                "_error": f"Layer '{layer.name()}' has no edit waiting to be undone.",
-                **coded_fact(hint="edit_nothing_to_undo", layer=layer.name())}
+        return tool_error(f"Layer '{layer.name()}' has no edit waiting to be undone.", "EXECUTION_FAILED",
+                          hint="edit_nothing_to_undo", undone=False, layer=layer.name())
     return context.restore_previous(context.chat)
 
 
@@ -751,7 +745,7 @@ def _redo(args: dict) -> dict:
     stack = layer.undoStack()
     if not stack.canRedo():
         return {"redone": False, "layer": layer.name(),
-                "_error": "Nothing to redo in this edit session."}
+                **tool_error("Nothing to redo in this edit session.", "EXECUTION_FAILED")}
     label = stack.redoText()
     stack.redo()
     layer.triggerRepaint()

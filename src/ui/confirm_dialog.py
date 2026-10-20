@@ -67,6 +67,7 @@ class ConfirmDialog(QDialog):
                  glyph: str = "", accent: str = "", window_title: str = "",
                  object_name: str = "confirmDialog", confirm_is_default: bool = False):
         super().__init__(parent)
+        S.with_platform_font(self)
         self.setObjectName(object_name)
         self.setWindowTitle(window_title or title)
         self.setModal(True)

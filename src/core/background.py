@@ -45,6 +45,20 @@ _ALIVE: set = set()
 
 
 
+_FINISHED_LISTENERS: list = []
+
+
+def listen_finished(callback, on: bool) -> None:
+
+    if on and callback not in _FINISHED_LISTENERS:
+        _FINISHED_LISTENERS.append(callback)
+    elif not on and callback in _FINISHED_LISTENERS:
+        _FINISHED_LISTENERS.remove(callback)
+
+
+
+
+
 
 
 
@@ -852,6 +866,11 @@ def _task_class():
                 log_warning(f"Background tool callback failed: {exc}")
             finally:
                 _release_later(self)
+            for listener in list(_FINISHED_LISTENERS):
+                try:
+                    listener()
+                except Exception as exc:  # noqa: BLE001
+                    log_warning(f"Background task listener failed: {exc}")
 
     _TASK["class"] = _CallTask
     return _CallTask

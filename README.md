@@ -17,14 +17,14 @@ AI Agent by TerraLab is an AI agent for QGIS. You describe the job in plain Engl
 - **You stay in control**: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed.
 - **Fits your habits**: one conversation per project. Attach files, layers, selections or the map view to a message.
 - **Works with** [AI Edit](https://github.com/TerraLabAI/QGIS_AI-Edit) and [AI Segmentation](https://github.com/TerraLabAI/QGIS_AI-Segmentation) when they are installed.
-- **Free tier, no card.** Plans and limits: https://terra-lab.ai/pricing
+- **Free tier with no card.** Pro starts with a 7-day free trial. Plans and limits: https://terra-lab.ai/pricing
 - **Platforms**: QGIS 3.28 to QGIS 4, on Windows, macOS and Linux. 12 languages.
 
 Answers come from an AI model and can be wrong. Review what it changes.
 
 ## Install
 
-In QGIS, open *Plugins > Manage and Install Plugins*, search "AI Agent", install. The free tier needs no card.
+In QGIS, open *Plugins > Manage and Install Plugins*, search "AI Agent", install. The free tier needs no card, and Pro starts with a 7-day free trial.
 
 ## Links
 

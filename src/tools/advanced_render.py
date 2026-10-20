@@ -30,6 +30,7 @@ from ..core import limits
 from ..core.background import run_on_main_thread
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
+from ..core.tool_registry import coded_fact, tool_error
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 
@@ -161,7 +162,7 @@ def _prepare_frame_folder(path: str, prefix: str = ""):
     frame_len = len(path) + 1 + len(prefix) + len("000.png")
     if frame_len >= _MAX_PATH and not _long_paths_ok():
         return (f"Each frame here would be a path of {frame_len} characters and Windows stops "
-                f"this process at {_MAX_PATH}; choose a shorter out_dir or prefix.")
+                f"this process at {_MAX_PATH}.")
     try:
         os.makedirs(path, exist_ok=True)
     except OSError as exc:
@@ -535,11 +536,11 @@ def _in_project_order(layers) -> tuple:
     try:
         order = [layer.id() for layer in QgsProject.instance().layerTreeRoot().layerOrder()]
     except (AttributeError, RuntimeError):
-        return layers, ""
+        return layers, "", None
     rank = {layer_id: index for index, layer_id in enumerate(order)}
     stacked = sorted(layers, key=lambda layer: rank.get(layer.id(), len(order)))
     if [layer.id() for layer in stacked] == [layer.id() for layer in layers]:
-        return layers, ""
+        return layers, "", None
     lifted = []
     for index, layer in enumerate(layers):
         under = [other.name() for other in layers[index + 1:]
@@ -548,8 +549,7 @@ def _in_project_order(layers) -> tuple:
             lifted.append(f"'{layer.name()}' is under {', '.join(repr(name) for name in under[:3])}")
     return stacked, (
         "Drawn in the project's layer order, which a layout map prints, not in the order given: "
-        + "; ".join(lifted[:4])
-        + ". To print it on top, set_layer_order layer_name that layer, position top, then render again.")
+        + "; ".join(lifted[:4]) + "."), coded_fact(hint="render_order_lifted")
 
 
 def _slow_layer_names(layers) -> list:
@@ -921,39 +921,26 @@ def _blank_note(image, planned: dict) -> dict:
     drawn = _drawn_share(image) if inside else 0.0
     if drawn > 0:
         return {"sparse": True, "drawn_pct": round(100.0 * drawn, 2),
-                "note": (f"Little of the picture is drawn ({100.0 * drawn:.2g}% of it): the layers inside the "
-                         f"extent ({', '.join(inside[:8])}) are thin or small at this scale, not missing.")}
+                "note": coded_fact(hint="render_sparse", percent=100.0 * drawn, layers=inside[:8])}
     note = {"blank": True}
     if hidden:
         note["out_of_scale"] = hidden[:8]
-        note["note"] = (f"Nothing was drawn of {', '.join(hidden[:8])}: each is set to draw only at other "
-                        "scales than this render's (its scale range, often a service's own), so it is not "
-                        "broken. get_layer_info shows the range; a smaller extent may fit.")
+        note["note"] = coded_fact(hint="render_out_of_scale", layers=hidden[:8])
         return note
     if outside and not inside and data:
-        note["note"] = (
-            "Nothing was drawn: none of these layers has data inside the extent that was rendered. "
-            f"Outside it: {', '.join(outside[:8])}. data_extent as the render extent, or "
-            "zoom_to_layer, would draw it; this is a framing mistake, not a broken layer.")
+        note["note"] = coded_fact(hint="render_off_extent", layers=outside[:8])
         note["data_extent"] = data
         note["off_extent"] = outside
         return note
     if not planned.get("tiles", True):
 
 
-        painted = ", ".join(inside[:8]) or "any of the layers"
-        note["note"] = (f"Every pixel is the same colour: nothing was painted of {painted}"
-                        + (", whose data lies inside this extent" if inside else "")
-                        + ". Any error QGIS raised for a layer is in render_errors.")
+        note["note"] = coded_fact(hint="render_blank_no_tiles", variant="inside" if inside else "",
+                                  painted=inside[:8] or "any of the layers")
         return note
-    note["note"] = ("Every pixel is the same colour. Over a tile layer this is usually tiles that have "
-                    "not arrived yet, so a second render often differs. When a second render is blank "
-                    "too, the layers and the numbers already computed still stand; the preview alone "
-                    "did not draw, and the work continues.")
+    note["note"] = coded_fact(hint="render_blank_tiles", variant="data" if data else "")
     if data:
         note["data_extent"] = data
-        note["note"] += (" The layers' own data sits inside data_extent; that extent covers them when "
-                         "the view does not.")
     return note
 
 
@@ -967,13 +954,13 @@ def _deliver_image(args: dict, image, common: dict) -> dict:
     if save_path:
         path_error = validate_path(save_path, write=True)
         if path_error:
-            return {"_error": path_error}
+            return tool_error(path_error, "INVALID_ARGS")
         save_dir = os.path.dirname(save_path)
         if save_dir:
             os.makedirs(save_dir, exist_ok=True)
         fmt = "PNG" if os.path.splitext(save_path)[1].lower() == ".png" else "JPEG"
         if not image.save(save_path, fmt):
-            return {"_error": f"Could not write image to {save_path}"}
+            return tool_error(f"Could not write image to {save_path}", "EXECUTION_FAILED")
 
         return {"saved_path": save_path, "width": image.width(), "height": image.height(),
                 "format": fmt.lower(), **common}
@@ -995,7 +982,8 @@ def _render_answer(args: dict, image, planned: dict, passes: int, stable: bool, 
     if "_error" in result:
         return result
     result.update(_blank_note(image, planned))
-    keys = ["extent_note", "size_note", "order_note", "layout_note", "left_out", "canvas_unchanged", "labels"]
+    keys = ["extent_note", "frame_advice", "size_note", "order_note", "order_advice", "layout_note",
+            "left_out", "canvas_unchanged", "labels"]
     if planned.get("off_extent"):
 
 
@@ -1029,14 +1017,12 @@ def _layout_page(args: dict) -> dict:
     try:
         layout_ready.wait(ready, _RENDER_TOTAL_SECONDS)
         if ready["stopped"]:
-            return {"_error": "The render was stopped.", "code": "CANCELLED"}
+            return tool_error("The render was stopped.", "CANCELLED")
         if ready["unfinished"]:
             late = ready["unfinished"]
-            return {"_error": (f"The maps of page {started['page']} of '{started['layout_name']}' did not finish "
-                               f"drawing in {_RENDER_TOTAL_SECONDS:.0f} s."),
-                    "slow_layers": late,
-                    "suggestion": (f"Still drawing: {', '.join(late[:6])}. set_layers_visibility hides a heavy "
-                                   "layer; a smaller page or map frame draws less.")}
+            return tool_error(f"The maps of page {started['page']} of '{started['layout_name']}' did not finish "
+                              f"drawing in {_RENDER_TOTAL_SECONDS:.0f} s.", "EXECUTION_FAILED",
+                              hint="render_layout_slow", slow_layers=late)
         return run_on_main_thread(render_look.layout_page_draw, started, timeout=60)
     finally:
         layout_ready.discard(ready)
@@ -1079,10 +1065,8 @@ def _render_map(args: dict) -> dict:
 
     target = str(args.get("target") or "canvas").strip().lower()
     if target not in _TARGETS:
-        return {"_error": f"target must be canvas, layout or file, not {target!r}.",
-                "_code": "INVALID_ARGS",
-                "_suggestion": "canvas draws the map view, layout draws a page of a print layout, "
-                               "file draws a PNG, JPG, SVG or PDF already written."}
+        return tool_error(f"target must be canvas, layout or file, not {target!r}.", "INVALID_ARGS",
+                          hint="render_targets")
     if target != "canvas":
         return _render_target(args)
     planned = run_on_main_thread(_plan_render, args, timeout=30)
@@ -1102,16 +1086,14 @@ def _render_map(args: dict) -> dict:
         result = _render_answer(args, cached["image"], kept, cached["passes"], True, [])
         if "_error" not in result:
             result["unchanged"] = True
-            result["note"] = ("Nothing on the map changed since the last render_map of this run, so this is "
-                              "that same picture, returned without rendering again. render_map gives the "
-                              "same image again until the map, the extent or the size changes.")
+            result["note"] = coded_fact(hint="render_unchanged")
         return result
 
     began = time.monotonic()
     image, passes, stable, render_errors, labels = _render_once_async(settings, planned["tiles"])
     full_errors = list(render_errors)
     if image is None and any(e.get("message") == _STOPPED for e in render_errors):
-        return {"_error": "The render was stopped.", "code": "CANCELLED"}
+        return tool_error("The render was stopped.", "CANCELLED")
     reduced = None
     if image is None and not _stop_requested():
 
@@ -1123,21 +1105,17 @@ def _render_map(args: dict) -> dict:
         stable = False
         reduced = small
     if image is None and any(e.get("message") == _STOPPED for e in render_errors):
-        return {"_error": "The render was stopped.", "code": "CANCELLED"}
+        return tool_error("The render was stopped.", "CANCELLED")
     if image is None:
         slow = planned.get("slow_layers") or []
         elapsed = time.monotonic() - began
         small = f"{reduced[0]} by {reduced[1]}" if reduced else "640 pixels"
-        error = {"_error": (f"The map did not finish rendering in {elapsed:.0f} s, at {width} by {height} "
-                            f"or at {small}."),
-                 "elapsed_s": round(elapsed),
-                 "suggestion": ("set_layers_visibility hides a heavy layer; a smaller extent draws less. "
-                                + (f"These draw over the network or from pixels: {', '.join(slow[:6])}."
-                                   if slow else "")).strip(),
-                 "render_errors": full_errors + [e for e in render_errors if e not in full_errors]}
-        if slow:
-            error["slow_layers"] = slow
-        return error
+        facts = {"variant": "slow", "slow_layers": slow} if slow else {}
+        return tool_error(f"The map did not finish rendering in {elapsed:.0f} s, at {width} by {height} "
+                          f"or at {small}.", "EXECUTION_FAILED", hint="render_timeout",
+                          elapsed_s=round(elapsed),
+                          render_errors=full_errors + [e for e in render_errors if e not in full_errors],
+                          **facts)
     if reduced is not None:
         planned = dict(planned)
         planned["width"], planned["height"] = reduced
@@ -1149,9 +1127,8 @@ def _render_map(args: dict) -> dict:
         return result
     if reduced is not None:
         result["reduced_from"] = {"width": width, "height": height}
-        result["reduced_note"] = (f"The map was too slow to draw at {width} by {height}, so this is "
-                                  f"{reduced[0]} by {reduced[1]}. Hide a heavy layer or render a smaller "
-                                  "extent before asking for the full size again.")
+        result["reduced_note"] = coded_fact(hint="render_reduced", width=width, height=height,
+                                            new_width=reduced[0], new_height=reduced[1])
     elif stable and not result.get("blank") and not render_errors:
         _keep_render(fingerprint, image, planned, passes)
     return result
@@ -1212,9 +1189,8 @@ def _clamp_render_size(asked_width, asked_height) -> tuple:
     shape = min(width / float(asked_width), height / float(asked_height))
     width = max(64, min(width, int(round(asked_width * shape))))
     height = max(64, min(height, int(round(asked_height * shape))))
-    note = (f"Asked for {asked_width} by {asked_height}, rendered at {width} by {height}: "
-            f"this machine renders at most {max_w} by {max_h} pixels. Nothing downstream reads "
-            "more than this size.")
+    note = coded_fact(hint="render_size_clamped", asked_width=asked_width, asked_height=asked_height,
+                      width=width, height=height, max_width=max_w, max_height=max_h)
     return width, height, note
 
 
@@ -1251,7 +1227,7 @@ def _plan_render(args: dict) -> dict:
     if crs_id:
         crs = QgsCoordinateReferenceSystem(crs_id)
         if not crs.isValid():
-            return {"_error": f"Invalid CRS: {crs_id}"}
+            return tool_error(f"Invalid CRS: {crs_id}", "INVALID_ARGS")
         settings.setDestinationCrs(crs)
     elif canvas_crs is not None and canvas_crs.isValid():
         settings.setDestinationCrs(canvas_crs)
@@ -1262,7 +1238,7 @@ def _plan_render(args: dict) -> dict:
 
 
     layer_names = args.get("layer_names")
-    order_note = ""
+    order_note, order_advice = "", None
     if layer_names:
         layers = []
         missing = []
@@ -1279,7 +1255,7 @@ def _plan_render(args: dict) -> dict:
             error = _layer_not_found_error(missing[0])
             error["_missing_layers"] = missing
             return error
-        layers, order_note = _in_project_order(layers)
+        layers, order_note, order_advice = _in_project_order(layers)
     else:
         layers = list(iface.mapCanvas().layers())
 
@@ -1317,7 +1293,7 @@ def _plan_render(args: dict) -> dict:
 
     destination = settings.destinationCrs()
     data_rect, outside, inside = _framing(layers, destination, settings.extent())
-    frame_note = ""
+    frame_note, frame_advice = "", None
     if data_rect is not None and not inside and outside and not extent and layer_names:
 
 
@@ -1328,8 +1304,8 @@ def _plan_render(args: dict) -> dict:
         padded.grow(max(data_rect.width(), data_rect.height()) * 0.05 or 1.0)
         settings.setExtent(padded)
         frame_note = ("The view held none of these layers, so the render was framed on their own extent "
-                      f"({', '.join(outside[:8])}) instead of the canvas. zoom_to_layer moves the canvas "
-                      "there too.")
+                      f"({', '.join(outside[:8])}) instead of the canvas.")
+        frame_advice = coded_fact(hint="render_framed_on_data")
         data_rect, outside, inside = _framing(layers, destination, settings.extent())
 
     _apply_background(settings, args.get("background"))
@@ -1342,8 +1318,11 @@ def _plan_render(args: dict) -> dict:
             "out_of_scale": _out_of_scale(layers, settings)}
     if size_note:
         plan["size_note"] = size_note
+    if frame_advice:
+        plan["frame_advice"] = frame_advice
     if order_note:
         plan["order_note"] = order_note
+        plan["order_advice"] = order_advice
     if layer_names:
 
 
@@ -1357,17 +1336,10 @@ def _plan_render(args: dict) -> dict:
         if left_out:
             plan["left_out"] = left_out
             covering = [entry["name"] for entry in left_out if entry.get("draws_over")]
-            plan["layout_note"] = (
-                "Only the named layers were drawn as a preview; the live canvas and each layer's visibility "
-                "were left unchanged. left_out lists the visible layers this picture does not show, the share "
-                "of the view each covers and the drawn layers it sits above"
-                + (f" ({', '.join(covering[:4])} draw over what you rendered, so the user's map does not look "
-                   "like this picture: render without layer_names to see it)" if covering else "")
-                + ". A layout map draws those too: pass this same list as layers to add_layout_map, "
-                "or hide them, before exporting.")
+            plan["layout_note"] = coded_fact(hint="render_preview_layers",
+                                             variant="covering" if covering else "left_out", covering=covering[:4])
         else:
-            plan["layout_note"] = ("Only the named layers were drawn as a preview; the live canvas and each "
-                                   "layer's visibility were left unchanged.")
+            plan["layout_note"] = coded_fact(hint="render_preview_layers")
     if data_rect is not None:
         plan["data_extent"] = _bbox_of(data_rect)
     plan["extent"] = _drawn_extent(settings)

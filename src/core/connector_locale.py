@@ -155,21 +155,6 @@ def is_home(row: dict, region: str = "") -> bool:
     return region == country or region in _covers(row)
 
 
-def country_of(row: dict, region: str = "") -> str:
-
-
-
-
-
-
-    row = row if isinstance(row, dict) else {}
-    if not region:
-        region = system_locale()[1]
-    if region and region in _covers(row):
-        return region
-    return str(row.get("country") or "").upper()
-
-
 def distance(row: dict, language: str = "", region: str = "") -> int:
 
 
@@ -195,15 +180,3 @@ def distance(row: dict, language: str = "", region: str = "") -> int:
     if speaks:
         return 3
     return 4
-
-
-def sort_by_locale(rows: list) -> list:
-
-
-
-
-
-
-    language, region = system_locale()
-    rows = list(rows or [])
-    return sorted(rows, key=lambda row: distance(row, language, region))

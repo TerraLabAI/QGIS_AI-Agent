@@ -109,6 +109,10 @@ SAFE_TO_OPEN = frozenset((
 PAGE_SUFFIXES = frozenset(("html", "htm", "svg"))
 
 
+_WRITTEN_PAGES: dict[str, None] = {}
+_WRITTEN_PAGES_MAX = 512
+
+
 
 
 
@@ -227,10 +231,38 @@ def is_safe_to_open(path: str) -> bool:
 
 
 
+
+
+
+        if _page_key(text) in _WRITTEN_PAGES:
+            return True
         from ..core.report_page import is_report_file
 
         return is_report_file(text)
     return suffix in SAFE_TO_OPEN
+
+
+def _page_key(path: str) -> str:
+
+    return os.path.normcase(os.path.abspath(os.path.expanduser(path)))
+
+
+def note_written_page(path: str) -> None:
+
+
+
+
+
+
+
+    text = str(path or "")
+    if not text or is_remote_or_device(text) or suffix_of(text) not in PAGE_SUFFIXES:
+        return
+    key = _page_key(text)
+    _WRITTEN_PAGES.pop(key, None)
+    _WRITTEN_PAGES[key] = None
+    while len(_WRITTEN_PAGES) > _WRITTEN_PAGES_MAX:
+        _WRITTEN_PAGES.pop(next(iter(_WRITTEN_PAGES)))
 
 
 def reveal_target(path: str) -> str:
@@ -350,7 +382,7 @@ def escape_markdown_label(text: str) -> str:
     return str(text).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
 
-def _link(path: str) -> str:
+def file_link(path: str) -> str:
 
 
 
@@ -431,7 +463,7 @@ def _link_bare(match, budget: _ExistsBudget) -> str:
 
 
 
-    return _link(path) + _CANDIDATE.sub(lambda m: _link_bare(m, budget), candidate[len(path):])
+    return file_link(path) + _CANDIDATE.sub(lambda m: _link_bare(m, budget), candidate[len(path):])
 
 
 def _link_inline_code(match, budget: _ExistsBudget) -> str:
@@ -440,7 +472,7 @@ def _link_inline_code(match, budget: _ExistsBudget) -> str:
     path = _longest_existing(inner, budget) if inner else ""
     if not path or path != inner:
         return match.group(0)
-    return _link(path)
+    return file_link(path)
 
 
 def linkify_paths(text: str) -> str:

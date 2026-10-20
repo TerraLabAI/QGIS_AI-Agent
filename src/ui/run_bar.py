@@ -20,6 +20,7 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QMenu, QPushButton
 
+from .font_scale import scale_qss_font_px
 from .icons import icon_for
 from .layer_icons import layer_icon
 from .shared import exec_menu
@@ -50,14 +51,14 @@ _CHIP_RADIUS = CHIP_HEIGHT // 2
 
 _CHIP_NAME_CHARS = 15
 _CHIP_QSS = (
-    f"QPushButton {{ background: {TINT}; color: palette(text);"
+    scale_qss_font_px(f"QPushButton {{ background: {TINT}; color: palette(text);"
     f" border: 1px solid {HAIRLINE}; border-radius: {_CHIP_RADIUS}px;"
     f" padding: 0 10px 0 8px; font-size: {FONT_HINT}px; text-align: left; }}"
     f"QPushButton:hover {{ background: {ACCENT_TINT};"
     f" border: 1px solid {ACCENT_BORDER}; }}"
     f"QPushButton:disabled {{ color: {MUTED};"
     f" background: {TINT_HOVER}; border: 1px solid {HAIRLINE}; }}"
-    "QPushButton::menu-indicator { image: none; width: 0px; }"
+    "QPushButton::menu-indicator { image: none; width: 0px; }")
 )
 
 

@@ -374,14 +374,14 @@ def _handler(algorithm_id: str):
     def run(args: dict) -> dict:
         if algorithm_id in _excluded():
             return tool_error(f"{algorithm_id} is not run as a tool of its own.", "INVALID_ARGS",
-                              "The guarded tool for that job (geocode, add_data, a fetch_ tool) fits.")
+                              hint="native_tool_excluded")
         controls = {key: args[key] for key in _CONTROL_KEYS if key in args}
         parameters = {key: value for key, value in args.items() if key not in _CONTROL_KEYS}
         if _has_remote_input(parameters):
             return tool_error(
                 "A generated Processing tool cannot open a remote URL directly.",
                 "INVALID_ARGS",
-                "add_data or a guarded data tool loads the URL into a layer name for this tool.",
+                hint="native_remote_input",
             )
         return _run_processing({"algorithm_id": algorithm_id, "parameters": parameters, **controls})
 

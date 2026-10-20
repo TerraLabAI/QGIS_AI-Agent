@@ -655,6 +655,98 @@ def retire_stale_samplers() -> int:
     return retired
 
 
+
+
+
+
+
+RUN_TICK_MS = 50
+RUN_STALL_MS = 250
+
+
+class RunFreezes:
+
+
+
+
+
+    def __init__(self, tick_ms: int = RUN_TICK_MS, stall_ms: int = RUN_STALL_MS):
+        self.tick_ms = int(tick_ms)
+        self.stall_ms = float(stall_ms)
+        self.run_id = ""
+        self.count = 0
+        self.total_ms = 0.0
+        self.max_ms = 0.0
+        self._timer = None
+        self._last = 0.0
+
+    def begin(self, run_id: str) -> None:
+
+        self.run_id = str(run_id or "")
+        self.count, self.total_ms, self.max_ms = 0, 0.0, 0.0
+        self._last = _now()
+        if self._timer is not None:
+            return
+        try:
+            from qgis.PyQt.QtCore import Qt, QTimer
+
+            timer = QTimer()
+            precise = getattr(Qt, "PreciseTimer", None) or getattr(getattr(Qt, "TimerType", None), "PreciseTimer", None)
+            if precise is not None:
+                timer.setTimerType(precise)
+            timer.setInterval(self.tick_ms)
+            timer.timeout.connect(self._tick)
+            timer.start()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Run stall count not started: {exc}")
+            return
+        self._timer = timer
+
+    def _tick(self) -> None:
+        now = _now()
+        late = (now - self._last) * 1000.0 - self.tick_ms
+        self._last = now
+        if late >= self.stall_ms:
+            self.count += 1
+            self.total_ms += late
+            self.max_ms = max(self.max_ms, late)
+
+    def end(self, run_id: str = "") -> None:
+
+        if run_id and run_id != self.run_id:
+            return
+        timer, self._timer = self._timer, None
+        if timer is None:
+            return
+        try:
+            timer.stop()
+            timer.timeout.disconnect(self._tick)
+            timer.deleteLater()
+        except Exception:  # nosec B110
+            pass
+
+    def totals(self, run_id: str) -> dict | None:
+
+        if not run_id or run_id != self.run_id:
+            return None
+        return {"count": self.count, "total_ms": int(round(self.total_ms)), "max_ms": int(round(self.max_ms))}
+
+
+_RUN = RunFreezes()
+
+
+def run_began(run_id: str) -> None:
+    _RUN.begin(run_id)
+
+
+def run_ended(run_id: str = "") -> None:
+    _RUN.end(run_id)
+
+
+def run_totals(run_id: str) -> dict | None:
+    return _RUN.totals(run_id)
+
+
 def start(threshold_ms: float = DEFAULT_THRESHOLD_MS, sample_ms: float = DEFAULT_SAMPLE_MS,
           log_path: str = "") -> StallProfiler:
 

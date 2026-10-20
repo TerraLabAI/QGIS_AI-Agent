@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ..core import first_run_funnel
 from ..core.protocol import StopCode
 from .cards import (
     ErrorCard,
@@ -400,6 +402,7 @@ class _ChatPanelPrompts:
         if run_id and self._live_run(run_id) is None:
             return
         code = str(code or "UNKNOWN")[:100]
+        first_run_funnel.note_banner(code)
         message = str(message or "")[:2000]
         details = str(details or "")[:4000]
         self._last_error = message or code
@@ -444,7 +447,10 @@ class _ChatPanelPrompts:
         self.header.open_checkpoints()
 
     def show_restore_warning(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                             whole: bool = True, requests: int = 0, layers=None) -> None:
+                             whole: bool = True, requests: int = 0, layers=None, hand_files=None) -> None:
+
+
+
 
 
 
@@ -460,14 +466,22 @@ class _ChatPanelPrompts:
             except RuntimeError:
                 pass
         requests = max(0, int(requests or 0))
+        hand = [str(name) for name in (hand_files or []) if name]
 
-        if discard:
+        if hand:
+
+            title = (self.tr("You changed {file} by hand").format(file=hand[0]) if len(hand) == 1
+                     else self.tr("You changed {n} files by hand").format(n=len(hand)))
+        elif discard:
             title = self.tr("Go back to the start of the chat?")
         elif requests > 1:
             title = self.tr("Undo {n} requests?").format(n=requests)
         else:
             title = self.tr("Undo changes?")
         points = []
+        if hand:
+            points.append(("pencil", self.tr("Undo would put back the AI agent's version over your changes. "
+                                             "Your version stays in Map history as Your edits.")))
         if discard:
             points.append(("lu.history", self.tr("Back to the project as this chat found it.") if whole
                            else self.tr("Back to the oldest version still kept.")))
@@ -476,10 +490,13 @@ class _ChatPanelPrompts:
             points.append(("lu.undo-2", self.tr("This also removes the changes from 1 later request.")
                            if later == 1 else
                            self.tr("This also removes the changes from {n} later requests.").format(n=later)))
-        if edits:
+        if edits and not hand:
             points.append(("pencil", self.tr("Your manual edits are saved in the history first.")))
-        dialog = ConfirmDialog(self.window(), title=title, confirm_text=self.tr("Undo"), points=points,
-                               object_name="restoreConfirm")
+        dialog = ConfirmDialog(self.window(), title=title,
+                               confirm_text=self.tr("Undo anyway") if hand else self.tr("Undo"),
+                               cancel_text=self.tr("Keep my edits") if hand else "",
+                               note=", ".join(hand) if len(hand) > 1 else "",
+                               points=points, object_name="restoreConfirm")
         items = [item for item in (layers or []) if isinstance(item, dict) and item.get("name")]
         if items:
 
@@ -517,6 +534,9 @@ class _ChatPanelPrompts:
     def show_notice(self, notice: dict) -> None:
 
         if notice:
+            if isinstance(notice, dict):
+                first_run_funnel.note_banner(
+                    "notice_" + re.sub(r"[^A-Za-z0-9_.-]", "_", str(notice.get("id") or ""))[:33])
             self.notice_bar.show_notice(notice)
         else:
             self.notice_bar.clear()
@@ -609,8 +629,9 @@ class _LayerList(QWidget):
         col.setSpacing(3)
         known = all(item.get("group") in ("removed", "restored") for item in items)
         if known:
-            groups = [(self.tr("Removed"), [i for i in items if i["group"] == "removed"]),
-                      (self.tr("Restored"), [i for i in items if i["group"] == "restored"])]
+
+            groups = [(self.tr("Taken off the map"), [i for i in items if i["group"] == "removed"]),
+                      (self.tr("Put back as before"), [i for i in items if i["group"] == "restored"])]
         else:
             groups = [(self.tr("Layers affected"), list(items))]
         self._hidden: list = []

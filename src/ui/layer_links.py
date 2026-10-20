@@ -54,7 +54,7 @@ from ..core.licence import source_details, source_line
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
 from .external_links import open_external_url
-from .file_links import escape_markdown_label
+from .file_links import escape_markdown_label, file_link
 from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
 from .layer_icons import follows_layers, layer_name, resolve_layer
@@ -760,6 +760,45 @@ def linkify_layers(text: str, layers) -> str:
     masked = pattern.sub(
         lambda m: f"[{escape_markdown_label(m.group(0))}]({LAYER_URL}{target[m.group(0)]})", masked)
     return re.sub(r"\x00(\d+)\x00", restore, masked)
+
+
+def linkify_files(text: str, paths) -> str:
+
+
+
+
+
+
+
+
+    text = (text or "").replace("\x00", "")
+    names: dict[str, str] = {}
+    shared: set[str] = set()
+    for path in paths or ():
+        name = os.path.basename(str(path or "").rstrip("/\\"))
+        if len(name) <= 2 or "." not in name:
+            continue
+        if name in names and names[name] != path:
+            shared.add(name)
+        names.setdefault(name, path)
+    target = {name: path for name, path in names.items() if name not in shared}
+    if not target or not text:
+        return text
+    guarded = []
+
+    def keep(match):
+        guarded.append(match.group(0))
+        return f"\x00{len(guarded) - 1}\x00"
+
+    masked = _FENCE.sub(keep, text)
+
+
+
+    pattern = re.compile("|".join(rf"(?<![\w`./\\-]){re.escape(name)}(?![\w`-])"
+                                  for name in sorted(target, key=len, reverse=True)))
+    masked = pattern.sub(lambda m: file_link(target[m.group(0)]), masked)
+    return re.sub(r"\x00(\d+)\x00",
+                  lambda m: guarded[int(m.group(1))] if int(m.group(1)) < len(guarded) else m.group(0), masked)
 
 
 def layer_id_from_url(url: str) -> str:

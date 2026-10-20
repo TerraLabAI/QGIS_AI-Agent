@@ -101,7 +101,7 @@ from .shared import (
     size_within_screen,
 )
 from .siblings_page import SiblingsPage
-from .style import ACCENT, ACCENT_DARK, FONT_HINT, ON_ACCENT
+from .style import ACCENT, ACCENT_DARK, FONT_HINT, ON_ACCENT, with_platform_font
 
 
 
@@ -197,6 +197,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
             parent, settings_values, account_info = (
                 account_info if not isinstance(account_info, dict) else None, parent, None)
         super().__init__(parent)
+        with_platform_font(self)
         info = dict(account_info or {})
         values = dict(settings_values or {})
         self._values = {
@@ -527,11 +528,10 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
 
-        from .library.dialog import ExamplesDialog
+        from .library.dialog import SOURCES_KEY, ExamplesDialog
         from .shared import exec_dialog
 
-        library = ExamplesDialog(self, opened_from="settings")
-        library.open_sources()
+        library = ExamplesDialog(self, opened_from="settings", place=SOURCES_KEY)
         library.example_chosen.connect(self.example_chosen.emit)
         library.prompt_chosen.connect(self._on_library_prompt)
         try:

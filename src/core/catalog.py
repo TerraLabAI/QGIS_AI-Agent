@@ -39,7 +39,9 @@ from .logger import log_warning
 _SHELF_CAP_MIN, _SHELF_CAP_MAX = 3, 24
 _MAX_BASEMAPS = 40
 _MAX_MIRRORS = 8
-_MAX_SOURCE_LICENCES = 2000
+
+
+_MAX_SOURCE_LICENCES = 20000
 
 _basemaps: list = []
 _mirrors: list = []
@@ -268,12 +270,15 @@ def _row_extras(row: dict) -> dict:
 
 
 
+
+
     def _address(key: str) -> str:
         value = str(row.get(key) or "").strip()
         return value if value.startswith(("https://", "http://")) and len(value) <= 500 else ""
 
 
     return {"title": str(row.get("title") or "").strip()[:200],
+            "provider": str(row.get("provider") or "").strip()[:80],
             "data_date": data_date.clean(row.get("data_date")),
             "page_url": _address("page_url"), "date_note": str(row.get("date_note") or "").strip()[:120],
             "licence_url": _address("licence_url")}
@@ -423,7 +428,8 @@ def names_host(host: str) -> bool:
 def _answer(row: dict) -> dict:
 
     return {"licence": row["licence"], "attribution": row["attribution"], "title": row.get("title", ""),
-            "data_date": row.get("data_date", ""), "page_url": row.get("page_url", ""),
+            "provider": row.get("provider", ""), "data_date": row.get("data_date", ""),
+            "page_url": row.get("page_url", ""),
             "date_note": row.get("date_note", ""),
             "licence_url": row.get("licence_url", "")}
 
@@ -455,3 +461,7 @@ def apply_session(session: dict) -> None:
     roster = session.get("plugin_roster")
     if isinstance(roster, list) and roster:
         set_plugin_roster(roster)
+
+    from . import source_rows
+
+    source_rows.apply_session(session)

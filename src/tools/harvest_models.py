@@ -171,6 +171,9 @@ def register_harvest_models_tools(registry: ToolRegistry):
         handler=_run_model,
         prepare=_prepare_model,
         processing=_model_plan,
+
+
+        always_confirm=True,
     ))
 
 
@@ -713,12 +716,7 @@ def _land_use_change_audit() -> dict:
         "safe_composition": {
             "status": "validation_only" if kappa and not models else ("available" if models else "unavailable"),
             "algorithms": kappa,
-            "steps": [
-                "the two classified rasters need alignment and matching class codes.",
-                "This installation has no change model.",
-                "r.kappa validates an observed classification or prediction; it does not train or "
-                "predict transitions.",
-            ],
+            "steps_hint": "audit_land_use_change_steps",
         },
     }
 
@@ -791,12 +789,7 @@ def _processing_capability_audit(focus: str) -> dict:
             "safe_composition": {
                 "status": "partial" if recipe_ids else "unavailable",
                 "algorithms": recipe_ids,
-                "steps": [
-                    "a multiband raster and ROI polygons with an explicit class field are needed.",
-                    "a classifier exists only when this audit returns one.",
-                    "Otherwise the listed rasterize/reclassify/zonal algorithms serve validation or "
-                    "post-processing, not supervised classification.",
-                ],
+                "steps_hint": "audit_classification_steps",
                 "required_inputs": ["raster(s)", "ROI vector layer", "class field", "output raster"],
             },
         }
@@ -809,19 +802,15 @@ def _processing_capability_audit(focus: str) -> dict:
             "A registered provider exposes kriging; its returned parameter schema includes "
             "variogram and diagnostics when present."
             if rows
-            else "No registered Processing provider exposes kriging. IDW remains available through "
-                 "qgis:idwinterpolation; no scikit-learn or plugin was installed."
+            else "No registered Processing provider exposes kriging."
         ),
+        **({"diagnosis_next_hint": "audit_kriging_absent"} if not rows else {}),
         "safe_composition": {
             "status": "use_idw_fallback" if not rows else "not_needed",
             "algorithms": ["qgis:idwinterpolation"]
             if not rows and any(str(a.id()) == "qgis:idwinterpolation" for a in algorithms)
             else [],
-            "steps": [
-                "Needs a point value field and projected CRS.",
-                "Kriging here is the audited provider's, with its diagnostics.",
-                "Without it, the surface is IDW, not kriging.",
-            ],
+            "steps_hint": "audit_kriging_steps",
         },
     }
 
@@ -863,6 +852,18 @@ def _execute_processing_batch(args: dict) -> dict:
     except _SpecError as e:
         return tool_error(str(e), "INVALID_ARGS", hint=e.hint or "algorithm_hint_unresolved", **e.facts)
     parameters_list = args["parameters_list"]
+
+
+
+    from . import guards
+    from .core_tools import _runs_a_script
+
+    if any(_runs_a_script({"algorithm_id": algorithm_id, "parameters": entry}) for entry in parameters_list):
+        return tool_error(f"{algorithm_id} runs code the call does not show, so it goes through run_processing, "
+                          "which asks the user first.", "PERMISSION_DENIED")
+    paid = guards.paid_algorithm_refusal({"algorithm_id": algorithm_id})
+    if paid:
+        return paid
     from .processing_decisions import _threadable
 
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
@@ -1207,9 +1208,9 @@ class _BatchRun:
                                            "output_name": self.names[index] if index < len(self.names) else None})
         except Exception as exc:  # noqa: BLE001
             log_warning(f"execute_processing_batch: run {index} raised {exc}")
-            outcome = {"_error": f"{exc.__class__.__name__}: {exc}"}
+            outcome = tool_error(f"{exc.__class__.__name__}: {exc}")
         if not isinstance(outcome, dict):
-            outcome = {"_error": "The run returned no result."}
+            outcome = tool_error("The run returned no result.")
         child = _PROCESSING_TASKS.get(outcome.get("task_id") or "")
         if child is None:
             self.results.append(self._line(index, started, outcome))
@@ -1362,7 +1363,7 @@ def _open_in_designer(model_id: str, path: str) -> str | None:
 def _create_processing_model(args: dict) -> dict:
     name = str(args["name"]).strip()
     if not name:
-        return tool_error("Model 'name' is required", "INVALID_ARGS", "name is short, e.g. 'buffer_and_clip'.")
+        return tool_error("Model 'name' is required", "INVALID_ARGS", hint="model_name_required")
     folder, provider = _models_folder()
     os.makedirs(folder, exist_ok=True)
     try:
@@ -1372,12 +1373,11 @@ def _create_processing_model(args: dict) -> dict:
             args.get("description") or "", args.get("group") or "Models",
         )
     except _SpecError as e:
-        return tool_error(str(e), "INVALID_ARGS", "" if e.hint else "Nothing was written; the error above "
-                          "names the spec problem.", hint=e.hint, **e.facts)
+        return tool_error(str(e), "INVALID_ARGS", hint=e.hint or "model_spec_invalid", **e.facts)
 
     if not model.toFile(target_path):
         return tool_error(f"Failed to write model to {target_path}", "EXECUTION_FAILED",
-                          "the models folder must be writable.")
+                          hint="model_write_failed")
     registered = _refresh_models(provider)
     log(f"Processing model '{final_name}' saved to {target_path}")
     model_id = f"model:{final_name}"
@@ -1435,7 +1435,7 @@ def _model_from_file(given: str):
     loaded = QgsProcessingModelAlgorithm()
     if not loaded.fromFile(path):
         return None, path, tool_error(f"Failed to load model file: {path}", "EXECUTION_FAILED",
-                                      "The file is not a valid .model3; the Model Designer reads .model3 files.")
+                                      hint="model_file_invalid")
     loaded.initAlgorithm()
     return loaded, path, None
 
