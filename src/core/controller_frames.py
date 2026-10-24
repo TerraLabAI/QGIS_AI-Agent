@@ -11,7 +11,7 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from ..api.account import usage_to_runs
+from ..api.account import site_url, usage_to_runs
 from . import telemetry
 from . import telemetry_events as ev
 from .controller_actions import _project_path
@@ -258,6 +258,8 @@ class _ControllerFrames:
 
         self._panel_optional("set_account_cap", payload.get("free_account_cap"))
         usage = usage_to_runs(payload)
+        cap = usage.get("trial_cap") or {}
+        self._panel_optional("set_start_now_url", site_url(cap.get("start_now_url")))
         self._on_usage(usage)
         paid = usage.get("is_subscriber")
         if isinstance(paid, bool):
@@ -463,8 +465,8 @@ class _ControllerFrames:
             return
         self._panel_later("show_call_running", str(call.get("run_id") or ""), tool_call_id)
 
-    def _on_call_progress(self, tool_call_id: str, done_bytes, total_bytes) -> None:
-        self._panel_later("set_call_progress", tool_call_id, done_bytes, total_bytes)
+    def _on_call_progress(self, tool_call_id: str, done, total, stage: str = "") -> None:
+        self._panel_later("set_call_progress", tool_call_id, done, total, stage)
 
     def _on_tool_finished(self, tool_call_id: str, ok: bool, summary: str, duration: float, detail: str,
                           result=None) -> None:
@@ -852,6 +854,9 @@ class _ControllerFrames:
                              "", str(error.get("reason") or "")[:64])
         track_plugin_error("server", code, run_id if isinstance(run_id, str) else "")
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
+
+
+            self._account.refresh_activation_async(force=True)
             self._quota_tracked_run = run_id if isinstance(run_id, str) else None
             telemetry.track(ev.QUOTA_EXHAUSTED, {"run_id": self._quota_tracked_run, "source": "server_error"})
         if code == ServerErrorCode.QUOTA_EXHAUSTED and error.get("reason") == "account_cap":

@@ -3308,6 +3308,38 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{done} of {total} MB</source>
             <translation>{done} van {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Laag toevoegen</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Uitsnijden op het gebied</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>{size} downloaden</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Plaats zoeken</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Bron raadplegen</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} min {s} s</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} s</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} van {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Jouw versie van {file} kon niet in de Map history worden bewaard, dus er is niets hersteld.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} wordt nog opgeslagen. Er is niets gewijzigd: probeer het over een paar seconden opnieuw.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>een tijdelijke laag</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Je hebt {n} bestanden handmatig gewijzigd</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Kaart tekenen</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Klik om de pagina te openen.</translation>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>Upgraden niet afgerond?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>Je abonnement is nog steeds Free. Als er iets tussenbeide kwam:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Terug naar de Pro-pagina</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>Schrijf ons</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>Sluiten</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>7 dagen gratis, daarna {price}/maand. Met één klik opzegbaar.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>7 dagen gratis, vandaag niets te betalen, daarna {price}/maand. Met één klik opzegbaar.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} taken per maand.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Start mijn abonnement nu</translation>
         </message>
     </context>
     <context>
@@ -8232,11 +8281,11 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <source>Open AI Edit</source>
-            <translation>Open AI Edit</translation>
+            <translation>AI Edit openen</translation>
         </message>
         <message>
             <source>Open AI Segmentation</source>
-            <translation>Open AI Segmentation</translation>
+            <translation>AI Segmentation openen</translation>
         </message>
         <message>
             <source>Show that plugin's panel again. Nothing is run and nothing is spent.</source>

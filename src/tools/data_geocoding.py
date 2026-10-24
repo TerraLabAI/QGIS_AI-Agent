@@ -7,6 +7,7 @@
 
 
 
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -19,7 +20,7 @@ import urllib.request
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsDistanceArea, QgsPointXY, QgsProject
 
-from ..core import net, tuning
+from ..core import net, place_search, tuning
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
 from ..core.tool_registry import tool_error
@@ -169,6 +170,77 @@ def _big_place(hit: dict) -> bool:
     return any(_matches(row, hit) for row in _rules().get("big_places", ()))
 
 
+
+_AROUND = ("city", "county", "state", "country")
+
+
+def _words(text) -> set:
+    return set(re.findall(r"\w+", _fold(text)))
+
+
+def _own_words(hit: dict) -> set:
+
+    name = (hit.get("_photon") or {}).get("name") or str(hit.get("display_name") or "").split(",")[0]
+    return _words(name) - _rules().get("feature_words", frozenset()) - {_fold(hit.get("type"))}
+
+
+def _holders(hit: dict) -> list:
+
+    photon = hit.get("_photon") or {}
+    return [_words(photon[key]) for key in ("city", "county", "state") if photon.get(key)]
+
+
+def _answers_name(query: str, hit: dict) -> bool:
+
+
+
+
+    words = _words(query.split(",")[0]) - _rules().get("feature_words", frozenset())
+    own = _own_words(hit)
+    kind = _words(hit.get("type")) | _words(hit.get("osm_value"))
+    photon = hit.get("_photon") or {}
+    larger = set().union(*(_words(photon.get(key)) for key in ("county", "state", "country")))
+    return bool(own) and own <= words and words <= own | kind | larger
+
+
+def _placed_as_asked(query: str, place: dict, first: dict, wanted) -> bool:
+
+
+
+    if wanted and place.get("country_code") not in wanted:
+        return False
+    if _words((place.get("_photon") or {}).get("name")) in _holders(first):
+        return True
+    later = _words(",".join(query.split(",")[1:]))
+    return len(later & _words(place.get("display_name"))) >= len(later & _words(first.get("display_name")))
+
+
+def _place_for_object(query: str, first: dict, candidates, wanted):
+
+
+    holders = _holders(first)
+    return next((hit for hit in sorted(candidates, key=lambda hit: _words((hit.get("_photon") or {}).get("name"))
+                                       not in holders)
+                 if _geo_tier(hit) >= 2 and _answers_name(query, hit) and _placed_as_asked(query, hit, first, wanted)),
+                None)
+
+
+def _surrounding_names(query: str, hits: list) -> list:
+
+
+    if not hits or re.search(r"\d", query) or _geo_tier(hits[0]) > 0:
+        return []
+    feature_words = _rules().get("feature_words", frozenset())
+    asked = _words(query.split(",")[0]) - feature_words
+    photon = hits[0].get("_photon") or {}
+    names = []
+    for key in ("city", "county", "state"):
+        name = photon.get(key, "")
+        if name and (_words(name) - feature_words) and _words(name) - feature_words <= asked:
+            names.append(", ".join(part for part in (name, photon.get("country", "")) if part))
+    return list(dict.fromkeys(names))
+
+
 def _in_local_view(hit: dict, viewbox) -> bool:
     bounds = _viewbox_bounds(viewbox)
     if not bounds or max(bounds[2] - bounds[0], bounds[3] - bounds[1]) > _rules().get("local_view_deg", 0.0):
@@ -179,6 +251,14 @@ def _in_local_view(hit: dict, viewbox) -> bool:
 def _place_filters() -> list:
 
     return [[("osm_tag", tag) for tag in _PLACE_TAGS], [("layer", layer) for layer in _PLACE_AREA_LAYERS]]
+
+
+def _around_place_hits(base: str, query: str, hits: list) -> list:
+
+    lang = "en" if _latin_script(query) else ""
+    areas = [("layer", layer) for layer in _PLACE_AREA_LAYERS]
+    return [hit for name in _surrounding_names(query, hits)
+            for hit in _photon_place_hits_by(base, name, None, lang, areas)]
 
 
 def _photon_place_hits_by(base: str, query: str, viewbox, lang: str, filters: list) -> list:
@@ -245,7 +325,11 @@ def _needs_place_lookups(query: str, hits: list, viewbox) -> bool:
     return _better_among(query, hits) is None
 
 
-def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None) -> list:
+def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None, wanted=frozenset()) -> list:
+
+
+
+
 
 
 
@@ -271,6 +355,11 @@ def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None) ->
             break
         better = next((hit for hit in place_hits(lang)
                        if _geo_tier(hit) > max(tier, 2) and _named_as(asked, hit, exact=True)), None)
+    if better is None and tier == 0:
+
+        better = _place_for_object(query, first, place_hits("en") + place_hits(""), wanted)
+        if better is None and _surrounding_names(query, hits):
+            better = _place_for_object(query, first, _around_place_hits(base, query, hits), wanted)
     if better is None:
         return hits
 
@@ -450,6 +539,8 @@ def _photon_hit(feature: dict, verbose: bool) -> dict | None:
         "lon": point[0],
         "type": props.get("type") or props.get("osm_value"),
         "class": props.get("osm_key"),
+
+        "_photon": {key: _text(props.get(key)) for key in ("name",) + _AROUND if _text(props.get(key))},
     }
     if props.get("countrycode"):
         hit["country_code"] = str(props["countrycode"]).lower()
@@ -1022,6 +1113,43 @@ def _geocode_one_address(address: str, own_host: bool = True) -> tuple:
     return (dict(hits[0]) if hits else None), own_failed
 
 
+def _place_search(query: str, limit: int, base: str, verbose: bool):
+
+
+    rounds = place_search.search(query, limit, base, tuning.service_url("ban", ""))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="geocode-places") as pool:
+        try:
+            urls = next(rounds)
+            while True:
+                futures = [(url, pool.submit(_geocode_fetch, url)) for url in urls]
+                answers = {}
+                for url, future in futures:
+                    try:
+                        answers[url] = future.result()
+                    except (urllib.error.URLError, OSError, ValueError):
+                        answers[url] = None
+                urls = rounds.send(answers)
+        except StopIteration as done:
+            places = done.value or []
+        except place_search.Unavailable:
+            return None
+
+    local_names = not _latin_script(query)
+    hits = []
+    for place in places:
+        ban = place.get("ban")
+        if ban is None:
+            hit = _photon_hit(place.get("local_feature") if local_names and place.get("local_feature")
+                              else place["feature"], verbose)
+        else:
+            hit = _ban_hit(ban, verbose)
+            if hit:
+                hit.update(display_name=place["address"], country_code="fr", provider="ban")
+        if hit:
+            hits.append(hit)
+    return hits
+
+
 def _geocode(args: dict) -> dict:
 
 
@@ -1062,42 +1190,55 @@ def _geocode(args: dict) -> dict:
         found = _geocode_fetch(address)
         return provider["locate"](base, found) if "locate" in provider and found is not None else found
 
+
+
+    unbiased = None
+    if provider_id == "photon" and viewbox is None:
+        unbiased = _place_search(str(args.get("query") or "").strip(), max(limit, 10), base,
+                                 bool(args.get("verbose", False)))
+
     fell_back = False
-    try:
-        payload = ask(url)
-    except urllib.error.HTTPError as e:
+    if unbiased is not None:
+        failure, results = None, unbiased
+    elif provider_id == "photon" and viewbox is None:
+
+        failure, results, fell_back = tool_error("Geocoding request failed: Photon did not answer."), [], True
+    else:
+        try:
+            payload = ask(url)
+        except urllib.error.HTTPError as e:
 
 
 
 
-        payload = None
-        if e.code == 400 and viewbox:
-            try:
-                payload = ask(provider["forward_url"](base, query, limit, country_codes, None))
-            except (urllib.error.URLError, OSError, ValueError):
+            payload = None
+            if e.code == 400 and viewbox:
+                try:
+                    payload = ask(provider["forward_url"](base, query, limit, country_codes, None))
+                except (urllib.error.URLError, OSError, ValueError):
 
 
-                payload = None
-        if payload is None:
-            failure = tool_error(f"Geocoding request failed: {e}")
-            fell_back = True
+                    payload = None
+            if payload is None:
+                failure = tool_error(f"Geocoding request failed: {e}")
+                fell_back = True
+            else:
+                failure = None
+        except (urllib.error.URLError, OSError) as e:
+            broken = net.describe_failure(e)
+            failure = (tool_error(f"Geocoding request failed: {broken}", net.NETWORK_ERROR) if broken
+                       else tool_error(f"Geocoding request failed: {e}"))
+            payload, fell_back = None, True
+        except ValueError:
+            failure = tool_error("The geocoding answer was unreadable.", hint="geocode_unreadable")
+            payload, fell_back = None, True
         else:
             failure = None
-    except (urllib.error.URLError, OSError) as e:
-        broken = net.describe_failure(e)
-        failure = (tool_error(f"Geocoding request failed: {broken}", net.NETWORK_ERROR) if broken
-                   else tool_error(f"Geocoding request failed: {e}"))
-        payload, fell_back = None, True
-    except ValueError:
-        failure = tool_error("The geocoding answer was unreadable.", hint="geocode_unreadable")
-        payload, fell_back = None, True
-    else:
-        failure = None
 
-    results = provider["parse_forward"](payload, bool(args.get("verbose", False))) if payload is not None else []
-    if results is None:
-        failure = tool_error(f"Geocoding service error: {str(payload)[:200]}")
-        results, fell_back = [], True
+        results = provider["parse_forward"](payload, bool(args.get("verbose", False))) if payload is not None else []
+        if results is None:
+            failure = tool_error(f"Geocoding service error: {str(payload)[:200]}")
+            results, fell_back = [], True
 
 
 
@@ -1116,7 +1257,7 @@ def _geocode(args: dict) -> dict:
 
 
     check_plain = bool(viewbox and results and not fell_back and not _answers_by_name(query, results))
-    ranks = provider_id == "photon" and bool(results) and not fell_back
+    ranks = provider_id == "photon" and bool(results) and not fell_back and unbiased is None
 
 
 
@@ -1140,7 +1281,7 @@ def _geocode(args: dict) -> dict:
         if ranks:
 
 
-            results = _rank_places(query, results, viewbox, base, place_hits)
+            results = _rank_places(query, results, viewbox, base, place_hits, wanted)
     finally:
         if pool is not None:
             pool.shutdown(wait=False)
@@ -1161,8 +1302,9 @@ def _geocode(args: dict) -> dict:
                 "message": f"No results found for '{query}'"}
 
     verbose = bool(args.get("verbose", False))
-    if not verbose:
-        for hit in output:
+    for hit in output:
+        hit.pop("_photon", None)
+        if not verbose:
             hit.pop("osm_value", None)
 
 
@@ -1406,6 +1548,15 @@ def _get_route(args: dict) -> dict:
 
 
 def _measure_distance(args: dict) -> dict:
+
+
+    for lon_key, lat_key in (("from_lon", "from_lat"), ("to_lon", "to_lat")):
+        lon, lat = float(args[lon_key]), float(args[lat_key])
+        if not (-180.0 <= lon <= 360.0 and -90.0 <= lat <= 90.0):
+            return tool_error(
+                f"measure_distance reads longitude and latitude in EPSG:4326, and {lon_key}={lon:g}, "
+                f"{lat_key}={lat:g} is outside -180 to 180 and -90 to 90: projected units, not degrees.",
+                "INVALID_ARGS", hint="distance_not_degrees", lon=lon, lat=lat)
     d = QgsDistanceArea()
     d.setEllipsoid("WGS84")
     d.setSourceCrs(

@@ -322,12 +322,17 @@ def _same_state(older, newer) -> bool:
 
 
         light = bool(record.get("light") or other.get("light"))
-        if light and (record.get("style") is None or other.get("style") is None):
+        if light:
 
 
-            return False
+
+
+            mark = record.get("style_mark")
+            if not (mark and mark == other.get("style_mark")) and (
+                    record.get("style") is None or record.get("style") != other.get("style")):
+                return False
         for key in _SAME_KEYS:
-            if light and key == "stamp":
+            if light and key in ("stamp", "style"):
                 continue
             left, right = record.get(key), other.get(key)
             if key == "stamp":

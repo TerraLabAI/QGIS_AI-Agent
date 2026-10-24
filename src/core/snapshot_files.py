@@ -76,14 +76,17 @@ def sqlite_read_only_uri(path: str) -> str:
 _GROUP_SIDECARS = {".shp": _SHAPEFILE_SIDECARS, ".tab": (".dat", ".map", ".id", ".ind"), ".mif": (".mid",)}
 
 
-def _sidecars(path: str) -> list[str]:
+def _sidecars(path: str, listing: dict | None = None) -> list[str]:
+
+
     stem, ext = os.path.splitext(path)
     if ext.lower() not in _GROUP_SIDECARS:
         return [path]
     out = [path]
     for extra in _GROUP_SIDECARS[ext.lower()]:
         for candidate in (stem + extra, stem + extra.upper()):
-            if os.path.isfile(candidate):
+            if (listing.get(os.path.normcase(os.path.basename(candidate))) if listing is not None
+                    else os.path.isfile(candidate)):
                 out.append(candidate)
                 break
     return out

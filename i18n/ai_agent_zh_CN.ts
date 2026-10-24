@@ -3308,6 +3308,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{done} of {total} MB</source>
             <translation>{done} MB，共 {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>正在添加图层</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>正在裁剪到区域范围</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>正在下载 {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>正在查找地点</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>正在查询数据源</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} 分 {s} 秒</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} 秒</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done}/{total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>无法将您的 {file} 版本保存到“Map history”中，因此没有恢复任何内容。</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>仍在保存 {layers}。未做任何更改，请几秒后再试。</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>一个临时图层</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>You changed {n} files by hand</source>
             <translation>你手动修改了 {n} 个文件</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>正在绘制地图</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>没有完成升级？</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>你的套餐仍是 Free。如果升级过程中遇到问题：</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>返回 Pro 页面</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>联系我们</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>关闭</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>免费试用 7 天，之后 {price}/月。一键取消。</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>免费试用 7 天，今天无需付款，之后 {price}/月。一键取消。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Click to open its page.</source>
         <message>
             <source>{n} tasks a month.</source>
             <translation>每月 {n} 个任务。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>立即开始我的套餐</translation>
         </message>
     </context>
     <context>

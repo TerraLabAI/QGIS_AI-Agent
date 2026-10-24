@@ -3308,6 +3308,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{done} of {total} MB</source>
             <translation>{done} / {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>レイヤを追加中</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>範囲で切り抜き中</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>{size}をダウンロード中</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>場所を検索中</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>データソースに照会中</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m}分{s}秒</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n}秒</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>{file} のあなたの版を Map history に残せなかったため、何も復元されませんでした。</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers}をまだ保存中です。何も変更されていません。数秒後にもう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>一時レイヤ</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>You changed {n} files by hand</source>
             <translation>{n} 個のファイルを手動で変更しました</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>マップを描画中</translation>
         </message>
     </context>
     <context>
@@ -5943,7 +5987,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <location filename="src/ui/image_preview.py" />
             <source>Close</source>
-            <translation>閉じます。</translation>
+            <translation>閉じる</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Click to open its page.</source>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>アップグレードが完了しませんでしたか?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>プランはまだFreeです。問題が起きた場合:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Proページに戻る</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>お問い合わせ</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>閉じる</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>7日間無料、その後は{price}/月です。ワンクリックでキャンセルできます。</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>7日間無料、今日のお支払いはありません。その後は{price}/月です。ワンクリックでキャンセルできます。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Click to open its page.</source>
         <message>
             <source>{n} tasks a month.</source>
             <translation>月{n}タスク。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>今すぐプランを開始</translation>
         </message>
     </context>
     <context>
@@ -9237,7 +9286,7 @@ This file is no longer where the run wrote it.</source>
         </message>
         <message>
             <source>Close</source>
-            <translation>閉じます。</translation>
+            <translation>閉じる</translation>
         </message>
         <message>
             <source>No preview for this kind of file.</source>

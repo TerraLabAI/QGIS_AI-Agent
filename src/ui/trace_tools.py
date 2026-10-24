@@ -45,7 +45,7 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QPainter
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
 from .card_base import format_duration
 from .cards_tool import ToolCard
@@ -67,6 +67,9 @@ from .trace_rows import (
     _HINT_QSS,
     _LABEL_QSS,
     _MEDIUM_QSS,
+    _ROW_GAP,
+    _ROW_PAD_X,
+    _ROW_PAD_Y,
     _SECOND_QSS,
     GLYPH_PX,
     GLYPH_SLOT_PX,
@@ -97,6 +100,13 @@ _PERCENT_RE = re.compile(r"(\d{1,3}(?:[.,]\d)?)\s?%")
 
 _JOB_LOOK_MS = 2000
 
+
+
+_CALL_CLOCK_FROM_S = 3
+_CALL_TICK_MS = 1000
+_CALL_BAR_PX = 2
+_CALL_BAR_W = 44
+
 _SERVER_FRESH_S = 5.0
 
 
@@ -106,14 +116,16 @@ def progress_words(percent=None, eta_s=None, done_bytes=None, total_bytes=None) 
     def tr(text):
         return QCoreApplication.translate("ActivityRow", text)
 
+    def mb(size) -> str:
+        size /= 1024 * 1024
+        return f"{size:.1f}" if size < 10 else f"{size:.0f}"
+
     parts = []
     if isinstance(done_bytes, (int, float)) and done_bytes > 0:
-        mb = 1024 * 1024
         if isinstance(total_bytes, (int, float)) and total_bytes >= done_bytes:
-            parts.append(tr("{done} of {total} MB").format(done=f"{done_bytes / mb:.0f}",
-                                                           total=f"{total_bytes / mb:.0f}"))
+            parts.append(tr("{done} of {total} MB").format(done=mb(done_bytes), total=mb(total_bytes)))
         else:
-            parts.append(tr("{done} MB").format(done=f"{done_bytes / mb:.0f}"))
+            parts.append(tr("{done} MB").format(done=mb(done_bytes)))
     elif isinstance(percent, (int, float)) and not isinstance(percent, bool) and 0 <= percent <= 100:
         parts.append(f"{int(percent)}\u202f%")
     if isinstance(eta_s, (int, float)) and not isinstance(eta_s, bool) and eta_s > 0:
@@ -122,6 +134,27 @@ def progress_words(percent=None, eta_s=None, done_bytes=None, total_bytes=None) 
         else:
             parts.append(tr("about {n} min left").format(n=int(round(eta_s / 60.0))))
     return " \u00b7 ".join(parts)
+
+
+def stage_words(stage: str, done=None, total=None) -> str:
+
+
+    def tr(text):
+        return QCoreApplication.translate("ActivityRow", text)
+
+    words = {"place": tr("Finding the place"), "query": tr("Querying the source"),
+             "clip": tr("Cutting to the area"), "layer": tr("Adding the layer")}.get(str(stage or ""), "")
+    if words and isinstance(done, int) and isinstance(total, int) and 0 <= done <= total and total > 1:
+        words = tr("{words} · {done} of {total}").format(words=words, done=done, total=total)
+    return words
+
+
+def seconds_words(seconds: float) -> str:
+
+    whole = int(max(0, seconds))
+    if whole < 60:
+        return QCoreApplication.translate("ActivityRow", "{n} s").format(n=whole)
+    return QCoreApplication.translate("ActivityRow", "{m} min {s} s").format(m=whole // 60, s=f"{whole % 60:02d}")
 
 
 def _task_id_of(card) -> str:
@@ -378,6 +411,13 @@ class ActivityRow(QWidget):
         self._job_timer = QTimer(self)
         self._job_timer.setInterval(_JOB_LOOK_MS)
         self._job_timer.timeout.connect(self._look_at_job)
+
+        self._call_stage = ""
+        self._call_count = (None, None, False)
+        self._call_started = 0.0
+        self._call_tick = QTimer(self)
+        self._call_tick.setInterval(_CALL_TICK_MS)
+        self._call_tick.timeout.connect(self._on_call_tick)
         self._second_is_source = False
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
@@ -426,6 +466,30 @@ class ActivityRow(QWidget):
         self._head.hovered.connect(self._on_hover)
         self._head.clicked.connect(self.toggle)
         col.addWidget(self._head)
+
+
+
+
+        self._sub = QWidget(self)
+        sub = QHBoxLayout(self._sub)
+        sub.setContentsMargins(_ROW_PAD_X + GLYPH_SLOT_PX + _ROW_GAP, 0, _ROW_PAD_X, _ROW_PAD_Y)
+        sub.setSpacing(_ROW_GAP)
+        self._bar = QProgressBar(self._sub)
+        self._bar.setObjectName("activityProgress")
+        self._bar.setRange(0, 1000)
+        self._bar.setTextVisible(False)
+        self._bar.setFixedSize(_CALL_BAR_W, _CALL_BAR_PX)
+        self._bar.setStyleSheet(
+            "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 1px; }"
+            f"QProgressBar::chunk {{ background: {INK_3}; border-radius: 1px; }}")
+        self._bar.hide()
+        sub.addWidget(self._bar, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._sub_label = ElidedLabel("", self._sub, Qt.TextElideMode.ElideRight)
+        self._sub_label.setObjectName("activityProgressText")
+        self._sub_label.setStyleSheet(_HINT_QSS)
+        sub.addWidget(self._sub_label, 1, Qt.AlignmentFlag.AlignVCenter)
+        self._sub.hide()
+        col.addWidget(self._sub)
 
 
 
@@ -676,11 +740,62 @@ class ActivityRow(QWidget):
         self._job_percent = percent
         self._set_progress(progress_words(percent, progress.get("eta_s")))
 
-    def set_call_progress(self, done_bytes, total_bytes=None) -> None:
+    def set_call_progress(self, done, total=None, stage: str = "") -> None:
 
-        if not any(card.ok is None and not getattr(card, "ended", "") for card in self.cards):
+
+        if not self._calling():
             return
-        self._set_progress(progress_words(done_bytes=done_bytes, total_bytes=total_bytes))
+        if stage:
+            self._call_stage = stage
+            self._call_count = (done, total, False)
+        else:
+            self._call_count = (done, total, True)
+        self._show_call()
+
+    def _calling(self) -> bool:
+        return any(card.ok is None and not getattr(card, "ended", "") for card in self.cards)
+
+    def _call_words(self) -> str:
+        done, total, is_bytes = self._call_count
+        if is_bytes:
+            size = progress_words(done_bytes=done, total_bytes=total)
+            known = isinstance(total, (int, float)) and total >= (done or 0) > 0
+
+            words = (size if known else self.tr("Downloading {size}").format(size=size)) if size \
+                else stage_words(self._call_stage)
+        else:
+            words = stage_words(self._call_stage, done, total)
+        spent = time.monotonic() - self._call_started if self._call_started else 0.0
+        clock = seconds_words(spent) if spent >= _CALL_CLOCK_FROM_S else ""
+        return " \u00b7 ".join(part for part in (words, clock) if part)
+
+    def _show_call(self) -> None:
+
+        self._progress_text = self._call_words()
+        self._sync_sub(True)
+
+    def _sync_sub(self, running: bool) -> None:
+
+        text = self._progress_text if running else ""
+        share = None
+        if running and self._calling():
+            done, total, _ = self._call_count
+            if isinstance(done, (int, float)) and isinstance(total, (int, float)) and total > 0:
+                share = done / total
+        elif running and isinstance(self._job_percent, (int, float)):
+            share = self._job_percent / 100.0
+        if share is not None:
+            self._bar.setValue(int(1000 * min(1.0, max(0.0, share))))
+        self._bar.setVisible(share is not None)
+        if self._sub_label.text() != text:
+            self._sub_label.setText(text)
+        self._sub.setVisible(bool(text) or share is not None)
+
+    def _on_call_tick(self) -> None:
+        if not self._calling():
+            self._call_tick.stop()
+            return
+        self._show_call()
 
     def _set_progress(self, text: str) -> None:
         if text != self._progress_text:
@@ -731,6 +846,14 @@ class ActivityRow(QWidget):
         running = calling or job
         if not running:
             self._progress_text = ""
+        if calling and not self._call_started:
+            self._call_started = time.monotonic()
+            self._call_tick.start()
+        elif not calling and self._call_started:
+            self._call_started = 0.0
+            self._call_stage = ""
+            self._call_count = (None, None, False)
+            self._call_tick.stop()
         if job and not self._job_timer.isActive() and not self._job_looked and _task_id_of(last):
             self._job_looked = True
             self._job_timer.start()
@@ -870,7 +993,7 @@ class ActivityRow(QWidget):
         elif ended == "stopped":
             text = self.tr("stopped")
         elif running:
-            text = self._progress_text
+            text = ""
         elif some_failed:
             text = self.tr("{failed} of {total} did not work").format(
                 failed=some_failed, total=self.repeats)
@@ -893,6 +1016,7 @@ class ActivityRow(QWidget):
         self._outcome_floor = (whole if self._outcome_whole else min(_OUTCOME_MIN_PX, whole)) if text else 0
         self._outcome.setMinimumWidth(self._outcome_floor)
         self._outcome.setVisible(bool(text))
+        self._sync_sub(running)
 
     @staticmethod
     def _made_layer(card: ToolCard, layer: str) -> bool:

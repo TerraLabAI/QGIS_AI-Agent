@@ -63,9 +63,9 @@ from .snapshot_in_place import put_back_in_place
 from .tool_registry import coded_fact
 
 try:
-    from ..tools import code_runtime, guards
+    from ..tools import code_runtime, guards, isolated_code
 except ImportError:
-    code_runtime = guards = None
+    code_runtime = guards = isolated_code = None
 
 CODE_TOOL = "execute_code"
 
@@ -378,7 +378,8 @@ class _ExecutorCode:
             granted=granted, chat=self._threads.get(run_id, "") or run_id,
             timeout_s=(tuning.ceiling("execute_code_card_budget_s", CARD_BUDGET_S, 30.0) if carded
                        else tuning.ceiling("execute_code_no_card_budget_s", NO_CARD_BUDGET_S, 20.0)),
-            registry=self._registry, run_id=run_id, stop=lambda: self.stop_requested.emit(run_id)))
+            registry=self._registry, run_id=run_id, stop=lambda: self.stop_requested.emit(run_id),
+            before_in_qgis=lambda: self._code_point_now(call)))
 
 
 
@@ -390,6 +391,10 @@ class _ExecutorCode:
 
     def _code_restore_point(self, call: dict, fresh: bool) -> bool:
 
+
+
+        call.pop("code_point_due", None)
+        call.pop("code_isolated", None)
         plan = call.get("code_plan") or {}
         if ce.RANK[plan.get("granted", ce.D)] < ce.RANK[ce.P]:
             return True
@@ -402,6 +407,39 @@ class _ExecutorCode:
                 return True
 
             return bool(call.get("carded"))
+        if self._code_runs_isolated(call):
+
+
+
+
+
+            call["code_point_due"] = True
+            return True
+        return self._code_take_point(call)
+
+    def _code_runs_isolated(self, call: dict) -> bool:
+
+
+        if isolated_code is None:
+            return False
+        try:
+            isolated = bool(isolated_code.runs_isolated(call.get("args") or {}))
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"execute_code isolation check before its restore point failed: {exc}")
+            isolated = False
+        call["code_isolated"] = isolated
+        return isolated
+
+    def _code_point_now(self, call: dict) -> bool:
+
+
+        if not call.pop("code_point_due", False):
+            return True
+        return self._code_take_point(call)
+
+    def _code_take_point(self, call: dict) -> bool:
+        plan = call.get("code_plan") or {}
+        run_id = str(call.get("run_id") or "")
         snapshot = RunSnapshot(f"{run_id or 'run'}-code")
         try:
             ok = snapshot.capture(layer_ids=self._code_point_layers(run_id, plan.get("layers")))

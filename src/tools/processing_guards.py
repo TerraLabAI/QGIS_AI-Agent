@@ -959,12 +959,12 @@ def source_definition(layer_id: str, only_selected: bool, expression: str):
 
 
 
+
+
     definition = QgsProcessingFeatureSourceDefinition(layer_id, bool(only_selected))
     if not expression:
         return definition
-    flag = getattr(getattr(Qgis, "ProcessingFeatureSourceDefinitionFlag", None), "FilterExpression", None)
-    if flag is not None and hasattr(definition, "filterExpression"):
-        definition.flags = definition.flags | flag
+    if hasattr(definition, "filterExpression"):
         definition.filterExpression = expression
         return definition
     layer = QgsProject.instance().mapLayer(layer_id)

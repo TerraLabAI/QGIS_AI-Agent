@@ -47,6 +47,7 @@ _APPLICATION = None
 _QGIS_FAILED: list = []
 _TRAPPED: list[str] = []
 _TRAPPED_LINES: list[int] = []
+_HELD: list[str] = []
 
 
 
@@ -55,6 +56,74 @@ _SNIPPET_FILE = "<snippet>"
 
 class NeedsLiveQgis(BaseException):
     pass
+
+
+class NeedsLayer(BaseException):
+    pass
+
+
+class _NameOnly:
+
+
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def name(self) -> str:
+        return self._name
+
+
+class _WholeProject:
+
+
+
+
+
+
+
+    def __init__(self, names: list) -> None:
+        self._layers = {str(index): _NameOnly(str(name)) for index, name in enumerate(names)}
+
+    def mapLayer(self, _key):  # noqa: N802
+        return None
+
+    def mapLayersByName(self, _key):  # noqa: N802
+        return []
+
+    def mapLayers(self):  # noqa: N802
+        return dict(self._layers)
+
+
+def _holding_back(lookup, project, held_back: list, layer_names: list, make_lookup):
+
+
+
+
+
+
+
+
+
+
+    ids = {str(entry.get("id") or "") for entry in held_back}
+    names = {str(entry.get("name") or "").casefold() for entry in held_back}
+    whole = make_lookup(_WholeProject(layer_names))
+
+    def layer(name_or_id):
+        key = str(name_or_id or "")
+        if key in ids or key.casefold() in names:
+            _HELD.append(key)
+            raise NeedsLayer(key)
+        try:
+            return lookup(name_or_id)
+        except LookupError:
+            if project.mapLayer(key) is not None or project.mapLayersByName(key):
+                raise
+            whole(name_or_id)
+            _HELD.append(key)
+            raise NeedsLayer(key) from None
+
+    layer.__doc__ = lookup.__doc__
+    return layer
 
 
 class LayerCopyFailed(Exception):
@@ -467,6 +536,9 @@ def _run(job: dict, status_path: str) -> int:
         namespace["project"] = QgsProject.instance()
 
         namespace["layer"] = helpers.layer_lookup(QgsProject.instance())
+        if job.get("held_back"):
+            namespace["layer"] = _holding_back(namespace["layer"], QgsProject.instance(), job["held_back"],
+                                               job.get("layer_names") or [], helpers.layer_lookup)
         namespace["layers"] = lambda: helpers.ordered_layers(QgsProject.instance())
     for alias, module in helpers.prelude(code_split.names_mentioned(str(job.get("code") or "")),
                                          namespace["__builtins__"]["__import__"]).items():
@@ -530,6 +602,11 @@ def _run(job: dict, status_path: str) -> int:
         status.update(_names_out(job, namespace, bound, helpers))
     elif _TRAPPED:
         status.update({"ok": False, "needs_qgis": _TRAPPED[0], "needs_qgis_line": _TRAPPED_LINES[0]})
+    elif _HELD:
+
+
+        status.update({"ok": False, "needs_layer": _HELD[0],
+                       "files": [{"path": path} for path in guard.take_written()]})
     elif exception is not None:
         status.update({
             "ok": False,

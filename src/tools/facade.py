@@ -193,6 +193,8 @@ def register_facade_tools(registry: ToolRegistry):
                 "bbox": {
                     "type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
                 },
+
+                "crs": {"type": "string"},
                 "use_canvas_extent": {
                     "type": "boolean",
                 },
@@ -265,6 +267,8 @@ def register_facade_tools(registry: ToolRegistry):
                 "bbox": {
                     "type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4,
                 },
+
+                "crs": {"type": "string"},
                 "use_canvas_extent": {
                     "type": "boolean",
                 },

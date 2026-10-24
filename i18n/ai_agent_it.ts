@@ -1916,7 +1916,7 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <source>1 layer</source>
-            <translation>1 layer</translation>
+            <translation>1 livello</translation>
         </message>
         <message>
             <source>1 row</source>
@@ -3308,6 +3308,38 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>{done} of {total} MB</source>
             <translation>{done} di {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Aggiunta del layer</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Ritaglio sull'area</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Download di {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Ricerca del luogo</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Interrogazione della fonte</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} min {s} s</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} s</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} di {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Non è stato possibile conservare la tua versione di {file} nella Map history, quindi non è stato ripristinato nulla.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Salvataggio di {layers} ancora in corso. Non è stato modificato nulla: riprova tra qualche secondo.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>un livello temporaneo</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Hai modificato {n} file a mano</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Disegno della mappa</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>Non hai completato l'upgrade?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>Il tuo piano è ancora Free. Se qualcosa ti ha bloccato:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Torna alla pagina Pro</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>Scrivici</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>Chiudi</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Gratis per 7 giorni, poi {price}/mese. Annulli con un clic.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Gratis per 7 giorni, niente da pagare oggi, poi {price}/mese. Annulli con un clic.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} attività al mese.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Inizia ora il mio piano</translation>
         </message>
     </context>
     <context>
@@ -9806,7 +9855,7 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
-            <translation>un layer temporaneo</translation>
+            <translation>un livello temporaneo</translation>
         </message>
     </context>
 </TS>

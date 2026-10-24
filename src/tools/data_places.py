@@ -34,6 +34,7 @@ from .data_geocoding import (
 from .data_overture import (
     _CLIP_MAX_PARTS,
     _CLIP_SUBTYPE_ORDER,
+    _CLIP_SUBTYPE_WAVES,
     _HIT_SUBTYPES,
     _outline_contains,
     _overture_call,
@@ -430,8 +431,19 @@ def _outline_of_place(name: str):
 
 
     named: list = []
-    payloads = _divisions_payloads(box, order)
+
+
+
+
+
+    def wave_of(level: str) -> int:
+        return next(i for i, wave in enumerate(_CLIP_SUBTYPE_WAVES) if level in wave)
+
+    payloads = _divisions_payloads(box, tuple(s for s in order if s == kind or wave_of(s) == 0))
     for rank, subtype in enumerate(order):
+        if subtype not in payloads:
+            payloads.update(_divisions_payloads(box, tuple(
+                s for s in order if s not in payloads and wave_of(s) == wave_of(subtype))))
         payload = payloads[subtype]
         if payload.get("code") == net.NETWORK_ERROR:
 

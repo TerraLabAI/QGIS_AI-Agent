@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import math
 import os
@@ -88,6 +89,9 @@ MAX_MISSED_PONGS = 2
 KNOWN_MANIFESTS_KEPT = 8
 
 
+TICKET_STORE_EVERY_S = 3600.0
+
+
 
 
 
@@ -151,6 +155,19 @@ def _catalog_path() -> str:
     from .policy import state_dir
 
     return os.path.join(state_dir(), _CATALOG_FILE)
+
+
+def _ticket_names_key(ticket: str, activation_key: str) -> bool:
+
+
+    if not ticket or not activation_key:
+        return False
+    try:
+        body = ticket.split(".")[1]
+        data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+        return data.get("k") == hashlib.sha256(activation_key.encode("utf-8")).hexdigest()[:32]
+    except (IndexError, ValueError, TypeError, AttributeError):
+        return False
 
 
 def _held_catalog_tag() -> str:
@@ -360,6 +377,9 @@ class AgentSession(QObject):
 
 
         self._catalog_tag = ""
+
+        self._ticket: str | None = None
+        self._ticket_stored_at: float | None = None
         self._disk_tag: str | None = None
 
 
@@ -908,8 +928,9 @@ class AgentSession(QObject):
                 self._disk_catalogs = _held_catalogs(tag) if tag else None
                 self._disk_tag = tag if self._disk_catalogs is not None else ""
                 self._catalog_tag = self._catalog_tag or self._disk_tag
+            key = self._account.activation_key
             frame = protocol.hello(
-                activation_key=self._account.activation_key,
+                activation_key=key,
                 device_hash=self._account.device_hash,
                 plugin_version=str(identity.get("plugin_version", "")),
                 qgis_version=str(identity.get("qgis_version", "")),
@@ -930,6 +951,7 @@ class AgentSession(QObject):
 
                 sends_on_ask=["manifest"],
                 machine=identity.get("machine") or None,
+                account_ticket=self._account_ticket(key),
             )
         except Exception as exc:  # noqa: BLE001
             log_warning(f"hello could not be built: {exc}")
@@ -944,6 +966,31 @@ class AgentSession(QObject):
         self._hello_sent_at = self._hello_checked_at = time.monotonic()
         self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
         self._hello_deadline.start()
+
+    def _account_ticket(self, activation_key: str) -> str:
+
+
+        if self._ticket is None:
+            try:
+                self._ticket = str(self._settings.account_ticket() or "")
+            except Exception:  # noqa: BLE001
+                self._ticket = ""
+        return self._ticket if _ticket_names_key(self._ticket, activation_key) else ""
+
+    def _keep_account_ticket(self, ticket) -> None:
+
+
+        if not isinstance(ticket, str) or not ticket:
+            return
+        self._ticket = ticket
+        now = time.monotonic()
+        if self._ticket_stored_at is not None and now - self._ticket_stored_at < TICKET_STORE_EVERY_S:
+            return
+        self._ticket_stored_at = now
+        try:
+            self._settings.set_account_ticket(ticket)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Account ticket not stored: {exc}")
 
     def _known_manifests(self) -> list:
 
@@ -1329,6 +1376,7 @@ class AgentSession(QObject):
 
 
         data_access.apply(frame.get("data_access"))
+        self._keep_account_ticket(frame.get("account_ticket"))
         self._session_id = str(frame.get("session_id") or self._session_id or "") or None
 
         crash_note.record_session(self._session_id or "")

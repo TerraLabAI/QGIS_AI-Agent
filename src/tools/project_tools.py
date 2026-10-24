@@ -738,4 +738,5 @@ def _zoom_to_layer(args: dict) -> dict:
 
 
         "extent": extent_block(ext, canvas.mapSettings().destinationCrs()),
+        **ground.shape_on_screen(canvas_crs, ext),
     }

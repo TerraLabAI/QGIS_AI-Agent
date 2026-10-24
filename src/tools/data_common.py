@@ -7,12 +7,20 @@ from __future__ import annotations
 import json
 import math
 import os
+import threading
 import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsProject, QgsVectorLayer
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsPointXY,
+    QgsProject,
+    QgsProviderRegistry,
+    QgsVectorLayer,
+)
 
 from ..core import background, limits, net, tuning
 from ..core.background import breathe, gc_paused, main_qthread, on_main_thread
@@ -215,6 +223,31 @@ def _feature_collection_file(features: list, layer_name: str, subdir: str) -> st
 def _vector_source_from_features(features: list, layer_name: str, subdir: str = "osm") -> str:
 
     return _vector_uri_for(_feature_collection_file(features, layer_name, subdir))
+
+
+
+
+
+
+
+
+
+
+
+
+_OGR_OPENS = threading.RLock()
+
+
+def ogr_opens():
+
+    return _OGR_OPENS
+
+
+def query_sublayers(uri: str, flags=None) -> list:
+
+    registry = QgsProviderRegistry.instance()
+    with _OGR_OPENS:
+        return registry.querySublayers(uri) if flags is None else registry.querySublayers(uri, flags)
 
 
 def worker_options(kind=QgsVectorLayer):

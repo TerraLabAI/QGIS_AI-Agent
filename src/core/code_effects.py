@@ -382,6 +382,30 @@ def _string_constants(tree: ast.AST) -> list[str]:
     return [n.value for n in ast.walk(tree) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
 
 
+
+
+_REMOTE_LITERAL_RE = re.compile(
+    r"(?i)(?:https?|ftps?)://|/vsi(?:curl|s3|gs|az|adls|oss|swift|hdfs|webhdfs)(?:_streaming)?[/?]")
+
+
+def remote_literals(code: object) -> list[str]:
+
+
+
+    try:
+        tree = ast.parse(str(code or ""))
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return []
+    found: list[str] = []
+    for node in ast.walk(tree):
+        value = node.value if isinstance(node, ast.Constant) else None
+        if isinstance(value, bytes):
+            value = value.decode("latin-1")
+        if isinstance(value, str) and _REMOTE_LITERAL_RE.search(value) and value not in found:
+            found.append(value)
+    return found
+
+
 def _open_writes(node: ast.Call) -> bool:
 
     mode = node.args[1] if len(node.args) > 1 else next((k.value for k in node.keywords if k.arg == "mode"), None)

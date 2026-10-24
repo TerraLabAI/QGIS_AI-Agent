@@ -2317,6 +2317,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} results</source>
             <translation>Результатів: {n}</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Додавання шару</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Обрізання за областю</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Завантаження {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Пошук місця</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Запит до джерела</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} хв {s} с</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} с</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} із {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2662,6 +2694,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Не вдалося зберегти вашу версію {file} в Історії карти, тож нічого не відновлено.</translation>
+        </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Ще триває збереження: {layers}. Нічого не змінено, спробуйте ще раз за кілька секунд.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>тимчасовий шар</translation>
         </message>
     </context>
     <context>
@@ -3040,6 +3080,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Ви змінили файлів вручну: {n}</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Малювання карти</translation>
         </message>
     </context>
     <context>
@@ -4440,8 +4484,8 @@ Click to show it in the Layers panel.</source>
             <translation>Безкоштовний AI Agent уже використали інші облікові записи на цьому комп'ютері.</translation>
         </message>
         <message>
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Безкоштовно 7 днів, потім {price}/місяць. Скасування в один клік.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Безкоштовно 7 днів, сьогодні платити нічого, потім {price}/місяць. Скасування в один клік.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
@@ -4550,6 +4594,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · скасувати можна будь-коли</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Почати мій тариф зараз</translation>
         </message>
     </context>
     <context>

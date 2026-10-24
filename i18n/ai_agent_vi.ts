@@ -2289,6 +2289,38 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{n} results</source>
             <translation>{n} kết quả</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Đang thêm lớp</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Đang cắt theo vùng</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Đang tải {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Đang tìm địa điểm</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Đang truy vấn nguồn</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} phút {s} giây</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} giây</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done}/{total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3004,6 +3036,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Bạn đã sửa {n} tệp bằng tay</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Đang vẽ bản đồ</translation>
         </message>
     </context>
     <context>
@@ -4404,8 +4440,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Free AI Agent đã được các tài khoản khác trên máy tính này sử dụng.</translation>
         </message>
         <message>
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Miễn phí 7 ngày, sau đó {price}/tháng. Hủy chỉ với một cú nhấp.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Miễn phí 7 ngày, hôm nay không phải trả gì, sau đó {price}/tháng. Hủy chỉ với một cú nhấp.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
@@ -4514,6 +4550,11 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · hủy bất cứ lúc nào</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Bắt đầu gói của tôi ngay</translation>
         </message>
     </context>
     <context>

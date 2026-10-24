@@ -180,6 +180,7 @@ _LEGACY_KEY = "activation_key"
 _PROTECTED_KEY = "activation_key_dpapi"
 _DPAPI_PREFIX = "dpapi1:"
 _DATA_ACCESS_KEY = "data_access"
+_ACCOUNT_TICKET_KEY = "account_ticket"
 _DPAPI_ENTROPY = b"TerraLab AI Agent activation key"
 
 
@@ -1302,6 +1303,7 @@ class Settings:
         self._set(_AUTHCFG_KEY, "")
         self._set(_LEGACY_KEY, "")
         self._set(_PROTECTED_KEY, "")
+        self._set(_ACCOUNT_TICKET_KEY, "")
 
         with contextlib.suppress(Exception):
             from . import data_access
@@ -1319,6 +1321,14 @@ class Settings:
 
     def set_data_access(self, text: str) -> None:
         self._set(_DATA_ACCESS_KEY, (_protect(text) or text) if text else "")
+
+    def account_ticket(self) -> str:
+
+        stored = self._get(_ACCOUNT_TICKET_KEY, "")
+        return _unprotect(stored) if stored.startswith(_DPAPI_PREFIX) else stored
+
+    def set_account_ticket(self, text: str) -> None:
+        self._set(_ACCOUNT_TICKET_KEY, (_protect(text) or text) if text else "")
 
     @property
     def has_activation_key(self) -> bool:

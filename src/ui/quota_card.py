@@ -237,7 +237,8 @@ def trial_reassurance() -> str:
 
     price = get_pro_price() or "49\u00a0EUR"
     return QCoreApplication.translate(
-        "QuotaCard", "Free for 7 days, then {price}/month. Cancel in one click.").format(price=price)
+        "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.").format(
+        price=price)
 
 
 def trial_promise(days: int, _ends_on: str | None = None) -> str:
@@ -259,6 +260,8 @@ class QuotaCard(QWidget):
     return_closed = pyqtSignal()
 
     welcome_closed = pyqtSignal()
+
+    start_now_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -401,7 +404,10 @@ class QuotaCard(QWidget):
 
 
     def show_exhausted(self, is_subscriber: bool, limit: int, reset_text: str = "",
-                       trial: tuple | None = None, account_cap: str | None = None) -> None:
+                       trial: tuple | None = None, account_cap: str | None = None,
+                       start_now: bool = False) -> None:
+
+
 
 
 
@@ -423,7 +429,14 @@ class QuotaCard(QWidget):
             else:
                 self._note.setText(self.tr("You used all {n} tasks this month.").format(n=limit) if limit else "")
             self._note.show()
-            self._plan.hide()
+            if start_now:
+                for w in (self._promise, self._invoice, self._contact, self._more, self._details):
+                    w.hide()
+                self._button.setText(self.tr("Start my plan now"))
+                self._route_button(self.start_now_requested.emit)
+                self._plan.show()
+            else:
+                self._plan.hide()
             self._body.setText(self.tr("Need more this month? Write to us and we set up a custom quota."))
             self._body.show()
             self._ghost.setText(self.tr("Copy email"))

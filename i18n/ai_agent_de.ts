@@ -3308,6 +3308,38 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>{done} of {total} MB</source>
             <translation>{done} von {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Layer wird hinzugefügt</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Gebiet wird zugeschnitten</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>{size} wird heruntergeladen</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Ort wird gesucht</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Quelle wird abgefragt</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} min {s} s</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} s</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} von {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Ihre Version von {file} konnte nicht im Map history gespeichert werden, deshalb wurde nichts wiederhergestellt.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} wird noch gespeichert. Es wurde nichts geändert: Versuche es in ein paar Sekunden erneut.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>ein temporärer Layer</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Sie haben {n} Dateien von Hand geändert</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Karte wird gezeichnet</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>Upgrade nicht abgeschlossen?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>Dein Tarif ist weiterhin Free. Falls etwas dazwischengekommen ist:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Zurück zur Pro-Seite</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>Schreib uns</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>Schließen</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>7 Tage kostenlos, danach {price}/Monat. Mit einem Klick kündbar.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>7 Tage kostenlos, heute nichts zu zahlen, danach {price}/Monat. Mit einem Klick kündbar.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} Aufgaben pro Monat.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Meinen Tarif jetzt starten</translation>
         </message>
     </context>
     <context>

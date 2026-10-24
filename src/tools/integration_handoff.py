@@ -124,6 +124,8 @@ def prepare(which, args):
                 from .integration_tools import _aiseg_zone_wkt
                 kwargs["zone_wkt"] = _aiseg_zone_wkt(plugin, args)
             else:
+                if args.get("bbox") is not None and cost_guard.unknown_crs(args):
+                    raise ValueError(f"crs '{cost_guard.unknown_crs(args)}' is not a CRS QGIS knows.")
                 geometry = cost_guard.zone_from_args(args)
                 if geometry is None:
                     raise ValueError("The requested zone could not be read.")

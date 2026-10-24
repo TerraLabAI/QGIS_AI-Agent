@@ -42,3 +42,30 @@ def set_progress_sink(sink) -> None:
 
 def current_progress_sink():
     return getattr(_LOCAL, "progress", None)
+
+
+def report_stage(stage: str, done=None, total=None) -> None:
+
+
+
+    sink = current_progress_sink()
+    if sink is None:
+        return
+    try:
+        sink(done, total, stage)
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+
+
+
+
+_TIMING_SINK = None
+
+
+def set_timing_sink(sink) -> None:
+    global _TIMING_SINK
+    _TIMING_SINK = sink
+
+
+def current_timing_sink():
+    return _TIMING_SINK

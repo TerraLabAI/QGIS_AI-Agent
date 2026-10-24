@@ -14,10 +14,13 @@
 
 
 
+
+
 from __future__ import annotations
 
 import os
 import time
+import unicodedata
 
 from qgis.core import QgsVectorLayer
 
@@ -55,13 +58,124 @@ def _unique(values) -> list:
     return list(dict.fromkeys(values))
 
 
-def layer_state(layer, files: bool = True) -> dict:
+
+
+_STAT_ALONE = 16
+_STAT_THREADS = 8
+
+
+class _Disk:
 
 
 
 
 
-    from .snapshot import _sidecars, _stamp, layer_file_path, source_path
+
+
+
+
+
+    def __init__(self, paths, stamps: bool = True):
+        from .snapshot import _sidecars, _stamp
+
+        self._files: dict[str, list[str] | None] = {}
+        self._stamps: dict[str, tuple | None] = {}
+        paths = list(dict.fromkeys(p for p in paths if p))
+        per_folder: dict[str, int] = {}
+        for path in paths:
+            folder = os.path.dirname(path) or "."
+            per_folder[folder] = per_folder.get(folder, 0) + 1
+        listings: dict[str, _Listing | None] = {}
+        for path in paths:
+            folder = os.path.dirname(path) or "."
+            if folder not in listings:
+
+
+                listings[folder] = _listing(folder) if per_folder[folder] > 1 else None
+            names = listings[folder]
+            if names is None:
+                self._files[path] = _sidecars(path) if os.path.isfile(path) else None
+            elif names.get(_name_key(os.path.basename(path))):
+                self._files[path] = _sidecars(path, names)
+            else:
+                self._files[path] = None
+        if not stamps:
+            return
+        wanted = list(dict.fromkeys(name for group in self._files.values() for name in group or ()))
+        if len(wanted) <= _STAT_ALONE:
+            stamps = [_stamp(name) for name in wanted]
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+
+
+            with ThreadPoolExecutor(max_workers=_STAT_THREADS) as pool:
+                stamps = list(pool.map(_stamp, wanted))
+        self._stamps = dict(zip(wanted, stamps))
+
+    def is_file(self, path: str) -> bool:
+        return self._files.get(path) is not None
+
+    def stamps(self, path: str) -> list | None:
+
+        stamps = [self._stamps.get(name) for name in self._files.get(path) or ()]
+        return [list(stamp) if stamp else None for stamp in stamps] if any(stamps) else None
+
+
+def _name_key(name: str) -> str:
+    return os.path.normcase(name)
+
+
+class _Listing(dict):
+
+
+
+
+
+    def __init__(self, entries, folder: str):
+        super().__init__(entries)
+        self._folder = folder
+        self._folded = {unicodedata.normalize("NFC", name).casefold() for name in self}
+
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        if unicodedata.normalize("NFC", key).casefold() in self._folded:
+            return os.path.isfile(os.path.join(self._folder, key))
+        return default
+
+
+def _listing(folder: str) -> _Listing | None:
+
+    try:
+        with os.scandir(folder) as entries:
+            return _Listing({_name_key(entry.name): entry.is_file() for entry in entries}, folder)
+    except OSError:
+        return None
+
+
+def _paths(layers, files: bool) -> dict:
+
+    from .snapshot import source_path
+
+    paths = {}
+    if not files:
+        return paths
+    for lid, layer in layers:
+        try:
+            paths[lid] = source_path(layer)
+        except Exception:  # noqa: BLE001
+            paths[lid] = None
+    return paths
+
+
+def layer_state(layer, files: bool = True, disk: _Disk | None = None) -> dict:
+
+
+
+
+
+
+    from .snapshot import source_path
 
     state: dict = {"name": _text(layer.name())}
     try:
@@ -69,25 +183,30 @@ def layer_state(layer, files: bool = True) -> dict:
     except Exception:  # noqa: BLE001
         state["provider"] = ""
     try:
-        path = layer_file_path(layer) if files else source_path(layer)
+        path = source_path(layer)
     except Exception:  # noqa: BLE001
         path = None
+    if path and files:
+        if disk is None:
+            disk = _Disk([path])
+        if not disk.is_file(path):
+            path = None
     if path:
         state["path"] = path
     if path and files:
 
 
-        stamps = [_stamp(name) for name in _sidecars(path)]
-        state["stamp"] = [list(stamp) if stamp else None for stamp in stamps] if any(stamps) else None
+        state["stamp"] = disk.stamps(path)
     try:
         state["crs"] = str(layer.crs().authid() or "")
     except Exception:  # noqa: BLE001
         state["crs"] = ""
     try:
-        from .snapshot_style import _style_digest
+        from .snapshot_style import style_mark
 
 
-        state["style"] = _style_digest(layer)
+
+        state["style"] = style_mark(layer)
     except Exception:  # noqa: BLE001
         state["style"] = None
     if isinstance(layer, QgsVectorLayer):
@@ -106,6 +225,15 @@ def layer_state(layer, files: bool = True) -> dict:
         except Exception:  # noqa: BLE001
             state["fields"] = []
     return state
+
+
+def _same_style(layer, then, now) -> bool:
+    try:
+        from .snapshot_style import same_style
+
+        return same_style(layer, then, now)
+    except Exception:  # noqa: BLE001
+        return then == now
 
 
 def fields_named(args) -> list[str]:
@@ -160,13 +288,16 @@ def watched_layer_ids(project, files: bool = True) -> list:
 
 
 
-    from .snapshot import layer_file_path, source_path
+    from .snapshot import source_path
 
-    has_file = layer_file_path if files else source_path
+    layers = list(project.mapLayers().items())
+    paths = _paths(layers, files)
+    disk = _Disk(paths.values(), stamps=False) if files else None
     ids = []
-    for lid, layer in project.mapLayers().items():
+    for lid, layer in layers:
         try:
-            if layer.providerType() == "memory" or has_file(layer):
+            path = paths.get(lid) if files else source_path(layer)
+            if layer.providerType() == "memory" or (path and (disk is None or disk.is_file(path))):
                 ids.append(lid)
         except Exception:  # noqa: BLE001  # nosec B112
             continue
@@ -187,10 +318,11 @@ def before_call(project, layer_ids, paths, snapshot=None, files: bool = True) ->
     layers = project.mapLayers()
     backed_up = backup_check(snapshot)
     named = {}
-    for lid in _unique(layer_ids):
-        layer = layers.get(lid)
+    walked = [(lid, layers[lid]) for lid in _unique(layer_ids) if layers.get(lid) is not None]
+    disk = _Disk(_paths(walked, files).values()) if files else None
+    for lid, layer in walked:
         if layer is not None:
-            state = layer_state(layer, files)
+            state = layer_state(layer, files, disk)
             state["backup"] = backed_up(lid, state.get("path") or "") if files else False
             named[lid] = state
     return {"ids": {lid: _text(layer.name()) for lid, layer in layers.items()},
@@ -204,8 +336,16 @@ def after_call(project, tool: str, args, before: dict, layer_ids, paths, ok: boo
     layers = project.mapLayers()
     ids_before = before.get("ids") or {}
     items: list[dict] = []
-    for lid in [lid for lid in layers if lid not in ids_before][:_items()]:
-        now = layer_state(layers[lid])
+    added = [lid for lid in layers if lid not in ids_before][:_items()]
+    files_read = before.get("files_read", True)
+    named = [lid for lid in _unique([*(before.get("layers") or {}), *layer_ids])
+             if (before.get("layers") or {}).get(lid) is not None and lid in layers]
+
+
+    disk = _Disk([*_paths([(lid, layers[lid]) for lid in added], True).values(),
+                  *_paths([(lid, layers[lid]) for lid in named], files_read).values()])
+    for lid in added:
+        now = layer_state(layers[lid], True, disk)
         items.append({"id": lid, "name": now["name"], "what": "added", "after": now.get("count"),
                       "provider": now.get("provider", ""), "path": now.get("path") or ""})
     for lid in [lid for lid in ids_before if lid not in layers][:_items()]:
@@ -220,7 +360,7 @@ def after_call(project, tool: str, args, before: dict, layer_ids, paths, ok: boo
         then = (before.get("layers") or {}).get(lid)
         if then is None or lid not in layers:
             continue
-        now = layer_state(layers[lid], before.get("files_read", True))
+        now = layer_state(layers[lid], files_read, disk)
         item = {"id": lid, "name": now["name"], "what": "changed", "provider": now.get("provider", ""),
                 "path": now.get("path") or ""}
         if then.get("count") is not None and now.get("count") is not None and then["count"] != now["count"]:
@@ -236,7 +376,8 @@ def after_call(project, tool: str, args, before: dict, layer_ids, paths, ok: boo
             item["file_changed"] = then.get("stamp") != now.get("stamp")
             item["backup"] = bool(then.get("backup"))
         if item["what"] == "changed" and not item.get("file_changed") and all(
-                then.get(key) == now.get(key) for key in ("name", "crs", "style", "subset")):
+                then.get(key) == now.get(key) for key in ("name", "crs", "subset")) and _same_style(
+                layers[lid], then.get("style"), now.get("style")):
             continue
         items.append(item)
     known = before.get("files") or {}

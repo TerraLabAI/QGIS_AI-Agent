@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import re
 import time
 import zipfile
 
@@ -58,7 +57,6 @@ _FOLLOWED_GPS_ATTRIBUTES = ("destinationLayer", "destinationLayerName", "destina
                             "destinationLayerProvider")
 _MADE = "terralab/in_place_read"
 _NO_ACTION = "{00000000-0000-0000-0000-000000000000}"
-_MEMORY_UID = re.compile(r"&uid=\{[^}]*\}")
 
 
 _LAYER_SECTIONS = ("projectlayers", "layer-tree-group", "layerorder", "snapping-settings",
@@ -122,20 +120,40 @@ def _layer_elements(doc) -> dict:
     return found
 
 
+def _elements(doc, tag: str) -> list:
+
+
+
+
+
+
+    nodes = doc.elementsByTagName(tag)
+    return [nodes.at(i).toElement() for i in range(nodes.count())]
+
+
 def _rest(doc, leave_out=()) -> str:
 
-    from qgis.PyQt.QtXml import QDomDocument
 
-    copy = QDomDocument()
-    root = copy.importNode(doc.documentElement(), True).toElement()
-    copy.appendChild(root)
+
+
+
+    root = doc.documentElement()
+    held = []
     for name in leave_out:
         section = root.firstChildElement(name)
         while not section.isNull():
             following = section.nextSiblingElement(name)
+            held.append((section, section.nextSibling()))
             root.removeChild(section)
             section = following
-    return copy.toString(-1)
+    try:
+        return doc.toString(-1)
+    finally:
+        for section, after in reversed(held):
+            if after.isNull():
+                root.appendChild(section)
+            else:
+                root.insertBefore(section, after)
 
 
 def _normalised(doc):
@@ -162,20 +180,7 @@ def _normalised(doc):
             child = child.nextSiblingElement()
         for child in sorted(children, key=lambda element: element.attribute("id")):
             settings.appendChild(child)
-    for tag, attribute in (("layer-tree-layer", "source"), ("datasource", "")):
-        nodes = doc.elementsByTagName(tag)
-        for i in range(nodes.count()):
-            element = nodes.at(i).toElement()
-            if attribute:
-                if "uid={" in element.attribute(attribute):
-                    element.setAttribute(attribute, _MEMORY_UID.sub("", element.attribute(attribute)))
-            elif "uid={" in element.text():
-                text = element.firstChild().toText()
-                if not text.isNull():
-                    text.setData(_MEMORY_UID.sub("", text.data()))
-    actions = doc.elementsByTagName("defaultAction")
-    for i in reversed(range(actions.count())):
-        element = actions.at(i).toElement()
+    for element in _elements(doc, "defaultAction"):
         if element.attribute("value") == _NO_ACTION:
             element.parentNode().removeChild(element)
     return doc
@@ -379,6 +384,17 @@ def _project_settings_back(project, source, back: list) -> None:
     if not root.firstChildElement("snapping-settings").isNull():
         config = QgsSnappingConfig(project)
         config.readProject(source)
+
+
+        listed = set()
+        item = root.firstChildElement("snapping-settings").firstChildElement(
+            "individual-layer-settings").firstChildElement("layer-setting")
+        while not item.isNull():
+            listed.add(item.attribute("id"))
+            item = item.nextSiblingElement("layer-setting")
+        extra = [layer for layer in config.individualLayerSettings() if layer.id() not in listed]
+        if extra:
+            config.removeLayers(extra)
         project.setSnappingConfig(config)
     if not root.firstChildElement("visibility-presets").isNull():
         project.mapThemeCollection().readXml(source)
@@ -481,10 +497,11 @@ def _put_back(snapshot, project, started: float) -> dict | None:
         snapshot._restamp()
 
 
-    proof = _write_now(project, snapshot.dir, bool(snapshot.own_paths))
-    if _rest(proof) != _rest(then):
+    proof = _as_copied(_write_now(project, snapshot.dir, bool(snapshot.own_paths)), then, back)
+    copied, written = _rest(then), _rest(proof)
+    if written != copied:
         return _refuse("the project still differs after the layers came back: "
-                       + _first_difference(_rest(then), _rest(proof)))
+                       + _first_difference(copied, written))
     if snapshot._groups_to_put_back() or _core_sections(project) != captured_sections:
         return _refuse("a file or a relation still differs")
     for lid in back:
@@ -496,6 +513,34 @@ def _put_back(snapshot, project, started: float) -> dict | None:
     log(f"Roll back of run {snapshot.run_id[:8]} in place: {len(added)} layer(s) removed, {len(back)} read back, "
         f"{len(files_put_back)} file(s) put back, {time.monotonic() - started:.2f} s")
     return _outcome(len(added), len(back), files_put_back, back, "Project restored.")
+
+
+def _as_copied(proof, then, back: list):
+
+
+
+
+
+
+
+
+    copied, written = _layer_elements(then), _layer_elements(proof)
+    memory = set()
+    for lid in back:
+        if (lid in copied and lid in written
+                and copied[lid].firstChildElement("provider").text() == "memory"):
+            old = written[lid].firstChildElement("datasource")
+            if not old.isNull():
+                written[lid].replaceChild(proof.importNode(copied[lid].firstChildElement("datasource"), True), old)
+                memory.add(lid)
+    if memory:
+        sources = {element.attribute("id"): element.attribute("source")
+                   for element in _elements(then, "layer-tree-layer") if element.attribute("id") in memory}
+        for element in _elements(proof, "layer-tree-layer"):
+            lid = element.attribute("id")
+            if lid in sources:
+                element.setAttribute("source", sources[lid])
+    return proof
 
 
 def _first_difference(a: str, b: str) -> str:

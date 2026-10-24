@@ -93,6 +93,14 @@ def apply_qgis_proxy() -> bool:
     return net.proxy_in_use() is not None
 
 
+def _prepare_opener(net) -> None:
+
+    try:
+        net._opener()
+    except Exception:  # nosec B110
+        pass
+
+
 def _apply_qgis_trust(net) -> None:
 
     try:
@@ -113,6 +121,12 @@ def _apply_qgis_trust(net) -> None:
             ca_pem = (ca_pem or b"") + extra
         if net.set_trust(ca_pem):
             log("Tool fetches now also trust the certificates QGIS trusts.")
+
+
+
+            import threading
+
+            threading.Thread(target=_prepare_opener, args=(net,), name="ai-agent-opener", daemon=True).start()
     except Exception as exc:  # noqa: BLE001
         try:
             from .logger import log_warning as _warn

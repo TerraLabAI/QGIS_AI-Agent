@@ -882,20 +882,15 @@ class AiEditAccess:
         if params.get("use_canvas_extent"):
             return iface.mapCanvas().extent()
 
-        bbox = params.get("bbox")
-        if isinstance(bbox, dict):
-            try:
-                return QgsRectangle(
-                    float(bbox["xmin"]), float(bbox["ymin"]),
-                    float(bbox["xmax"]), float(bbox["ymax"]),
-                )
-            except (KeyError, TypeError, ValueError):
-                return tool_error("bbox dict needs numeric xmin, ymin, xmax, ymax.", "INVALID_ARGS")
-        if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
-            try:
-                return QgsRectangle(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3]))
-            except (TypeError, ValueError):
-                return tool_error("bbox must be 4 numbers [xmin,ymin,xmax,ymax].", "INVALID_ARGS")
+        if params.get("bbox") is not None:
+
+
+            from ..cost_guard import zone_from_args
+            moved = zone_from_args({"bbox": params.get("bbox"), "crs": params.get("crs")})
+            if moved is None:
+                return tool_error("bbox must be 4 numbers [xmin,ymin,xmax,ymax] or {xmin,ymin,xmax,ymax}, "
+                                  "in crs when it names one.", "INVALID_ARGS")
+            return QgsRectangle(moved.boundingBox())
         held = self.current_zone()
         if held is not None:
             from ..cost_guard import _to_canvas_crs

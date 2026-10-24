@@ -401,6 +401,8 @@ def _pointer(obj) -> int:
 
 
 def _signature(layer) -> tuple:
+    from .layer_order import is_web_service
+
     look, data = (), ()
     try:
         renderer = layer.renderer()
@@ -412,7 +414,12 @@ def _signature(layer) -> tuple:
         if hasattr(layer, "labeling"):
             look += (_pointer(layer.labeling()), layer.labelsEnabled())
         if hasattr(layer, "featureCount"):
-            data = (layer.featureCount(), layer.isModified(), layer.subsetString())
+
+
+
+
+            count = -1 if is_web_service(layer) else layer.featureCount()
+            data = (count, layer.isModified(), layer.subsetString())
     except Exception:  # noqa: BLE001  # nosec B110
         pass
     return layer.name(), look, data
@@ -483,8 +490,17 @@ def project_state(project) -> dict:
         "layers": {lid: _layer_facts(layer) for lid, layer in project.mapLayers().items()},
         "visible": _tree_visibility(project),
         "layouts": _layouts(project),
+        "crs": _crs_name(project.crs()),
     }
     return state
+
+
+def _crs_name(crs) -> str:
+
+    try:
+        return crs.authid() or crs.description() or ""
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 class EditWatch:
@@ -581,6 +597,7 @@ def changed(before: dict, project, edits: EditWatch | None = None) -> dict:
 
 
 
+
     _settle_tree_removals(project, before)
     after = project_state(project)
     out: dict = {}
@@ -637,6 +654,8 @@ def changed(before: dict, project, edits: EditWatch | None = None) -> dict:
             out.setdefault("crs", {})[name1] = [f0["crs"], f1["crs"]]
     if values:
         out["values"] = {after[lid][0]: fact for lid, fact in values.items()}
+    if facts0.get("crs") and facts1.get("crs") and facts0["crs"] != facts1["crs"]:
+        out["project_crs"] = [facts0["crs"], facts1["crs"]]
     vis0, vis1 = facts0.get("visible", {}), facts1.get("visible", {})
     for lid, shown in vis1.items():
         if lid in before and lid in vis0 and vis0[lid] != shown:

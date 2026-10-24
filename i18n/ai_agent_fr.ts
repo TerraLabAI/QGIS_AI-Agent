@@ -3308,6 +3308,38 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>{done} of {total} MB</source>
             <translation>{done} sur {total} Mo</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Ajout de la couche</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Découpe à la zone</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Téléchargement de {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Recherche du lieu</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Interrogation de la source</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} min {s} s</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} s</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} sur {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Votre version de {file} n'a pas pu être conservée dans l'historique de la carte (Map history), donc rien n'a été restauré.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Enregistrement de {layers} en cours. Rien n'a été modifié : réessayez dans quelques secondes.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>une couche temporaire</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Vous avez modifié {n} fichiers à la main</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Dessin de la carte</translation>
         </message>
     </context>
     <context>
@@ -6581,8 +6625,8 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Gratuit pendant 7 jours, puis {price}/mois. Résiliable en un clic.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Gratuit pendant 7 jours, rien à payer aujourd'hui, puis {price}/mois. Résiliable en un clic.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} tâches par mois.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Démarrer mon abonnement maintenant</translation>
         </message>
     </context>
     <context>

@@ -2317,6 +2317,38 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{n} results</source>
             <translation>{n} sonuç</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Katman ekleniyor</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Alana göre kesiliyor</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>{size} indiriliyor</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Yer bulunuyor</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Kaynak sorgulanıyor</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} dk {s} sn</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} sn</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done}/{total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2662,6 +2694,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>{file} dosyasındaki sürümünüz Map history içinde saklanamadı, bu yüzden hiçbir şey geri yüklenmedi.</translation>
+        </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} hâlâ kaydediliyor. Hiçbir şey değiştirilmedi: birkaç saniye sonra tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>geçici bir katman</translation>
         </message>
     </context>
     <context>
@@ -3040,6 +3080,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>You changed {n} files by hand</source>
             <translation>{n} dosyayı elle değiştirdiniz</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Harita çiziliyor</translation>
         </message>
     </context>
     <context>
@@ -4440,8 +4484,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Ücretsiz AI Agent bu bilgisayardaki diğer hesaplar tarafından zaten kullanıldı.</translation>
         </message>
         <message>
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>7 gün ücretsiz, sonra ayda {price}. Tek tıkla iptal edin.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>7 gün ücretsiz, bugün ödeyeceğiniz bir şey yok, sonra ayda {price}. Tek tıkla iptal edin.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
@@ -4550,6 +4594,11 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · istediğiniz zaman iptal edin</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Planımı şimdi başlat</translation>
         </message>
     </context>
     <context>

@@ -95,7 +95,39 @@ def usage_to_runs(payload: dict) -> dict:
 
             "plan_trial_ends_on": payload.get("plan_trial_ends_on"),
 
-            "plan_trial_interval": payload.get("plan_trial_interval")}
+            "plan_trial_interval": payload.get("plan_trial_interval"),
+
+
+            "trial_cap": payload.get("trial_cap") if isinstance(payload.get("trial_cap"), dict) else None}
+
+
+def site_url(url: object) -> str:
+
+    if not _openable_https(url):
+        return ""
+    from urllib.parse import urlsplit
+
+    host = (urlsplit(url).hostname or "").lower()
+    return url if host == "terra-lab.ai" or host.endswith(".terra-lab.ai") else ""
+
+
+def _with_cta_source(url: str, cta_source: str) -> str:
+
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    if not url:
+        return url
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key != "cta_source"]
+    return urlunsplit(parts._replace(query=urlencode(query + [("cta_source", cta_source)])))
+
+
+def get_trial_checkout_url() -> str:
+    from ..core.served_state import get_trial_checkout_url as served_trial_checkout_url
+    return served_trial_checkout_url()
 
 
 def get_dashboard_url() -> str:
@@ -965,7 +997,12 @@ class Account(QObject):
         self._login_link_task = task
         QgsApplication.taskManager().addTask(task)
 
-    def open_plans(self, cta_source: str = "plugin_quota", on_outcome=None) -> None:
+    def open_plans(self, cta_source: str = "plugin_quota", on_outcome=None, trial_surface: str = "") -> None:
+
+
+
+
+
 
 
 
@@ -975,6 +1012,11 @@ class Account(QObject):
 
         self._reset_return_check()
         self._return_armed = self.has_activation_key
+        if trial_surface:
+            source = f"plugin_trial_button_{trial_surface}"
+            served = site_url(_with_cta_source(get_trial_checkout_url(), source))
+            self.open_website("checkout", source, served or get_plans_page_url(cta_source), on_outcome)
+            return
         self.open_website("/pricing", cta_source, get_plans_page_url(cta_source), on_outcome)
 
     def is_valid_key(self, key: str) -> bool:

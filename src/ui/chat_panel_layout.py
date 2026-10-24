@@ -94,6 +94,8 @@ class _ChatPanelLayout:
         self.quota_card.contact_requested.connect(self._on_return_contact)
         self.quota_card.return_closed.connect(self._close_checkout_return)
         self.quota_card.welcome_closed.connect(self._close_pro_welcome)
+        self.quota_card.start_now_requested.connect(
+            lambda: self.start_now_requested.emit(getattr(self, "_start_now_url", "")))
         self.runs_line.requested.connect(self.plans_requested.emit)
         c = self.composer
         c.send_clicked.connect(self._on_send)
@@ -427,7 +429,8 @@ class _ChatPanelLayout:
             self._runs_host.hide()
             self.quota_card.show_exhausted(is_subscriber, limit, format_reset_date(period_end),
                                            None if is_subscriber else self.trial_offer(),
-                                           getattr(self, "_account_cap", None))
+                                           getattr(self, "_account_cap", None),
+                                           bool(is_subscriber and getattr(self, "_start_now_url", "")))
             self.composer.set_blocked(True, self.tr("More tasks next month") if is_subscriber
                                       else self.tr("Keep working with Pro"))
             self._quota_host.show()
@@ -596,6 +599,7 @@ class _ChatPanelLayout:
             self._checkout_return = False
             self._return_view_pending = False
             self._pro_welcome = None
+            self._start_now_url = ""
             self.header.clear_account()
 
             self._plan_known = False
@@ -675,6 +679,14 @@ class _ChatPanelLayout:
         set_pro_offer(bool(offer))
         self._apply_quota()
         self._sync_pro_pill()
+
+    def set_start_now_url(self, url: str) -> None:
+
+        url = str(url or "")
+        if url == getattr(self, "_start_now_url", ""):
+            return
+        self._start_now_url = url
+        self._apply_quota()
 
     def set_account_cap(self, cap) -> None:
 

@@ -35,7 +35,6 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QFont, QPalette
 from qgis.PyQt.QtWidgets import (
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -158,12 +157,13 @@ _ADVANCE_MS = 480
 
 
 
+
 _SUMMARY_RADIUS = 18
 _SUMMARY_QSS = scale_qss_font_px(
     f"QFrame#roundSummary {{ background: {FIELD}; border: 1px solid {USER_PILL_LINE};"
     f" border-radius: {_SUMMARY_RADIUS}px; }}"
     f"QFrame#roundSummary QLabel {{ background: transparent; border: none; font-size: {FONT_BASE}px; }}"
-    f"QFrame#roundSummary QLabel#summaryHead {{ color: {INK_3}; }}"
+    f"QFrame#roundSummary QLabel#summaryHead {{ color: {INK_3}; font-size: {FONT_HINT}px; }}"
     f"QFrame#roundSummary QLabel#summaryAnswer {{ color: {INK}; }}"
     f'QFrame#roundSummary QLabel#summaryAnswer[skipped="true"] {{ color: {INK_3}; }}'
 )
@@ -189,12 +189,9 @@ class _RoundSummary(QWidget):
 
 
         self._frame.setMinimumHeight(2 * _SUMMARY_RADIUS)
-
-        self._lines = QGridLayout(self._frame)
-        self._lines.setContentsMargins(12, 7, 12, 7)
-        self._lines.setHorizontalSpacing(10)
-        self._lines.setVerticalSpacing(3)
-        self._lines.setColumnStretch(1, 1)
+        self._lines = QVBoxLayout(self._frame)
+        self._lines.setContentsMargins(12, 8, 12, 8)
+        self._lines.setSpacing(8)
         row.addWidget(self._frame)
         self._items: list = []
 
@@ -202,17 +199,20 @@ class _RoundSummary(QWidget):
         from .widgets import ElidedLabel
 
         self._items.append((head, answer))
-        index = len(self._items) - 1
+        block = QVBoxLayout()
+        block.setContentsMargins(0, 0, 0, 0)
+        block.setSpacing(1)
         label = ElidedLabel(head, self._frame)
         label.setObjectName("summaryHead")
-        label.setMaximumWidth(scale_px_length(140))
+        label.setMaximumWidth(scale_px_length(280))
         label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        self._lines.addWidget(label, index, 0, Qt.AlignmentFlag.AlignTop)
+        block.addWidget(label)
         text = plain_label(answer or self.tr("Skipped"), self._frame)
         text.setObjectName("summaryAnswer")
         text.setProperty("skipped", not answer)
         text.setWordWrap(True)
-        self._lines.addWidget(text, index, 1)
+        block.addWidget(text)
+        self._lines.addLayout(block)
 
     def lines(self) -> list:
         return list(self._items)

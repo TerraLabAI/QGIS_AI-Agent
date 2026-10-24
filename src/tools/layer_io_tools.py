@@ -42,7 +42,7 @@ from ..core.tool_registry import coded_fact, tool_error
 from . import vector_write
 from ._compat import FIELD_TYPES
 from .csv_loader import CSV_EXTENSIONS, add_csv
-from .data_common import built_here, worker_options
+from .data_common import built_here, ogr_opens, query_sublayers, worker_options
 from .layer_lookup import _find_layer, _layer_not_found_error, require_vector
 from .missing_file import missing_file
 
@@ -119,8 +119,7 @@ def _source_exists(path: str) -> bool:
 def _sublayer_names(path: str) -> list:
 
     try:
-        from qgis.core import QgsProviderRegistry
-        details = QgsProviderRegistry.instance().querySublayers(path)
+        details = query_sublayers(path)
         names = [d.name() for d in details if d.providerKey() == "ogr" and d.name()]
         return list(dict.fromkeys(names))
     except Exception:  # noqa: BLE001
@@ -327,7 +326,8 @@ def describe_sublayers(path: str, names: list) -> list:
     options = QgsVectorLayer.LayerOptions() if on_main_thread() else worker_options()
     out = []
     for name in names:
-        probe = QgsVectorLayer(f"{path}|layername={name}", name, "ogr", options)
+        with ogr_opens():
+            probe = QgsVectorLayer(f"{path}|layername={name}", name, "ogr", options)
         if not probe.isValid():
             out.append({"name": name, "valid": False})
         else:
@@ -492,7 +492,8 @@ def _add_cad_to_gpkg(path: str, name: str, crs: str | None) -> dict:
         label = f"{name} ({word})" if word else name
 
         def make(uri=uri, label=label, facts=facts):
-            layer = QgsVectorLayer(uri, label, "ogr", worker_options())
+            with ogr_opens():
+                layer = QgsVectorLayer(uri, label, "ogr", worker_options())
             if layer.isValid():
                 facts["count"] = layer.featureCount()
                 facts["by_layer"] = layer.fields().lookupField("Layer") >= 0
@@ -579,9 +580,9 @@ def _geometry_parts(gpkg: str, table: str | None) -> list:
 
 
     try:
-        from qgis.core import Qgis, QgsProviderRegistry
+        from qgis.core import Qgis
 
-        details = QgsProviderRegistry.instance().querySublayers(gpkg, Qgis.SublayerQueryFlag.ResolveGeometryType)
+        details = query_sublayers(gpkg, Qgis.SublayerQueryFlag.ResolveGeometryType)
     except Exception:  # noqa: BLE001
         return []
     return _split_entries([(d.uri(), d.wkbType(), d.featureCount()) for d in details
@@ -598,13 +599,14 @@ def geometry_split(uri: str) -> tuple:
 
 
 
+
     source, _sep, table = uri.partition("|layername=")
     if "|" in source or source.lower().startswith(("/vsicurl", "http://", "https://")):
         return [], 0
     try:
-        from qgis.core import Qgis, QgsProviderRegistry
+        from qgis.core import Qgis
 
-        details = QgsProviderRegistry.instance().querySublayers(source, Qgis.SublayerQueryFlag.ResolveGeometryType)
+        details = query_sublayers(source, Qgis.SublayerQueryFlag.ResolveGeometryType)
     except Exception:  # noqa: BLE001
         return [], 0
     table = table.split("|", 1)[0]
@@ -612,32 +614,6 @@ def geometry_split(uri: str) -> tuple:
         return [], 0
     return _split_entries([(d.uri(), d.wkbType(), d.featureCount()) for d in details
                            if not table or d.name() == table])
-
-
-
-
-
-_SPLIT_POOL = None
-
-
-def split_alongside(uri: str):
-
-    global _SPLIT_POOL
-    from ..core.background import KeptThreadPool
-
-    try:
-        if _SPLIT_POOL is None:
-            _SPLIT_POOL = KeptThreadPool(2, name="ai-agent-geometry-split")
-        future = _SPLIT_POOL.submit(geometry_split, uri)
-    except RuntimeError:
-        return lambda: geometry_split(uri)
-
-    def result():
-        try:
-            return future.result()
-        except Exception:  # noqa: BLE001
-            return [], 0
-    return result
 
 
 def split_left_out_note(left_out: int) -> str:
@@ -889,13 +865,11 @@ def _add_vector_layer(args: dict) -> dict:
 
     siblings: list = []
 
-    def split_parts(layer, options, pending=None):
+    def split_parts(layer, options):
         if not layer.isValid():
             return layer
-        source = layer.source()
 
-
-        parts, facts["left_out"] = pending() if pending is not None and source == uri else geometry_split(source)
+        parts, facts["left_out"] = geometry_split(layer.source())
         if not parts:
             return layer
         delete_here(layer)
@@ -907,9 +881,9 @@ def _add_vector_layer(args: dict) -> dict:
         return QgsVectorLayer(parts[0][0], label, "ogr", options)
 
     def make():
-        pending = split_alongside(uri)
-        layer, facts["split"] = _open_vector(uri, name, real_path, worker_options())
-        layer = split_parts(layer, worker_options(), pending)
+        with ogr_opens():
+            layer, facts["split"] = _open_vector(uri, name, real_path, worker_options())
+            layer = split_parts(layer, worker_options())
         if layer.isValid():
             facts["count"] = layer.featureCount()
         return layer
@@ -918,9 +892,10 @@ def _add_vector_layer(args: dict) -> dict:
     on_main: dict = {}
 
     def build_on_main():
-        layer, on_main["split"] = _open_vector(uri, name, real_path, QgsVectorLayer.LayerOptions())
         siblings.clear()
-        return split_parts(layer, QgsVectorLayer.LayerOptions())
+        with ogr_opens():
+            layer, on_main["split"] = _open_vector(uri, name, real_path, QgsVectorLayer.LayerOptions())
+            return split_parts(layer, QgsVectorLayer.LayerOptions())
 
     def add(layer) -> dict:
         if not layer.isValid():
@@ -2337,10 +2312,12 @@ def _add_field(args: dict) -> dict:
 
 
 
+
+
             columns = list(expr.referencedColumns())
             request = QgsFeatureRequest()
             if "*" not in columns:
-                request.setSubsetOfAttributes(columns, layer.fields())
+                request.setSubsetOfAttributes(columns + [field_name], layer.fields())
             if not (expr.needsGeometry() or planar_transform is not None):
                 request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
             for feat in layer.getFeatures(request):
@@ -2359,7 +2336,7 @@ def _add_field(args: dict) -> dict:
                 value = expr.evaluate(context)
                 if expr.hasEvalError():
                     return tool_error(f"Expression evaluation error: {expr.evalErrorString()}", "INVALID_ARGS")
-                if not layer.changeAttributeValue(feat.id(), idx, value):
+                if not layer.changeAttributeValue(feat.id(), idx, value, vector_write.old_value(feat, idx)):
                     return tool_error(
                         f"QGIS refused the calculated value for feature {feat.id()} in {field_name!r}.",
                         code="EXECUTION_FAILED",

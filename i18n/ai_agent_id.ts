@@ -1912,7 +1912,7 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <source>1 file</source>
-            <translation>1 file</translation>
+            <translation>1 berkas</translation>
         </message>
         <message>
             <source>1 layer</source>
@@ -2192,7 +2192,7 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         </message>
         <message>
             <source>temporary layer</source>
-            <translation>layer sementara</translation>
+            <translation>lapisan sementara</translation>
         </message>
         <message>
             <source>{layer} can't be restored ({reason})</source>
@@ -2606,7 +2606,7 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <location filename="src/core/layer_mime.py" />
             <source>{kind}, 1 feature</source>
-            <translation>{kind}, 1 feature</translation>
+            <translation>{kind}, 1 fitur</translation>
         </message>
         <message>
             <location filename="src/core/layer_mime.py" />
@@ -3308,6 +3308,38 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{done} of {total} MB</source>
             <translation>{done} dari {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Menambahkan layer</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Memotong sesuai area</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Mengunduh {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Mencari tempat</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Meminta data ke sumber</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} mnt {s} dtk</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} dtk</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} dari {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Versi {file} milik Anda tidak dapat disimpan di Map history, jadi tidak ada yang dipulihkan.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Masih menyimpan {layers}. Tidak ada yang diubah: coba lagi dalam beberapa detik.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>lapisan sementara</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Anda mengubah {n} file secara manual</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Menggambar peta</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>Belum selesai upgrade?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>Paket Anda masih Free. Jika ada kendala:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Kembali ke halaman Pro</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>Hubungi kami</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>Tutup</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Gratis 7 hari, lalu {price}/bulan. Batalkan dengan satu klik.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Gratis 7 hari, tidak ada yang dibayar hari ini, lalu {price}/bulan. Batalkan dengan satu klik.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Mulai paket saya sekarang</translation>
         </message>
     </context>
     <context>
@@ -9064,7 +9113,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>extent: {box} ({crs})</source>
-            <translation>extent: {box} ({crs})</translation>
+            <translation>eksten: {box} ({crs})</translation>
         </message>
         <message>
             <source>inputs: {names}</source>
@@ -9080,7 +9129,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <source>tool: {tool}</source>
-            <translation>tool: {tool}</translation>
+            <translation>alat: {tool}</translation>
         </message>
         <message>
             <source>{day} UTC, added by AI Agent by TerraLab</source>

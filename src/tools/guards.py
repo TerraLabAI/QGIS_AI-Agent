@@ -399,6 +399,35 @@ def _addresses(args: dict):
             yield from _embedded_urls(variant)
 
 
+
+
+
+
+
+
+
+_EXPRESSION_DENIED_RE = _re.compile(
+    r"(?i)(?<![\w.])(env|eval|eval_template|sqlite_fetch_and_increment)\s*\(")
+
+
+def _check_expression_functions(name: str, args: dict) -> dict | None:
+    if name == "ask_user":
+        return None
+    declared = spec(name)
+    if declared is not None and declared.writes_page:
+
+        args = {k: v for k, v in args.items() if k != declared.writes_page}
+    for text in _string_leaves(args):
+        match = _EXPRESSION_DENIED_RE.search(text)
+        if match:
+            function = match.group(1).lower()
+            return _coded_refusal(f"The expression function {function}() is not available to the AI agent: it "
+                                  "reads environment variables, writes a database or runs an expression held "
+                                  "in a value.", "expression_function_refused", "PERMISSION_DENIED",
+                                  function=function)
+    return None
+
+
 def _check_urls(args: dict) -> dict | None:
     for text in _addresses(args):
         problem = _check_one_address(text)
@@ -501,6 +530,9 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
 
         candidates = [stripped] + [url for url in _embedded_urls(decoded, skip_first=True)
                                    if url != stripped]
+        carried = _carried_target(stripped, decoded)
+        if carried and carried not in candidates:
+            candidates.append(carried)
         for url in candidates:
             if _scheme_of(url) not in ("http", "https"):
                 continue
@@ -514,6 +546,62 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
                 if len(found) >= _UNVOUCHED_SHOWN:
                     return found
     return found
+
+
+_CLOUD_VSI_RE = _re.compile(r"(?i)/vsi(?:s3|gs|az|adls|oss|swift|hdfs|webhdfs)(?:_streaming)?/")
+
+
+def unvouched_code_urls(code) -> list[str]:
+
+
+
+
+
+
+
+
+
+
+    from ..core.code_effects import remote_literals
+
+    found: list[str] = []
+    catalog_hosts: set[str] | None = None
+    for text in remote_literals(code):
+        judged = 0
+        opaque = bool(_CLOUD_VSI_RE.search(text))
+        for url in _embedded_urls(unquote(text)):
+            scheme = _scheme_of(url)
+            host = security.normal_host(url) if scheme in ("http", "https") else ""
+            if not host:
+                opaque = opaque or scheme in ("http", "https", "ftp", "ftps")
+                continue
+            judged += 1
+            if catalog_hosts is None:
+                catalog_hosts = _catalog_hosts()
+            if not _host_vouched(host, url, catalog_hosts) and url not in found:
+                found.append(url)
+        if (opaque or not judged) and text not in found:
+            found.append(text)
+        if len(found) >= _UNVOUCHED_SHOWN:
+            return found[:_UNVOUCHED_SHOWN]
+    return found
+
+
+def _carried_target(url: str, decoded: str) -> str:
+
+
+
+
+
+
+
+    from ..core import links
+
+    target = links.resolve(url).url
+    host = security.normal_host(target)
+    if not host or host == security.normal_host(url) or host not in decoded.lower():
+        return ""
+    return target
 
 
 def _current_project_file() -> str:
@@ -728,7 +816,9 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
             continue
 
 
-        if _is_project_layer(value):
+
+        if _is_project_layer(value) and not (
+                os.path.isabs(value) or value.startswith("~") or _DRIVE_RE.match(value)):
             continue
 
 
@@ -1244,6 +1334,7 @@ def check_call(name: str, args: dict, own_files: frozenset = frozenset()) -> dic
     for checker in (
         lambda: _check_argument_tree(args),
         lambda: _check_extent_order(args),
+        lambda: _check_expression_functions(name, args),
         lambda: _check_urls(args),
         lambda: declared.argument_check(args) if declared is not None and declared.argument_check else None,
         lambda: check_size(name, args),

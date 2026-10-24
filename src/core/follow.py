@@ -37,7 +37,7 @@ from __future__ import annotations
 import math
 import re
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 from qgis.core import (
     QgsCoordinateTransform,
@@ -524,6 +524,13 @@ def view_kept(canvas=None):
 
 
 
+
+
+
+
+
+
+
     canvas = canvas if canvas is not None else _canvas()
     before = None
     crs_before = None
@@ -540,13 +547,75 @@ def view_kept(canvas=None):
             was_empty = False
     if before is not None and (before.isNull() or before.isEmpty()):
         before = None
+    held = _first_layer_setup_held(canvas, before) if was_empty else None
     try:
-        yield
+        with held or nullcontext():
+            yield
     finally:
         if before is not None:
             _restore(canvas, before, crs_before)
-        if canvas is not None and was_empty:
+        if canvas is not None and was_empty and held is None:
             _undo_first_layer_frame(canvas)
+
+
+def _chosen_crs(crs) -> bool:
+
+    from qgis.core import QgsCoordinateReferenceSystem, QgsSettings
+
+    if crs is None or not crs.isValid():
+        return False
+    try:
+        default = QgsSettings().value("/projections/defaultProjectCrs", "EPSG:4326",
+                                      section=enum_member(QgsSettings, "Section", "App"))
+    except Exception:  # noqa: BLE001
+        default = "EPSG:4326"
+    return crs != QgsCoordinateReferenceSystem(str(default or "EPSG:4326"))
+
+
+def _first_layer_setup_held(canvas, before):
+
+
+
+
+
+
+
+
+
+    iface = qgis_iface()
+    try:
+        bridge = iface.layerTreeCanvasBridge() if iface is not None else None
+        crs = QgsProject.instance().crs()
+    except Exception:  # noqa: BLE001
+        return None
+    if bridge is None or canvas is None or not _chosen_crs(crs):
+        return None
+    return _held(bridge, canvas, crs, before is None)
+
+
+@contextmanager
+def _held(bridge, canvas, crs, frame_area: bool):
+    from qgis.core import QgsCoordinateReferenceSystem
+
+    was_on = bridge.autoSetupOnFirstLayer()
+    bridge.setAutoSetupOnFirstLayer(False)
+    try:
+        yield
+    finally:
+        try:
+            bridge.setCanvasLayers()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Follow: layer tree bridge not run after the add: {exc}")
+        bridge.setAutoSetupOnFirstLayer(was_on)
+        if frame_area and QgsProject.instance().count() > 0:
+            try:
+                area = QgsCoordinateTransform(QgsCoordinateReferenceSystem("EPSG:4326"), crs,
+                                              QgsProject.instance()).transformBoundingBox(crs.bounds())
+                if not area.isNull() and not area.isEmpty():
+                    canvas.setExtent(area)
+                    canvas.refresh()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Follow: cannot frame {crs.authid()}'s area of use: {exc}")
 
 
 

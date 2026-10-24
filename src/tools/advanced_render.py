@@ -27,7 +27,7 @@ from qgis.PyQt.QtCore import QSize, Qt
 from qgis.utils import iface
 
 from ..core import limits
-from ..core.background import run_on_main_thread
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.tool_registry import coded_fact, tool_error
@@ -356,7 +356,14 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
         if watch is not None:
             watch.start()
         job.start()
+        if inline:
 
+
+
+
+            job.waitForFinished()
+
+    inline = on_main_thread()
     run_on_main_thread(start, timeout=30)
     budget = max(_RENDER_PASS_FLOOR_S, min(float(budget), _RENDER_PASS_SECONDS))
     stopped = _wait_or_stop(done, budget)
@@ -1282,6 +1289,48 @@ def _plan_render(args: dict) -> dict:
                                 f"{destination.authid()}, the CRS this render draws in.")
             except Exception:  # noqa: BLE001
                 degrees_note = ""
+
+
+
+
+
+
+
+        if (not degrees_note and destination.isValid() and destination.isGeographic()
+                and not (rectangle.xMinimum() >= -180.0 and rectangle.xMaximum() <= 360.0
+                         and rectangle.yMinimum() >= -90.0 and rectangle.yMaximum() <= 90.0)):
+            placed, framed, written_in = 0, False, {}
+            for layer in layers:
+                try:
+                    own, source = QgsRectangle(layer.extent()), layer.crs()
+                    if _is_tiled_raster(layer) or own.isNull():
+                        continue
+                    placed += 1
+                    here = own if not source.isValid() or source == destination else QgsCoordinateTransform(
+                        source, destination, QgsProject.instance()).transformBoundingBox(own)
+                    framed = framed or here.intersects(rectangle)
+                    if source.isValid() and not source.isGeographic() and own.intersects(rectangle):
+                        written_in[source.authid() or source.toWkt()] = source
+                except Exception:  # noqa: BLE001  # nosec B112
+                    continue
+            if placed and not framed:
+                if len(written_in) != 1:
+                    return tool_error(
+                        f"This render draws in {destination.authid() or 'a longitude/latitude CRS'}, where "
+                        f"coordinates are degrees, and the extent runs from ({rectangle.xMinimum():.0f}, "
+                        f"{rectangle.yMinimum():.0f}) to ({rectangle.xMaximum():.0f}, "
+                        f"{rectangle.yMaximum():.0f}): projected units, framing none of the layers drawn, "
+                        "so the picture would hold nothing.", "INVALID_ARGS",
+                        hint="render_extent_not_degrees", crs=destination.authid())
+                (name, source), = written_in.items()
+                try:
+                    rectangle = QgsCoordinateTransform(source, destination, QgsProject.instance()
+                                                       ).transformBoundingBox(rectangle)
+                    degrees_note = (f"The extent was read in {name}, the CRS of the layer whose data it "
+                                    f"frames, and transformed to {destination.authid()}, the CRS this render "
+                                    "draws in.")
+                except Exception:  # noqa: BLE001
+                    degrees_note = ""
         settings.setExtent(rectangle)
     else:
         settings.setExtent(iface.mapCanvas().extent())

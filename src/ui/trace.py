@@ -131,6 +131,8 @@ class RunTrace(QWidget):
         self._live = started is not None
         self._reduced_motion = reduced_motion
         self._latest = ""
+
+        self._note = ""
         self._expanded = True
 
         self._manual: bool | None = None
@@ -364,9 +366,17 @@ class RunTrace(QWidget):
 
 
 
+    def set_note(self, text: str) -> None:
+
+        if text != self._note:
+            self._note = text
+            self._sync_head()
+
     def running_title(self) -> str:
 
 
+        if self._note:
+            return self._note
         if self._latest:
             return self._latest
         return self.tr("Thinking")

@@ -213,7 +213,8 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
           telemetry: bool = True, improve: bool = True, last_seq: int | None = None,
           python_version: str = "", libraries: list | None = None,
           crash: dict | None = None, catalog_tag: str = "", last_drop: dict | None = None,
-          sends_on_ask: list | None = None, machine: dict | None = None) -> dict:
+          sends_on_ask: list | None = None, machine: dict | None = None,
+          account_ticket: str = "") -> dict:
     frame = {
         "type": FrameType.HELLO,
         "activation_key": activation_key,
@@ -292,6 +293,10 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
         frame["machine"] = machine
+    if account_ticket:
+
+
+        frame["account_ticket"] = account_ticket
     return frame
 
 

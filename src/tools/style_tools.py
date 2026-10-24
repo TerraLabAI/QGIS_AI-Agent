@@ -119,6 +119,7 @@ def _style_reads_rows(args: dict) -> bool:
 
 
 
+
     args = args if isinstance(args, dict) else {}
     _legacy_names(args)
     if args.get("legend_image") is not None or not args.get("layer_name"):
@@ -127,11 +128,18 @@ def _style_reads_rows(args: dict) -> bool:
     if not isinstance(layer, QgsVectorLayer):
         return False
     style_type = str(args.get("style_type") or "").strip()
-    if not (style_type in ("categorized", "graduated", "pie", "bar", "diagram")
-            or (args.get("size_field") and style_type != "cluster")
-            or _style_for_geometry(layer, style_type, args)[0] == "categorized"):
+    categorized = style_type == "categorized" or _style_for_geometry(layer, style_type, args)[0] == "categorized"
+    if not (categorized or style_type in ("graduated", "pie", "bar", "diagram")
+            or (args.get("size_field") and style_type != "cluster")):
         return False
     if layer_order.is_remote_vector(layer):
+        return True
+    from .style_defaults import touching_classes
+
+
+
+
+    if categorized and touching_classes(layer, False):
         return True
     count = layer_order.feature_count_of(layer)
     return count is None or count > limits.current("SYNC_FEATURE_LOOP_MAX")

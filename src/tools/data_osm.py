@@ -964,8 +964,8 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             if rejected:
 
 
-                return tool_error(f"Overpass rejected the query: {rejected}", hint="overpass_query_rejected",
-                                  query=final_query)
+                return tool_error(f"Overpass rejected the query: {rejected}", "INVALID_ARGS",
+                                  hint="overpass_query_rejected", query=final_query)
 
 
 
@@ -1313,7 +1313,7 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         return tool_error(f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data.")
     rejected = _overpass_rejection(errors)
     if rejected:
-        return tool_error(f"Overpass rejected the query: {rejected}", hint="overpass_query_rejected",
+        return tool_error(f"Overpass rejected the query: {rejected}", "INVALID_ARGS", hint="overpass_query_rejected",
                           query=final_query)
     if links and all(links):
 

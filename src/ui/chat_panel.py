@@ -106,6 +106,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     limit_reached = pyqtSignal(bool, int)
 
     pro_pill_requested = pyqtSignal()
+
+    start_now_requested = pyqtSignal(str)
     reconnect_requested = pyqtSignal()
 
     memory_undo_requested = pyqtSignal(str)

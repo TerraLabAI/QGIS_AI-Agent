@@ -1080,6 +1080,7 @@ def _set_canvas_extent(args: dict) -> dict:
     except Exception:  # noqa: BLE001
         pass  # nosec B110
     out.update(_extent_span(shown, canvas_crs))
+    out.update(ground.shape_on_screen(canvas_crs, shown))
 
 
     try:

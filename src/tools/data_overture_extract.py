@@ -1624,6 +1624,9 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     clip_to = str(args.get("clip_to") or "").strip()
     outline = None
     if clip_to:
+
+
+        net.report_stage("place")
         outline, refusal = _resolve_outline(clip_to)
         if outline is None:
             return refusal
@@ -1758,6 +1761,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         pieces, count = _clip_grid(box, max_km2, max_span, outline)
         return {} if pieces else _clip_split_refusal(theme, box, max_km2, count if outline is not None else None)
     features, payload, failed, missed = None, None, None, []
+    net.report_stage("query")
     for subtype in subtypes:
         got, meta = _overture_boxes(theme, box, max_km2, max_span, args, subtype=subtype, outline=outline)
         if got is None:
@@ -1805,6 +1809,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     if edge is not None:
         from osgeo import ogr
 
+        net.report_stage("clip")
         inside = _outline_test(edge, cut=cut)
         if inside is None:
             return tool_error(f"The outline of {edge['label']!r} could not be read as a polygon.",
@@ -1900,6 +1905,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
                 empty["message"] = f"{_named_sentence(asked, names, [])} {empty['message']}"
         return empty
 
+    net.report_stage("layer")
     uri = _vector_source_from_features(features, name, "overture")
 
     cover = _served_cover(features, outline, (west, south, east, north), stopped, source=uri)

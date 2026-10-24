@@ -36,6 +36,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QLocale, QVariant
 
 from ..core import background, net
+from ..core.geometry_budget import VertexBudget
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 
@@ -547,18 +548,34 @@ class Touching(_Job):
 
 
 
+
+
+
+
     def __init__(self, key):
         self.key = key
         self.features: dict = {}
         self.classes: dict = {}
+        self.budget = None
+
+    def start(self):
+        self.budget = VertexBudget()
 
     def take(self, index, row):
+        if self.features is None:
+            return False
         feature = row.feature
+        geometry = feature.geometry()
+        if self.budget.oversize(geometry) is not None or self.budget.exhausted():
+            self.features = None
+            return False
         self.classes[feature.id()] = str(row.value(self.key))
-        self.features[feature.id()] = QgsGeometry(feature.geometry())
+        self.features[feature.id()] = QgsGeometry(geometry)
         return True
 
     def result(self):
+        if self.features is None:
+            return None
         index = QgsSpatialIndex()
         for fid, geometry in self.features.items():
             index.addFeature(fid, geometry.boundingBox())
@@ -568,6 +585,8 @@ class Touching(_Job):
                 a, b = self.classes[fid], self.classes.get(other)
                 if other <= fid or a == b or b is None:
                     continue
+                if self.budget.exhausted() == "time":
+                    return None
                 if geometry.intersects(self.features[other]):
                     pairs.add((a, b))
         return pairs

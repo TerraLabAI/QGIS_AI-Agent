@@ -13,7 +13,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from . import background, crash_note, net, protocol, security, stalls, tuning
 from . import code_effects as ce
-from .executor_code import CODE_TOOL
+from .executor_code import CODE_TOOL, isolated_code
 from .logger import log, log_warning
 from .protocol import ClientErrorCode as Err
 from .protocol import Danger
@@ -308,6 +308,11 @@ class _ExecutorExecute:
             call["journal_before"] = self._journal_before(run_id, name, args, call.get("code_plan"))
         if self._start_background(call, name, args, started):
             return
+        if name == CODE_TOOL and not self._code_point_now(call):
+
+
+            self._code_no_point(call)
+            return
 
 
 
@@ -364,7 +369,14 @@ class _ExecutorExecute:
 
 
 
-        if not self._background_ok(name, args):
+
+
+        planned = call.pop("code_isolated", None)
+        if planned is None:
+            off_thread = self._background_ok(name, args)
+        else:
+            off_thread = planned or (isolated_code is not None and isolated_code.reads_web_services(args))
+        if not off_thread:
             return False
         if call.get("overwrites"):
 
@@ -378,12 +390,20 @@ class _ExecutorExecute:
 
         heard = {"at": 0.0}
 
-        def progress(done, total):
+        def progress(done, total, stage=""):
+
 
             now = time.monotonic()
-            if done >= _PROGRESS_MIN_BYTES and now - heard["at"] >= _PROGRESS_EVERY_S:
+            if stage:
+                if (stage, done, total) != heard.get("stage"):
+                    heard["stage"] = (stage, done, total)
+                    self.call_progress.emit(tool_call_id, done, total, stage)
+            elif done >= _PROGRESS_MIN_BYTES and (now - heard["at"] >= _PROGRESS_EVERY_S
+                                                  or (total and done >= total)):
+
+
                 heard["at"] = now
-                self.call_progress.emit(tool_call_id, done, total)
+                self.call_progress.emit(tool_call_id, done, total, "")
 
         def work():
             with context, background.calling(tool_call_id):

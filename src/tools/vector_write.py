@@ -352,6 +352,26 @@ def open_edit(layer, action: str = "edit") -> tuple[bool, dict | None]:
     return True, None
 
 
+try:
+    from qgis.core import NULL as _QGIS_NULL
+except ImportError:
+    _QGIS_NULL = None
+
+
+def old_value(feature, idx: int):
+
+
+
+
+
+
+
+
+
+    value = feature.attribute(idx)
+    return _QGIS_NULL if value is None else value
+
+
 def force_out_of_edit(layer) -> bool:
 
 
@@ -786,19 +806,34 @@ def _crs_problem(layer, geom) -> dict | None:
                           "like projected metres.", "INVALID_ARGS",
                           hint="geometry_not_degrees", crs=authid, x_max=round(x_max), y_max=round(y_max))
 
-    if not geographic and x_max <= 180 and y_max <= 90:
-        try:
-            extent = layer.extent()
-            far = not extent.isEmpty() and (abs(extent.xMinimum()) > 1000 or abs(extent.yMinimum()) > 1000)
-        except Exception:  # noqa: BLE001
-            far = False
-        if far:
-            return tool_error(
-                f"Layer {layer.name()!r} is in {authid or 'a projected CRS'} and its own data sits around "
-                f"({extent.xMinimum():.0f}, {extent.yMinimum():.0f}), while the geometry given is at "
-                f"({box.xMinimum():.4f}, {box.yMinimum():.4f}). Those are longitude and latitude "
-                "degrees, not the layer's units, so the feature would land off the map.", "INVALID_ARGS",
-                hint="geometry_not_layer_units", crs=authid or "the layer CRS",
-                layer_x=round(extent.xMinimum()), layer_y=round(extent.yMinimum()),
-                geometry_x=round(box.xMinimum(), 4), geometry_y=round(box.yMinimum(), 4))
+    if not geographic and x_max <= 180 and y_max <= 90 and outside_area_of_use(crs, box):
+        return tool_error(
+            f"Layer {layer.name()!r} is in {authid or 'a projected CRS'}, and read in that CRS the geometry "
+            f"at ({box.xMinimum():.4f}, {box.yMinimum():.4f}) falls outside the area the CRS covers. Those "
+            "numbers are longitude and latitude degrees, not the layer's units, so the feature would land "
+            "off the map.", "INVALID_ARGS",
+            hint="geometry_not_layer_units", crs=authid or "the layer CRS",
+            geometry_x=round(box.xMinimum(), 4), geometry_y=round(box.yMinimum(), 4))
     return None
+
+
+def outside_area_of_use(crs, box) -> bool:
+
+
+
+
+
+
+
+
+    try:
+        from .processing_crs_checks import _centre_in_area_of_use
+
+        area = crs.bounds()
+        if area.isEmpty():
+            return False
+        if area.width() >= 90:
+            return True
+        return _centre_in_area_of_use(crs, box.center()) is False
+    except Exception:  # noqa: BLE001
+        return False

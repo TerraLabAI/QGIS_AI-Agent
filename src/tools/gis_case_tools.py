@@ -559,9 +559,9 @@ def _relinked_qgs(data: bytes, sources: dict) -> tuple:
     if doc.documentElement().isNull():
         return data, set()
     found = set()
+
     layers = doc.elementsByTagName("maplayer")
-    for index in range(layers.count()):
-        element = layers.at(index).toElement()
+    for element in [layers.at(index).toElement() for index in range(layers.count())]:
         entry = sources.get(element.firstChildElement("id").text())
         datasource = element.firstChildElement("datasource")
         if entry is None or datasource.isNull():
@@ -571,8 +571,7 @@ def _relinked_qgs(data: bytes, sources: dict) -> tuple:
         datasource.appendChild(doc.createTextNode(entry[1]))
         found.add(element.firstChildElement("id").text())
     nodes = doc.elementsByTagName("layer-tree-layer")
-    for index in range(nodes.count()):
-        element = nodes.at(index).toElement()
+    for element in [nodes.at(index).toElement() for index in range(nodes.count())]:
         entry = sources.get(element.attribute("id"))
         if entry is not None and element.hasAttribute("source"):
             element.setAttribute("source", entry[1])

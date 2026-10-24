@@ -60,6 +60,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -77,6 +81,7 @@ from qgis.core import (
     QgsLayoutItemMap,
     QgsLayoutItemMapItem,
     QgsLayoutObject,
+    QgsLayoutRenderContext,
     QgsMapClippingUtils,
     QgsMapLayerRenderer,
     QgsMapLayerStyle,
@@ -91,8 +96,8 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QPoint, QPointF, QRectF, QSizeF, Qt, QTimer
-from qgis.PyQt.QtGui import QImage, QPainter
-from qgis.PyQt.QtWidgets import QGraphicsItem
+from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath
+from qgis.PyQt.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem
 
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
@@ -226,15 +231,17 @@ def _export_flags(layout, flags=None):
         context.blockSignals(blocked)
 
 
-def _map_settings(item, dpi: int, extent=None):
+def _map_settings(item, dpi: int, extent=None, size=None):
+
 
 
 
 
     extent = QgsRectangle(extent) if extent is not None else item.extent()
-    width = extent.width()
-    to_layout = item.rect().width() / width if width > 0 else 1.0
-    size = QSizeF(extent.width() * to_layout, extent.height() * to_layout) * (dpi / 25.4)
+    if size is None:
+        width = extent.width()
+        to_layout = item.rect().width() / width if width > 0 else 1.0
+        size = QSizeF(extent.width() * to_layout, extent.height() * to_layout) * (dpi / 25.4)
     settings = QgsMapSettings(item.mapSettings(extent, size, dpi, True))
 
 
@@ -381,7 +388,80 @@ def _blends_effects(layer) -> bool:
     return False
 
 
+def _rounded(value: float) -> int:
+
+    return int(math.floor(value + 0.5))
+
+
+def _paint_mode(item, layout):
+
+
+
+
+
+    normal = enum_member(QPainter, "CompositionMode", "CompositionMode_SourceOver")
+    if not item.containsAdvancedEffects() and item.blendMode() == normal:
+        return "page"
+    context = layout.renderContext()
+    policy = getattr(context, "rasterizedRenderingPolicy", None)
+    if policy is not None:
+        if policy() == enum_member(Qgis, "RasterizedRenderingPolicy", "ForceVector"):
+            return None
+    elif context.flags() & enum_member(QgsLayoutRenderContext, "Flag", "FlagForceVectorOutput"):
+        return None
+
+    if item.itemClippingSettings().isActive():
+        return None
+    atlas = item.atlasClippingSettings()
+    if atlas.enabled() and getattr(atlas, "clipItemShape", lambda: False)():
+        return None
+    return "flat"
+
+
+def _flat_image(item, layout, lod: float) -> tuple:
+
+
+
+
+
+    destination_dpi = lod * 25.4
+    dots_per_mm = destination_dpi / 25.4
+    rect = item.rect()
+    dots_per_metre = _rounded(1000 * destination_dpi / 25.4)
+    flags = layout.renderContext().renderContextFlags()
+    antialias = bool(flags & enum_member(Qgis, "RenderContextFlag", "Antialiasing"))
+    return (_rounded(rect.width() * dots_per_mm), _rounded(rect.height() * dots_per_mm), dots_per_metre,
+            _rounded(dots_per_metre * 0.0254), rect.width(), rect.height(),
+            (item.hasBackground(), item.brush().color().rgba(), antialias),
+            -item.boundingRect().left(), -item.boundingRect().top())
+
+
+def _flat_settings(plan: dict, layout, item, settings):
+
+
+
+    device = plan.get("device")
+    try:
+        if not device or _paint_mode(item, layout) != "flat":
+            return settings
+        placed = page_device(layout, item.page(), device)
+        if placed is None:
+            return settings
+        flat = _flat_image(item, layout, placed[0])
+        return _map_settings(item, flat[3], settings.extent(), QSizeF(flat[0], flat[1]))
+    except (AttributeError, RuntimeError, TypeError) as exc:
+        log_warning(f"Layout map's flattened size not read: {exc}")
+        return settings
+
+
 def _whole_view(plan: dict, layout, item, settings, overrides: dict):
+
+
+
+
+
+
+
 
 
 
@@ -395,8 +475,8 @@ def _whole_view(plan: dict, layout, item, settings, overrides: dict):
     if not device:
         return None
     try:
-        if item.containsAdvancedEffects() or item.blendMode() != enum_member(
-                QPainter, "CompositionMode", "CompositionMode_SourceOver"):
+        mode = _paint_mode(item, layout)
+        if mode is None:
             return None
         moved = item.sceneTransform()
         if (moved.m11(), moved.m12(), moved.m21(), moved.m22()) != (1.0, 0.0, 0.0, 1.0):
@@ -407,7 +487,9 @@ def _whole_view(plan: dict, layout, item, settings, overrides: dict):
         if any(layer.id() == annotation and not layer.isEmpty() for layer in settings.layers()):
             return None
         layers = [layer for layer in settings.layers() if layer.id() != annotation]
-        if not layers or all(_pictured(layer) for layer in layers) or any(map(_blends_effects, layers)):
+        if not layers or all(_pictured(layer) for layer in layers):
+            return None
+        if mode == "page" and any(map(_blends_effects, layers)):
             return None
         placed = page_device(layout, item.page(), device)
         if placed is None:
@@ -421,7 +503,21 @@ def _whole_view(plan: dict, layout, item, settings, overrides: dict):
         rect = item.rect()
         width = int(math.ceil(tx + rect.width() * scale)) + 1 - left
         height = int(math.ceil(ty + rect.height() * scale)) + 1 - top
-        whole = QgsMapSettings(settings)
+        flat = None
+        if mode == "flat":
+            if item.blendMode() != enum_member(QPainter, "CompositionMode", "CompositionMode_SourceOver") \
+                    or item.itemOpacity() < 1.0:
+                return None
+            flat = _flat_image(item, layout, scale)
+            filled, colour = flat[6][0], flat[6][1]
+            if filled and (colour >> 24) & 0xFF != 0xFF:
+                return None
+            width, height, dots_per_metre = flat[0], flat[1], flat[2]
+            left = _rounded(tx - flat[7] * scale) + _rounded(flat[7] * scale)
+            top = _rounded(ty - flat[8] * scale) + _rounded(flat[8] * scale)
+            whole = _map_settings(item, flat[3], settings.extent(), QSizeF(width, height))
+        else:
+            whole = QgsMapSettings(settings)
         whole.setLayers(layers)
         _export_mode(whole, layout)
         styles = {layer.id(): _layer_stamp(layer, overrides.get(layer.id()), plan["styles"]) for layer in layers}
@@ -434,7 +530,8 @@ def _whole_view(plan: dict, layout, item, settings, overrides: dict):
                "whole": True, "ids": list(styles), "styles": styles, "settings": whole,
                "blend": enum_member(QPainter, "CompositionMode", "CompositionMode_SourceOver"),
                "device": {"tx": tx, "ty": ty, "left": left, "top": top, "width": width, "height": height,
-                          "scale": scale * 25.4 / plan["dpi"], "dpm": dots_per_metre},
+                          "scale": 1.0 if flat else scale * 25.4 / plan["dpi"], "dpm": dots_per_metre,
+                          "flat": flat, "lod": scale},
                "pixels": width * height, "done": threading.Event(), "image": None, "file": None,
                "ready": False, "errors": []}
     return {"uuid": item.uuid(), "crs": settings.destinationCrs(), "pictures": [picture], "whole": True,
@@ -526,13 +623,15 @@ def add_views(plan: dict, layout, pages=None, flags=None, extents=None) -> int:
             if not rasters:
                 continue
             box = settings.visibleExtent()
+            drawn_with = _flat_settings(plan, layout, item, settings)
+            size = drawn_with.outputSize()
             view = {"uuid": uid, "crs": settings.destinationCrs(), "pictures": [],
                     "box": (box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum())}
             pixels = size.width() * size.height()
             for layer in rasters:
                 picture = {"id": layer.id(), "name": layer.name(), "blend": layer.blendMode(),
                            "style": _style_hash(layer, overrides.get(layer.id()), plan["styles"]),
-                           "settings": _picture_settings(settings, layer), "pixels": pixels,
+                           "settings": _picture_settings(drawn_with, layer), "pixels": pixels,
                            "done": threading.Event(), "image": None, "file": None, "ready": False,
                            "errors": []}
                 view["pictures"].append(picture)
@@ -606,14 +705,29 @@ def _start_whole(plan: dict, picture: dict) -> None:
 
 
     device = picture["device"]
-    image = QImage(device["width"], device["height"], enum_member(QImage, "Format", "Format_ARGB32_Premultiplied"))
+    flat = device.get("flat")
+
+    image = QImage(device["width"], device["height"], enum_member(
+        QImage, "Format", "Format_ARGB32" if flat else "Format_ARGB32_Premultiplied"))
 
     image.setDotsPerMeterX(device["dpm"])
     image.setDotsPerMeterY(device["dpm"])
     image.fill(0)
     painter = QPainter(image)
-    painter.translate(device["tx"] - device["left"], device["ty"] - device["top"])
-    painter.scale(device["scale"], device["scale"])
+    if not flat:
+        painter.translate(device["tx"] - device["left"], device["ty"] - device["top"])
+        painter.scale(device["scale"], device["scale"])
+    elif flat[6][0]:
+
+        painter.save()
+        painter.scale(device["lod"], device["lod"])
+        painter.setRenderHint(enum_member(QPainter, "RenderHint", "Antialiasing"), flat[6][2])
+        painter.setPen(enum_member(Qt, "PenStyle", "NoPen"))
+        painter.setBrush(QBrush(QColor.fromRgba(flat[6][1])))
+        path = QPainterPath()
+        path.addRect(QRectF(0.0, 0.0, flat[4], flat[5]))
+        painter.drawPath(path)
+        painter.restore()
     job = QgsMapRendererCustomPainterJob(picture.pop("settings"), painter)
     key = id(job)
     _JOBS[key] = job
@@ -952,12 +1066,19 @@ def _whole_stand_in(item, view: dict, painter, overrides: dict, state: dict):
     device = picture["device"]
     try:
         placed = painter.combinedTransform()
-        dots_per_mm = painter.device().logicalDpiX() / 25.4
-        scale = placed.m11() / dots_per_mm
         corner = placed.map(QPointF(0.0, 0.0))
         if (placed.m12() or placed.m21() or abs(placed.m22() - placed.m11()) > 1e-9
-                or abs(scale - device["scale"]) > 1e-9
                 or abs(corner.x() - device["tx"]) > 1e-6 or abs(corner.y() - device["ty"]) > 1e-6):
+            return None
+        if device.get("flat"):
+
+
+            lod = QStyleOptionGraphicsItem.levelOfDetailFromTransform(painter.worldTransform())
+            layout = item.layout()
+            if (abs(lod - device["lod"]) > 1e-9 * device["lod"] or _paint_mode(item, layout) != "flat"
+                    or _flat_image(item, layout, lod) != device["flat"]):
+                return None
+        elif abs(placed.m11() / (painter.device().logicalDpiX() / 25.4) - device["scale"]) > 1e-9:
             return None
         annotation = _main_annotation_id()
         current = [layer for layer in item.layersToRender() if layer.id() != annotation]

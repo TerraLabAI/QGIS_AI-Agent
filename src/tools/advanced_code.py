@@ -33,6 +33,7 @@ def _changed(before, project, edits) -> dict:
 
 
 
+    _project_follows_canvas(project)
     noted = code_namespace.changed(before, project, edits)
     view = iface.layerTreeView() if iface is not None else None
     for name in (noted or {}).get("restyled") or ():
@@ -45,6 +46,31 @@ def _changed(before, project, edits) -> dict:
             except Exception as exc:  # noqa: BLE001
                 log_debug(f"execute_code: legend of {name} not refreshed: {exc}")
     return noted
+
+
+def _project_follows_canvas(project) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+
+    canvas = iface.mapCanvas() if iface is not None else None
+    if canvas is None:
+        return
+    try:
+        shown = canvas.mapSettings().destinationCrs()
+        if shown.isValid() and shown != project.crs():
+            project.setCrs(shown)
+    except Exception as exc:  # noqa: BLE001
+        log_debug(f"execute_code: project CRS not brought to the canvas CRS: {exc}")
 
 
 def _execute_code(args: dict) -> dict:

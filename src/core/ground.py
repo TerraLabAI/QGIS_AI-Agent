@@ -25,6 +25,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 
 
@@ -219,6 +220,35 @@ def canvas_metres_per_unit(canvas) -> float | None:
 def distorted(scale: float | None) -> bool:
 
     return scale is not None and abs(scale - 1.0) > TOLERANCE
+
+
+
+STRETCH_SHOWN = 1.2
+
+
+def shape_on_screen(crs, box) -> dict:
+
+
+
+
+
+
+
+
+    try:
+        if crs is None or not crs.isGeographic() or box.isEmpty():
+            return {}
+        latitude = (box.yMinimum() + box.yMaximum()) / 2.0
+        cosine = math.cos(math.radians(latitude))
+    except Exception:  # noqa: BLE001
+        return {}
+    if cosine <= 0.0 or 1.0 / cosine < STRETCH_SHOWN:
+        return {}
+    stretch = round(1.0 / cosine, 2)
+    return {"shape_hint": "geographic_stretch", "stretch": stretch, "latitude": round(latitude, 1),
+            "shape": (f"{crs.authid() or 'This CRS'} is in degrees and QGIS draws a degree of longitude as wide "
+                      f"as a degree of latitude: at latitude {latitude:.1f} shapes on the map are {stretch:g} times "
+                      f"wider than on the ground. A projected CRS draws them true.")}
 
 
 

@@ -811,6 +811,8 @@ def _subset_string(wanted: dict, keys: set) -> str:
 
 _CLIP_SUBTYPE_ORDER = ("neighborhood", "macrohood", "locality", "localadmin", "county", "region", "country")
 
+_CLIP_SUBTYPE_WAVES = (("neighborhood", "macrohood"), ("locality", "localadmin", "county"), ("region", "country"))
+
 
 
 _CLIP_MAX_PARTS = 200

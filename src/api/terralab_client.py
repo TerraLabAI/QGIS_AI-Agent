@@ -26,6 +26,7 @@ import random
 import re
 import secrets
 import time
+import uuid
 from urllib.parse import quote, urlencode, urlsplit
 
 from qgis.core import Qgis, QgsMessageLog, QgsNetworkAccessManager
@@ -42,6 +43,8 @@ TERRALAB_BASE_URL_DEFAULT = "https://terra-lab.ai"
 _LOG_TAG = "AI Agent"
 
 _TIMEOUT_API = 30_000
+
+_SLOW_CALL_S = 3.0
 
 
 _TIMEOUT_INTERACTIVE = 20_000
@@ -202,6 +205,21 @@ def _apply_redirect_policy(req: QNetworkRequest, has_auth: bool) -> None:
     policy = _SAME_ORIGIN_REDIRECT if has_auth else _NO_LESS_SAFE_REDIRECT
     if policy is not None:
         req.setAttribute(_REDIRECT_ATTR, policy)
+
+
+def _log_timing(req, reply, path: str, http_status, seconds: float) -> None:
+
+
+    if os.environ.get("AI_AGENT_PERF") != "1" and seconds < _SLOW_CALL_S:
+        return
+    try:
+        request_id = bytes(req.rawHeader(b"X-TerraLab-Request-Id")).decode("ascii", "replace")
+        server = bytes(reply.rawHeader(b"Server-Timing")).decode("ascii", "replace")[:200] if reply is not None else ""
+        QgsMessageLog.logMessage(f"perf site {path.split('?', 1)[0]} id={request_id} status={http_status} "
+                                 f"ms={round(seconds * 1000)} server={server or '-'}", _LOG_TAG,
+                                 level=Qgis.MessageLevel.Info)
+    except Exception:  # nosec B110
+        pass
 
 
 def _parse_json_body(raw_body: str, allow_list: bool = False):
@@ -440,8 +458,10 @@ class TerraLabClient:
                               locale: str | None = None) -> dict:
 
         target = str(target or "")
-        if (not target.startswith("/") or target.startswith("//") or "\\" in target
-                or any(ord(char) < 32 or ord(char) == 127 for char in target)):
+
+        named = re.fullmatch(r"[a-z][a-z-]{0,39}", target) is not None
+        if not named and (not target.startswith("/") or target.startswith("//") or "\\" in target
+                          or any(ord(char) < 32 or ord(char) == 127 for char in target)):
             return {"error": "Invalid login target", "code": "CLIENT_ERROR"}
         payload: dict = {"target": target, "cta_source": cta_source, "plugin_version": plugin_version()}
         if locale:
@@ -511,6 +531,8 @@ class TerraLabClient:
         req = QNetworkRequest(QUrl(own_cache_entry(self._resolve_url(path))))
         req.setRawHeader(b"Content-Type", b"application/json")
         req.setRawHeader(b"X-Plugin-Version", plugin_version().encode("ascii", "replace"))
+
+        req.setRawHeader(b"X-TerraLab-Request-Id", uuid.uuid4().hex.encode("ascii"))
         if hasattr(req, "setTransferTimeout"):
             req.setTransferTimeout(max(1_000, min(int(timeout_ms), 120_000)))
         _apply_redirect_policy(req, bool(auth))
@@ -568,6 +590,7 @@ class TerraLabClient:
 
 
 
+        asked = time.monotonic()
         if method == "GET":
             reply = QgsNetworkAccessManager.blockingGet(req, "", True)
         elif method == "POST":
@@ -576,6 +599,7 @@ class TerraLabClient:
             return ({"error": f"Unsupported method: {method}", "code": "CLIENT_ERROR"}, None, False)
 
         http_status = _http_status_of(reply)
+        _log_timing(req, reply, path, http_status, time.monotonic() - asked)
 
 
 

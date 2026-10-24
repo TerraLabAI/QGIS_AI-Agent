@@ -272,9 +272,16 @@ def _software_roots() -> tuple:
     return _SOFTWARE["roots"]
 
 
+def _spellings(full: str) -> tuple:
+
+
+
+    return tuple(dict.fromkeys((full, os.path.realpath(full))))
+
+
 def _under_software(full: str) -> bool:
-    return any(security._under(spelling, root) for root in _software_roots()
-               for spelling in dict.fromkeys((full, os.path.realpath(full))))
+    spellings = _spellings(full)
+    return any(security._under(spelling, root) for root in _software_roots() for spelling in spellings)
 
 
 
@@ -294,17 +301,18 @@ def file_class(path, creating: bool = True) -> tuple[str, str]:
     shown = os.path.basename(full) or full
 
 
-    if any(security._under(spelling, root) for root in security.temp_roots()
-           for spelling in dict.fromkeys((full, os.path.realpath(full)))):
+    spellings = _spellings(full)
+    if any(security._under(spelling, root) for root in security.temp_roots() for spelling in spellings):
         return ce.P, ""
     if os.path.exists(full):
         return ce.FW, f"replaces the file {shown}"
     roots = [security.project_dir(), security._output_root] + list(security._allowed_roots)
 
-    real = os.path.realpath(full)
+
+    real = spellings[-1]
     if creating and security.validate_path(full, write=True) is None and any(
             security._under(full, root) for root in roots if root) and any(
-            security._under(real, os.path.realpath(root)) for root in roots if root):
+            security._under(real, security._resolved_root(root)) for root in roots if root):
         return ce.FP, f"writes the new file {shown}"
     return ce.FW, f"writes {full}"
 
@@ -515,7 +523,8 @@ class _Arm:
         if not text or text.startswith(("<", "memory:")):
             return
         full = os.path.abspath(os.path.expanduser(text))
-        if _under_software(full) or _snippet_origin(4) != "snippet":
+
+        if _snippet_origin(4) != "snippet" or _under_software(full):
             return
         reason = security.validate_read(full)
         if reason:
@@ -543,6 +552,9 @@ class _Arm:
         if static:
             original = getattr(owner, name)
         wrapper = _wrap(self, original, judge, static)
+
+
+        wrapper.__code__ = wrapper.__code__.replace(co_name=f"{owner.__name__}.{name}")
         try:
             setattr(owner, name, staticmethod(wrapper) if static else wrapper)
         except (AttributeError, TypeError):

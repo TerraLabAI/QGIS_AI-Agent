@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import base64
 import errno
+import ipaddress
 import os
 import queue
 import re
@@ -79,6 +80,7 @@ _ATTEMPT_DELAY_S = 0.25
 
 QUIET_DNS_RETRIES_S = (1.0, 2.0)
 _LAST_GOOD_BUDGET_S = 3.0
+_LOOKUP_POLL_S = 0.02
 _CLOSE_WAIT_S = 3.0
 _POLL_S = 1.0
 _SEND_TIMEOUT_S = 120.0
@@ -140,6 +142,53 @@ def _addresses(host: str, port: int, prefer: str = "") -> list:
     return ordered + longer[min(len(first), len(other)):]
 
 
+def _ip_literal(text: str) -> bool:
+    try:
+        ipaddress.ip_address(str(text or "").split("%", 1)[0])
+    except ValueError:
+        return False
+    return True
+
+
+class _Lookup:
+
+
+
+    def __init__(self, host: str, port: int, prefer: str):
+        self._done = threading.Event()
+        self._infos: list = []
+        self._error: BaseException | None = None
+        self._started = time.monotonic()
+        self.ms: int | None = None
+        threading.Thread(target=self._run, args=(host, port, prefer), name="ai-agent-dns",
+                         daemon=True).start()
+
+    def _run(self, host: str, port: int, prefer: str) -> None:
+        try:
+            self._infos = _addresses(host, port, prefer)
+        except BaseException as exc:  # noqa: BLE001
+            self._error = exc
+        finally:
+            self.ms = _ms_since(self._started)
+            self._done.set()
+
+    def done(self) -> bool:
+        return self._done.is_set()
+
+    def failed(self) -> bool:
+        return self._done.is_set() and self._error is not None
+
+    def wait(self, seconds: float) -> bool:
+        return self._done.wait(max(0.0, seconds))
+
+    def result(self) -> list:
+
+        self._done.wait()
+        if self._error is not None:
+            raise self._error
+        return list(self._infos)
+
+
 
 
 
@@ -165,6 +214,31 @@ def _tls_context(ca_pem: bytes | None, insecure: bool) -> ssl.SSLContext:
                 _TLS_CONTEXTS.clear()
             ctx = _TLS_CONTEXTS[key] = build_ssl_context(ca_pem, insecure)
         return ctx
+
+
+def prewarm_tls(url: str) -> None:
+
+
+
+
+
+
+
+    try:
+        secure, host, port, _ = parse_ws_url(url)
+        if not secure:
+            return
+        ca_pem, insecure = resolve_tls(host, port)
+    except Exception:  # noqa: BLE001
+        return
+
+    def build() -> None:
+        try:
+            _tls_context(ca_pem, insecure)
+        except Exception:  # nosec B110
+            pass
+
+    threading.Thread(target=build, name="ai-agent-tls-prewarm", daemon=True).start()
 
 
 class _SharedTls:
@@ -335,6 +409,11 @@ class WsConnection:
             self.report["upgrade_ms"] = _ms_since(started)
         except WsError as exc:
             self._close_socket()
+            if self.report.get("dialed_early") and not self._stop.is_set():
+
+
+                self.last_good = ""
+                return self.connect()
             if self.report.get("used_last_good") and not self._stop.is_set():
 
 
@@ -436,6 +515,28 @@ class WsConnection:
                 raise WsConnectionLost("closed while connecting")
             self.report["dns_retries"] = tried
             started = time.monotonic()
+            if not tried and last_good and _ip_literal(last_good):
+
+
+
+                lookup = _Lookup(host, port, last_good)
+                try:
+                    sock = self._race(_addresses(last_good, port), later=lookup)
+                except socket.gaierror:
+                    raise
+                except OSError as exc:
+                    try:
+                        lookup.result()
+                    except socket.gaierror as dns_exc:
+                        failure = dns_exc
+                        continue
+                    raise exc
+                self.report["tcp_ms"] = _ms_since(started)
+                if lookup.failed():
+                    self.report["used_last_good"] = True
+                elif lookup.ms is not None:
+                    self.report["dns_ms"] = lookup.ms
+                return sock
             try:
                 infos = _addresses(host, port, self.last_good)
             except socket.gaierror as exc:
@@ -462,7 +563,7 @@ class WsConnection:
             return sock
         raise WsConnectionLost(f"cannot resolve {host}: {failure}", "dns") from failure
 
-    def _race(self, infos: list, budget: float | None = None):
+    def _race(self, infos: list, budget: float | None = None, later: _Lookup | None = None):
 
 
 
@@ -471,6 +572,10 @@ class WsConnection:
 
 
 
+
+
+
+        infos = list(infos)
         deadline = time.monotonic() + (self.connect_timeout if budget is None else budget)
         pending: dict = {}
         error: OSError | None = None
@@ -482,6 +587,13 @@ class WsConnection:
             while winner is None:
                 self._check_not_closed()
                 now = time.monotonic()
+                if later is not None and later.done():
+                    try:
+                        known = {info[1][0] for info in infos}
+                        infos.extend(info for info in later.result() if info[1][0] not in known)
+                    except socket.gaierror:
+                        pass
+                    later = None
                 if index < len(infos) and (now >= next_at or not pending):
                     family, sockaddr = infos[index]
                     index += 1
@@ -504,10 +616,15 @@ class WsConnection:
                         winner = sock, family
                     continue
                 if not pending:
+                    if later is not None and now < deadline:
+                        later.wait(min(deadline - now, _POLL_S))
+                        continue
                     raise error or OSError("no address to connect to")
                 if now >= deadline:
                     raise socket.timeout("timed out")
                 wake = min(deadline, now + _POLL_S, next_at if index < len(infos) else deadline)
+                if later is not None:
+                    wake = min(wake, now + _LOOKUP_POLL_S)
                 for key, _ in selector.select(max(0.0, wake - now)):
                     sock = key.fileobj
                     selector.unregister(sock)
@@ -523,6 +640,8 @@ class WsConnection:
                 sock.close()
             selector.close()
         sock, family = winner
+        if later is not None:
+            self.report["dialed_early"] = True
         sock.setblocking(True)
         self.report["ip_family"] = "ipv6" if family == socket.AF_INET6 else "ipv4"
         try:

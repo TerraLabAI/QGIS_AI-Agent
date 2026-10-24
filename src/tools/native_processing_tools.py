@@ -388,6 +388,18 @@ def _handler(algorithm_id: str):
     return run
 
 
+def _code_card(algorithm_id: str):
+
+
+    def asks(args: dict) -> bool:
+        from .core_tools import _runs_a_script
+
+        parameters = {key: value for key, value in args.items() if key not in _CONTROL_KEYS}
+        return _runs_a_script({"algorithm_id": algorithm_id, "parameters": parameters})
+
+    return asks
+
+
 def _eligible(algorithm) -> bool:
     algorithm_id = str(algorithm.id() or "")
     provider_id, _provider_name = _provider(algorithm)
@@ -445,6 +457,7 @@ def add_native_processing_tools(registry: ToolRegistry) -> int:
             input_schema=schema,
             handler=_handler(str(algorithm.id())),
             danger="write",
+            always_confirm=_code_card(str(algorithm.id())),
         ))
         added += 1
     if left_out:

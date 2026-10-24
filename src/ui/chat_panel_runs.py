@@ -156,6 +156,7 @@ class _ChatPanelRuns:
                                   reduced_motion=self._reduced_motion)
         self.message_list.add_widget(self._status)
         self.composer.set_running(True)
+        self._watch_canvas()
 
 
 
@@ -164,6 +165,46 @@ class _ChatPanelRuns:
         self._sync_answer_restores()
         self._show_thread_surface()
         self._sync_queue()
+
+    def _watch_canvas(self) -> None:
+
+
+
+
+        if getattr(self, "_draw_timer", None) is not None:
+            return
+        try:
+            from qgis.utils import iface
+
+            canvas = iface.mapCanvas() if iface is not None else None
+        except Exception:  # noqa: BLE001
+            canvas = None
+        if canvas is None:
+            return
+        self._draw_timer = QTimer(self)
+        self._draw_timer.setSingleShot(True)
+        self._draw_timer.setInterval(500)
+        self._draw_timer.timeout.connect(lambda: self._on_long_draw(canvas))
+        self._drawing_block = None
+        canvas.renderStarting.connect(self._draw_timer.start)
+        canvas.mapCanvasRefreshed.connect(self._on_draw_done)
+
+    def _on_long_draw(self, canvas) -> None:
+        run = self._live_run(self._current_run)
+        block = run.trace if run is not None else None
+        if block is None or not block.is_live() or not canvas.isDrawing():
+            return
+        block.set_note(self.tr("Drawing the map"))
+        self._drawing_block = block
+
+    def _on_draw_done(self) -> None:
+        self._draw_timer.stop()
+        block, self._drawing_block = self._drawing_block, None
+        if block is not None:
+            try:
+                block.set_note("")
+            except RuntimeError:
+                pass
 
     def append_user_message(self, run_id: str, text: str, chips, attachments) -> None:
         if self._live_run(run_id) is None:
@@ -345,7 +386,7 @@ class _ChatPanelRuns:
         run.tools.append(card)
         trace.add_tool(card)
 
-    def set_call_progress(self, tool_call_id: str, done_bytes, total_bytes=None) -> None:
+    def set_call_progress(self, tool_call_id: str, done, total=None, stage: str = "") -> None:
 
         card = self.message_list.tool_card(str(tool_call_id or ""))
         if card is None:
@@ -354,7 +395,7 @@ class _ChatPanelRuns:
             for block in self.message_list.traces_of(run.run_id):
                 for row in block.rows():
                     if card in row.cards:
-                        row.set_call_progress(done_bytes, total_bytes)
+                        row.set_call_progress(done, total, stage)
                         return
 
     def finish_tool_call(self, tool_call_id: str, ok: bool, summary: str,
@@ -386,6 +427,8 @@ class _ChatPanelRuns:
 
     def end_run(self, run_id: str, status: str, summary: str, usage, verification) -> None:
         self.composer.set_reply_placeholder("")
+        if getattr(self, "_draw_timer", None) is not None:
+            self._on_draw_done()
         run = self._live_run(run_id)
         if run is None:
             return

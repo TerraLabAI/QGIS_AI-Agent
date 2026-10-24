@@ -543,7 +543,10 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
                 files.append(_file(resource.get("title") or "", resource["url"], resource.get("filesize"),
                                    resource.get("format") or ""))
     elif listing == "ckan" and isinstance(payload, dict):
-        for resource in (payload.get("result") or {}).get("resources") or []:
+
+        package = payload.get("result")
+        package = package[0] if isinstance(package, list) and package else package
+        for resource in (package.get("resources") if isinstance(package, dict) else None) or []:
             if isinstance(resource, dict) and resource.get("url"):
                 fmt = str(resource.get("format") or "")
                 if fmt.upper() == "HTML":
@@ -596,7 +599,9 @@ def listing_terms(listing: str, payload) -> dict:
     out: dict = {}
     doc = payload if isinstance(payload, dict) else {}
     if listing == "ckan":
-        doc = doc.get("result") if isinstance(doc.get("result"), dict) else {}
+        doc = doc.get("result")
+        doc = doc[0] if isinstance(doc, list) and doc else doc
+        doc = doc if isinstance(doc, dict) else {}
         licence = doc.get("license_title") or doc.get("license_id")
     elif listing == "datagouv":
         licence = doc.get("license")

@@ -3308,6 +3308,38 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>{done} of {total} MB</source>
             <translation>{done} de {total} MB</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Adicionando a camada</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Recortando para a área</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>Baixando {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Localizando o lugar</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Consultando a fonte</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} min {s} s</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} s</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} de {total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -3977,6 +4009,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Não foi possível guardar sua versão de {file} no Map history, então nada foi restaurado.</translation>
         </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>Ainda salvando {layers}. Nada foi alterado: tente novamente em alguns segundos.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>uma camada temporária</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4485,6 +4525,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>You changed {n} files by hand</source>
             <translation>Você alterou {n} arquivos manualmente</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>Desenhando o mapa</translation>
         </message>
     </context>
     <context>
@@ -6552,27 +6596,27 @@ Clique para abrir sua página.</translation>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Didn't finish upgrading?</source>
-            <translation>Didn't finish upgrading?</translation>
+            <translation>Não concluiu o upgrade?</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Your plan is still Free. If something got in the way:</source>
-            <translation>Your plan is still Free. If something got in the way:</translation>
+            <translation>Seu plano ainda é o Free. Se algo atrapalhou:</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Back to the Pro page</source>
-            <translation>Back to the Pro page</translation>
+            <translation>Voltar para a página do Pro</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Write to us</source>
-            <translation>Write to us</translation>
+            <translation>Fale com a gente</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Close</source>
-            <translation>Close</translation>
+            <translation>Fechar</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6581,8 +6625,8 @@ Clique para abrir sua página.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>Grátis por 7 dias, depois {price}/mês. Cancele em um clique.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>Grátis por 7 dias, nada a pagar hoje, depois {price}/mês. Cancele em um clique.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6778,6 +6822,11 @@ Clique para abrir sua página.</translation>
         <message>
             <source>{n} tasks a month.</source>
             <translation>{n} tarefas por mês.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>Iniciar meu plano agora</translation>
         </message>
     </context>
     <context>

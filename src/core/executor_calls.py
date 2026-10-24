@@ -233,8 +233,13 @@ class _ExecutorCalls:
 
 
 
+
+
+
         unvouched = (guards.unvouched_urls(name, args, call.get("listed_urls") or ())
                      if guards is not None else [])
+        if name == CODE_TOOL and guards is not None:
+            unvouched = guards.unvouched_code_urls(args.get("code"))
         if unvouched:
             call["unvouched"] = unvouched
         costly = self._costly_check(name, args)

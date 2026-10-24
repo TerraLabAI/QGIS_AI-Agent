@@ -2317,6 +2317,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} results</source>
             <translation>결과 {n}개</translation>
         </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>레이어 추가 중</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>영역으로 자르는 중</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>{size} 다운로드 중</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>장소 찾는 중</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>데이터 소스 조회 중</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m}분 {s}초</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n}초</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done}/{total}</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2662,6 +2694,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>{file}의 현재 버전을 Map history에 보관할 수 없어서 아무것도 복원하지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Still saving {layers}. Nothing was changed: try again in a few seconds.</source>
+            <translation>{layers} 저장이 아직 끝나지 않았습니다. 변경된 것은 없습니다. 몇 초 후에 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>a temporary layer</source>
+            <translation>임시 레이어</translation>
         </message>
     </context>
     <context>
@@ -3040,6 +3080,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>You changed {n} files by hand</source>
             <translation>파일 {n}개를 직접 수정했습니다</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>지도 그리는 중</translation>
         </message>
     </context>
     <context>
@@ -4440,8 +4484,8 @@ Click to show it in the Layers panel.</source>
             <translation>이 컴퓨터의 다른 계정에서 이미 무료 AI Agent를 사용했습니다.</translation>
         </message>
         <message>
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>7일 무료, 이후 월 {price}. 클릭 한 번으로 취소할 수 있습니다.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>7일 무료, 오늘 결제할 금액 없음, 이후 월 {price}. 클릭 한 번으로 취소할 수 있습니다.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
@@ -4550,6 +4594,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · 언제든지 해지 가능</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>지금 내 요금제 시작</translation>
         </message>
     </context>
     <context>

@@ -374,7 +374,9 @@ def _checked_geometry(layer, position: int, update: dict):
             f"{QgsWkbTypes.displayString(layer.wkbType())}", "INVALID_ARGS")
     if QgsWkbTypes.isMultiType(layer.wkbType()) and not QgsWkbTypes.isMultiType(shape.wkbType()):
         shape.convertToMultiType()
-    return shape
+
+
+    return vector_write.geometry_problem(layer, shape, check_crs=position == 0) or shape
 
 
 def _write_geometries(layer, shapes: dict, own_session: bool):

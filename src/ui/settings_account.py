@@ -41,6 +41,7 @@ from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length
+from .quota_card import trial_cta
 from .settings_pages import (
     DANGER_GHOST_BTN_QSS,
     GHOST_BTN_QSS,
@@ -159,13 +160,23 @@ class AccountPageMixin:
 
 
 
+        failed = bool(info.get("loading") or info.get("error") or info.get("error_code"))
+        self.trial_offered = not failed and self._trial_offered(info)
         pill = getattr(self, "_upgrade_pill", None)
         if pill is None:
             return
-        if info.get("loading") or info.get("error") or info.get("error_code"):
+        if failed:
             pill.hide()
             return
+        self._get_pro_label = getattr(self, "_get_pro_label", "") or pill.text()
+        pill.setText(trial_cta() if self.trial_offered else self._get_pro_label)
         pill.setVisible(not self._is_subscriber(info))
+
+    def _trial_offered(self, info: dict) -> bool:
+
+        days = dict(info.get("usage") or {}).get("trial_days_available", info.get("trial_days_available"))
+        return (isinstance(days, int) and not isinstance(days, bool) and 0 < days <= 31
+                and not self._is_subscriber(info))
 
     def _is_subscriber(self, info: dict) -> bool:
 
@@ -297,6 +308,8 @@ class AccountPageMixin:
                            " · ".join(points) if points else
                            self.tr("Plus memory, your instructions and higher effort."),
                            self._account_box)
+            if getattr(self, "trial_offered", False):
+                card.button.setText(trial_cta())
             card.upgrade_requested.connect(self._on_upgrade)
             self._account_col.addWidget(card)
             _note_settings_upsell()

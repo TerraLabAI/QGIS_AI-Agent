@@ -288,6 +288,7 @@ class PairingV2(QObject):
         if status == "ready" and self._live:
             done = f"{self._client.base_url.rstrip('/')}/connect/done?product={PRODUCT_ID}"
             report_bridge.write_http(socket, "302 Found", [("Location", done)] + _NO_STORE, b"")
+            _call_back_to_qgis()
             self._succeed(str(result.get("key") or ""))
             return
         self._go_back(socket)
@@ -400,6 +401,22 @@ class PairingV2(QObject):
         self._tasks.append(task)
         task.done.connect(slot)
         QgsApplication.taskManager().addTask(task)
+
+
+def _call_back_to_qgis() -> None:
+
+
+
+
+    try:
+        from qgis.PyQt.QtWidgets import QApplication
+        from qgis.utils import iface
+
+        window = iface.mainWindow() if iface is not None else None
+        if window is not None:
+            QApplication.alert(window, 0)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Sign-in v2: could not alert the QGIS window ({type(exc).__name__})")
 
 
 def _alive(task: _Task) -> bool:

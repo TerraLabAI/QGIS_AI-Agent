@@ -72,6 +72,8 @@ STATS_CHUNK = 20_000
 
 
 
+
+
 _SCAN_PERMITS = threading.BoundedSemaphore(1)
 
 
@@ -765,6 +767,7 @@ def _get_field_statistics(args: dict) -> dict:
 
 
 
+
     if not _SCAN_PERMITS.acquire(timeout=_SCAN_WAIT_S):
         return tool_error("Another field is still being scanned; this one waited "
                           f"{_SCAN_WAIT_S:.0f} seconds for its turn.", "INVALID_ARGS", hint="field_scan_busy")
@@ -776,30 +779,40 @@ def _get_field_statistics(args: dict) -> dict:
 
 def _scan_field(args: dict) -> dict:
 
+
+
+
+
+
+
+    cancelled = net.current_cancel_check()
     state = run_on_main_thread(_stats_open, args["layer_name"], args.get("field"), args, timeout=60)
     if state.get("_error"):
         return state
+    feedback = state.pop("feedback")
+    halted, over, failure = threading.Event(), threading.Event(), []
 
+    def reader(source, request, feedback):
+        try:
+            with background.on_any_failure(failure.append):
+                state["features"] = source.getFeatures(request)
+                try:
+                    while not halted.is_set() and not _stats_read(state):
+                        pass
+                finally:
+                    _stats_close(state)
+        finally:
+            over.set()
 
-
-    remote = state.pop("source", None)
-    if remote is not None:
-        state["features"] = remote.getFeatures(state["request"])
-    try:
-        while True:
-            if net.is_cancelled():
-                return tool_error("The run was stopped.", "CANCELLED")
-            if remote is not None:
-                if _stats_read(state):
-                    break
-                background.breathe(state["total"])
-            elif run_on_main_thread(_stats_read, state, timeout=120):
-                break
-    finally:
-        if remote is not None:
-            _stats_close(state)
-        else:
-            run_on_main_thread(_stats_close, state, timeout=30)
+    background.start_kept_thread(reader, state.pop("source"), state.pop("request"), feedback,
+                                 name="get_field_statistics read")
+    while not over.wait(_STOP_POLL_S):
+        if net.is_cancelled(cancelled):
+            halted.set()
+            feedback.cancel()
+            return tool_error("The run was stopped.", "CANCELLED")
+    if failure:
+        raise failure[0]
 
     out = {**_stats_summary(state), **state["filter_facts"], **state["extra"]}
     if state.get("groups") is not None:
@@ -926,11 +939,10 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
              "total": 0, "missing": 0, "numeric_only": True, "filter_facts": filter_facts(layer),
              "expr": expr, "keep": keep, "context": context, "group_index": group_index, "group_by": group_by,
              "group_expr": group_expr, "groups": {} if group_by else None, "extra": extra}
-    if _is_remote_vector(layer):
 
-        state.update(source=QgsVectorLayerFeatureSource(layer), request=request)
-    else:
-        state["features"] = layer.getFeatures(request)
+    feedback = QgsFeedback()
+    request.setFeedback(feedback)
+    state.update(source=QgsVectorLayerFeatureSource(layer), request=request, feedback=feedback)
     return state
 
 
@@ -945,6 +957,7 @@ def _stats_read(state: dict) -> bool:
     expr, context, groups, group_index = state["expr"], state["context"], state["groups"], state["group_index"]
     keep, group_expr = state["keep"], state["group_expr"]
     for read, feature in enumerate(state["features"], start=1):
+        background.breathe(read)
         if expr is not None or keep is not None or group_expr is not None:
             context.setFeature(feature)
         if keep is not None and not keep.evaluate(context):

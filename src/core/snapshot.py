@@ -101,7 +101,7 @@ from .snapshot_report import (
     describe_diff,
     diff_changed,
 )
-from .snapshot_style import _style_digest
+from .snapshot_style import _style_digest, held_style
 
 
 
@@ -729,6 +729,7 @@ class RunSnapshot:
             "crs": layer.crs().authid() or "",
             "feature_count": None, "hash": None, "size": None, "stamp": None,
             "style": _style_digest(layer) if with_style else None, "subset": "",
+            "style_mark": held_style(layer),
         }
         if isinstance(layer, QgsVectorLayer):
             try:

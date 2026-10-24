@@ -56,7 +56,7 @@ import time
 import types
 from collections import OrderedDict
 
-from ..core import background, code_guard, code_split, code_tripwire, limits, net, security, tuning
+from ..core import background, code_guard, code_namespace, code_split, code_tripwire, limits, net, security, tuning
 from ..core import code_effects as ce
 from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_tree
@@ -385,6 +385,9 @@ _READ_ONLY_KEEP = frozenset({"setName", "setMetadata", "setEditorWidgetSetup", "
 _TRAP_METHODS: frozenset[str] | None = None
 
 
+_FREE_CLASSES: frozenset[str] = frozenset()
+
+
 def _project_changing_methods() -> frozenset[str]:
 
 
@@ -400,7 +403,7 @@ def _project_changing_methods() -> frozenset[str]:
 
 
 
-    global _TRAP_METHODS
+    global _TRAP_METHODS, _FREE_CLASSES
     if _TRAP_METHODS is not None:
         return _TRAP_METHODS
     import qgis.core as core
@@ -414,15 +417,21 @@ def _project_changing_methods() -> frozenset[str]:
             read_only.update(dir(value))
     read_only -= _READ_ONLY_KEEP
     names: set[str] = set()
+    free: set[str] = set()
     if bases:
-        for value in vars(core).values():
-            if not isinstance(value, type) or not any(issubclass(value, base) for base in bases):
+        for key, value in vars(core).items():
+            if not isinstance(value, type):
+                continue
+            if not any(issubclass(value, base) for base in bases):
+                if key.startswith("Qgs"):
+                    free.add(key)
                 continue
             names.update(name for name in dir(value)
                          if name not in code_split.TRAP_KEEP
                          and name not in _COMMON_ATTRIBUTES
                          and name not in read_only
                          and code_split.TRAP_RE.match(name))
+    _FREE_CLASSES = frozenset(free)
     _TRAP_METHODS = frozenset(names)
     return _TRAP_METHODS
 
@@ -443,7 +452,7 @@ def plan(code: str) -> dict:
 
 
 
-    reason = code_split.live_reason(code, changing=_project_changing_methods())
+    reason = code_split.live_reason(code, changing=_project_changing_methods(), free_classes=_FREE_CLASSES)
     if reason:
         return {"reason": reason}
 
@@ -519,6 +528,18 @@ def plan(code: str) -> dict:
         })
     if any(entry["id"] in code for entry in chosen) and not hasattr(QgsMapLayer, "setId"):
         return {"reason": "names a layer id this QGIS cannot give a copied layer"}
+
+
+
+
+
+
+    held_back, layer_names = [], []
+    if not dynamic and code_split.helper_computed(code):
+        held_back = [{"id": layer.id(), "name": layer.name()} for layer in project.mapLayers().values()
+                     if layer.id() not in seen]
+        if held_back:
+            layer_names = [layer.name() for layer in code_namespace.ordered_layers(project)]
     project_crs = project.crs()
     return {
         "reason": "",
@@ -527,6 +548,8 @@ def plan(code: str) -> dict:
         "read_roots": read_roots,
         "write_roots": security.write_roots(),
         "layers": chosen,
+        "held_back": held_back,
+        "layer_names": layer_names,
         "project": {
             "crs_wkt": project_crs.toWkt() if project_crs.isValid() else "",
             "ellipsoid": project.ellipsoid(),
@@ -903,6 +926,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             "needs_qgis": needs_qgis,
             "stdout_path": stdout_path,
             "layers": planned.get("layers") or [],
+            "held_back": planned.get("held_back") or [],
+            "layer_names": planned.get("layer_names") or [],
             "project": planned.get("project") or {},
             "workspace": planned.get("workspace") or "",
             "read_roots": planned["read_roots"] if "read_roots" in planned else _read_roots(),
@@ -979,6 +1004,11 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             line = status.get("needs_qgis_line")
             return {"_fallback": "needs_qgis", "detail": str(status.get("needs_qgis")),
                     "line": line if isinstance(line, int) else 0, "stdout": _cap(stdout)}
+        if phase == "done" and status.get("needs_layer") is not None:
+            return {"_fallback": "needs_layer", "detail": str(status.get("needs_layer")),
+                    "files": [str(entry.get("path")) for entry in (status.get("files") or [])
+                              if isinstance(entry, dict) and entry.get("path")],
+                    "stdout": _cap(stdout)}
         if phase == "done" and (status.get("needs_permission") or status.get("refused")):
             out = _tripped(status, stdout)
             _put_names(out, status, names_dir)
@@ -1107,8 +1137,11 @@ def _web_service_layers(code: str) -> list:
 
 def runs_in_task(args: dict) -> bool:
 
-    if runs_isolated(args):
-        return True
+    return runs_isolated(args) or reads_web_services(args)
+
+
+def reads_web_services(args: dict) -> bool:
+
     try:
         return bool(_web_service_layers(str(args.get("code") or "")))
     except Exception as exc:  # noqa: BLE001
@@ -1230,6 +1263,25 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
         _COPY_FAILED.update([failed] if failed else planned_ids)
         _COPY_FAILED.discard("")
         return _in_qgis(args, run_in_qgis)
+    if fallback == "needs_layer":
+
+
+
+
+        _IN_QGIS[_fingerprint(code)] = None
+        while len(_IN_QGIS) > 256:
+            _IN_QGIS.popitem(last=False)
+        if planned.get("granted") == ce.R and not outcome.get("files"):
+            return _in_qgis(args, run_in_qgis)
+        return tool_error(
+            f"execute_code stopped at layer({outcome.get('detail')!r}): the snippet ran in a separate "
+            f"Python process that holds a copy of the layers its text names, and that project layer "
+            f"is not one of them. The lines before it ran (a file they wrote is written) and the "
+            f"project was not changed. The same code sent again runs inside QGIS.",
+            "EXEC_RUNTIME_ERROR", executed=False, isolated=True, stdout=outcome.get("stdout", ""),
+            **({"files_written": outcome["files"], "execution_state": "partial"} if outcome.get("files")
+               else {"execution_state": "unknown"}),
+        )
     if fallback == "needs_qgis":
 
 
@@ -1311,4 +1363,10 @@ def _in_qgis(args: dict, run_in_qgis) -> dict:
 
 def _in_context(context, run_in_qgis, args: dict) -> dict:
     with code_runtime.calling(context):
+
+
+        ready = getattr(context, "before_in_qgis", None)
+        if callable(ready) and not ready():
+            return tool_error("The snippet did not run: the project could not be saved first, so Undo "
+                              "could not take it back.", "EXECUTION_FAILED", executed=False)
         return run_in_qgis(args)

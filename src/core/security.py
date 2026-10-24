@@ -506,6 +506,7 @@ _RESOLVED: dict[str, str] = {}
 _RESOLVED_MAX = 4096
 
 
+
 _WARMING: dict = {}
 _WARM_POOL = None
 _WARM_WORKERS = 8
@@ -629,26 +630,31 @@ def _read_layer_folders() -> list[str]:
     if _LAYER_ROOTS["key"] == key and now - _LAYER_ROOTS["at"] < _LAYER_ROOTS_TTL_S:
         return list(_LAYER_ROOTS["roots"])
     registry = QgsProviderRegistry.instance()
-    roots: list[str] = []
-
-
-
-    own_names = {os.path.basename(own) for own in _own_paths}
+    paths: list[str] = []
     for layer in project.mapLayers().values():
         try:
             path = str(registry.decodeUri(layer.providerType(), layer.source()).get("path") or "")
         except (AttributeError, RuntimeError, TypeError):
             continue
         path = local_part(path)
-        if not path:
-            continue
-        full = expand_path(path)
+        if path:
+            paths.append(expand_path(path))
+    _settle_layer_paths(paths)
+    roots: list[str] = []
+
+
+
+
+    own_names = {os.path.basename(own) for own in _own_paths}
+    warm_roots([full for full in paths
+                if os.path.basename(_norm(full)) in own_names and _norm(full) not in _own_paths])
+    for full in paths:
         roots.append(full)
 
 
         norm = _norm(full)
         own = norm in _own_paths or (os.path.basename(norm) in own_names
-                                     and _norm(os.path.realpath(full)) in _own_paths)
+                                     and _norm(_resolved_root(full)) in _own_paths)
         if not own and not _is_folder(full):
             roots.append(os.path.dirname(full))
     roots = list(dict.fromkeys(roots))
@@ -673,10 +679,20 @@ def _warm_submit(generation: int, key: str | None, job, *args):
 
 
 
+
+
     global _WARM_POOL
     with _WARM_LOCK:
         if generation != _WARM_GENERATION[0]:
             return None
+        if key is not None and (key in _WARMING or key in _RESOLVED):
+            from concurrent.futures import Future
+
+            pending = _WARMING.get(key)
+            if pending is None:
+                pending = Future()
+                pending.set_result(_RESOLVED[key])
+            return pending
         if _WARM_POOL is None:
             from concurrent.futures import ThreadPoolExecutor
 
@@ -715,19 +731,54 @@ def warm_roots(roots, generation: int | None = None) -> None:
 def _warm_layer_path(full: str, generation: int) -> None:
 
 
-    if full not in _FOLDERS:
-        is_folder = os.path.isdir(full)
+    try:
+        if full not in _FOLDERS:
+            is_folder = os.path.isdir(full)
+            with _WARM_LOCK:
+                if generation != _WARM_GENERATION[0]:
+                    return
+                if len(_FOLDERS) >= _FOLDERS_MAX:
+                    _FOLDERS.clear()
+                _FOLDERS[full] = is_folder
+        known = _FOLDERS.get(full)
+        if known is not None:
+            warm_roots([full if known else os.path.dirname(full)], generation)
+    finally:
         with _WARM_LOCK:
-            if generation != _WARM_GENERATION[0]:
-                return
-            if len(_FOLDERS) >= _FOLDERS_MAX:
-                _FOLDERS.clear()
-            _FOLDERS[full] = is_folder
-    if _FOLDERS.get(full) is False:
-        warm_roots([os.path.dirname(full)], generation)
+            if generation == _WARM_GENERATION[0]:
+                _WARMING.pop(("isdir", full), None)
+
+
+def _probe_layer_paths(paths, generation: int) -> list:
+
+
+    jobs = []
+    for full in dict.fromkeys(paths):
+        job = _WARMING.get(("isdir", full)) or _warm_submit(
+            generation, ("isdir", full), _warm_layer_path, full, generation)
+        if job is None:
+            break
+        jobs.append(job)
+    return jobs
+
+
+def _settle_layer_paths(paths: list[str]) -> None:
+
+
+
+
+
+
+
+
+
+    for job in _probe_layer_paths([full for full in paths if full not in _FOLDERS], _WARM_GENERATION[0]):
+        with contextlib.suppress(Exception):
+            job.result()
 
 
 def warm_layer_roots(layers) -> None:
+
 
     try:
         from qgis.core import QgsProviderRegistry
@@ -741,11 +792,7 @@ def warm_layer_roots(layers) -> None:
                 continue
             if path:
                 paths.append(expand_path(path))
-        warm_roots(paths)
-        generation = _WARM_GENERATION[0]
-        for full in dict.fromkeys(paths):
-            if _warm_submit(generation, None, _warm_layer_path, full, generation) is None:
-                return
+        _probe_layer_paths(paths, _WARM_GENERATION[0])
     except Exception as exc:  # noqa: BLE001
         from .logger import log_warning
 
@@ -781,7 +828,7 @@ def _resolved_root(root: str) -> str:
         return _RESOLVED[key]
     except KeyError:
         pass
-    pending = _WARMING.pop(key, None)
+    pending = _WARMING.get(key)
     if pending is not None:
         try:
             return pending.result()
@@ -842,12 +889,20 @@ def read_roots() -> list[str]:
 
 
     roots = [root for root in roots if root and not _too_wide(root)] + list(_user_paths)
-    warm_roots(roots)
+
+
+
+
+    folders = {_norm(root) for root in roots}
+    covered = {root for root in roots if _FOLDERS.get(root) is False and _norm(os.path.dirname(root)) in folders}
+    warm_roots([root for root in roots if root not in covered])
     out: list[str] = []
     for root in roots:
         if not root:
             continue
         out.append(os.path.normpath(root))
+        if root in covered:
+            continue
         real = _resolved_root(root)
         if real:
             out.append(real)
@@ -912,7 +967,10 @@ def _scope_problem(expanded: str, real: str) -> str | None:
 
 def _hidden_component(path: str, roots: list[str]) -> str | None:
 
-    if any(_under(path, root) for root in roots):
+
+
+
+    if any(_under(path, root) for root in roots if root and not _too_wide(root)):
         return None
     drive, rest = os.path.splitdrive(path)
     for part in rest.replace("\\", "/").split("/"):
@@ -1280,7 +1338,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-            allowed = [] if root == _PLUGIN_DIR or root in plugins else _WRITE_ALLOWED_UNDER_DENIED + roots
+            allowed = [] if root == _PLUGIN_DIR or root in plugins else _WRITE_ALLOWED_UNDER_DENIED + [
+                r for r in roots if r and not _too_wide(r)]
             if _under(candidate, root) and not any(_under(candidate, ok) for ok in allowed):
 
 

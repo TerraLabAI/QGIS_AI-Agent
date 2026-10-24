@@ -22,6 +22,16 @@ AI Agent by TerraLab is an AI agent for QGIS. You describe the job in plain Engl
 
 Answers come from an AI model and can be wrong. Review what it changes.
 
+## Benchmarks
+
+On GeoKTools and GeoExpertQueries, the geospatial benchmarks Google Research published in October 2026, AI Agent scored **43.8 out of 100** on 41 held-out public questions at Low effort, the setting on the free plan. In the same runs, Claude Sonnet 5.5 with the nkarasiak QGIS MCP server in Claude Code scored 24.9, and the jjsantos01 QGIS MCP server in Codex scored 22.1. Runs from 16 to 20 October 2026, graded by Google's own scoring code, mean of 3 runs. Google keeps its official test questions private, so this is our run on the public questions, not a Google leaderboard.
+
+It also passed 62.8% of 160 [GeoBenchX](https://github.com/Solirinai/GeoBenchX) tasks and scored 61.1 out of 100 on [GS-QA2](https://huggingface.co/datasets/Zoe/GS-QA2). Method, caveats and every score: [AI Agent QGIS plugin: the geospatial benchmark](https://terra-lab.ai/blog/ai-agent-qgis-plugin-geospatial-benchmark).
+
+## A QGIS MCP alternative
+
+QGIS MCP connects an AI app outside QGIS to your project through a local server: you install the client, `uv`, the MCP server and the plugin, then start the server each session. AI Agent is a QGIS MCP alternative that runs inside QGIS with the model included, so there is nothing else to install. On the same task, timed (schools within 300 m of a tram stop in Lyon), QGIS MCP with Claude Code took 9 min 28 s and AI Agent 5 min 35 s, using the city's official school layers ([setup, limits and four timed tasks](https://terra-lab.ai/blog/qgis-mcp)).
+
 ## Install
 
 In QGIS, open *Plugins > Manage and Install Plugins*, search "AI Agent", install. The free tier needs no card, and Pro starts with a 7-day free trial.

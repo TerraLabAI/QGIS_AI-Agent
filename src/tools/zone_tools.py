@@ -137,6 +137,10 @@ def _zone_set(args: dict) -> dict:
     if isinstance(found, dict):
         return found
     geom, crs, approximate, source, parts = found
+    given = str(args.get("crs") or "").strip()
+    if given and not crs.isValid():
+        return tool_error(f"The zone was not set: crs '{given}' is not a CRS QGIS knows.", "INVALID_ARGS",
+                          hint="zone_crs_unknown", crs=given)
 
     buffer_km = args.get("buffer_km")
     ringed = False
@@ -160,6 +164,15 @@ def _zone_set(args: dict) -> dict:
                                   hint="zone_widen_failed")
             geom = widened
         ringed = True
+
+    if source in ("bbox", "wkt"):
+
+
+        from .cost_guard import ground_refusal
+        refusal = ground_refusal(geom, crs, bool(given), "The zone was not set", given)
+        if refusal is not None:
+            facts = {k: v for k, v in refusal.items() if k not in ("error", "code", "suggestion")}
+            return tool_error(refusal["error"], refusal["code"], **facts)
 
     if zoi.area_km2(geom, crs) <= 0:
         return tool_error(
@@ -466,11 +479,9 @@ def _zone_result(held: zoi.Zone, source: str) -> dict:
 
 def _crs_of(args: dict) -> QgsCoordinateReferenceSystem:
 
-    named = str(args.get("crs") or "").strip()
-    if named:
-        crs = QgsCoordinateReferenceSystem(named)
-        if crs.isValid():
-            return crs
+
+    if str(args.get("crs") or "").strip():
+        return QgsCoordinateReferenceSystem(str(args["crs"]).strip())
     _extent, crs = _canvas_extent()
     return crs
 

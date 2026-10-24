@@ -644,8 +644,14 @@ class PanelActionsMixin:
             "plugin_header_pill",
             on_outcome=lambda link: telemetry.track(
                 ev.SUBSCRIBE_LINK_CLICKED, {"source": "header_pill", "where": "header_pill", "checkout_link": link,
-                                            "offer": get_pro_offer()}))
+                                            "offer": get_pro_offer()}),
+            trial_surface="header_pill" if self._trial_offered() else "")
         log("Upgrade opened from the header pill")
+
+    def _trial_offered(self) -> bool:
+
+        offer = getattr(self._panel, "trial_offer", None)
+        return bool(callable(offer) and offer())
 
     def _on_plans_requested(self, where: str) -> None:
 
@@ -655,8 +661,25 @@ class PanelActionsMixin:
             f"plugin_{where}",
             on_outcome=lambda link: telemetry.track(
                 ev.SUBSCRIBE_LINK_CLICKED, {"source": where, "where": where, "checkout_link": link,
-                                            "offer": get_pro_offer()}))
+                                            "offer": get_pro_offer()}),
+
+            trial_surface={"exhausted_card": "wall", "warning": "warning"}.get(where, "")
+            if self._trial_offered() else "")
         log(f"Upgrade opened from the panel ({where})")
+
+    def _on_start_now_requested(self, url: str) -> None:
+
+
+        from ..api.account import site_url
+        from ..ui.external_links import open_external_url
+
+        url = site_url(url)
+        if not url:
+            return
+        telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "trial_start_now", "where": "exhausted_card",
+                                                    "cta_source": "trial_start_now", "offer": get_pro_offer()})
+        open_external_url(url, parent=self._panel)
+        log("Start my plan now opened from the panel")
 
     def _on_invoice_requested(self, where: str) -> None:
 

@@ -78,6 +78,12 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentPlugin", text)
 
 
+
+
+
+_NEXT_TURN_MS = 1
+
+
 class AIAgentPlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -112,6 +118,8 @@ class AIAgentPlugin:
         self._startup_watch = None
         self._palette_filter = None
         self._dock_wired = False
+
+        self._click_open_pending = False
         self._telemetry_started = False
         self._early_account = None
 
@@ -254,6 +262,22 @@ class AIAgentPlugin:
         if self.terralab_menu is None:
             self.iface.addPluginToMenu("AI Agent by TerraLab", self.action)
         self._note_version_change()
+        try:
+            from .core import net_timing
+
+            net_timing.install()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Fetch timings not installed: {exc}")
+        settings = self._settings or Settings()
+        if settings.dock_visible:
+
+
+            try:
+                from .core.ws_client import prewarm_tls
+
+                prewarm_tls(settings.server_url)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"TLS context not prepared ahead: {exc}")
 
 
 
@@ -599,6 +623,7 @@ class AIAgentPlugin:
 
         for module, name in (("net", "clear_cache"), ("net", "politeness_reset"),
                              ("net", "forget_link_state"), ("net", "close_idle_connections"),
+                             ("net_timing", "uninstall"),
                              ("security", "forget_resolved_hosts"), ("security", "forget_resolved_roots")):
             try:
                 target = __import__(f"{__package__}.core.{module}", fromlist=[name])
@@ -1032,6 +1057,22 @@ class AIAgentPlugin:
             panel.add_context_chip(chip)
 
     def toggle_dock(self):
+        if self._click_open_pending:
+            return
+        if self.dock is None and self.registry is None and not self._unloading:
+
+
+
+
+
+            self._mark_open("click")
+            self._click_open_pending = True
+            try:
+                self.registry = self._build_registry()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Tool registry not built on the first click: {exc}")
+            QTimer.singleShot(_NEXT_TURN_MS, self._finish_click_open)
+            return
         created = self.dock is None
         self._mark_open("click")
         self._ensure_dock()
@@ -1040,6 +1081,18 @@ class AIAgentPlugin:
 
         if self.dock.isVisible() and not created:
             self.dock.hide()
+            return
+        self.dock.show()
+        self.dock.raise_()
+        self._wire_dock()
+
+    def _finish_click_open(self) -> None:
+
+        self._click_open_pending = False
+        if self._unloading:
+            return
+        self._ensure_dock()
+        if self.dock is None:
             return
         self.dock.show()
         self.dock.raise_()

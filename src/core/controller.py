@@ -458,6 +458,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect_optional("pro_pill_requested", self._on_pro_pill_requested)
         self._connect_optional("pro_contact_requested", self._on_pro_contact_requested)
         self._connect_optional("plans_requested", self._on_plans_requested)
+        self._connect_optional("start_now_requested", self._on_start_now_requested)
         self._connect_optional("invoice_requested", self._on_invoice_requested)
         self._connect_optional("upsell_shown", self._on_upsell_shown)
         self._connect_optional("limit_reached", self._on_limit_reached)

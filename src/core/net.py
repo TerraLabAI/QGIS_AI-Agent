@@ -113,7 +113,9 @@ from .net_opener import (
 from .net_state import (
     current_cancel_check,
     current_progress_sink,
+    current_timing_sink,
     is_cancelled,
+    report_stage,
     set_cancel_check,
     set_progress_sink,
 )
@@ -184,6 +186,7 @@ __all__ = [
     "RETRY_JITTER_S",
     "RETRY_MAX",
     "retry_numbers",
+    "report_stage",
     "s3_regional_url",
     "seconds_to_transfer",
     "set_cancel_check",
@@ -242,14 +245,20 @@ def open_url(request, timeout: float, connect_timeout: float | None = None):
         else:
             request = url
     _pin_table().clear()
+    looked_up = time.perf_counter()
     check_url(url)
+    looked_up = round((time.perf_counter() - looked_up) * 1000)
     if isinstance(request, urllib.request.Request):
 
         data_access.attach(request)
     opener = _opener()
     _CONNECT_LOCAL.connect_timeout = connect_timeout or None
     try:
-        return opener.open(request, timeout=timeout)  # nosec B310
+        response = opener.open(request, timeout=timeout)  # nosec B310
+        timing = getattr(response, "timing", None)
+        if isinstance(timing, dict):
+            timing["dns_ms"] = looked_up
+        return response
     except urllib.error.URLError as exc:
         if isinstance(getattr(exc, "reason", None), LocalUrlRefused):
             raise exc.reason from None
@@ -622,6 +631,25 @@ _REFUSAL_WIRE_BYTES = 64 * 1024
 _REFUSAL_TEXT_BYTES = 256 * 1024
 
 
+def report_timing(request, response, started: float, wire_bytes: int) -> None:
+
+
+
+
+    sink = current_timing_sink()
+    if sink is None:
+        return
+    try:
+        facts = dict(getattr(response, "timing", None) or {})
+        facts.update(total_ms=round((time.perf_counter() - started) * 1000), resp_bytes=wire_bytes,
+                     status_code=getattr(response, "status", None), method=request.get_method(),
+                     x_cache=str(response.headers.get("X-Cache") or ""),
+                     server_timing=str(response.headers.get("Server-Timing") or ""))
+        sink(request.full_url, facts)
+    except Exception:  # nosec B110
+        pass
+
+
 def _refusal_drained(exc: urllib.error.HTTPError, headers) -> urllib.error.HTTPError:
 
 
@@ -685,6 +713,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
     extra = {"connect_timeout": connect_timeout} if connect_timeout else {}
     plain = False
+    started = time.perf_counter()
     try:
         with open_url(request, timeout=timeout, **extra) as response:
 
@@ -751,6 +780,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
             note_transfer(len(body), time.perf_counter() - reading_from)
+            wire_bytes = len(body)
             headers = {k.lower(): v for k, v in response.headers.items()}
 
 
@@ -776,6 +806,7 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
                 headers.pop("content-encoding", None)
                 headers["content-length"] = str(len(inflated))
             body = inflated
+            report_timing(request, response, started, wire_bytes)
             return Response(body, headers, response.geturl())
     except urllib.error.HTTPError as exc:
         exc = _refusal_readable(exc)
@@ -1038,6 +1069,8 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
             reader = getattr(response, "read1", None) or response.read
             wire = 0
             reading_from = time.perf_counter()
+
+            progress = current_progress_sink()
             with open(part, "wb") as handle:
                 while True:
                     if is_cancelled(cancel):
@@ -1051,6 +1084,9 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                         break
                     wire += len(block)
                     inflater.write(block, handle)
+                    if progress is not None:
+                        with contextlib.suppress(Exception):
+                            progress(wire, promised)
                     slow = _pace_refusal(wire, promised, time.perf_counter() - reading_from, deadline, budget)
                     if slow is not None:
                         raise slow

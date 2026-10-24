@@ -79,6 +79,9 @@ class CallContext:
     stop: object = None
 
 
+    before_in_qgis: object = None
+
+
 
 
 _LOCAL = threading.local()

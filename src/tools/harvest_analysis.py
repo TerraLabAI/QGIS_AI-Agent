@@ -550,6 +550,9 @@ def _calc_close(state: dict) -> None:
     with contextlib.suppress(RuntimeError):
         state["features"].close()
     with contextlib.suppress(RuntimeError):
+        if state.pop("command", False):
+
+            state["layer"].destroyEditCommand()
         vector_write.force_out_of_edit(state["layer"])
 
 
@@ -657,8 +660,16 @@ def _calc_open(args: dict) -> dict:
 
 
 
-    request = feature_request(expression=expr, fields=layer.fields())
-    state = {"layer": layer, "field_name": field_name, "idx": idx, "expr": expr, "ctx": ctx,
+
+
+    columns = list(expr.referencedColumns())
+    request = feature_request(attributes=None if "*" in columns else columns + [field_name],
+                              geometry=expr.needsGeometry(), fields=layer.fields())
+
+
+
+    layer.beginEditCommand(f"Field calculator {field_name}")
+    state = {"layer": layer, "field_name": field_name, "idx": idx, "expr": expr, "ctx": ctx, "command": True,
              "features": layer.getFeatures(request), "on_error": on_error, "created": created,
              "type_plan": type_plan, "measurement": measurement, "updated": 0, "refused": [],
              "eval_errors": 0, "first_error": "", "failed": None}
@@ -691,7 +702,7 @@ def _calc_step(held) -> bool:
             continue
 
 
-        if layer.changeAttributeValue(feat.id(), idx, value):
+        if layer.changeAttributeValue(feat.id(), idx, value, vector_write.old_value(feat, idx)):
             state["updated"] += 1
         else:
             state["refused"].append(feat.id())
@@ -721,7 +732,7 @@ def _calc_commit(state: dict) -> dict:
 
 
 
-        vector_write.force_out_of_edit(layer)
+        _calc_close(state)
         return tool_error(
             f"The expression failed on feature {state['failed']}: {state['first_error']}. "
             f"Nothing was written and the layer is unchanged.",
@@ -730,9 +741,11 @@ def _calc_commit(state: dict) -> dict:
         )
     if not background.still_awaited():
 
-        vector_write.force_out_of_edit(layer)
+        _calc_close(state)
         return tool_error("The call ended before the calculation was written. The layer is unchanged.",
                           "CANCELLED")
+    layer.endEditCommand()
+    state["command"] = False
     if not layer.commitChanges():
         errors = layer.commitErrors()
 

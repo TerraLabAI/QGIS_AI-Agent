@@ -43,6 +43,8 @@ from .data_common import (
     _safe_filename,
     _vector_uri_for,
     built_here,
+    ogr_opens,
+    query_sublayers,
     worker_options,
 )
 from .data_portals import (
@@ -671,11 +673,10 @@ def _sublayers_of(layer) -> list:
         if path.endswith(_SINGLE_LAYER_EXTENSIONS):
             return []
         try:
-            from qgis.core import QgsProviderRegistry
 
 
 
-            details = QgsProviderRegistry.instance().querySublayers(source)
+            details = query_sublayers(source)
             names = [str(d.name()) for d in details]
         except Exception:  # noqa: BLE001
 
@@ -1243,19 +1244,20 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
 
 
-    from .layer_io_tools import geometry_split, split_alongside, split_left_out_note
+    from .layer_io_tools import geometry_split, split_left_out_note
 
     more: list = []
     left_out = {"n": 0}
 
     def _open_split(options, on_worker: bool):
-        pending = split_alongside(final_filepath) if on_worker else None
+        with ogr_opens():
+            return _opened_split(options, on_worker)
+
+    def _opened_split(options, on_worker: bool):
         layer = _open(options)
         if not layer.isValid():
             return layer
-        source = layer.source()
-        parts, left_out["n"] = (pending() if pending is not None and source == final_filepath
-                                else geometry_split(source))
+        parts, left_out["n"] = geometry_split(layer.source())
         if not parts:
             return layer
         delete_here(layer)

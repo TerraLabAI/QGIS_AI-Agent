@@ -78,9 +78,14 @@ LIVE_ATTRS = frozenset({
     "customVariables", "setCustomVariables", "snappingConfig", "relationManager", "auxiliaryStorage",
     "annotationManager", "bookmarkManager",
 })
-_FILE_WRITE_ATTRS = frozenset({"copy", "copy2", "copyfile", "copytree", "move", "makedirs", "mkdir", "rename",
-                               "replace", "remove", "unlink", "rmdir", "removedirs", "rmtree", "truncate", "link",
-                               "symlink", "chmod"})
+
+
+
+
+
+
+_FILE_WRITE_ATTRS = frozenset({"move", "rename", "replace", "remove", "unlink", "rmdir", "removedirs", "rmtree",
+                               "truncate", "link", "symlink", "chmod"})
 
 
 
@@ -89,17 +94,21 @@ _FILE_WRITE_ATTRS = frozenset({"copy", "copy2", "copyfile", "copytree", "move", 
 
 
 
-_PATH_WRITE_ATTRS = frozenset({"touch", "symlink_to", "hardlink_to", "mkdir",
+_PATH_WRITE_ATTRS = frozenset({"touch", "symlink_to", "hardlink_to",
                                "extract", "extractall", "writestr", "mkdtemp"})
+
+_QGIS_MODULES = ("qgis", "PyQt5", "PyQt6", "sip")
 _PROJECT_WRITE_ATTRS = frozenset({"write", "read", "clear", "removeAllMapLayers"})
 
 
 class _LiveFinder(ast.NodeVisitor):
 
 
-    def __init__(self, changing=None) -> None:
+    def __init__(self, changing=None, free=frozenset()) -> None:
         self.reason = ""
         self._changing = changing or ()
+
+        self._free = free
         self._names, self._modules, self._attrs = _live_tables()
 
     def visit(self, node: ast.AST) -> None:
@@ -135,10 +144,15 @@ class _LiveFinder(ast.NodeVisitor):
 
     def visit_Attribute(self, node: ast.Attribute) -> None:  # noqa: N802
         attr = node.attr
-        if attr in self._changing:
+
+
+
+
+        free = _root_name(node.value) in self._free and bool(TRAP_RE.match(attr))
+        if attr in self._changing and not free:
             self.reason = f"calls .{attr}, which changes the project"
             return
-        if attr in self._attrs:
+        if attr in self._attrs and not free:
             self.reason = f"calls .{attr}"
             return
         if isinstance(node.value, ast.Name) and node.value.id in ("shutil", "os") and attr in _FILE_WRITE_ATTRS:
@@ -201,7 +215,12 @@ def _source_text(node: ast.AST) -> str:
         return ""
 
 
-def live_reason(code: str, changing=None) -> str:
+def live_reason(code: str, changing=None, free_classes=frozenset()) -> str:
+
+
+
+
+
 
 
 
@@ -213,9 +232,68 @@ def live_reason(code: str, changing=None) -> str:
         tree = _parsed(code or "")
     except SyntaxError:
         return "does not parse"
-    finder = _LiveFinder(changing=changing)
+    finder = _LiveFinder(changing=changing, free=_free_receivers(tree, free_classes))
     finder.visit(tree)
     return finder.reason
+
+
+def _free_receivers(tree: ast.AST, free_classes) -> frozenset:
+
+
+
+
+
+
+
+
+
+
+
+    imported: set[str] = set()
+    other: set[str] = set()
+    made: dict[str, set] = {}
+    plain = set()
+    for node in ast.walk(tree):
+
+        if (isinstance(node, ast.Assign) and isinstance(node.value, (ast.Call, ast.Constant))
+                and all(isinstance(target, ast.Name) for target in node.targets)):
+            for target in node.targets:
+                receivers = made.setdefault(target.id, set())
+                if isinstance(node.value, ast.Call):
+                    receivers.add(_root_name(node.value.func))
+                plain.add(id(target))
+        elif isinstance(node, ast.Delete):
+            plain.update(id(target) for target in node.targets if isinstance(target, ast.Name))
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                bound = (alias.asname or alias.name).split(".")[0]
+                module = alias.name if isinstance(node, ast.Import) else (node.module or "")
+                if isinstance(node, ast.ImportFrom) and module == "qgis.core" and alias.name in free_classes:
+                    imported.add(bound)
+                elif getattr(node, "level", 0) or _module_is_live(module.split(".")[0], _QGIS_MODULES):
+                    other.add(bound)
+                else:
+                    imported.add(bound)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)) and id(node) not in plain:
+            other.add(node.id)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            other.add(node.name)
+        elif isinstance(node, ast.arg):
+            other.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            other.add(node.name)
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            other.update(node.names)
+    free = (imported | set(free_classes)) - other - set(made)
+    grown = True
+    while grown:
+        grown = False
+        for name, receivers in made.items():
+            if name not in free and name not in other and name not in imported and receivers <= free:
+                free.add(name)
+                grown = True
+    return frozenset(free)
 
 
 class _QgisFinder(ast.NodeVisitor):
@@ -486,6 +564,7 @@ class _LayersFinder(ast.NodeVisitor):
 
     def __init__(self, helpers=LAYER_HELPERS) -> None:
         self.lists = False
+        self.computed = False
         self.helpers = frozenset(helpers)
         self.named: set[str] = set()
 
@@ -515,9 +594,15 @@ class _LayersFinder(ast.NodeVisitor):
                 self.lists = True
                 return
         if (isinstance(node.func, ast.Name) and node.func.id == "layer" and "layer" in self.helpers
-                and len(node.args) == 1 and not node.keywords and isinstance(node.args[0], ast.Constant)
-                and isinstance(node.args[0].value, str)):
-            self.named.add(node.args[0].value)
+                and len(node.args) == 1 and not node.keywords):
+            argument = node.args[0]
+            if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+                self.named.add(argument.value)
+            else:
+
+
+                self.computed = True
+                self.visit(argument)
             return
         self.generic_visit(node)
 
@@ -542,6 +627,17 @@ def helper_layer_names(code: str) -> frozenset[str]:
 
     finder = _layers_finder(code)
     return frozenset(finder.named) if finder and not finder.lists else frozenset()
+
+
+def helper_computed(code: str) -> bool:
+
+
+
+
+
+
+    finder = _layers_finder(code)
+    return bool(finder and finder.computed and not finder.lists)
 
 
 

@@ -567,6 +567,12 @@ def get_upgrade_url() -> str:
     return _served_url("upgrade_url", _served_url("subscribe_url", UPGRADE_URL))
 
 
+def get_trial_checkout_url() -> str:
+
+
+    return _served_url("trial_checkout_url", "")
+
+
 def get_pricing_url() -> str:
 
 

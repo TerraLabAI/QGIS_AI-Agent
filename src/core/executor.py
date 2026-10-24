@@ -63,7 +63,7 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
 
     stop_requested = pyqtSignal(str)
 
-    call_progress = pyqtSignal(str, object, object)
+    call_progress = pyqtSignal(str, object, object, str)
 
     def __init__(self, registry, session, settings, parent=None):
         super().__init__(parent)

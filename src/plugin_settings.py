@@ -133,7 +133,9 @@ def open_plans_from_settings(plugin, dialog) -> None:
 
     account = plugin.controller.account if plugin.controller is not None else None
     if account is not None:
-        account.open_plans("plugin_settings", on_outcome=report)
+
+        account.open_plans("plugin_settings", on_outcome=report,
+                           trial_surface="settings" if getattr(dialog, "trial_offered", False) else "")
         return
     from .ui.external_links import open_external_url
     from .ui.shared import get_pricing_url

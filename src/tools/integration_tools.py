@@ -215,6 +215,8 @@ def _register_aiedit_generate(registry: ToolRegistry):
                             {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
                         ],
                     },
+
+                    "crs": {"type": "string"},
                     "use_canvas_extent": {
                         "type": "boolean",
                     },
@@ -365,6 +367,7 @@ def _aiedit_generate(args: dict) -> dict:
     try:
         params = {
             "bbox": args.get("bbox"),
+            "crs": args.get("crs"),
             "use_canvas_extent": use_canvas,
             "use_zone": use_zone,
             "resolution": args.get("resolution"),
@@ -759,6 +762,8 @@ def _aiseg_zone_wkt(plugin, args: dict) -> str:
     if wkt and not args.get("use_zone"):
         return wkt
     from . import cost_guard
+    if args.get("bbox") is not None and cost_guard.unknown_crs(args):
+        raise ValueError(f"crs '{cost_guard.unknown_crs(args)}' is not a CRS QGIS knows.")
     geom = cost_guard.zone_from_args(args)
     if geom is None:
         if args.get("use_zone") or args.get("bbox") is not None or args.get("use_canvas_extent"):
@@ -899,8 +904,9 @@ def _aiseg_zone_facts(args: dict, layer, zone) -> str:
         def fmt(r: QgsRectangle) -> str:
             return f"[{r.xMinimum():.8g}, {r.yMinimum():.8g}, {r.xMaximum():.8g}, {r.yMaximum():.8g}]"
 
-        return (f"The zone was read in {read_in.authid() or read_in.description()}"
-                f"{' (the map canvas CRS, as bbox and use_canvas_extent are)' if not args.get('zone_wkt') else ''}"
+        canvas_note = ("" if args.get("zone_wkt") else
+                       " (the map canvas CRS, where bbox is moved from its crs and use_canvas_extent is read)")
+        return (f"The zone was read in {read_in.authid() or read_in.description()}{canvas_note}"
                 f" as {fmt(box)} (xmin, ymin, xmax, ymax); the raster covers {fmt(extent)} in that CRS.")
     except Exception:  # noqa: BLE001
         return ""

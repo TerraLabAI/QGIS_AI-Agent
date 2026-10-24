@@ -1672,11 +1672,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{count} ms</source>
-            <translation>{count} ms</translation>
+            <translation>{count} مللي ثانية</translation>
         </message>
         <message>
             <source>{count} s</source>
-            <translation>{count} s</translation>
+            <translation>{count} ث</translation>
         </message>
         <message>
             <source>{file} stays on disk</source>
@@ -1696,11 +1696,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>{minutes} min</source>
-            <translation>{minutes} min</translation>
+            <translation>{minutes} د</translation>
         </message>
         <message>
             <source>{minutes} min {seconds} s</source>
-            <translation>{minutes} min {seconds} s</translation>
+            <translation>{minutes} د {seconds} ث</translation>
         </message>
         <message>
             <source>{n} features</source>
@@ -2288,6 +2288,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>{n} results</source>
             <translation>النتائج: {n}</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>جارٍ إضافة الطبقة</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>جارٍ القص حسب المنطقة</translation>
+        </message>
+        <message>
+            <source>Downloading {size}</source>
+            <translation>جارٍ تنزيل {size}</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>جارٍ البحث عن المكان</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>جارٍ الاستعلام من المصدر</translation>
+        </message>
+        <message>
+            <source>{m} min {s} s</source>
+            <translation>{m} د {s} ث</translation>
+        </message>
+        <message>
+            <source>{n} s</source>
+            <translation>{n} ث</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} من {total}</translation>
         </message>
     </context>
     <context>
@@ -3004,6 +3036,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>You changed {n} files by hand</source>
             <translation>لقد غيّرت {n} ملفات يدويًا</translation>
+        </message>
+        <message>
+            <source>Drawing the map</source>
+            <translation>جارٍ رسم الخريطة</translation>
         </message>
     </context>
     <context>
@@ -4404,8 +4440,8 @@ Click to show it in the Layers panel.</source>
             <translation>استُخدم AI Agent المجاني بالفعل من حسابات أخرى على هذا الحاسوب.</translation>
         </message>
         <message>
-            <source>Free for 7 days, then {price}/month. Cancel in one click.</source>
-            <translation>مجانًا لمدة 7 أيام، ثم {price} شهريًا. ألغِ بنقرة واحدة.</translation>
+            <source>Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.</source>
+            <translation>مجانًا لمدة 7 أيام، لا شيء للدفع اليوم، ثم {price} شهريًا. ألغِ بنقرة واحدة.</translation>
         </message>
         <message>
             <source>Free is for personal and study use. Pro covers work for clients and employers.</source>
@@ -4514,6 +4550,11 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{price} · cancel anytime</source>
             <translation>{price} · ألغِ في أي وقت</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Start my plan now</source>
+            <translation>ابدأ خطتي الآن</translation>
         </message>
     </context>
     <context>

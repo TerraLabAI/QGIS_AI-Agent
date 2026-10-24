@@ -277,6 +277,18 @@ class _GuardedConnection:
         full = self.timeout
         if budget:
             self.timeout = budget if not full else min(budget, full)
+
+
+        started = time.perf_counter()
+        inner = self._create_connection
+        self._tcp_at = None
+
+        def timed(*args, **kwargs):
+            sock = inner(*args, **kwargs)
+            self._tcp_at = time.perf_counter()
+            return sock
+
+        self._create_connection = timed
         try:
             pinned = self._pinned_addresses()
             if pinned == _RESOLVE_AT_CONNECT:
@@ -286,6 +298,10 @@ class _GuardedConnection:
             else:
                 super().connect()
         finally:
+            self._create_connection = inner
+            if self._tcp_at is not None:
+                self.timing = {"tcp_ms": round((self._tcp_at - started) * 1000),
+                               "tls_ms": round((time.perf_counter() - self._tcp_at) * 1000)}
             self.timeout = full
             sock = getattr(self, "sock", None)
             if sock is not None and isinstance(full, (int, float)):
@@ -553,6 +569,7 @@ class _GuardedHTTPSHandler(urllib.request.HTTPSHandler):
         reused = self.pool.take(key, method)
         while True:
             conn = reused or fresh
+            sent = time.perf_counter()
             if reused is not None:
                 conn.timeout = req.timeout
                 with contextlib.suppress(OSError):
@@ -588,6 +605,9 @@ class _GuardedHTTPSHandler(urllib.request.HTTPSHandler):
                 _close_quietly(_conn)
 
         response._on_done = done
+        handshake = {} if reused is not None else dict(getattr(conn, "timing", None) or {})
+        waited = round((time.perf_counter() - sent) * 1000) - sum(handshake.values())
+        response.timing = {"reused": reused is not None, "ttfb_ms": max(0, waited), **handshake}
         response.url = req.get_full_url()
         response.msg = response.reason
         return response

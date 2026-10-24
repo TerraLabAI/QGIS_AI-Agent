@@ -54,7 +54,7 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QKeySequence
-from qgis.PyQt.QtWidgets import QApplication, QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 
 from ..connector_page import ConnectorPage
 from ..connectors_page import POPULAR_KEY, ConnectorsPage, accent_of, cases_of, shelves, sources_by_id
@@ -115,7 +115,6 @@ class ExamplesDialog(QDialog):
         self._history: list = []
 
         self._crumb_actions: list = []
-        self._app = None
         self._state = (_GRID_PAGE, None)
         self._connectors = sources_by_id()
 
@@ -174,10 +173,6 @@ class ExamplesDialog(QDialog):
         back = QShortcut(QKeySequence(QKeySequence.StandardKey.Back), self)
         back.activated.connect(self._back_key)
 
-        self._app = QApplication.instance()
-        if self._app is not None:
-            self._app.installEventFilter(self)
-
     def _build_rail(self) -> LibraryRail:
 
         if self._place == SOURCES_KEY:
@@ -218,16 +213,22 @@ class ExamplesDialog(QDialog):
     def eventFilter(self, watched, event):  # noqa: N802
 
 
-        if event.type() == QEvent.Type.MouseButtonPress and \
-                event.button() == Qt.MouseButton.BackButton and \
-                isinstance(watched, QWidget) and watched.window() is self:
-            self._back_key()
-            return True
+
+
         if event.type() == QEvent.Type.KeyPress and event.key() in (
                 Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Escape):
             self.keyPressEvent(event)
             return True
         return super().eventFilter(watched, event)
+
+    def mousePressEvent(self, event):  # noqa: N802
+
+
+        if event.button() == Qt.MouseButton.BackButton:
+            self._back_key()
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
     def _focus_search(self) -> None:
         field = self._search_field()
@@ -419,9 +420,6 @@ class ExamplesDialog(QDialog):
 
     def done(self, result: int) -> None:  # noqa: N802
         self._unwatch()
-        if self._app is not None:
-            self._app.removeEventFilter(self)
-            self._app = None
         super().done(result)
 
     def _back(self) -> None:

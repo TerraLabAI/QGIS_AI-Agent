@@ -9,6 +9,32 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-24
+
+### Added
+
+- A running call's row says what it is doing on a second line, counts its seconds and shows its
+  download; a long map draw during a run says Drawing the map.
+- The trial buttons in Settings and on the plan wall open a secure checkout, and a capped trial can
+  start its plan at once.
+- An answered round of questions shows each question above its answer.
+
+### Changed
+
+- Place search without a map view finds towns, streets and kinds of place, in local names for
+  non-Latin queries.
+- The panel connects faster on its first open and its first Send.
+
+### Fixed
+
+- Field statistics, styles by class, field calculator writes and GeoPackage listings no longer
+  freeze or lock QGIS; a project opened from a network share no longer freezes the first read.
+- Code runs that only read or write files run outside QGIS, and no longer ask every web layer its
+  feature count.
+- A basemap added to an empty project keeps the chosen CRS, and degrees given to a metre layer are
+  refused with the reason.
+- Tighter checks on expressions, file paths and remote addresses that code from the agent uses.
+
 ## [1.9.0] - 2026-10-20
 
 ### Added
