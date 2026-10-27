@@ -258,13 +258,53 @@ def _town_by_start(p: dict, text: str) -> bool:
         and _bare_name(p["name"]).startswith(t + " ")
 
 
-def _name_rank(p: dict, subject: str, tokens) -> float:
+def _name_rank(p: dict, subject: str, tokens, region: bool = False) -> float:
 
+
+    if region and _exact_name(p, subject) and SMALL.match(p["osm"]):
+        return TOP - 5
+    if region and names_region(p, key_tokens(subject)) and not _exact_name(p, subject):
+        return TOP - 3
     if _exact_name(p, subject):
         return TOP - 2 if MINOR.match(p["osm"]) else TOP
     if _town_by_start(p, subject):
         return TOP - 1
     return matches(p, tokens)
+
+
+
+
+
+
+
+
+REGION_KIND = re.compile(
+    r"^(boundary=(protected_area|national_park)|leisure=nature_reserve|place=(region|island|archipelago)|"
+    r"natural=(water|bay|wetland|wood|heath|scrub|grassland|strait))$")
+
+REGION_FILTER = ("&osm_tag=boundary:protected_area&osm_tag=boundary:national_park&osm_tag=leisure:nature_reserve"
+                 "&osm_tag=place:region&osm_tag=place:island&osm_tag=place:archipelago")
+SMALL = re.compile(
+    r"^(place=(hamlet|farm|isolated_dwelling|locality|neighbourhood|quarter|square|plot)|"
+    r"(highway|office|landuse|amenity|shop|railway|public_transport|craft|building|information|man_made|tourism|"
+    r"barrier|emergency)=)")
+SUMMIT = re.compile(r"^natural=(peak|volcano|saddle|glacier)$")
+
+
+def _own_all(p: dict, tokens) -> bool:
+    return bool(tokens) and own_matches(p, tokens) == len(tokens)
+
+
+def names_region(p: dict, tokens) -> bool:
+    e = p.get("extent")
+    span = max(e[2] - e[0], e[3] - e[1]) if e else 0
+    return REGION_KIND.match(p["osm"]) is not None and span >= 0.15 and _own_all(p, tokens)
+
+
+def _region_asked(query: str, places: list, tokens) -> bool:
+
+    return (not looks_like_address(query) and not any(SUMMIT.match(p["osm"]) and _own_all(p, tokens) for p in places)
+            and any(names_region(p, tokens) for p in places))
 
 
 def _extra_words(tokens):
@@ -306,6 +346,16 @@ CATEGORIES = [
                          r"stazione ferroviaria|stazione centrale|treinstation|estacao ferroviaria|dworzec)\b",
                          re.ASCII),
      "include": "osm.railway.station"},
+
+
+
+    {"words": re.compile("".join(r"(?<!\b" + w + " )" for w in (
+        "gas", "petrol", "fuel", "service", "fire", "police", "charging", "ski", "bus", "coach", "radio",
+        "power", "weather", "space", "filling", "tv", "pumping", "lifeboat", "ranger", "research", "polling",
+        "bike", "bicycle", "taxi", "car", "ambulance", "la", "du", "des"))
+        + r"\b(station|gare)\b(?![ -](?:de ski|balneaire|thermale|service|d.epuration|de lavage|routiere|maritime"
+          r"|de peage|de recharge))", re.ASCII),
+     "include": "osm.railway.station", "town_only": True},
     {"words": re.compile(r"\b(airport|aeroport|flughafen|aeropuerto|aeroporto|luchthaven|lotnisko)\b", re.ASCII),
      "include": "osm.aeroway.aerodrome", "reach": 0.5},
     {"words": re.compile(r"\b(hospital|hopital|krankenhaus|ospedale|ziekenhuis|szpital)\b", re.ASCII),
@@ -467,12 +517,23 @@ def _search_once(query: str, limit: int, photon: str, ign: str):
         rest = [near.group(1)]
     last = POSTCODE.sub("", rest[-1]).strip() if rest else ""
     countries = [_Layer(photon, last, ("country",), None), _Layer(photon, last, ("country",), None, "")] if rest else []
-    category = category_of(subject)
+
+    kind = category_of(subject)
+    category = None if kind and kind.get("town_only") else kind
 
     answers = yield _round(main.urls, bare_search.urls if retry and dropped else (), [ign_url] if ign_url else (),
                            [c.url for c in countries])
     answers = dict(answers)
     places = main.places(answers, strict=True)
+
+
+    if not looks_like_address(query) and key_tokens(subject) and not any(
+            _exact_name(p, subject) and not SMALL.match(p["osm"]) for p in places):
+        areas = _Search(photon, subject, 5, REGION_FILTER)
+        answers.update((yield _round(areas.urls)))
+        seen_places = {(p["osm"], p["latitude"], p["longitude"]) for p in places}
+        places = places + [a for a in areas.places(answers)
+                           if (a["osm"], a["latitude"], a["longitude"]) not in seen_places]
     late_retry = retry and not dropped and not any(matches(p, tokens) == len(tokens) for p in places)
 
     country_code = None
@@ -553,8 +614,9 @@ def _ranked(query: str, places: list, limit: int, tokens, dropped: bool) -> list
                 return 0.2
             return 0.5 if re.match(r"^(place=|boundary=administrative)", p["osm"]) else 1
 
-        keyed = [((-_name_rank(p, subject, tokens), stop(p) + (town(p) if dropped else 0), -own_matches(p, tokens),
-                   extra_score(p), _region_last(p), i), p) for i, p in enumerate(places)]
+        region = _region_asked(query, places, key_tokens(subject))
+        keyed = [((-_name_rank(p, subject, tokens, region), stop(p) + (town(p) if dropped else 0),
+                   -own_matches(p, tokens), extra_score(p), _region_last(p), i), p) for i, p in enumerate(places)]
         places = [p for _k, p in sorted(keyed, key=lambda kp: kp[0])]
     return places[:limit]
 
@@ -566,7 +628,7 @@ def _anchored_searches(photon: str, query: str, town_anchor: dict, limit: int) -
     kind = category_of(subject)
 
     kind_only = kind is not None and not key_tokens(_without_kind(subject, kind))
-    category = None if kind_only and not town_anchor["bbox"] else kind
+    category = None if (kind_only or (kind or {}).get("town_only")) and not town_anchor["bbox"] else kind
     reach = (category or {}).get("reach", 0)
     anchor = dict(town_anchor)
     if reach and anchor["bbox"]:
@@ -645,7 +707,10 @@ def _anchored(query: str, places: list, local: dict, answers: dict, limit: int) 
             return (minor(p), -(1 if p.get("extent") else 0), i, dist(p))
 
 
-    named = [p for p in of_town if all(_word_in(t, _text_of(p, own=True)) for t in leftover or ())]
+
+
+    named = ([p for p in of_town if all(_word_in(t, _text_of(p, own=True)) for t in leftover or ())]
+             if not leftover or anchor["bbox"] else [])
     main = min(enumerate(named), key=order)[1] if leftover is not None and named else None
 
     def same(a, b):
@@ -661,22 +726,25 @@ def _anchored(query: str, places: list, local: dict, answers: dict, limit: int) 
             return 2
         return 1 if anchor["bbox"] and _in_box(p, anchor["bbox"], 0.25) else 0
 
+    region = _region_asked(query, pool, tokens)
     rows = []
     for i, p in enumerate(pool):
         chosen = same(main, p) or same(exonym, p)
         t = tier(p)
-        m = TOP if chosen else _name_rank(p, subject, tokens)
+        m = TOP if chosen else _name_rank(p, subject, tokens, region)
+        r = 1 if region and names_region(p, tokens) else 0
         s = stop(p)
         n = 0 if address else own_matches(p, tokens)
         w = matches(p, all_tokens) if address else 0
         x = 0 if _town_by_start(p, subject) else extra_score(p)
-        f = chosen or _exact_name(p, subject) or (bool(tokens) and all(_word_in(tok, _text_of(p)) for tok in tokens))
+        f = (chosen or (_exact_name(p, subject) and not (region and SMALL.match(p["osm"])))
+             or (bool(tokens) and all(_word_in(tok, _text_of(p)) for tok in tokens)))
         if anchor["bbox"]:
             key = (-(t > 0), -m, s, -t, -w, -n, x, _region_last(p), i)
         else:
 
 
-            key = (-f, x if f else 0, -(t > 0), -m, s, -n, x, -w, _region_last(p), i)
+            key = (-f, -r, x if f else 0, -(t > 0), -m, s, -n, x, -w, _region_last(p), i)
         rows.append((key, p))
     seen = set()
     out = []

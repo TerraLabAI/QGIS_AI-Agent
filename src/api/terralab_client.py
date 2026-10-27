@@ -420,13 +420,18 @@ class TerraLabClient:
 
 
 
-    def get_usage(self, auth: dict) -> dict:
-        return self._request("GET", "/api/plugin/usage", auth=auth,
+    def get_usage(self, auth: dict, lang: str = "") -> dict:
+
+        path = f"/api/plugin/usage?{urlencode({'lang': lang[:5]})}" if lang else "/api/plugin/usage"
+        return self._request("GET", path, auth=auth,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def get_account(self, auth: dict, include_usage: bool = False) -> dict:
+    def get_account(self, auth: dict, include_usage: bool = False, lang: str = "") -> dict:
 
-        path = "/api/plugin/account?include=usage" if include_usage else "/api/plugin/account"
+        params = {"include": "usage"} if include_usage else {}
+        if include_usage and lang:
+            params["lang"] = lang[:5]
+        path = f"/api/plugin/account?{urlencode(params)}" if params else "/api/plugin/account"
         return self._request("GET", path, auth=auth, timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
     def get_data_retention(self, auth: dict) -> dict:

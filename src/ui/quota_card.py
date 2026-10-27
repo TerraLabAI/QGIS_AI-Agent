@@ -40,6 +40,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .shared import (
@@ -47,6 +48,7 @@ from .shared import (
     get_pro_price_excludes_tax,
     get_pro_runs_per_month,
     get_promo_active,
+    get_student_offer,
     get_support_email,
 )
 from .style import (
@@ -84,6 +86,12 @@ _INVOICE_QSS = (
     f" color: {INK_3}; font-size: {FONT_HINT}px; font-weight: 400; }}"
     f"QPushButton:hover {{ color: {MUTED}; text-decoration: underline; }}"
 )
+
+_STUDENT_QSS = (
+    "QPushButton { background: transparent; border: none; padding: 2px 4px;"
+    f" color: {ACCENT_INK}; font-size: {FONT_HINT}px; font-weight: 500; }}"
+    "QPushButton:hover { text-decoration: underline; }"
+)
 _CHECK_PX = 12
 _CHEVRON_PX = 16
 _CARD_MARGINS = (16, 14, 16, 14)
@@ -95,6 +103,37 @@ _WARNING_QSS = f"font-size: {FONT_HINT}px; color: {INK}; font-weight: 500; backg
 
 
 WARN_AT_RUNS_LEFT = 3
+
+
+
+_STUDENT_SEEN: set = set()
+
+
+def _track_student(event_name: str, surface: str) -> None:
+    try:
+        from ..core import telemetry
+        from ..core import telemetry_events as ev
+
+        telemetry.track(getattr(ev, event_name), {"product": "ai_agent", "surface": surface})
+    except Exception:  # nosec B110
+        pass
+
+
+def note_student_offer_shown(surface: str) -> None:
+
+    if surface in _STUDENT_SEEN:
+        return
+    _STUDENT_SEEN.add(surface)
+    _track_student("STUDENT_OFFER_SHOWN", surface)
+
+
+def open_student_offer(surface: str, parent=None) -> None:
+
+    offer = get_student_offer()
+    if not offer or not offer.get("url"):
+        return
+    _track_student("STUDENT_OFFER_CLICKED", surface)
+    open_external_url(offer["url"], parent=parent)
 
 
 class RunsLeftLine(QWidget):
@@ -121,7 +160,7 @@ class RunsLeftLine(QWidget):
         self._label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._label.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
-        self._label.linkActivated.connect(lambda _href: self.requested.emit(self.where))
+        self._label.linkActivated.connect(self._on_link)
         self._plain = ""
         row.addWidget(self._label, 1)
 
@@ -136,10 +175,16 @@ class RunsLeftLine(QWidget):
             link = (trial_cta(trial[0]) if trial
                     else self.tr("Get more tasks with Pro"))
             self._label.setStyleSheet(scale_qss_font_px(_WARNING_QSS))
-            self._label.setText(
-                f'{html.escape(count)}&nbsp; <a href="pro" style="color: {ACCENT_INK};'
-                f' text-decoration: none;">{html.escape(link)}</a>')
+            text = (f'{html.escape(count)}&nbsp; <a href="pro" style="color: {ACCENT_INK};'
+                    f' text-decoration: none;">{html.escape(link)}</a>')
             self._plain = f"{count} {link}"
+            student = get_student_offer()
+            if student and student["state"] == "offer":
+                text += (f' &middot; <a href="student" style="color: {ACCENT_INK};'
+                         f' text-decoration: none;">{html.escape(student["label"])}</a>')
+                self._plain += f" {student['label']}"
+                note_student_offer_shown("upgrade_line")
+            self._label.setText(text)
         else:
 
             self._label.setText("")
@@ -153,6 +198,12 @@ class RunsLeftLine(QWidget):
 
     def text(self) -> str:
         return self._plain
+
+    def _on_link(self, href: str) -> None:
+        if href == "student":
+            open_student_offer("upgrade_line", self.window() or self)
+            return
+        self.requested.emit(self.where)
 
 
 class _Disclosure(QWidget):
@@ -235,7 +286,11 @@ def trial_cta(_days: int = 7) -> str:
 def trial_reassurance() -> str:
 
 
-    price = get_pro_price() or "49\u00a0EUR"
+    price = get_pro_price()
+    if not price:
+        return QCoreApplication.translate(
+            "QuotaCard",
+            "Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.")
     return QCoreApplication.translate(
         "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.").format(
         price=price)
@@ -326,6 +381,14 @@ class QuotaCard(QWidget):
         self._promise.setTextFormat(Qt.TextFormat.PlainText)
         self._promise.hide()
         plan.addWidget(self._promise)
+
+        self._student = QPushButton(self._plan)
+        self._student.setStyleSheet(scale_qss_font_px(_STUDENT_QSS))
+        self._student.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._student.setAutoDefault(False)
+        self._student.clicked.connect(lambda: open_student_offer("wall", self.window() or self))
+        self._student.hide()
+        plan.addWidget(self._student, 0, Qt.AlignmentFlag.AlignHCenter)
         self._invoice = QPushButton(self.tr("Invoice for my company"), self._plan)
         self._invoice.setStyleSheet(scale_qss_font_px(_INVOICE_QSS))
         self._invoice.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -429,6 +492,7 @@ class QuotaCard(QWidget):
             else:
                 self._note.setText(self.tr("You used all {n} tasks this month.").format(n=limit) if limit else "")
             self._note.show()
+            self._student.hide()
             if start_now:
                 for w in (self._promise, self._invoice, self._contact, self._more, self._details):
                     w.hide()
@@ -460,7 +524,8 @@ class QuotaCard(QWidget):
                 self._note.setText(self.tr("Free tasks come back on {date}.").format(date=reset_text) if reset_text
                                    else self.tr("Free tasks come back at your monthly reset."))
             self._note.show()
-            self._pitch.setText(self.tr("Pro: more and better"))
+
+            self._pitch.setText(self.tr("Pro: {n} tasks a month and harder tasks").format(n=get_pro_runs_per_month()))
             lines = (
                 self.tr("{n} tasks a month").format(n=get_pro_runs_per_month()),
                 self.tr("Medium and High effort for harder tasks"),
@@ -488,6 +553,13 @@ class QuotaCard(QWidget):
             self._details.setVisible(self._more.is_open())
             self._more.show()
             self._route_button(lambda: self.plans_requested.emit("exhausted_card"))
+            student = get_student_offer()
+            if student and student["state"] == "offer":
+                self._student.setText(student["label"].replace("&", "&&"))
+                self._student.show()
+                note_student_offer_shown("wall")
+            else:
+                self._student.hide()
             self._invoice.show()
             self._plan.show()
         self.show()
@@ -500,7 +572,8 @@ class QuotaCard(QWidget):
         self._title.show()
         self._note.setText(self.tr("Your plan is still Free. If something got in the way:"))
         self._note.show()
-        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details):
+        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
+                  self._student):
             w.hide()
         self._button.setText(self.tr("Back to the Pro page"))
         self._route_button(lambda: self.plans_requested.emit("checkout_return"))
@@ -523,7 +596,7 @@ class QuotaCard(QWidget):
         self._note.setText("\n".join(lines))
         self._note.setVisible(bool(lines))
         for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
-                  self._invoice, self._contact, self._close):
+                  self._invoice, self._contact, self._close, self._student):
             w.hide()
         self._button.setText(self.tr("OK"))
         self._route_button(self.welcome_closed.emit)

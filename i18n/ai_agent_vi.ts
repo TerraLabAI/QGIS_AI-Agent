@@ -4404,6 +4404,11 @@ Nhấn để hiện trong bảng Lớp.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>Miễn phí 7 ngày, hôm nay không phải trả gì, sau đó tính theo tháng với giá theo khu vực của bạn. Hủy chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
             <source>Autopilot</source>
             <translation>Autopilot</translation>
         </message>
@@ -4484,8 +4489,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>OK</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: nhiều hơn và tốt hơn</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: {n} tác vụ mỗi tháng và các tác vụ khó hơn</translation>
         </message>
         <message>
             <source>Start 7-day free trial</source>
@@ -5759,6 +5764,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>saves an edit into {files}</source>
             <translation>lưu một chỉnh sửa vào {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>lưu một chỉnh sửa vào {files}, tệp mà cuộc trò chuyện này đã ghi</translation>
         </message>
         <message>
             <source>{name} is installed</source>

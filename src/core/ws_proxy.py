@@ -129,6 +129,17 @@ def resolve_proxy(host: str, port: int = 443, secure: bool = True) -> dict | Non
         return env_proxy()
 
 
+def typed_proxy() -> dict | None:
+
+
+    try:
+        from qgis.core import QgsNetworkAccessManager
+
+        return _qt_proxy_dict(_fallback_proxy(QgsNetworkAccessManager.instance())) or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def qgis_exclusions() -> list[str]:
 
 

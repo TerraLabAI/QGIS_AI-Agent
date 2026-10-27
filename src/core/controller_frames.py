@@ -257,6 +257,10 @@ class _ControllerFrames:
             return
 
         self._panel_optional("set_account_cap", payload.get("free_account_cap"))
+
+        from .served_state import set_student_offer
+
+        set_student_offer(payload.get("student_offer"))
         usage = usage_to_runs(payload)
         cap = usage.get("trial_cap") or {}
         self._panel_optional("set_start_now_url", site_url(cap.get("start_now_url")))
@@ -684,6 +688,7 @@ class _ControllerFrames:
 
 
         QTimer.singleShot(0, self._record_after_point)
+        QTimer.singleShot(0, self._save_run_layers)
 
         QTimer.singleShot(0, self._resync_sibling_tools_when_idle)
         if closing:
@@ -703,6 +708,19 @@ class _ControllerFrames:
                 self._send_history()
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "record_after_point", module=__name__)
+
+    def _save_run_layers(self) -> None:
+
+
+        layer_ids, self._run_new_layers = getattr(self, "_run_new_layers", None) or [], []
+        if not layer_ids:
+            return
+        try:
+            from ..tools.persist_tools import save_run_layers
+
+            save_run_layers(layer_ids, busy=self._runs.busy)
+        except Exception as exc:  # noqa: BLE001
+            report_exception(exc, "save_run_layers", module=__name__)
 
     def _release_composer(self) -> None:
 
@@ -727,6 +745,13 @@ class _ControllerFrames:
             self._executor.cancel_run(run_id, halt=False)
         changed = self._executor.changed_layers(run_id)
         snapshot = self._executor.end_run(run_id)
+        if snapshot is not None and snapshot.captured and getattr(self, "_restore_after_stop", "") != run_id:
+
+
+            from qgis.core import QgsProject
+
+            self._run_new_layers = [layer_id for layer_id in QgsProject.instance().mapLayers()
+                                    if layer_id not in snapshot.layer_ids]
         diff = None
         if snapshot is not None and snapshot.captured:
             try:

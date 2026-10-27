@@ -6582,6 +6582,11 @@ Haz clic para abrir su página.</translation>
         <name>QuotaCard</name>
         <message>
             <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>Gratis durante 7 días, nada que pagar hoy, y después mensual al precio de tu país. Cancela con un clic.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
             <source>Company paying by invoice? Get 7 free days</source>
             <translation>¿Empresa que paga por factura? Pide 7 días gratis</translation>
         </message>
@@ -6780,8 +6785,8 @@ Haz clic para abrir su página.</translation>
             <translation>Memoria y tus instrucciones</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: más y mejor</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: {n} tareas al mes y tareas más difíciles</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
@@ -8440,6 +8445,10 @@ Haz clic para abrir su página.</translation>
         <message>
             <source>saves an edit into {files}</source>
             <translation>guarda una edición en {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>guarda una edición en {files}, que esta conversación escribió</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>

@@ -4448,6 +4448,11 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>7 gün ücretsiz, bugün ödeyeceğiniz bir şey yok, sonra yerel fiyatınızla aylık. Tek tıkla iptal edin.</translation>
+        </message>
+        <message>
             <source>Autopilot</source>
             <translation>Otopilot</translation>
         </message>
@@ -4528,8 +4533,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Tamam</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: daha fazlası ve daha iyisi</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: Ayda {n} görev ve daha zor görevler</translation>
         </message>
         <message>
             <source>Start 7-day free trial</source>
@@ -5803,6 +5808,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>saves an edit into {files}</source>
             <translation>{files} içine bir düzenleme kaydeder</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>bu görüşmenin yazdığı {files} içine bir düzenleme kaydeder</translation>
         </message>
         <message>
             <source>{name} is installed</source>

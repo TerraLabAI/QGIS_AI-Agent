@@ -79,6 +79,7 @@ def apply_qgis_proxy() -> bool:
 
 
 
+
     from . import net
     from .ws_proxy import qgis_exclusions, resolve_proxy
 
@@ -89,6 +90,18 @@ def apply_qgis_proxy() -> bool:
         found, excluded = None, []
     _share_exclusions(excluded)
     net.set_proxy(_proxy_url(found))
+    try:
+        from . import vsi
+        from .ws_proxy import typed_proxy
+
+
+
+
+        vsi.share_proxy(found if found and found == typed_proxy() else None)
+    except Exception as exc:  # noqa: BLE001
+        from .logger import log_warning
+
+        log_warning(f"QGIS proxy not handed to GDAL: {type(exc).__name__}")
     _apply_qgis_trust(net)
     return net.proxy_in_use() is not None
 

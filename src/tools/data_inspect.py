@@ -1407,20 +1407,15 @@ def _inspect_local_file(path: str) -> dict:
             out["message"] = "No coordinate column."
             out["table_note"] = coded_fact(hint="csv_no_coordinates")
         return out
-    if ext in _LOCAL_VECTOR:
-        out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
-                    "message": "Direct vector import is available."})
-        if ext in (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml"):
-            from .layer_io_tools import _sublayer_names, describe_sublayers
-            names = _sublayer_names(path)
-            if len(names) > 1:
-                out["layers"] = describe_sublayers(path, names)
-                out["message"] = f"Holds {len(names)} layers."
-                out["layers_note"] = coded_fact(hint="local_file_layers_pick", count=len(names))
-        return out
-    if ext in _LOCAL_RASTER:
+
+
+    identify = ext not in _LOCAL_RASTER and ext not in _ANSWERED_BELOW
+    if ext in _LOCAL_VECTOR or (identify and _gdal_reads_vector(path)):
+        return _local_vector_facts(path, name, out)
+    if ext in _LOCAL_RASTER or (identify and _gdal_reads_raster(path)):
         out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
                     "message": "Direct raster import is available."})
+        out.update(_raster_header(path))
         return out
     from .layer_io_tools import point_cloud_provider
     provider = point_cloud_provider(path)
@@ -1461,6 +1456,112 @@ def _inspect_local_file(path: str) -> dict:
         return out
     out["message"] = "Unknown extension."
     out["load_note"] = coded_fact(hint="unknown_extension_file")
+    return out
+
+
+def _local_vector_facts(path: str, name: str, out: dict) -> dict:
+
+
+    from .layer_io_tools import _sublayer_names, describe_sublayers
+
+    out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
+                "message": "Direct vector import is available."})
+    if os.path.splitext(path)[1].lower() in _PARSED_WHOLE and out["size_bytes"] > _PARSED_WHOLE_BYTES:
+
+        out["layers_note"] = "not read before loading: the format has no header and the file is large"
+        return out
+    names = _sublayer_names(path)
+    rows = describe_sublayers(path, names, schema=len(names) <= _SCHEMA_LAYERS) if names else []
+    if os.path.splitext(path)[1].lower() == ".gpx":
+
+        rows = [row for row in rows if row.get("feature_count")] or rows[:1]
+        names = [row["name"] for row in rows]
+    if rows:
+        out["layers"] = rows
+    if len(names) > 1:
+        out["message"] = f"Holds {len(names)} layers."
+        out["layers_note"] = coded_fact(hint="local_file_layers_pick", count=len(names))
+    return out
+
+
+_ANSWERED_BELOW = frozenset({".pdf", ".txt", ".md", ".docx", ".qgs", ".qgz", ".dxf", ".dwg", ".las", ".laz",
+                             ".copc", ".ept", ".vpc"})
+_PARSED_WHOLE = frozenset({".kml", ".kmz", ".gml", ".geojson", ".json", ".gpx"})
+_PARSED_WHOLE_BYTES = 64 * 1024 * 1024
+
+_SCHEMA_LAYERS = 10
+
+_HEADER_BANDS = 8
+
+
+def _gdal_reads_raster(path: str) -> bool:
+
+    try:
+        from osgeo import gdal
+
+        return gdal.IdentifyDriverEx(path, gdal.OF_RASTER) is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _raster_header(path: str) -> dict:
+
+
+    try:
+        from osgeo import gdal
+
+        from .processing_paths import narrow_open_path
+
+        dataset = gdal.OpenEx(narrow_open_path(path)[0], gdal.OF_RASTER | gdal.OF_READONLY)
+    except Exception:  # noqa: BLE001
+        return {}
+    if dataset is None:
+        return {}
+    try:
+        return _header_of(dataset)
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _header_of(dataset) -> dict:
+    from osgeo import gdal
+
+    out = {}
+    variables = [value for key, value in sorted((dataset.GetMetadata("SUBDATASETS") or {}).items())
+                 if key.endswith("_DESC")]
+    if variables:
+        out["variables"] = variables[:40]
+    if dataset.RasterCount:
+        width, height = dataset.RasterXSize, dataset.RasterYSize
+        out.update({"width": width, "height": height, "band_count": dataset.RasterCount})
+        wkt = dataset.GetProjection() or dataset.GetGCPProjection()
+        out["crs"] = crs_ref(QgsCoordinateReferenceSystem.fromWkt(wkt)) if wkt else ""
+        transform = dataset.GetGeoTransform(can_return_null=True)
+        if transform is not None:
+            corners = [(transform[0] + x * transform[1] + y * transform[2],
+                        transform[3] + x * transform[4] + y * transform[5])
+                       for x, y in ((0, 0), (width, 0), (0, height), (width, height))]
+            xs, ys = [c[0] for c in corners], [c[1] for c in corners]
+            out["extent"] = {"xmin": min(xs), "ymin": min(ys), "xmax": max(xs), "ymax": max(ys)}
+            out["pixel_size"] = [abs(transform[1]), abs(transform[5])]
+        bands = []
+        for index in range(1, min(dataset.RasterCount, _HEADER_BANDS) + 1):
+            band = dataset.GetRasterBand(index)
+            nodata = band.GetNoDataValue()
+            row = {"band": index, "data_type": gdal.GetDataTypeName(band.DataType),
+
+                   "nodata": "nan" if nodata is not None and nodata != nodata else nodata,
+                   "colour": gdal.GetColorInterpretationName(band.GetColorInterpretation())}
+            if band.GetDescription():
+                row["description"] = band.GetDescription()
+            if band.GetUnitType():
+                row["unit"] = band.GetUnitType()
+            if band.GetScale() not in (None, 1) or band.GetOffset() not in (None, 0):
+                row.update(scale=band.GetScale(), offset=band.GetOffset())
+            if band.GetColorTable() is not None:
+                row["palette_entries"] = band.GetColorTable().GetCount()
+            bands.append(row)
+        out["bands"] = bands
     return out
 
 
@@ -1558,13 +1659,6 @@ def _inspect_local_folder(folder: str) -> dict:
     return out
 
 
-def _inspect_is_remote(args: dict) -> bool:
-
-
-    url = str(args.get("url") or "").strip()
-    return url.lower().startswith(("http://", "https://"))
-
-
 _DIRECT_IMPORT_EXTS = frozenset({".geojson", ".json", ".gpkg", ".kml", ".csv", ".zip", ".shp"})
 
 
@@ -1644,16 +1738,28 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
     return result
 
 
-def _gone(url: str) -> int | None:
+def _reach(url: str) -> dict:
 
 
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": _USER_AGENT})
+
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Range": "bytes=0-3"})
     try:
-        net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=1024, total_timeout=_PORTAL_TIMEOUT)
+        answer = net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=64, total_timeout=_PORTAL_TIMEOUT)
+    except net.FetchCancelled:
+        raise
+    except net.FetchTooLarge:
+        return {"ranges": False}
+    except urllib.error.HTTPError as exc:
+        return {"status": exc.code}
     except (urllib.error.URLError, OSError) as exc:
-        status = getattr(exc, "code", None)
-        return status if status in (404, 410) else None
-    return None
+        said = net.describe_failure(exc)
+        if said:
+            return {"failure": said, "code": "NETWORK_ERROR"}
+        text = str(getattr(exc, "reason", None) or exc)[:400]
+        proxy = net.proxy_in_use()
+        return {"failure": f"{text} (through the proxy {proxy})" if proxy and proxy not in text else text,
+                "code": "EXECUTION_FAILED"}
+    return {"ranges": True} if any(str(key).lower() == "content-range" for key in (answer.headers or {})) else {}
 
 
 def _landing(url: str) -> tuple[str, dict]:
@@ -1977,15 +2083,32 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
 
 
 
-        status = None if landed else _gone(url)
-        if status:
+
+
+        reach = _reach(url)
+        status = reach.get("status")
+        if status in (404, 410):
             return {"source_family": "not_found", "final_url": url, "status": status,
                     "message": f"HTTP {status} from {url}: there is nothing at this address."}
-        return {"source_family": "remote_file", "final_url": url, "format": streamed.lstrip("."),
-                "import_method": "add_data", "import_arguments": {"source": url, "name": name, "kind": kind},
-                "message": "A remote file." if kind != "raster" else "A NetCDF file.",
-                "load_note": (coded_fact(hint="remote_file_range_read") if kind != "raster"
-                              else coded_fact(hint="remote_netcdf_file"))}
+        if reach.get("failure"):
+            code = reach.get("code") or "EXECUTION_FAILED"
+            return {"_error": f"{url} was not reached, so nothing about the file was checked: {reach['failure']}",
+                    "code": code, "suggestion": "", **({"hint": "network_failed"} if code == "NETWORK_ERROR" else {})}
+        result = {"source_family": "remote_file", "final_url": url, "format": streamed.lstrip("."),
+                  "import_method": "add_data", "import_arguments": {"source": url, "name": name, "kind": kind},
+                  "message": "A remote file." if kind != "raster" else "A NetCDF file."}
+        if status:
+            result["http_status"] = status
+            result["message"] += f" A range request for it answered HTTP {status}."
+        elif "ranges" in reach:
+            result["serves_ranges"] = reach["ranges"]
+        if kind == "raster":
+            result["load_note"] = coded_fact(hint="remote_netcdf_file")
+        elif reach.get("ranges"):
+            result["load_note"] = coded_fact(hint="remote_file_range_read")
+        elif reach.get("ranges") is False:
+            result["load_note"] = coded_fact(hint="remote_file_whole_body")
+        return result
     if lowered.split("?", 1)[0].endswith(_DOWNLOAD_EXTS):
         result = _build_direct_import_result(url, os.path.basename(path) or "dataset", "vector_file",
                                              os.path.basename(path).split(".", 1)[-1])

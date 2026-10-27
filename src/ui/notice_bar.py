@@ -168,7 +168,11 @@ class NoticeBar(QWidget):
         level = notice.get("level") if notice.get("level") in LEVELS else "info"
         full = text.strip()
         shown = _shorten(full, _MAX_TEXT_CHARS)
-        self._notice = {"id": ident, "text": shown, "url": url.strip(), "level": level}
+
+
+        link_text = notice.get("link_text")
+        link_text = link_text.strip()[:40] if isinstance(link_text, str) and link_text.strip() else ""
+        self._notice = {"id": ident, "text": shown, "url": url.strip(), "level": level, "link_text": link_text}
 
 
 
@@ -179,7 +183,7 @@ class NoticeBar(QWidget):
         if self._notice["url"]:
             body += (f' <a href="{html.escape(self._notice["url"], quote=True)}"'
                      f' style="color: {ACCENT_INK}; text-decoration: none; font-weight: 500;">'
-                     f"{html.escape(self.tr('Read more'))}</a>")
+                     f"{html.escape(self._notice['link_text'] or self.tr('Read more'))}</a>")
         self._text.setText(body)
         self._close.setAccessibleName(self.tr("Dismiss"))
         self.show()

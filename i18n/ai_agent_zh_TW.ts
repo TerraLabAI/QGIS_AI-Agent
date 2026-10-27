@@ -6582,6 +6582,11 @@ Click to open its page.</source>
         <name>QuotaCard</name>
         <message>
             <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>免費試用 7 天，今天無需付款，之後按月以您當地價格收費。一鍵即可取消。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
             <source>Company paying by invoice? Get 7 free days</source>
             <translation>公司以發票付款？領取 7 天免費試用</translation>
         </message>
@@ -6780,8 +6785,8 @@ Click to open its page.</source>
             <translation>記憶與您的指示</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro：更多且更好</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro：每月 {n} 項任務，以及更困難的任務</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
@@ -8440,6 +8445,10 @@ Click to open its page.</source>
         <message>
             <source>saves an edit into {files}</source>
             <translation>將編輯儲存至 {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>將編輯儲存到本次對話寫入的 {files} 中</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>

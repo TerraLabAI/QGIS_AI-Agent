@@ -31,6 +31,8 @@ _DEFAULT_LONGEST_PX = 1200
 
 _PIXMAP_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff"})
 
+_PDF_OPEN_DPI = 150.0
+
 
 def crop_box(args: dict):
 
@@ -285,6 +287,16 @@ def _pdf_with_gdal(path: str, args: dict):
         if dataset is None:
             return None, "GDAL has no PDF driver in this QGIS build"
         width, height = _sized(dataset.RasterXSize or 1, dataset.RasterYSize or 1, args)
+
+
+
+
+
+        dpi = _PDF_OPEN_DPI * max(width / float(dataset.RasterXSize or 1),
+                                  height / float(dataset.RasterYSize or 1))
+        if dpi < _PDF_OPEN_DPI / 2:
+            dataset = None
+            dataset = gdal.OpenEx(path, gdal.OF_RASTER, open_options=[f"DPI={max(dpi, 1.0):.3f}"])
         gdal.Translate(memory, dataset, format="PNG", width=width, height=height)
         handle = gdal.VSIFOpenL(memory, "rb")
         if handle is None:

@@ -935,6 +935,8 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
 
             "granted": planned.get("granted") or ce.D,
 
+            "own_files": list(planned.get("own_files") or ()),
+
 
             "temp_dir": tempfile.gettempdir(),
             "max_output_chars": code_guard.MAX_OUTPUT_CHARS,
@@ -982,6 +984,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             if process.poll() is None:
                 _stop(process)
         status = _read_status(status_path)
+        _CHILD_CREATED.paths = [str(p) for p in (status.get("created") or []) if isinstance(p, str)]
 
 
         security.note_own_paths([entry.get("path") for entry in (status.get("files") or [])
@@ -1212,12 +1215,28 @@ def _plan_with_names(code: str, chat: str) -> dict:
     return planned
 
 
+
+_CHILD_CREATED = threading.local()
+
+
 def run(args: dict, run_in_qgis, api_help) -> dict:
 
 
 
 
 
+
+
+    _CHILD_CREATED.paths = []
+    out = _run(args, run_in_qgis, api_help)
+    created = list(getattr(_CHILD_CREATED, "paths", None) or [])
+    _CHILD_CREATED.paths = []
+    if created and isinstance(out, dict):
+        out[code_tripwire.CREATED_KEY] = list(dict.fromkeys(created + list(out.get(code_tripwire.CREATED_KEY) or [])))
+    return out
+
+
+def _run(args: dict, run_in_qgis, api_help) -> dict:
     code = str(args.get("code") or "")
     if not isolation_enabled():
 
@@ -1233,6 +1252,7 @@ def run(args: dict, run_in_qgis, api_help) -> dict:
 
 
     planned["granted"] = code_runtime.current().granted if code_tripwire.enabled() else ce.D
+    planned["own_files"] = sorted(code_runtime.current().own_files)
 
 
 

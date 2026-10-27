@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,7 +20,7 @@ from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.tool_registry import ServedValueMissing, tool_error
-from .data_common import _canvas_viewbox_4326, _fold, _is_number, _service, _viewbox_bounds
+from .data_common import _canvas_viewbox_4326, _fold, _footprint_box, _is_number, _service, _viewbox_bounds
 from .data_geocoding import (
     _PLACE_AREA_LAYERS,
     _arrondissement_key,
@@ -538,7 +539,7 @@ def _outline_of_place(name: str):
                       hint="no_outline")
 
 
-def _osm_outline(hit: dict, name: str):
+def _osm_outline(hit: dict, name: str, labelled: bool = False):
 
 
 
@@ -567,7 +568,8 @@ def _osm_outline(hit: dict, name: str):
     polys = _rings_of(first.get("geojson"))
     if not polys:
         return None
-    label = str(hit.get("display_name") or name).split(",")[0].strip() or str(name)
+    label = str(hit.get("display_name") or (first.get("display_name") if labelled else "") or name
+                ).split(",")[0].strip() or str(name)
     what = str(hit.get("osm_value") or hit.get("type") or "place")
     return {"polys": polys, "label": label,
             "outline_source": f"OpenStreetMap outline of the {what} {label} ({letter}{number})"}
@@ -692,7 +694,42 @@ def _one_side_of_antimeridian(made: dict) -> None:
             f" and left out {len(polys) - len(kept)}; load those with a bbox of their own if needed.")
 
 
-def _resolve_outline(clip_to: str, layers: bool = True):
+
+
+_REFERENCE = re.compile(r"OV-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})|([RW])([0-9]{1,12})")
+
+
+def _outline_by_reference(reference: str, raw_box):
+
+
+
+
+
+
+    found = _REFERENCE.fullmatch(reference)
+    division, letter, number = found.group(1), found.group(2), found.group(3)
+    if letter:
+        made = _osm_outline({"osm_type": letter, "osm_id": number}, reference, labelled=True)
+        return {**made, "reference": reference} if made is not None else tool_error(
+            f"The OpenStreetMap outline {reference} could not be read.", "EXECUTION_FAILED")
+    box, _problem = _footprint_box(raw_box) if raw_box else (None, "")
+    if box is None:
+        return tool_error(f"{reference} is read with the bbox around it, and the call has none.", "INVALID_ARGS")
+    payload = _overture_call("divisions", box, where=f"division_id={division}")
+    if payload.get("_error"):
+        return payload
+    for feature in payload.get("features") or []:
+        props = feature.get("properties") or {}
+        polys = _rings_of(feature.get("geometry"))
+        if polys and str(props.get("division_id") or "") == division:
+            subtype = str(props.get("subtype") or "")
+            return {"polys": polys, "label": str(props.get("name") or reference), "reference": reference,
+                    "outline_source": f"Overture divisions, subtype {subtype}",
+                    "division": {"subtype": subtype, "country": props.get("country"), "region": props.get("region")}}
+    return tool_error(f"No division {reference} lies in the bbox the call gave.", "INVALID_ARGS")
+
+
+def _resolve_outline(clip_to: str, layers: bool = True, box=None):
 
 
 
@@ -701,7 +738,9 @@ def _resolve_outline(clip_to: str, layers: bool = True):
 
 
 
-    made = _outline_of_layer(clip_to) if layers else None
+    made = _outline_by_reference(clip_to, box) if _REFERENCE.fullmatch(clip_to) else None
+    if made is None and layers:
+        made = _outline_of_layer(clip_to)
     if made is None:
         made = _outline_of_place(clip_to)
     if not isinstance(made, dict) or made.get("_error"):

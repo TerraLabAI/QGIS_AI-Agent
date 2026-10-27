@@ -6582,6 +6582,11 @@ Klik untuk membuka halamannya.</translation>
         <name>QuotaCard</name>
         <message>
             <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>Gratis selama 7 hari, tidak ada yang dibayar hari ini, lalu bulanan dengan harga lokal Anda. Batalkan dengan satu klik.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
             <source>Company paying by invoice? Get 7 free days</source>
             <translation>Perusahaan membayar dengan faktur? Dapatkan 7 hari gratis</translation>
         </message>
@@ -6780,8 +6785,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>Memori dan instruksi Anda</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: lebih banyak, lebih baik</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: {n} tugas per bulan dan tugas yang lebih sulit</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
@@ -8440,6 +8445,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>saves an edit into {files}</source>
             <translation>menyimpan edit ke {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>menyimpan suntingan ke {files}, yang ditulis oleh percakapan ini</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>

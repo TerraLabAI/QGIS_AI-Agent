@@ -15,6 +15,7 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from . import code_effects as ce
 from . import (
+    code_tripwire,
     layer_egress,
     layout_show,
     licence,
@@ -225,6 +226,11 @@ class _ExecutorDeliver:
             result["waited_for_backup_s"] = round(phases["backup_ms"] / 1000)
         protocol.note_phases(tool_call_id, phases)
         if name == CODE_TOOL and isinstance(result, dict):
+
+
+            created = result.pop(code_tripwire.CREATED_KEY, None)
+            if isinstance(created, list) and run_id not in self._cancelled:
+                self._note_own_files(run_id, [str(path) for path in created if isinstance(path, str)])
             if result.get("needs_permission") and run_id not in self._cancelled:
                 self._code_tripped(call, result)
                 return
@@ -399,7 +405,7 @@ class _ExecutorDeliver:
 
         created = [path for path in call.get("creates") or () if os.path.isfile(path)]
         if created:
-            self._own_files.setdefault(run_id, set()).update(created)
+            self._note_own_files(run_id, created)
 
 
         security.note_own_paths(list(written or ()) + created)

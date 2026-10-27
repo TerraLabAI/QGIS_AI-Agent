@@ -11,7 +11,6 @@
 
 from __future__ import annotations
 
-import codecs
 import csv
 import io
 import itertools
@@ -25,7 +24,7 @@ from qgis.PyQt.QtCore import QUrl
 
 from ..core import tuning
 from ..core.background import on_main_thread, run_on_main_thread
-from ..core.host_platform import IS_WINDOWS
+from ..core.text_encoding import detect_encoding
 from ..core.tool_registry import coded_fact, tool_error
 from .data_common import built_here, worker_options
 
@@ -42,57 +41,6 @@ def _column_names(kind: str) -> list:
 
 
     return ((tuning.service_doc("vocab_rules") or {}).get("csv_columns") or {}).get(kind) or []
-
-
-def detect_encoding(sample: bytes) -> str:
-
-
-
-
-
-
-
-
-
-    if sample.startswith(codecs.BOM_UTF8):
-        return "UTF-8"
-    if sample.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
-
-        return "UTF-16"
-    try:
-
-
-
-        codecs.getincrementaldecoder("utf-8")().decode(sample, final=False)
-    except UnicodeDecodeError:
-        return _ansi_encoding()
-    return "UTF-8"
-
-
-
-
-_ANSI_NAMES = {874: "cp874", 932: "Shift_JIS", 936: "GBK", 949: "EUC-KR", 950: "Big5",
-               **{page: f"windows-{page}" for page in range(1250, 1259)}}
-
-
-def _ansi_encoding() -> str:
-
-
-
-
-
-
-
-    if IS_WINDOWS:
-        try:
-            import ctypes
-
-            name = _ANSI_NAMES.get(int(ctypes.windll.kernel32.GetACP()))
-            if name:
-                return name
-        except Exception:  # nosec B110
-            pass
-    return "windows-1252"
 
 
 def sniff(path: str) -> dict:
@@ -411,6 +359,11 @@ def _off_project(path: str, named, extent):
         coordinates=box, **facts)
 
 
+def _rounded_box(extent) -> list:
+    return [round(extent.xMinimum(), 3), round(extent.yMinimum(), 3),
+            round(extent.xMaximum(), 3), round(extent.yMaximum(), 3)]
+
+
 def _projected_source(path: str, layer, info: dict, crs: str | None):
 
 
@@ -453,7 +406,7 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
         return tool_error(
             f"PROJECTED_COORDINATES: {base} was asked for in {crs}, a longitude/latitude CRS, but its "
             f"{columns} hold projected coordinates ({numbers}). Nothing was loaded.",
-            "INVALID_ARGS", hint="csv_projected_coordinates", variant="given")
+            "INVALID_ARGS", hint="csv_projected_coordinates", variant="given", coordinates=_rounded_box(extent))
     sidecar = _sidecar_crs(path)
     if sidecar is not None:
         found, prj = sidecar
@@ -482,7 +435,9 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
         return tool_error(message, "INVALID_ARGS", hint="csv_projected_coordinates", variant="landing",
                           candidate_crs=candidate_crs, crs=landing[0]["crs"],
                           lands_on=[repr(n) for n in landing[0]["lands_on"]])
-    return tool_error(message, "INVALID_ARGS", hint="csv_projected_coordinates", candidate_crs=candidate_crs)
+
+    return tool_error(message, "INVALID_ARGS", hint="csv_projected_coordinates", candidate_crs=candidate_crs,
+                      coordinates=_rounded_box(extent))
 
 
 def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:

@@ -116,6 +116,10 @@ def _vector_uri_for(path: str) -> str:
 
 
 
+    from .processing_paths import narrow_open_path
+
+
+    path = narrow_open_path(path)[0]
     if not path.lower().endswith(_READ_WHOLE):
         return path
     try:
@@ -248,6 +252,34 @@ def query_sublayers(uri: str, flags=None) -> list:
     registry = QgsProviderRegistry.instance()
     with _OGR_OPENS:
         return registry.querySublayers(uri) if flags is None else registry.querySublayers(uri, flags)
+
+
+
+READ_THROUGH_MAX_BYTES = 1 << 30
+_READ_THROUGH_CHUNK = 8 << 20
+
+
+def read_through(path: str) -> None:
+
+
+
+
+
+
+
+
+
+    if on_main_thread():
+        return
+    try:
+        if not os.path.isfile(path) or os.path.getsize(path) > READ_THROUGH_MAX_BYTES:
+            return
+        with open(path, "rb") as handle:
+            while handle.read(_READ_THROUGH_CHUNK):
+                if net.is_cancelled():
+                    return
+    except OSError:
+        return
 
 
 def worker_options(kind=QgsVectorLayer):

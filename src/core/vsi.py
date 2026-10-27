@@ -213,7 +213,85 @@ def _qgis_extra_cas() -> bytes:
         return b""
 
 
+
+
+
+
+CA_KEYS = ("GDAL_CURL_CA_BUNDLE", "CURL_CA_BUNDLE", "SSL_CERT_FILE")
+_OWN_BUNDLES = ("gdal-ca-bundle.pem", "gdal-chain-bundle.pem")
+
+
+def _base_bundle() -> bytes:
+
+
+
+
+
+
+
+    try:
+        from osgeo import gdal
+
+
+
+        named = [value for key in CA_KEYS for value in (gdal.GetConfigOption(key), os.environ.get(key))]
+    except Exception:  # noqa: BLE001
+        named = [os.environ.get(key) for key in CA_KEYS]
+    paths = []
+    for path in named:
+        if path and os.path.basename(path) not in _OWN_BUNDLES and path not in paths and os.path.isfile(path):
+            paths.append(path)
+    if not paths:
+        import sys
+
+        from .host_platform import IS_WINDOWS
+
+        if IS_WINDOWS:
+
+
+            folder = os.path.dirname(sys.executable)
+            system = os.path.join(folder, "curl-ca-bundle.crt")
+        else:
+            import ssl
+
+            system = ssl.get_default_verify_paths().openssl_cafile
+        if system and os.path.isfile(system):
+            paths.append(system)
+    parts = []
+    for path in paths:
+        with open(path, "rb") as handle:
+            body = handle.read()
+        parts.append(body if body.endswith(b"\n") else body + b"\n")
+    return b"".join(parts)
+
+
+def _write_bundle(name: str, parts) -> str | None:
+
+    from .host_platform import retry_file_op
+    from .policy import AGENT_HOME
+
+    target = os.path.join(AGENT_HOME, "certs", name)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+
+
+
+    temp = target + ".new"
+    with open(temp, "wb") as handle:
+        for part in parts:
+            if part:
+                handle.write(part if part.endswith(b"\n") else part + b"\n")
+    try:
+        retry_file_op(os.replace, temp, target)
+    except OSError:
+
+
+        return target if os.path.exists(target) else None
+    return target
+
+
 def _ca_bundle_with_qgis_extras():
+
+
 
 
 
@@ -230,43 +308,18 @@ def _ca_bundle_with_qgis_extras():
     extra = _qgis_extra_cas() if on_main_thread() else run_on_main_thread(_qgis_extra_cas, timeout=10)
     if not extra:
         return None
-    import os
+    base = _base_bundle()
+    if not base:
+        from .host_platform import IS_WINDOWS
 
-    from .host_platform import retry_file_op
-    from .policy import AGENT_HOME
-
-    current = None
-    try:
-        from osgeo import gdal
-
-        current = gdal.GetConfigOption("GDAL_CURL_CA_BUNDLE")
-    except Exception:  # noqa: BLE001  # nosec B110
-        pass
-    current = current or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")
-    if not current or not os.path.exists(current):
+        if IS_WINDOWS:
 
 
+            return None
+        base = _qgis_trusted_pem() if on_main_thread() else run_on_main_thread(_qgis_trusted_pem, timeout=10)
+    if not base or extra in base:
         return None
-    with open(current, "rb") as handle:
-        base = handle.read()
-    if extra in base:
-        return None
-    target = os.path.join(AGENT_HOME, "certs", "gdal-ca-bundle.pem")
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-
-
-
-
-
-    temp = target + ".new"
-    with open(temp, "wb") as handle:
-        handle.write(base if base.endswith(b"\n") else base + b"\n")
-        handle.write(extra)
-    try:
-        retry_file_op(os.replace, temp, target)
-    except OSError:
-        return target if os.path.exists(target) else None
-    return target
+    return _write_bundle("gdal-ca-bundle.pem", (base, extra))
 
 
 
@@ -300,37 +353,11 @@ def _chain_bundle():
     if not intermediates:
         return None
     trusted = _qgis_trusted_pem() if on_main_thread() else run_on_main_thread(_qgis_trusted_pem, timeout=10)
-    current = None
-    try:
-        from osgeo import gdal
-
-        current = gdal.GetConfigOption("GDAL_CURL_CA_BUNDLE")
-    except Exception:  # noqa: BLE001  # nosec B110
-        pass
-    current = current or os.environ.get("CURL_CA_BUNDLE") or os.environ.get("SSL_CERT_FILE")
-    base = b""
-    if current and os.path.exists(current):
-        with open(current, "rb") as handle:
-            base = handle.read()
+    base = _base_bundle()
     if not base and not trusted:
 
         return None
-    from .host_platform import retry_file_op
-    from .policy import AGENT_HOME
-
-    target = os.path.join(AGENT_HOME, "certs", "gdal-chain-bundle.pem")
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-    temp = target + ".new"
-    with open(temp, "wb") as handle:
-        for part in (base, trusted, intermediates):
-            if part:
-                handle.write(part if part.endswith(b"\n") else part + b"\n")
-    try:
-        retry_file_op(os.replace, temp, target)
-    except OSError:
-
-        return target if os.path.exists(target) else None
-    return target
+    return _write_bundle("gdal-chain-bundle.pem", (base, trusted, intermediates))
 
 
 def _apply_chain_bundle(gdal, per_path) -> None:
@@ -343,7 +370,8 @@ def _apply_chain_bundle(gdal, per_path) -> None:
         return
     for host in missing_roots.intermediate_hosts():
         for prefix in _CHAIN_PREFIXES:
-            per_path(f"{prefix}https://{host}/", "GDAL_CURL_CA_BUNDLE", bundle)
+            for key in CA_KEYS:
+                per_path(f"{prefix}https://{host}/", key, bundle)
 
 
 def apply_persistent() -> bool:
@@ -378,7 +406,10 @@ def apply_persistent() -> bool:
     except Exception:  # noqa: BLE001
         bundle = None
     if bundle:
-        gdal.SetConfigOption("GDAL_CURL_CA_BUNDLE", bundle)
+
+
+        for key in CA_KEYS:
+            gdal.SetConfigOption(key, bundle)
     try:
         _apply_chain_bundle(gdal, per_path)
     except MainThreadBusy:
@@ -389,6 +420,56 @@ def apply_persistent() -> bool:
         log_warning(f"Intermediates not handed to GDAL: {exc}")
     _state["applied"] = True
     return True
+
+
+
+
+_PROXY_KEYS = ("GDAL_HTTP_PROXY", "GDAL_HTTP_PROXYUSERPWD")
+_PROXY_PREFIXES = STREAMED_PREFIXES
+_proxy_state: dict = {"set": None}
+
+
+def share_proxy(found: dict | None) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if os.environ.get("GDAL_HTTP_PROXY") or os.environ.get("GDAL_HTTPS_PROXY"):
+        return
+    value = None
+    if found and found.get("host"):
+        port = found.get("port") or 0
+        user = str(found.get("user") or "")
+        value = (f"{found['host']}{':' + str(port) if port else ''}",
+                 f"{user}:{found.get('password') or ''}" if user else None)
+    if value == _proxy_state["set"]:
+        return
+    try:
+        from osgeo import gdal
+    except ImportError:
+        return
+    per_path = getattr(gdal, "SetPathSpecificOption", None)
+    if per_path is None:
+
+        if value and not gdal.GetConfigOption("GDAL_HTTP_PROXY"):
+            gdal.SetConfigOption("GDAL_HTTP_PROXY", value[0])
+            if value[1]:
+                gdal.SetConfigOption("GDAL_HTTP_PROXYUSERPWD", value[1])
+        _proxy_state["set"] = value
+        return
+    for prefix in _PROXY_PREFIXES:
+        for key, part in zip(_PROXY_KEYS, value or (None, None)):
+            per_path(prefix, key, part)
+    _proxy_state["set"] = value
 
 
 @contextlib.contextmanager

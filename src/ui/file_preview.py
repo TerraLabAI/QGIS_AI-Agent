@@ -151,9 +151,9 @@ def _read_text(path: str) -> tuple[str, bool] | None:
     except UnicodeDecodeError:
 
 
-        from ..tools.csv_loader import _ansi_encoding
+        from ..core.text_encoding import ansi_encoding
 
-        text = data.decode(_ansi_encoding(), errors="replace")
+        text = data.decode(ansi_encoding(), errors="replace")
     return text, cut
 
 

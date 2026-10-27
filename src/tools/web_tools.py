@@ -676,6 +676,12 @@ def _add_points_from_json(args: dict) -> dict:
         records = [records]
     if not isinstance(records, list):
         return tool_error("records_path does not point to a list.", "INVALID_ARGS", hint="records_path_not_list")
+    if not records:
+
+
+
+        return tool_error("The answer holds no record, so there is nothing to place.", "INVALID_ARGS",
+                          hint="no_records", records=0)
     ceiling = limits.current("MAX_FEATURES_PER_CALL")
     try:
         limit = max(1, min(int(args.get("limit") or ceiling), ceiling))

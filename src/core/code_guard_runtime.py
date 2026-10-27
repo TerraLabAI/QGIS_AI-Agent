@@ -260,7 +260,10 @@ _SYS_ALLOWED = (
 
 
 
-_IO_ALLOWED = ("StringIO", "BytesIO", "TextIOBase", "IOBase", "RawIOBase", "BufferedIOBase", "DEFAULT_BUFFER_SIZE")
+
+
+_IO_ALLOWED = ("StringIO", "BytesIO", "TextIOWrapper", "TextIOBase", "IOBase", "RawIOBase", "BufferedIOBase",
+               "DEFAULT_BUFFER_SIZE")
 
 
 
@@ -573,6 +576,21 @@ def workspace_cwd():
                 os.chdir(previous)
 
 
+def _read_encoding(file) -> str:
+
+
+
+    from .text_encoding import detect_encoding
+
+    try:
+        with py_builtins.open(file, "rb") as handle:
+            head = handle.read(1 << 20)
+    except OSError:
+        return "utf-8-sig"
+    found = detect_encoding(head)
+    return "utf-8-sig" if found == "UTF-8" else found.lower()
+
+
 def _guarded_open(file, mode="r", *args, **kwargs):
     from .security import anchor, validate_path
 
@@ -599,10 +617,13 @@ def _guarded_open(file, mode="r", *args, **kwargs):
 
 
 
+
+
+
     if "b" not in str(mode):
         new_csv = writing and os.path.splitext(os.fspath(file))[1].lower() == ".csv"
-        if len(args) < 2:
-            kwargs.setdefault("encoding", "utf-8-sig" if new_csv or not writing else "utf-8")
+        if len(args) < 2 and "encoding" not in kwargs:
+            kwargs["encoding"] = "utf-8-sig" if new_csv else "utf-8" if writing else _read_encoding(file)
         if new_csv and len(args) < 4:
             kwargs.setdefault("newline", "")
     return py_builtins.open(file, mode, *args, **kwargs)

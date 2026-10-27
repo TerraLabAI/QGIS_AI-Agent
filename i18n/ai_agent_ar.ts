@@ -4404,6 +4404,11 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>مجاني لمدة 7 أيام، ولا شيء تدفعه اليوم، ثم اشتراك شهري بسعرك المحلي. يمكنك الإلغاء بنقرة واحدة.</translation>
+        </message>
+        <message>
             <source>Autopilot</source>
             <translation>الطيار الآلي</translation>
         </message>
@@ -4484,8 +4489,8 @@ Click to show it in the Layers panel.</source>
             <translation>موافق</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: المزيد والأفضل</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: {n} مهمة شهريًا ومهام أصعب</translation>
         </message>
         <message>
             <source>Start 7-day free trial</source>
@@ -5759,6 +5764,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>saves an edit into {files}</source>
             <translation>يحفظ تعديلاً في {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>يحفظ تعديلاً في {files}، وهو ملف كتبته هذه المحادثة</translation>
         </message>
         <message>
             <source>{name} is installed</source>

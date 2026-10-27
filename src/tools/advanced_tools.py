@@ -70,6 +70,10 @@ def register_advanced_tools(registry: ToolRegistry):
 
 
 
+            "x-own-files": True,
+
+
+
             "x-workspace": True,
 
 

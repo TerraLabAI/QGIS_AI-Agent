@@ -576,16 +576,18 @@ class _HillshadeTask(QgsTask):
 
 
         over_http = self.source.startswith(_REMOTE_PREFIXES)
+
+        set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
         try:
             if over_http:
-                gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+                set_option("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
             self.error = self._shade(gdal)
         except Exception as e:
             self.error = f"{type(e).__name__}: {e}"
         finally:
             if over_http:
                 try:
-                    gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", None)
+                    set_option("GDAL_DISABLE_READDIR_ON_OPEN", None)
                 except Exception:  # nosec B110
                     pass
         if not self.error and not self.isCanceled():

@@ -22,7 +22,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
-from ..core import ground, limits
+from ..core import ground, limits, text_encoding
 from ..core.background import (
     delete_here,
     hand_over,
@@ -42,7 +42,7 @@ from ..core.tool_registry import coded_fact, tool_error
 from . import vector_write
 from ._compat import FIELD_TYPES
 from .csv_loader import CSV_EXTENSIONS, add_csv
-from .data_common import built_here, ogr_opens, query_sublayers, worker_options
+from .data_common import built_here, ogr_opens, query_sublayers, read_through, worker_options
 from .layer_lookup import _find_layer, _layer_not_found_error, require_vector
 from .missing_file import missing_file
 
@@ -116,14 +116,53 @@ def _source_exists(path: str) -> bool:
         return True
 
 
-def _sublayer_names(path: str) -> list:
+def _vector_dataset(path: str):
+
+
+
+
+
+
+
+
 
     try:
-        details = query_sublayers(path)
-        names = [d.name() for d in details if d.providerKey() == "ogr" and d.name()]
-        return list(dict.fromkeys(names))
+        from osgeo import gdal
+
+        from .processing_paths import narrow_open_path
+
+        return gdal.OpenEx(narrow_open_path(path)[0], gdal.OF_VECTOR | gdal.OF_READONLY)
     except Exception:  # noqa: BLE001
+        return None
+
+
+
+_SYSTEM_TABLES = frozenset({"layer_styles", "qgis_projects"})
+_SQLITE_GEOMETRY_INDEX = re.compile(r"idx_.*_geom(etry)?($|_.*)", re.IGNORECASE)
+
+
+def _listed_tables(dataset) -> list:
+
+    driver = dataset.GetDriver().ShortName
+    is_private = getattr(dataset, "IsLayerPrivate", None)
+    tables = []
+    for index in range(dataset.GetLayerCount()):
+        table = dataset.GetLayer(index)
+        name = table.GetName() if table is not None else ""
+        if not name or name in _SYSTEM_TABLES or (driver == "SQLite" and _SQLITE_GEOMETRY_INDEX.search(name)):
+            continue
+        if is_private is not None and is_private(index):
+            continue
+        tables.append(table)
+    return tables
+
+
+def _sublayer_names(path: str) -> list:
+
+    dataset = _vector_dataset(path)
+    if dataset is None:
         return []
+    return list(dict.fromkeys(table.GetName() for table in _listed_tables(dataset)))
 
 
 def container_layers(source: str) -> list | None:
@@ -218,8 +257,10 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
     verdicts: dict = {}
 
 
+
     readdir = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_DISABLE_READDIR_ON_OPEN", None)
-    gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
+    set_option("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
     gdal.PushErrorHandler("CPLQuietErrorHandler")
     try:
         for name in files:
@@ -241,7 +282,7 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
                 found.setdefault((os.path.splitext(name)[0].lower(), driver_name), []).append(name)
     finally:
         gdal.PopErrorHandler()
-        gdal.SetThreadLocalConfigOption("GDAL_DISABLE_READDIR_ON_OPEN", readdir)
+        set_option("GDAL_DISABLE_READDIR_ON_OPEN", readdir)
     vectors, tables, texts = [], [], []
     for (_stem, driver_name), members in found.items():
         if driver_name == _TEXT_TABLE:
@@ -317,28 +358,157 @@ def members_matching(names: list, wanted: str) -> list:
     return []
 
 
-def describe_sublayers(path: str, names: list) -> list:
+def _table_wkb_type(table) -> int:
+
+
+    from osgeo import ogr
+
+    kind = table.GetGeomType()
+    if ogr.GT_Flatten(kind) == ogr.wkbUnknown:
+        table.ResetReading()
+        for feature in table:
+            geometry = feature.GetGeometryRef()
+            if geometry is not None:
+                kind = geometry.GetGeometryType()
+                break
+        table.ResetReading()
+
+    return ogr.GT_Flatten(kind) + (1000 if ogr.GT_HasZ(kind) else 0) + (2000 if ogr.GT_HasM(kind) else 0)
+
+
+def _geometry_word(wkb_type: int) -> str:
+    from qgis.core import Qgis
+
+    try:
+        kind = Qgis.WkbType(wkb_type)
+    except (AttributeError, TypeError, ValueError):
+        kind = QgsWkbTypes.Type(wkb_type)
+    return QgsWkbTypes.displayString(kind)
+
+
+def _table_crs(table) -> str:
+    reference = table.GetSpatialRef()
+    if reference is None:
+        return ""
+    try:
+        wkt = reference.ExportToWkt(["FORMAT=WKT2_2018"])
+    except Exception:  # noqa: BLE001
+        wkt = reference.ExportToWkt()
+    return crs_ref(QgsCoordinateReferenceSystem.fromWkt(wkt))
+
+
+def describe_sublayers(path: str, names: list, schema: bool = False) -> list:
 
 
 
 
 
-    options = QgsVectorLayer.LayerOptions() if on_main_thread() else worker_options()
+    dataset = _vector_dataset(path)
     out = []
     for name in names:
-        with ogr_opens():
-            probe = QgsVectorLayer(f"{path}|layername={name}", name, "ogr", options)
-        if not probe.isValid():
+        table = dataset.GetLayerByName(name) if dataset is not None else None
+        if table is None:
             out.append({"name": name, "valid": False})
-        else:
-            out.append({
-                "name": name,
-                "geometry": QgsWkbTypes.displayString(probe.wkbType()),
-                "feature_count": probe.featureCount(),
-                "crs": crs_ref(probe.crs()),
-            })
-        delete_here(probe)
+            continue
+        row = {
+            "name": name,
+            "geometry": _geometry_word(_table_wkb_type(table)),
+            "feature_count": table.GetFeatureCount() if not schema or _reads_cheaply(table, path) else None,
+            "crs": _table_crs(table),
+        }
+        if schema:
+            row.update(_table_schema(table, path))
+            if row["feature_count"] is None:
+                row["feature_count_note"] = "not counted: the format keeps no count and the file is large"
+        out.append(row)
     return out
+
+
+
+_SCHEMA_FIELDS = 60
+
+_SCHEMA_SCAN_BYTES = 64 * 1024 * 1024
+
+
+def _small(path: str) -> bool:
+    try:
+        return os.path.getsize(path) <= _SCHEMA_SCAN_BYTES
+    except OSError:
+        return True
+
+
+def _reads_cheaply(table, path: str) -> bool:
+
+    from osgeo import ogr
+
+    return bool(table.TestCapability(ogr.OLCFastFeatureCount)) or _small(path)
+
+
+def _table_schema(table, path: str) -> dict:
+
+
+
+
+
+
+    from osgeo import ogr
+
+    out = {}
+    definition = table.GetLayerDefn()
+    count = definition.GetFieldCount()
+    encoding = _declared_encoding(table)
+    names = [definition.GetFieldDefn(i).GetName() for i in range(min(count, _SCHEMA_FIELDS))]
+    readable = [_readable(name, encoding) for name in names]
+    out["fields"] = [{"name": name, "type": definition.GetFieldDefn(i).GetTypeName()}
+                     for i, name in enumerate(readable)]
+    if readable != names:
+        out["names_encoding"] = f"the file declares none; read as {encoding or text_encoding.ansi_encoding()}"
+    if count > _SCHEMA_FIELDS:
+        out["field_count"] = count
+    if table.GetGeomType() != ogr.wkbNone:
+        if table.TestCapability(ogr.OLCFastGetExtent) or _small(path):
+            try:
+
+                box = table.GetExtent(can_return_null=True)
+            except Exception:  # noqa: BLE001
+                box = None
+            if box:
+                out["extent"] = {"xmin": box[0], "ymin": box[2], "xmax": box[1], "ymax": box[3]}
+    if encoding:
+        out["encoding"] = encoding
+    return out
+
+
+def _declared_encoding(table) -> str:
+
+
+
+
+
+    for key in ("SOURCE_ENCODING", "ENCODING_FROM_CPG", "ENCODING_FROM_LDID"):
+        value = table.GetMetadataItem(key, "SHAPEFILE")
+        if value:
+            return value
+    return ""
+
+
+def _readable(text: str, encoding: str = "") -> str:
+
+
+
+
+
+
+    if not any(0xDC80 <= ord(char) <= 0xDCFF for char in text):
+        return text
+    raw = text.encode("utf-8", "surrogateescape")
+    for name in (encoding, text_encoding.ansi_encoding()):
+        try:
+            if name:
+                return raw.decode(name)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw.decode("utf-8", "replace")
 
 
 _REMOTE_VECTOR_PREFIXES = ("http://", "https://", "/vsicurl/")
@@ -405,6 +575,9 @@ def _cad_crs_question(path: str, name: str) -> dict:
             candidate_crs=candidate_crs,
             variant="candidates" if candidate_crs else "none", layer=name, cad=True,
             declared=found.get("crs") or "", candidates=candidate_crs,
+
+            coordinates=[round(v, 3) for v in (probe.extent().xMinimum(), probe.extent().yMinimum(),
+                                                 probe.extent().xMaximum(), probe.extent().yMaximum())],
 
 
             **_VERDICT_FACT.get(found["verdict"], {}))
@@ -764,7 +937,13 @@ def _add_vector_layer(args: dict) -> dict:
                 added["gml"] = real_path
             return added
 
-    uri = path
+
+    read_through(real_path)
+    from .processing_paths import narrow_open_path
+
+
+    opened, unopenable = narrow_open_path(file_part)
+    uri = opened + path[len(file_part):]
     wanted = str(args.get("layer") or "").strip()
     archive_members: list = []
     if path.lower().endswith(".zip"):
@@ -811,6 +990,11 @@ def _add_vector_layer(args: dict) -> dict:
                 return tool_error(f"No file named {wanted!r} in {os.path.basename(path)}.",
                                   hint="archive_file_not_found", files=(members + tables or names)[:50])
             members = picked
+        inner = [n for n in names if n.lower().endswith(".zip") and not n.startswith("__MACOSX/")]
+        if not members and not tables and inner:
+
+
+            return _add_inner_zips(path, inner, args)
         if not members:
             return tool_error(f"{os.path.basename(path)} holds no vector file QGIS reads.",
                               hint="archive_no_vector_file", files=names[:50])
@@ -902,7 +1086,8 @@ def _add_vector_layer(args: dict) -> dict:
             if archive_members:
                 return tool_error(f"Failed to load vector layer from: {uri}", hint="archive_member_load_failed",
                                   layers=archive_members[:50])
-            return tool_error(f"Failed to load vector layer from: {uri}")
+            return tool_error(f"Failed to load vector layer from: {uri}"
+                              + (f": {unopenable}" if unopenable else ""))
         split = facts.get("split") if built is not None else on_main.get("split")
         crs_outcome = _apply_requested_crs(layer, args.get("crs"))
         if not still_awaited():
@@ -931,6 +1116,9 @@ def _add_vector_layer(args: dict) -> dict:
         if facts.get("left_out"):
             out["not_loaded"] = split_left_out_note(facts["left_out"])
         out.update(crs_outcome)
+        if layer.customProperty(_ENCODING_PROPERTY):
+            out["encoding"] = (f"{layer.customProperty(_ENCODING_PROPERTY)}: the DBF declares no code page "
+                               "and its text is not UTF-8")
         if split is not None:
             from .vector_merge import split_note
 
@@ -939,6 +1127,38 @@ def _add_vector_layer(args: dict) -> dict:
         return out
 
     return _on_main_with(built, build_on_main, add)
+
+
+
+_INNER_ZIPS = 20
+
+
+def _add_inner_zips(path: str, inner: list, args: dict) -> dict:
+
+
+    import shutil
+    import zipfile
+
+    folder = create_managed_temp_dir("unzipped")
+    local = []
+    with zipfile.ZipFile(path) as archive:
+        for member in inner[:_INNER_ZIPS]:
+            target = os.path.join(folder, f"{len(local)}_{os.path.basename(member)}")
+            with archive.open(member) as source, open(target, "wb") as sink:
+                shutil.copyfileobj(source, sink)
+            local.append(target)
+    if len(local) == 1:
+        added = _add_vector_layer({**args, "path": local[0]})
+        if isinstance(added, dict):
+            added["inner_archive"] = inner[0]
+        return added
+    return {
+        "path": path,
+        "layers": inner[:_INNER_ZIPS],
+        "local_paths": local,
+        "_note": f"{os.path.basename(path)} holds {len(inner)} zip files, none added yet.",
+        **coded_fact(hint="archive_files_listed", archive=os.path.basename(path), count=len(inner)),
+    }
 
 
 def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
@@ -959,7 +1179,44 @@ def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
             if rebuilt.isValid():
                 return rebuilt, split
             delete_here(rebuilt)
-    return QgsVectorLayer(uri, name, "ogr", options), None
+    layer = QgsVectorLayer(uri, name, "ogr", options)
+    encoding = _undeclared_dbf_encoding(real_path)
+    if encoding and layer.isValid():
+
+
+        layer.setProviderEncoding(encoding)
+        layer.setCustomProperty(_ENCODING_PROPERTY, encoding)
+    return layer, None
+
+
+_ENCODING_PROPERTY = "terralab/encoding_read"
+
+
+def _undeclared_dbf_encoding(path: str) -> str:
+
+
+
+
+
+
+    stem, ext = os.path.splitext(path)
+    if ext.lower() not in (".shp", ".dbf"):
+        return ""
+    dbf = next((stem + suffix for suffix in (".dbf", ".DBF") if os.path.isfile(stem + suffix)), "")
+    if not dbf or any(os.path.isfile(stem + suffix) for suffix in (".cpg", ".CPG")):
+        return ""
+    try:
+        with open(dbf, "rb") as fh:
+            head = fh.read(32)
+            if len(head) < 32 or head[29] != 0:
+                return ""
+            header_size = int.from_bytes(head[8:10], "little")
+            fh.seek(header_size)
+            sample = fh.read(65536)
+    except OSError:
+        return ""
+    found = text_encoding.detect_encoding(sample)
+    return "" if found == "UTF-8" else found
 
 
 
@@ -980,7 +1237,9 @@ def _apply_requested_crs(layer, wanted) -> dict:
     declared = provider.crs() if provider is not None else layer.crs()
     wanted = str(wanted or "").strip()
     if not wanted:
-        if declared.isValid() or layer.crs().isValid():
+
+
+        if declared.isValid() or layer.crs().isValid() or not layer.isSpatial():
             return {}
         return {"warning": NO_CRS_WARNING}
     target = QgsCoordinateReferenceSystem(wanted)
@@ -1011,11 +1270,13 @@ def _add_raster_layer(args: dict) -> dict:
     if not _source_exists(path):
         return missing_file(path, f"File not found: {path}")
 
+    from .processing_paths import narrow_open_path
     from .stac_tools import normalise_crs, raster_variables
 
-    source = path
+
+    source, unopenable = narrow_open_path(path)
     subdataset = str(args.get("layer") or "").strip()
-    variables = [] if path.lower().endswith(".zip") else raster_variables(path)
+    variables = [] if path.lower().endswith(".zip") else raster_variables(source)
     if variables:
 
         picked = [entry[0] for entry in variables
@@ -1053,7 +1314,8 @@ def _add_raster_layer(args: dict) -> dict:
 
     def add(layer) -> dict:
         if not layer.isValid():
-            return tool_error(f"Failed to load raster layer from: {source}")
+            return tool_error(f"Failed to load raster layer from: {source}"
+                              + (f": {unopenable}" if unopenable else ""))
         normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -1175,8 +1437,12 @@ def _add_point_cloud_layer(args: dict) -> dict:
 
 def _same_file(a: str, b: str) -> bool:
 
+
     try:
-        return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+        if os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b)):
+            return True
+
+        return ("~" in a or "~" in b) and os.path.exists(a) and os.path.exists(b) and os.path.samefile(a, b)
     except Exception:
         return False
 

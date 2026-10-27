@@ -1627,7 +1627,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
 
         net.report_stage("place")
-        outline, refusal = _resolve_outline(clip_to)
+        outline, refusal = _resolve_outline(clip_to, box=args.get("bbox"))
         if outline is None:
             return refusal
         if mode == "stream":

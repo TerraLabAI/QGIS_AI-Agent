@@ -34,6 +34,7 @@ import functools
 import ntpath
 import os
 import re
+import stat
 import sys
 import tempfile
 import threading
@@ -995,12 +996,39 @@ def _is_style_undo_file(path: str) -> bool:
     return any(_norm(accounts) == _norm(os.path.join(state, "accounts")) for state in _state_dirs())
 
 
+
+
+_NOT_LOCAL_ATTRIBUTES = 0x1000 | 0x40000 | 0x400000
+_ASCII_GRID_HEADER = (b"ncols", b"nrows", b"xllcorner", b"xllcenter", b"yllcorner", b"yllcenter", b"cellsize")
+
+
+def _ascii_grid(path: str) -> bool:
+
+
+
+
+
+    if not path.lower().endswith(".asc"):
+        return False
+    try:
+        info = os.stat(path)
+
+
+        if not stat.S_ISREG(info.st_mode) or getattr(info, "st_file_attributes", 0) & _NOT_LOCAL_ATTRIBUTES:
+            return False
+        with open(path, "rb") as fh:
+            head = fh.read(64).lstrip().lower()
+    except OSError:
+        return False
+    return head.startswith(_ASCII_GRID_HEADER)
+
+
 def _read_denied(path: str, roots: list[str]) -> str | None:
 
     if _under(path, _PLUGIN_RESOURCES):
         return None
     name = os.path.basename(path)
-    if _SECRET_NAME_RE.match(name):
+    if _SECRET_NAME_RE.match(name) and not _ascii_grid(path):
         return f"'{name}' looks like a credential file; the agent never reads it."
     for root in _DENY_READ_DIRS + _WINDOWS_CREDENTIAL_DIRS:
         if _under(path, root):

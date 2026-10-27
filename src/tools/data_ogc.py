@@ -865,6 +865,26 @@ def _wfs_type_crs(url: str, typename: str) -> list[str]:
     return []
 
 
+def _wfs_logged_reason(typename: str) -> str:
+
+
+
+
+
+
+
+
+    from ..core.logger import recent_wfs_line
+
+    try:
+        line = run_on_main_thread(lambda: recent_wfs_line(f"typename='{typename}'"), timeout=5) or ""
+    except Exception:  # noqa: BLE001
+        return ""
+    step, _, rest = line.partition(" for url")
+    reason = rest.rpartition("': ")[2].strip() if "': " in rest else ""
+    return f"{step.strip()}: {reason}" if step and reason else ""
+
+
 def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
                  hits: int | None = None) -> str:
 
@@ -915,6 +935,9 @@ def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
 
 
 
+        if detail:
+
+            return head + (f" {crs} is offered, so the CRS is not the problem." if offered else "")
         return (f"{head} A smaller max_features may fit"
                 + (f"; {crs} is offered, so the CRS is not the problem." if offered else
                    f", or a srsname other than {crs}."))
@@ -1116,12 +1139,12 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
     net.check_url(url)
-    hits = _wfs_hits(url, typename)
+
+
+
+
+    hits = None if area or where else _wfs_hits(url, typename)
     whole = hits
-    if area or where:
-
-
-        hits = None
 
 
 
@@ -1195,7 +1218,8 @@ def _add_wfs_layer(args: dict) -> dict:
             source.setParam("version", spoken)
             out = _copy()
     if out.get("_invalid"):
-        return tool_error(_wfs_failure(url, typename, crs, out.get("_qgis_message") or "", hits))
+        said = out.get("_qgis_message") or _wfs_logged_reason(typename)
+        return tool_error(_wfs_failure(url, typename, crs, said, hits))
     fields = out.pop("_fields", None)
     if out.get("_error"):
         if where and fields:
@@ -1208,8 +1232,6 @@ def _add_wfs_layer(args: dict) -> dict:
     if area:
         out["bbox"] = [round(v, 6) for v in args["bbox"]] if isinstance(args.get("bbox"), (list, tuple)) \
             else args.get("bbox")
-    if (area or where) and whole is not None:
-        out["features_in_type"] = whole
     count = out.get("feature_count")
     matched = out.pop("_matched", None)
     ended_by = out.pop("_ended_by", "")

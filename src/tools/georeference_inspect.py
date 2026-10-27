@@ -1028,7 +1028,9 @@ def _base_image(gdal, dataset, long_side: int, cancelled):
     options["format"] = "MEM"
 
     previous = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_PAM_ENABLED", None)
-    gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
+
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
+    set_option("GDAL_PAM_ENABLED", "NO")
     try:
         memory = gdal.Translate("", dataset, **options)
         if memory is None:
@@ -1043,7 +1045,7 @@ def _base_image(gdal, dataset, long_side: int, cancelled):
             layout = (w, QImage.Format.Format_Grayscale8)
         memory = None
     finally:
-        gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", previous)
+        set_option("GDAL_PAM_ENABLED", previous)
     if not raw:
         return None
 

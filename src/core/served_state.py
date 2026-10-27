@@ -743,6 +743,29 @@ def get_pro_offer() -> str:
     return _OFFER[0]
 
 
+
+
+
+_STUDENT_OFFER: list = [None]
+
+
+def set_student_offer(raw) -> None:
+    offer = None
+    if isinstance(raw, dict):
+        state = raw.get("state")
+        label = raw.get("label")
+        url = raw.get("url")
+        url = url.strip() if isinstance(url, str) and url.strip().startswith("https://") else ""
+        if state in ("offer", "active") and isinstance(label, str) and label.strip():
+            if state == "active" or url:
+                offer = {"state": state, "label": label.strip()[:120], "url": url}
+    _STUDENT_OFFER[0] = offer
+
+
+def get_student_offer() -> dict | None:
+    return _STUDENT_OFFER[0]
+
+
 def get_pro_price_excludes_tax() -> bool:
 
     pricing = _served_config.get("pricing")

@@ -44,6 +44,11 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -193,8 +198,13 @@ class _ExecutorCode:
             return danger
         code = str(args.get("code") or "")
         run_id = str(call.get("run_id") or "")
-        verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=self._commit_class,
-                              user_layer=self._user_layer_test(run_id))
+        user_layer = self._user_layer_test(run_id)
+        own_files = self._own_files_of(run_id)
+        def commit_class(strings: list, deletes: bool = False) -> tuple[str, str]:
+            return self._commit_class(strings, deletes, own_files)
+
+        verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=commit_class,
+                              user_layer=user_layer, own_names=self._own_kept_names(run_id, user_layer))
         cls = verdict.cls
         declared = _declared(call)
         if cls == ce.ASK and declared is not None:
@@ -223,10 +233,15 @@ class _ExecutorCode:
 
 
 
+
+
         from qgis.core import QgsProject
+
+        from .context import _made_here
 
         snapshot = self._snapshots.get(run_id)
         before = snapshot.layer_ids if snapshot is not None and snapshot.captured else None
+        thread_id = self._threads.get(run_id, "")
         project = QgsProject.instance()
 
         def test(text: str) -> bool:
@@ -235,9 +250,40 @@ class _ExecutorCode:
                 layers = [found] if found is not None else project.mapLayersByName(text)
             except Exception:  # noqa: BLE001
                 return False
-            return any(before is None or each.id() in before for each in layers)
+            return any((before is None or each.id() in before) and not _made_here(each, thread_id)
+                       for each in layers)
 
         return test
+
+    def _own_kept_names(self, run_id: str, user_layer) -> set:
+
+
+
+        if code_runtime is None:
+            return set()
+        from qgis.core import QgsMapLayer
+        from qgis.PyQt.QtCore import QObject
+
+        def no_user_layer(value, depth: int = 0) -> bool:
+            if isinstance(value, QgsMapLayer):
+                try:
+                    return not user_layer(value.id())
+                except Exception:  # noqa: BLE001
+                    return False
+            if isinstance(value, QObject) or depth > 2:
+                return False
+            if isinstance(value, dict):
+                return all(no_user_layer(v, depth + 1) for v in value.values())
+            if isinstance(value, (list, tuple, set, frozenset)):
+                return all(no_user_layer(v, depth + 1) for v in value)
+            return True
+
+        try:
+            kept = code_runtime.kept(self._threads.get(run_id, "") or run_id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"execute_code kept names not read: {exc}")
+            return set()
+        return {name for name, value in kept.items() if no_user_layer(value)}
 
     def _code_refused_before_card(self, call: dict) -> bool:
 
@@ -310,7 +356,8 @@ class _ExecutorCode:
             return None
 
     @staticmethod
-    def _commit_class(strings: list, deletes: bool = False) -> tuple[str, str]:
+    def _commit_class(strings: list, deletes: bool = False, own=frozenset()) -> tuple[str, str]:
+
 
         from qgis.core import QgsProject
 
@@ -326,13 +373,18 @@ class _ExecutorCode:
             from qgis.core import QgsVectorLayer
 
             named = [lyr for lyr in project.mapLayers().values() if isinstance(lyr, QgsVectorLayer)]
-        files = sorted({os.path.basename(str(lyr.source()).split("|", 1)[0]) for lyr in named
-                        if getattr(lyr, "providerType", lambda: "")() != "memory"} - {""})
+        paths = {str(lyr.source()).split("|", 1)[0] for lyr in named
+                 if getattr(lyr, "providerType", lambda: "")() != "memory"} - {""}
+        files = sorted({os.path.basename(path) for path in paths} - {""})
         if not files:
             return ce.P, ""
         shown = ", ".join(files[:3])
         if deletes:
             return ce.D, tr("deletes features from {files}").format(files=shown)
+        from .code_tripwire import is_own
+
+        if own and all(is_own(os.path.abspath(path), own) for path in paths):
+            return ce.FP, tr("saves an edit into {files}, which this conversation wrote").format(files=shown)
         return ce.FW, tr("saves an edit into {files}").format(files=shown)
 
     def _code_always(self, call: dict, always: bool, approval: str) -> bool:
@@ -375,7 +427,7 @@ class _ExecutorCode:
         granted = plan.get("granted", ce.D)
         carded = bool(call.get("carded")) or plan.get("cls", ce.ASK) == ce.ASK
         return code_runtime.calling(code_runtime.CallContext(
-            granted=granted, chat=self._threads.get(run_id, "") or run_id,
+            granted=granted, chat=self._threads.get(run_id, "") or run_id, own_files=self._own_files_of(run_id),
             timeout_s=(tuning.ceiling("execute_code_card_budget_s", CARD_BUDGET_S, 30.0) if carded
                        else tuning.ceiling("execute_code_no_card_budget_s", NO_CARD_BUDGET_S, 20.0)),
             registry=self._registry, run_id=run_id, stop=lambda: self.stop_requested.emit(run_id),

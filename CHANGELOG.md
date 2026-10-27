@@ -9,6 +9,34 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-10-27
+
+### Added
+
+- Before loading a local file, the AI agent reads its layers, fields, extent, encoding and raster
+  bands; every raster description states its nodata value and what each band holds.
+- In Balanced, code that only adds layers and new data files runs without a permission card.
+- New memory layers made during a run are written to disk at its end, without blocking QGIS.
+
+### Changed
+
+- The panel opens faster the first time: Processing tool descriptions are kept on disk.
+- A WFS layer with an area or a filter loads without first counting the whole layer.
+- A PDF map render is drawn at the size it is looked at.
+
+### Fixed
+
+- Shapefiles whose DBF declares no code page, or whose code page QGIS overrides, read correctly.
+- A zip whose datasets sit in zips inside it loads; .txt and .tsv tables stay tables; GRIB files
+  load as rasters; tables load without a CRS warning.
+- netCDF, HDF4 and .xls files open from Windows folders with non-ANSI names.
+- Behind a company proxy or with a certificate added to QGIS, GDAL downloads now go through.
+- A STAC raster on a server that ignores ranged requests is downloaded instead of refused.
+- Code that clears a print layout no longer closes QGIS; non-UTF-8 files open in the Windows code
+  page.
+- Natural regions and parks are found before a street with the same name; a bare "station" is the
+  town's railway station.
+
 ## [1.9.1] - 2026-10-24
 
 ### Added

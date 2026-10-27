@@ -40,8 +40,8 @@ from .account_settings_dialog import _ACCOUNT_OFFLINE_CODES, format_count, resol
 from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
-from .font_scale import apply_font_scale_to_tree, scale_px_length
-from .quota_card import trial_cta
+from .font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px
+from .quota_card import _STUDENT_QSS, note_student_offer_shown, open_student_offer, trial_cta
 from .settings_pages import (
     DANGER_GHOST_BTN_QSS,
     GHOST_BTN_QSS,
@@ -64,6 +64,7 @@ from .shared import (
     get_pricing_url,
     get_pro_runs_per_month,
     get_served_pro_points,
+    get_student_offer,
     get_support_email,
     safe_disconnect,
 )
@@ -297,6 +298,9 @@ class AccountPageMixin:
         group.add_row(chip)
 
         group.add_row(self._plan_row(plan, plan_name, group))
+        student = self._student_row(group)
+        if student is not None:
+            group.add_row(student)
         self._account_col.addWidget(group)
 
         if not plan.is_subscriber:
@@ -381,6 +385,33 @@ class AccountPageMixin:
             bar.setStyleSheet(PROGRESS_QSS)
             bar.setAccessibleName(runs)
             col.addWidget(bar)
+        return row
+
+    def _student_row(self, parent: QWidget) -> QFrame | None:
+
+        offer = get_student_offer()
+        if not offer:
+            return None
+        row = QFrame(parent)
+        row.setObjectName("settingsRow")
+        line = QHBoxLayout(row)
+        line.setContentsMargins(10, 4, 14, 8)
+        if offer["state"] == "offer":
+            link = QPushButton(offer["label"].replace("&", "&&"), row)
+            link.setStyleSheet(scale_qss_font_px(_STUDENT_QSS))
+            link.setCursor(Qt.CursorShape.PointingHandCursor)
+            link.setAutoDefault(False)
+            link.clicked.connect(lambda: open_student_offer("account", self))
+            line.addWidget(link, 0, Qt.AlignmentFlag.AlignLeft)
+            note_student_offer_shown("account")
+        else:
+            text = QLabel(offer["label"], row)
+            text.setTextFormat(Qt.TextFormat.PlainText)
+            text.setStyleSheet(ROW_NOTE_QSS)
+            text.setWordWrap(True)
+            line.setContentsMargins(14, 4, 14, 8)
+            line.addWidget(text, 1)
+        line.addStretch(1)
         return row
 
     def _button(self, text: str, qss: str) -> QPushButton:

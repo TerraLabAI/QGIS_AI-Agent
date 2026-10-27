@@ -139,6 +139,46 @@ def _short_path(path: str) -> str:
         return ""
 
 
+
+
+
+
+
+_NARROW_OPEN_SUFFIXES = (".nc", ".nc4", ".cdf", ".hdf", ".hdf4", ".h4", ".he4", ".xls")
+
+
+def narrow_open_path(path: str) -> tuple[str, str]:
+
+
+
+
+
+
+
+    if not IS_WINDOWS or not str(path or "").lower().endswith(_NARROW_OPEN_SUFFIXES):
+        return path, ""
+    from ..core.text_encoding import ansi_encoding
+
+    page = ansi_encoding()
+
+    def fits(text: str) -> bool:
+        try:
+            text.encode(page)
+        except (UnicodeEncodeError, LookupError):
+            return False
+        return True
+
+    if fits(path) or not os.path.isfile(path):
+        return path, ""
+    folder, name = os.path.split(os.path.abspath(path))
+    short_folder = _short_path(folder) if fits(name) else ""
+    short = os.path.join(short_folder, name) if short_folder else _short_path(path)
+    if short and fits(short):
+        return short, ""
+    return path, (f"its library opens file names in the {page} code page, which cannot write this path, "
+                  "and the volume gives no 8.3 short name for it (8.3 names are off there)")
+
+
 def _is_link(path: str) -> bool:
 
     try:

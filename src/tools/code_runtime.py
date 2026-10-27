@@ -82,6 +82,9 @@ class CallContext:
     before_in_qgis: object = None
 
 
+    own_files: frozenset = frozenset()
+
+
 
 
 _LOCAL = threading.local()

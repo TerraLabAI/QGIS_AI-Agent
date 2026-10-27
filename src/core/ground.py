@@ -122,6 +122,7 @@ def pixel_facts(layer) -> dict:
         kinds = []
     if kinds:
         out["data_type"] = kinds[0] if len(set(kinds)) == 1 else kinds
+    out.update(_band_facts(layer))
     point = _work_point(layer)
     cell = pixel_on_ground(layer.crs(), point.x(), point.y(), px, py) if point is not None else None
     if cell:
@@ -137,6 +138,39 @@ def pixel_facts(layer) -> dict:
 
 
 _TYPES_LISTED = 32
+
+_BANDS_NAMED = 8
+
+
+def _band_facts(layer) -> dict:
+
+
+
+
+
+    try:
+        provider = layer.dataProvider()
+        count = int(layer.bandCount())
+        values = []
+        for band in range(1, min(count, _TYPES_LISTED) + 1):
+            if not provider.sourceHasNoDataValue(band):
+                values.append("none declared")
+                continue
+            value = float(provider.sourceNoDataValue(band))
+            value = "nan" if value != value else value
+
+            values.append(value if provider.useSourceNoDataValue(band) else f"{value} declared, not applied")
+        bands = [{"band": band, "name": layer.bandName(band),
+                  "colour": provider.colorInterpretationName(band)}
+                 for band in range(1, min(count, _BANDS_NAMED) + 1)]
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    if values:
+        out["nodata"] = values[0] if len({str(v) for v in values}) == 1 else values
+    if bands:
+        out["bands"] = bands
+    return out
 
 
 def data_type_name(provider, band: int) -> str:

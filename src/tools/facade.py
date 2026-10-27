@@ -169,6 +169,8 @@ def register_facade_tools(registry: ToolRegistry):
 
 
             "x-zip-listing": True,
+
+            "x-kind-from-header": True,
         },
         handler=_add_data,
         background=_add_data_off_main,
@@ -435,8 +437,14 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
         return "raster"
     if ext in _VECTOR_EXT:
         return "vector"
-    if os.path.exists(path):
+
+    if ext in CSV_EXTENSIONS:
         return "vector"
+    if os.path.exists(path):
+
+
+        from .data_inspect import _gdal_reads_raster, _gdal_reads_vector
+        return "raster" if not _gdal_reads_vector(path) and _gdal_reads_raster(path) else "vector"
 
     return "xyz"
 
@@ -573,7 +581,10 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
 
 
-            if streamed.get("_error") and (streamed.get("code") or streamed.get("_code")) != "PERMISSION_DENIED" and (
+
+            tried = str(streamed.get("hint") or "").startswith(("download_", "stac_download", "raster_variable"))
+            if streamed.get("_error") and not tried and (
+                    streamed.get("code") or streamed.get("_code")) != "PERMISSION_DENIED" and (
                     not bbox or str(streamed["_error"]).startswith("Could not open the raster")):
 
 

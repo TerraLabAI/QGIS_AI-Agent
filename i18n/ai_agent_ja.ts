@@ -6582,6 +6582,11 @@ Click to open its page.</source>
         <name>QuotaCard</name>
         <message>
             <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>7日間無料。今日のお支払いはありません。その後は現地価格の月額になります。ワンクリックで解約できます。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/quota_card.py" />
             <source>Company paying by invoice? Get 7 free days</source>
             <translation>請求書払いの法人の方は、7日間無料でお試しいただけます</translation>
         </message>
@@ -6780,8 +6785,8 @@ Click to open its page.</source>
             <translation>メモリとAIへの指示</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro：より多く、より良く</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro：毎月{n}タスクと、より難しいタスク</translation>
         </message>
         <message>
             <source>You ran {n} tasks this month.</source>
@@ -8440,6 +8445,10 @@ Click to open its page.</source>
         <message>
             <source>saves an edit into {files}</source>
             <translation>{files}に編集を保存します</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>この会話で作成された {files} に編集を保存します</translation>
         </message>
         <message>
             <source>ran with unsaved edits open on {layers}, so nothing was put back</source>

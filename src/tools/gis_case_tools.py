@@ -47,8 +47,8 @@ from ..core.host_platform import retry_file_op
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import fits_path, validate_path
+from ..core.text_encoding import ansi_encoding
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from . import csv_loader
 from .layer_lookup import _find_layer, _layer_not_found_error
 from .processing_crs_checks import _utm_authid
 
@@ -1628,7 +1628,7 @@ def _try_fix_encoding(layer, field_name: str, garbled: dict):
 
 
     provider_type = layer.providerType()
-    candidate = "UTF-8" if garbled["kind"] == "mojibake" else csv_loader._ansi_encoding()
+    candidate = "UTF-8" if garbled["kind"] == "mojibake" else ansi_encoding()
 
     if provider_type == "ogr":
         old = layer.dataProvider().encoding()

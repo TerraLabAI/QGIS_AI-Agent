@@ -22,9 +22,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import os
 import re
+import tempfile
+import threading
+import zlib
 from html import unescape
 from typing import Any
 
@@ -93,6 +98,10 @@ def _excluded() -> frozenset:
 
 
 _CATALOG_MAX_BYTES = 3_000_000
+
+
+_SCHEMA_CACHE_FILE = "processing-tools.json.z"
+_SCHEMA_CACHE_FORMAT = 1
 _CORE_NAMESPACES = ("native", "processing", "gdal", "pdal", "3d")
 
 _CONTROL_KEYS = frozenset({"output_name", "async", "confirm_large", "invalid_geometry_filter"})
@@ -424,24 +433,104 @@ def _eligible(algorithm) -> bool:
                for item in algorithm.parameterDefinitions())
 
 
-def add_native_processing_tools(registry: ToolRegistry) -> int:
+def _text_of(call) -> str:
 
-    added = 0
     try:
-        algorithms = list(QgsApplication.processingRegistry().algorithms())
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"QGIS Processing tools unavailable: {exc}")
-        return 0
+        value = call() if callable(call) else None
+    except Exception:  # noqa: BLE001
+        return ""
+    return value if isinstance(value, str) else ""
+
+
+def _catalog_key(algorithms: list) -> str:
+
+
+    providers: dict[str, str] = {}
+    ids: list[str] = []
+    for algorithm in algorithms:
+        provider_id, _provider_name = _provider(algorithm)
+        if provider_id.casefold() not in _PROVIDER_NAMESPACES:
+            continue
+        ids.append(str(algorithm.id() or ""))
+        if provider_id not in providers:
+            try:
+                providers[provider_id] = _text_of(algorithm.provider().versionInfo)
+            except Exception:  # noqa: BLE001
+                providers[provider_id] = ""
+    try:
+        from ..api.terralab_client import plugin_version
+
+        code = f"{plugin_version()}|{os.stat(__file__).st_mtime_ns}"
+    except Exception:  # noqa: BLE001
+        code = ""
+    qgis = [_text_of(getattr(Qgis, "version", None)), _text_of(getattr(QgsApplication, "locale", None))]
+    parts = [str(_SCHEMA_CACHE_FORMAT), code, *qgis,
+             str(_CATALOG_MAX_BYTES), json.dumps(sorted(_excluded())),
+             json.dumps(sorted(providers.items())), json.dumps(sorted(ids))]
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
+
+def _cache_path() -> str:
+    from ..core.policy import state_dir
+
+    return os.path.join(state_dir(), _SCHEMA_CACHE_FILE)
+
+
+def _held_entries(key: str) -> list | None:
+
+    try:
+        with open(_cache_path(), "rb") as handle:
+            data = json.loads(zlib.decompress(handle.read()).decode("utf-8"))
+    except (OSError, ValueError, UnicodeError, zlib.error):
+        return None
+    if not isinstance(data, dict) or data.get("key") != key or not isinstance(data.get("tools"), list):
+        return None
+    rows = data["tools"]
+    if not all(isinstance(r, list) and len(r) == 3 and isinstance(r[2], dict) for r in rows):
+        return None
+    return rows
+
+
+def _store_entries(key: str, rows: list) -> None:
+
+    try:
+        text = json.dumps({"key": key, "tools": rows}, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        log_warning(f"Processing tool catalog not stored: {exc}")
+        return
+
+    def write() -> None:
+        from ..core.host_platform import remove_quietly, retry_file_op
+
+        tmp = ""
+        try:
+            path = _cache_path()
+            fd, tmp = tempfile.mkstemp(prefix=".agent-", suffix=".tmp", dir=os.path.dirname(path))
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(zlib.compress(text.encode("utf-8"), 6))
+            retry_file_op(os.replace, tmp, path)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Processing tool catalog not stored: {exc}")
+        finally:
+            if tmp:
+                remove_quietly(tmp)
+
+    threading.Thread(target=write, name="ai-agent-processing-tools", daemon=True).start()
+
+
+def _built_entries(algorithms: list, registry: ToolRegistry) -> list:
 
     def rank(algorithm) -> int:
         namespace = _PROVIDER_NAMESPACES.get(_provider(algorithm)[0].casefold(), "")
         return _CORE_NAMESPACES.index(namespace) if namespace in _CORE_NAMESPACES else len(_CORE_NAMESPACES)
 
+    rows: list = []
+    names: set[str] = set()
     spent = 0
     left_out = 0
     for algorithm in sorted((a for a in algorithms if _eligible(a)), key=rank):
         name = _tool_name(algorithm)
-        if not name or len(name) > 128 or registry.has_tool(name):
+        if not name or len(name) > 128 or name in names or registry.has_tool(name):
             continue
         schema = _schema_for(algorithm)
         size = len(name) + len(json.dumps(schema, ensure_ascii=False, separators=(",", ":"), default=str))
@@ -449,19 +538,42 @@ def add_native_processing_tools(registry: ToolRegistry) -> int:
             left_out += 1
             continue
         spent += size
+        names.add(name)
+        rows.append([name, str(algorithm.id()), schema])
+    if left_out:
+        log_warning(f"{left_out} Processing algorithms left out of the tool catalog to keep the hello "
+                    f"under {_CATALOG_MAX_BYTES // 1000} kB, which the server would otherwise refuse; "
+                    f"run_processing still runs them")
+    return rows
+
+
+def add_native_processing_tools(registry: ToolRegistry) -> int:
+
+
+
+
+
+
+
+    try:
+        algorithms = list(QgsApplication.processingRegistry().algorithms())
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"QGIS Processing tools unavailable: {exc}")
+        return 0
+    key = _catalog_key(algorithms)
+    rows = _held_entries(key)
+    if rows is None or any(registry.has_tool(row[0]) for row in rows):
+        rows = _built_entries(algorithms, registry)
+        _store_entries(key, rows)
+    for name, algorithm_id, schema in rows:
 
 
 
         registry.register(RuntimeTool(
             name=name,
             input_schema=schema,
-            handler=_handler(str(algorithm.id())),
+            handler=_handler(algorithm_id),
             danger="write",
-            always_confirm=_code_card(str(algorithm.id())),
+            always_confirm=_code_card(algorithm_id),
         ))
-        added += 1
-    if left_out:
-        log_warning(f"{left_out} Processing algorithms left out of the tool catalog to keep the hello "
-                    f"under {_CATALOG_MAX_BYTES // 1000} kB, which the server would otherwise refuse; "
-                    f"run_processing still runs them")
-    return added
+    return len(rows)

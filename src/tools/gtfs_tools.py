@@ -56,8 +56,8 @@ from ..core.host_platform import remove_tree
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
+from ..core.text_encoding import ansi_encoding, detect_encoding
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .csv_loader import _ansi_encoding, detect_encoding
 from .data_common import _download_timeout, _safe_filename
 
 
@@ -245,7 +245,7 @@ def _decoded_rows(opener, name: str):
     except UnicodeDecodeError:
         pass
     text.close()
-    fallback = _ansi_encoding()
+    fallback = ansi_encoding()
     if fallback == encoding:
         raise _GtfsEncodingError(name, (encoding,))
     raw = opener()

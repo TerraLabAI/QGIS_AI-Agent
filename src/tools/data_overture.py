@@ -504,10 +504,11 @@ def _division_names(wanted, args: dict, outline) -> list:
 
 
 
+
     raw = wanted.get("name") if isinstance(wanted, dict) else None
     if raw is None and isinstance(args.get("clip_to"), str) and outline is not None \
             and not str(outline.get("outline_source") or "").startswith(("layer ", "footprint ")):
-        raw = args["clip_to"].split(",")[0]
+        raw = outline["label"] if outline.get("reference") else args["clip_to"].split(",")[0]
     asked = raw if isinstance(raw, (list, tuple)) else [raw]
     return [text for text in dict.fromkeys(str(one or "").strip() for one in asked) if text]
 

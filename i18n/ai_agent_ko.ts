@@ -4448,6 +4448,11 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>7일 무료, 오늘 결제할 금액은 없으며 이후 현지 가격으로 매월 결제됩니다. 한 번의 클릭으로 취소할 수 있습니다.</translation>
+        </message>
+        <message>
             <source>Autopilot</source>
             <translation>자동 조종</translation>
         </message>
@@ -4528,8 +4533,8 @@ Click to show it in the Layers panel.</source>
             <translation>확인</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: 더 많이, 더 좋게</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: 월 {n}개 작업과 더 어려운 작업</translation>
         </message>
         <message>
             <source>Start 7-day free trial</source>
@@ -5803,6 +5808,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>saves an edit into {files}</source>
             <translation>{files}에 편집 내용을 저장합니다</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>이 대화에서 작성한 {files}에 수정 내용을 저장합니다</translation>
         </message>
         <message>
             <source>{name} is installed</source>

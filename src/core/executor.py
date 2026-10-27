@@ -114,6 +114,9 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
         self._own_files: dict[str, set[str]] = {}
 
 
+        self._chat_files: OrderedDict[str, set[str]] = OrderedDict()
+
+
 
         self._output_files: dict[str, list[dict]] = {}
 

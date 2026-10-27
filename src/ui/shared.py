@@ -71,6 +71,7 @@ from ..core.served_state import (  # noqa: F401
     get_served_learn_items,
     get_served_pro_points,
     get_site_url,
+    get_student_offer,
     get_support_email,
     get_terms_url,
     get_tutorial_url,

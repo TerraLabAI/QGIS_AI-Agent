@@ -125,6 +125,15 @@ def _partial_state(out: dict, noted: object) -> None:
 
 def _run_code_in_qgis(args: dict) -> dict:
 
+    out = _run_in_qgis(args)
+    created = code_tripwire.take_created()
+    if created and isinstance(out, dict):
+        out[code_tripwire.CREATED_KEY] = created
+    return out
+
+
+def _run_in_qgis(args: dict) -> dict:
+
 
 
 
@@ -204,11 +213,12 @@ def _run_code_in_qgis(args: dict) -> dict:
 
 
     code_guard.WRITTEN_FILES[:] = []
+    code_tripwire.CREATED[:] = []
 
 
 
     code_guard.harden_gdal_config()
-    wire = code_tripwire.armed(context.granted) if code_tripwire.enabled() else None
+    wire = code_tripwire.armed(context.granted, context.own_files) if code_tripwire.enabled() else None
     arm = None
     error = None
     edits = code_namespace.EditWatch(project)

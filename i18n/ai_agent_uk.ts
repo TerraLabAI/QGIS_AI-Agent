@@ -4448,6 +4448,11 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>QuotaCard</name>
         <message>
+            <location filename="src/ui/quota_card.py" />
+            <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
+            <translation>Безкоштовно 7 днів, сьогодні платити нічого, далі щомісяця за вашою місцевою ціною. Скасувати можна одним кліком.</translation>
+        </message>
+        <message>
             <source>Autopilot</source>
             <translation>Автопілот</translation>
         </message>
@@ -4528,8 +4533,8 @@ Click to show it in the Layers panel.</source>
             <translation>OK</translation>
         </message>
         <message>
-            <source>Pro: more and better</source>
-            <translation>Pro: більше й краще</translation>
+            <source>Pro: {n} tasks a month and harder tasks</source>
+            <translation>Pro: {n} завдань на місяць і складніші завдання</translation>
         </message>
         <message>
             <source>Start 7-day free trial</source>
@@ -5803,6 +5808,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>saves an edit into {files}</source>
             <translation>зберігає зміну в {files}</translation>
+        </message>
+        <message>
+            <source>saves an edit into {files}, which this conversation wrote</source>
+            <translation>зберігає зміну в {files}, створеному в цій розмові</translation>
         </message>
         <message>
             <source>{name} is installed</source>

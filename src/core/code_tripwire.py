@@ -279,6 +279,13 @@ def _spellings(full: str) -> tuple:
     return tuple(dict.fromkeys((full, os.path.realpath(full))))
 
 
+def is_own(full: str, own) -> bool:
+
+
+
+    return bool(own) and any(spelling in own for spelling in _spellings(full))
+
+
 def _under_software(full: str) -> bool:
     spellings = _spellings(full)
     return any(security._under(spelling, root) for root in _software_roots() for spelling in spellings)
@@ -286,7 +293,59 @@ def _under_software(full: str) -> bool:
 
 
 
-def file_class(path, creating: bool = True) -> tuple[str, str]:
+
+
+
+
+_DATA_EXTENSIONS = frozenset({
+    ".tif", ".tiff", ".vrt", ".ovr", ".asc", ".xyz", ".img", ".nc", ".grd", ".dem", ".bil", ".hgt",
+    ".tfw", ".tifw", ".wld", ".jgw", ".pgw", ".aux", ".msk",
+    ".gpkg", ".sqlite", ".shp", ".shx", ".dbf", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".fgb",
+    ".geojson", ".geojsonl", ".json", ".jsonl", ".kml", ".kmz", ".gpx", ".gml", ".xsd", ".xml",
+    ".parquet", ".csv", ".tsv", ".txt", ".xlsx", ".ods", ".las", ".laz",
+    ".png", ".jpg", ".jpeg", ".webp", ".svg", ".pdf", ".qml", ".sld", ".md",
+})
+
+
+
+
+
+_SIDECAR_EXTENSIONS = frozenset({".qml", ".sld", ".qmd", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".shx", ".dbf",
+                                 ".tfw", ".tifw", ".wld", ".jgw", ".pgw", ".aux", ".xml", ".ovr", ".msk"})
+_DATASET_EXTENSIONS = tuple(sorted(_DATA_EXTENSIONS - _SIDECAR_EXTENSIONS)) + (".jp2", ".ecw", ".gdb")
+
+
+def _beside_user_data(full: str, own) -> bool:
+
+
+
+    folder, name = os.path.split(full)
+    if os.path.splitext(name)[1].lower() not in _SIDECAR_EXTENSIONS:
+        return False
+    stem = name.split(".", 1)[0]
+    for ext in _DATASET_EXTENSIONS:
+        dataset = os.path.join(folder, stem + ext)
+        if os.path.exists(dataset) and not is_own(dataset, own):
+            return True
+    return False
+
+
+def _data_file(full: str, folder: bool) -> bool:
+
+
+    if any(part.startswith(".") for part in full.replace("\\", "/").split("/") if part not in ("", ".", "..")):
+        return False
+    return folder or os.path.splitext(full)[1].lower() in _DATA_EXTENSIONS
+
+
+def file_class(path, creating: bool = True, own=(), folder: bool = False) -> tuple[str, str]:
+
+
+
+
+
+
+
 
     try:
         text = os.fspath(path)
@@ -305,16 +364,55 @@ def file_class(path, creating: bool = True) -> tuple[str, str]:
     if any(security._under(spelling, root) for root in security.temp_roots() for spelling in spellings):
         return ce.P, ""
     if os.path.exists(full):
+        if own and any(spelling in own for spelling in spellings):
+            return ce.FP, f"replaces the file {shown} this conversation wrote"
         return ce.FW, f"replaces the file {shown}"
+    if not creating or security.validate_path(full, write=True) is not None:
+        return ce.FW, f"writes {full}"
+    if not folder and _beside_user_data(full, own):
+        return ce.FW, f"writes {shown} beside your data of the same name"
     roots = [security.project_dir(), security._output_root] + list(security._allowed_roots)
 
 
     real = spellings[-1]
-    if creating and security.validate_path(full, write=True) is None and any(
-            security._under(full, root) for root in roots if root) and any(
+    if any(security._under(full, root) for root in roots if root) and any(
             security._under(real, security._resolved_root(root)) for root in roots if root):
         return ce.FP, f"writes the new file {shown}"
+    if _data_file(full, folder) and not _under_software(full):
+        return ce.FP, f"writes the new {'folder' if folder else 'file'} {shown}"
     return ce.FW, f"writes {full}"
+
+
+
+
+CREATED: list[str] = []
+MAX_CREATED = 200
+
+CREATED_KEY = "_created_files"
+
+
+def _note_created(path) -> None:
+    try:
+        text = os.fsdecode(path).split("|", 1)[0].strip()
+    except (TypeError, ValueError):
+        return
+    if text and len(CREATED) < MAX_CREATED:
+        full = os.path.abspath(os.path.expanduser(text))
+        if full not in CREATED:
+            CREATED.append(full)
+
+
+def take_created() -> list[str]:
+
+    paths, CREATED[:] = list(CREATED), []
+    out: list[str] = []
+    for path in paths:
+        try:
+            if os.path.exists(path):
+                out.extend(p for p in _spellings(path) if p not in out)
+        except (OSError, ValueError):
+            continue
+    return out
 
 
 def _remote(source) -> bool:
@@ -420,8 +518,10 @@ def _bytecode_cache_write(event: str, args) -> bool:
 
 
 class _Arm:
-    def __init__(self, granted: str) -> None:
+    def __init__(self, granted: str, own=()) -> None:
         self.granted = granted
+
+        self.own = frozenset(own or ())
         self.trip: BaseException | None = None
         self.patched: list = []
         self.sources: dict = {}
@@ -434,6 +534,13 @@ class _Arm:
         if self.trip is None:
             self.trip = exc
         raise exc
+
+    def judge_file(self, path, creating: bool = True, folder: bool = False) -> None:
+
+        cls, reason = file_class(path, creating, self.own, folder)
+        self.need(cls, reason)
+        if cls == ce.FP and "replaces" not in reason:
+            _note_created(path)
 
     def refuse(self, reason: str, hint: str = "") -> None:
         exc = Refused(reason, hint)
@@ -474,14 +581,13 @@ class _Arm:
             text = str(path)
             if not _from_snippet(3):
                 return
-            cls, reason = file_class(text)
-            self.need(cls, reason)
+            self.judge_file(text)
         elif event in _DELETE_EVENTS:
             if _from_snippet(3):
                 self.need(ce.D, f"deletes {os.path.basename(str(args[0])) if args else 'a file'}")
         elif event in _COPY_EVENTS:
             if _from_snippet(3):
-                self.need(*file_class(args[1] if len(args) > 1 else ""))
+                self.judge_file(args[1] if len(args) > 1 else "")
         elif event in _MOVE_EVENTS:
             if _from_snippet(3):
                 shown = os.path.basename(str(args[0])) if args else "a file"
@@ -491,7 +597,7 @@ class _Arm:
 
 
             if _from_snippet(3) and not (event in _MKDIR_EVENTS and _existing_folder(args)):
-                self.need(*file_class(args[0] if args else ""))
+                self.judge_file(args[0] if args else "", folder=event in _MKDIR_EVENTS)
         elif event in _LISTING_EVENTS:
             self.judge_read(args[0] if args else ".", "lists")
         elif event in _IMPORT_SETUP_EVENTS and _software_import(3):
@@ -707,7 +813,21 @@ def _commit(arm, layer, *args, **kwargs):
     deletes = bool(buffer is not None and (buffer.deletedFeatureIds() or buffer.deletedAttributeIds()))
     if deletes:
         arm.need(ce.D, f"deletes features of '{_layer_name(layer)}' from {_file_of(layer)}")
+    if _own_file(arm, layer):
+
+        arm.need(ce.FP, f"saves the edit to '{_layer_name(layer)}' into {_file_of(layer)}, which it wrote")
+        return
     arm.need(ce.FW, f"saves the edit to '{_layer_name(layer)}' into {_file_of(layer)}")
+
+
+def _own_file(arm, layer) -> bool:
+    if not arm.own:
+        return False
+    try:
+        path = str(layer.source()).split("|", 1)[0].strip()
+    except Exception:  # noqa: BLE001
+        return False
+    return bool(path) and any(spelling in arm.own for spelling in _spellings(os.path.abspath(path)))
 
 
 def _provider_write(deletes: bool):
@@ -772,7 +892,7 @@ def _project_write(arm, project, *args, **kwargs):
     path = args[0] if args and isinstance(args[0], str) else project.fileName()
     if not path:
         arm.need(ce.FW, "saves the project")
-    arm.need(*file_class(path))
+    arm.judge_file(path)
 
 
 def _project_read(arm, project, *args, **kwargs):
@@ -901,7 +1021,7 @@ def _path_arg(index: int, keyword: str):
         values = [a for a in args if isinstance(a, str)]
         target = args[index] if len(args) > index and isinstance(args[index], str) else (
             kwargs.get(keyword) if isinstance(kwargs.get(keyword), str) else (values[0] if values else ""))
-        arm.need(*file_class(target))
+        arm.judge_file(target)
         _written(target)
     return judge
 
@@ -939,6 +1059,21 @@ def _deletes(reason: str):
     return judge
 
 
+def _page_removal(arm, layout, *args, **kwargs):
+
+
+
+
+    item = args[0] if args else kwargs.get("item")
+    page_class = getattr(sys.modules.get("qgis.core"), "QgsLayoutItemPage", None)
+    if page_class is not None and isinstance(item, page_class):
+        raise ValueError("removeLayoutItem was given a page (QgsLayoutItemPage, which layout.items() lists "
+                         "with the other items): it would delete the page while the layout's page collection "
+                         "still lists it, and QGIS would crash at the layout's next save, render or export. "
+                         "Nothing was removed by this call. A page leaves through "
+                         "layout.pageCollection().deletePage(page).")
+
+
 def _refuses(reason: str, hint: str = ""):
     def judge(arm, *args, **kwargs):
         arm.refuse(reason, hint)
@@ -950,7 +1085,7 @@ def _raster_write(arm, writer, *args, **kwargs):
         target = writer.outputUrl()
     except Exception:  # noqa: BLE001
         target = ""
-    arm.need(*file_class(target))
+    arm.judge_file(target)
     _written(target)
 
 
@@ -1087,6 +1222,7 @@ def _traps():
         (get("QgsLayoutExporter"), "exportToImage", _page_export, False),
         (get("QgsLayoutExporter"), "exportToPdf", _page_export, False),
         (get("QgsLayoutExporter"), "exportToSvg", _page_export, False),
+        (get("QgsLayout"), "removeLayoutItem", _page_removal, False),
         (get("QgsCoordinateReferenceSystem"), "saveAsUserCrs", _refuses(_SETTING), False),
         (get("QgsExpressionContextUtils"), "setGlobalVariable", _refuses(_SETTING), True),
         (get("QgsExpressionContextUtils"), "setGlobalVariables", _refuses(_SETTING), True),
@@ -1126,7 +1262,8 @@ def _read_traps() -> list:
     return out
 
 
-def guard_child(granted: str = ce.D) -> _Arm | None:
+def guard_child(granted: str = ce.D, own=()) -> _Arm | None:
+
 
 
 
@@ -1146,7 +1283,7 @@ def guard_child(granted: str = ce.D) -> _Arm | None:
     security.read_scope_enabled()
     security.validate_read(os.getcwd())
     _software_roots()
-    arm = _Arm(granted if granted in ce.RANK else ce.D)
+    arm = _Arm(granted if granted in ce.RANK else ce.D, own)
     state.thread = threading.get_ident()
     arm.patch(_read_traps() + _child_write_traps() + _credential_traps())
     state.handler = arm.on_event
@@ -1198,7 +1335,7 @@ def judge_outputs(parameters) -> None:
     for value in parameters.values():
         if isinstance(value, str) and ("/" in value or "\\" in value) and os.path.splitext(value.split("|", 1)[0])[1]:
             if not os.path.exists(value.split("|", 1)[0]):
-                arm.need(*file_class(value))
+                arm.judge_file(value)
                 _written(value)
 
 
@@ -1210,7 +1347,7 @@ def judge_write(path) -> None:
 
     arm = _current()
     if arm is not None:
-        arm.need(*file_class(path))
+        arm.judge_file(path)
 
 
 _CURRENT: list = []
@@ -1228,8 +1365,8 @@ class armed:  # noqa: N801
 
 
 
-    def __init__(self, granted: str) -> None:
-        self.arm = _Arm(granted)
+    def __init__(self, granted: str, own=()) -> None:
+        self.arm = _Arm(granted, own)
         self.modules: set = set()
 
     def __enter__(self) -> _Arm:

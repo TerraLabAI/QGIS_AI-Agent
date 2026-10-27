@@ -656,9 +656,9 @@ class AgentSession(QObject):
 
 
 
-        from ..tools.csv_loader import _ansi_encoding
+        from .text_encoding import ansi_encoding
 
-        out["code_page"] = _ansi_encoding()
+        out["code_page"] = ansi_encoding()
         return out
 
     def send_tool_result(self, tool_call_id: str, run_id: str, result, code_class: str = "") -> bool:
@@ -917,7 +917,13 @@ class AgentSession(QObject):
         try:
             identity = self._identity_provider()
             manifest_hash, manifest = self._manifest_provider()
-            include = self._manifest_retry or manifest_hash not in self._known_manifests()
+
+
+
+
+
+
+            include = self._manifest_retry
             last_seq = self._last_seq if self._session_id else 0
 
 
@@ -1491,6 +1497,9 @@ class AgentSession(QObject):
         log("Server does not hold the tool manifest, sending it on this connection")
         self._last_manifest_hash = manifest_hash
         self._manifest_included = True
+
+
+        self._manifest_retry = True
         self._send(protocol.manifest_upload(manifest_hash, manifest))
 
         self._hello_checked_at = time.monotonic()

@@ -47,6 +47,10 @@ _HOSTS_AHEAD = 32
 TURN_WAIT_S = 15.0
 
 
+CHAT_FILES_THREADS = 64
+CHAT_FILES_MAX = 2000
+
+
 
 
 _NOT_FACTS = frozenset({"error", "suggestion", "code", "isError", "destructive", "overwrites", "creates",
@@ -820,7 +824,24 @@ class _ExecutorCalls:
     def _own_files_of(self, run_id: str) -> frozenset:
 
 
-        return frozenset(self._own_files.get(run_id, ()))
+
+        chat = self._chat_files.get(self._threads.get(run_id, ""), ())
+        return frozenset(self._own_files.get(run_id, ())) | frozenset(chat)
+
+    def _note_own_files(self, run_id: str, paths) -> None:
+
+        paths = [path for path in paths or () if path]
+        if not paths:
+            return
+        self._own_files.setdefault(run_id, set()).update(paths)
+        thread_id = self._threads.get(run_id, "")
+        if not thread_id:
+            return
+        kept = self._chat_files.pop(thread_id, set())
+        kept.update(paths[:max(0, CHAT_FILES_MAX - len(kept))])
+        self._chat_files[thread_id] = kept
+        while len(self._chat_files) > CHAT_FILES_THREADS:
+            self._chat_files.popitem(last=False)
 
     def _approval_now(self) -> str:
 

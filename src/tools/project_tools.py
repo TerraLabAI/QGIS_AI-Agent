@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 
-from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer
+from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
 from ..core import ground, tuning
@@ -580,6 +580,13 @@ def _get_layer_info(args: dict) -> dict:
             info["source_bytes"] = os.path.getsize(source_path.split("|", 1)[0])
         except (OSError, ValueError):
             pass
+    if isinstance(layer, QgsVectorLayer):
+
+
+        info["geometry_type"] = QgsWkbTypes.displayString(layer.wkbType())
+        encoding = layer.dataProvider().encoding() if layer.providerType() == "ogr" else ""
+        if encoding and encoding != "System":
+            info["encoding"] = encoding
     if isinstance(layer, QgsVectorLayer) and not remote:
         vertices = _sampled_vertices(layer)
         if vertices is not None:

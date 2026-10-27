@@ -1523,7 +1523,9 @@ def _exact_band_stats(source: str, band: int, cancelled) -> dict | None:
         from osgeo import gdal
     except ImportError:
         return None
-    gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
+
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
+    set_option("GDAL_PAM_ENABLED", "NO")
     try:
         dataset = gdal.OpenEx(source, gdal.OF_RASTER | gdal.OF_READONLY)
         if dataset is None or band > dataset.RasterCount:
@@ -1537,7 +1539,7 @@ def _exact_band_stats(source: str, band: int, cancelled) -> dict | None:
     except (RuntimeError, TypeError, ValueError):
         return None
     finally:
-        gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", None)
+        set_option("GDAL_PAM_ENABLED", None)
     if valid is None:
         return None
     lo, hi = sorted((lo * scale + offset, hi * scale + offset))
@@ -1601,7 +1603,9 @@ def _band_quantiles(read: dict, cancelled) -> dict:
         from osgeo import gdal
     except ImportError:
         return {}
-    gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
+
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
+    set_option("GDAL_PAM_ENABLED", "NO")
     dataset = None
     try:
         dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
@@ -1620,7 +1624,7 @@ def _band_quantiles(read: dict, cancelled) -> dict:
         return {}
     finally:
         dataset = None
-        gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", None)
+        set_option("GDAL_PAM_ENABLED", None)
     if array is None or (cancelled is not None and cancelled()):
         return {}
     values, valid = _band_values(np, array, read, nodata, scale, offset)
@@ -1775,7 +1779,9 @@ def _sampled_band_stats(read: dict, cancelled) -> dict | None:
         from osgeo import gdal
     except ImportError:
         return None
-    gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", "NO")
+
+    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
+    set_option("GDAL_PAM_ENABLED", "NO")
     dataset = None
     try:
         dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
@@ -1794,7 +1800,7 @@ def _sampled_band_stats(read: dict, cancelled) -> dict | None:
         return None
     finally:
         dataset = None
-        gdal.SetThreadLocalConfigOption("GDAL_PAM_ENABLED", None)
+        set_option("GDAL_PAM_ENABLED", None)
     if array is None or (cancelled is not None and cancelled()):
         return None
     values, valid = _band_values(np, array, read, nodata, scale, offset)

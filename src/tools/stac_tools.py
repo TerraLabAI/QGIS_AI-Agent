@@ -697,7 +697,9 @@ def raster_variables(path: str) -> list:
         return []
     gdal.PushErrorHandler("CPLQuietErrorHandler")
     try:
-        dataset = gdal.Open(path)
+        from .processing_paths import narrow_open_path
+
+        dataset = gdal.Open(narrow_open_path(path)[0])
         meta = {} if dataset is None or dataset.RasterCount else (dataset.GetMetadata("SUBDATASETS") or {})
         del dataset
     except Exception:  # noqa: BLE001
@@ -847,7 +849,9 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
     return run_on_main_thread(_create, timeout=60)
 
 
-def _probe_raster_url(url: str) -> tuple[int, str, str]:
+def _probe_raster_url(url: str) -> tuple[int, str, str, str]:
+
+
 
 
 
@@ -870,29 +874,43 @@ def _probe_raster_url(url: str) -> tuple[int, str, str]:
             429: "the host is rate limiting requests (HTTP 429)",
         }
         if code in causes:
-            return code, causes[code] + ".", ""
+            return code, causes[code] + ".", "", "cog_unopened"
         if code >= 500:
-            return code, f"the host failed to serve the file (HTTP {code}).", ""
-        return code, f"the host answered HTTP {code}.", ""
+            return code, f"the host failed to serve the file (HTTP {code}).", "", "cog_unopened"
+        return code, f"the host answered HTTP {code}.", "", "cog_unopened"
     except net.FetchTooLarge:
         return 200, ("the address answers (HTTP 200) but ignores range requests, so the file cannot "
-                     "be streamed; download it instead."), ""
+                     "be streamed."), "", "cog_no_ranges"
     except Exception as exc:  # noqa: BLE001
-        return 0, f"the host could not be reached ({type(exc).__name__}).", ""
+        said = net.describe_failure(exc)
+        if said:
+            return 0, f"a plain request for the file failed as well: {said}", "", "network_failed"
+        text = str(getattr(exc, "reason", None) or exc)[:400]
+        proxy = net.proxy_in_use()
+        through = f" (through the proxy {proxy})" if proxy and proxy not in text else ""
+        return 0, f"a plain request for the file failed as well{through}: {text}", "", "cog_unreached"
     body = bytes(getattr(response, "body", b"") or b"")[:4]
     if body[:2] not in (b"II", b"MM"):
         return 200, ("the address answers (HTTP 200) but the content is not a GeoTIFF; "
-                     "it may be a web page or another format."), ""
+                     "it may be a web page or another format."), "", "cog_unopened"
+    served = str(getattr(response, "url", "") or "")
+    if any(str(key).lower() == "content-range" for key in (response.headers or {})):
+        return 206, ("a plain range request reached the file (HTTP 206, a TIFF), so the server serves "
+                     "ranges; GDAL's own read of it failed."), served, "cog_unopened"
     return 200, ("the file is a TIFF (HTTP 200) but GDAL could not stream it; it may not be "
-                 "Cloud-Optimized, or the server ignores range requests."), str(getattr(response, "url", "") or "")
+                 "Cloud-Optimized, or the server ignores range requests."), served, "cog_unopened"
 
 
-def _served_elsewhere(url: str) -> str:
+def _read_whole(url: str, name: str | None, note: str | None, extra: dict | None) -> dict:
 
 
-
-    served = _probe_raster_url(url)[2]
-    return served if served != url else ""
+    downloaded = add_raster_downloaded(url, name)
+    if not downloaded.get("_error"):
+        if note:
+            downloaded["_note"] = f"{note} {downloaded.get('_note', '')}".strip()
+        if extra:
+            downloaded.update(extra)
+    return downloaded
 
 
 def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: dict | None = None,
@@ -929,13 +947,23 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
     if bbox:
         window = _read_window(final_url, bbox, name)
         if window.get("_error"):
-            elsewhere = "" if moved or not window.get("_unopened") else _served_elsewhere(final_url)
-            if elsewhere:
-                return _add_cog(elsewhere, name, note=note, extra=extra, bbox=bbox, moved=True)
+            if not moved and window.get("_unopened"):
+                _status, _cause, served, hint = _probe_raster_url(final_url)
+                if served and served != final_url:
+                    return _add_cog(served, name, note=note, extra=extra, bbox=bbox, moved=True)
+                if hint == "cog_no_ranges":
+                    whole = _read_whole(final_url, name, note, extra)
+                    if not whole.get("_error"):
+                        whole["warning"] = ("The bbox was not applied: this server answers a range with the "
+                                            "whole file, so it was downloaded and added whole.")
+                    return whole
             window.pop("_unopened", None)
             return window
         source = window.pop("path")
     from .elevation_style import apply_elevation_style, elevation_stretch
+
+
+    vsi.apply_persistent()
     stretch = elevation_stretch(source, name)
     built = _raster_built_here(source, name or "COG")
 
@@ -946,7 +974,9 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         if not layer.isValid():
 
 
-            return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url)
+            said = str(layer.error().summary() or "").strip().splitlines()
+            return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url,
+                              **({"gdal_error": said[-1][:300]} if said else {}))
         normalised = normalise_crs(layer)
         styled = apply_elevation_style(layer, stretch)
         if not still_awaited():
@@ -968,14 +998,20 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
     result = run_on_main_thread(_create, timeout=60)
     if result.get("_error"):
         if result.get("_error") == "Could not open the raster.":
-            status, cause, served = _probe_raster_url(final_url)
+            status, cause, served, hint = _probe_raster_url(final_url)
             if served and served != final_url and not moved:
 
 
                 return _add_cog(served, name, note=note, extra=extra, bbox=bbox, moved=True)
+            if hint == "cog_no_ranges":
+                return _read_whole(final_url, name, note, extra)
             result["_error"] = f"Could not open the raster: {cause}"
             if status:
                 result["http_status"] = status
+            if hint == "network_failed":
+                result["code"] = net.NETWORK_ERROR
+            if hint != "cog_unopened":
+                result["hint"] = hint
             if status in (401, 403):
                 result["code"] = "PERMISSION_DENIED"
                 result.update(coded_fact(hint="cog_host_refused", url=final_url, http_status=status))

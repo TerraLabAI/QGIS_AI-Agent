@@ -220,7 +220,7 @@ def safe_tempfile_module() -> types.ModuleType:
 class ZipArchive:
 
 
-    __slots__ = ("filename", "mode", "namelist", "infolist", "getinfo", "read", "testzip", "printdir",
+    __slots__ = ("filename", "mode", "namelist", "infolist", "getinfo", "read", "open", "testzip", "printdir",
                  "extract", "extractall", "write", "writestr", "close")
 
     def __enter__(self):
@@ -237,6 +237,70 @@ class ZipArchive:
         return f"<ZipArchive {self.filename!r} mode={self.mode!r}>"
 
 
+class ZipMember:
+
+
+
+
+
+
+
+
+
+    __slots__ = ("name", "mode", "read", "read1", "readinto", "readinto1", "readline", "readlines", "peek",
+                 "readable", "seekable", "seek", "tell", "isatty", "close", "_closed")
+
+    def writable(self) -> bool:
+        return False
+
+    def write(self, *_args):
+        raise PermissionError("A zip member opens for reading only; ZipFile(path, 'w').writestr writes one.")
+
+    @property
+    def closed(self) -> bool:
+        return self._closed()
+
+    def flush(self) -> None:
+        return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+        return False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+    def __repr__(self) -> str:
+        return f"<ZipMember {self.name!r}>"
+
+
+def _zip_member(real, name, mode="r", pwd=None) -> ZipMember:
+
+
+    if mode == "w":
+        raise PermissionError("execute_code opens a zip member for reading only (mode 'r').")
+    if mode != "r":
+        raise ValueError('a zip member opens with mode "r"')
+    stream = real.open(name, "r", pwd=pwd)
+    member = ZipMember()
+    member.name = stream.name
+    member.mode = "rb"
+    for attr in ("read", "read1", "readinto", "readinto1", "readline", "readlines", "peek", "readable",
+                 "seekable", "seek", "tell", "isatty", "close"):
+        setattr(member, attr, getattr(stream, attr))
+    member._closed = lambda: stream.closed
+    return member
+
+
 def _zip_file(file, mode="r", compression=_zipfile.ZIP_STORED, allowZip64=True, compresslevel=None):  # noqa: N803
     if mode not in ("r", "w", "a", "x"):
         raise ValueError("ZipFile mode is 'r', 'w', 'a' or 'x'")
@@ -250,6 +314,11 @@ def _zip_file(file, mode="r", compression=_zipfile.ZIP_STORED, allowZip64=True, 
     archive.mode = mode
     for name in ("namelist", "infolist", "getinfo", "read", "testzip", "printdir", "close"):
         setattr(archive, name, getattr(real, name))
+
+    def _open(name, mode="r", pwd=None, *, force_zip64=False):  # noqa: ARG001
+        return _zip_member(real, name, mode, pwd)
+
+    archive.open = _open
 
     def _members_land(target, members) -> None:
 

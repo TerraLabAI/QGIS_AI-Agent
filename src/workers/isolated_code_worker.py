@@ -570,7 +570,7 @@ def _run(job: dict, status_path: str) -> int:
 
 
 
-    arm = _tripwire().guard_child(str(job.get("granted") or "D"))
+    arm = _tripwire().guard_child(str(job.get("granted") or "D"), job.get("own_files") or ())
 
     def _keep(exc: BaseException) -> None:
 
@@ -641,6 +641,10 @@ def _run(job: dict, status_path: str) -> int:
             status["result"] = text[:int(job.get("max_result_chars") or 1_000_000)]
             status["result_chars"] = len(text)
         status.update(_names_out(job, namespace, bound, helpers))
+
+    created = _tripwire().take_created()
+    if created:
+        status["created"] = created
     _write(status_path, status)
     return 0
 

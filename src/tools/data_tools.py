@@ -38,7 +38,6 @@ from .data_inspect import (
     _add_vector_over_range_requests,
     _extract_remote_vector,
     _inspect_data_source,
-    _inspect_is_remote,
     expand_link,
 )
 from .data_ogc import (
@@ -481,9 +480,14 @@ def register_data_tools(registry: ToolRegistry):
                 },
             },
             "required": ["url"],
+
+
+            "x-local-facts": True,
         },
         handler=_inspect_data_source,
-        background=_inspect_is_remote,
+
+
+        background=True,
     ))
 
     registry.register(Tool(

@@ -23,6 +23,11 @@ TAG = "AI Agent"
 MAX_LOG_LINE_CHARS = 2_000
 _recent_lines = deque(maxlen=100)
 _recent_lines_lock = threading.Lock()
+
+
+
+WFS_TAG = "WFS"
+_wfs_lines = deque(maxlen=20)
 _CUT_EDGE_TAIL = re.compile(r"[^\s\"']*\Z")
 _CUT_EDGE_HEAD = re.compile(r"\A[^\s\"']*")
 _capture_connected = False
@@ -101,6 +106,10 @@ def _rendered(message) -> str:
 
 
 def _capture_message(message, tag, _level) -> None:
+    if tag == WFS_TAG:
+        with _recent_lines_lock:
+            _wfs_lines.append(_rendered(message))
+        return
     if tag != TAG:
         return
     stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
@@ -138,6 +147,12 @@ def stop_log_capture() -> None:
     except (TypeError, RuntimeError, AttributeError):
         pass
     _capture_connected = False
+
+
+def recent_wfs_line(needle: str) -> str:
+
+    with _recent_lines_lock:
+        return next((line for line in reversed(_wfs_lines) if needle and needle in line), "")
 
 
 def recent_logs() -> str:

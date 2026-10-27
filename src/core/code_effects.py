@@ -51,6 +51,7 @@
 
 
 
+
 from __future__ import annotations
 
 import ast
@@ -126,7 +127,9 @@ _R_NAMES = frozenset({
     "defaultdict", "Counter", "OrderedDict", "namedtuple", "deque",
 
     "layer", "layers", "read_text", "validate_path",
-    "StringIO", "BytesIO",
+
+
+    "StringIO", "BytesIO", "TextIOWrapper",
 
 
     "Path",
@@ -168,6 +171,8 @@ _R_ATTRS = frozenset({
     "normpath", "realpath", "relpath", "expanduser", "listdir", "scandir", "walk", "stat", "glob",
     "iglob", "is_file", "is_dir", "iterdir", "read_text", "read_bytes", "resolve", "with_suffix",
     "with_name", "suffix", "stem", "gettempdir", "namelist", "infolist", "getinfo",
+
+    "StringIO", "BytesIO", "TextIOWrapper",
 
 
     "open",
@@ -408,12 +413,21 @@ def remote_literals(code: object) -> list[str]:
 
 def _open_writes(node: ast.Call) -> bool:
 
+    if any(isinstance(a, ast.Starred) for a in node.args) or any(k.arg is None for k in node.keywords):
+        return True
     mode = node.args[1] if len(node.args) > 1 else next((k.value for k in node.keywords if k.arg == "mode"), None)
     if mode is None:
         return False
     if not (isinstance(mode, ast.Constant) and isinstance(mode.value, str)):
         return True
     return any(flag in mode.value for flag in "wax+")
+
+
+def _zip_reads(node: ast.Call, kind: str) -> bool:
+
+    if _callee(node)[1] != "ZipFile" or _open_writes(node):
+        return False
+    return kind == "name" or (isinstance(node.func.value, ast.Name) and node.func.value.id == "zipfile")
 
 
 def _rebound_names(tree: ast.AST) -> set[str]:
@@ -514,14 +528,16 @@ class _Owner:
 
 
     def __init__(self, tree: ast.AST, user_layer: Callable[[str], bool] | None, safe: set,
-                 p_modules: frozenset) -> None:
+                 p_modules: frozenset, own_names: frozenset = frozenset()) -> None:
         self.user_layer = user_layer or (lambda _text: False)
         self.p_modules = p_modules
         stored = _stored_names(tree)
         loaded = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
 
 
-        self.tainted = {name for name in loaded - stored if name not in safe and name[:1] != "Q"}
+
+        self.tainted = {name for name in loaded - stored
+                        if name not in safe and name not in own_names and name[:1] != "Q"}
         self.tainted.add("active")
         self.tainted |= {a.arg for a in ast.walk(tree) if isinstance(a, ast.arg)} - {"self", "cls"}
         self.external = set(self.tainted)
@@ -704,7 +720,9 @@ def undefined_name(code: object, available: set | frozenset) -> tuple[str, int] 
 def classify(code: object, tool_class: Callable[[str], str | None] | None = None,
              commit_class: Callable[[list, bool], str | tuple] | None = None,
              libraries: frozenset | set | tuple = (),
-             user_layer: Callable[[str], bool] | None = None) -> Verdict:
+             user_layer: Callable[[str], bool] | None = None,
+             own_names: frozenset | set = frozenset()) -> Verdict:
+
 
 
 
@@ -743,7 +761,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
     safe = (set(dir(_builtins)) | _SNIPPET_NAMES | set(t["r_names"]) | set(t["p_names"]) | set(t["fp_names"])
             | _stored_names(tree))
-    owner = _Owner(tree, user_layer, safe, frozenset(t["p_modules"]))
+    owner = _Owner(tree, user_layer, safe, frozenset(t["p_modules"]), frozenset(own_names or ()))
     user = False
     commits = False
 
@@ -832,6 +850,10 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             if kind == "expr":
 
                 unknown.append("a call through an expression")
+            elif _zip_reads(node, kind):
+
+
+                pass
             elif kind == "name":
                 if id(node.func) in lookups:
                     name = _literal_lookup(node)

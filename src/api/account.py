@@ -83,6 +83,16 @@ def _openable_https(url: object) -> bool:
             and not any(ord(char) < 32 or ord(char) == 127 for char in url))
 
 
+def _ui_lang() -> str:
+
+    try:
+        from ..core.i18n import current_locale
+
+        return str(current_locale() or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def usage_to_runs(payload: dict) -> dict:
 
     payload = payload if isinstance(payload, dict) else {}
@@ -578,8 +588,9 @@ class Account(QObject):
             return
         auth = self.get_auth_header()
         client = self._client
+        lang = _ui_lang()
         task = GenericRequestTask(tr("Checking your AI Agent subscription"),
-                                  lambda: client.get_usage(auth=auth), hidden=True)
+                                  lambda: client.get_usage(auth=auth, lang=lang), hidden=True)
         task.succeeded.connect(self._on_key_revalidate_ok)
         task.failed.connect(self._on_key_revalidate_failed)
         self._revalidate_task = task
@@ -627,19 +638,20 @@ class Account(QObject):
             return
         auth = self.get_auth_header()
         client = self._client
+        lang = _ui_lang()
 
         def _fetch():
 
 
 
 
-            account = client.get_account(auth=auth, include_usage=True)
+            account = client.get_account(auth=auth, include_usage=True, lang=lang)
             if not isinstance(account, dict) or "error" in account:
                 return account
             account = dict(account)
             usage = account.pop("usage", None)
             if not isinstance(usage, dict) or not usage:
-                usage = client.get_usage(auth=auth)
+                usage = client.get_usage(auth=auth, lang=lang)
             if not isinstance(usage, dict) or "error" in usage:
                 return usage if isinstance(usage, dict) else {
                     "error": tr("Could not load account usage."), "code": "USAGE_ERROR"}
