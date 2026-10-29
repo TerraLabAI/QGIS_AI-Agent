@@ -39,7 +39,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import data_date, dataset_docs, limits, net, read_clock, tuning, vsi
+from ..core import data_date, dataset_docs, ground, limits, net, read_clock, tuning, vsi
 from ..core.background import run_on_main_thread, still_awaited, take
 from ..core.context_layers import canvas_bbox_4326
 from ..core.crs_ref import crs_ref
@@ -51,9 +51,6 @@ from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import volume_guard
 from .data_common import built_here, worker_options
 from .data_tools import _avoid_reserved_name
-
-
-
 
 
 _USER_AGENT = net.user_agent()
@@ -69,9 +66,6 @@ _CACHE_STAC_S = 600
 
 
 _RASTER_MEDIA_HINTS = ("geotiff", "image/tiff")
-
-
-
 
 
 
@@ -172,8 +166,6 @@ def register_stac_tools(registry: ToolRegistry):
 
 
 
-
-
 def _stac_get(url: str, timeout: int = _STAC_GET_TIMEOUT):
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         raise ValueError("STAC URL must use http or https")
@@ -196,8 +188,6 @@ def _stac_get(url: str, timeout: int = _STAC_GET_TIMEOUT):
 
 def _stac_root(args: dict) -> str:
     return (args.get("stac_url") or _DEFAULT_STAC_ROOT).rstrip("/")
-
-
 
 
 def _has_sas_token(url: str) -> bool:
@@ -264,7 +254,6 @@ def _sign_pc_href(url: str) -> tuple[str, str | None]:
 
 _PC_SIGN_FAILED = ("Planetary Computer did not sign this asset, so it was requested unsigned "
                    "and refused (HTTP 409). Signing often works on the next call.")
-
 
 
 
@@ -407,9 +396,10 @@ def _raster_built_here(source: str, name: str):
 
 
     vsi.apply_persistent()
+    host = urllib.parse.urlsplit(source.replace("/vsicurl/", "", 1)).hostname
+    if host:
+        net.report_stage("wait:" + host)
     return built_here(lambda: QgsRasterLayer(source, name, "gdal", worker_options(QgsRasterLayer)))
-
-
 
 
 
@@ -839,7 +829,8 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
             **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
             "width": layer.width(),
             "height": layer.height(),
-            "bands": layer.bandCount(),
+            "band_count": layer.bandCount(),
+            **ground.pixel_facts(layer),
             "crs": _crs_label(layer.crs()),
             **credit,
             "_note": ("Downloaded to this machine, so the layer keeps working after the server drops the file."
@@ -991,7 +982,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
             "width": layer.width(),
             "height": layer.height(),
-            "bands": layer.bandCount(),
+            "band_count": layer.bandCount(),
+            **ground.pixel_facts(layer),
             "crs": _crs_label(layer.crs()),
         }
 
@@ -1031,10 +1023,6 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
     if extra:
         result.update(extra)
     if not result.get("crs"):
-
-
-
-
 
         result["warning"] = "This raster carries no CRS, so QGIS cannot place it on the map."
         result["advice"] = coded_fact(hint="raster_without_crs", url=final_url)
@@ -1473,7 +1461,6 @@ def _add_stac_layer(args: dict) -> dict:
         item_id = args.get("item_id")
         if not (collection and item_id):
             return tool_error("item_url, or stac_url + collection + item_id, is needed.", "INVALID_ARGS")
-
 
         item_url = (f"{stac_url}/collections/{urllib.parse.quote(collection, safe='')}"
                     f"/items/{urllib.parse.quote(item_id, safe='')}")

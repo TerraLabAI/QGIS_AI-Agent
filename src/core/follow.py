@@ -45,11 +45,11 @@ from qgis.core import (
     QgsRectangle,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import QEvent, QObject, QTimer
 
-from . import ground, tuning
+from . import canvas_glide, tuning
 from .layer_order import is_backdrop, reading_back
-from .logger import log_warning
+from .logger import log, log_warning
 from .qt_compat import enum_member, qgis_iface
 from .tool_registry import NAMED_LAYER, spec
 from .vsi import streamed_in_place
@@ -59,25 +59,10 @@ from .vsi import streamed_in_place
 PAD_SHARE = 0.25
 
 
-PAN_SHARE = 0.6
-
-
 CONTAINED_SHARE = 0.1
 
 
 POINT_SHARE = 0.08
-
-
-
-APPROACH_SPAN_M = 600
-
-
-
-APPROACH_SPAN_DEG = 0.0054
-
-
-
-APPROACH_KEEP_RATIO = 400.0
 
 
 
@@ -91,8 +76,6 @@ SETTLE_MS = 180
 
 _MAX_PER_SIGNAL = 2000
 
-FLASH_MS = 900
-
 
 
 
@@ -100,9 +83,8 @@ FLASH_MS = 900
 
 
 _SHIPPED_FEEL = {
-    "pad_share": PAD_SHARE, "pan_share": PAN_SHARE, "contained_share": CONTAINED_SHARE,
-    "point_share": POINT_SHARE, "approach_span_m": float(APPROACH_SPAN_M),
-    "approach_keep_ratio": APPROACH_KEEP_RATIO, "settle_ms": SETTLE_MS, "flash_ms": FLASH_MS,
+    "pad_share": PAD_SHARE, "contained_share": CONTAINED_SHARE,
+    "point_share": POINT_SHARE, "settle_ms": SETTLE_MS,
 }
 FEEL: dict = dict(_SHIPPED_FEEL)
 
@@ -199,13 +181,11 @@ class EditWatcher:
 
 
 
-
         self._crs = None
         self._layers: list = []
         self._project = None
         self._watching = False
         self._repaint_pending = False
-
 
 
     def start(self) -> None:
@@ -222,8 +202,6 @@ class EditWatcher:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Follow: cannot watch new layers: {exc}")
             self._project = None
-
-
 
 
         if self._project is not None:
@@ -264,10 +242,6 @@ class EditWatcher:
         self._watching = False
 
     def _on_layers_gone(self, _layer_ids) -> None:
-
-
-
-
 
 
 
@@ -332,7 +306,6 @@ class EditWatcher:
         if canvas is None or self._crs is None:
             return QgsRectangle(self._rect)
         return _rect_from_crs(self._rect, self._crs, canvas)
-
 
 
     def _connections(self, layer):
@@ -618,7 +591,6 @@ def _held(bridge, canvas, crs, frame_area: bool):
                 log_warning(f"Follow: cannot frame {crs.authid()}'s area of use: {exc}")
 
 
-
 FIRST_FRAME_GUARD_MS = 1500
 
 
@@ -765,7 +737,6 @@ def move_to(rect, canvas=None) -> str:
     if target.isNull():
         return ""
     if target.width() <= 0 and target.height() <= 0:
-
         pad = max(current.width(), current.height()) * FEEL["point_share"] / 2
         target.grow(pad)
     padded = _grown(target, FEEL["pad_share"])
@@ -774,17 +745,20 @@ def move_to(rect, canvas=None) -> str:
         return "kept"
     if target.contains(current) and _area(current) >= _area(target) * FEEL["contained_share"]:
         return "kept"
-    pan_share = FEEL["pan_share"]
-    if padded.width() <= current.width() * pan_share and padded.height() <= current.height() * pan_share:
+    picture = canvas_glide.take(canvas)
+    if padded.width() <= current.width() and padded.height() <= current.height():
 
         half_w, half_h = current.width() / 2, current.height() / 2
         cx, cy = target.center().x(), target.center().y()
         canvas.setExtent(QgsRectangle(cx - half_w, cy - half_h, cx + half_w, cy + half_h))
         canvas.refresh()
-        return "reframed" if hold_view(canvas) else "panned"
-    canvas.setExtent(padded)
-    canvas.refresh()
-    return "reframed" if hold_view(canvas) else "zoomed"
+        action = "reframed" if hold_view(canvas) else "panned"
+    else:
+        canvas.setExtent(padded)
+        canvas.refresh()
+        action = "reframed" if hold_view(canvas) else "zoomed"
+    canvas_glide.start(canvas, picture)
+    return action
 
 
 def _crs_holds(crs, geo_rect) -> bool:
@@ -925,26 +899,6 @@ def _canvas_crs(canvas):
         return None
 
 
-def _approach_span(canvas) -> float:
-
-    crs = _canvas_crs(canvas)
-    try:
-        geographic = crs is not None and crs.isGeographic()
-    except Exception:  # noqa: BLE001
-        geographic = False
-    span_m = FEEL["approach_span_m"]
-
-    if geographic:
-        return APPROACH_SPAN_DEG * span_m / APPROACH_SPAN_M
-
-
-
-
-
-    scale = ground.canvas_metres_per_unit(canvas)
-    return span_m / scale if ground.distorted(scale) else span_m
-
-
 def _rect_from_crs(rect, source, canvas) -> QgsRectangle | None:
 
     if rect is None or rect.isNull():
@@ -1080,7 +1034,6 @@ def _wkts(args) -> list:
         if isinstance(value, str):
 
 
-
             head = value.strip()[:14].upper()
             if head.startswith(("POINT", "LINESTRING", "POLYGON", "MULTIPOINT",
                                 "MULTILINE", "MULTIPOLYGON", "GEOMETRYCOLLECTION")):
@@ -1116,8 +1069,6 @@ def _numbers(value, count: int) -> list | None:
         numbers = [float(p) for p in parts]
     except (TypeError, ValueError):
         return None
-
-
 
 
     return numbers if all(math.isfinite(n) for n in numbers) else None
@@ -1266,34 +1217,79 @@ def go_to(rect, canvas=None) -> str:
 
 
 
+    return move_to(rect, canvas)
 
 
-    if rect is None:
-        return ""
-    canvas = canvas if canvas is not None else _canvas()
-    if canvas is None:
-        return ""
-    try:
-        current = QgsRectangle(canvas.extent())
-    except Exception:  # noqa: BLE001
-        return ""
-    target = QgsRectangle(rect)
-    if target.isNull():
-        return ""
-    span = _approach_span(canvas)
-    if target.width() < span and target.height() < span:
+class HandWatch(QObject):
 
 
-        centre = target.center()
-        half = span / 2
-        target = QgsRectangle(centre.x() - half, centre.y() - half,
-                              centre.x() + half, centre.y() + half)
-    padded = _grown(target, FEEL["pad_share"])
-    if current.contains(padded) and _area(current) <= _area(padded) * FEEL["approach_keep_ratio"]:
-        return "kept"
-    canvas.setExtent(padded)
-    canvas.refresh()
-    return "reframed" if hold_view(canvas) else "zoomed"
+
+
+
+
+
+
+
+    def __init__(self, on_taken):
+        super().__init__()
+        self._on_taken = on_taken
+        self._canvas = None
+        self._held = False
+        self._touching = False
+        types = {name: enum_member(QEvent, "Type", name, None) for name in (
+            "MouseButtonPress", "MouseButtonRelease", "Wheel", "KeyPress", "NativeGesture", "Gesture")}
+        self._press = types.pop("MouseButtonPress")
+        self._release = types.pop("MouseButtonRelease")
+        self._brief = {kind for kind in types.values() if kind is not None}
+
+    def attach(self, canvas) -> None:
+        self.detach()
+        if canvas is None:
+            return
+        try:
+            canvas.viewport().installEventFilter(self)
+            canvas.installEventFilter(self)
+            canvas.extentsChanged.connect(self._on_extents)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Follow: cannot watch the user's hand on the map: {exc}")
+            return
+        self._canvas = canvas
+
+    def detach(self) -> None:
+        canvas, self._canvas = self._canvas, None
+        self._held = self._touching = False
+        if canvas is None:
+            return
+        try:
+            canvas.viewport().removeEventFilter(self)
+            canvas.removeEventFilter(self)
+            canvas.extentsChanged.disconnect(self._on_extents)
+        except (TypeError, RuntimeError):
+            pass
+
+    def eventFilter(self, _watched, event) -> bool:  # noqa: N802
+        kind = event.type()
+        if kind == self._press:
+            self._held = True
+        elif kind == self._release:
+
+
+            self._touching = True
+            QTimer.singleShot(0, self._released)
+        elif kind in self._brief:
+            self._touching = True
+            QTimer.singleShot(0, self._let_go)
+        return False
+
+    def _let_go(self) -> None:
+        self._touching = False
+
+    def _released(self) -> None:
+        self._touching = self._held = False
+
+    def _on_extents(self) -> None:
+        if self._held or self._touching:
+            self._on_taken()
 
 
 class Follower:
@@ -1302,8 +1298,6 @@ class Follower:
     def __init__(self, watcher: EditWatcher | None = None):
         self.watcher = watcher if watcher is not None else EditWatcher()
         self._timer: QTimer | None = None
-        self._band = None
-        self._flash: QTimer | None = None
         self.enabled = True
         self.last_action = ""
         self.last_rect: QgsRectangle | None = None
@@ -1311,13 +1305,18 @@ class Follower:
 
         self._approached_at: float | None = None
         self._halted = False
-
         self._named: list[str] = []
+
+
+        self.view_taken = False
+        self._hands = HandWatch(self._user_took_view)
 
     def begin(self) -> None:
         self._approached_at = None
         self._halted = False
+        self.view_taken = False
         self.watcher.start()
+        self._hands.attach(_canvas())
 
 
 
@@ -1338,6 +1337,7 @@ class Follower:
 
     def end(self) -> None:
         self.watcher.stop()
+        self._hands.detach()
         try:
             QgsProject.instance().layersAdded.disconnect(self._on_layers_added)
         except Exception:  # nosec B110
@@ -1358,6 +1358,27 @@ class Follower:
         self.watcher.take()
         self._named = []
 
+    def _on(self) -> bool:
+
+
+        if not self.enabled or self._halted or self.view_taken:
+            return False
+        try:
+            from .settings import Settings
+            return bool(Settings().follow_edits)
+        except Exception:  # noqa: BLE001
+            return True
+
+    def _user_took_view(self) -> None:
+        if self.view_taken:
+            return
+        self.view_taken = True
+        canvas_glide.stop()
+        self._cancel_timer()
+        self.watcher.take()
+        self._named = []
+        log("Follow: the user moved the map, the view is theirs until the next run")
+
     def approach(self, name: str, args) -> str:
 
 
@@ -1367,9 +1388,7 @@ class Follower:
 
 
 
-        if not self.enabled:
-            return ""
-        if self._halted:
+        if not self._on():
             return ""
         if self._approached_at is not None and (
                 self._timer is not None
@@ -1389,12 +1408,9 @@ class Follower:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Follow: could not go to {name}'s place: {exc}")
             return ""
-        if action in ("zoomed", "reframed"):
+        if action in ("panned", "zoomed", "reframed"):
             self._approached_at = time.monotonic()
             self.last_rect = QgsRectangle(rect)
-            if action == "zoomed":
-
-                self._flash_rect(rect)
         return action
 
     def request(self, layers=()) -> None:
@@ -1403,11 +1419,7 @@ class Follower:
 
 
 
-        if self._halted:
-            self.watcher.take()
-            self._named = []
-            return
-        if not self.enabled:
+        if not self._on():
             self.watcher.take()
             self._named = []
             return
@@ -1423,9 +1435,6 @@ class Follower:
         self._timer = timer
 
     def chose_view(self) -> None:
-
-
-
 
 
 
@@ -1449,9 +1458,7 @@ class Follower:
         self._approached_at = None
         rect = self.watcher.take()
         named, self._named = self._named, []
-        if self._halted:
-            return ""
-        if not self.enabled:
+        if not self._on():
             return ""
         if rect is None and named:
             rect = layers_rect(named)
@@ -1459,8 +1466,6 @@ class Follower:
             return ""
         self.last_rect = QgsRectangle(rect)
         self.last_action = move_to(rect)
-        if self.last_action in ("panned", "zoomed"):
-            self._flash_rect(rect)
         return self.last_action
 
     def _cancel_timer(self) -> None:
@@ -1470,64 +1475,3 @@ class Follower:
             except RuntimeError:
                 pass
             self._timer = None
-
-
-
-    def _flash_rect(self, rect) -> None:
-
-        canvas = _canvas()
-        if canvas is None:
-            return
-        try:
-            from qgis.core import QgsGeometry
-            from qgis.gui import QgsRubberBand
-            from qgis.PyQt.QtCore import Qt
-            from qgis.PyQt.QtGui import QColor
-        except ImportError:
-            return
-        self._clear_flash()
-        try:
-            band = QgsRubberBand(canvas, QgsWkbTypes_polygon())
-            band.setColor(QColor(139, 172, 39, 60))
-            band.setStrokeColor(QColor(139, 172, 39, 220))
-            band.setWidth(2)
-            band.setLineStyle(Qt.PenStyle.SolidLine)
-            band.setToGeometry(QgsGeometry.fromRect(QgsRectangle(rect)), None)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Follow: no flash on this build: {exc}")
-            return
-        self._band = band
-        flash = QTimer()
-        flash.setSingleShot(True)
-        flash.setInterval(int(FEEL["flash_ms"]))
-        flash.timeout.connect(self._clear_flash)
-        flash.start()
-        self._flash = flash
-
-    def _clear_flash(self) -> None:
-        if self._flash is not None:
-            try:
-                self._flash.stop()
-            except RuntimeError:
-                pass
-            self._flash = None
-        band, self._band = self._band, None
-        if band is None:
-            return
-        try:
-            band.reset()
-            canvas = _canvas()
-            scene = canvas.scene() if canvas is not None else None
-            if scene is not None:
-                scene.removeItem(band)
-        except Exception:  # noqa: BLE001  # nosec B110
-            pass
-
-
-def QgsWkbTypes_polygon():  # noqa: N802
-
-    from qgis.core import QgsWkbTypes
-
-    geometry = getattr(QgsWkbTypes, "GeometryType", None)
-    value = getattr(geometry, "Polygon", None) if geometry is not None else None
-    return value if value is not None else enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")

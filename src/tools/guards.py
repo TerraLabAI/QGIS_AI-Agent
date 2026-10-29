@@ -799,9 +799,6 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
 
 
-
-
-
     skip = {key.lower() for key in tuple(WRITE_PATH_ARGS.get(name, ())) + _FREE_TEXT_KEYS}
 
     written = {os.path.normcase(security.expand_path(target)) for target in writes}
@@ -884,7 +881,6 @@ def _clamp_limits(args: dict) -> None:
         ceiling = limits.current("MAX_FEATURES_PER_CALL")
         if value > ceiling:
             args[key] = ceiling
-
 
 
 
@@ -990,8 +986,6 @@ _RENDER_SIZE_KEYS = (("width", "MAX_RENDER_WIDTH_PX"), ("height", "MAX_RENDER_HE
 
 
 
-
-
 _RENDER_CLAMPING_TOOLS = frozenset({"render_map"})
 
 
@@ -1061,8 +1055,6 @@ def _check_bbox_area(name: str, args: dict) -> dict | None:
     ceiling = limits.current("MAX_FETCH_KM2")
     if area <= ceiling:
         return None
-
-
 
 
 
@@ -1172,18 +1164,6 @@ def check_size(name: str, args: dict) -> dict | None:
         if check:
             return check
     return None
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

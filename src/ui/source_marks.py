@@ -35,7 +35,6 @@
 
 
 
-
 from __future__ import annotations
 
 import hashlib
@@ -89,7 +88,6 @@ STACK_OVERLAP = 6
 _MAX_STACKED = 3
 
 
-
 ROW_PX = 40
 SHEET_MARK_PX = 18
 _POPOVER_WIDTH = 300
@@ -101,17 +99,13 @@ _CHEVRON_PX = 16
 
 _ROW_PAD = 8
 _ROW_GAP = 10
-
 _MAX_DATES = 31
-
 _DEFAULT_GLYPH = "globe"
-
 _VIA_TERRALAB = "terralab"
 
 _STORES = ((".amazonaws.com", "Amazon S3"), (".blob.core.windows.net", "Azure Blob Storage"),
            (".storage.googleapis.com", "Google Cloud Storage"), (".r2.dev", "Cloudflare R2"),
            (".digitaloceanspaces.com", "DigitalOcean Spaces"))
-
 _POPOVER_SCROLL_QSS = (
     "QScrollArea { background: transparent; border: none; }"
     "QScrollBar:vertical { background: transparent; width: 8px;"
@@ -162,7 +156,6 @@ def readable_host(url: str) -> str:
 
 
 
-
     text = str(url or "").strip()
     own = open_data_label(text)
     if own:
@@ -181,7 +174,6 @@ def readable_host(url: str) -> str:
 def _page_address(url: str, host: str) -> str:
 
 
-
     text = str(url or "").split("://", 1)[-1].rstrip("/")
     if text.lower().startswith("www."):
         text = text[4:]
@@ -195,8 +187,6 @@ def mark_color(host: str) -> QColor:
     color = QColor()
     color.setHsl(hue, 150, 118)
     return color
-
-
 
 
 
@@ -408,7 +398,6 @@ def _clipped(chip: QPixmap, size: int, ratio: float, round_: bool) -> QPixmap:
         painter.fillRect(rect, QColor(Qt.GlobalColor.white))
         painter.drawPixmap(rect, chip, QRectF(chip.rect()))
         if not round_:
-
             painter.setClipping(False)
             painter.setPen(QPen(qcolor(LINE), 1))
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -501,7 +490,6 @@ class SourcesButton(QWidget):
         self.setFixedHeight(scale_px_length(24))
 
 
-
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.hide()
 
@@ -586,7 +574,6 @@ class SourcesButton(QWidget):
             ratio = widget_pixel_ratio(self)
             x = 6
             y = (self.height() - MARK_PX) // 2
-
             shown = self._items[:_MAX_STACKED]
             for index in range(len(shown) - 1, -1, -1):
                 item = shown[index]
@@ -765,7 +752,6 @@ class _SourceDetails(QWidget):
     def __init__(self, fields: list, url: str, page: bool, parent=None):
         super().__init__(parent)
         col = QVBoxLayout(self)
-
         col.setContentsMargins(_ROW_PAD + SHEET_MARK_PX + _ROW_GAP, 0, _ROW_PAD, 10)
         col.setSpacing(8)
         rule = QFrame(self)
@@ -788,7 +774,6 @@ class _SourceDetails(QWidget):
             keys.append(key)
         grid.setColumnStretch(1, 1)
         if keys:
-
             for key in keys:
                 key.ensurePolished()
             grid.setColumnMinimumWidth(0, max(k.fontMetrics().horizontalAdvance(k.text()) for k in keys) + 2)
@@ -838,7 +823,6 @@ class _SourceRow(QWidget):
         top = product or item["name"]
         self._maker = item["name"] if product and not product.lower().startswith(item["name"].lower()) else ""
 
-
         name = ElidedLabel(top, words, mode=Qt.TextElideMode.ElideRight)
         name.setStyleSheet(_NAME_QSS)
         name.setToolTip(top)
@@ -861,7 +845,6 @@ class _SourceRow(QWidget):
         if self.expandable:
             self._paint_chevron()
         else:
-
             self._chevron.setPixmap(pixmap_for(self, "link", _LINK_PX, qcolor(INK_3)))
             self._chevron.setVisible(False)
             self.setToolTip(self._url)
@@ -919,7 +902,6 @@ class _SourceRow(QWidget):
             self.clicked.emit(self._url)
 
     def _paint_chevron(self) -> None:
-
         self._chevron.setPixmap(pixmap_for(self, "chevron_down" if self._open else "chevron_right",
                                            _CHEVRON_PX, qcolor(INK_3)))
 
@@ -934,13 +916,11 @@ class _SourceRow(QWidget):
         self._hover = on
         if not self.expandable:
             self._chevron.setVisible(on and bool(self._url))
-
         if self.parentWidget() is not None:
             self.parentWidget().update()
 
     def focusInEvent(self, event):  # noqa: N802
         super().focusInEvent(event)
-
         self._set_hover(True)
 
     def focusOutEvent(self, event):  # noqa: N802
@@ -1029,7 +1009,6 @@ class SourcesPopover(QFrame):
         col.addWidget(title)
 
 
-
         self._list = QWidget(self)
         rows_col = QVBoxLayout(self._list)
         rows_col.setContentsMargins(0, 0, 0, 0)
@@ -1052,7 +1031,6 @@ class SourcesPopover(QFrame):
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._scroll.setWidget(self._list)
-
         self._scroll.viewport().setAutoFillBackground(False)
         self._list.setAutoFillBackground(False)
         self._list.setObjectName("sourcesList")
@@ -1066,7 +1044,6 @@ class SourcesPopover(QFrame):
         self._copy.clicked.connect(self._copy_credits)
         self._copy.setVisible(bool(self._credits))
         col.addWidget(self._copy)
-
         self._copied = QTimer(self)
         self._copied.setSingleShot(True)
         self._copied.setInterval(1500)

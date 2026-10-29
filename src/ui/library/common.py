@@ -112,14 +112,11 @@ EDGE = 8
 
 
 TITLE_PX, SECTION_PX, NAME_PX, BODY_PX, SMALL_PX = 24, 18, 16, 14, 13
-
 HERO_PX = 32
 
 READ_PX, CAPTION_PX, LINE_HEIGHT, MEASURE_W = 16, 15, 155, 680
-
 TOP_BAR_H = 48
 LEAD_PX = NAME_PX
-
 FIGURE_PX = 22
 
 
@@ -145,13 +142,11 @@ def weight_css(weight: int) -> str:
     return f"{family} font-weight: {qt * 8};"
 RADIUS_TILE, RADIUS_HERO, RADIUS_ROW = 12, 16, 10
 
-
 DIALOG_W, DIALOG_H = 1080, 720
 RAIL_W = 232
 
 
 COLUMN_W = 820
-
 TILE_MIN_W = 200
 TILE_GAP = SPACE_2
 
@@ -224,7 +219,6 @@ def search_qss(name: str, height: int = 36) -> str:
         f" selection-color: {T.text}; min-height: {inner}px; max-height: {inner}px; }}"
         f"QLineEdit#{name}:focus {{ border-color: {T.text_2}; }}"
     )
-
 
 
 BUTTON_H = 36

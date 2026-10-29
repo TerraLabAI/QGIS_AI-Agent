@@ -894,8 +894,6 @@ def _download_vector_from_url(args: dict, url: str, layer_name, shared: bool = F
 
 
 
-
-
     return _download_to_disk(args, url, layer_name, shared)
 
 
@@ -1047,7 +1045,6 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                         return _discard_download(
                             tmp_dir, tool_error(f"ZIP archive contains an unsafe path: {member.filename}"))
                     extracted += member.file_size
-
 
 
 
@@ -1332,10 +1329,6 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
     out = run_on_main_thread(_create, timeout=30)
 
 
-
-
-
-
     if isinstance(out, dict) and out.get("_error") is not None:
         return _discard_download(tmp_dir, out)
     return out
@@ -1391,6 +1384,8 @@ def _inspect_local_file(path: str) -> dict:
             "columns": info["header"][:40], "rows_sampled": info["rows"],
             "x_column": info["lon"], "y_column": info["lat"], "wkt_column": info["wkt"],
         })
+        if info.get("wkt_types"):
+            out["wkt_geometry_types"] = info["wkt_types"]
         out["import_method"] = "add_vector_layer"
         out["import_arguments"] = {"path": path, "name": name}
         if info["lat"] and info["lon"] or info["wkt"]:
@@ -1424,6 +1419,14 @@ def _inspect_local_file(path: str) -> dict:
                     "import_arguments": {"source": path, "name": name, "kind": "pointcloud"},
                     "provider": provider,
                     "message": "A point cloud.", "load_note": coded_fact(hint="point_cloud_file")})
+        header = las_header(path) if ext in (".las", ".laz") else {}
+        wkt, epsg = header.pop("crs_wkt", ""), header.pop("crs_epsg", 0)
+        if wkt or epsg:
+            crs = QgsCoordinateReferenceSystem.fromWkt(wkt) if wkt else QgsCoordinateReferenceSystem(f"EPSG:{epsg}")
+            header["crs"] = crs_ref(crs) if crs.isValid() else (f"EPSG:{epsg}" if epsg else "unreadable")
+        elif header:
+            header["crs"] = ""
+        out.update(header)
         return out
     georeferenced = _geopdf(path) if ext == ".pdf" else None
     if georeferenced:
@@ -1448,8 +1451,9 @@ def _inspect_local_file(path: str) -> dict:
 
 
         if _gdal_reads_vector(path):
-            out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name},
-                        "message": "A CAD drawing.", "load_note": coded_fact(hint="cad_file")})
+
+            _local_vector_facts(path, name, out)
+            out.update({"message": "A CAD drawing.", "load_note": coded_fact(hint="cad_file")})
         else:
             out.update({"message": "A CAD drawing this GDAL cannot read.",
                         "load_note": coded_fact(hint="cad_unreadable_file")})
@@ -1481,7 +1485,19 @@ def _local_vector_facts(path: str, name: str, out: dict) -> dict:
     if len(names) > 1:
         out["message"] = f"Holds {len(names)} layers."
         out["layers_note"] = coded_fact(hint="local_file_layers_pick", count=len(names))
+    if os.path.splitext(path)[1].lower() in _RASTER_CONTAINERS and _gdal_reads_raster(path):
+
+        header = _raster_header(path)
+        if header and not rows:
+            out.update(header)
+            out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
+                        "message": "Direct raster import is available."})
+        elif header:
+            out["raster"] = header
     return out
+
+
+_RASTER_CONTAINERS = frozenset({".gpkg", ".mbtiles"})
 
 
 _ANSWERED_BELOW = frozenset({".pdf", ".txt", ".md", ".docx", ".qgs", ".qgz", ".dxf", ".dwg", ".las", ".laz",
@@ -1523,6 +1539,47 @@ def _raster_header(path: str) -> dict:
         return {}
 
 
+_CF_STEPS = {"day": 86400.0, "hour": 3600.0, "minute": 60.0, "second": 1.0}
+
+
+def cf_time(metadata: dict) -> list:
+
+
+
+    import datetime
+
+    out = []
+    for dim in (metadata.get("NETCDF_DIM_EXTRA") or "").strip("{}").split(","):
+        dim = dim.strip()
+        raw = (metadata.get(f"NETCDF_DIM_{dim}_VALUES") or "").strip("{}")
+        try:
+            values = [float(v) for v in raw.split(",") if v.strip()]
+        except ValueError:
+            continue
+        if not dim or not values:
+            continue
+        units = metadata.get(f"{dim}#units") or ""
+        row = {"dimension": dim, "count": len(values), "units": units}
+        step, _since, origin = units.partition(" since ")
+        step = _CF_STEPS.get(step.strip().lower().rstrip("s"))
+        calendar = (metadata.get(f"{dim}#calendar") or "standard").lower()
+        if step and origin and calendar in ("standard", "gregorian", "proleptic_gregorian"):
+            try:
+                day, _sep, clock = origin.strip().replace("T", " ").partition(" ")
+                stamp = [int(part) for part in day.split("-")[:3]]
+                clock = (clock.split() or [""])[0].rstrip("Z")
+                stamp += [int(float(part)) for part in clock.split(":")[:3] if part]
+                start = datetime.datetime(*stamp)
+                row["start"], row["end"] = [(start + datetime.timedelta(seconds=value * step)).isoformat()
+                                            for value in (values[0], values[-1])]
+            except (ValueError, OverflowError, TypeError):
+                pass
+        if "start" not in row:
+            row["first"], row["last"] = values[0], values[-1]
+        out.append(row)
+    return out
+
+
 def _header_of(dataset) -> dict:
     from osgeo import gdal
 
@@ -1531,6 +1588,9 @@ def _header_of(dataset) -> dict:
                  if key.endswith("_DESC")]
     if variables:
         out["variables"] = variables[:40]
+    times = cf_time(dataset.GetMetadata() or {})
+    if times:
+        out["time"] = times
     if dataset.RasterCount:
         width, height = dataset.RasterXSize, dataset.RasterYSize
         out.update({"width": width, "height": height, "band_count": dataset.RasterCount})
@@ -1587,8 +1647,104 @@ def _geopdf(path: str) -> dict | None:
     wkt = dataset.GetProjection() or dataset.GetGCPProjection()
     if not wkt or (dataset.GetGeoTransform(can_return_null=True) is None and not dataset.GetGCPCount()):
         return None
-    return {"crs": crs_ref(QgsCoordinateReferenceSystem.fromWkt(wkt)), "width": dataset.RasterXSize,
-            "height": dataset.RasterYSize, "bands": dataset.RasterCount}
+    try:
+        return _header_of(dataset)
+    except Exception:  # noqa: BLE001
+        return {"crs": crs_ref(QgsCoordinateReferenceSystem.fromWkt(wkt)), "width": dataset.RasterXSize,
+                "height": dataset.RasterYSize, "band_count": dataset.RasterCount}
+
+
+
+_FOLDER_DESCRIBED = 10
+
+_MEMBER_ROUTING = frozenset({"source_family", "path", "format", "size_bytes", "import_method", "import_arguments",
+                             "message", "provider"})
+_MEMBER_KIND = {"add_raster_layer": "raster", "add_vector_layer": "table", "add_data": "vector"}
+
+
+def _folder_member_facts(path: str) -> dict:
+
+
+    try:
+        facts = _inspect_local_file(path)
+    except Exception:  # noqa: BLE001
+        return {}
+    if not isinstance(facts, dict) or facts.get("_error"):
+        return {}
+    kind = _MEMBER_KIND.get(facts.get("import_method"), "")
+    if kind == "table" and (facts.get("x_column") or facts.get("wkt_column")):
+        kind = "vector"
+    if (facts.get("import_arguments") or {}).get("kind") == "pointcloud":
+        kind = "point cloud"
+    out = {key: value for key, value in facts.items() if key not in _MEMBER_ROUTING and not key.endswith("_note")}
+    if kind:
+        out["kind"] = kind
+    return out
+
+
+_LAS_VLRS = 64
+_LAS_VLR_BYTES = 1024 * 1024
+
+
+def las_header(path: str) -> dict:
+
+
+
+
+    import struct
+
+    try:
+        with open(path, "rb") as stream:
+            head = stream.read(375)
+            if len(head) < 227 or head[:4] != b"LASF":
+                return {}
+            major, minor = head[24], head[25]
+            header_size, = struct.unpack_from("<H", head, 94)
+            vlr_count, = struct.unpack_from("<I", head, 100)
+            count, = struct.unpack_from("<I", head, 107)
+            if (major, minor) >= (1, 4) and len(head) >= 255:
+                count = struct.unpack_from("<Q", head, 247)[0] or count
+            xmax, xmin, ymax, ymin, zmax, zmin = struct.unpack_from("<6d", head, 179)
+            out = {"las_version": f"{major}.{minor}", "point_format": head[104] & 0x3F, "point_count": count,
+                   "compressed": bool(head[104] & 0xC0),
+                   "extent": {"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax, "zmin": zmin, "zmax": zmax}}
+            records = []
+            stream.seek(header_size)
+            for _ in range(min(vlr_count, _LAS_VLRS)):
+                vlr = stream.read(54)
+                if len(vlr) < 54:
+                    break
+                record, length = struct.unpack_from("<HH", vlr, 18)
+                records.append((vlr[2:18].rstrip(b"\0"), record, stream.read(length)))
+            if (major, minor) >= (1, 4) and len(head) >= 255:
+                start, evlr_count = struct.unpack_from("<QI", head, 235)
+                if start and evlr_count:
+                    stream.seek(start)
+                    for _ in range(min(evlr_count, _LAS_VLRS)):
+                        evlr = stream.read(60)
+                        if len(evlr) < 60:
+                            break
+                        record, length = struct.unpack_from("<HQ", evlr, 18)
+                        if length > _LAS_VLR_BYTES:
+                            break
+                        records.append((evlr[2:18].rstrip(b"\0"), record, stream.read(length)))
+    except (OSError, struct.error):
+        return {}
+    for user, record, data in records:
+        if user != b"LASF_Projection":
+            continue
+        if record == 2112 and data.strip(b"\0"):
+            out["crs_wkt"] = data.rstrip(b"\0").decode("utf-8", "replace")
+            break
+        if record == 34735 and len(data) >= 8:
+            keys = struct.unpack_from(f"<{len(data) // 2}H", data)
+            for at in range(4, min(len(keys) - 3, 4 + 4 * keys[3]), 4):
+
+                if keys[at] in (3072, 2048) and keys[at + 1] == 0 and 0 < keys[at + 3] < 32767:
+                    out["crs_epsg"] = keys[at + 3]
+                    if keys[at] == 3072:
+                        break
+    return out
 
 
 def _inspect_local_folder(folder: str) -> dict:
@@ -1649,6 +1805,8 @@ def _inspect_local_folder(folder: str) -> dict:
         out.update(around)
         return out
     data.sort(key=lambda item: (links.rank(item), item["name"].casefold()))
+    for item in data[:_FOLDER_DESCRIBED]:
+        item.update(_folder_member_facts(item["path"]))
     out = {"source_family": "local_folder", "path": folder, "file_count": len(data),
            "layers": [dict(item, add={"tool": "inspect_data_source", "args": {"url": item["path"]}})
                       for item in data[:_FOLDER_SHOWN]], **around}

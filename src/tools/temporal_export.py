@@ -55,8 +55,6 @@ _DIGITS = 4
 _DAY_MS = 86_400_000
 
 
-
-
 def running_export() -> str | None:
 
     from .processing_run import _PROCESSING_TASKS
@@ -240,8 +238,6 @@ def export_animation_frames(args: dict) -> dict:
     base.setFrameRate(controller.framesPerSecond())
     export = FrameExport(base, _navigator(controller), folder, prefix, (first, last), animation, _decorations())
     return export.start()
-
-
 
 
 class FrameExport:

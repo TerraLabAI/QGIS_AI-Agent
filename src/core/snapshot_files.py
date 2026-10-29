@@ -111,7 +111,6 @@ def _backup_copies(folder: str, sources: list) -> list:
 
 
 
-
     from .security import _MAX_PATH, _long_paths_ok
 
     plain = [(src, os.path.join(folder, os.path.basename(src))) for src in sources]
@@ -324,7 +323,6 @@ def _restore_file(backup: str, target: str) -> None:
 
 
 
-
     if _is_sqlite_file(backup):
         _restore_sqlite(backup, target)
         return
@@ -344,7 +342,6 @@ def _restore_file(backup: str, target: str) -> None:
         shutil.copy2(backup, temporary)
 
 
-
         retry_file_op(os.replace, temporary, target)
     except OSError:
         remove_quietly(temporary)
@@ -352,7 +349,6 @@ def _restore_file(backup: str, target: str) -> None:
 
 
 def restore_group(pairs: list) -> None:
-
 
 
 
@@ -470,8 +466,6 @@ def resolve_layers(args: dict) -> list:
 
 
 def _remove_tree(path: str, what: str) -> bool:
-
-
 
 
 

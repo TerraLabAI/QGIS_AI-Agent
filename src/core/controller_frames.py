@@ -51,9 +51,7 @@ class _ControllerFrames:
     _session_error_shown: tuple | None = None
 
 
-
     def _on_connection_failed(self, facts) -> None:
-
 
 
 
@@ -160,9 +158,6 @@ class _ControllerFrames:
         self._panel_call("set_paid_plan", paid)
 
 
-
-
-
         self._panel_call("set_effort", self._landing_effort())
 
 
@@ -178,7 +173,6 @@ class _ControllerFrames:
                 set_connectors(rows)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Connector list refused: {exc}")
-
 
         try:
             from . import catalog
@@ -216,7 +210,6 @@ class _ControllerFrames:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"QGIS plugin list refused: {exc}")
             try:
-
 
 
                 from .qgis_plugins import warm_metadata
@@ -287,6 +280,10 @@ class _ControllerFrames:
             self._account.refresh_activation_async(force=True)
             return
         self._settings.set_plan_seen(tag, "pro" if paid else "free")
+        if usage is not None and before in ("free", "pro") and (before == "pro") != bool(paid):
+            telemetry.track(ev.PLAN_CHANGED, {
+                "from_plan": before, "to_plan": "pro" if paid else "free",
+                "trial": bool(usage.get("plan_trial_ends_on")), **telemetry.upsell_context()})
         if usage is not None and paid and before == "free":
             self._panel_optional("show_pro_welcome", usage.get("runs_limit"), usage.get("plan_trial_ends_on"))
 
@@ -336,7 +333,6 @@ class _ControllerFrames:
     def _on_status_line(self, run_id: str, text: str, progress=None) -> None:
 
 
-
         if run_id not in self._agent_text:
             return
         self._heard(run_id)
@@ -363,14 +359,13 @@ class _ControllerFrames:
 
 
 
-
-
             self._executor.handle_tool_call(call)
             return
         self._call_runs[tool_call_id] = run_id
         self._call_names[tool_call_id] = (str(call.get("name") or ""), str(call.get("danger") or "read"))
-        if call.get("poll") is True:
-
+        task_rows = self.__dict__.setdefault("_task_rows", {})
+        checked = (call.get("args") or {}).get("task_id") if isinstance(call.get("args"), dict) else None
+        if call.get("poll") is True or (call.get("name") == "get_task_status" and checked in task_rows):
 
 
 
@@ -425,7 +420,6 @@ class _ControllerFrames:
         if ok and frame.get("vouches") is True and isinstance(frame.get("result"), dict):
 
 
-
             vouch_for_urls(frame["result"].get("results"))
         try:
             duration = max(0.0, float(frame.get("duration_ms") or 0) / 1000.0)
@@ -435,7 +429,6 @@ class _ControllerFrames:
         if ok:
             result = frame.get("result") if isinstance(frame.get("result"), dict) else {}
             listed = result.get("results") if isinstance(result.get("results"), list) else None
-
 
             rows = [{"title": str(r.get("title") or "")[:300], "url": str(r.get("url") or "")[:500],
                      **{k: str(r[k])[:500] for k in ("connector_id", "logo_url") if isinstance(r.get(k), str) and r[k]}}
@@ -460,14 +453,30 @@ class _ControllerFrames:
     def _on_tool_started(self, call: dict) -> None:
 
 
-
-
-
         self._pause_watchdog()
         tool_call_id = str(call.get("tool_call_id") or "")
         if tool_call_id in self._poll_calls:
             return
         self._panel_later("show_call_running", str(call.get("run_id") or ""), tool_call_id)
+
+    def _on_task_checked(self, ok: bool, summary: str, detail: str, result) -> None:
+
+        task_rows = self.__dict__.get("_task_rows") or {}
+        if not isinstance(result, dict) or str(result.get("task_id") or "") not in task_rows:
+            return
+        task_id = str(result["task_id"])
+        row_id, started = task_rows[task_id]
+        if result.get("status") == "running":
+            if result.get("received_bytes"):
+                self._panel_later("set_call_progress", row_id, result["received_bytes"], result.get("total_bytes"))
+            elif result.get("source"):
+                self._panel_later("set_call_progress", row_id, 0, None, "wait:" + str(result["source"]))
+            return
+        task_rows.pop(task_id, None)
+        if result.get("status") == "canceled":
+            summary = "CANCELLED: " + str(summary or "")
+        self._panel_later("finish_tool_call", row_id, ok and result.get("status") == "complete", summary,
+                          time.monotonic() - started, detail, result)
 
     def _on_call_progress(self, tool_call_id: str, done, total, stage: str = "") -> None:
         self._panel_later("set_call_progress", tool_call_id, done, total, stage)
@@ -480,10 +489,17 @@ class _ControllerFrames:
 
 
             self._poll_calls.discard(tool_call_id)
+            self._on_task_checked(ok, summary, detail, result)
             self._runs.close_call(tool_call_id)
             self._call_names.pop(tool_call_id, None)
             self._touch_watchdog()
             return
+        if isinstance(result, dict) and result.get("status") == "running" and result.get("task_id"):
+
+            started = time.monotonic() - float(duration or 0.0)
+            self.__dict__.setdefault("_task_rows", {})[str(result["task_id"])] = (tool_call_id, started)
+        elif isinstance(result, dict) and result.get("status") == "canceled":
+            self._on_task_checked(ok, summary, detail, result)
         self._panel_later("finish_tool_call", tool_call_id, ok, summary, duration, detail, result)
         run_id = self._runs.close_call(tool_call_id)
         self._call_names.pop(tool_call_id, None)
@@ -584,8 +600,6 @@ class _ControllerFrames:
 
 
 
-
-
         pending = self.__dict__.setdefault("_approvals_waiting", set())
         before = bool(pending)
         if waiting:
@@ -601,8 +615,6 @@ class _ControllerFrames:
                 pass
 
     def _close_call(self, tool_call_id: str) -> None:
-
-
 
 
 
@@ -650,8 +662,6 @@ class _ControllerFrames:
 
 
 
-
-
         self._end_timer.stop()
         self._resend_timer.stop()
         self._lost_timer.stop()
@@ -672,8 +682,6 @@ class _ControllerFrames:
             if closing and "stored" not in ended:
 
 
-
-
                 self._store_ending(run_id, status, summary, usage)
             self._agent_text.pop(run_id, None)
             self._answer_start.pop(run_id, None)
@@ -689,6 +697,7 @@ class _ControllerFrames:
 
         QTimer.singleShot(0, self._record_after_point)
         QTimer.singleShot(0, self._save_run_layers)
+        QTimer.singleShot(0, lambda: self._send_project_state(run_id))
 
         QTimer.singleShot(0, self._resync_sibling_tools_when_idle)
         if closing:
@@ -708,6 +717,33 @@ class _ControllerFrames:
                 self._send_history()
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "record_after_point", module=__name__)
+
+    def _note_project_before(self, run_id: str) -> None:
+
+        if not self._session.wants_project_state:
+            return
+        try:
+            from .project_state import snapshot
+
+            before = getattr(self, "_project_before", None)
+            if before is None:
+                before = self._project_before = {}
+            before.clear()
+            before[run_id] = snapshot()
+        except Exception as exc:  # noqa: BLE001
+            report_exception(exc, "project_before", module=__name__, run_id=run_id)
+
+    def _send_project_state(self, run_id: str) -> None:
+
+        before = (getattr(self, "_project_before", None) or {}).pop(run_id, None)
+        if before is None or not self._session.wants_project_state:
+            return
+        try:
+            from .project_state import snapshot
+
+            self._session.send_project_state(run_id, before, snapshot())
+        except Exception as exc:  # noqa: BLE001
+            report_exception(exc, "project_after", module=__name__, run_id=run_id)
 
     def _save_run_layers(self) -> None:
 
@@ -795,7 +831,6 @@ class _ControllerFrames:
         if status == RunStatus.QUOTA:
 
 
-
             if self._quota_tracked_run != run_id:
                 self._panel_call("show_quota_pause", run_id, summary or tr("You have used every task of this period."))
                 telemetry.track(ev.QUOTA_EXHAUSTED, {"run_id": run_id, "source": "run_end"})
@@ -804,10 +839,15 @@ class _ControllerFrames:
         usage = usage if isinstance(usage, dict) else {}
         open_run = self._run if self._run and self._run["run_id"] == run_id else {}
         first_event_ms = open_run.get("first_event_ms")
+
+
+        stop_code = "" if status == RunStatus.DONE else str(open_run.get("stop_code") or "")
+        self._remember_end(run_id, status, stop_code)
         telemetry.track(ev.AGENT_RUN_ENDED, {
             "run_id": run_id, "status": status, "steps": usage.get("steps"),
             "duration_ms": int((time.monotonic() - started) * 1000) if started else None,
-            "first_event_ms": first_event_ms,
+            "first_event_ms": first_event_ms, "had_first_event": first_event_ms is not None,
+            "resends": open_run.get("resends"), "stop_code": stop_code or None,
             "layers_changed": changed, "input_tokens": usage.get("input_tokens"),
             "output_tokens": usage.get("output_tokens"), "cached_tokens": usage.get("cached_tokens"),
             "cost_eur": usage.get("cost_eur"),
@@ -816,6 +856,9 @@ class _ControllerFrames:
 
         if status == RunStatus.DONE and telemetry.first_run_recorded():
             telemetry.track(ev.FIRST_RUN_MILESTONE, {"run_id": run_id})
+        if status == RunStatus.DONE and self._settings.last_paid and telemetry.first_paid_run_recorded():
+            telemetry.track(ev.FIRST_RUN_MILESTONE, {"run_id": run_id, "kind": "first_paid_run",
+                                                     **telemetry.upsell_context()})
         thread_id = (self._run or {}).get("thread_id") or self._thread_id
         if thread_id:
             self._store.update_agent_message(thread_id, run_id, {
@@ -858,26 +901,24 @@ class _ControllerFrames:
         if not (isinstance(run_id, str) and run_id) and retryable:
 
 
-
-
             if self._session_error_shown == (code, message):
                 return
             self._session_error_shown = (code, message)
 
 
-
-
         names_run = run is not None and isinstance(run_id, str) and run_id == run["run_id"]
         if names_run:
             run["error_message"] = message
+            run.setdefault("stop_code", code)
 
         retryable = retryable and self._retry_input(run_id if isinstance(run_id, str) else "") is not None
-
 
         if code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run:
             self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "",
                              "", str(error.get("reason") or "")[:64])
-        track_plugin_error("server", code, run_id if isinstance(run_id, str) else "")
+        track_plugin_error("server", code, run_id if isinstance(run_id, str) else "",
+                           reason=str(error.get("reason") or ""), retryable=bool(error.get("retryable")),
+                           in_run=names_run)
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
 
 
@@ -903,7 +944,6 @@ class _ControllerFrames:
     def _on_thread_title(self, thread_id: str, title: str) -> None:
         self._store.set_title(thread_id, title)
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
-
 
 
     def _remember_run_project(self, run_id: str) -> None:
@@ -941,9 +981,6 @@ class _ControllerFrames:
                    "glyph": str(item.get("glyph") or "globe")}
             if item.get("id"):
                 row["id"] = str(item["id"])
-
-
-
 
 
             for key in ("product", "data_date", "license", "page_url", "via", "kind", "logo_url", "resolution",

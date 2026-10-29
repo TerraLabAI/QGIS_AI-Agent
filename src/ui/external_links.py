@@ -133,7 +133,9 @@ def open_external_url(url: str, parent=None) -> bool:
     return False
 
 
-def open_local_path(path: str, parent=None) -> bool:
+def open_local_path(path: str, parent=None, where: str = "") -> bool:
+
+
 
 
 
@@ -147,9 +149,21 @@ def open_local_path(path: str, parent=None) -> bool:
         _show_refusal(path, parent=parent)
         return False
     if _try_open(QUrl.fromLocalFile(path)):
+        if where and path.lower().endswith((".html", ".htm")):
+            _track_report_opened(where)
         return True
     _show_address(path, parent=parent, kind=FOLDER)
     return False
+
+
+def _track_report_opened(where: str) -> None:
+    try:
+        from ..core import telemetry
+        from ..core import telemetry_events as ev
+
+        telemetry.track(ev.AGENT_REPORT_OPENED, {"where": where})
+    except Exception:  # nosec B110
+        pass
 
 
 def open_email(mailto_url: str, address: str, parent=None) -> bool:

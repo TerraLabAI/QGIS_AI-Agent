@@ -19,7 +19,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import ground, layer_order, output_paths
+from ..core import canvas_glide, ground, layer_order, output_paths
 from ..core.context import view_area_km2
 from ..core.follow import hold_view
 from ..core.host_platform import remove_quietly
@@ -248,7 +248,9 @@ def register_layer_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="save_project",
-        danger="destructive",
+
+
+        danger="write",
         visible=10,
         label=QT_TRANSLATE_NOOP("AIAgent", "Save the project[ to {path}]"),
         input_schema={
@@ -298,10 +300,6 @@ def register_layer_tools(registry: ToolRegistry):
 
 
 def _visibility_candidates(missing: list[str], limit: int = 4) -> list[dict]:
-
-
-
-
 
 
 
@@ -950,7 +948,6 @@ def _transform_coordinates(args: dict) -> dict:
     x, y = point.x(), point.y()
 
 
-
     if not (math.isfinite(x) and math.isfinite(y)):
         return _outside(f"The transform from {source_used} to {target_used} produced no usable coordinate "
                         f"for ({args['x']}, {args['y']}): the point is outside the area that operation covers.")
@@ -1007,7 +1004,6 @@ def _set_canvas_extent(args: dict) -> dict:
                                   f"to {canvas_crs.authid()}.", "INVALID_ARGS", hint="extent_swapped_axes")
             xmin, ymin, xmax, ymax = box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()
 
-
     assumed = None
     assumed_note = None
     if not source and canvas_crs.isGeographic():
@@ -1052,10 +1048,11 @@ def _set_canvas_extent(args: dict) -> dict:
 
 
     before = canvas.extent()
-    canvas.setExtent(extent)
-    unchanged = _same_box(before, canvas.extent())
-    if not unchanged:
-        canvas.refresh()
+    with canvas_glide.gliding(canvas):
+        canvas.setExtent(extent)
+        unchanged = _same_box(before, canvas.extent())
+        if not unchanged:
+            canvas.refresh()
     reprojected = hold_view(canvas, prefer=QgsCoordinateReferenceSystem(str(source)) if source else None)
     if reprojected:
         canvas_crs = canvas.mapSettings().destinationCrs()
@@ -1212,14 +1209,19 @@ def scratch_layers(project: QgsProject) -> tuple[list, list]:
 
 
 
+
     from ..core import policy
     from ._layers import _source_key
+    from .persist_tools import writing
 
 
     scratch_prefix = _source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"
+    being_written = writing()
     memory_layers: list = []
     temporary_layers: list = []
     for layer in project.mapLayers().values():
+        if layer.id() in being_written:
+            continue
         if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory":
             memory_layers.append(layer)
         elif _source_key(str(layer.source() or "")).startswith(scratch_prefix):
@@ -1249,7 +1251,11 @@ def _new_project_path() -> str:
     return path
 
 
-def _agent_layers_made_durable(project, save: bool = True) -> dict:
+def _agent_layers_made_durable(project, save: bool = True, busy=None) -> dict:
+
+
+
+
 
 
 
@@ -1257,30 +1263,39 @@ def _agent_layers_made_durable(project, save: bool = True) -> dict:
 
 
     from ..core.context import THREAD_PROPERTY
-    from .persist_tools import _make_layers_permanent
+    from .persist_tools import _make_layers_permanent, store_in_background
 
     if not project.fileName():
         return {}
     memory, temporary = scratch_layers(project)
-    ours = [layer.id() for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
+    ours = [layer for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
     if not ours:
         return {}
+    out: dict = {}
+    rasters = [layer.id() for layer in ours if not isinstance(layer, QgsVectorLayer)]
     try:
-        moved = _make_layers_permanent({"layers": ours, "save": save})
+        moved = _make_layers_permanent({"layers": rasters, "save": save}) if rasters else {}
+        if isinstance(moved, dict) and moved.get("made_permanent"):
+            out = {"gpkg_path": moved.get("gpkg_path", ""),
+                   "layers": [entry.get("name") for entry in moved["made_permanent"]]}
+        sent = store_in_background([layer for layer in ours if isinstance(layer, QgsVectorLayer)], busy, save)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Agent layers not stored beside the project: {exc}")
-        return {}
-    if not isinstance(moved, dict) or not moved.get("made_permanent"):
-        return {}
-    return {"gpkg_path": moved.get("gpkg_path", ""),
-            "layers": [entry.get("name") for entry in moved["made_permanent"]]}
+        return out
+    if sent:
+        out["gpkg_path"] = sent["gpkg_path"]
+        out["layers"] = out.get("layers", []) + sent["layers"]
+        out["writing"] = sent["layers"]
+    return out
 
 
 def _save_project(args: dict) -> dict:
+    from ..core.save_guard import temp_folder_ready
     from ..core.security import validate_path
     project = QgsProject.instance()
     path = args.get("path")
     chosen = ""
+    temp_folder_ready("agent")
     if path:
         path_error = validate_path(path, write=True)
         if path_error:

@@ -84,7 +84,6 @@ def _split_table_paths(name: str, args: dict, table_arg: str) -> list[dict]:
 
 class _ExecutorGuards:
 
-
     def _blocked_reason(self, run_id: str, danger: str) -> str:
 
 
@@ -232,7 +231,6 @@ class _ExecutorGuards:
         if table_failed or (client is None and server_danger not in Danger.RANK):
             return Danger.DESTRUCTIVE
         return Danger.most_dangerous(client, server_danger)
-
 
 
     def _crs_guard(self, name: str, args: dict) -> tuple[str, str, dict] | None:

@@ -178,9 +178,6 @@ _RENDER_PASS_SECONDS = 120.0
 
 
 
-
-
-
 _RENDER_TOTAL_SECONDS = 130.0
 
 
@@ -768,8 +765,6 @@ def _layer_stamp(layer) -> str:
 
 
 
-
-
 _RENDER_CACHE: dict = {}
 _RENDER_CACHE_MAX = 2
 
@@ -1243,7 +1238,6 @@ def _plan_render(args: dict) -> dict:
 
 
 
-
     layer_names = args.get("layer_names")
     order_note, order_advice = "", None
     if layer_names:
@@ -1256,7 +1250,6 @@ def _plan_render(args: dict) -> dict:
             else:
                 missing.append(name)
         if missing:
-
 
 
             error = _layer_not_found_error(missing[0])
@@ -1394,12 +1387,4 @@ def _plan_render(args: dict) -> dict:
     plan["extent"] = _drawn_extent(settings)
     plan["fingerprint"] = _render_fingerprint(settings, layers, args)
     return plan
-
-
-
-
-
-
-
-
 

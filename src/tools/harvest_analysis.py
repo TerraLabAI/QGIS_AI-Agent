@@ -234,9 +234,6 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _field_error(layer, field_name: str) -> dict:
     from .layer_lookup import _field_not_found_error
 
@@ -245,9 +242,6 @@ def _field_error(layer, field_name: str) -> dict:
 
 def _expand(path: str) -> str:
     return os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(path))))
-
-
-
 
 
 def _sql_table_name(name: str, used: set) -> str:
@@ -310,8 +304,6 @@ def _classify_sql_error(detail: str) -> str:
 
 
 def _capped_count(layer, cap: int):
-
-
 
     request = feature_request(attributes=[], geometry=False, limit=cap + 1)
     n = sum(1 for _ in layer.getFeatures(request))
@@ -453,7 +445,6 @@ def _execute_sql(args: dict) -> dict:
 
 
 
-
         vlayer.setCrs(qgs_crs)
 
     if args.get("as_layer"):
@@ -490,9 +481,6 @@ def _execute_sql(args: dict) -> dict:
     return out
 
 
-
-
-
 def _make_field(name: str, field_type: str, length: int, precision: int):
     qtype = FIELD_TYPES.get((field_type or "double").lower(), QVAR_DOUBLE)
     try:
@@ -508,8 +496,6 @@ def _make_field(name: str, field_type: str, length: int, precision: int):
 
 
 def _field_calculator(args: dict) -> dict:
-
-
 
 
 
@@ -701,7 +687,6 @@ def _calc_step(held) -> bool:
                 return True
             continue
 
-
         if layer.changeAttributeValue(feat.id(), idx, value, vector_write.old_value(feat, idx)):
             state["updated"] += 1
         else:
@@ -729,7 +714,6 @@ def _calc_commit(state: dict) -> dict:
 
     layer = state["layer"]
     if state["failed"] is not None:
-
 
 
         _calc_close(state)
@@ -779,9 +763,6 @@ def _calc_commit(state: dict) -> dict:
         out["first_eval_error"] = state["first_error"]
         out["partial"] = True
     return out
-
-
-
 
 
 def _by_kind_then_value(value) -> tuple:
@@ -999,7 +980,6 @@ def _get_unique_values(args: dict) -> dict:
     if args.get("with_counts"):
 
 
-
         counts, scanned = _value_frequencies(layer, idx, limits.current("MAX_FEATURES_MATERIALISED"))
         ranked = sorted(counts.values(), key=lambda entry: (-entry[1], str(entry[0])))
 
@@ -1014,9 +994,6 @@ def _get_unique_values(args: dict) -> dict:
         if total is not None and scanned < total:
             out["counts_note"] = f"counted on the first {scanned} of {total} features"
     return out
-
-
-
 
 
 def _search_area(layer, project, point_crs, x: float, y: float, tolerance: float):
@@ -1464,9 +1441,6 @@ def _pixel_values_at(layer, project, point_crs, x: float, y: float):
     return values
 
 
-
-
-
 def _validate_expression(args: dict) -> dict:
     expression = str(args.get("expression") or "")
     parsed = QgsExpression(expression)
@@ -1517,9 +1491,6 @@ def _try_on_first_feature(parsed, layer, report: dict) -> None:
     else:
         report["sample_value"] = py_value(value)
         report["sample_fid"] = first.id()
-
-
-
 
 
 def _get_layer_extent(args: dict) -> dict:

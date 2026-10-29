@@ -31,9 +31,6 @@ from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_api_version, siblin
 
 
 
-
-
-
 PRODUCTS = {
     "ai_segment": {
         "keys": tuple(AI_SEGMENT_KEYS),
@@ -62,9 +59,6 @@ def _label(tool: str) -> str:
     from ..ui.cross_plugin_discovery import sibling_info
     info = sibling_info(PRODUCTS[tool]["product_id"])
     return (info or {}).get("label") or _name(tool)
-
-
-
 
 
 def _plugin_dirs() -> list[str]:
@@ -110,9 +104,6 @@ def presence(keys) -> dict:
     return {"state": "not_started" if enabled else "disabled", "folder": folder, "plugin": None}
 
 
-
-
-
 def _aiseg_signed_in(plugin) -> bool | None:
 
     from .integration_tools import _aiseg_module
@@ -144,8 +135,6 @@ _SIGNED_IN = {"ai_segment": _aiseg_signed_in, "ai_edit": _aiedit_signed_in}
 
 def signed_in(tool: str, plugin) -> bool | None:
     return _SIGNED_IN.get(tool, _aiedit_signed_in)(plugin)
-
-
 
 
 def not_running(tool: str, found: dict) -> dict:

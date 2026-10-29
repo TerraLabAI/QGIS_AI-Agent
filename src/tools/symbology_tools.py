@@ -204,8 +204,6 @@ def register_symbology_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _qcolor(value):
 
 
@@ -328,9 +326,6 @@ def _short(value) -> str:
 
 
 
-
-
-
 _LEGACY_ALIASES = {
     "SimpleLine": {
         "color": "line_color", "width": "line_width", "width_unit": "line_width_unit", "style": "line_style",
@@ -350,7 +345,6 @@ _LEGACY_ALIASES = {
         "color": "single_color", "width": "line_width", "width_unit": "line_width_unit",
     },
 }
-
 
 
 
@@ -424,8 +418,6 @@ def _same_value(read_back, sent) -> bool:
         return False
 
 
-
-
 def _effect_stack(specs, where: str) -> tuple:
 
     if not specs:
@@ -459,8 +451,6 @@ def _effect_stack(specs, where: str) -> tuple:
     for name, props in effects:
         stack.appendEffect(registry.createEffect(name, props))
     return stack, [name for name, _ in effects], None
-
-
 
 
 def _symbol_type(layer):
@@ -729,8 +719,6 @@ def _new_symbol(layer, layers: list, colour=None):
 
     symbol = QgsSymbol.defaultSymbol(layer.geometryType())
     return symbol if _fill_symbol(symbol, layers, colour) else None
-
-
 
 
 def _renderer_class(name: str):
@@ -1080,8 +1068,6 @@ def _geometry_word(symbol_type) -> str:
     return {0: "point", 1: "line", 2: "polygon"}.get(int(getattr(symbol_type, "value", symbol_type)), "vector")
 
 
-
-
 def _composition_mode(name: str):
 
     from qgis.core import Qgis, QgsPainting
@@ -1229,8 +1215,6 @@ def _raster_rendering(layer, args: dict) -> dict:
         layer.hueSaturationFilter().setSaturation(int(args["saturation"]))
         out["saturation"] = args["saturation"]
     return out
-
-
 
 
 def _range_plan(layer, args: dict) -> tuple:

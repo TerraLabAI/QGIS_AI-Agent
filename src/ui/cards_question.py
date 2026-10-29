@@ -109,7 +109,6 @@ _RECOMMENDED_QSS = scale_qss_font_px(
 _WHY_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
 )
-
 _ROW_STATES_QSS = (
     "QWidget#{name}:hover { background: " + HOVER + "; }"
     'QWidget#{name}[on="true"] { background: ' + HOVER_ON + "; }"
@@ -118,7 +117,6 @@ _ROW_STATES_QSS = (
 
 
 _CONTINUE_DISABLED_QSS = f"QPushButton:disabled {{ background: {HOVER_ON}; color: {INK_3}; }}"
-
 _RISE_PX = 6
 _RISE_MS = 180
 
@@ -126,7 +124,6 @@ _RISE_MS = 180
 
 _COMPACT_ROW_PX = 32
 _ROW_GAP_PX = 6
-
 
 
 _HEADER_CHARS = 12
@@ -150,7 +147,6 @@ _HEADER_QSS = scale_qss_font_px(
 
 _SLIDE_PX = 24
 _SLIDE_MS = 360
-
 _ADVANCE_MS = 480
 
 
@@ -479,7 +475,6 @@ class _Page(QWidget):
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_CARD)
 
-
         if self.header:
             label = plain_label(self.header.upper(), self)
             label.setObjectName("questionHeader")
@@ -510,14 +505,12 @@ class _Page(QWidget):
 
         self._free.edit.installEventFilter(self)
         col.addWidget(self._free)
-
         col.addStretch(1)
 
     def _build_options(self) -> QWidget:
         host = QWidget(self)
         rows = QVBoxLayout(host)
         rows.setContentsMargins(0, 0, 0, 0)
-
         rows.setSpacing(_ROW_GAP_PX)
         kind = "check" if self.multiple else "radio"
         for i, option in enumerate(self.options):
@@ -529,8 +522,6 @@ class _Page(QWidget):
             rows.addWidget(row)
             self._rows.append(row)
         return host
-
-
 
     def pick(self, index: int) -> None:
 
@@ -549,7 +540,6 @@ class _Page(QWidget):
             self.picked.emit()
 
     def _on_typed(self, text: str) -> None:
-
         if text:
             self.skipped = False
             for row in self._rows:
@@ -594,7 +584,6 @@ class _Page(QWidget):
         if self.answer is not None:
             return
         if not self.is_answerable() and self.recommended >= 0:
-
             for i, row in enumerate(self._rows):
                 row.set_checked(i == self.recommended)
             self.skipped = False
@@ -617,8 +606,6 @@ class _Page(QWidget):
     def focus(self) -> None:
         if self._free is not None:
             self._free.edit.setFocus()
-
-
 
     def submit(self, answer: str) -> None:
 
@@ -702,8 +689,6 @@ class QuestionCard(_Card, FoldMixin):
                       recommended=recommended, why=why, multiple=multiple,
                       details=details, header=header)
 
-
-
     def _build_footer(self) -> QWidget:
         footer = AnswerFooter(self._body)
         self._pager = QWidget(footer)
@@ -755,8 +740,6 @@ class QuestionCard(_Card, FoldMixin):
         self._fit_policies()
         self._pager.setVisible(len(self._pages) > 1)
         self._refresh()
-
-
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
@@ -875,8 +858,6 @@ class QuestionCard(_Card, FoldMixin):
         last = self._current >= count - 1
         self._continue_btn.setText(self.tr("Send") if last else self.tr("Continue"))
         self._continue_btn.setEnabled(page is not None and page.is_answerable())
-
-
 
     @property
     def answer(self):
@@ -1009,7 +990,6 @@ class QuestionCard(_Card, FoldMixin):
         self._after_answer()
 
     def _fold(self) -> None:
-
 
 
         if self._folding or self._done.isVisible():

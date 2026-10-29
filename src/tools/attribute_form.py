@@ -309,8 +309,6 @@ def _configure_attribute_form(args: dict) -> dict:
 
 
 
-
-
 def _rule_error(layer, rule: dict):
     text = str(rule.get("rule") or "").strip()
     if not text:
@@ -427,8 +425,6 @@ def _apply_conditional_styles(layer, conditional_args) -> dict:
 
 
 
-
-
 def _value_relation_config(layer, name: str, config: dict):
 
     config = dict(config)
@@ -465,8 +461,6 @@ def _value_relation_config(layer, name: str, config: dict):
             if layer.fields().indexOf(form_field) < 0:
                 return None, _field_not_found_error(layer, form_field)
     return config, None
-
-
 
 
 

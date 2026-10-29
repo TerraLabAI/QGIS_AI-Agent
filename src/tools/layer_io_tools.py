@@ -56,8 +56,6 @@ _CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".g
 
 
 
-
-
 _NOT_AWAITED = tool_error("The call this layer was read for had already ended; the layer was not added.",
                           "TIMEOUT")
 
@@ -418,6 +416,9 @@ def describe_sublayers(path: str, names: list, schema: bool = False) -> list:
         }
         if schema:
             row.update(_table_schema(table, path))
+            counts = _geometry_counts(table, path)
+            if counts:
+                row["geometry_counts"] = counts
             if row["feature_count"] is None:
                 row["feature_count_note"] = "not counted: the format keeps no count and the file is large"
         out.append(row)
@@ -428,6 +429,44 @@ def describe_sublayers(path: str, names: list, schema: bool = False) -> list:
 _SCHEMA_FIELDS = 60
 
 _SCHEMA_SCAN_BYTES = 64 * 1024 * 1024
+
+
+
+
+_TYPES_SCAN_BYTES = 16 * 1024 * 1024
+
+
+def _geometry_counts(table, path: str) -> dict:
+
+
+
+    from osgeo import ogr
+
+    if ogr.GT_Flatten(table.GetGeomType()) != ogr.wkbUnknown:
+        return {}
+    try:
+        if os.path.getsize(path) > _TYPES_SCAN_BYTES:
+            return {}
+    except OSError:
+        return {}
+    definition = table.GetLayerDefn()
+    counts: dict = {}
+    try:
+        table.SetIgnoredFields([definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())])
+        table.ResetReading()
+        for feature in table:
+            geometry = feature.GetGeometryRef()
+            if geometry is None:
+                continue
+            kind = geometry.GetGeometryType()
+            kind = ogr.GT_Flatten(kind) + (1000 if ogr.GT_HasZ(kind) else 0) + (2000 if ogr.GT_HasM(kind) else 0)
+            counts[kind] = counts.get(kind, 0) + 1
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Geometry count stopped early: {exc}")
+    finally:
+        table.SetIgnoredFields([])
+        table.ResetReading()
+    return {_geometry_word(kind): count for kind, count in sorted(counts.items(), key=lambda item: -item[1])}
 
 
 def _small(path: str) -> bool:
@@ -2574,7 +2613,6 @@ def _add_field(args: dict) -> dict:
             context = QgsExpressionContext()
             context.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
             expr.prepare(context)
-
 
 
 

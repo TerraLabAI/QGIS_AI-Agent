@@ -13,7 +13,7 @@ about=
 
     • 89 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 82 more
 
-    • A catalog of 2,831 ready datasets, from national sources in 184 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 2,830 ready datasets, from national sources in 183 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=1.9.2
+version=1.9.3
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.9.3
+    - Rate any answer with a thumb, or send feedback from the panel, Settings or an error card
+    - The map glides to where the AI agent works; a slow load hands back after 60 s and names its host
+    - Ctrl+S, Undo and large projects no longer freeze QGIS; saving works after the temp folder is gone
+    - Undo brings back deleted features and files Windows held; one HTML report file per title
+
     1.9.2
     - Opens more of your files: shapefiles in any code page, zips inside zips, GRIB, .txt and .tsv tables
     - Works behind company proxies and certificates; netCDF, HDF and .xls open from any Windows folder
@@ -64,12 +70,6 @@ changelog=
     1.8.1
     - Passes the plugin store's Qt6 check for QGIS 4
     - A Pro card shows in the panel once your plan turns Pro; free accounts land on a level they can run
-
-    1.8.0
-    - Paid accounts and the trial start on the Low level; your allowance now counts in tasks
-    - 3D views: points and lines get 3D symbols, the camera can look from under the ground
-    - Long steps show time left and size; layouts and saved projects keep each result's sources
-    - Reopened 3D projects and broken layers no longer close QGIS; Spanish addresses land in place
 
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation

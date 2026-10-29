@@ -44,7 +44,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 from qgis.utils import iface
 
-from ..core import limits, zone_of_interest
+from ..core import canvas_glide, limits, zone_of_interest
 from ..core.logger import log, log_warning
 
 CONFIRM_KM2 = 1.0
@@ -534,8 +534,9 @@ def _frame(box: QgsRectangle) -> None:
 
             moved = hold_view(canvas, target=(box, crs)) if crs is not None else None
             if moved is None:
-                canvas.setExtent(box)
-                canvas.refresh()
+                with canvas_glide.gliding(canvas):
+                    canvas.setExtent(box)
+                    canvas.refresh()
             log(("Credits card: the map had left the zone and is moved back onto it"
                  if again else "Credits card: the map is moved onto the zone")
                 + (f" (project CRS {moved['from']} -> {moved['to']})" if moved else "") + ".")
@@ -649,7 +650,6 @@ def check(name: str, args: dict) -> dict:
         if confirmed is None or abs(confirmed - area) > max(0.15, area * 0.1):
             return {
                 "error": f"This {label} run covers {area:.1f} km².{_balance_sentence(label, area)}",
-
 
 
 

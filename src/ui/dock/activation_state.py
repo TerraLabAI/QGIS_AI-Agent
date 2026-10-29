@@ -82,7 +82,6 @@ class ActivationCard(QWidget):
         outer.setContentsMargins(12, _TOP_MARGIN, 12, SPACE_OUTER)
         outer.setSpacing(0)
 
-
         col = QVBoxLayout()
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_OUTER)
@@ -109,8 +108,6 @@ class ActivationCard(QWidget):
         head.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
         col.addLayout(head)
-
-
         self._subtitle = QLabel(self)
         self._subtitle.setStyleSheet(_HINT_QSS)
         self._subtitle.setWordWrap(True)
@@ -118,7 +115,6 @@ class ActivationCard(QWidget):
         self._subtitle.hide()
         col.addWidget(self._subtitle)
         col.addSpacing(_TITLE_GAP)
-
 
         self._connect_section = QWidget(self)
         connect_col = QVBoxLayout(self._connect_section)
@@ -166,7 +162,6 @@ class ActivationCard(QWidget):
             hint_col.addLayout(row)
         connect_col.addWidget(hint_card)
         col.addWidget(self._connect_section)
-
 
         self._wait_section = QWidget(self)
         wait_col = QVBoxLayout(self._wait_section)
@@ -239,7 +234,6 @@ class ActivationCard(QWidget):
         self._wait_section.hide()
         col.addWidget(self._wait_section)
 
-
         self._account_section = QFrame(self)
         self._account_section.setObjectName("accountChip")
         self._account_section.setStyleSheet(
@@ -279,7 +273,6 @@ class ActivationCard(QWidget):
         self._account_section.hide()
         col.addWidget(self._account_section)
 
-
         self._message = QLabel(self)
         self._message.setWordWrap(True)
         self._message.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -287,8 +280,6 @@ class ActivationCard(QWidget):
         col.addWidget(self._message)
 
         outer.addStretch(1)
-
-
 
     def show_signed_out(self, message: str = "") -> None:
 

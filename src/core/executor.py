@@ -15,8 +15,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from collections import OrderedDict, deque
@@ -91,22 +89,13 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
         self._questions: dict[str, dict] = {}
 
 
-
-
         self._refused_costly: dict[str, set[str]] = {}
         self._run_mode: dict[str, tuple[str, str]] = {}
 
 
 
-
-
-
-
-
         self._cancelled: OrderedDict[str, None] = OrderedDict()
         self._touched: dict[str, set] = {}
-
-        self._layouts: dict[str, str] = {}
         self._journal: dict[str, list[dict]] = {}
         self._snapshots: dict[str, RunSnapshot] = {}
         self._written: dict[str, list[str]] = {}
@@ -129,6 +118,9 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
         self._budgets: dict[str, object] = {}
         self._background: dict[str, tuple] = {}
         self._task_ids: dict[str, set] = {}
+
+        self._heard: dict[str, tuple] = {}
+        self._handed_back: dict[str, str] = {}
         self._threads: dict[str, str] = {}
         self._run_index: dict[str, int] = {}
         self._prompts: dict[str, str] = {}
@@ -154,23 +146,13 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
 
 
 
-
-
-
-
-
-
-
-
         self._run_allowed: dict[str, dict[str, str]] = {}
 
 
-
-
-
-
-
         self._run_denied: dict[str, set[str]] = {}
+
+
+        self._run_code_granted: dict[str, str] = {}
 
 
         self._code_escalated: dict[str, str] = {}
@@ -208,5 +190,7 @@ class ToolExecutor(_ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _Executo
         self.stacker = layer_order.Stacker()
 
 
-        self.stacker.in_call = lambda: bool(self._inflight)
+
+
+        self.stacker.in_call = lambda: bool(self._inflight) or bool(self._handed_back)
         self._refresh_proxy()

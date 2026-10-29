@@ -26,7 +26,6 @@
 
 
 
-
 from __future__ import annotations
 
 import contextlib
@@ -39,6 +38,7 @@ import sys
 import tempfile
 import threading
 import time
+import unicodedata
 import urllib.parse
 
 from .host_platform import IS_WINDOWS, resolved
@@ -94,9 +94,6 @@ _DENY_WRITE_DIRS = [
 ]
 _WRITE_ALLOWED_UNDER_DENIED = ["/var/folders", "/private/var/folders", "/var/tmp", "/private/var/tmp",
                                "/private/tmp", "/tmp"]  # nosec B108
-
-
-
 
 
 
@@ -195,18 +192,12 @@ _INSTALL_DIRS: list[str] = []
 
 
 
-
 _AGENT_WORK_DIRS = list(dict.fromkeys(
     [AGENT_TMP_DIR, AGENT_EXPORT_DIR, AGENT_CACHE_DIR]
     + [os.path.join(AGENT_ROOT, name) for name in ("tmp", "exports", "cache")]))
 _MOUNT_ROOTS = ["/Volumes", "/mnt", "/media", "/srv", "/data", "/home", "/Users",
                 "/tmp", "/private/tmp",
                 "/var/folders", "/private/var/folders", "/var/tmp", "/private/var/tmp"]  # nosec B108
-
-
-
-
-
 
 
 
@@ -249,8 +240,6 @@ _allowed_roots: list[str] = []
 _output_root = ""
 
 
-
-
 def expand_path(path: str) -> str:
 
     try:
@@ -269,7 +258,10 @@ def _is_case_insensitive() -> bool:
 _FOLD_CASE = IS_WINDOWS or _is_case_insensitive()
 
 
+@functools.lru_cache(maxsize=65536)
 def _norm(path: str) -> str:
+
+
     text = os.path.normpath(path)
     return text.lower() if _FOLD_CASE else text
 
@@ -295,7 +287,6 @@ def _qgis_profile_dir() -> str:
 
 
 def _svg_folders() -> list[str]:
-
 
 
 
@@ -462,10 +453,6 @@ def _explicit_roots() -> list[str]:
 
 
 
-
-
-
-
     out = list(temp_roots())
     for root in (project_dir(), tempfile.gettempdir()):
         if root:
@@ -477,10 +464,6 @@ def _explicit_roots() -> list[str]:
         out.append(_output_root)
     out.extend(_allowed_roots)
     return list(dict.fromkeys(out))
-
-
-
-
 
 
 
@@ -1007,7 +990,6 @@ def _ascii_grid(path: str) -> bool:
 
 
 
-
     if not path.lower().endswith(".asc"):
         return False
     try:
@@ -1074,10 +1056,6 @@ def _write_root_ok(path: str, roots: list[str]) -> bool:
     if IS_WINDOWS:
         return not any(_under(path, d) for d in _WINDOWS_SYSTEM if d)
     return any(_under(path, root) for root in _MOUNT_ROOTS)
-
-
-
-
 
 
 
@@ -1154,7 +1132,6 @@ def _in_own_share_folder(path: str) -> bool:
 
 
 
-
     if "qgis.core" not in sys.modules:
         return False
     from . import output_paths
@@ -1195,7 +1172,6 @@ def _shares_in_use() -> list[str]:
 
 
 def _in_used_share(path: str) -> bool:
-
 
 
 
@@ -1404,8 +1380,6 @@ def safe_read_text(path: str, encoding: str = "utf-8", max_chars: int = 200_000)
         return handle.read(max(0, min(int(max_chars), 200_000)))
 
 
-
-
 def remember_user_text(text: str) -> None:
 
 
@@ -1424,8 +1398,31 @@ def remember_user_text(text: str) -> None:
 
 
 
-_PATH_START_RE = re.compile(r"(?:(?<=[\s\"'(\[<`])|^)(file:///?|~[\\/]|[A-Za-z]:[\\/]|/(?=[^\s/]))")
+
+_PATH_START_RE = re.compile(r"(file:///?|~[\\/]|[A-Za-z]:[\\/]|/(?=[^\s/]))")
+_PATH_OPENERS = "\"'([<`"
 _PATH_END_CHARS = ".,;:!?)]}>\"'`"
+
+
+def _wide_punctuation(ch: str) -> bool:
+
+    return ord(ch) > 127 and unicodedata.category(ch).startswith("P")
+
+
+def _path_cuts(rest: str) -> list[int]:
+
+
+
+
+    cuts = [i for i, ch in enumerate(rest) if ch.isspace() or ch in ",;" or _wide_punctuation(ch)]
+    return [*cuts, len(rest)]
+
+
+def _trimmed(candidate: str) -> str:
+    end = len(candidate)
+    while end and (candidate[end - 1] in _PATH_END_CHARS or _wide_punctuation(candidate[end - 1])):
+        end -= 1
+    return candidate[:end]
 
 
 def typed_paths(text: str) -> list[str]:
@@ -1435,25 +1432,28 @@ def typed_paths(text: str) -> list[str]:
 
 
 
+
     found: list[str] = []
     for match in _PATH_START_RE.finditer(text or ""):
         start = match.start(1)
-        rest = text[start:].split("\n", 1)[0]
         opener = text[start - 1] if start else ""
+        if opener and not (opener.isspace() or opener in _PATH_OPENERS or _wide_punctuation(opener)):
+            continue
+        rest = text[start:].split("\n", 1)[0]
         closer = {'"': '"', "'": "'", "`": "`", "<": ">", "(": ")", "[": "]"}.get(opener)
         if closer and closer in rest:
 
             rest = rest[:rest.index(closer)]
-        words = rest.split(" ")
+        cuts = _path_cuts(rest)
         chosen = ""
-        for count in range(min(len(words), 12), 0, -1):
-            candidate = " ".join(words[:count]).rstrip(_PATH_END_CHARS)
+        for cut in cuts[:24][::-1]:
+            candidate = _trimmed(rest[:cut])
             local = local_part(candidate) if candidate.lower().startswith("file:") else candidate
             if local and os.path.exists(expand_path(local)):
                 chosen = local
                 break
         if not chosen:
-            first = words[0].rstrip(_PATH_END_CHARS)
+            first = _trimmed(rest[:cuts[0]])
             chosen = local_part(first) if first.lower().startswith("file:") else first
         if chosen and not _is_remote_share(chosen):
             full = expand_path(chosen)

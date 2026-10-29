@@ -203,10 +203,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
 
 
 
-
-
-
-
 _SECRET_NAMES = ("sslpassword", "password", "pass", "pwd")
 
 
@@ -302,10 +298,6 @@ def _theme_not_found(name: str) -> dict:
         f"Map theme not found: {name!r}. Existing themes: {existing}",
         "INVALID_ARGS", hint="layout_theme_not_found", theme=name,
     )
-
-
-
-
 
 
 def _connection_rows(provider: str) -> list:
@@ -663,10 +655,6 @@ def _refresh_layers_of(conn) -> list[str]:
     return names
 
 
-
-
-
-
 def _get_bookmarks(args: dict) -> dict:
     scope = args.get("scope") or "all"
     bookmarks = []
@@ -719,11 +707,6 @@ def _apply_map_theme(args: dict) -> dict:
     _themes().applyTheme(name, *_layer_panel())
     iface.mapCanvas().refresh()
     return {"applied": name, "visible_layer_count": _visible_count(name), "object": {"kind": "theme", "name": name}}
-
-
-
-
-
 
 
 def _set_project_variable(args: dict) -> dict:

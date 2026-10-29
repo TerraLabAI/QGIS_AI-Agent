@@ -44,9 +44,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator
 _translations: dict[str, dict[str, str]] = {}
 _context_order: list = []
 
-
 _loaded = False
-
 
 LANGUAGE_FALLBACKS = {
     "pt": "pt_BR",
@@ -202,7 +200,6 @@ def _load_translations_body() -> None:
         if not locale:
             return
 
-
         if locale.startswith("en"):
             return
 
@@ -250,7 +247,6 @@ def _load_translations_body() -> None:
                     else:
                         translation_text = "".join(translation.itertext())
 
-
                 if translation_text and translation.get("type") != "unfinished":
                     bucket[source_text] = translation_text
 
@@ -275,7 +271,6 @@ def _load_translations_body() -> None:
 
 
 def lookup(context: str, source_text: str) -> str | None:
-
 
 
 

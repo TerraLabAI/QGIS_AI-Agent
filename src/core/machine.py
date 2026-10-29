@@ -57,7 +57,6 @@
 
 
 
-
 from __future__ import annotations
 
 import ctypes
@@ -73,8 +72,6 @@ from .host_platform import IS_MACOS, IS_WINDOWS
 IS_LINUX = sys.platform.startswith("linux")
 
 MB = 1024 * 1024
-
-
 
 
 
@@ -120,8 +117,6 @@ REFERENCE_RAM_BOUNDARY_MB = REFERENCE_RAM_MB * 15 // 16
 
 
 
-
-
 CLASS_SCALE = {"large": 1.0, "normal": 0.6, "small": 0.3}
 
 
@@ -150,8 +145,6 @@ FREEZE_SATURATION_S = 15.0
 
 
 SAMPLE_TTL_S = 2.0
-
-
 
 
 
@@ -209,11 +202,6 @@ _SCALED: dict[str, tuple[str, float, bool]] = {
 
 
     "MAX_LAYERS_PER_RUN": ("down", 8, False),
-
-
-
-
-
 
 
 
@@ -300,9 +288,6 @@ _SCALED: dict[str, tuple[str, float, bool]] = {
 
 Profile = namedtuple("Profile", "cores ram_mb name scale source")
 Sample = namedtuple("Sample", "available_mb total_mb swap_used_mb rss_mb os_pressure at")
-
-
-
 
 
 def _libc():
@@ -572,8 +557,6 @@ def measure_bench_ms(runs: int = 5) -> float:
         return 0.0
 
 
-
-
 _LOCK = threading.Lock()
 _PROFILE: Profile | None = None
 
@@ -645,15 +628,11 @@ def profile() -> Profile:
 
 
 
-
             _PROFILE = Profile(cores, REFERENCE_RAM_MB, "large", CLASS_SCALE["large"], "unreadable")
             return _PROFILE
         name = _class_of(cores, ram_mb)
         _PROFILE = Profile(cores, ram_mb, name, CLASS_SCALE[name], "measured")
         return _PROFILE
-
-
-
 
 
 _SAMPLE: dict = {"last": None}
@@ -716,11 +695,6 @@ def note_freeze(seconds: float, _who: str = "") -> None:
 
 
 def note_slow_call(name: str, seconds: float, budget: float) -> None:
-
-
-
-
-
 
 
 
@@ -873,9 +847,6 @@ def clock_stretch() -> float:
     return round(min(MAX_CLOCK_STRETCH, 1.0 / max(scale, 0.01)), 3)
 
 
-
-
-
 def scale(name: str, value):
 
 
@@ -916,9 +887,6 @@ def link_bound(name: str) -> bool:
     return bool(rule and rule[2])
 
 
-
-
-
 def describe() -> str:
 
     who = profile()
@@ -946,7 +914,6 @@ def note() -> str:
     if who.scale < 1.0:
         what = f"This computer is {who.name} ({who.cores} cores, {who.ram_mb // 1024} GB)"
     elif _pressure_override() is None and _freeze_pressure() > _memory_pressure():
-
         what = "This computer is busy right now (QGIS was slow to answer on a recent call)"
     else:
         what = "This computer is busy right now (little free memory)"

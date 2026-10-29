@@ -92,7 +92,6 @@ _ROW_PAD_X = 10
 _ROW_PAD_Y = 7
 _ROW_SPACING = 10
 _POPOVER_MARGIN = 4
-
 _WRAP_SLACK = 6
 _TILE_GLYPH = 15
 _POPOVER_WIDTH = 300
@@ -399,7 +398,6 @@ class PermissionChip(QToolButton):
 
     mode_changed = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
-
     upsell_shown = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -425,8 +423,6 @@ class PermissionChip(QToolButton):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.clicked.connect(self._open)
         self._paint()
-
-
 
     def mode(self) -> str:
 
@@ -526,8 +522,6 @@ class PermissionChip(QToolButton):
                 self._paint()
         except (RuntimeError, AttributeError):
             pass
-
-
 
     def popover(self) -> PermissionPopover:
         if self._popover is None:

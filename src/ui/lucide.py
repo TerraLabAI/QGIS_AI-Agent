@@ -21,13 +21,13 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QByteArray, QRectF
 from qgis.PyQt.QtGui import QColor, QPainter
 
 PREFIX = "lu."
-
 
 _SPARKLE = '<path fill="{colour}" stroke="none" d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/>'
 
@@ -41,6 +41,7 @@ SHAPES = {
     "calculator": '<rect width="16" height="20" x="4" y="2" rx="2"/> <line x1="8" x2="16" y1="6" y2="6"/> <line x1="16" x2="16" y1="14" y2="18"/> <path d="M16 10h.01"/> <path d="M12 10h.01"/> <path d="M8 10h.01"/> <path d="M12 14h.01"/> <path d="M8 14h.01"/> <path d="M12 18h.01"/> <path d="M8 18h.01"/>',
     "camera": '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/> <circle cx="12" cy="13" r="3"/>',
     "chart-column": '<path d="M3 3v16a2 2 0 0 0 2 2h16"/> <path d="M18 17V9"/> <path d="M13 17V5"/> <path d="M8 17v-3"/>',
+    "bug": '<path d="m8 2 1.88 1.88"/> <path d="M14.12 3.88 16 2"/> <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/> <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/> <path d="M12 20v-9"/> <path d="M6.53 9C4.6 8.8 3 7.1 3 5"/> <path d="M6 13H2"/> <path d="M3 21c0-2.1 1.7-3.9 3.8-4"/> <path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/> <path d="M22 13h-4"/> <path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>',
     "check": '<path d="M20 6 9 17l-5-5"/>',
     "cog": '<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/> <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/> <path d="M12 2v2"/> <path d="M12 22v-2"/> <path d="m17 20.66-1-1.73"/> <path d="M11 10.27 7 3.34"/> <path d="m20.66 17-1.73-1"/> <path d="m3.34 7 1.73 1"/> <path d="M14 12h8"/> <path d="M2 12h2"/> <path d="m20.66 7-1.73 1"/> <path d="m3.34 17 1.73-1"/> <path d="m17 3.34-1 1.73"/> <path d="m11 13.73-4 6.93"/>',
     "combine": '<path d="M10 18H5a3 3 0 0 1-3-3v-1"/> <path d="M14 2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2"/> <path d="M20 2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2"/> <path d="m7 21 3-3-3-3"/> <rect x="14" y="14" width="8" height="8" rx="2"/> <rect x="2" y="2" width="8" height="8" rx="2"/>',
@@ -77,13 +78,16 @@ SHAPES = {
     "table-2": '<path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>',
     "tag": '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/> <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
     "trash-2": '<path d="M3 6h18"/> <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/> <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/> <line x1="10" x2="10" y1="11" y2="17"/> <line x1="14" x2="14" y1="11" y2="17"/>',
+    "thumbs-down": '<path d="M17 14V2"/> <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
+    "thumbs-up": '<path d="M7 10v12"/> <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
     "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/> <path d="M12 9v4"/> <path d="M12 17h.01"/>',
     "wand-sparkles": '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/> <path d="m14 7 3 3"/> <path d="M5 6v4"/> <path d="M19 14v4"/> <path d="M10 2v2"/> <path d="M7 8H3"/> <path d="M21 16h-4"/> <path d="M11 3H9"/>',
     "x": '<path d="M18 6 6 18"/> <path d="m6 6 12 12"/>',
 }
 
-
 FALLBACK = {
+    "bug": "warning", "thumbs-up": "check", "thumbs-down": "close",
+    "thumbs-up-solid": "check", "thumbs-down-solid": "close",
     "search": "search", "globe": "globe", "map-pin": "pin", "layers": "layers",
     "palette": "pencil", "tag": "pencil", "locate-fixed": "expand", "camera": "camera",
     "file-down": "download", "layout-template": "layout", "cog": "gear",
@@ -130,7 +134,12 @@ def svg(name: str, colour: QColor, size: float) -> bytes:
 
 
     stroke = 2.4 if size <= 13 else 2.2 if size <= 16 else 2.0
-    body = _SPARKLE.format(colour=hex_colour) if key == "sparkle" else SHAPES.get(key, "")
+    if key == "sparkle":
+        body = _SPARKLE.format(colour=hex_colour)
+    elif key.endswith("-solid"):
+        body = f'<g fill="{hex_colour}">{SHAPES.get(key[:-6], "")}</g>'
+    else:
+        body = SHAPES.get(key, "")
     opacity = colour.alphaF()
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
@@ -144,7 +153,8 @@ def render(painter: QPainter, name: str, colour: QColor, size: float) -> bool:
 
     renderer_class = _renderer_class()
     key = str(name or "")[len(PREFIX):]
-    if not renderer_class or (key != "sparkle" and key not in SHAPES):
+    shape = key[:-6] if key.endswith("-solid") else key
+    if not renderer_class or (key != "sparkle" and shape not in SHAPES):
         return False
     renderer = renderer_class(QByteArray(svg(name, colour, size)))
     if not renderer.isValid():

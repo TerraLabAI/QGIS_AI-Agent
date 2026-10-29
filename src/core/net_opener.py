@@ -26,8 +26,6 @@ from .serialization import coded_like
 
 
 
-
-
 _PINNED = threading.local()
 
 
@@ -63,9 +61,6 @@ def _pin(url: str) -> None:
 
 
 def check_url(url: str) -> None:
-
-
-
 
 
 
@@ -119,7 +114,6 @@ class _NoLocalRedirect(urllib.request.HTTPRedirectHandler):
 
 
 
-
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         check_url(newurl)
         identity = _identity_names(req)
@@ -144,14 +138,6 @@ class _NoLocalRedirect(urllib.request.HTTPRedirectHandler):
             log_warning(f"Redirect to a different origin: {len(dropped)} identity header(s) "
                         "were not forwarded.")
         return new
-
-
-
-
-
-
-
-
 
 
 
@@ -205,9 +191,6 @@ def set_trust(ca_pem: bytes | None) -> bool:
 
 
 
-
-
-
     global _OPENER, _SSL_CONTEXT, _SSL_CA_PEM
     with _PROXY_LOCK:
         if ca_pem == _SSL_CA_PEM:
@@ -216,18 +199,9 @@ def set_trust(ca_pem: bytes | None) -> bool:
         _SSL_CONTEXT = None
 
 
-
-
         old, _OPENER = _OPENER, None
     _drop_pool(old)
     return True
-
-
-
-
-
-
-
 
 
 
@@ -266,9 +240,6 @@ class _GuardedConnection:
         return _pinned_for(str(self.host or ""))
 
     def connect(self):  # noqa: D102
-
-
-
 
 
 
@@ -362,8 +333,6 @@ class _GuardedHTTPS(_GuardedConnection, http.client.HTTPSConnection):
 class _GuardedHTTPHandler(urllib.request.HTTPHandler):
     def http_open(self, req):
         return self.do_open(_GuardedHTTP, req)
-
-
 
 
 
@@ -719,12 +688,6 @@ def proxy_in_use() -> str | None:
 
 
 
-
-
-
-
-
-
 WITHDRAWN_HOSTS = {
     "gisco-services.ec.europa.eu":
         "Eurostat GISCO grants its boundary files on condition that the data is not used for "
@@ -781,9 +744,7 @@ def _explain_url_error(exc: urllib.error.URLError) -> urllib.error.URLError:
 
 
 
-
     if _transient(exc):
-
 
 
 

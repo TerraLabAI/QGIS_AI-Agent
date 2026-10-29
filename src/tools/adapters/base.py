@@ -18,14 +18,11 @@ from .._widgets import plugin_candidates, plugin_widgets
 class PluginAdapter:
 
 
-
     keys: tuple[str, ...] = ()
     aliases: tuple[str, ...] = ()
 
     def display_name(self) -> str:
         return self.keys[0] if self.keys else "plugin"
-
-
 
     def candidate_keys(self) -> list[str]:
         if self.keys:
@@ -39,8 +36,6 @@ class PluginAdapter:
             if inst is not None:
                 return key, inst
         return None, None
-
-
 
     def root_widgets(self):
         _, inst = self.find_instance()

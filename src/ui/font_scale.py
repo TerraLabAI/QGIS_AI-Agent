@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import re
 
-
 _MAX_FONT_SCALE = 2.0
 
 

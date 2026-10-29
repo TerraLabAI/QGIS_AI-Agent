@@ -33,9 +33,6 @@ from ..core.policy import AGENT_HOME
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 
 
-
-
-
 OPTIONAL_DEPENDENCIES = {
     "earthengine": {
         "package": "earthengine-api",
@@ -61,8 +58,6 @@ OPTIONAL_DEPENDENCIES = {
         "unlocks": "PNG and JPEG files in execute_code (PIL)",
     },
 }
-
-
 
 
 
@@ -126,9 +121,6 @@ _SWEEP_FINISHED_AFTER_S = 30 * 60
 
 
 _INFLIGHT_PROPERTY = "terralab_ai_agent_dep_install"
-
-
-
 
 
 def _is_installed(import_name: str) -> bool:
@@ -233,9 +225,6 @@ def _legacy_user_site() -> str:
         return ""
 
 
-
-
-
 def _application():
 
 
@@ -318,9 +307,6 @@ def shutdown() -> None:
     _INSTALL_TASKS.clear()
 
 
-
-
-
 def _install_label(args: dict) -> str:
 
     if not args.get("feature") and args.get("package"):
@@ -353,9 +339,6 @@ def register_deps_tools(registry: ToolRegistry):
                 "feature": {
                     "type": "string",
 
-
-
-
                     "enum": sorted(OPTIONAL_DEPENDENCIES),
                 },
                 "package": {"type": "string"},
@@ -380,9 +363,6 @@ def register_deps_tools(registry: ToolRegistry):
     ))
 
     log("Optional-dependency tools registered")
-
-
-
 
 
 
@@ -597,7 +577,6 @@ def _install(args: dict) -> dict:
 
     if _is_installed(import_name):
         return {"already_installed": True, "feature": feature, "package": package}
-
 
 
 

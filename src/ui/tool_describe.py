@@ -307,7 +307,6 @@ _PROCESSING_SENTENCES = {
     "gdal:polygonize": QT_TRANSLATE_NOOP("AIAgent", "Polygonize {INPUT}"),
 }
 _PARAM_RE = re.compile(r"\{([A-Z][A-Z0-9_]*)\}")
-
 _INPUT_KEYS = ("INPUT", "LAYERS", "INPUT_LAYER", "INPUT_RASTER", "LAYER")
 
 
@@ -407,7 +406,6 @@ def _unit_of(definition, params: dict) -> str:
         if unit is None:
             unit = definition.defaultUnit()
         if "Unknown" in str(unit):
-
             return ""
         return QgsUnitTypes.toAbbreviatedString(unit)
     except Exception:  # noqa: BLE001
@@ -552,7 +550,6 @@ def _card(name: str) -> str:
     return declared.card if declared is not None else ""
 
 
-
 _PROCESSING_CARDS = ("algorithm", "model")
 
 
@@ -695,8 +692,6 @@ def _gpkg_effect(name: str, args: dict) -> str:
         else:
             where = tr("It adds the layer to the existing GeoPackage {path}.").format(path=shown)
     return where + " " + tr("The project then uses the saved copy; the original file is not changed.")
-
-
 
 
 
@@ -860,7 +855,6 @@ _PLUGIN_PREFIXES = ("plugin_", "qgis_plugin", "ai_edit_", "ai_segment_")
 
 
 
-
 _GLYPH_RULES = (
     (("ask_user",), "message-circle-question"),
     (("execute_code", "run_code", "run_python"), "square-terminal"),
@@ -957,8 +951,6 @@ def tool_glyph(name: str, args=None) -> tuple[str, str, str]:
 
 
 
-
-
 _OSM_TAG_RE = re.compile(r'\[\s*"?([A-Za-z][\w:]*)"?\s*(?:[=~!]+\s*"?([\w:.\-]+)"?)?\s*\]')
 _OSM_SKIP = frozenset({"out", "bbox", "timeout", "maxsize", "date", "diff", "adiff", "csv"})
 _AREA_KEYS = ("bbox", "extent", "area", "aoi", "geometry", "envelope")
@@ -1037,8 +1029,6 @@ def call_subject(name: str, args) -> tuple[str, bool]:
 
 
 
-
-
 _PAIR_RE = re.compile(r"([A-Za-z][\w ]*?)\s*[:=]\s*([^,;\n]+)")
 _COUNT_KEYS = ("feature_count", "features", "count", "rows", "matched", "n_features",
                "items", "results", "granules", "records")
@@ -1066,7 +1056,6 @@ def result_facts(summary) -> dict:
             layer = facts[key]
             break
     return {"count": count, "layer": layer, "facts": facts}
-
 
 
 _FEATURE_KEYS = ("feature_count", "features", "n_features")
@@ -1180,14 +1169,9 @@ EMPTY_SUMMARY_RE = re.compile(
     re.IGNORECASE)
 
 
-
-
-
 _PYTHON_TOOL_NAMES = ("execute_code", "run_code", "run_python", "python")
 _SOURCE_ARG_KEYS = ("code", "script", "source")
-
 _SCRATCH_OUTPUTS = frozenset({"", "TEMPORARY_OUTPUT", "MEMORY:", "MEMORY"})
-
 _MAX_SENTENCE = 200
 _MAX_REASON = 90
 

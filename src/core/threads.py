@@ -44,6 +44,7 @@
 
 
 
+
 from __future__ import annotations
 
 import json
@@ -58,7 +59,6 @@ from .logger import log, log_warning
 from .serialization import cut_string
 from .settings import account_dir, account_tag
 from .writeback import WriteBehind
-
 
 MAX_LISTED = 60
 MAX_KEPT_FILES = 200
@@ -84,8 +84,6 @@ def new_id(prefix: str = "") -> str:
 
 
 def _serialise(thread: dict) -> str:
-
-
 
 
 
@@ -190,7 +188,6 @@ class ThreadStore:
 
 
         self._cache: dict[str, dict] = {}
-
         self._index: dict[str, dict] = {}
         self._index_lock = threading.RLock()
         self._deleted: set[str] = set()
@@ -209,7 +206,6 @@ class ThreadStore:
             except Exception:  # noqa: BLE001
                 self._invoker = None
         self._start_index()
-
 
 
     def _path(self, thread_id: str) -> str:
@@ -312,7 +308,6 @@ class ThreadStore:
         return entries
 
 
-
     def _start_index(self) -> None:
 
 
@@ -374,7 +369,6 @@ class ThreadStore:
     def account(self) -> str:
 
         return self._account
-
 
 
     def list_threads(self, limit: int = MAX_LISTED) -> list[dict]:
@@ -630,7 +624,6 @@ class ThreadStore:
                 retry_file_op(os.remove, path)
             except OSError:
                 continue
-
 
 
             self._cache.pop(os.path.splitext(os.path.basename(path))[0], None)

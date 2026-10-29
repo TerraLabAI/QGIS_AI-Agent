@@ -120,8 +120,6 @@ def current() -> CallContext:
     return stack[-1] if stack else CallContext()
 
 
-
-
 _KEPT: dict[str, dict] = {}
 
 
@@ -239,8 +237,6 @@ def dropped_help(chat: str, name: str) -> str:
             f"A snippet rebuilds {name} from a layer name or id, a path or plain values kept from before.")
 
 
-
-
 def bindings(iface, project) -> dict:
 
     from qgis.core import edit
@@ -267,8 +263,6 @@ def bindings(iface, project) -> dict:
 
         "exports": exports,
     }
-
-
 
 
 def _registry():

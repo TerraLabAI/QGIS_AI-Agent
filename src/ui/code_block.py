@@ -130,10 +130,6 @@ _BLOCK_QSS = scale_qss_font_px(
 )
 
 
-
-
-
-
 _PY_KEYWORDS = [
     "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
     "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
@@ -256,14 +252,9 @@ class _Highlighter(QSyntaxHighlighter):
                 if any(start <= match.start() < end for start, end in spans):
                     continue
                 set_span(match.start(), match.end(), self._comment)
-
         if self.language == "json":
             for match in self._rules[-1][0].finditer(text):
                 set_span(match.start(), match.end(), self._name)
-
-
-
-
 
 
 class _LineData(QTextBlockUserData):
@@ -319,10 +310,7 @@ class _Body(QPlainTextEdit):
         self._diff = False
         self._wrap = False
         self._fitting = False
-
         self._line_cap: int | None = _MAX_HIGHLIGHT_LINES
-
-
         self._visible_lines: int | None = _COMPACT_LINES
         self.setViewportMargins(_GUTTER_PX + 4, _PAD_PX, _PAD_PX, _PAD_PX)
         self.updateRequest.connect(self._scroll_gutter)
@@ -330,8 +318,6 @@ class _Body(QPlainTextEdit):
 
 
         self.horizontalScrollBar().rangeChanged.connect(self._on_hbar_range)
-
-
 
     def set_lines(self, lines: list, diff: bool = False) -> None:
 
@@ -469,8 +455,6 @@ class _Body(QPlainTextEdit):
     def _on_hbar_range(self, _low: int, _high: int) -> None:
         self._fit_height()
 
-
-
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         rect = self.contentsRect()
@@ -528,10 +512,6 @@ class _Body(QPlainTextEdit):
         super().wheelEvent(event)
 
 
-
-
-
-
 class CodeBlock(QFrame):
 
 
@@ -564,7 +544,6 @@ class CodeBlock(QFrame):
         glyph.setAlignment(Qt.AlignmentFlag.AlignCenter)
         glyph.setPixmap(pixmap_for(self, "code", 15, qcolor(INK_3)))
         head.addWidget(glyph, 0, Qt.AlignmentFlag.AlignVCenter)
-
 
         self._name = ElidedLabel("", self._head)
         self._name.setObjectName("codeName")
@@ -604,8 +583,6 @@ class CodeBlock(QFrame):
         col.addWidget(self._body)
         self._sync_fold_label()
         self.set_code(code, name, language)
-
-
 
     def _detach_highlighter(self) -> None:
 
@@ -671,8 +648,6 @@ class CodeBlock(QFrame):
     @staticmethod
     def _default_name(language: str) -> str:
         return {"python": "script.py", "json": "parameters.json"}.get(language, "text")
-
-
 
     def _on_copy(self) -> None:
         try:

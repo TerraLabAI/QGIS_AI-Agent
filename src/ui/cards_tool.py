@@ -118,7 +118,6 @@ SCRIPT_PREAMBLE = (
     "    from qgis.utils import iface\n"
 )
 _CODE_TOOLS = ("execute_code", "run_code", "run_python", "python")
-
 _COPIED_MS = 1500
 
 
@@ -189,8 +188,6 @@ _ROW_HOVER_QSS = (
 
 
 
-
-
 class ToolCard(QWidget):
 
 
@@ -217,12 +214,10 @@ class ToolCard(QWidget):
         self.sentence = sentence or ""
         self.ok: bool | None = None
         self.blocked = False
-
         self.ended = ""
         self.summary = ""
         self.duration_s = 0.0
         self.detail = ""
-
         self.repeat_ids = [tool_call_id]
         self.repeats = 1
 
@@ -238,7 +233,6 @@ class ToolCard(QWidget):
         self._after_failure = False
         self._expanded = False
         self._hovering = False
-
         self._bare = False
 
 
@@ -307,7 +301,6 @@ class ToolCard(QWidget):
         self._chip = _MonoChip(self._chip_text, self._header)
         self._chip.setVisible(self.connector is None and bool(self._chip_text))
         head.addWidget(self._chip, 0, Qt.AlignmentFlag.AlignVCenter)
-
         self._layer_label = ElidedLabel("", self._header)
         self._layer_label.setObjectName("toolLayer")
         self._layer_label.setStyleSheet(_TOOL_SUB_QSS)
@@ -324,8 +317,6 @@ class ToolCard(QWidget):
         self._note.setTextFormat(Qt.TextFormat.PlainText)
         self._note.hide()
         head.addWidget(self._note, 0, Qt.AlignmentFlag.AlignVCenter)
-
-
         self._result_chip = _MonoChip("", self._header)
         self._result_chip.hide()
         head.addWidget(self._result_chip, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -426,8 +417,6 @@ class ToolCard(QWidget):
         self._set_running(True)
         self._sync_chevron()
 
-
-
     def sentence_text(self) -> str:
 
 
@@ -527,8 +516,6 @@ class ToolCard(QWidget):
                                   else self.tr("Show the whole message"))
         self._failure_host.setVisible(more)
 
-
-
     def _toggle_source(self) -> None:
         self.reveal_source(self._source_block is None or not self._source_block.isVisible())
 
@@ -570,8 +557,6 @@ class ToolCard(QWidget):
         if self._source_btn is not None:
             self._source_btn.setText(self.tr("Hide the code") if shown
                                      else self.tr("Show the code"))
-
-
 
     def _sync_sibling_button(self) -> None:
 
@@ -717,8 +702,6 @@ class ToolCard(QWidget):
 
     def chip_text(self) -> str:
         return self._chip_text
-
-
 
     def finish(self, ok: bool, summary: str, duration_s: float, detail: str = "", hint: str = "") -> None:
         self.ok = bool(ok)
@@ -869,8 +852,6 @@ class ToolCard(QWidget):
             return
         self._script_btn.setText(self.tr("Copied"))
 
-
-
         if self._copied_timer is None:
             self._copied_timer = QTimer(self)
             self._copied_timer.setSingleShot(True)
@@ -900,8 +881,6 @@ class ToolCard(QWidget):
 
     def is_expanded(self) -> bool:
         return self._expanded
-
-
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)

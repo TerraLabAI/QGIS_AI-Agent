@@ -83,16 +83,16 @@ _lock = threading.Lock()
 _batch: list = []
 _pending_pre_auth: list = []
 _session_id = uuid.uuid4().hex
-
 _enabled_cache: dict = {"value": None, "at": 0.0}
 _flush_timer: QTimer | None = None
 _auth_provider = None
 _inflight: list = []
 _first_open_key = "AIAgent/telemetry_first_open_sent"
 _first_run_key = "AIAgent/telemetry_first_run_sent"
+_first_paid_run_key = "AIAgent/telemetry_first_paid_run_sent"
 
 
-
+_last_upsell: tuple = ("", 0.0)
 
 
 def is_telemetry_enabled() -> bool:
@@ -141,13 +141,15 @@ def drop_queued_events(include_outbox: bool = True) -> None:
                 pass
 
 
-
-
-
 def new_session() -> None:
 
     global _session_id
     _session_id = uuid.uuid4().hex
+
+
+def session_id() -> str:
+
+    return _session_id
 
 
 def set_auth_provider(provider) -> None:
@@ -180,7 +182,24 @@ def first_run_recorded() -> bool:
         return False
 
 
+def first_paid_run_recorded() -> bool:
 
+    try:
+        settings = profile_settings()
+        if settings.value(_first_paid_run_key, False, type=bool):
+            return False
+        settings.setValue(_first_paid_run_key, True)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def upsell_context() -> dict:
+
+    where, at = _last_upsell
+    if not where:
+        return {}
+    return {"where": where, "seconds_since_click": int(time.monotonic() - at)}
 
 
 def clean(properties: dict | None) -> dict:
@@ -234,9 +253,6 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-
-
-
 def track(event: str, properties: dict | None = None, flush_now: bool = False) -> None:
 
     if not _on_main_thread():
@@ -254,6 +270,9 @@ def track(event: str, properties: dict | None = None, flush_now: bool = False) -
         return
     if not event or not is_telemetry_enabled():
         return
+    if event == ev.SUBSCRIBE_LINK_CLICKED:
+        global _last_upsell
+        _last_upsell = (str((properties or {}).get("where") or "")[:32], time.monotonic())
     try:
         record = {"event": event, "timestamp": _now_iso(), "properties": {**_base_properties(), **clean(properties)}}
         record["properties"]["product_id"] = PRODUCT_ID
@@ -411,9 +430,6 @@ def _start_flush_task(events: list, auth: dict, final: bool = False) -> None:
     except Exception:  # nosec B110
         if task in _inflight:
             _inflight.remove(task)
-
-
-
 
 
 def start_flush_timer() -> None:

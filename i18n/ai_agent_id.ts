@@ -2482,6 +2482,70 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>changed</source>
             <translation>diubah</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Periksa file {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Periksa tata letak cetak[ {layout_name}][, halaman {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Lihat sebagian peta</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Lihat peta seperti yang Anda lihat</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Lihat layer {layer_names} di peta</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Lihat {layer_names} di peta</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Tidak dapat mengirim. Periksa koneksi Anda lalu coba lagi, atau tulis ke kami di {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Contoh: buffer menghasilkan satuan derajat, bukan meter.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Laporkan bug, usulkan ide, atau ceritakan apa yang sudah berjalan baik.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Kirim</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Kirim masukan</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Mengirim...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Masuk untuk mengirim masukan dari sini, atau tulis ke kami di {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Kami akan menerima pesan Anda, percakapan ini, dan detail teknis (versi plugin dan QGIS, sistem, log terbaru). Tidak pernah kata sandi Anda atau isi file Anda.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Anda mengirim beberapa laporan dalam waktu singkat. Coba lagi dalam beberapa menit.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Laporan ini berisi deskripsi Anda dan percakapan saat ini. Kami menggunakannya untuk memperbaiki masalah dan meningkatkan AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Mengunduh {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Menunggu {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Mencari tempat</translation>
         </message>
@@ -3387,6 +3459,22 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Undo changes</source>
             <translation>Urungkan perubahan</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Jawaban buruk</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Jawaban bagus</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Buat laporan</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Tulis permintaan laporan HTML untuk analisis ini, lengkap dengan peta dan grafiknya</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Perubahan yang belum disimpan pada {layer} tidak dapat disimpan, jadi tidak ada yang dipulihkan. Simpan atau buang perubahan tersebut di QGIS, lalu coba lagi.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer} tidak dapat disalin sebelum perubahannya yang belum disimpan disimpan, jadi tidak ada yang dipulihkan. Simpan atau buang perubahan tersebut di QGIS, lalu coba lagi.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Urungkan perubahan?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Ulangi perubahan?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>Urungkan {n} permintaan?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Suntingan manual Anda disimpan dulu di riwayat.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Suntingan yang dibuat sejak titik ini disimpan dulu di riwayat peta.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Drawing the map</source>
             <translation>Menggambar peta</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Terima kasih, masukan Anda sudah terkirim.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Buat laporan HTML untuk analisis ini, lengkap dengan peta, grafik, dan metodenya.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Map history ({key})</source>
             <translation>Riwayat peta ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Kirim masukan</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Klik untuk membuka halamannya.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Mulai paket saya sekarang</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>Sisa 1 tugas gratis</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>Sisa {n} tugas gratis</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Uji coba gratis</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Kirim masukan</translation>
         </message>
     </context>
     <context>
@@ -9857,6 +9977,72 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>sebuah lapisan sementara</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent masih bekerja</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Simpan dalam berkas</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Proyek disimpan</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Layer sementara tidak disimpan</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI agent belum selesai memproses permintaan Anda. Keluar dari QGIS dan hentikan?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} layer sementara ({names}) tidak disimpan ke disk: isinya akan hilang saat proyek ditutup.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Posisi label tidak tersimpan</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>Folder sementara QGIS terhapus saat proyek masih terbuka: label atau diagram yang dipindahkan sejak penyimpanan sebelumnya tidak dapat disimpan. Posisi yang disimpan sebelumnya tetap ada. Pindahkan lagi, lalu simpan.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent masih menyimpan layer</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} layer masih ditulis ke GeoPackage di samping proyek. Jika QGIS ditutup sekarang, layer tersebut hilang. Tetap keluar?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Tidak dapat mengirim. Coba lagi.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Kirim</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Dikirim bersama percakapan ini dan log terbaru Anda, untuk memperbaiki masalah dan meningkatkan AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Ceritakan lebih lanjut</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Terima kasih atas masukan Anda</translation>
         </message>
     </context>
 </TS>

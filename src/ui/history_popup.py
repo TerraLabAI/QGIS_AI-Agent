@@ -97,7 +97,6 @@ _BIN_PX = 28
 
 
 _QUERY_DEBOUNCE_MS = 100
-
 _META_MAX_PX = 96
 
 _SHEET_QSS = scale_qss_font_px(
@@ -107,7 +106,6 @@ _SHEET_QSS = scale_qss_font_px(
     f" padding: 0; font-size: {FONT_BASE}px; color: {INK};"
     f" selection-background-color: {LINE_STRONG}; }}"
     f"QFrame#historyRule {{ background: {LINE}; border: none; max-height: 1px; min-height: 1px; }}"
-
     f"QLabel#historySection {{ font-size: {FONT_MICRO}px; font-weight: 500; color: {INK_3};"
     " padding: 5px 8px 6px 8px; background: transparent; }"
     f"QLabel#historyEmpty {{ font-size: {FONT_BASE}px; color: {INK_3};"
@@ -299,8 +297,6 @@ class _Row(QWidget):
         self._hover = False
         self._selected = False
 
-
-
         self._current = False
         self._full_title = title
         row = QHBoxLayout(self)
@@ -444,12 +440,10 @@ class HistoryPopup(QWidget):
         self._frame.setObjectName("historySheet")
         self._frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._frame.setStyleSheet(_SHEET_QSS)
-
         outer.addWidget(self._frame)
         col = QVBoxLayout(self._frame)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(0)
-
 
         head_host = QWidget(self._frame)
         head_host.setFixedHeight(SEARCH_ROW_PX)
@@ -492,8 +486,6 @@ class HistoryPopup(QWidget):
         self._pop.valueChanged.connect(self._on_pop)
         self._rebuild()
 
-
-
     def set_threads(self, items, current_project_path: str | None = None) -> None:
         self._threads = [i for i in (items or []) if isinstance(i, dict) and i.get("id")]
         if current_project_path is not None:
@@ -522,8 +514,6 @@ class HistoryPopup(QWidget):
 
     def threads(self) -> list:
         return list(self._threads)
-
-
 
     def show_over(self, panel: QWidget) -> None:
 
@@ -589,8 +579,6 @@ class HistoryPopup(QWidget):
 
         self._query_timer.stop()
         super().hideEvent(event)
-
-
 
     def _clear_rows(self) -> None:
         self._rows = []
@@ -674,8 +662,6 @@ class HistoryPopup(QWidget):
 
 
 
-
-
         if total <= self._limit:
             return
         row = _Row(self.tr("Show older chats"), False, self._content,
@@ -730,8 +716,6 @@ class HistoryPopup(QWidget):
         row.clicked.connect(lambda t=thread_id: self._on_pick(t))
         row.delete_clicked.connect(lambda t=thread_id: self._on_delete(t))
         return row
-
-
 
     def _select(self, index: int) -> None:
         if not self._rows:
@@ -789,8 +773,6 @@ class HistoryPopup(QWidget):
             return
         super().keyPressEvent(event)
 
-
-
     def _on_pick(self, thread_id: str) -> None:
         self.hide()
         self.thread_selected.emit(thread_id)
@@ -801,7 +783,6 @@ class HistoryPopup(QWidget):
         title = next((str(t.get("title") or "") for t in self._threads
                       if str(t.get("id") or "") == thread_id), "")
         host = self.parentWidget().window() if self.parentWidget() is not None else None
-
         self.hide()
         if not ask_confirm(
             host,
@@ -814,7 +795,6 @@ class HistoryPopup(QWidget):
             glyph="trash",
             accent=RED,
         ):
-
             self.move(self._final)
             self.setWindowOpacity(1.0)
             self.show()

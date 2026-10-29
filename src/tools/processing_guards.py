@@ -406,7 +406,6 @@ def _raster_size_sanity(parameters: dict, confirmed: bool, algorithm_id: str = "
 
     windowed = any(parameters.get(key) for key in _WINDOW_KEYS)
 
-
     if confirmed or (windowed and (not algorithm_id or algorithm_id in _WINDOW_ALGORITHMS)):
         return None
     project = QgsProject.instance()
@@ -845,8 +844,6 @@ EMPTY_SELECTION_MARK = "has no selected features"
 
 
 def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
-
-
 
 
 

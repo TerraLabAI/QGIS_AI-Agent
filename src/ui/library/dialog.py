@@ -75,7 +75,6 @@ SOURCES_KEY = "__sources__"
 
 
 _SHELF_PREFIX = "__shelf__:"
-
 _REDIRECT_KEY = "__redirect__"
 
 class ExamplesDialog(QDialog):
@@ -113,7 +112,6 @@ class ExamplesDialog(QDialog):
 
 
         self._history: list = []
-
         self._crumb_actions: list = []
         self._state = (_GRID_PAGE, None)
         self._connectors = sources_by_id()
@@ -250,8 +248,6 @@ class ExamplesDialog(QDialog):
         if self._pages.currentIndex() == _GRID_PAGE:
             self._rail.set_current("" if query else (self._home.group() or HOME_KEY))
 
-
-
     def _go(self, page: int, payload=None, push: bool = True) -> None:
 
         if push and self._state != (page, payload):
@@ -308,8 +304,6 @@ class ExamplesDialog(QDialog):
 
 
             QTimer.singleShot(0, lambda: bar.setValue(min(scroll, bar.maximum())))
-
-
 
     def _name_of(self, page: int, payload, snap: tuple) -> str:
         if page == _DETAIL_PAGE:
@@ -463,7 +457,6 @@ class ExamplesDialog(QDialog):
         self._go(_GRID_PAGE, push=False)
 
     def _to_directory(self) -> None:
-
         self._ensure_directory()
         self._paint_directory()
         self._directory.clear_search()
@@ -530,8 +523,6 @@ class ExamplesDialog(QDialog):
         if row is not None:
             self._source.set_connector(row, cases_of(key, self._cases))
 
-
-
     def _build_sources_page(self, slot: int) -> ConnectorsPage:
         page = ConnectorsPage(self._right)
         page.connector_opened.connect(self.open_connector)
@@ -559,8 +550,6 @@ class ExamplesDialog(QDialog):
             self._section = self._build_sources_page(_SECTION_PAGE)
         self._section.set_data(list(self._connectors.values()), self._cases, section=key or POPULAR_KEY)
 
-
-
     def _on_prompt(self, text: str) -> None:
 
 
@@ -584,8 +573,6 @@ class ExamplesDialog(QDialog):
 
         self.accept()
         self.prompt_chosen.emit(str(text or ""), dict(chip) if isinstance(chip, dict) else {})
-
-
 
     def _tiles(self) -> list:
 
@@ -630,7 +617,6 @@ class ExamplesDialog(QDialog):
             return key == keys.UP
         index = keys.step(tiles, self._focus, key)
         if index < 0:
-
             self._drop_focus()
             field = self._search_field()
             if field is not None:
@@ -660,7 +646,6 @@ class ExamplesDialog(QDialog):
         text = event.text()
         field = self._search_field()
         if ringed and field is not None and text and text.isprintable() and not text.isspace():
-
             self._drop_focus()
             field.setFocus()
             field.insert(text)

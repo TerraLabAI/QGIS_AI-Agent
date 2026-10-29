@@ -58,24 +58,9 @@ _SECRET_KEY_RE = re.compile(
 
 
 
-
-
-
-
 _BASE64_PAYLOAD_RE = re.compile(r"[A-Za-z0-9+/]{2000,}={0,2}")
 _BASE64_PAYLOAD_MARK = "\x00\x00b64\x00\x00"
 _BASE64_CUT_MIN = 2000
-
-
-
-
-
-
-
-
-
-
-
 
 
 

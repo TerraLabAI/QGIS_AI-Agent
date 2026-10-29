@@ -51,10 +51,6 @@
 
 
 
-
-
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
@@ -128,20 +124,15 @@ _NAV_TINTS = {
     "pencil": "#7C6CD0",
     "spark": "#1F9E96",
     "globe": "#3E86D6",
-
     "person": ACCENT,
     "book": "#C96A8C",
     "gem": "#C98A2E",
     "play": "#D0533C",
-
-
     "terminal": "#6B7A8F",
     "puzzle": "#7C6CD0",
-
     "chat_bubble": "#3E86D6",
-    "warning": "#D0533C",
+    "lu.bug": "#D0533C",
 }
-
 _WORDMARK_PX = 22
 _WORDMARK_QSS = ("font-size: 13px; font-weight: 700; color: palette(text);"
                  " background: transparent;")
@@ -186,7 +177,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
     dashboard_opened = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
     help_requested = pyqtSignal(str)
-
     prompt_chosen = pyqtSignal(str, object)
     example_chosen = pyqtSignal(str)
 
@@ -266,12 +256,10 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
         self._add_action("chat_bubble", self.tr("Contact us"), "contact")
-        self._add_action("warning", self.tr("Report a problem"), "report")
+        self._add_action("lu.bug", self.tr("Send feedback"), "report")
         self._nav.setCurrentRow(0)
         self.set_account_info(info)
         apply_font_scale_to_tree(self)
-
-
 
     def _build_sidebar(self) -> QFrame:
         side = QFrame(self)
@@ -347,13 +335,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
 
-
-
-
-
-
-
-
         host = _LinkTile(side)
         host.clicked.connect(self._open_product)
         host.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -399,7 +380,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         icon = icon_for(self, glyph, 16, QColor(tint)) if tint else icon_for(self, glyph, 16)
         item = QListWidgetItem(icon, label)
         item.setSizeHint(QSize(0, scale_px_length(32)))
-
         item.setData(Qt.ItemDataRole.UserRole, self._pages.addWidget(page))
         self._nav.addItem(item)
 
@@ -502,20 +482,9 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
     def _memory_locked(self) -> bool:
 
-
-
-
-
-
-
         return not memory_allowed()
 
-
-
     def _build_tutorials(self) -> LearnPage:
-
-
-
 
 
 
@@ -562,11 +531,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         self.help_requested.emit(f"learn:{kind}")
         open_external_url(str(url), parent=self)
 
-
-
     def _build_shortcuts(self) -> Page:
-
-
 
 
 
@@ -583,17 +548,12 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
             page.add(self._muted(self.tr("The shortcuts could not be listed.")))
         return page
 
-
-
     def _on_help(self, kind: str) -> None:
 
 
         self.help_requested.emit(kind)
 
     def apply_plan(self) -> None:
-
-
-
 
 
 
@@ -608,8 +568,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
                 set_section_locked(*widgets, locked=locked)
             except RuntimeError:
                 continue
-
-
 
     def values(self) -> dict:
         return dict(self._values)

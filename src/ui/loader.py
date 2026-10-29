@@ -27,23 +27,17 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 from .font_scale import scale_point_size
 from .style import FONT_BODY, INK, INK_2, INK_3, qcolor
 
-
 GRID_PX = 15
 _DOT_PX = 4.0
 _DOT_GAP = 1.5
 _DOT_RADIUS = 1.0
-
 _CYCLE_S = 0.65
 _REST = 0.15
-
 _DELAYS = ((0.09, 0.18, 0.27), (0.0, 0.09, 0.18), (0.09, 0.18, 0.27))
-
 _SHIMMER_S = 1.4
 
 _TICK_MS = 40
-
 _CLOCK_MS = 100
-
 LINE_PX = 20
 GAP_PX = 8
 

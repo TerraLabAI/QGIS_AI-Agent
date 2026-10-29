@@ -143,8 +143,6 @@ def register_georeference_inspect_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _remote_url(text: str) -> str:
 
     kind, rest = security.unwrap_vsi(text)
@@ -198,8 +196,6 @@ def _resolve(ref) -> dict:
     return {"path": source, "layer": layer.name(), "page": page}
 
 
-
-
 def _to_mercator(lon: float, lat: float) -> tuple:
     lat = max(-85.0, min(85.0, lat))
     return math.radians(lon) * _R, math.log(math.tan(math.pi / 4 + math.radians(lat) / 2)) * _R
@@ -233,8 +229,6 @@ def _bbox(points: list) -> list:
     xs = [p["x"] for p in points]
     ys = [p["y"] for p in points]
     return [round(min(xs), 7), round(min(ys), 7), round(max(xs), 7), round(max(ys), 7)]
-
-
 
 
 def _stopped() -> dict:
@@ -272,8 +266,6 @@ def _progress(cancelled):
     def progress(_complete, _message, _data):
         return 0 if (cancelled is not None and cancelled()) else 1
     return progress
-
-
 
 
 def _signature_extension(body: bytes) -> str:
@@ -363,8 +355,6 @@ def _download(url: str, cancelled) -> dict:
         return tool_error(f"The download could not be written to {folder}: {exc}", "EXECUTION_FAILED",
                           hint="georef_download_write_failed")
     return {"path": target, "downloaded": True}
-
-
 
 
 def _crs_label(srs) -> str:
@@ -466,8 +456,6 @@ def _georeferencing(gdal, osr, dataset, path: str) -> dict | None:
             except (RuntimeError, TypeError, ValueError) as exc:
                 log_warning(f"inspect_georeference: extent in EPSG:4326 not computed: {exc}")
     return facts
-
-
 
 
 def _local(tag) -> str:
@@ -676,8 +664,6 @@ def _from_kml(gdal, found: dict, cancelled) -> dict:
     if found.get("layer"):
         result["layer"] = found["layer"]
     return result
-
-
 
 
 _TYPE_SIZES = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8}
@@ -894,8 +880,6 @@ def _photo_facts(path: str, width: int, height: int) -> dict | None:
     return facts
 
 
-
-
 def _pdf_page_count(gdal, path: str) -> int:
     dataset = gdal.Open(path, gdal.GA_ReadOnly)
     pages = len(dataset.GetSubDatasets() or [])
@@ -1007,8 +991,6 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
     return {"image": target, "pdf": facts}
 
 
-
-
 def _base_image(gdal, dataset, long_side: int, cancelled):
 
     width, height = dataset.RasterXSize, dataset.RasterYSize
@@ -1102,8 +1084,6 @@ def _grid_preview(base, width: int, height: int):
     finally:
         painter.end()
     return image
-
-
 
 
 def _needs_points_fact(matching: bool, photo: dict | None) -> dict:

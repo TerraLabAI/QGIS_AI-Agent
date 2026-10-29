@@ -102,7 +102,6 @@ REASON_COPY_FAILED = "copy_failed"
 
 
 
-
 MAX_SIGNATURE_FEATURES = 8_000
 MAX_SIGNATURE_TOTAL = 60_000
 
@@ -481,7 +480,6 @@ class _FeaturePass:
             options.driverName = "GPKG"
             options.layerName = table
             options.layerOptions = [f"FID={MEMORY_COPY_FID}", "SPATIAL_INDEX=NO"]
-
             options.actionOnExistingFile = enum_member(
                 QgsVectorFileWriter, "ActionOnExistingFile",
                 "CreateOrOverwriteLayer" if os.path.exists(path) else "CreateOrOverwriteFile")
@@ -874,7 +872,6 @@ class _SignatureReader:
 
 
 def compare_signatures(before: dict, after: dict) -> dict:
-
 
 
 

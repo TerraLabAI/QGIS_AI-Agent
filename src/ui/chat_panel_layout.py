@@ -39,22 +39,12 @@ from .shared import (
 
 
 
-
-
-
-
-
 _CENTER_ABOVE = 48
 _CENTER_BELOW = 52
-
 _MAX_HEIGHT = 16777215
 
 
 class _ChatPanelLayout:
-
-
-
-
 
     def _wire(self) -> None:
         h = self.header
@@ -62,6 +52,7 @@ class _ChatPanelLayout:
         h.thread_delete_requested.connect(self.thread_delete_requested.emit)
         h.new_thread_requested.connect(self.new_thread_requested.emit)
         h.settings_clicked.connect(self.open_settings_requested.emit)
+        h.feedback_clicked.connect(lambda: self.open_feedback("header"))
         h.pro_pill_clicked.connect(self._on_pro_pill)
         h.pro_pill_shown.connect(lambda: self._note_upsell("header_pill"))
 
@@ -93,6 +84,7 @@ class _ChatPanelLayout:
         self.quota_card.invoice_requested.connect(self.invoice_requested.emit)
         self.quota_card.contact_requested.connect(self._on_return_contact)
         self.quota_card.return_closed.connect(self._close_checkout_return)
+        self.quota_card.low_closed.connect(self._close_low_card)
         self.quota_card.welcome_closed.connect(self._close_pro_welcome)
         self.quota_card.start_now_requested.connect(
             lambda: self.start_now_requested.emit(getattr(self, "_start_now_url", "")))
@@ -104,11 +96,8 @@ class _ChatPanelLayout:
         c.attachments_changed.connect(self._on_attachments_changed)
         c.context_add_requested.connect(self.context_add_requested.emit)
         c.chip_removed.connect(self.chip_removed.emit)
-
         c.layer_card_clicked.connect(lambda layer_id: self.layer_action_requested.emit(layer_id, "show"))
-
         c.permission_mode_changed.connect(lambda approval: self.mode_changed.emit("", approval))
-
         c.effort_changed.connect(self.effort_changed.emit)
         c.upgrade_requested.connect(self._on_upgrade)
         c.upsell_shown.connect(self._note_upsell)
@@ -126,8 +115,6 @@ class _ChatPanelLayout:
         if not text and not attachments:
             return
         if not text:
-
-
 
             self.composer.show_warning(self.tr("Add a few words: what should the agent do with it?"))
             return
@@ -161,8 +148,6 @@ class _ChatPanelLayout:
         self.composer.take_chips()
         self.composer.clear()
         self.composer.clear_attachments()
-
-
 
     def _require_privacy_notice(self, on_accept) -> bool:
 
@@ -244,8 +229,6 @@ class _ChatPanelLayout:
 
 
 
-
-
         _used, _limit, _period_end, is_subscriber = self._usage
         if is_subscriber:
             self.dashboard_requested.emit()
@@ -289,10 +272,25 @@ class _ChatPanelLayout:
         elif kind == "contact":
             show_contact_dialog(self, get_support_email(), get_contact_call_url())
         elif kind == "report":
-            from .error_report_dialog import show_error_report
-            show_error_report(self, self._last_error, self._current_run or self._last_run)
+            self._show_feedback("settings")
 
+    def open_feedback(self, entry: str) -> None:
 
+        self.help_requested.emit("report")
+        self._show_feedback(entry)
+
+    def _show_feedback(self, entry: str) -> None:
+        from .feedback_dialog import show_feedback
+        show_feedback(self, self._last_error, self._current_run or self._last_run, entry=entry)
+
+    def feedback_sent(self) -> None:
+
+        host = self.message_list if self.message_list.isVisible() else self
+        toast = self.toast if host is self.message_list else getattr(self, "_home_toast", None)
+        if toast is None:
+            from .toast import Toast
+            toast = self._home_toast = Toast(self)
+        toast.show_message(self.tr("Thanks, your feedback was sent."))
 
     def dragEnterEvent(self, event):  # noqa: N802
         mime = event.mimeData()
@@ -333,8 +331,6 @@ class _ChatPanelLayout:
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         self._drop_overlay.sync_geometry(self)
-
-
 
 
 
@@ -449,14 +445,23 @@ class _ChatPanelLayout:
             self._runs_host.hide()
             self._low_balance_visible = False
             return
-        self.quota_card.clear()
-        self._quota_host.hide()
-        self.runs_line.set_balance(left, limit, self.trial_offer())
-
-        self._runs_host.setVisible(self.runs_line.where == "warning")
-        if self.runs_line.where == "warning":
-            self._note_upsell("warning")
         low = left <= WARN_AT_RUNS_LEFT
+        if low and not getattr(self, "_low_card_closed", False):
+
+
+
+            self._runs_host.hide()
+            self.quota_card.show_low(left, format_reset_date(period_end), self.trial_offer())
+            self._quota_host.show()
+            self._note_upsell("low_card")
+        else:
+            self.quota_card.clear()
+            self._quota_host.hide()
+            self.runs_line.set_balance(left, limit, self.trial_offer())
+
+            self._runs_host.setVisible(self.runs_line.where == "warning")
+            if self.runs_line.where == "warning":
+                self._note_upsell("warning")
         if low and not self._low_balance_visible:
             self.low_balance_shown.emit(left)
         self._low_balance_visible = low
@@ -499,6 +504,10 @@ class _ChatPanelLayout:
 
             used, old_limit, end, _paid = self._usage
             self._usage = (used, limit or old_limit, end, True)
+        self._apply_quota()
+
+    def _close_low_card(self) -> None:
+        self._low_card_closed = True
         self._apply_quota()
 
     def _close_pro_welcome(self) -> None:
@@ -550,8 +559,6 @@ class _ChatPanelLayout:
 
 
         bubble.layer_clicked.connect(self._on_bubble_layer)
-
-
         bubble.source_clicked.connect(self._on_bubble_source)
         self._add(bubble)
 
@@ -572,10 +579,6 @@ class _ChatPanelLayout:
     def _on_bubble_layer(self, layer_id: str) -> None:
         if layer_id:
             self.layer_action_requested.emit(layer_id, "show")
-
-
-
-
 
     def set_connection_state(self, state: str, detail: str = "") -> None:
 
@@ -601,7 +604,6 @@ class _ChatPanelLayout:
             self._pro_welcome = None
             self._start_now_url = ""
             self.header.clear_account()
-
             self._plan_known = False
             self._sync_pro_pill()
 
@@ -747,10 +749,6 @@ class _ChatPanelLayout:
                     "that keeps your requests and what it made."))
         divider.show()
         self._add(divider, animate=animate)
-
-
-
-
 
     def set_mentions(self, items) -> None:
 

@@ -43,13 +43,11 @@
 
 
 
-
 from __future__ import annotations
 
 import contextlib
 import re
 from dataclasses import dataclass
-
 
 
 
@@ -65,7 +63,6 @@ _MAX_URL = 512
 _MAX_SAMPLES, _MAX_LICENCE = 4, 80
 
 _served: list = []
-
 _served_groups: list = []
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 

@@ -139,9 +139,6 @@ def _when(stamp) -> str:
     return relative_time(moment.toString(Qt.DateFormat.ISODate)) if moment.isValid() else ""
 
 
-
-
-
 def history_rows(entries) -> list[dict]:
 
 
@@ -346,9 +343,6 @@ def changes_tooltip(row: dict, tr, limit: int = 8) -> str:
     return "\n".join(shown)
 
 
-
-
-
 class _VersionRow(QWidget):
 
 
@@ -417,7 +411,6 @@ class _VersionRow(QWidget):
 
     def setEnabled(self, enabled: bool) -> None:  # noqa: N802
         super().setEnabled(enabled)
-
         if not self.current:
             self._verb.setVisible(bool(enabled))
 
@@ -533,7 +526,6 @@ class CheckpointSheet(QFrame):
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-
         self._scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
 
@@ -569,8 +561,6 @@ class CheckpointSheet(QFrame):
         label.setProperty("fullText", text)
         column.addWidget(label)
         return head
-
-
 
     def set_entries(self, entries: list) -> None:
 
@@ -695,7 +685,6 @@ class CheckpointSheet(QFrame):
                       else self.tr("Belongs to a closed project"))
         elif not cid and not current:
             reason = self.tr("No longer kept")
-
         details = "\n".join(part for part in (
             row["request"] if row["type"] == "request" else "",
             changes_tooltip(row, self.tr) if row["type"] == "request" else "",
@@ -703,7 +692,6 @@ class CheckpointSheet(QFrame):
         widget.setToolTip(reason or details)
         if current:
             return widget
-
         widget.setEnabled(bool(cid) and not self._running)
         if cid:
             widget.clicked.connect(lambda c=cid: self._choose(self.restore_requested, c))
@@ -713,8 +701,6 @@ class CheckpointSheet(QFrame):
     def _choose(self, signal, *args) -> None:
         self.hide()
         signal.emit(*args)
-
-
 
     def _relayout(self) -> None:
 
@@ -797,7 +783,6 @@ class CheckpointSheet(QFrame):
 
 
 
-
         margins = self._outer.contentsMargins()
         items = [self._outer.itemAt(i) for i in range(self._outer.count())]
         items = [item for item in items if item.widget() is None or not item.widget().isHidden()]
@@ -832,8 +817,6 @@ class CheckpointSheet(QFrame):
         if self._stale:
             self._rebuild()
         self._relayout()
-
-
 
     def _set_focus(self, index: int) -> None:
         for i, row in enumerate(self._rows):

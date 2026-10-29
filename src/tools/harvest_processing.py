@@ -174,7 +174,6 @@ def register_harvest_processing_tools(registry: ToolRegistry):
 
 
 
-
                 "refresh": {"type": "boolean"},
             },
             "required": ["query"],
@@ -185,9 +184,6 @@ def register_harvest_processing_tools(registry: ToolRegistry):
         },
         handler=_find_processing_algorithm,
     ))
-
-
-
 
 
 def _run_alg(alg_id: str, params: dict):
@@ -301,9 +297,6 @@ def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
             _release_layers_at_path(path, skip_ids={layer.id() for layer in inputs if layer is not None},
                                     delete_existing=True)
     return path
-
-
-
 
 
 def _zonal_statistics(args: dict) -> dict:
@@ -464,9 +457,6 @@ def _spatial_join(args: dict) -> dict:
     if note:
         out["crs_note"] = note
     return out
-
-
-
 
 
 _REF_RE = re.compile(r'"([^"]+)@(\d+)"|([A-Za-z0-9_.\-]+)@(\d+)')
@@ -831,8 +821,6 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-
-
     from .query_tools import _remote_raster
 
 
@@ -1009,9 +997,12 @@ def _raster_calculator(args: dict) -> dict:
         out["crs_advice"] = reprojected_advice
     if replaced:
         out["replaced_layers"] = replaced
+
+
+    from ..core.postcondition import _band_range
+
+    out.update(_band_range(layer))
     return out
-
-
 
 
 _algorithm_catalog_cache: dict = {"catalog": None}

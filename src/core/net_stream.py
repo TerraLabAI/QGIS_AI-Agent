@@ -17,8 +17,6 @@ from .net_failure import FetchTooLarge, FetchTruncated
 
 
 
-
-
 STREAM_KEEP_FREE_BYTES = 1024 * 1024 * 1024
 
 

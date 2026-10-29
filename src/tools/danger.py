@@ -80,7 +80,6 @@ _INERT_ALGORITHMS = frozenset({
 
 
 
-
 PAID_ALGORITHMS = frozenset({
     "terraedit:generate",
     "terraedit:vectorize",

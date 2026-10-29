@@ -35,8 +35,6 @@ from ..core.logger import log
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .deps_tools import OPTIONAL_DEPENDENCIES
 
-
-
 SYSTEMS = ("geohash", "olc", "h3", "s2")
 
 
@@ -72,7 +70,6 @@ OPTIONAL_DEPENDENCIES.setdefault("s2", {
     "unlocks": "S2 quadrilateral grids in create_grid_layer, encode_cells and decode_cell",
     "post_install": "After a plugin reload (QGIS plugin manager), system:'s2' works in the grid tools.",
 })
-
 
 
 
@@ -121,7 +118,6 @@ def geohash_divisions(precision: int) -> tuple:
     lat_bits = total_bits // 2
     lon_bits = total_bits - lat_bits
     return 2 ** lat_bits, 2 ** lon_bits
-
 
 
 
@@ -236,9 +232,6 @@ def olc_divisions(code_length: int) -> tuple:
     return lat_cells, lon_cells
 
 
-
-
-
 def _optional_module(feature: str):
 
     spec = OPTIONAL_DEPENDENCIES.get(feature) or {}
@@ -275,9 +268,6 @@ def _h3_call(module, names: tuple, *args, **kwargs):
         if function is not None:
             return function(*args, **kwargs)
     raise _H3VersionError(names)
-
-
-
 
 
 def _validate_resolution(system: str, resolution) -> tuple:
@@ -419,8 +409,6 @@ def _rect_cells(system: str, bbox: tuple, resolution: int, limit: int) -> tuple:
     cancel = _cancel_check()
     for row in range(first_row, last_row + 1):
 
-
-
         if cancel is not None and cancel():
             return None, tool_error("The run was stopped while the grid was being built.", code="CANCELLED")
         cell_south = -90.0 + row * lat_step
@@ -532,9 +520,6 @@ def _s2_cell_record(module, cell_id) -> dict:
     }
 
 
-
-
-
 def _read_bbox(value) -> tuple:
 
     if isinstance(value, (list, tuple)):
@@ -560,7 +545,6 @@ def _read_bbox(value) -> tuple:
     if south > north:
         south, north = north, south
     if west > east:
-
 
 
 
@@ -638,11 +622,6 @@ def _resolve_extent(args: dict) -> tuple:
     return (None, None, error) if error else (bbox, "canvas", None)
 
 
-
-
-
-
-
 def register_grid_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_grid_layer",
@@ -682,14 +661,7 @@ def register_grid_tools(registry: ToolRegistry):
         handler=_create_grid_layer,
         background=True,
     ))
-
-
-
-
     log("Grid tools registered (geohash, olc, h3, s2)")
-
-
-
 
 
 def _check_system(args: dict) -> tuple:
@@ -809,7 +781,6 @@ def _build_grid_layer(name: str, system: str, resolution: int, cells: list) -> d
         geometry = QgsGeometry.fromWkt(cell["wkt"])
         if geometry.isEmpty():
 
-
             rejected += 1
             continue
         feature.setGeometry(geometry)
@@ -829,10 +800,4 @@ def _build_grid_layer(name: str, system: str, resolution: int, cells: list) -> d
     QgsProject.instance().addMapLayer(layer)
     return {"name": layer.name(), "layer_id": layer.id(),
             "inserted": len(features), "rejected": rejected}
-
-
-
-
-
-
 

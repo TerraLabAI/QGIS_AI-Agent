@@ -2482,6 +2482,70 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>changed</source>
             <translation>gewijzigd</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Controleer het bestand {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Controleer de afdruklay-out[ {layout_name}][, pagina {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Bekijk een deel van de kaart</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Bekijk de kaart zoals je hem ziet</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Bekijk {layer_names} lagen op de kaart</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Bekijk {layer_names} op de kaart</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Verzenden is mislukt. Controleer je verbinding en probeer het opnieuw, of schrijf ons op {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Voorbeeld: de buffer kwam uit in graden in plaats van in meters.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Meld een bug, stel een idee voor of vertel wat goed werkt.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback sturen</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Verzenden...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Meld je aan om hier feedback te sturen, of schrijf ons op {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>We ontvangen je bericht, dit gesprek en technische gegevens (plugin- en QGIS-versie, systeem, recente logs). Nooit je wachtwoorden of de inhoud van je bestanden.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Je hebt in korte tijd meerdere meldingen verstuurd. Probeer het over een paar minuten opnieuw.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Dit rapport bevat je beschrijving en het huidige gesprek. We gebruiken het om problemen op te lossen en AI Agent te verbeteren.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>{size} downloaden</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Wachten op {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Plaats zoeken</translation>
         </message>
@@ -3387,6 +3459,22 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Undo changes</source>
             <translation>Wijzigingen ongedaan maken</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Slecht antwoord</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Goed antwoord</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Maak een rapport</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Schrijf het verzoek voor een HTML-rapport van deze analyse, met de kaarten en grafieken</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Je niet-opgeslagen bewerkingen op {layer} konden niet worden opgeslagen, dus er is niets hersteld. Sla ze op of verwerp ze in QGIS en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer} kon niet worden gekopieerd voordat de niet-opgeslagen bewerkingen werden opgeslagen, dus er is niets hersteld. Sla de bewerkingen op of verwerp ze in QGIS en probeer het opnieuw.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Wijzigingen ongedaan maken?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Wijzigingen opnieuw toepassen?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>{n} verzoeken ongedaan maken?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Je handmatige bewerkingen worden eerst in de geschiedenis bewaard.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Bewerkingen sinds dit punt worden eerst in de kaartgeschiedenis bewaard.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Drawing the map</source>
             <translation>Kaart tekenen</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Bedankt, je feedback is verzonden.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Maak een HTML-rapport van deze analyse, met de kaarten, grafieken en methode.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Map history ({key})</source>
             <translation>Kaartgeschiedenis ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback sturen</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Klik om de pagina te openen.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Start mijn abonnement nu</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>Nog 1 gratis taak</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>Nog {n} gratis taken</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Gratis proefperiode</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback sturen</translation>
         </message>
     </context>
     <context>
@@ -9857,6 +9977,72 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>een tijdelijke laag</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent is nog bezig</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Bewaar ze in een bestand</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Project opgeslagen</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Tijdelijke lagen niet bewaard</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>De AI Agent heeft je verzoek nog niet afgerond. QGIS afsluiten en de agent stoppen?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} tijdelijke laag/lagen ({names}) zijn niet op schijf opgeslagen: de inhoud gaat verloren wanneer het project wordt gesloten.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Labelposities niet opgeslagen</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>De tijdelijke map van QGIS is verwijderd terwijl het project open stond: labels of diagrammen die sinds de vorige keer opslaan zijn verplaatst, konden niet worden opgeslagen. De eerder opgeslagen posities blijven behouden. Verplaats ze opnieuw en sla daarna op.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent slaat nog lagen op</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} laag/lagen worden nog naar het GeoPackage naast het project geschreven. Als QGIS nu afsluit, gaan ze verloren. Toch afsluiten?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Verzenden mislukt. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Wordt samen met dit gesprek en uw recente logbestanden verzonden om problemen op te lossen en AI Agent te verbeteren.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Vertel ons meer</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Bedankt voor je feedback</translation>
         </message>
     </context>
 </TS>

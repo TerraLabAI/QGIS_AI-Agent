@@ -125,8 +125,6 @@ class ConfirmDialog(QDialog):
         default.setDefault(True)
         default.setFocus()
 
-
-
     def _build_header(self, title: str, glyph: str, accent: str) -> QHBoxLayout:
         header = QHBoxLayout()
         header.setContentsMargins(SIDE_PAD, 22, SIDE_PAD, 12)

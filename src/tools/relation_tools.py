@@ -46,7 +46,6 @@ _ACTIONS = ("add", "list", "remove")
 _STRENGTHS = ("association", "composition")
 
 _LIST_CAP = 50
-
 _ORPHAN_SAMPLE = 10
 
 
@@ -86,9 +85,6 @@ def _configure_relations(args: dict) -> dict:
     if action == "remove":
         return _remove_relation(args)
     return _add_relation(args)
-
-
-
 
 
 def _manager():
@@ -183,9 +179,6 @@ def _list_relations(args: dict) -> dict:
     if len(rows) > _LIST_CAP:
         out["omitted"] = len(rows) - _LIST_CAP
     return out
-
-
-
 
 
 def _vector(name, role: str):
@@ -469,9 +462,6 @@ def _invalid_reason(relation) -> str:
         except Exception:  # noqa: BLE001
             return "invalid"
     return "invalid"
-
-
-
 
 
 def _remove_relation(args: dict) -> dict:

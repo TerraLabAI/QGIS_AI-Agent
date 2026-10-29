@@ -2482,6 +2482,70 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>changed</source>
             <translation>geändert</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Datei {path} prüfen</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Drucklayout[ {layout_name}][, Seite {page}] prüfen</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Einen Teil der Karte ansehen</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Die Karte so ansehen, wie sie angezeigt wird</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>{layer_names} Layer auf der Karte ansehen</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>{layer_names} auf der Karte ansehen</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Senden fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut oder schreibe uns an {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Beispiel: Der Puffer wurde in Grad statt in Metern berechnet.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Melde einen Fehler, schlage eine Idee vor oder teile mit, was gut funktioniert.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Senden</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback senden</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Wird gesendet...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Melde dich an, um Feedback von hier zu senden, oder schreibe uns an {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Wir erhalten deine Nachricht, diese Unterhaltung und technische Angaben (Plugin- und QGIS-Version, System, aktuelle Logs). Niemals deine Passwörter oder den Inhalt deiner Dateien.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Du hast in kurzer Zeit mehrere Meldungen gesendet. Versuche es in ein paar Minuten erneut.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Dieser Bericht enthält deine Beschreibung und die aktuelle Unterhaltung. Wir nutzen ihn, um Probleme zu beheben und AI Agent zu verbessern.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <translation>{size} wird heruntergeladen</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Warten auf {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Weniger anzeigen</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Ort wird gesucht</translation>
         </message>
@@ -3387,6 +3459,22 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Undo changes</source>
             <translation>Änderungen rückgängig machen</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Schlechte Antwort</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Gute Antwort</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Bericht erstellen</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Die Anfrage für einen HTML-Bericht zu dieser Analyse mit Karten und Diagrammen verfassen</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Ihre ungespeicherten Änderungen an {layer} konnten nicht gespeichert werden, daher wurde nichts wiederhergestellt. Speichern oder verwerfen Sie sie in QGIS und versuchen Sie es dann erneut.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer} konnte nicht kopiert werden, bevor die ungespeicherten Änderungen gespeichert wurden, daher wurde nichts wiederhergestellt. Speichern oder verwerfen Sie die Änderungen in QGIS und versuchen Sie es dann erneut.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <translation>Änderungen rückgängig machen?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Änderungen wiederherstellen?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>{n} Anfragen rückgängig machen?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Ihre manuellen Änderungen werden zuerst im Verlauf gespeichert.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Änderungen seit diesem Punkt werden zuerst im Kartenverlauf gespeichert.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Drawing the map</source>
             <translation>Karte wird gezeichnet</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Danke, dein Feedback wurde gesendet.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Erstelle einen HTML-Bericht zu dieser Analyse, mit Karten, Diagrammen und Methode.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Map history ({key})</source>
             <translation>Kartenverlauf ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback senden</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Meinen Tarif jetzt starten</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>Noch 1 kostenlose Aufgabe</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>Noch {n} kostenlose Aufgaben</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Kostenlose Testphase</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Feedback senden</translation>
         </message>
     </context>
     <context>
@@ -9857,6 +9977,72 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>ein temporärer Layer</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent arbeitet noch</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>In einer Datei speichern</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Projekt gespeichert</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Temporäre Layer nicht gespeichert</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>Der AI Agent hat Ihre Anfrage noch nicht abgeschlossen. QGIS beenden und die Anfrage abbrechen?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} temporäre(r) Layer ({names}) wurde(n) nicht auf der Festplatte gespeichert: Ihr Inhalt geht verloren, wenn das Projekt geschlossen wird.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Positionen der Beschriftungen nicht gespeichert</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>Der temporäre Ordner von QGIS wurde gelöscht, während das Projekt geöffnet war: Beschriftungen oder Diagramme, die seit dem letzten Speichern verschoben wurden, konnten nicht gespeichert werden. Die zuvor gespeicherten Positionen bleiben erhalten. Verschieben Sie sie erneut und speichern Sie dann.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent speichert noch Layer</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} Layer werden noch in das GeoPackage neben dem Projekt geschrieben. Wenn QGIS jetzt beendet wird, gehen sie verloren. Trotzdem beenden?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Senden fehlgeschlagen. Bitte versuche es erneut.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Senden</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Wird zusammen mit dieser Unterhaltung und Ihren letzten Protokollen gesendet, um Probleme zu beheben und AI Agent zu verbessern.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Erzähl uns mehr</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Danke für dein Feedback</translation>
         </message>
     </context>
 </TS>

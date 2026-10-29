@@ -72,8 +72,6 @@ class RetentionRow(QObject):
     def tr(self, text: str) -> str:  # noqa: D401
         return QCoreApplication.translate("SettingsDialog", text)
 
-
-
     def _label(self, days) -> str:
         return {0: self.tr("No copies (0 days)"), 30: self.tr("30 days"), 90: self.tr("90 days"),
                 180: self.tr("6 months"),
@@ -83,8 +81,6 @@ class RetentionRow(QObject):
     def _pro_note(self) -> str:
         return self.tr("How long your run records stay on our servers, for all TerraLab "
                        "plugins. Your chats stay on this computer.")
-
-
 
     def load(self) -> None:
         auth = _auth()
@@ -119,8 +115,6 @@ class RetentionRow(QObject):
             self._render()
         except RuntimeError:
             pass
-
-
 
     def _clear(self) -> None:
         while self._box.count():
@@ -188,8 +182,6 @@ class RetentionRow(QObject):
                 self._box.addWidget(button)
             self.row.set_note(error or self.tr("Free plan. Pro lets you choose 30 days to 1 year."))
         self._set_visible(True)
-
-
 
     def _on_pick(self, days) -> None:
         current = (self._data or {}).get("history_retention_days")

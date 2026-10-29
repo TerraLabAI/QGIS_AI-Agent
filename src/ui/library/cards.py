@@ -34,11 +34,8 @@ from . import common as C
 from .pictures import PictureView
 from .pressable import Pressable, labels_through
 
-
 _INSET = 0
-
 _ROW_PAD = 6
-
 
 
 _CAPTION_LINE = 135
@@ -162,7 +159,6 @@ class ExampleTile(PictureHover, Pressable):
         self._picture.set_focused(focused)
 
     def set_tile_width(self, width: int) -> None:
-
         width = max(1, int(width))
         self.setFixedWidth(width)
         self.setFixedHeight(tile_height(width))

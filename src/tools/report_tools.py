@@ -97,8 +97,6 @@ def register_report_tools(registry: ToolRegistry):
 
 
 
-
-
 def _print_layout(name, role: str):
 
     manager = QgsProject.instance().layoutManager()
@@ -353,8 +351,6 @@ def _create_report(args: dict) -> dict:
 
 
 
-
-
 def _parts(report) -> list:
 
     out = []
@@ -470,8 +466,6 @@ def report_summary(report) -> dict:
         out["first_pages"] = counted["preview"]
     out["note_hint"] = "report_pages_are_copies"
     return out
-
-
 
 
 

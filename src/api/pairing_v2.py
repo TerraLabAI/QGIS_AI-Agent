@@ -209,8 +209,6 @@ class PairingV2(QObject):
     def port(self) -> int | None:
         return self._port
 
-
-
     def begin(self) -> None:
         from ..core import report_bridge
 
@@ -241,8 +239,6 @@ class PairingV2(QObject):
         if self._port is None:
             self._show_fallback()
 
-
-
     def on_confirmed(self) -> None:
 
         if self._live and not self._fallback_shown and not self._fallback_timer.isActive():
@@ -253,8 +249,6 @@ class PairingV2(QObject):
             self._fallback_shown = True
             log("Sign-in v2: asking for the code shown in the browser")
             self.code_needed.emit()
-
-
 
     def _on_signed_in(self, socket, query: dict) -> None:
         from ..core import report_bridge
@@ -303,8 +297,6 @@ class PairingV2(QObject):
         report_bridge.write_http(socket, "200 OK",
                                  [("Content-Type", "text/html; charset=utf-8")] + _NO_STORE, _GO_BACK_PAGE)
 
-
-
     def submit_code(self, text: str) -> None:
         if not self._live or not self._code or self._typed_busy:
             return
@@ -338,8 +330,6 @@ class PairingV2(QObject):
         else:
             self._settle(status)
         self._settle_held()
-
-
 
     def _settle(self, status: object) -> None:
 

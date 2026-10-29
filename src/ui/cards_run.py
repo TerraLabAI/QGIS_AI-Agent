@@ -100,7 +100,6 @@ __all__ = [
 ]
 
 
-
 _STATUS_TITLE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BASE}px; font-weight: bold; color: {{colour}};"
     " background: transparent; border: none; }"
@@ -126,15 +125,6 @@ def _message_row(parent: QWidget, kind: str, text: str, title: bool = False) -> 
 
 
 
-
-
-
-
-
-
-
-
-
 _EDIT_MAX_LEN = 200
 _EDIT_VISIBLE_ROWS = 4
 
@@ -144,15 +134,12 @@ _EDIT_VISIBLE_ROWS = 4
 
 
 _CODE_COLLAPSE_LINES = 12
-
 _ADDRESSES_SHOWN = 8
 _ADDRESS_MAX_CHARS = 600
-
 _REASON_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 400; color: {INK_2};"
     " background: transparent; border: none; }"
 )
-
 _ADDRESS_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: {INSET};"
     f" border: 1px solid {LINE}; border-radius: {RADIUS_CONTROL}px; padding: 6px 8px; }}"
@@ -354,15 +341,11 @@ class PermissionCard(_Card, FoldMixin):
         self.decision: str | None = None
 
 
-
-
-
         self._rebuild_timer: QTimer | None = None
         self.setToolTip(self.tr("Needs your approval"))
         self._remember(tool_call_id, sentence, args, name, addresses)
         self._body = self._build_body()
         self._col.addWidget(self._body)
-
 
         self._decision_row = QWidget(self)
         line = QHBoxLayout(self._decision_row)
@@ -373,8 +356,6 @@ class PermissionCard(_Card, FoldMixin):
         line.addWidget(self._decision_line, 1)
         self._decision_row.hide()
         self._col.addWidget(self._decision_row)
-
-
 
     def _remember(self, tool_call_id: str, sentence: str, args, name: str, addresses) -> None:
 
@@ -491,7 +472,6 @@ class PermissionCard(_Card, FoldMixin):
             self.addresses.extend(u for u in call["addresses"] if u not in self.addresses)
         self.args = first["args"]
 
-
         self._body = QWidget(self)
         body = QVBoxLayout(self._body)
         body.setContentsMargins(0, 0, 0, 0)
@@ -512,7 +492,6 @@ class PermissionCard(_Card, FoldMixin):
             line.setStyleSheet(_REASON_QSS)
             body.addWidget(line)
         if grouped and len({c["sentence"] for c in self._calls}) > 1:
-
             for call in self._calls:
                 line = ChatLabel("· " + call["sentence"], self._body, wrap=True, selectable=True)
                 line.setObjectName("permissionCallLine")
@@ -574,8 +553,6 @@ class PermissionCard(_Card, FoldMixin):
         body.addWidget(footer)
         return self._body
 
-
-
     def _build_address_section(self, link_in_footer: bool = False) -> QWidget:
 
 
@@ -591,18 +568,23 @@ class PermissionCard(_Card, FoldMixin):
             if name not in hosts:
                 hosts.append(name)
         if _writes_page(self._calls[0]["name"]):
-
             reason = self.tr("The page links to {hosts}, a site the agent does not know.").format(
                 hosts=", ".join(hosts[:3])) if len(hosts) == 1 else self.tr(
                 "The page links to sites the agent does not know: {hosts}.").format(hosts=", ".join(hosts[:3]))
-        elif len(hosts) == 1:
-            reason = self.tr("This data comes from a site outside the sources the agent knows.")
         else:
-            reason = self.tr("This data comes from sites outside the sources the agent knows.")
-        line = ChatLabel(reason, host, wrap=True)
-        line.setObjectName("permissionReason")
-        line.setStyleSheet(_REASON_QSS)
-        col.addWidget(line)
+            reason = ""
+        if reason:
+            line = ChatLabel(reason, host, wrap=True)
+            line.setObjectName("permissionReason")
+            line.setStyleSheet(_REASON_QSS)
+            col.addWidget(line)
+        else:
+            for name in hosts[:3]:
+                first = next((u for u in self.addresses if "://" in u and urlsplit(u).hostname == name), "")
+                site = self._button(name, _BTN_QUIET_LINK, lambda _c=False, u=first: self._open_site(u))
+                site.setObjectName("permissionSite")
+                site.setEnabled(bool(first))
+                col.addWidget(site, 0, Qt.AlignmentFlag.AlignLeft)
         self._address_well = ChatLabel("\n".join(hosts + ["", *self.addresses]), host,
                                        wrap=True, selectable=True)
         self._address_well.setObjectName("permissionAddress")
@@ -618,6 +600,11 @@ class PermissionCard(_Card, FoldMixin):
         col.addWidget(self._address_well)
         return host
 
+    def _open_site(self, url: str) -> None:
+        from .external_links import open_external_url
+
+        open_external_url(url, parent=self.window())
+
     def _address_link_text(self, showing: bool) -> str:
         if showing:
             return self.tr("Hide the address") if len(self.addresses) == 1 else \
@@ -629,8 +616,6 @@ class PermissionCard(_Card, FoldMixin):
         showing = not self._address_well.isVisible()
         self._address_well.setVisible(showing)
         self._address_btn.setText(self._address_link_text(showing))
-
-
 
     def _build_code_section(self, code: str, language: str) -> QWidget:
 
@@ -657,10 +642,8 @@ class PermissionCard(_Card, FoldMixin):
         self._code_open_btn = self._button(self._code_link_text(False), _BTN_QUIET_LINK,
                                            self._toggle_code_open)
         self._code_open_btn.setObjectName("permissionShowCode")
-
         col.addWidget(self.code_block)
         self.code_block.set_visible_lines(_CODE_COLLAPSE_LINES)
-
         self._code_host = host
         host.hide()
 
@@ -702,8 +685,6 @@ class PermissionCard(_Card, FoldMixin):
             self.code_block.set_visible_lines(_CODE_COLLAPSE_LINES)
             self._code_toggle_btn.setText(
                 self.tr("Show all {n} lines").format(n=self._code_lines))
-
-
 
     def _toggle_form(self) -> None:
 
@@ -1043,7 +1024,6 @@ class ErrorCard(_Card):
 
 
 
-
         if new_chat:
             pass
         elif self.code == "PLUGIN_UPDATE_REQUIRED":
@@ -1080,8 +1060,8 @@ class ErrorCard(_Card):
 
     def _on_report(self) -> None:
         try:
-            from .error_report_dialog import show_error_report
-            show_error_report(self, f"{self.message} {self.more}".strip(), self.run_id)
+            from .feedback_dialog import show_feedback
+            show_feedback(self, f"{self.message} {self.more}".strip(), self.run_id, entry="error_card")
         except Exception:  # noqa: BLE001
             return
 

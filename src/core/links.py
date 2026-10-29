@@ -74,7 +74,6 @@ def host_of(url) -> str:
 
 
 
-
 OPEN_DATA_HOST = "data.terra-lab.ai"
 OPEN_DATA_NAME = "TerraLab Open Data"
 
@@ -444,8 +443,6 @@ def _portal_page(parts, host: str, segments: list) -> Resolved | None:
                         "A Socrata dataset page: the data is served as GeoJSON, or as CSV when it has no "
                         "geometry.", listing="socrata", optional=True)
     return None
-
-
 
 
 _MAX_FILES = 30

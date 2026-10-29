@@ -164,9 +164,6 @@ def register_hub_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def page_url(type_key: str, name: str) -> str:
 
     section = TYPES.get(type_key, ("styles", IMPORT))[0]
@@ -296,9 +293,6 @@ def _search_qgis_hub(args: dict) -> dict:
     if how:
         out["how_to_use"] = how
     return out
-
-
-
 
 
 def _import_qgis_hub_resource(args: dict) -> dict:
@@ -718,9 +712,6 @@ def _refused(label: str, type_key: str, found: list) -> dict:
     }
 
 
-
-
-
 def layer_sources(data: bytes) -> list:
 
     root = ET.fromstring(data)  # nosec B314
@@ -888,9 +879,6 @@ def _import_layer_definition(data: bytes, label: str, uuid: str, args: dict, arc
     if broken:
         out["warning"] = coded_fact(hint="hub_layers_unopened", layers=broken)
     return out
-
-
-
 
 
 def _copy_bounded(src, dst, budget: int) -> int:

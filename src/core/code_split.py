@@ -83,7 +83,6 @@ LIVE_ATTRS = frozenset({
 
 
 
-
 _FILE_WRITE_ATTRS = frozenset({"move", "rename", "replace", "remove", "unlink", "rmdir", "removedirs", "rmtree",
                                "truncate", "link", "symlink", "chmod"})
 
@@ -96,7 +95,6 @@ _FILE_WRITE_ATTRS = frozenset({"move", "rename", "replace", "remove", "unlink", 
 
 _PATH_WRITE_ATTRS = frozenset({"touch", "symlink_to", "hardlink_to",
                                "extract", "extractall", "writestr", "mkdtemp"})
-
 _QGIS_MODULES = ("qgis", "PyQt5", "PyQt6", "sip")
 _PROJECT_WRITE_ATTRS = frozenset({"write", "read", "clear", "removeAllMapLayers"})
 
@@ -107,7 +105,6 @@ class _LiveFinder(ast.NodeVisitor):
     def __init__(self, changing=None, free=frozenset()) -> None:
         self.reason = ""
         self._changing = changing or ()
-
         self._free = free
         self._names, self._modules, self._attrs = _live_tables()
 
@@ -549,9 +546,6 @@ def _scope_locals(node: ast.AST) -> set[str]:
 
 
 class _LayersFinder(ast.NodeVisitor):
-
-
-
 
 
 

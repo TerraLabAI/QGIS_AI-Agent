@@ -30,7 +30,6 @@ from qgis.PyQt.QtGui import (
 from . import lucide
 from .font_scale import widget_pixel_ratio
 
-
 BOX = 20.0
 
 _ICON_CACHE: dict = {}
@@ -127,8 +126,6 @@ def _pen(color: QColor, width: float = 1.8) -> QPen:
     return pen
 
 
-
-
 def _draw_send(p: QPainter, c: QColor) -> None:
 
     p.setPen(_pen(c, 2.2))
@@ -175,13 +172,11 @@ def _draw_chevron_down(p: QPainter, c: QColor) -> None:
 
 
 def _draw_chevron_up(p: QPainter, c: QColor) -> None:
-
     p.setPen(_pen(c, 1.8))
     p.drawPolyline(QPolygonF([QPointF(5.5, 12.5), QPointF(10, 8), QPointF(14.5, 12.5)]))
 
 
 def _draw_chevron_right(p: QPainter, c: QColor) -> None:
-
     p.setPen(_pen(c, 1.8))
     p.drawPolyline(QPolygonF([QPointF(8, 5.5), QPointF(12.5, 10), QPointF(8, 14.5)]))
 
@@ -315,8 +310,6 @@ def _draw_gem(p: QPainter, c: QColor) -> None:
 
 
 def _draw_person(p: QPainter, c: QColor) -> None:
-
-
 
 
 
@@ -495,15 +488,12 @@ def _draw_arrow_up(p: QPainter, c: QColor) -> None:
 
 
 def _draw_arrow_down(p: QPainter, c: QColor) -> None:
-
     p.setPen(_pen(c, 2.0))
     p.drawLine(QPointF(10, 4.5), QPointF(10, 15))
     p.drawPolyline(QPolygonF([QPointF(5.5, 10.5), QPointF(10, 15), QPointF(14.5, 10.5)]))
 
 
 def _draw_gear(p: QPainter, c: QColor) -> None:
-
-
 
 
 
@@ -758,8 +748,6 @@ def _draw_code(p: QPainter, c: QColor) -> None:
 
 
 
-
-
 def _hexagon(cx: float, cy: float, r: float) -> QPolygonF:
 
     return QPolygonF([
@@ -781,7 +769,6 @@ def _dashed(c: QColor, width: float, dash: float = 2.4, gap: float = 1.9) -> QPe
 
 
 def _draw_buffer(p: QPainter, c: QColor) -> None:
-
     p.setPen(_dashed(c, 1.4))
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.drawEllipse(QPointF(10, 10), 7.6, 7.6)
@@ -1048,7 +1035,6 @@ def _draw_measure(p: QPainter, c: QColor) -> None:
 
 
 def _draw_centroid(p: QPainter, c: QColor) -> None:
-
     p.setPen(_pen(c, 1.5))
     p.setBrush(Qt.BrushStyle.NoBrush)
     p.drawPolygon(QPolygonF([
@@ -1070,7 +1056,6 @@ def _draw_points(p: QPainter, c: QColor) -> None:
 
 
 def _draw_polygon(p: QPainter, c: QColor) -> None:
-
     points = [QPointF(4.0, 7.2), QPointF(10.0, 3.2), QPointF(16.2, 8.4),
               QPointF(13.6, 16.2), QPointF(5.0, 14.4)]
     p.setPen(_pen(c, 1.5))
@@ -1083,7 +1068,6 @@ def _draw_polygon(p: QPainter, c: QColor) -> None:
 
 
 def _draw_merge(p: QPainter, c: QColor) -> None:
-
     p.setPen(_pen(c, 1.6))
     p.setBrush(Qt.BrushStyle.NoBrush)
     top = QPainterPath()
@@ -1256,7 +1240,6 @@ _GLYPHS = {
     "redo": _draw_redo,
     "gear": _draw_gear,
     "file": _draw_file,
-
     "file_pdf": _draw_file_pdf,
     "file_html": _draw_file_html,
     "file_table": _draw_file_table,
@@ -1284,7 +1267,6 @@ _GLYPHS = {
     "person": _draw_person,
     "terminal": _draw_terminal,
     "code": _draw_code,
-
     "buffer": _draw_buffer,
     "clip": _draw_clip,
     "intersect": _draw_intersect,
@@ -1470,8 +1452,6 @@ def logo_pixmap(widget, size: int = 18) -> QPixmap:
 
 
 
-
-
     ratio = widget_pixel_ratio(widget)
     physical = max(1, int(round(size * ratio)))
     key = (physical, round(float(ratio), 3))
@@ -1501,8 +1481,6 @@ def logo_size(height: int) -> QSize:
 
 def logo_icon(widget, size: int = 18) -> QIcon:
     return QIcon(logo_pixmap(widget, size))
-
-
 
 
 def _draw_float_window(p: QPainter, c: QColor) -> None:

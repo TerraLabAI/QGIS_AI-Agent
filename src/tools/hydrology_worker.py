@@ -70,8 +70,6 @@ from .hydrology_terrain import (
 
 
 
-
-
 _MIN_ROUTED_SIDE = 200
 
 
@@ -148,7 +146,7 @@ def _delineate(args: dict, checkpoint) -> dict:
                           hint="hydrology_radius_over_limit", radius_km=radius_km, max_radius_km=_max_radius_km())
     snap_m = float(args.get("snap_m") if args.get("snap_m") is not None else _DEFAULT_SNAP_M)
 
-    dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
+    dataset = _open_dem(gdal, facts["source"])
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
                           hint="hydrology_gdal_cannot_open", dem=facts["name"])
@@ -357,7 +355,7 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     facts = run_on_main_thread(_dem_facts, str(args["dem"]))
     if "_error" in facts:
         return facts
-    dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
+    dataset = _open_dem(gdal, facts["source"])
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
                           hint="hydrology_gdal_cannot_open", variant="streams", dem=facts["name"])
@@ -762,8 +760,6 @@ def _cut_warning(radius_km: float, cell_m: float, max_cells: int) -> tuple:
                     coarser_m=coarser, max_radius_km=_max_radius_km())
 
 
-
-
 class _Stopped(Exception):
 
 
@@ -852,6 +848,15 @@ def _clock_refusal(progress: dict, elapsed: float, budget: float) -> dict:
     return tool_error(message, "INVALID_ARGS", hint="hydrology_clock_exceeded", variant="box", bbox=json.dumps(box))
 
 
+def _open_dem(gdal, source: str):
+
+
+    try:
+        return gdal.Open(source, gdal.GA_ReadOnly)
+    except RuntimeError:
+        return None
+
+
 def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> dict:
     wgs84 = _srs(osr, epsg=4326)
 
@@ -889,7 +894,7 @@ def _drainage(args, progress, checkpoint, stop_reason, np, gdal, ogr, osr) -> di
         stretch = sample_stretch(facts["source"])
         if stretch:
             dem_style = run_on_main_thread(_style_dem, facts["layer_id"], stretch) or dem_style
-    dataset = gdal.Open(facts["source"], gdal.GA_ReadOnly)
+    dataset = _open_dem(gdal, facts["source"])
     if dataset is None:
         return tool_error(f"GDAL could not open {facts['name']} ({facts['source'][:80]}).", "EXECUTION_FAILED",
                           hint="hydrology_gdal_cannot_open", variant="chain", dem=facts["name"])
@@ -1328,7 +1333,6 @@ def _accumulation_raster(accumulation, keep, geotransform, wkt: str, cell_km2: f
                           hint="hydrology_write_failed", what="flow accumulation")
     return {"path": path, "folder": folder, "name": name, "low": 0.0, "high": max(threshold_km2, 2.0 * cell_km2),
             "max_km2": round(float(accumulation[keep].max()) * cell_km2, 3)}
-
 
 
 

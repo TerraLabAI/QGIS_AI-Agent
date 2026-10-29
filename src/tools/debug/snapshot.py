@@ -22,7 +22,6 @@ def _scope_roots(plugin_name: str):
     roots = adapter.snapshot_roots()
     if roots:
         return roots, adapter.display_name()
-
     return top_level_roots(), adapter.display_name()
 
 

@@ -42,17 +42,12 @@ from .style import (
     qcolor,
 )
 
-
 GLYPH_PX = 13
 GLYPH_SLOT_PX = 16
-
 ROW_MIN_PX = 28
-
-
 _ROW_PAD_X = 6
 _ROW_PAD_Y = 2
 _ROW_GAP = SPACE_CARD + 2
-
 _RISE_PX = 8
 
 _LABEL_QSS = scale_qss_font_px(

@@ -112,5 +112,4 @@ def ask_delete_account(email: str, parent=None) -> str:
     finally:
 
 
-
         dialog.deleteLater()

@@ -1049,7 +1049,6 @@ def _wfs_hits_result(final_url: str, attrib: dict) -> dict:
 
 
 
-
     matched = attrib.get("numberMatched") or attrib.get("numberOfFeatures")
     returned = attrib.get("numberReturned")
     out = {

@@ -342,9 +342,6 @@ def register_harvest_layers_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _layer(name: str):
     layer = resolve_layer(name)
     if layer is None:
@@ -383,9 +380,6 @@ def _raster_option(args: dict, name: str):
         return constant, None
     return None, tool_error(f"Unknown {name}: {word!r}.", "INVALID_ARGS",
                               hint="raster_option_values", option=name, values=sorted(choices))
-
-
-
 
 
 def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tuple:
@@ -494,7 +488,6 @@ def _limits_plan(args: dict) -> tuple:
                                 hint="raster_min_max_unknown", min_max=str(limits))
     if args.get("min_value") is not None or args.get("max_value") is not None:
         if limits == "min_max" and not cut_given:
-
 
 
             return {"limits": "typed", "cut": None}, None
@@ -661,9 +654,6 @@ def _style_raster(layer, args: dict) -> dict:
     alpha = _alpha_band(layer, provider, band_count)
     if alpha and alpha != applied.get("band") and hasattr(renderer, "setAlphaBand"):
         renderer.setAlphaBand(alpha)
-
-
-
 
 
     if args.get("opacity") is not None:
@@ -877,9 +867,6 @@ def _long_tail(layer, band: int, lo: float, hi: float, notes: dict) -> tuple:
     return cut["min"], cut["max"]
 
 
-
-
-
 def _apply_style_qml(args: dict) -> dict:
     layer, error = _layer(args["layer_name"])
     if error:
@@ -932,7 +919,6 @@ def _apply_style_qml(args: dict) -> dict:
         out["classification_field"] = classification_field
 
 
-
     if message and message.strip() and "loaded" not in message.lower():
         out["partial"] = message.strip()
     return out
@@ -956,9 +942,6 @@ def _save_style_qml(args: dict) -> dict:
         "file_size": os.path.getsize(path) if os.path.exists(path) else None,
         "size_units": "bytes",
     }
-
-
-
 
 
 def _to_bool(value) -> bool:
@@ -1229,9 +1212,6 @@ def _set_layer_crs(args: dict) -> dict:
     out["note"] = CodedText("Declaration changed only; the coordinates were not reprojected.",
                             "crs_declaration_only")
     return out
-
-
-
 
 
 def _delete_field(args: dict) -> dict:
@@ -1551,9 +1531,6 @@ def _add_table_join(args: dict) -> dict:
         result["target_field_type"] = target_type
         result["join_field_type"] = join_type
     return result
-
-
-
 
 
 _MAX_ABSTRACT_CHARS = 2000

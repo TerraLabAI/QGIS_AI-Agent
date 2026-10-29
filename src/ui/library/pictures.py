@@ -92,7 +92,6 @@ _FULL_KEPT = 6
 
 
 _PARALLEL = 6
-
 _PREFETCH = 1000
 
 
@@ -162,13 +161,10 @@ class PictureStore(QObject):
         self._batch_timer.setSingleShot(True)
         self._batch_timer.setInterval(0)
         self._batch_timer.timeout.connect(self._start_batch)
-
         self._pump_timer = QTimer(self)
         self._pump_timer.setSingleShot(True)
         self._pump_timer.setInterval(0)
         self._pump_timer.timeout.connect(self._pump)
-
-
 
     def failed(self, url: str) -> bool:
 
@@ -222,8 +218,6 @@ class PictureStore(QObject):
         self._files_only.add(url)
         self._fetch(url, 0)
         return ""
-
-
 
     def _fetch(self, url: str, priority: int = 0) -> None:
         if url in self._fetching:
@@ -304,8 +298,6 @@ class PictureStore(QObject):
                     self._queue.append((0, url, full))
             self._batch_timer.start()
         self._pump_timer.start()
-
-
 
     def _start_batch(self) -> None:
         queued, self._queue = sorted(self._queue, key=lambda item: item[0]), []
@@ -402,9 +394,6 @@ def prefetch_popular(cases, groups) -> None:
         log_warning(f"Example pictures not prefetched: {exc}")
 
 
-
-
-
 def screen_priority(widget: QWidget) -> int:
 
 
@@ -451,9 +440,6 @@ def watch_scroll(owner: QWidget, *bars) -> None:
         bar.valueChanged.connect(timer.start)
 
 
-
-
-
 class Tween:
 
 
@@ -481,14 +467,10 @@ class Tween:
         return self._anim.state() == QAbstractAnimation.State.Running
 
 
-
-
-
 def rounded_path(rect: QRectF, radius: float) -> QPainterPath:
     path = QPainterPath()
     path.addRoundedRect(rect, radius, radius)
     return path
-
 
 
 _ZOOM = 0.03
@@ -559,8 +541,6 @@ class PictureView(QWidget):
         if self._urls():
             store().ready.connect(self._on_ready)
 
-
-
     def _urls(self) -> list:
         own = list(self._pair) if self._pair else [self._url]
         return [u for u in own + list(self._fallback) if u]
@@ -609,8 +589,6 @@ class PictureView(QWidget):
             return not self.has_picture() and not (self._failed(0) and self._failed(1))
         return bool(self._url) and not store().failed(self._url) and not self.has_picture()
 
-
-
     def hasHeightForWidth(self) -> bool:  # noqa: N802
         return True
 
@@ -619,8 +597,6 @@ class PictureView(QWidget):
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(320, 180)
-
-
 
     def set_shade(self, amount: float) -> None:
         self._shade = max(0.0, min(1.0, float(amount)))
@@ -672,8 +648,6 @@ class PictureView(QWidget):
         self._fade = max(0.0, min(1.0, float(value)))
         self.update()
 
-
-
     def request(self) -> None:
 
         if not self.isVisible():
@@ -696,7 +670,6 @@ class PictureView(QWidget):
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
         if self._urls():
-
             QTimer.singleShot(0, self.request)
 
     def hideEvent(self, event):  # noqa: N802
@@ -709,8 +682,6 @@ class PictureView(QWidget):
     def resizeEvent(self, event):  # noqa: N802
         self._scaled = {}
         super().resizeEvent(event)
-
-
 
     def paintEvent(self, _event):  # noqa: N802
         from . import common
@@ -866,8 +837,6 @@ class PictureView(QWidget):
         painter.drawPixmap(QPointF((self.width() - width) / 2, (self.height() - height) / 2), pixmap)
 
 
-
-
 def is_flag(row: dict) -> bool:
 
     row = row or {}
@@ -944,7 +913,6 @@ def source_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0):
 
 _MIN_COVER = 0.30
 _MIN_CONTRAST = 1.6
-
 _MIN_INK_SHARE = 0.25
 
 
@@ -1039,7 +1007,6 @@ def square_mark_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0,
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         painter.fillPath(shape, QColor(C.T.mark_bg))
         if flag:
-
             clip = QPainterPath()
             clip.addRoundedRect(QRectF(0, 0, side, side), radius, radius)
             _draw_cover(painter, image, QRectF(0, 0, side, side), clip, ratio)

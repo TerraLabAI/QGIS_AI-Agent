@@ -75,9 +75,6 @@ def enum_member(owner: Any, scope: str, member: str, default: Any = _MISSING) ->
 
 
 
-
-
-
 _FIELD_TYPE_NAMES = {
     "String": "QString",
     "Int": "Int",

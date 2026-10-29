@@ -13,14 +13,10 @@
 
 
 
-
-
 from __future__ import annotations
 
 import re as _re
 import urllib.parse
-
-
 
 
 
@@ -61,8 +57,6 @@ def crs_problem(crs: str) -> str | None:
         return (f"{crs!r} is not a CRS name. An authority and code work, "
                 f"e.g. EPSG:4326 or IGNF:LAMB93.")
     return None
-
-
 
 
 

@@ -2482,6 +2482,70 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>changed</source>
             <translation>modifiée</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Vérifier le fichier {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Vérifier la mise en page[ {layout_name}][, page {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Regarder une partie de la carte</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Regarder la carte comme vous la voyez</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Regarder les couches {layer_names} sur la carte</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Regarder {layer_names} sur la carte</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Envoi impossible. Vérifiez votre connexion et réessayez, ou écrivez-nous à {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Exemple : le tampon est sorti en degrés au lieu de mètres.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Signalez un bug, proposez une idée ou dites-nous ce qui fonctionne bien.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Envoyer</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Envoyer un avis</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Envoi...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Connectez-vous pour envoyer un avis d'ici, ou écrivez-nous à {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Nous recevrons votre message, cette conversation et des détails techniques (versions du plugin et de QGIS, système, journaux récents). Jamais vos mots de passe ni le contenu de vos fichiers.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Vous avez envoyé plusieurs signalements en peu de temps. Réessayez dans quelques minutes.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Ce rapport comprend votre description et la conversation en cours. Nous l’utilisons pour corriger les problèmes et améliorer AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <translation>Téléchargement de {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>En attente de {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Afficher moins</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Recherche du lieu</translation>
         </message>
@@ -3387,6 +3459,22 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Undo changes</source>
             <translation>Annuler les modifications</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Mauvaise réponse</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Bonne réponse</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Faire un rapport</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Rédiger la demande d'un rapport HTML de cette analyse, avec ses cartes et ses graphiques</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Vos modifications non enregistrées sur {layer} n’ont pas pu être enregistrées, donc rien n’a été restauré. Enregistrez-les ou abandonnez-les dans QGIS, puis réessayez.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer} n’a pas pu être copiée avant l’enregistrement de ses modifications non enregistrées, donc rien n’a été restauré. Enregistrez ou abandonnez les modifications dans QGIS, puis réessayez.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <translation>Annuler les modifications ?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Rétablir les modifications ?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>Annuler {n} demandes ?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Vos modifications manuelles sont d'abord enregistrées dans l'historique.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Les modifications faites depuis ce point sont d'abord enregistrées dans l'historique de la carte.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Drawing the map</source>
             <translation>Dessin de la carte</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Merci, votre avis a été envoyé.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Fais un rapport HTML de cette analyse, avec ses cartes, ses graphiques et sa méthode.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Map history ({key})</source>
             <translation>Historique de la carte ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Envoyer un avis</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Cliquez pour ouvrir sa page.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Démarrer mon abonnement maintenant</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>1 tâche gratuite restante</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>{n} tâches gratuites restantes</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Essai gratuit</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Envoyer un avis</translation>
         </message>
     </context>
     <context>
@@ -9865,6 +9985,72 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>une couche temporaire</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent est toujours en cours de traitement</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Les conserver dans un fichier</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Projet enregistré</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Couches temporaires non conservées</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>L'agent IA n'a pas terminé votre demande. Quitter QGIS et l'arrêter ?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} couche(s) temporaire(s) ({names}) ne sont pas enregistrées sur le disque : leur contenu sera perdu à la fermeture du projet.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Positions des étiquettes non enregistrées</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>Le dossier temporaire de QGIS a été supprimé pendant que le projet était ouvert : les étiquettes ou diagrammes déplacés depuis le dernier enregistrement n'ont pas pu être enregistrés. Les positions enregistrées avant sont conservées. Déplacez-les à nouveau, puis enregistrez.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent enregistre encore des couches</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} couche(s) sont encore en cours d'écriture dans le GeoPackage à côté du projet. Si QGIS se ferme maintenant, elles seront perdues. Quitter quand même ?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Envoi impossible. Réessayez.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Envoyer</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Envoyé avec cette conversation et vos journaux récents, pour corriger les problèmes et améliorer AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Dites-nous-en plus</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Merci pour votre avis</translation>
         </message>
     </context>
 </TS>

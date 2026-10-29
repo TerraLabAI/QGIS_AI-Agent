@@ -63,7 +63,6 @@ class RailRow(Pressable):
         row.setContentsMargins(C.px(_ROW_PAD) + indent, 0, C.px(_ROW_PAD), 0)
         row.setSpacing(C.px(_ROW_PAD))
         if badge is not None:
-
             glyph = badge[0] if has_glyph(badge[0]) else "layers"
         self._glyph_name = glyph
         self._glyph = bool(glyph)
@@ -151,7 +150,6 @@ class LibraryRail(QFrame):
         key, _glyph, text = place
         self._places: list = [key]
         self._names = {key: text}
-
         self._groups: dict = {key: []}
         self._owner: dict = {}
         self._active = key
@@ -199,7 +197,6 @@ class LibraryRail(QFrame):
                 row.setParent(None)
                 row.deleteLater()
         self._groups[place] = []
-
         at = self._first_group + sum(len(self._groups[p]) for p in self._places[
             :self._places.index(place)])
         for offset, (key, text) in enumerate(groups):
@@ -225,7 +222,6 @@ class LibraryRail(QFrame):
             self._show_active()
 
     def place(self) -> str:
-
         return self._active
 
     def _show_active(self) -> None:

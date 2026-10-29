@@ -190,8 +190,6 @@ class AiEditAccess:
         self._overlay_deadline = 0.0
         self._overlay_idle_ticks = 0
 
-
-
     def instance(self) -> tuple[str | None, Any]:
         return _find_plugin()
 
@@ -207,8 +205,6 @@ class AiEditAccess:
     def _mcp_api(self, inst):
 
         return getattr(inst, "mcp_api", None) if inst is not None else None
-
-
 
     def signed_in(self, inst) -> bool:
         auth = self.auth(inst)
@@ -253,8 +249,6 @@ class AiEditAccess:
             out["usage"] = usage
         return out
 
-
-
     def presets(self) -> dict:
 
         key, inst = _find_plugin()
@@ -291,8 +285,6 @@ class AiEditAccess:
             return tool_error(f"Failed to read presets: {err}", "EXECUTION_FAILED")
         return {"categories": categories, "catalog_loaded": catalog is not None}
 
-
-
     def credits(self) -> dict:
 
         key, inst = _find_plugin()
@@ -313,8 +305,6 @@ class AiEditAccess:
             return _whitelist_usage(auth.get_usage_info())
         except Exception as err:
             return tool_error(f"Failed to read credits: {err}", "EXECUTION_FAILED")
-
-
 
     def resolutions(self) -> dict:
 
@@ -344,8 +334,6 @@ class AiEditAccess:
             "current": current,
             "is_free_tier": is_free,
         }
-
-
 
     def is_busy(self, inst) -> bool:
 
@@ -731,8 +719,6 @@ class AiEditAccess:
             else:
                 self.clear_zone_overlay(inst)
 
-
-
     def clear_zone_overlay(self, inst=None) -> dict:
 
 
@@ -1093,8 +1079,6 @@ class AiEditAccess:
                     return found
         return None
 
-
-
     def _aiedit_submodule(self, inst, dotted: str):
 
 
@@ -1102,8 +1086,6 @@ class AiEditAccess:
 
         base = type(inst).__module__.rsplit(".", 2)[0]
         return importlib.import_module(base + "." + dotted)
-
-
 
     def arm_template(self, inst, template_id: str) -> dict:
 
@@ -1135,8 +1117,6 @@ class AiEditAccess:
         except Exception:  # nosec B110
             armed = None
         return {"template_id": template_id, "template_name": name, "armed": bool(armed)}
-
-
 
     def cancel(self, exit_session: bool = False) -> dict:
 
@@ -1172,8 +1152,6 @@ class AiEditAccess:
             "was_generating": bool(was_busy),
             "in_flight": self.is_busy(inst),
         }
-
-
 
     def _version_strip(self, inst):
         dock = self.dock(inst)
@@ -1261,8 +1239,6 @@ class AiEditAccess:
             "versions": listing.get("versions"),
         }
 
-
-
     def _newest_result_raster(self, project):
 
         from qgis.core import QgsRasterLayer
@@ -1339,12 +1315,10 @@ class AiEditAccess:
         try:
             layer = vbc(raster, rgb, layer_name=out_name, class_label=class_label, **kwargs)
         except Exception as err:
-
             msg = getattr(err, "message", None) or str(err)
             return tool_error(f"Vectorize failed: {msg}", hint="ai_edit_vectorize_failed")
         if layer is None or not layer.isValid():
             return tool_error("Vectorize produced no valid layer.", "EXECUTION_FAILED")
-
 
         try:
             QgsProject.instance().addMapLayer(layer, False)
@@ -1362,8 +1336,6 @@ class AiEditAccess:
             "source_raster": raster.name(),
             "target_rgb": list(rgb),
         }
-
-
 
     def _load_preset(self, inst, api, template_id: str) -> dict:
 
@@ -1549,7 +1521,6 @@ class AiEditAccess:
             process_events()
             return {"ok": True, "action": "done",
                     "note": "Marks composited into the zone reference; dock returned to the prompt state."}
-
 
         if not geometry_wkt:
             return tool_error("geometry_wkt is required for 'draw' (LINESTRING/MULTILINESTRING/POLYGON in canvas CRS).",

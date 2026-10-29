@@ -91,9 +91,6 @@ _NEIGHBOURS = ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1,
 _TRIANGLE = struct.Struct("<12fH")
 
 
-
-
-
 def _array_code(size: int, is_float: bool, is_signed: bool) -> str:
 
     if is_float:
@@ -261,9 +258,6 @@ def _unit_name(crs) -> str:
         return "degrees" if getattr(crs, "isGeographic", lambda: False)() else ""
 
 
-
-
-
 def _fill_holes(values: list, nx: int, ny: int, nodata: list) -> tuple[int, int]:
 
 
@@ -308,9 +302,6 @@ def _fill_holes(values: list, nx: int, ny: int, nodata: list) -> tuple[int, int]
         filled += len(wave)
         frontier = list(wave)
     return len(missing_idx), filled
-
-
-
 
 
 def _write_obj(handle, values, nx, ny, dx, dy, z_factor, comments, places: int) -> tuple[int, int]:
@@ -428,9 +419,6 @@ def _write_stl(handle, values, nx, ny, dx, dy, z_factor, z_base, title: str) -> 
     if chunk:
         handle.write(b"".join(chunk))
     return written
-
-
-
 
 
 def _number(args: dict, key: str, default: float, low: float, high: float):

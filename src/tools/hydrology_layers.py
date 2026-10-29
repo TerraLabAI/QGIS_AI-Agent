@@ -31,7 +31,6 @@ from ..core.tool_registry import tool_error
 from .layer_lookup import _find_layer, _layer_not_found_error
 
 
-
 def _dem_facts(dem_name: str) -> dict:
     layer = _find_layer(dem_name)
     if layer is None:

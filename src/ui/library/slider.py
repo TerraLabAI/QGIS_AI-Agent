@@ -30,7 +30,6 @@ from .pictures import PictureView, Tween
 
 _STEP, _STEP_LARGE = 0.02, 0.10
 _SWEEP_MS = 1000
-
 _SWEEP_REACH = 0.14
 _KEYBOARD_REASONS = (Qt.FocusReason.TabFocusReason, Qt.FocusReason.BacktabFocusReason,
                      Qt.FocusReason.ShortcutFocusReason)
@@ -77,8 +76,6 @@ class SliderView(PictureView):
             button.clicked.connect(self.show_enlarged)
             self._enlarge = button
 
-
-
     def play_intro(self) -> None:
 
         self._intro_pending = self.is_pair()
@@ -107,8 +104,6 @@ class SliderView(PictureView):
     def hideEvent(self, event):  # noqa: N802
         self._sweep.stop()
         super().hideEvent(event)
-
-
 
     def enterEvent(self, event):  # noqa: N802
         self._cancel_sweep()
@@ -143,8 +138,6 @@ class SliderView(PictureView):
         self.follow(x)
         self._speak()
 
-
-
     def keyPressEvent(self, event):  # noqa: N802
         self._cancel_sweep()
         if not self.is_pair():
@@ -155,7 +148,6 @@ class SliderView(PictureView):
         target = {Qt.Key.Key_Left: self.pos - step, Qt.Key.Key_Right: self.pos + step,
                   Qt.Key.Key_Home: 0.0, Qt.Key.Key_End: 1.0}.get(key)
         if target is None:
-
             event.ignore()
             return
         self._set_pos(target)
@@ -177,8 +169,6 @@ class SliderView(PictureView):
     def _speak(self) -> None:
         self.setAccessibleDescription(tr("Divider at {n}%").format(n=round(self.pos * 100)))
 
-
-
     def paintEvent(self, event):  # noqa: N802
         super().paintEvent(event)
         if not (self.hasFocus() and self._keyboard):
@@ -199,8 +189,6 @@ class SliderView(PictureView):
             gap = C.px(10)
             self._enlarge.move(self.width() - self._enlarge.width() - gap, self.height()
                                - self._enlarge.height() - gap)
-
-
 
     def show_enlarged(self) -> None:
         window = self.window()

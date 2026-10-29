@@ -365,8 +365,6 @@ def _layer_from_geojson_str(geojson_str: str, layer_name: str, subdir: str = "os
 
 
 
-
-
 _USER_AGENT = net.user_agent()
 
 

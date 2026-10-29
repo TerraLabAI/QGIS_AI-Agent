@@ -183,9 +183,6 @@ def _call_of(call: dict) -> dict:
     return out
 
 
-
-
-
 def _cut(text: str, limit: int = RESULT_CHARS) -> str:
 
     text = text or ""

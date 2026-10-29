@@ -39,7 +39,6 @@ _LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 
 
-
 def profile_settings():
 
 
@@ -253,18 +252,12 @@ _device_hash_cache: str | None = None
 
 
 
-
-
-
 _ACCOUNT_DIR_LEN = 16
 _MOVED_ON_UPGRADE = ("threads", "snapshots", "traces", "idempotency.json")
 _account_tag_cache: str | None = None
 
 
 def reset_account_tag_cache() -> None:
-
-
-
 
 
 
@@ -316,7 +309,6 @@ def _adopt_legacy_state(folder: str) -> None:
 
 
 
-
     marker = os.path.join(folder, ".adopted")
     if os.path.exists(marker):
         return
@@ -358,7 +350,6 @@ _CHINESE_REGIONS = ("CN", "TW", "HK", "MO", "SG")
 
 
 def plugin_locale(tag: str) -> str:
-
 
 
 
@@ -420,7 +411,6 @@ class Settings:
             self._s.remove(self._key(name))
 
 
-
     @staticmethod
     def _key(name: str) -> str:
         return f"{GROUP}/{name}"
@@ -476,7 +466,6 @@ class Settings:
         self._set(f"plan_seen/{tag}", plan)
 
 
-
     @property
     def dock_visible(self) -> bool:
 
@@ -495,7 +484,6 @@ class Settings:
     @onboarded.setter
     def onboarded(self, value: bool) -> None:
         self._set("onboarded", "1" if value else "0")
-
 
 
     @property
@@ -535,14 +523,6 @@ class Settings:
     @website_url.setter
     def website_url(self, value: str) -> None:
         self._set("website_url", (value or "").strip().rstrip("/") or DEFAULT_WEBSITE_URL)
-
-
-
-
-
-
-
-
 
 
 
@@ -711,7 +691,6 @@ class Settings:
         self._set(name, value if value in allowed else allowed[0])
 
 
-
     @property
     def mode(self) -> str:
         return self._choice("mode")
@@ -724,7 +703,6 @@ class Settings:
 
     @property
     def effort(self) -> str:
-
 
 
 
@@ -818,8 +796,6 @@ class Settings:
 
 
 
-
-
         if Settings._stored_locale_dropped:
             return
         Settings._stored_locale_dropped = True
@@ -843,7 +819,6 @@ class Settings:
         except Exception:  # nosec B110
             pass
         return plugin_locale(QLocale.system().name() or "en")
-
 
 
     @property
@@ -895,7 +870,6 @@ class Settings:
         self._set("show_tool_details", "1" if value else "0")
 
 
-
     @property
     def question_policy(self) -> str:
         return self._choice("question_policy")
@@ -936,15 +910,11 @@ class Settings:
 
 
 
-
-
-
         return self._choice("send_shortcut")
 
     @send_shortcut.setter
     def send_shortcut(self, value: str) -> None:
         self._set_choice("send_shortcut", value)
-
 
 
     @property
@@ -1020,9 +990,6 @@ class Settings:
         self._set("memory_forgotten", json.dumps(list(texts or []), ensure_ascii=False))
 
 
-
-
-
     PREFERENCE_KEYS = (
         "mode", "approval", "effort", "effort_pro", "model_mode", "reply_language", "reply_style", "explain_runs",
         "show_tool_details",
@@ -1050,7 +1017,6 @@ class Settings:
             self._s.sync()
         except Exception:  # nosec B110
             pass
-
 
 
     @property
@@ -1098,15 +1064,6 @@ class Settings:
 
 
 
-
-
-
-
-
-
-
-
-
     def _allow_map(self) -> dict:
         raw = self._get("allow_project", "")
         if not raw:
@@ -1132,9 +1089,6 @@ class Settings:
 
     @staticmethod
     def _grant_key(project_path: str) -> str:
-
-
-
 
 
 
@@ -1174,7 +1128,6 @@ class Settings:
         self._set("allow_project", json.dumps(data))
 
 
-
     def _machine_seed(self) -> bytes:
 
 
@@ -1202,13 +1155,13 @@ class Settings:
             return None
         return text if text.encode("utf-8") == raw else None
 
+
     @property
     def device_hash(self) -> str:
         global _device_hash_cache
         if _device_hash_cache is None:
             _device_hash_cache = hashlib.sha256(self._machine_seed()).hexdigest()[:_DEVICE_HASH_LEN]
         return _device_hash_cache
-
 
 
     @staticmethod

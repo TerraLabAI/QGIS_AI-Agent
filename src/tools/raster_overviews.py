@@ -244,7 +244,6 @@ def prepare_raster_style(args: dict):
 
 
 
-
 _STATS_SAMPLE = 250_000
 _READY: dict = {}
 _ACTIVE: list = []

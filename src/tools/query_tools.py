@@ -62,18 +62,6 @@ STATS_CHUNK = 20_000
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 _SCAN_PERMITS = threading.BoundedSemaphore(1)
 
 
@@ -139,8 +127,6 @@ def _count_matching(layer, expression: str) -> tuple:
     request.setExpressionContext(context)
     try:
         columns = list(expr.referencedColumns())
-
-
 
 
 
@@ -264,15 +250,36 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     names = [f.name() for f in layer.fields()]
     fields_arg = args.get("fields")
     missing: list = []
+    columns: list = [(name, None) for name in names]
+    computed: dict = {}
+    not_parsed: dict = {}
     if isinstance(fields_arg, list) and fields_arg:
-        selected = [f for f in fields_arg if f in available]
-        if not selected:
+
+
+
+
+
+        columns = []
+        for item in fields_arg:
+            text = str(item)
+            if text in available:
+                columns.append((text, None))
+                continue
+            parsed = None if text.isidentifier() else QgsExpression(text)
+            if parsed is not None and parsed.hasParserError():
+                not_parsed[text] = parsed.parserErrorString()
+            elif parsed is not None and all(column == QgsFeatureRequest.ALL_ATTRIBUTES
+                                            or layer.fields().lookupField(column) >= 0
+                                            for column in parsed.referencedColumns()):
+                columns.append((text, parsed))
+                computed.update(_measurement(parsed, layer).get("measurement") or {})
+                continue
+            missing.append(text)
+        if not columns:
             return {**tool_error(f"None of the requested fields exist: {fields_arg}", "INVALID_ARGS"),
-                    "fields": names}
-
-
-        missing = [f for f in fields_arg if f not in available]
-        names = selected
+                    "fields": names, **({"not_parsed": not_parsed} if not_parsed else {})}
+        names = [name for name, parsed in columns if parsed is None]
+    expressions = [parsed for _name, parsed in columns if parsed is not None]
 
     request = QgsFeatureRequest()
     expression = args.get("expression")
@@ -320,7 +327,6 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
             QgsFeatureRequest.OrderByClause(order_by, not descending, False)
         ]))
 
-
     native_offset = hasattr(request, "setOffset")
     if native_offset:
         request.setOffset(offset)
@@ -328,7 +334,17 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     else:
         request.setLimit(offset + limit + 1)
 
+    if expressions:
+        from qgis.core import QgsExpressionContext, QgsExpressionContextUtils
+
+
+        plan_context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+        for column in expressions:
+            column.prepare(plan_context)
     plan = {"layer": layer, "layer_name": layer.name(), "names": names, "missing": missing,
+            "columns": columns, "computed": computed, "not_parsed": not_parsed,
+            "column_context": plan_context if expressions else None,
+            "geometry_columns": any(column.needsGeometry() for column in expressions), "eval_errors": {},
             "limit": limit, "offset": offset, "include_geometry": include_geometry,
             "native_offset": native_offset, "request": request, "expression": expression, "expr": expr,
             "all_fields": [f.name() for f in layer.fields()], "geometry_crs": crs_ref(layer.crs()),
@@ -338,10 +354,13 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
     if not for_worker:
         return plan
     needed = list(names)
-    needs_geometry = include_geometry
+    needs_geometry = include_geometry or plan["geometry_columns"]
+    for column in expressions:
+        referenced = list(column.referencedColumns())
+        needed = None if needed is None or QgsFeatureRequest.ALL_ATTRIBUTES in referenced else needed + referenced
     if expr is not None:
         columns = list(expr.referencedColumns())
-        needed = None if "*" in columns else needed + columns
+        needed = None if needed is None or "*" in columns else needed + columns
         needs_geometry = needs_geometry or expr.needsGeometry()
         plan["count_request"] = _count_request(layer, expression, request.expressionContext(), expr)
         swapped = _spatial_rule(expression, expr)[2] if not _is_remote_vector(layer) else None
@@ -394,11 +413,19 @@ def _page_rows(features, plan: dict, halted=None) -> tuple:
         if not plan["native_offset"] and i < plan["offset"]:
             continue
         row = {"_fid": feat.id()}
-        for name in plan["names"]:
+        context = plan["column_context"]
+        if context is not None:
+            context.setFeature(feat)
+        for name, expr in plan["columns"]:
+            if expr is None:
 
 
 
-            row[name] = json.loads(QgsJsonUtils.encodeValue(feat[name]))
+                row[name] = json.loads(QgsJsonUtils.encodeValue(feat[name]))
+                continue
+            row[name] = _jsonable_value(expr.evaluate(context))
+            if expr.hasEvalError():
+                plan["eval_errors"].setdefault(name, expr.evalErrorString())
         if plan["include_geometry"]:
             geom = feat.geometry()
             row["_wkt"] = None if (geom is None or geom.isNull()) else geom.asWkt(6)
@@ -421,10 +448,6 @@ def _features_result(plan: dict, collected: list, over_budget: bool, total, coun
     features = collected[:limit]
     result = {"layer": plan["layer_name"], "count": len(features), "offset": offset, "features": features}
 
-
-
-
-
     if isinstance(total, int) and total >= 0:
         result["layer_feature_count"] = total
     result.update(plan.get("filter_facts") or {})
@@ -439,8 +462,14 @@ def _features_result(plan: dict, collected: list, over_budget: bool, total, coun
     if plan["missing"]:
         result["fields_not_found"] = plan["missing"]
         result["fields"] = plan["all_fields"]
-    if plan["include_geometry"]:
+    if plan["include_geometry"] or plan["geometry_columns"]:
         result["geometry_crs"] = plan["geometry_crs"]
+    if plan["computed"]:
+        result["measurement"] = plan["computed"]
+    if plan["not_parsed"]:
+        result["not_parsed"] = plan["not_parsed"]
+    if plan["eval_errors"]:
+        result["evaluation_errors"] = plan["eval_errors"]
     if over_budget or fetched > limit:
         result["next_offset"] = offset + len(features)
         result["more_available"] = True
@@ -536,11 +565,6 @@ def _count_source(source, request, halted) -> tuple:
     finally:
         features.close()
     return counted, True
-
-
-
-
-
 
 
 
@@ -1155,7 +1179,6 @@ def _stat_text(value) -> str:
 
 def _statistics_result(layer_name: str, field: str, stats: dict, split: dict = None) -> dict:
 
-
     order = ("count", "count_distinct", "count_missing", "min", "max", "sum", "mean",
              "median", "stdev", "q1", "q3", "iqr")
     ordered = {key: stats[key] for key in order if key in stats}
@@ -1383,6 +1406,10 @@ def _raster_sample(args: dict) -> dict:
 
     out = {"layer": layer.name(), "band": band, "value": value, "x": point.x(), "y": point.y(),
            "crs": crs_ref(layer.crs()), "coordinates_are": "the sampled point in the layer's own CRS"}
+    try:
+        out["nodata"] = ground.nodata_of(layer.dataProvider(), band)
+    except Exception as exc:  # noqa: BLE001
+        log_debug(f"No nodata from the provider: {exc}")
     units = crs_units(layer.crs())
     if units:
         out["crs_units"] = units
@@ -1401,8 +1428,6 @@ def _remote_raster(layer) -> bool:
     except Exception:  # noqa: BLE001
         return False
     return source.startswith(("http://", "https://")) or provider in ("wms", "wcs", "arcgismapserver")
-
-
 
 
 
@@ -2101,8 +2126,6 @@ def _get_provider_capabilities(args: dict) -> dict:
         "storage": storage,
         "capabilities": names,
     }
-
-
 
 
     from . import vector_write

@@ -1778,6 +1778,70 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{n} files the request wrote stay on disk</source>
             <translation>İsteğin yazdığı {n} dosya diskte kalır</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>{path} dosyasını kontrol et</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Baskı düzenini kontrol et[ {layout_name}][, sayfa {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Haritanın bir bölümüne bak</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Haritaya göründüğü gibi bak</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Haritadaki {layer_names} katmanlarına bak</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Haritadaki {layer_names} katmanına bak</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Gönderilemedi. Bağlantınızı kontrol edip tekrar deneyin ya da bize {email} adresinden yazın.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Örnek: tampon bölge metre yerine derece cinsinden çıktı.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Bir hatayı bildirin, bir fikir önerin ya da iyi çalışanları paylaşın.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gönder</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Geri bildirim gönder</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Gönderiliyor...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Buradan geri bildirim göndermek için oturum açın ya da bize {email} adresinden yazın.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Mesajınızı, bu konuşmayı ve teknik ayrıntıları (eklenti ve QGIS sürümü, sistem, son günlükler) alırız. Parolalarınızı veya dosyalarınızın içeriğini asla almayız.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Kısa sürede birkaç bildirim gönderdiniz. Birkaç dakika sonra tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Bu rapor açıklamanızı ve mevcut konuşmayı içerir. Sorunları gidermek ve AI Agent'ı geliştirmek için kullanırız.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2330,6 +2394,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>{size} indiriliyor</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>{host} bekleniyor</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Daha az göster</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Yer bulunuyor</translation>
         </message>
@@ -2363,6 +2435,22 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Undo changes</source>
             <translation>Değişiklikleri geri al</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Kötü yanıt</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>İyi yanıt</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Rapor hazırla</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Bu analizin haritalarını ve grafiklerini içeren bir HTML raporu için isteği yaz</translation>
         </message>
     </context>
     <context>
@@ -2650,6 +2738,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>{layer} üzerindeki kaydedilmemiş düzenlemeleriniz kaydedilemedi, bu yüzden hiçbir şey geri yüklenmedi. Bunları QGIS'te kaydedin ya da atın, sonra yeniden deneyin.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer} kaydedilmemiş düzenlemeleri kaydedilmeden önce kopyalanamadı, bu yüzden hiçbir şey geri yüklenmedi. Düzenlemeleri QGIS'te kaydedin ya da atın, sonra yeniden deneyin.</translation>
         </message>
         <message>
             <source>layer names</source>
@@ -3006,6 +3098,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Değişiklikler geri alınsın mı?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Değişiklikler yinelensin mi?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>{n} istek geri alınsın mı?</translation>
         </message>
@@ -3022,8 +3118,8 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Onayınız bekleniyor</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Elle yaptığınız düzenlemeler önce geçmişe kaydedilir.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Bu noktadan sonra yapılan düzenlemeler önce harita geçmişine kaydedilir.</translation>
         </message>
         <message>
             <source>{layer} couldn't be restored</source>
@@ -3084,6 +3180,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Drawing the map</source>
             <translation>Harita çiziliyor</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Teşekkürler, geri bildiriminiz gönderildi.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Bu analizin haritalarını, grafiklerini ve yöntemini içeren bir HTML raporu hazırla.</translation>
         </message>
     </context>
     <context>
@@ -3826,6 +3930,10 @@ Bu dosya artık çalıştırmanın yazdığı yerde değil.</translation>
         <message>
             <source>by TerraLab</source>
             <translation>TerraLab tarafından</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Geri bildirim gönder</translation>
         </message>
     </context>
     <context>
@@ -4604,6 +4712,14 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Planımı şimdi başlat</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>1 ücretsiz görev kaldı</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>{n} ücretsiz görev kaldı</translation>
         </message>
     </context>
     <context>
@@ -5438,6 +5554,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{used} tasks this month</source>
             <translation>Bu ay {used} görev</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Geri bildirim gönder</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6184,6 +6304,72 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>geçici bir katman</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent hâlâ çalışıyor</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Bir dosyada sakla</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Proje kaydedildi</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Geçici katmanlar saklanmadı</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI agent isteğinizi henüz tamamlamadı. QGIS'ten çıkıp durdurulsun mu?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} geçici katman ({names}) diske kaydedilmedi: proje kapandığında içerikleri kaybolacak.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Etiket konumları kaydedilmedi</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>QGIS'in geçici klasörü proje açıkken silindi: önceki kayıttan bu yana taşınan etiketler veya diyagramlar kaydedilemedi. Daha önce kaydedilen konumlar korunuyor. Bunları yeniden taşıyın, ardından kaydedin.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent katmanları hâlâ kaydediyor</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} katman hâlâ projenin yanındaki GeoPackage dosyasına yazılıyor. QGIS şimdi kapanırsa bu katmanlar kaybolur. Yine de çıkılsın mı?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Gönderilemedi. Tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gönder</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Sorunları gidermek ve AI Agent'ı geliştirmek için bu konuşma ve son günlükleriniz ile birlikte gönderilir.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Bize biraz daha anlatın</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Geri bildiriminiz için teşekkürler</translation>
         </message>
     </context>
 </TS>

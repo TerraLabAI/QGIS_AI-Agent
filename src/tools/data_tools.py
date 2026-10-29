@@ -398,9 +398,6 @@ def register_data_tools(registry: ToolRegistry):
                 },
 
 
-
-
-
                 "layer": {
                     "type": "string",
                 },
@@ -550,7 +547,6 @@ _ENUM_NODES: list = []
 
 def _watch_served_vocabularies(registry: ToolRegistry) -> None:
     def node(name: str, path: tuple):
-
 
 
         getter = getattr(registry, "get_tool", None)

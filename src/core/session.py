@@ -62,11 +62,7 @@ RUN_HEARTBEAT_MS = 3_000
 
 
 
-
 HELLO_TIMEOUT_MS = 20_000
-
-
-
 
 
 
@@ -86,12 +82,11 @@ MAX_MISSED_PONGS = 2
 
 
 
+
 KNOWN_MANIFESTS_KEPT = 8
 
 
 TICKET_STORE_EVERY_S = 3600.0
-
-
 
 
 
@@ -102,8 +97,6 @@ BACKOFF_S = (1, 2, 4, 8, 16, 30)
 
 
 RESTART_CODES = frozenset({1012, 1013})
-
-
 
 
 
@@ -120,6 +113,10 @@ USER_SIDE_FAILURES = frozenset({"dns", "proxy_auth", "proxy_refused", "proxy_unr
 
 
 INTERNET_DOWN_FAILURES = frozenset({"dns", "no_route"})
+
+
+
+DOWN_BACKOFF_MAX_S = 8.0
 RESTART_QUICK_TRIES = 3
 RESTART_JITTER_S = 0.3
 
@@ -288,6 +285,16 @@ def _telemetry_enabled() -> bool:
         return False
 
 
+def _analytics_session() -> str:
+
+    try:
+        from . import telemetry
+
+        return telemetry.session_id() if telemetry.is_telemetry_enabled() else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 class AgentSession(QObject):
     session_started = pyqtSignal(object)
     token = pyqtSignal(str, str)
@@ -415,7 +422,6 @@ class AgentSession(QObject):
         self._replays_dropped = 0
 
 
-
     @property
     def state(self) -> str:
         return self._state
@@ -494,9 +500,6 @@ class AgentSession(QObject):
         self._session_id = None
         self._last_seq = 0
         self._write_saved("")
-
-
-
 
 
 
@@ -631,7 +634,7 @@ class AgentSession(QObject):
         turns = earlier_turns() if earlier_turns is not None and thread_id not in self._threads_told else None
         sent = self._send(protocol.user_message(
             run_id, thread_id, text, attachments, context, mode, approval, effort, example,
-            replaces_run_id if self.edit_last_available else "", turns))
+            replaces_run_id if self.edit_last_available else "", turns, _analytics_session()))
         if sent:
             self._threads_told.add(thread_id)
         return sent
@@ -715,11 +718,26 @@ class AgentSession(QObject):
             return False
         return self._send(protocol.funnel(snapshot))
 
+    @property
+    def wants_project_state(self) -> bool:
+
+        return self.is_online and getattr(self, "_project_state", False) and _telemetry_enabled()
+
+    def send_project_state(self, run_id: str, before: dict, after: dict) -> bool:
+
+        if not self.wants_project_state:
+            return False
+        return self._send(protocol.project_state(run_id, before, after))
+
     def send_unsteer(self, run_id: str, steer_id: str) -> bool:
         return self._send(protocol.unsteer(run_id, steer_id))
 
     def send_steer(self, run_id: str, steer_id: str, text: str) -> bool:
         return self._send(protocol.steer(run_id, steer_id, text))
+
+    def send_feedback(self, run_id: str, up: bool) -> bool:
+
+        return self._send(protocol.feedback(run_id, bool(up)))
 
     def send_cancel(self, run_id: str, reason: str = "") -> bool:
 
@@ -742,7 +760,6 @@ class AgentSession(QObject):
                 self._pending_cancels.pop(oldest)
                 self._cancel_reasons.pop(oldest, None)
         return self._send(protocol.cancel(run_id, reason))
-
 
 
     def _set_state(self, state: str, detail: str = "") -> None:
@@ -908,7 +925,6 @@ class AgentSession(QObject):
 
 
 
-
         if self._user_closed:
 
 
@@ -917,8 +933,6 @@ class AgentSession(QObject):
         try:
             identity = self._identity_provider()
             manifest_hash, manifest = self._manifest_provider()
-
-
 
 
 
@@ -1026,7 +1040,6 @@ class AgentSession(QObject):
 
 
 
-
         if self._state == "online" or self._user_closed:
             return
         if self._hello_still_leaving():
@@ -1124,11 +1137,10 @@ class AgentSession(QObject):
 
 
 
-
-
-
         clocks = socket_clocks()
         base = min(clocks["backoff_max_s"], clocks["backoff_min_s"] * (2 ** min(self._attempt, 16)))
+        if (self._last_failure or ("",))[0] in INTERNET_DOWN_FAILURES:
+            base = min(base, DOWN_BACKOFF_MAX_S)
         delay = base * random.uniform(0.5, 1.0)  # nosec B311
         restart = code in RESTART_CODES and self._attempt < RESTART_QUICK_TRIES
         if restart:
@@ -1218,7 +1230,6 @@ class AgentSession(QObject):
 
 
 
-
         kind, _message, status = self._last_failure or ("", "", 0)
         if kind == "dns":
             return tr("The server name could not be resolved. Check your internet connection.")
@@ -1290,10 +1301,8 @@ class AgentSession(QObject):
         self._send(protocol.ping())
 
 
-
     def _on_frame(self, text: str) -> None:
         if self._user_closed:
-
 
 
             return
@@ -1318,7 +1327,6 @@ class AgentSession(QObject):
             self._note_bad_frame(f"handler {kind}", str(exc))
 
     def _note_bad_frame(self, category: str, detail: str) -> None:
-
 
 
 
@@ -1427,6 +1435,7 @@ class AgentSession(QObject):
         self._steer = frame.get("steer") is True
         self._unsteer = frame.get("unsteer") is True
         self._funnel = frame.get("funnel") is True
+        self._project_state = frame.get("project_state") is True
         self._edit_last = frame.get("edit_last") is True
 
         groups = frame.get("effort_switch")
@@ -1484,7 +1493,6 @@ class AgentSession(QObject):
 
 
 
-
         if self._state == "online" or self._manifest_included:
             return
         try:
@@ -1506,7 +1514,6 @@ class AgentSession(QObject):
         self._hello_deadline.start()
 
     def _on_policy(self, frame: dict) -> None:
-
 
 
 
@@ -1555,7 +1562,6 @@ class AgentSession(QObject):
 
     def _on_error(self, frame: dict) -> None:
         code = str(frame.get("code") or ServerErrorCode.INTERNAL)
-
 
 
 
@@ -1609,7 +1615,6 @@ class AgentSession(QObject):
                              int(frame.get("messages") or 0))
         except (TypeError, ValueError):
             pass
-
 
 
 def _piece_producer(upload_id: str, name: str, seq: int, total: int, path: str, offset: int,

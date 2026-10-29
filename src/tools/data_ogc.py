@@ -127,9 +127,6 @@ def _wmts_uri(url: str, layer: str, described: dict) -> tuple[str, dict] | None:
     crs = _wmts_epsg(row["crs"].get(chosen, ""))
     if not crs:
 
-
-
-
         return None, {"unresolved_crs": row["crs"].get(chosen, ""), "tile_matrix_set": chosen}
     img_format = next((f for f in row["formats"] if f.endswith("png")), (row["formats"] or ["image/png"])[0])
     style = (row["styles"] or ["default"])[0]
@@ -930,11 +927,6 @@ def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
                     f"The canvas zoomed to the area of interest, called again, or "
                     f"max_features up to {limits.current('MAX_FEATURES_PER_CALL'):,}, gives a sample."
                     + (f" {crs} is offered, so the CRS is not the problem." if offered else ""))
-
-
-
-
-
         if detail:
 
             return head + (f" {crs} is offered, so the CRS is not the problem." if offered else "")
@@ -1122,9 +1114,6 @@ def _add_wfs_layer(args: dict) -> dict:
     lifted = volume_guard.lifted(args)
     default_cap = 1000
     try:
-
-
-
 
 
         max_features = max(1, min(int(args.get("max_features") or default_cap), ceiling))

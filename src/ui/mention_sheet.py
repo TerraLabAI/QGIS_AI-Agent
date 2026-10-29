@@ -79,7 +79,6 @@ _SHEET_PAD = 6
 _SHEET_GAP = 6
 _SHADOW = 16
 _MAX_VISIBLE_ROWS = 8
-
 _ROW_HEIGHT = 36
 _ROW_RADIUS = RADIUS_CONTROL
 _ROW_PAD = 8
@@ -153,7 +152,6 @@ class _SheetDelegate(QStyledItemDelegate):
             return
         depth = int(data.get("depth") or 0)
         if depth:
-
             rect = rect.adjusted(min(depth, 4) * _DEPTH_INDENT, 0, 0, 0)
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -204,7 +202,6 @@ class _SheetDelegate(QStyledItemDelegate):
         left = rect.left() + _ROW_PAD
         metrics = QFontMetrics(font)
         room = max(40.0, rect.right() - _ROW_PAD - left)
-
         painter.drawText(QRectF(left, rect.top(), room, rect.height() - 6),
                          int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom),
                          metrics.elidedText(opt.text, Qt.TextElideMode.ElideRight, int(room)))
@@ -276,7 +273,6 @@ class MentionSheet(QWidget):
         self._frame.setObjectName("mentionSheet")
         self._frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._frame.setStyleSheet(_SHEET_QSS)
-
         outer.addWidget(self._frame)
         col = QVBoxLayout(self._frame)
         col.setContentsMargins(_SHEET_PAD, _SHEET_PAD, _SHEET_PAD, _SHEET_PAD)
@@ -299,8 +295,6 @@ class MentionSheet(QWidget):
         self._pop.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._pop.valueChanged.connect(self._on_pop)
         self._final = QPoint()
-
-
 
     def set_rows(self, items, footer: str = "") -> None:
 
@@ -339,7 +333,6 @@ class MentionSheet(QWidget):
             elif kind == FILES:
                 row.setIcon(icon_for(self._view, "paperclip", _GLYPH, qcolor(INK_3)))
             elif glyph:
-
                 row.setIcon(icon_for(self._view, glyph, _GLYPH, qcolor(INK_3)))
             detail = str(item.get("detail") or "")[:240]
             if detail:
@@ -428,8 +421,6 @@ class MentionSheet(QWidget):
         if index.isValid():
             self._on_picked(index)
 
-
-
     def open_above(self, anchor: QWidget) -> None:
 
 
@@ -489,8 +480,6 @@ class MentionSheet(QWidget):
     def hideEvent(self, event):  # noqa: N802
         self._pop.stop()
         super().hideEvent(event)
-
-
 
     def keyPressEvent(self, event):  # noqa: N802
 

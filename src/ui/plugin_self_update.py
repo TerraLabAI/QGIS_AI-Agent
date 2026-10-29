@@ -25,12 +25,10 @@ from qgis.PyQt.QtCore import QObject, QTimer
 from ..core import tuning
 from .shared import tr
 
-
 UPDATE_RESULT_INSTALLED = "installed"
 UPDATE_RESULT_RESTART = "restart_needed"
 UPDATE_RESULT_FELL_BACK = "fell_back"
 UPDATE_RESULT_FAILED = "failed"
-
 _FETCH_TIMEOUT_S = 30
 _FETCH_TIMEOUT_S_RANGE = (5, 180)
 _RESULT_NOTE_SECONDS = 10

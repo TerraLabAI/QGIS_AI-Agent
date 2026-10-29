@@ -54,7 +54,6 @@ from ..core.tool_registry import spec, tool_error
 
 
 
-
 def quiet_km2() -> float:
 
     return limits.current("FETCH_QUIET_KM2")
@@ -123,7 +122,6 @@ ZONE_TOOLS = {
     "fetch_building_footprints": "dense",
     "add_pmtiles_layer": "query",
 }
-
 COUNT_KEYS = ("max_features", "limit", "max_items", "max_results")
 
 
@@ -603,10 +601,6 @@ def hosted_ceiling(name: str, args: dict) -> tuple[list, float]:
 
 
 
-
-
-
-
 OWN_OVERPASS_DOWN_S = 300.0
 
 
@@ -667,13 +661,7 @@ def hard_cap_km2(name: str, args: dict) -> float:
 
 
 
-
-
-
 FIT_MARGIN = limits.FIT_MARGIN
-
-
-
 
 
 

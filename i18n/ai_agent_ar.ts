@@ -1750,6 +1750,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{tool} on {layer}</source>
             <translation>{tool} على {layer}</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>تحقق من الملف {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>تحقق من تخطيط الطباعة[ {layout_name}][، الصفحة {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>انظر إلى جزء من الخريطة</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>انظر إلى الخريطة كما تراها</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>انظر إلى طبقات {layer_names} على الخريطة</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>انظر إلى {layer_names} على الخريطة</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>تعذر الإرسال. تحقق من اتصالك وحاول مرة أخرى، أو راسلنا على {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>مثال: ظهرت المنطقة المحيطة (buffer) بالدرجات بدلاً من الأمتار.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>أبلغ عن خطأ، أو اقترح فكرة، أو شاركنا ما يعمل بشكل جيد.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>إرسال</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>إرسال ملاحظات</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>جارٍ الإرسال...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>سجّل الدخول لإرسال ملاحظاتك من هنا، أو راسلنا على {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>سنتلقى رسالتك وهذه المحادثة وتفاصيل تقنية (إصدار الإضافة وQGIS، والنظام، والسجلات الأخيرة). لن نتلقى أبداً كلمات المرور أو محتوى ملفاتك.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>أرسلت عدة بلاغات في وقت قصير. حاول مرة أخرى بعد بضع دقائق.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>يتضمن هذا التقرير وصفك والمحادثة الحالية. نستخدمه لإصلاح المشكلات وتحسين AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2302,6 +2366,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>جارٍ تنزيل {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>في انتظار {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>عرض أقل</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>جارٍ البحث عن المكان</translation>
         </message>
@@ -2335,6 +2407,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo changes</source>
             <translation>التراجع عن التغييرات</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>إجابة سيئة</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>إجابة جيدة</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>إنشاء تقرير</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>اكتب طلب تقرير HTML لهذا التحليل، مع خرائطه ومخططاته</translation>
         </message>
     </context>
     <context>
@@ -2622,6 +2710,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>تعذّر حفظ تعديلاتك غير المحفوظة على {layer}، لذلك لم تتم أي استعادة. احفظها أو تجاهلها في QGIS ثم حاول مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>تعذّر نسخ {layer} قبل حفظ تعديلاتها غير المحفوظة، لذلك لم تتم أي استعادة. احفظ التعديلات أو تجاهلها في QGIS ثم حاول مرة أخرى.</translation>
         </message>
         <message>
             <source>layer names</source>
@@ -2970,6 +3062,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>التراجع عن التغييرات؟</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>إعادة التغييرات؟</translation>
+        </message>
+        <message>
             <source>Undo takes these changes off the map.</source>
             <translation>التراجع يزيل هذه التغييرات من الخريطة.</translation>
         </message>
@@ -2990,8 +3086,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>في انتظار الموافقة</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>تُحفظ تعديلاتك اليدوية في السجل أولًا.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>تُحفظ التعديلات التي أُجريت منذ هذه النقطة في سجل الخريطة أولًا.</translation>
         </message>
         <message>
             <source>{layer} couldn't be restored</source>
@@ -3040,6 +3136,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Drawing the map</source>
             <translation>جارٍ رسم الخريطة</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>شكراً، تم إرسال ملاحظاتك.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>أنشئ تقرير HTML لهذا التحليل، مع خرائطه ومخططاته وطريقته.</translation>
         </message>
     </context>
     <context>
@@ -3782,6 +3886,10 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>by TerraLab</source>
             <translation>من TerraLab</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>إرسال ملاحظات</translation>
         </message>
     </context>
     <context>
@@ -4560,6 +4668,14 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>ابدأ خطتي الآن</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>تبقت مهمة مجانية واحدة</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>المهام المجانية المتبقية: {n}</translation>
         </message>
     </context>
     <context>
@@ -5394,6 +5510,10 @@ Click to show it in the Layers panel.</source>
             <source>{used} tasks this month</source>
             <translation>مهام هذا الشهر: {used}</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>إرسال ملاحظات</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6122,6 +6242,72 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Restore</source>
             <translation>استعادة</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent لا يزال يعمل</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>احتفظ بها في ملف</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>تم حفظ المشروع</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>لم يتم الاحتفاظ بالطبقات المؤقتة</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>لم ينهِ وكيل الذكاء الاصطناعي طلبك بعد. هل تريد إغلاق QGIS وإيقافه؟</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} طبقة مؤقتة ({names}) غير محفوظة على القرص: ستفقد محتوياتها عند إغلاق المشروع.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>لم يتم حفظ مواضع التسميات</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>تم حذف المجلد المؤقت الخاص بـ QGIS أثناء فتح المشروع، لذلك تعذر حفظ التسميات أو المخططات التي نُقلت منذ آخر حفظ. تم الاحتفاظ بالمواضع المحفوظة سابقاً. انقلها مرة أخرى، ثم احفظ المشروع.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>لا يزال AI Agent يحفظ الطبقات</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>لا تزال {n} من الطبقات تُكتب في GeoPackage بجوار المشروع. إذا أُغلق QGIS الآن، ستضيع. هل تريد الإغلاق على أي حال؟</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>تعذّر الإرسال. حاول مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>إرسال</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>تُرسل مع هذه المحادثة وسجلاتك الأخيرة لإصلاح المشكلات وتحسين AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>أخبرنا بالمزيد</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>شكرًا على ملاحظاتك</translation>
         </message>
     </context>
 </TS>

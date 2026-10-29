@@ -74,12 +74,6 @@ def apply_qgis_proxy() -> bool:
 
 
 
-
-
-
-
-
-
     from . import net
     from .ws_proxy import qgis_exclusions, resolve_proxy
 

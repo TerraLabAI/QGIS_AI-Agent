@@ -50,8 +50,6 @@ import math
 
 
 
-
-
 CALL_MAX_SECONDS_MAIN = 20.0
 
 
@@ -110,7 +108,6 @@ OVERTURE_LIFTED_READ_SECONDS = 25.0
 
 
 
-
 WATCHDOG_TICK_S = 1.0
 
 
@@ -119,7 +116,6 @@ WATCHDOG_TICK_S = 1.0
 
 
 WATCHDOG_BLOCKED_S = 5.0
-
 
 
 
@@ -139,12 +135,7 @@ DATASET_DOCS_CONNECT_SECONDS = 2.0
 
 
 
-
-
-
-
 RUN_MAX_STEPS = 600
-
 
 
 RUN_MAX_SECONDS = 3600
@@ -160,7 +151,6 @@ MAX_LAYERS_PER_RUN = 40
 
 
 
-
 MAX_FEATURES_PER_CALL = 5000
 
 
@@ -170,9 +160,6 @@ MAX_FEATURES_PER_CALL = 5000
 
 
 MAP_MATCH_MAX_REQUESTS = 600
-
-
-
 
 
 
@@ -432,7 +419,6 @@ GTFS_SHAPE_POINTS_MAX_ROWS = 1_000_000
 
 
 
-
 PROMPT_MAX_CHARS = 200_000
 ATTACHMENTS_TOTAL_BYTES = 12 * 1024 * 1024
 
@@ -469,8 +455,6 @@ def main_budget(name: str) -> float:
 
     return current("CALL_MAX_SECONDS_MAIN_LONG" if name in _LONG_MAIN_CALLS
                    else "CALL_MAX_SECONDS_MAIN")
-
-
 
 
 _KM_PER_DEGREE = 111.32
@@ -522,8 +506,6 @@ def shrink_bbox(box, ceiling_km2: float, margin: float = FIT_MARGIN):
     half_lon = (east - west) / 2.0 * scale
     return (round(mid_lat - half_lat, 5), round(mid_lon - half_lon, 5),
             round(mid_lat + half_lat, 5), round(mid_lon + half_lon, 5))
-
-
 
 
 

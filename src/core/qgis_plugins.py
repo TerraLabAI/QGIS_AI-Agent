@@ -141,8 +141,6 @@ def warm_metadata() -> None:
 
 
 
-
-
     if _WARM["started"]:
         return
     _WARM["started"] = True
@@ -181,8 +179,6 @@ def _icon_of(directory: str, relative: str) -> str:
 
 
 
-
-
     relative = relative.replace("\\", "/")
     candidate = resolved(os.path.join(directory, *relative.split("/")))
     root = resolved(directory)
@@ -215,8 +211,6 @@ def installed_plugins() -> dict[str, dict[str, Any]]:
 
 
 
-
-
     seen: dict[str, str] = {}
     for folder in available:
         folder = str(folder or "")
@@ -244,7 +238,6 @@ def installed_plugins() -> dict[str, dict[str, Any]]:
             "deprecated": meta.get("deprecated", "").lower() in ("true", "yes", "1"),
         }
     return out
-
 
 
 

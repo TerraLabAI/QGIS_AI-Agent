@@ -27,7 +27,6 @@ from qgis.PyQt.QtWidgets import (
 from .icons import icon_factory, icon_for, ink_of
 from .style import _BTN_ICON, accent_color, repolish
 
-
 _FLOW_ITEM_MIN_PX = 64
 
 
@@ -44,14 +43,11 @@ class FlowLayout(QLayout):
         self._items = []
         self._h = h_spacing
         self._v = v_spacing
-
         self._centred = centred
         self.setContentsMargins(0, 0, 0, 0)
 
     def addItem(self, item):  # noqa: N802
         self._items.append(item)
-
-
 
 
         self.invalidate()
@@ -117,9 +113,6 @@ class FlowLayout(QLayout):
 
 
 
-
-
-
         widest = max(1, area.width())
         edge = area.x() + area.width()
         slots = []
@@ -164,7 +157,6 @@ class Spinner(QWidget):
         super().__init__(parent)
         self._angle = 0
         self._d = diameter
-
         if color is None:
             self._color = QColor(ink_of(parent) if parent is not None else ink_of(None))
             self._color.setAlphaF(0.7)
@@ -214,7 +206,6 @@ class Spinner(QWidget):
             painter.end()
         except Exception:  # noqa: BLE001
             return
-
 
 
 _MEASURE_RE = re.compile(r"\d[\d.,]*(?:[ \u00a0]?(?:%|[^\W\d_]{1,3}\b))?")

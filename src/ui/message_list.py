@@ -39,10 +39,7 @@ _NAV_KEYS = frozenset((
     Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_PageUp, Qt.Key.Key_PageDown,
     Qt.Key.Key_Home, Qt.Key.Key_End,
 ))
-
 _STICKY_SLACK = 4
-
-
 _TOP_AIR = 24
 
 
@@ -106,7 +103,6 @@ class MessageList(QScrollArea):
 
         self._build_content()
 
-
         self._stick = True
         self._clamped = False
         self._ride = None
@@ -116,18 +112,14 @@ class MessageList(QScrollArea):
         bar.sliderPressed.connect(self._on_bar_pressed)
         bar.actionTriggered.connect(lambda _action: self._on_bar_pressed())
 
-
         self.tool_cards: dict = {}
         self.traces: dict = {}
         self.trace_blocks: dict = {}
         self.permission_cards: dict = {}
 
-
-
         self._pill = QToolButton(self)
         self._pill.setObjectName("scrollPill")
         self._pill.setStyleSheet(_BTN_SCROLL_PILL)
-
 
 
         self._pill.setToolTip(self.tr("Scroll to bottom"))
@@ -173,14 +165,11 @@ class MessageList(QScrollArea):
     def _place_pill(self) -> None:
 
 
-
         viewport = self.viewport().geometry()
         x = viewport.x() + (viewport.width() - _PILL_PX) // 2
         y = viewport.y() + viewport.height() - _PILL_PX - SPACE_OUTER
         self._pill.setGeometry(max(0, x), max(0, y), _PILL_PX, _PILL_PX)
         self._pill.raise_()
-
-
 
     @contextlib.contextmanager
     def inserting_before(self, before: QWidget):
@@ -363,8 +352,6 @@ class MessageList(QScrollArea):
 
         self._pill.hide()
 
-
-
     def register_tool_card(self, tool_call_id: str, card) -> None:
         self.tool_cards[tool_call_id] = card
 
@@ -388,8 +375,6 @@ class MessageList(QScrollArea):
 
     def permission_card(self, tool_call_id: str):
         return self.permission_cards.get(tool_call_id)
-
-
 
     def scroll_to_bottom(self, animate: bool = True) -> None:
 
@@ -471,8 +456,6 @@ class MessageList(QScrollArea):
         self._update_pill()
 
     def _update_pill(self) -> None:
-
-
 
 
 

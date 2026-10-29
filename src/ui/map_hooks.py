@@ -139,8 +139,6 @@ class MapHooks:
                 pass
             self._canvas_connected = False
 
-
-
     def _on_layer_action(self) -> None:
         layer = self._iface.layerTreeView().currentLayer() or self._iface.activeLayer()
         if layer is None:

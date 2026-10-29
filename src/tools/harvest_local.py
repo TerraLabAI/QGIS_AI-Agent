@@ -124,9 +124,6 @@ def register_harvest_local_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def index_path() -> str:
     return os.path.join(state_dir(), INDEX_FILE)
 
@@ -168,9 +165,6 @@ def _read_meta(path: str) -> dict:
     except sqlite3.Error:
         return {}
     return dict(rows)
-
-
-
 
 
 def _skip_dir(name: str) -> bool:
@@ -585,9 +579,6 @@ def _start_index(roots: list, db_path: str):
     _INDEX_TASK = task
     QgsApplication.taskManager().addTask(task)
     return task
-
-
-
 
 
 def _iso(timestamp) -> str | None:

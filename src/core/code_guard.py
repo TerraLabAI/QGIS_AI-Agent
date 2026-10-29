@@ -111,7 +111,6 @@ class CodeTimeout(BaseException):
 
 
 
-
 WAITING_ON_USER = threading.Event()
 
 
@@ -127,8 +126,6 @@ CLOCK_LOCK = threading.Lock()
 def clock_ran_out() -> bool:
 
     return bool(CLOCK_OUT) and CLOCK_OUT[-1].is_set()
-
-
 
 
 class _Checker(ast.NodeVisitor):
@@ -293,10 +290,6 @@ def refusal_for(code: str) -> dict | None:
 
 
 
-
-
-
-
     refused, name = _check(code)
     if not refused:
         return None
@@ -308,8 +301,6 @@ def refusal_for(code: str) -> dict | None:
 
     return dict(error=refused, code="INVALID_ARGS", suggestion=_NO_ROW,  # noqa: C408
                 hint="code_refused", variant=name)
-
-
 
 
 class CappedOutput(io.TextIOBase):

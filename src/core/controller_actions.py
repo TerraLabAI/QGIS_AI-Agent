@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
@@ -22,7 +23,7 @@ from .logger import log, log_warning
 from .protocol import Approval, Effort, Mode
 from .security_urls import host_name
 from .snapshot import diff_changed
-from .telemetry_errors import track_plugin_error
+from .telemetry_errors import track_plugin_error, track_restore_failure
 
 
 def get_pro_offer() -> str:
@@ -37,7 +38,6 @@ def tr(text: str) -> str:
 
 
 def _restore_layers(rows) -> list:
-
 
 
 
@@ -88,30 +88,7 @@ def _not_kept(snapshot, hand, target_pairs=()) -> list:
     return lost
 
 
-def _restore_error_code(result: dict) -> str:
-
-    message = str(result.get("message") or "")
-    if result.get("refused"):
-        return "STILL_SAVING"
-    if result.get("unreadable_copy"):
-        return "COPY_UNREADABLE"
-    if message.startswith("No snapshot"):
-        return "NO_SNAPSHOT"
-    if not result.get("layers") and "project" in message:
-        return "PROJECT_UNREADABLE"
-    if result.get("file_restore_errors"):
-        return "FILES_NOT_RESTORED"
-    if result.get("memory_layers_incomplete"):
-        return "MEMORY_INCOMPLETE"
-    return "INCOMPLETE"
-
-
 class PanelActionsMixin:
-
-
-
-
-
 
 
 
@@ -120,7 +97,6 @@ class PanelActionsMixin:
 
 
     _restore_after_stop = ""
-
 
 
     def _on_project_opened(self, *_args) -> None:
@@ -141,7 +117,6 @@ class PanelActionsMixin:
         self._panel_call("clear_thread")
         self._panel_call("set_current_thread", "")
         self._panel_call("set_run_changes", 0, False)
-
         self._send_history()
 
     def _on_thread_selected(self, thread_id: str) -> None:
@@ -183,7 +158,6 @@ class PanelActionsMixin:
         if thread_id == self._thread_id:
             self._on_new_thread()
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
-
 
 
     def _history_available(self) -> bool:
@@ -277,7 +251,8 @@ class PanelActionsMixin:
 
             whole = not discard or history.start_reachable(thread_id)
             self._panel_call("show_restore_warning", checkpoint_id, discard, edits, whole,
-                             len(removed), _restore_layers(removed), [os.path.basename(path) for path in hand])
+                             len(removed), _restore_layers(removed), [os.path.basename(path) for path in hand],
+                             not discard and history.steps_between(thread_id, entry) < 0)
             return
         refusal = self._capture_edits(thread_id, current, entry, hand) if edits else ""
         if refusal:
@@ -292,6 +267,7 @@ class PanelActionsMixin:
         left = history.current(thread_id)
         steps = history.steps_between(thread_id, entry)
         self._restoring = True
+        started = time.monotonic()
         try:
 
 
@@ -304,12 +280,16 @@ class PanelActionsMixin:
             history.project_restored()
         log(f"Restore to {entry.kind} run {entry.run_index}: {result.get('message') or result}")
         ok = bool(result.get("ok"))
+        refused = bool(result.get("refused"))
         telemetry.track(ev.AGENT_UNDO_USED, {
-            "ok": ok, "kind": "discard" if discard else entry.kind, "steps_back": steps})
-        if not ok:
+            "ok": ok, "kind": "discard" if discard else entry.kind, "steps_back": steps,
+            "run_id": entry.run_id, "duration_ms": int((time.monotonic() - started) * 1000), "refused": refused,
+            "files_not_restored": len(result.get("file_restore_errors") or []),
+            "memory_incomplete": len(result.get("memory_layers_incomplete") or [])})
+        if not ok and not refused:
 
-            track_plugin_error("restore", _restore_error_code(result), where=str(entry.kind))
-        if result.get("refused"):
+            track_restore_failure(result, str(entry.kind))
+        if refused:
 
 
             waiting = [str(name) for name in result.get("still_saving") or [] if name]
@@ -322,22 +302,15 @@ class PanelActionsMixin:
 
 
             history.mark_current(entry)
-
             self._restored_for_retry(entry.id)
         self._send_history()
         back = steps >= 0
-
         revert = left.id if (ok and left is not None and left.id != entry.id and left.available) else ""
 
         missing = self._missing_layers(entry, result) if result.get("project_read") else []
         self._panel_call("show_restore_result", ok, back, revert, missing)
 
     def _check_hand_edits(self, checkpoint_id: str, confirmed: bool, discard: bool, entry, current) -> None:
-
-
-
-
-
 
 
 
@@ -483,11 +456,29 @@ class PanelActionsMixin:
 
 
 
+        from .snapshot import REASON_UNSAVED_EDITS, RunSnapshot, layer_file_path, unsaved_edit_layers
 
-        from .snapshot import RunSnapshot, unsaved_edit_layers
-
+        history = self._executor.history
+        versions = {os.path.normcase(resolved(original)) for original, _copy in history.file_versions(thread_id, entry)}
         for layer in unsaved_edit_layers():
             name = str(layer.name())
+            path = layer_file_path(layer)
+            fresh = (path and entry.snapshot.unbacked_reasons.get("edits:" + layer.id()) != REASON_UNSAVED_EDITS
+                     and os.path.normcase(resolved(path)) not in versions)
+            if fresh:
+
+
+
+
+                try:
+                    kept = entry.snapshot.backup_layer_files(layer)
+                    entry.snapshot.run_pending_copies()
+                except Exception as exc:  # noqa: BLE001
+                    log(f"Copy of {name} before saving its edits failed: {exc}")
+                    kept = False
+                if not kept or layer.id() in entry.snapshot.unbacked:
+                    return tr("{layer} could not be copied before its unsaved edits were saved, so nothing "
+                              "was restored. Save or discard the edits in QGIS, then try again.").format(layer=name)
             try:
                 saved = bool(layer.commitChanges())
                 errors = [] if saved else [str(text) for text in layer.commitErrors()]
@@ -497,9 +488,7 @@ class PanelActionsMixin:
                 log(f"Unsaved edits on {name} not saved before a restore: {'; '.join(errors[:3])}")
                 return tr("Your unsaved edits on {layer} could not be saved, so nothing was restored. "
                           "Save or discard them in QGIS, then try again.").format(layer=name)
-        history = self._executor.history
         run_id = current.run_id if current is not None else ""
-
 
         snapshot = RunSnapshot(f"{run_id or 'run'}-edits-{uuid.uuid4().hex[:12]}")
         try:
@@ -547,7 +536,6 @@ class PanelActionsMixin:
             if name and name not in known:
                 known.add(name)
                 items.append({"name": name, "reason": ""})
-
 
 
         for error in result.get("file_restore_errors") or []:
@@ -663,7 +651,7 @@ class PanelActionsMixin:
                 ev.SUBSCRIBE_LINK_CLICKED, {"source": where, "where": where, "checkout_link": link,
                                             "offer": get_pro_offer()}),
 
-            trial_surface={"exhausted_card": "wall", "warning": "warning"}.get(where, "")
+            trial_surface={"exhausted_card": "wall", "low_card": "low_card", "warning": "warning"}.get(where, "")
             if self._trial_offered() else "")
         log(f"Upgrade opened from the panel ({where})")
 
@@ -774,7 +762,6 @@ class PanelActionsMixin:
             if path and hasattr(self._panel, "composer"):
                 self._panel.composer.add_paths([path])
             return
-
         if not mention_candidates():
             self.notice.emit("info", tr("Nothing to add: open a layer first."))
             return

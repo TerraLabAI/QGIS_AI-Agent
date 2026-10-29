@@ -276,12 +276,6 @@ def open_url(request, timeout: float, connect_timeout: float | None = None):
 
 
 
-
-
-
-
-
-
 CHUNK = 64 * 1024
 CACHE_MAX_ENTRIES = 64
 CACHE_MAX_BYTES = 4 * 1024 * 1024
@@ -306,10 +300,6 @@ class Response:
 
 def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel=None,
                  budget: float | None = None, progress=None, expected: int | None = None) -> bytes:
-
-
-
-
 
 
 
@@ -386,7 +376,6 @@ def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float
 
 
 
-
     if not promised or deadline is None or done <= 0 or done >= promised or spent < read_clock.SETTLE_S:
         return None
     rate = done / spent
@@ -400,8 +389,6 @@ def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float
         f"{done / (1024 * 1024):.1f} of the {promised / (1024 * 1024):.1f} MB arrived in {spent:.0f} s "
         f"({rate / 1024:.0f} kB/s), so the rest needs about {needs}, over the {budget or allowed:.0f} "
         "seconds this call has.")
-
-
 
 
 _CACHE: OrderedDict[str, tuple[float, Response]] = OrderedDict()
@@ -426,7 +413,6 @@ def _cache_put(key: str, response: Response, ttl: float) -> None:
     if ttl <= 0 or len(response.body) > CACHE_MAX_BYTES:
         return
     with _CACHE_LOCK:
-
 
 
         _CACHE[key] = (time.monotonic() + ttl,
@@ -456,9 +442,6 @@ _CREDENTIAL_HEADERS = ("authorization", "cookie", "proxy-authorization", "x-api-
 
 
 def _credential_tag(request: urllib.request.Request) -> str:
-
-
-
 
 
 
@@ -507,8 +490,6 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
 
 
 
-
-
     ceiling = limits.current("MAX_DOWNLOAD_BYTES")
     max_bytes = int(max_bytes) if max_bytes and max_bytes > 0 else ceiling
     max_bytes = min(max_bytes, ceiling)
@@ -516,7 +497,6 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
         request = urllib.request.Request(str(request))
     url = request.full_url
     method = request.get_method()
-
 
 
     refusal = withdrawn_reason(urllib.parse.urlsplit(url).hostname or "")
@@ -529,9 +509,6 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
     if not request.has_header("Accept-encoding"):
 
 
-
-
-
         request.add_header("Accept-encoding", "gzip, deflate")
     shareable = cache_ttl > 0 and method == "GET"
 
@@ -539,7 +516,6 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
 
     key = (f"{url}|{request.get_header('Range', '')}|{request.get_header('Accept', '')}"
            f"|{_credential_tag(request)}" if shareable else "")
-
 
 
 
@@ -602,15 +578,6 @@ def fetch(request, *, timeout: float, max_bytes: int, total_timeout: float | Non
         _note_reachable(host)
         partial = any(str(k).lower() == "content-range" for k in (out.headers or {}))
         if owns_key and (not partial or request.get_header("Range")):
-
-
-
-
-
-
-
-
-
 
 
 
@@ -714,6 +681,8 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
     extra = {"connect_timeout": connect_timeout} if connect_timeout else {}
     plain = False
     started = time.perf_counter()
+
+    report_stage("wait:" + (urllib.parse.urlsplit(request.full_url).hostname or ""))
     try:
         with open_url(request, timeout=timeout, **extra) as response:
 
@@ -724,15 +693,9 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
                     and request.get_method() != "HEAD"):
 
 
-
-
-
                 raise FetchTooLarge(
                     f"The server says the answer is {promised} bytes, over the {max_bytes} bytes "
                     "this tool reads. Less of it, or a narrower area, fits.")
-
-
-
 
 
 
@@ -749,31 +712,9 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
 
-
-
-
             reading_from = time.perf_counter()
             body = read_bounded(response, max_bytes, deadline, cancel, budget,
                                 progress=current_progress_sink(), expected=promised)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -787,9 +728,6 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
 
-
-
-
             if promised is not None and len(body) < promised and request.get_method() != "HEAD":
                 cut = FetchTruncated(
                     f"The download stopped after {len(body)} of the {promised} bytes the server "
@@ -798,9 +736,6 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
                 raise cut
             inflated = _inflate(body, headers.get("content-encoding", ""), max_bytes)
             if inflated is not body:
-
-
-
 
 
                 headers.pop("content-encoding", None)
@@ -831,7 +766,6 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
             dropped.received = getattr(exc, "received", b"") if plain else b""
             raise dropped from exc
         raise
-
 
 
 
@@ -901,7 +835,6 @@ def _send_politely(request, url: str, method: str, timeout: float, max_bytes: in
     backoff = 0.0
     regional = None
     while True:
-
 
 
 
@@ -1131,7 +1064,6 @@ def _wait_for_owner(event: threading.Event, seconds: float, cancel) -> None:
 
 
 
-
     end = time.monotonic() + seconds
     while True:
         left = end - time.monotonic()
@@ -1163,9 +1095,6 @@ def _release(key: str) -> None:
 
 
 
-
-
-
 HEAD_START_S = 2.5
 
 
@@ -1174,16 +1103,6 @@ class _NotNeeded(Exception):
 
 
 def race(attempts, *, workers: int | None = None, stagger: float | None = None):
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1217,8 +1136,6 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
 
 
 
-
-
     parent_cancel = current_cancel_check()
 
     if stagger is None:
@@ -1232,9 +1149,6 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
             set_cancel_check(None)
 
     def _staggered(index: int, call):
-
-
-
 
 
 

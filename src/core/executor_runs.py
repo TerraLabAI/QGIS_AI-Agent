@@ -11,7 +11,7 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import background, code_guard, layer_egress, layout_show, licence, limits, machine, stalls
+from . import background, code_guard, layer_egress, licence, limits, machine, stalls
 from .checkpoints import KIND_AFTER
 from .context import stamp_thread
 from .executor_idempotency import IdempotencyTable
@@ -23,6 +23,10 @@ from .run_report import build_report
 from .serialization import error_details
 from .snapshot import RunSnapshot, changed_layer_items, diff_changed
 from .tool_registry import coded_fact
+
+
+
+HAND_BACK_S = 60.0
 
 try:
     from ..tools import guards
@@ -36,7 +40,6 @@ CANCELLED_KEEP = 200
 
 def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
-
 
 
 def _open_dialog() -> str | None:
@@ -115,8 +118,6 @@ class _ExecutorRuns:
 
 
 
-
-
     def _inflight_description(self) -> str:
 
         now = time.monotonic()
@@ -125,12 +126,6 @@ class _ExecutorRuns:
         return ", ".join(parts[:3])
 
     def _on_main_thread_blocked(self, seconds: float, who: str) -> None:
-
-
-
-
-
-
 
 
 
@@ -207,11 +202,10 @@ class _ExecutorRuns:
             spent = now - started
 
 
-
-
-
             budget = (limits.current("CALL_MAX_SECONDS_BACKGROUND") if in_background
                       else limits.main_budget(name))
+            if in_background and spent > HAND_BACK_S and self._hand_back(tool_call_id, spent):
+                continue
             if spent <= budget:
                 continue
             if not in_background:
@@ -272,6 +266,33 @@ class _ExecutorRuns:
                 self._dialog_waits[tool_call_id] = (looped + step, on_dialog + (step if title is not None else 0.0),
                                                     title if title is not None else seen, pressed)
 
+    def _hand_back(self, tool_call_id: str, spent: float) -> bool:
+
+
+
+        entry = self._background.get(tool_call_id)
+        if entry is None or tool_call_id in self._handed_back:
+            return False
+        run_id, task, call = entry
+        tool = self._registry.get_tool(str(call.get("name")))
+        if not getattr(tool, "hands_back", False):
+            return False
+        from ..tools import processing_run
+        task_id, _entry = processing_run.adopt_running_call(task, str(call.get("name")))
+        self._handed_back[tool_call_id] = task_id
+        done, total, host = self._heard.get(tool_call_id, (0, None, ""))
+        result = {"status": "running", "task_id": task_id, "waited_s": round(spent),
+                  "received_bytes": int(done or 0), "poll": False,
+                  **coded_fact(hint="call_handed_back", tool=str(call.get("name")), task_id=task_id,
+                               waited_s=round(spent))}
+        if total:
+            result["total_bytes"] = int(total)
+        if host:
+            result["source"] = host
+        _entry.update({key: result[key] for key in ("received_bytes", "total_bytes", "source") if key in result})
+        self._deliver(call, result, time.monotonic() - spent)
+        return True
+
     def _answer_once(self, tool_call_id: str) -> None:
 
         self._answered[tool_call_id] = None
@@ -290,8 +311,6 @@ class _ExecutorRuns:
         budget = limits.main_budget(name)
 
 
-
-
         machine.note_slow_call(name, duration, budget)
         sentence = (f"{name} held the QGIS main thread for {duration:.0f} seconds, over the "
                     f"{budget:.0f} second budget for a call that runs there. "
@@ -299,7 +318,6 @@ class _ExecutorRuns:
         log_warning(sentence)
         if run_id:
             self._blocked[run_id] = sentence
-
 
 
     def _wake_watchdog(self) -> None:
@@ -313,15 +331,10 @@ class _ExecutorRuns:
         stalls.run_began(run_id)
 
 
-
-
-
         self._refresh_proxy()
-
         self.record_pending_after()
         self._run_mode[run_id] = (mode, approval)
         self._threads[run_id] = thread_id or ""
-
         self._prompts[run_id] = str(prompt or "")
         self._journal[run_id] = []
         self._touched[run_id] = set()
@@ -349,8 +362,6 @@ class _ExecutorRuns:
         while len(self._cancelled) > CANCELLED_KEEP:
             self._cancelled.popitem(last=False)
         if halt:
-
-            self._layouts.pop(run_id, None)
             try:
                 self.follower.halt()
             except Exception as exc:  # noqa: BLE001
@@ -438,11 +449,6 @@ class _ExecutorRuns:
 
 
 
-
-
-
-
-
         for watcher_end in (self.follower.end, self.stacker.end, self.scratch.end):
             try:
                 watcher_end()
@@ -451,8 +457,6 @@ class _ExecutorRuns:
         self._table.close()
 
     def bind_account(self) -> None:
-
-
 
 
 
@@ -496,6 +500,7 @@ class _ExecutorRuns:
         outputs = self._output_files.pop(run_id, None)
         objects = self._objects.pop(run_id, None)
         self._run_allowed.pop(run_id, None)
+        self._run_code_granted.pop(run_id, None)
         self._run_denied.pop(run_id, None)
         self._task_ids.pop(run_id, None)
         snapshot = self._snapshots.pop(run_id, None)
@@ -531,13 +536,9 @@ class _ExecutorRuns:
             self.stacker.place_pending()
         self.stacker.end()
 
-        layout = self._layouts.pop(run_id, "")
         if not replaced:
             self.follower.now()
-            if layout and self.follower.enabled:
-                layout_show.show(layout)
         self.follower.end()
-
         self.scratch.end()
         if getattr(self, "durable_after_run", False) and not replaced:
 
@@ -554,8 +555,6 @@ class _ExecutorRuns:
 
     def _record_after(self, run_id: str, thread_id: str, run_index: int, snapshot: RunSnapshot,
                       prompt: str = "") -> None:
-
-
 
 
 
@@ -598,8 +597,6 @@ class _ExecutorRuns:
 
 
 
-
-
         current = self.history.current(thread_id)
         moved = current is not None and current.run_id != run_id
         if moved:
@@ -615,7 +612,6 @@ class _ExecutorRuns:
             log_warning(f"After-run snapshot failed: {exc}")
             captured = False
         if captured:
-
 
 
             try:
@@ -646,7 +642,6 @@ class _ExecutorRuns:
         self._ended_run = ("", (), (), ())
         diff = getattr(snapshot, "last_diff", None) if snapshot is not None else None
         with stalls.probe("run_report.build"):
-
             report = scrub_result(build_report(snapshot, written, call_warnings=warnings, diff=diff,
                                                working_copies=self.scratch.working_copies(),
                                                hidden=self.scratch.hidden_ids(), declared=outputs))

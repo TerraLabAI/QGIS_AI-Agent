@@ -46,7 +46,6 @@ from .policy import AGENT_HOME, ensure_agent_directories
 
 RECORD_PREFIX = "process-"
 RECORD_SUFFIX = ".json"
-
 _LEGACY = ("last_call.json", "last_run.json")
 
 
@@ -130,8 +129,6 @@ def _open_record() -> None:
     _record["qgis_version"] = qgis_version()
 
 
-
-
 def start() -> None:
 
 
@@ -208,8 +205,6 @@ def write(run_id: str, tool_call_id: str, session_id: str, tool: str, args) -> N
 def clear() -> None:
 
     _update(call=None)
-
-
 
 
 def pid_alive(pid: int) -> bool:
@@ -396,8 +391,6 @@ def acknowledge() -> None:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Crash file not removed: {type(exc).__name__}: {exc}")
     _pending.clear()
-
-
 
 
 def _scrub(text: str) -> str:

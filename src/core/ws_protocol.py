@@ -68,8 +68,6 @@ class WsProtocolError(WsError):
 
 
 
-
-
 def parse_ws_url(url: str) -> tuple[bool, str, int, str]:
 
     if not isinstance(url, str) or any(ord(c) < 33 or ord(c) == 127 for c in url):
@@ -176,8 +174,6 @@ def build_ssl_context(ca_pem: bytes | None = None, insecure: bool = False) -> ss
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
     return ctx
-
-
 
 
 
@@ -359,7 +355,6 @@ def read_frame_ext(reader: SocketReader, require_mask: bool,
         payload = mask_bytes(payload, key)
 
 
-
     return fin, compressed, opcode, payload
 
 
@@ -368,8 +363,6 @@ def decode_text(payload: bytes) -> str:
         return payload.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise WsProtocolError(f"invalid UTF-8 in text frame: {exc}", 1007) from exc
-
-
 
 
 

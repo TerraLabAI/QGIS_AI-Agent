@@ -28,7 +28,6 @@ from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, sc
 from .style import ACCENT, DARK, INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
 
 
-
 SHEET_WIDTH = 280
 _MIN_WIDTH = 200
 
@@ -99,7 +98,6 @@ class AttachPopover(QFrame):
 
     add_files_requested = pyqtSignal()
     add_layer_requested = pyqtSignal()
-
     sources_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -155,8 +153,6 @@ class AttachPopover(QFrame):
         self.hide()
         signal.emit()
 
-
-
     def show_above(self, anchor: QWidget, panel: QWidget | None = None) -> None:
 
         panel = panel or anchor.window()
@@ -182,8 +178,6 @@ class AttachPopover(QFrame):
     def paintEvent(self, event):  # noqa: N802
         paint_styled_ground(self)
         super().paintEvent(event)
-
-
 
     def _set_focus(self, index: int) -> None:
         for i, row in enumerate(self._rows):

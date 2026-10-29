@@ -9,6 +9,45 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-10-29
+
+### Added
+
+- A thumb up or down under every finished answer: one vote per answer, kept with the chat, with an
+  optional "Tell us more" that says the conversation and recent logs go with it.
+- Send feedback replaces Report a problem: one dialog from the home footer, Settings and error
+  cards.
+- The map glides to where the AI agent works, never zooms in on its own, and gives the view back.
+- A quiet "Make a report" suggestion under an analysis answer fills the message box, never sends.
+- "+N more" under a result list opens the rest, "Show less" folds it; search results and pages
+  read open their site on click.
+- A first look at a file reads point clouds, CAD tables, folder members, tile containers and NetCDF
+  time.
+
+### Changed
+
+- A slow load hands back to the AI agent after 60 seconds, its row names the host it waits on, and
+  a layer that arrives later is still credited, licensed and stacked like the others.
+- One HTML report file per title in a conversation: a new version replaces the old one.
+- Fewer permission cards in Balanced and fewer obvious questions.
+- The Pro offer card shows from three free tasks left and can be closed.
+
+### Fixed
+
+- Saving with Ctrl+S or by the AI agent writes its layers without freezing QGIS, and the
+  "not saved to disk" bar goes once they are written.
+- No more QGIS freezes reading a large project's layers, counting DXF or KML features, on the first
+  temporary file, or checking a GeoPackage on a network drive.
+- QGIS saves and quits when its temporary folder was deleted, and never saves emptier label
+  positions or styles.
+- Undo brings back features a request deleted, files Windows held for a moment, and asks no
+  transformation or edit question it does not need; a failed restore says why.
+- A run no longer opens the Layout Designer by itself.
+- A code card decision no longer fails on an offline network share; a report rewritten under
+  OneDrive leaves one file.
+- A GeoPackage or MBTiles of raster tiles loads as a raster; odd LAS headers no longer stop a
+  first look.
+
 ## [1.9.2] - 2026-10-27
 
 ### Added

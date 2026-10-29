@@ -25,7 +25,6 @@ def tr(text: str) -> str:
 
 class _ControllerAccount:
 
-
     def _on_sign_in(self) -> None:
         if self._account.state == Account.PAIRING:
             self._account.reopen_pairing_page()
@@ -91,6 +90,7 @@ class _ControllerAccount:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run {run['run_id'][:8]}: no cancel sent when the account left: {exc}")
         finally:
+            self._note_stop("SIGNED_OUT")
             self._finish_run(run["run_id"], RunStatus.CANCELLED, tr("Stopped: signed out."), {}, None)
 
     def _bind_account(self, keep_view: bool) -> None:

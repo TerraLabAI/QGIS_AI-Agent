@@ -43,8 +43,6 @@ from .snapshot_features import _jobs
 from .writeback import write_atomic
 
 
-
-
 PROMPT_CHARS = 120
 
 
@@ -199,8 +197,6 @@ def _clean_log(value) -> list:
 
 
 
-
-
 _SESSION_TOOLS = frozenset({"qgis_edit_begin", "qgis_edit_rollback", "qgis_edit_restore_aids"})
 
 
@@ -212,7 +208,6 @@ def _layer_put_back(snapshot, item: dict, same_project: bool, tool: str = "") ->
         return True, ""
     what, lid = item.get("what"), str(item.get("id") or "")
     if item.get("provider") == "memory":
-
         reason = (getattr(snapshot, "unbacked_reasons", None) or {}).get(lid) if what != "added" else ""
         return (False, reason) if reason else (True, "")
     if what in ("added", "removed"):
@@ -315,8 +310,6 @@ def _same_state(older, newer) -> bool:
         other = b.layers.get(lid) or {}
         if not isinstance(record, dict):
             return False
-
-
 
 
 
@@ -457,18 +450,12 @@ class Checkpoint:
         self.layers = list(layers or [])
 
 
-
-
         self.prompt = _opening(prompt)
         self.created_at = time.time()
-
         self.project_file = str(getattr(snapshot, "original_file", "") or "")
-
         self.project_files = [self.project_file] if self.project_file else []
         self.project_generation = 0
-
         self.project_memory = ""
-
         self.log: list = []
 
 
@@ -490,10 +477,17 @@ class Checkpoint:
 
 
 
+
+
         snapshot = self.snapshot
         names = getattr(snapshot, "unbacked", None) if snapshot is not None else None
         if not names:
             return []
+
+        touched = {str(item.get("id") or "") for call in self.log or () for item in call.get("layers") or ()}
+        if self.kind == KIND_BEFORE and self.log:
+            names = {lid: name for lid, name in names.items()
+                     if lid in touched or str(lid).startswith("copy:")}
         records = getattr(snapshot, "layers", None) or {}
 
 
@@ -522,8 +516,6 @@ class Checkpoint:
         return os.path.splitext(os.path.basename(self.project_file))[0] if self.project_file else ""
 
     def describe(self, current: bool, start: bool = False, other_project: bool = False) -> dict:
-
-
 
 
 
@@ -607,7 +599,6 @@ class CheckpointHistory:
 
 
         self._folder = folder
-
         self._loaded: set[str] = set()
 
 
@@ -631,7 +622,6 @@ class CheckpointHistory:
 
         self._lineage: list[str] = []
         self._remember(_open_project_file())
-
 
 
     def _index_path(self, thread_id: str) -> str:
@@ -793,7 +783,6 @@ class CheckpointHistory:
 
 
 
-
                 records = {id(entry): record_ for entry, record_ in zip(kept, record["entries"])}
                 weight = {key: len(json.dumps(value, ensure_ascii=False, default=str).encode("utf-8")) + 2
                           for key, value in records.items()}
@@ -880,7 +869,6 @@ class CheckpointHistory:
         protected = self._protected_ids(thread_id, keep_id)
 
 
-
         kept_ids: set[str] = {e.id for e in entries if e.id in protected}
         bytes_kept = 0.0
         for entry in entries:
@@ -952,7 +940,6 @@ class CheckpointHistory:
                 self._save(thread_id)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Checkpoint retention failed: {exc}")
-
 
 
     def next_run_index(self, thread_id: str) -> int:
@@ -1129,7 +1116,6 @@ class CheckpointHistory:
         entry = Checkpoint(kind, run_id, run_index, thread_id, snapshot, changed_layers, layers, prompt)
         entry.project_generation = self._generation
         entry.project_memory = _memory_project()
-
         behind = entries[current] if current is not None and current < len(entries) else (
             entries[-1] if entries else None)
         if kind == KIND_BEFORE:
@@ -1194,7 +1180,6 @@ class CheckpointHistory:
             return
         entry.log = _clean_log(log)
         self._save(thread_id)
-
 
 
     def file_versions(self, thread_id: str, entry: Checkpoint) -> list[tuple[str, str]]:
@@ -1407,7 +1392,6 @@ class CheckpointHistory:
         for i, entry in enumerate(entries):
             row = entry.describe(entry.id == current_id, start=(i == 0),
                                  other_project=not self.belongs_here(entry))
-
             row["same_as_previous"] = entry.id in twins
             log = logs.get(entry.run_id) if entry.kind != KIND_EDITS else None
             if log:

@@ -32,7 +32,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import tuning
+from ..core import canvas_glide, tuning
 from ..core import zone_of_interest as zoi
 from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
@@ -46,9 +46,7 @@ ZONE_ACTIONS = ("set", "get", "clear")
 
 
 
-
 MAX_BUFFER_KM = 100.0
-
 
 
 
@@ -57,7 +55,6 @@ MAX_BUFFER_KM = 100.0
 
 BUFFER_PROJ = ("+proj=aeqd +lat_0={lat:.6f} +lon_0={lon:.6f} +x_0=0 +y_0=0 "
                "+datum=WGS84 +units=m +no_defs")
-
 
 
 def _area_text(area: float) -> str:
@@ -106,9 +103,6 @@ def _zone(args: dict) -> dict:
                       hint="zone_actions", actions=list(ZONE_ACTIONS))
 
 
-
-
-
 def _zone_get() -> dict:
     held = zoi.read_zone()
     if held is None:
@@ -127,9 +121,6 @@ def _zone_clear() -> dict:
         "tell_user": ("The zone of interest is gone from the project."
                       if had else "There was no zone of interest to clear."),
     }
-
-
-
 
 
 def _zone_set(args: dict) -> dict:
@@ -448,9 +439,6 @@ def _buffered(geom: QgsGeometry, crs: QgsCoordinateReferenceSystem,
     return grown if metric is None else zoi.to_crs(grown, metric, crs)
 
 
-
-
-
 def _zone_result(held: zoi.Zone, source: str) -> dict:
     box = held.geometry.boundingBox()
     area = held.area_km2()
@@ -511,7 +499,8 @@ def _zoom_to(layer) -> None:
             return
         box = extent.boundingBox()
         box.scale(1.1)
-        canvas.setExtent(box)
-        canvas.refresh()
+        with canvas_glide.gliding(canvas):
+            canvas.setExtent(box)
+            canvas.refresh()
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Zone: the map could not be moved to it: {exc}")

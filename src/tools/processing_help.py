@@ -16,8 +16,6 @@ _algorithms: dict = {"rows": [], "count": -1}
 def _list_algorithms(args: dict) -> dict:
     registry = QgsApplication.processingRegistry()
     algs = registry.algorithms()
-
-
     if len(algs) != _algorithms["count"]:
         _algorithms["rows"] = [(a.id(), a.displayName(), a.group()) for a in algs]
         _algorithms["count"] = len(algs)

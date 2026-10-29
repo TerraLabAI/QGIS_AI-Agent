@@ -142,7 +142,6 @@ def dominant_class_note(counts: list[int], field: str, mode_name: str) -> dict:
 
 
 
-
 _NEIGHBOUR_FEATURES = 300
 
 _CLOSE_DELTA_E = 10.0
@@ -227,8 +226,6 @@ def _closest_pair(colours: dict):
                                 if best is None or pair < best:
                                     best = pair
     return best if best is not None and best[0] < _CLOSE_DELTA_E else None
-
-
 
 
 _INTEGER_TYPES = ("Byte", "Int8", "UInt16", "Int16", "UInt32", "Int32")
@@ -393,8 +390,6 @@ def min_max_origin(limits: str, cut: tuple | None = None):
     return origin
 
 
-
-
 _SCALE_TYPES = {"linear": "Linear", "area": "Area", "flannery": "Flannery", "exponential": "Exponential"}
 
 
@@ -437,8 +432,6 @@ def proportional_size(renderer, field: str, low: float, high: float, min_size: f
             legend.setTitle(field)
             renderer.setDataDefinedSizeLegend(legend)
     return scale if scale in _SCALE_TYPES else "linear"
-
-
 
 
 _STYLE_CATEGORIES_CACHE = None

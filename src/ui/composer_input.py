@@ -102,15 +102,10 @@ class ComposerInput(QPlainTextEdit):
 
     submitted = pyqtSignal()
     mention_chosen = pyqtSignal(object)
-
     mentions_changed = pyqtSignal()
-
     files_requested = pyqtSignal()
-
     recall_requested = pyqtSignal()
     height_changed = pyqtSignal()
-
-
     image_pasted = pyqtSignal(object)
     paths_pasted = pyqtSignal(object)
 
@@ -118,9 +113,7 @@ class ComposerInput(QPlainTextEdit):
         super().__init__(parent)
         self.setObjectName("composerInput")
         self.setFrameShape(QFrame.Shape.NoFrame)
-
         self.setAcceptDrops(False)
-
         self.setTabChangesFocus(True)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -146,7 +139,6 @@ class ComposerInput(QPlainTextEdit):
 
         self._spans: list[tuple] = []
         self._has_chips = False
-
         self._plugins: list | None = None
 
 
@@ -156,19 +148,15 @@ class ComposerInput(QPlainTextEdit):
 
         self._candidates: list | None = None
         self._connector_rows: list | None = None
-
         self._visible_ids: set | None = None
         self._sheet = MentionSheet(self)
         self._sheet.picked.connect(self._insert_mention)
-
 
         self._height_host: QWidget | None = None
 
         self.textChanged.connect(self._sync_height)
         self.textChanged.connect(self._sync_spans)
         self._sync_height()
-
-
 
     def set_mention_provider(self, provider) -> None:
 
@@ -270,7 +258,6 @@ class ComposerInput(QPlainTextEdit):
         if self._connector_rows is None:
             self._connector_rows = self._connectors() if self._provider is not None else []
         connectors = self._connector_rows
-
         rows = sheet_rows(word, items, connectors, self._plugin_candidates(),
                           {"layers": self.tr("Layers"), "sources": self.tr("Data sources"),
                            "plugins": self.tr("QGIS plugins")},
@@ -377,8 +364,6 @@ class ComposerInput(QPlainTextEdit):
         self.insert_chip(data)
         self.mention_chosen.emit(data)
 
-
-
     def insert_chip(self, data: dict) -> bool:
 
 
@@ -393,7 +378,6 @@ class ComposerInput(QPlainTextEdit):
         if not value or kind in ("header", FILES):
             return False
         if any(span[2] == kind and span[3] == value for span in self._spans):
-
             return False
         cursor = self.textCursor()
         before = cursor.block().text()[:cursor.positionInBlock()]
@@ -554,8 +538,6 @@ class ComposerInput(QPlainTextEdit):
         self.setTextCursor(cursor)
         self.setCurrentCharFormat(QTextCharFormat())
 
-
-
     def canInsertFromMimeData(self, source) -> bool:  # noqa: N802
         return bool(source.hasImage() or source.hasUrls()) or super().canInsertFromMimeData(source)
 
@@ -579,8 +561,6 @@ class ComposerInput(QPlainTextEdit):
         text = clean_pasted_text(source.text())
         if text:
             self.insertPlainText(text)
-
-
 
     def event(self, event):  # noqa: N802
 
@@ -686,7 +666,6 @@ class ComposerInput(QPlainTextEdit):
                     return True
         if event.text() and event.text().isprintable():
             if str(self.currentCharFormat().property(_CHIP_VALUE) or ""):
-
                 self.setCurrentCharFormat(QTextCharFormat())
         return False
 
@@ -727,8 +706,6 @@ class ComposerInput(QPlainTextEdit):
                 self._sync_height()
         except (RuntimeError, AttributeError):
             pass
-
-
 
     def _line_count(self, cap: int) -> int:
 
@@ -849,8 +826,6 @@ class ComposerInput(QPlainTextEdit):
         super().resizeEvent(event)
         self._sync_height()
 
-
-
     def _chip_rects(self) -> list:
 
         out = []
@@ -863,7 +838,6 @@ class ComposerInput(QPlainTextEdit):
             cursor.setPosition(end)
             tail = self.cursorRect(cursor)
             if tail.top() != head.top():
-
                 continue
             rect = QRectF(head.left() - _CHIP_PAD, head.top() + 1,
                           tail.left() - head.left() + 2 * _CHIP_PAD, head.height() - 2)
@@ -900,8 +874,6 @@ class ComposerInput(QPlainTextEdit):
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         return QSize(60, self.height())
-
-
 
     def text(self) -> str:
 

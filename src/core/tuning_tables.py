@@ -25,7 +25,6 @@ from .logger import log_warning
 
 
 
-
 _SERVICE_URLS = frozenset({
 
     "overture_api",
@@ -999,7 +998,6 @@ def _read_services(raw: Any) -> dict:
 
 
 
-
 _CHECK_TABLES = frozenset({
     "metric_algs",
     "join_algorithms",
@@ -1064,7 +1062,6 @@ def _read_checks(raw: Any) -> dict:
         if clean is not None:
             out[key] = clean
     return out
-
 
 
 

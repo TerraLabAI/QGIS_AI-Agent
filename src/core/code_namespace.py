@@ -387,8 +387,6 @@ def shown_files(namespace: dict) -> list[str]:
     return out
 
 
-
-
 def _pointer(obj) -> int:
     if obj is None:
         return 0
@@ -401,7 +399,7 @@ def _pointer(obj) -> int:
 
 
 def _signature(layer) -> tuple:
-    from .layer_order import is_web_service
+    from .context_layers import count_is_cheap
 
     look, data = (), ()
     try:
@@ -418,7 +416,7 @@ def _signature(layer) -> tuple:
 
 
 
-            count = -1 if is_web_service(layer) else layer.featureCount()
+            count = layer.featureCount() if count_is_cheap(layer) else -1
             data = (count, layer.isModified(), layer.subsetString())
     except Exception:  # noqa: BLE001  # nosec B110
         pass

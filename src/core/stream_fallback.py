@@ -26,6 +26,8 @@ from datetime import datetime, timezone
 from qgis.core import QgsProject, QgsRasterLayer
 from qgis.PyQt.QtCore import QCoreApplication
 
+from . import telemetry
+from . import telemetry_events as ev
 from .logger import log_warning
 from .qt_compat import qgis_iface
 
@@ -128,6 +130,7 @@ def _repoint(layer_id: str, source: str, path: str, error: str, box: list) -> No
 
 def _say(name: str, text: str, warning: bool = True) -> None:
     log_warning(text)
+    telemetry.track(ev.NOTICE_SHOWN, {"surface": "stream_fallback", "kind": "warning" if warning else "info"})
     iface = qgis_iface()
     if iface is None:
         return

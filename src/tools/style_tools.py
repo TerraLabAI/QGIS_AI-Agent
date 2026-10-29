@@ -228,9 +228,6 @@ def _style_plan(args: dict) -> dict:
         return _set_layer_legend_image(layer, args)
     if not isinstance(layer, QgsVectorLayer):
 
-
-
-
         return _style_raster_layer(layer, target, args)
 
     style_type = str(args.get("style_type") or "").strip()
@@ -244,8 +241,6 @@ def _style_plan(args: dict) -> dict:
         picked = _picked_symbol(layer, str(args["symbol"]).strip())
         if isinstance(picked, dict):
             return picked
-
-
 
 
     if not layer.isSpatial():
@@ -493,7 +488,6 @@ def _decide_categories(plan: dict, facts: dict) -> dict:
         unique_values = list(by_text.values())
     else:
         unique_values = facts["distinct"]
-
 
 
 
@@ -2048,12 +2042,6 @@ def _stroke_unit(unit):
 
 
 
-
-
-
-
-
-
 _FLASH_DEFAULT_FLASHES = 3
 _FLASH_DEFAULT_DURATION_MS = 500
 _FLASH_MAX_FLASHES = 10
@@ -2248,8 +2236,6 @@ def _color_error(value, argument: str) -> dict | None:
 
 
 
-
-
 _COLOUR_ARGS = (("color", "color"), ("stroke_color", "stroke_color"),
                 ("label_color", "label_color"), ("null_class_color", "null_class_color"))
 
@@ -2351,7 +2337,6 @@ def _set_layer_labels_2d(args: dict) -> dict:
                 **_previous_style_keys(layer, kept_style, "labels")}
 
     field = args.get("field")
-
 
 
     base = None

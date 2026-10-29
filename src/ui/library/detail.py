@@ -64,7 +64,6 @@ class SourceChip(Pressable):
 class ExampleDetail(QWidget):
 
 
-
     crumb_requested = pyqtSignal(int)
     prompt_chosen = pyqtSignal(str)
     connector_requested = pyqtSignal(str)
@@ -101,7 +100,6 @@ class ExampleDetail(QWidget):
         self._scroll.viewport().installEventFilter(self)
 
         self._use = primary_button(self, tr("Try in chat"))
-
         use = self._use
         use.setAutoDefault(True)
         use.setDefault(True)
@@ -132,8 +130,6 @@ class ExampleDetail(QWidget):
                 self._hero.setFixedHeight(self._hero.heightForWidth(max(1, width)))
             except RuntimeError:
                 self._hero = None
-
-
 
     def _clear(self) -> None:
         self._hero = None
@@ -216,7 +212,6 @@ class ExampleDetail(QWidget):
                 for n, step in enumerate(steps, 1)), rich=True)
         caveat = str(getattr(case, "caveat", "") or "")
         if caveat:
-
             table.add(tr("Good to know"), caveat)
         return table
 
@@ -224,7 +219,6 @@ class ExampleDetail(QWidget):
         from ..widgets import FlowLayout
 
         host = QWidget(self._column)
-
         lay = FlowLayout(host, C.px(4), C.px(4))
         lay.setContentsMargins(0, 0, 0, 0)
         for row in rows[:6]:

@@ -49,25 +49,21 @@ except Exception:  # noqa: BLE001
 
 
 _REGION_CONTINENT: dict[str, str] = {
-
     "FR": "EU", "ES": "EU", "DE": "EU", "NL": "EU", "CH": "EU", "GB": "EU",
     "NO": "EU", "AT": "EU", "BE": "EU", "IT": "EU", "EU": "EU",
     "PT": "EU", "IE": "EU", "SE": "EU", "DK": "EU", "FI": "EU", "PL": "EU",
     "CZ": "EU", "SK": "EU", "GR": "EU", "RO": "EU", "BG": "EU", "HU": "EU",
     "LU": "EU", "IS": "EU", "HR": "EU", "SI": "EU", "RS": "EU", "EE": "EU",
     "LV": "EU", "LT": "EU", "UA": "EU", "TR": "EU", "CY": "EU", "MT": "EU",
-
     "US": "NA", "CA": "NA",
     "MX": "NA", "GT": "NA", "CR": "NA", "PA": "NA", "CU": "NA", "DO": "NA",
     "BR": "SA",
     "AR": "SA", "CL": "SA", "CO": "SA", "PE": "SA", "UY": "SA", "EC": "SA",
     "BO": "SA", "PY": "SA", "VE": "SA",
-
     "JP": "AS", "IN": "AS",
     "CN": "AS", "TW": "AS", "HK": "AS", "MO": "AS", "SG": "AS", "KR": "AS",
     "ID": "AS", "MY": "AS", "PH": "AS", "TH": "AS", "VN": "AS", "BD": "AS",
     "PK": "AS", "LK": "AS", "NP": "AS", "IL": "AS", "AE": "AS", "SA": "AS",
-
     "AU": "OC", "NZ": "OC", "PG": "OC", "FJ": "OC",
     "ZA": "AF", "MA": "AF", "SN": "AF", "DZ": "AF", "TN": "AF", "EG": "AF",
     "NG": "AF", "KE": "AF", "GH": "AF", "CI": "AF", "CM": "AF", "ET": "AF",

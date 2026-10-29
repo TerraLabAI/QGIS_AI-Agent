@@ -76,13 +76,10 @@ from .widgets import ChatLabel, ElidedLabel
 
 _FOLD_MS = 300
 _UNBOUNDED = 16777215
-
 _SPARK_PX = 14
 _CHEVRON_PX = 12
-
 _HEAD_MARGINS = (6, 4, 6, 4)
 _HEAD_GAP = 8
-
 _BODY_INDENT = 22
 _RAIL_X = 8
 _BODY_PAD_Y = 4
@@ -90,12 +87,10 @@ _BODY_PAD_Y = 4
 
 _LIVE_ROWS = 4
 
-
 _TRACE_TITLE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BASE}px; color: {INK_2}; font-weight: 500;"
     " background: transparent; border: none; }"
 )
-
 _NOTE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none; }}"
 )
@@ -131,12 +126,9 @@ class RunTrace(QWidget):
         self._live = started is not None
         self._reduced_motion = reduced_motion
         self._latest = ""
-
         self._note = ""
         self._expanded = True
-
         self._manual: bool | None = None
-
         self._show_all = False
         self._roll_anim: QVariantAnimation | None = None
         self._anims: set = set()
@@ -184,7 +176,6 @@ class RunTrace(QWidget):
         head.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
         self._head.clicked.connect(self._on_head_clicked)
-
         self._head.hovered.connect(self._chevron.set_hot)
         col.addWidget(self._head)
 
@@ -192,7 +183,6 @@ class RunTrace(QWidget):
         self._body_col = QVBoxLayout(self._body)
         self._body_col.setContentsMargins(_BODY_INDENT, _BODY_PAD_Y, 0, _BODY_PAD_Y)
         self._body_col.setSpacing(SPACE_TIGHT)
-
         self._earlier = HoverRow(self._body)
         self._earlier.setObjectName("traceEarlier")
         self._earlier.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -213,8 +203,6 @@ class RunTrace(QWidget):
             self._clock.hide()
         self._sync_head()
         self.set_expanded(False)
-
-
 
     def add_tool(self, card: ToolCard) -> None:
 
@@ -303,8 +291,6 @@ class RunTrace(QWidget):
     def is_live(self) -> bool:
         return self.status == "running"
 
-
-
     def _lines(self) -> list:
 
 
@@ -347,8 +333,6 @@ class RunTrace(QWidget):
         self._manual = not self._expanded
         self.set_expanded(self._manual)
 
-
-
     def hold(self, anim) -> None:
 
         self._anims.add(anim)
@@ -363,8 +347,6 @@ class RunTrace(QWidget):
 
         if self.isVisible() and self._expanded and self._roll_anim is None:
             fade_up(widget, self)
-
-
 
     def set_note(self, text: str) -> None:
 
@@ -450,8 +432,6 @@ class RunTrace(QWidget):
             return self.tr("Thought for {time}").format(time=took)
         return self.tr("Done")
 
-
-
     def close(self) -> None:
 
 
@@ -527,8 +507,6 @@ class RunTrace(QWidget):
         failed[-1].set_open(True)
         self.set_expanded(True)
         return True
-
-
 
     def toggle(self) -> None:
         self._on_head_clicked()

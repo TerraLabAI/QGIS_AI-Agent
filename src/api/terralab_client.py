@@ -109,8 +109,6 @@ def _scrub_urls(text: str) -> str:
     return _URL_RE.sub("<url>", text or "")
 
 
-
-
 _plugin_version_cache: str | None = None
 
 
@@ -177,8 +175,6 @@ def config_query(product: str, lang: str = "") -> str:
     except Exception:  # nosec B110
         pass
     return f"/api/plugin/config?{urlencode(params)}"
-
-
 
 
 _last_server_contact_monotonic: float | None = None
@@ -382,8 +378,6 @@ def _classify_network_error(reply, detail: str = "") -> tuple[str, str]:
                               service_reachable=server_reached_recently(), through_proxy=through_proxy)
 
 
-
-
 class TerraLabClient:
 
 
@@ -417,8 +411,6 @@ class TerraLabClient:
         if host not in _LOCAL_HOSTS:
             raise ValueError("Refusing to send an authenticated request over plain HTTP to a "
                              "remote host (the key would travel in cleartext). Use HTTPS.")
-
-
 
     def get_usage(self, auth: dict, lang: str = "") -> dict:
 
@@ -458,6 +450,12 @@ class TerraLabClient:
         body = json.dumps({"events": safe_events}, separators=(",", ":")).encode("utf-8")
         return self._request("POST", "/api/plugin/track", auth=auth, body=body,
                              timeout_ms=timeout_ms or _TIMEOUT_INTERACTIVE, require_body=True)
+
+    def send_feedback(self, report: dict, auth: dict) -> dict:
+
+        body = json.dumps(report, separators=(",", ":")).encode("utf-8")
+        return self._request("POST", "/api/plugin/problem-report", auth=auth, body=body,
+                             timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
     def get_plugin_login_link(self, target: str, cta_source: str, auth: dict | None = None,
                               locale: str | None = None) -> dict:
@@ -530,8 +528,6 @@ class TerraLabClient:
         body = json.dumps({"code": code, "product": PRODUCT_ID}).encode("utf-8")
         return self._request("POST", "/api/plugin/pair/cancel", body=body, timeout_ms=5_000)
 
-
-
     def _make_qnetwork_request(self, auth: dict | None, timeout_ms: int, path: str) -> QNetworkRequest:
         req = QNetworkRequest(QUrl(own_cache_entry(self._resolve_url(path))))
         req.setRawHeader(b"Content-Type", b"application/json")
@@ -559,8 +555,6 @@ class TerraLabClient:
 
         if timeout_ms is None:
             timeout_ms = _TIMEOUT_API
-
-
 
 
         state: dict = {}

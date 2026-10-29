@@ -136,8 +136,6 @@ def register_spatial_stats_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _check_args(args: dict) -> dict | None:
     method = str(args.get("method") or "")
     if method not in METHODS:
@@ -341,8 +339,6 @@ def _display_field(layer) -> str:
     return name
 
 
-
-
 def _open(plan: dict, state: dict) -> dict | None:
 
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
@@ -468,8 +464,6 @@ def _fetch(source, request, state: dict, plan: dict, rows: list, halted) -> None
             background.breathe(index)
     finally:
         features.close()
-
-
 
 
 def _name(row: dict) -> str:
@@ -670,8 +664,6 @@ def _ellipses(plan: dict, rows: list) -> dict:
             "skipped": {k: v for k, v in skipped.items() if v}, "too_few": too_few}
 
 
-
-
 def _free_names(existing: QgsFields, wanted: list) -> list:
     taken = {existing.at(i).name().lower() for i in range(existing.count())}
     out = []
@@ -810,8 +802,6 @@ def _add_layer(plan: dict, path: str, table: str, field: str, name: str) -> dict
     if renamed:
         out["renamed_intermediates"] = renamed
     return out
-
-
 
 
 def _stopped() -> dict:

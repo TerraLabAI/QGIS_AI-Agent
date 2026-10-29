@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from qgis.core import QgsApplication, QgsPalettedRasterRenderer, QgsRasterLayer
+from qgis.core import QgsPalettedRasterRenderer, QgsRasterLayer
 
 try:
 
@@ -22,16 +22,6 @@ from .style_tools import _previous_style_keys, _style_to_put_back
 def _color(value):
     color = qcolor_from_text(str(value or ""))
     return color if color.isValid() else None
-
-
-def _registry_names():
-    registry = getattr(QgsApplication, "rasterRendererRegistry", None)
-    if registry is not None:
-        registry = registry()
-    else:
-        from qgis.core import QgsRasterRendererRegistry
-        registry = QgsRasterRendererRegistry()
-    return registry.renderersList()
 
 
 def register_raster_style_tools(registry: ToolRegistry) -> None:
@@ -84,8 +74,6 @@ def _set_raster_class_style(args):
     if error:
         return error
     layer, band, values = validated
-    if "paletted" not in _registry_names():
-        return tool_error("This QGIS build does not provide the native paletted raster renderer.", "UNSUPPORTED")
     classes = [QgsPalettedRasterRenderer.Class(value, color, label) for value, color, label in values]
     renderer = QgsPalettedRasterRenderer(layer.dataProvider(), band, classes)
     previous = _style_to_put_back(layer)

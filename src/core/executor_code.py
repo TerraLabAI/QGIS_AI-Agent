@@ -83,8 +83,6 @@ FILE_WRITES_GRANT = "execute_code:file_writes"
 
 
 
-
-
 NO_CARD_BUDGET_S = 60.0
 CARD_BUDGET_S = 120.0
 
@@ -190,7 +188,6 @@ def _card_words(reasons: list) -> str:
 
 class _ExecutorCode:
 
-
     def _code_plan(self, call: dict, args: dict, danger: str) -> str:
 
         if not _classes_on():
@@ -209,10 +206,8 @@ class _ExecutorCode:
         declared = _declared(call)
         if cls == ce.ASK and declared is not None:
             cls = declared
-        elif (cls == ce.ASK and not verdict.unprovable and not verdict.user
+        elif (cls == ce.ASK and not verdict.unprovable and not verdict.drops_user
               and ce.RANK[verdict.floor] <= ce.RANK[ce.FP]):
-
-
 
 
             cls = ce.higher(verdict.floor, ce.P)
@@ -223,7 +218,8 @@ class _ExecutorCode:
         if verdict.user and cls in (ce.P, ce.FP):
             reasons = _user_layer_reasons(verdict.layers, reasons)
         call["code_plan"] = {"cls": cls, "granted": cls if cls != ce.ASK else ce.FW,
-                             "reasons": reasons, "user": verdict.user,
+                             "reasons": reasons, "user": verdict.user, "drops_user": verdict.drops_user,
+                             "door": verdict.unprovable,
                              "layers": None if verdict.layers is None else sorted(verdict.layers)}
         if cls == ce.FW and _ceiling(call) == ce.FW:
             return ce.DANGER[ce.FP]
@@ -392,24 +388,40 @@ class _ExecutorCode:
 
 
 
+
+
         if approval == Approval.AUTO:
             return False
         plan = call.get("code_plan") or {}
         cls = plan.get("cls", ce.ASK)
-        if ce.RANK[cls] <= ce.RANK[_ceiling(call)] and not (plan.get("user") and cls != ce.R):
+        if ce.RANK[cls] <= ce.RANK[_ceiling(call)] and not (plan.get("drops_user") and cls != ce.R):
             return False
         if self._code_class_allowed(call):
+            return False
+        if self._code_granted_for_answer(call):
+            log(f"ALLOW execute_code ({cls}): the user allowed this class of snippet in this answer")
             return False
         if plan.get("reasons"):
             call["sentence"] = tr("Run Python code ({what}).").format(what=_card_words(plan["reasons"]))
         return True
+
+    def _code_grantable(self, call: dict) -> bool:
+
+
+
+        plan = call.get("code_plan") or {}
+        return plan.get("cls") != ce.D and not plan.get("door") and not plan.get("drops_user")
+
+    def _code_granted_for_answer(self, call: dict) -> bool:
+        granted = self._run_code_granted.get(str(call.get("run_id") or ""))
+        cls = (call.get("code_plan") or {}).get("cls", ce.ASK)
+        return bool(granted) and self._code_grantable(call) and ce.RANK[cls] <= ce.RANK[granted]
 
     def _code_class_allowed(self, call: dict) -> bool:
 
         plan = call.get("code_plan") or {}
         return bool(plan.get("cls") == ce.FW
                     and self._settings.is_allowed(self._project_path(), FILE_WRITES_GRANT))
-
 
 
     def _code_context(self, call: dict):
@@ -432,7 +444,6 @@ class _ExecutorCode:
                        else tuning.ceiling("execute_code_no_card_budget_s", NO_CARD_BUDGET_S, 20.0)),
             registry=self._registry, run_id=run_id, stop=lambda: self.stop_requested.emit(run_id),
             before_in_qgis=lambda: self._code_point_now(call)))
-
 
 
     @staticmethod
@@ -460,8 +471,6 @@ class _ExecutorCode:
 
             return bool(call.get("carded"))
         if self._code_runs_isolated(call):
-
-
 
 
 
@@ -543,9 +552,6 @@ class _ExecutorCode:
 
 
 
-
-
-
         before = call.pop("code_editing_before", None)
         opened = before is None or bool(_editing_layer_ids() - before)
         if before is not None:
@@ -600,7 +606,6 @@ class _ExecutorCode:
         self._code_card(call)
 
 
-
     def _code_tripped(self, call: dict, result: dict) -> None:
 
         tool_call_id = str(call.get("tool_call_id"))
@@ -637,6 +642,7 @@ class _ExecutorCode:
         plan = call.get("code_plan") or {}
         reasons = plan.get("reasons") or []
         call["always"] = True
+        call["per_answer"] = self._code_grantable(call)
         if reasons:
             call["sentence"] = tr("Run Python code ({what}).").format(what=_card_words(reasons))
         self._executing.discard(tool_call_id)
@@ -645,7 +651,11 @@ class _ExecutorCode:
         self.permission_needed.emit(tool_call_id, run_id, str(call.get("sentence") or tr("Run Python code")),
                                     call.get("args") or {})
 
-    @staticmethod
-    def _code_decided(call: dict) -> None:
+    def _code_decided(self, call: dict) -> None:
+
 
         call["carded"] = True
+        run_id = str(call.get("run_id") or "")
+        if run_id and self._code_grantable(call):
+            cls = (call.get("code_plan") or {}).get("cls", ce.ASK)
+            self._run_code_granted[run_id] = ce.higher(self._run_code_granted.get(run_id, ce.R), cls)

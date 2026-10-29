@@ -26,9 +26,6 @@
 
 
 
-
-
-
 from __future__ import annotations
 
 import codecs
@@ -61,8 +58,6 @@ from .widgets import ElidedLabel, IconButton
 
 
 
-
-
 FAMILY_COLORS = {
     "pdf": "#fa423e",
     "doc": "#0285ff",
@@ -88,13 +83,10 @@ _FAMILIES = {
     "r": "code", "ipynb": "code", "css": "code",
 }
 
-
 PREVIEW_TEXT_BYTES = 512 * 1024
 _ZIP_PART_MAX_BYTES = 32 * 1024 * 1024
 _ZIP_PARTS_MAX = 400
-
 PDF_MAX_PAGES = 300
-
 _FILL_W = 0.72
 _FILL_H = 0.88
 _PANEL_MAX_W = 760
@@ -128,8 +120,6 @@ def can_open(item: dict) -> bool:
         return bool(path) and os.path.isfile(path)
     except (OSError, ValueError):
         return False
-
-
 
 
 def _read_text(path: str) -> tuple[str, bool] | None:
@@ -225,7 +215,6 @@ def size_words(size_bytes) -> str:
     for unit in ("KB", "MB", "GB"):
         value /= 1024.0
         if value < 1024 or unit == "GB":
-
             number = f"{value:.1f}" if value < 10 else f"{value:.0f}"
             return f"{number} {unit}"
     return ""
@@ -288,8 +277,6 @@ def _open_pdf(path: str) -> _Pdf | None:
         return None
 
 
-
-
 class _Page(QWidget):
 
 
@@ -311,7 +298,6 @@ class _Page(QWidget):
             ratio = widget_pixel_ratio(self)
             want = int(self.width() * ratio)
             if self._pixmap is None or abs(self._drawn_at - want) > 8:
-
                 self._drawn_at = want
                 image = self._pdf.render(self._index, want)
                 if image is not None:
@@ -386,8 +372,6 @@ class FilePreview(QDialog):
         col.setSpacing(0)
         col.addWidget(self._header())
         col.addWidget(self._body(), 1)
-
-
 
     def _header(self) -> QWidget:
         head = QWidget(self._panel)
@@ -526,8 +510,6 @@ class FilePreview(QDialog):
         col.addStretch(1)
         return box
 
-
-
     def _open_outside(self) -> None:
         from .external_links import open_local_path
         from .file_links import is_safe_to_open, reveal_target
@@ -535,8 +517,6 @@ class FilePreview(QDialog):
         target = self.path if is_safe_to_open(self.path) else reveal_target(self.path)
         self.close()
         open_local_path(target, self._window)
-
-
 
     def open_over_window(self) -> None:
         geometry = self._window.frameGeometry() if self._window is not None else None

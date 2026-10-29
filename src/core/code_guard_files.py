@@ -71,8 +71,6 @@ def _allowed(path) -> bool:
     return validate_read(str(path)) is None
 
 
-
-
 def safe_glob(pathname, *, root_dir=None, recursive=False):
 
 
@@ -198,8 +196,6 @@ def safe_glob_module() -> types.ModuleType:
     return module
 
 
-
-
 def _mkdtemp(suffix=None, prefix=None, dir=None):  # noqa: A002
     for part in (suffix, prefix):
         if part and ("/" in str(part) or "\\" in str(part) or ".." in str(part)):
@@ -213,8 +209,6 @@ def safe_tempfile_module() -> types.ModuleType:
     module.gettempdir = _tempfile.gettempdir
     module.mkdtemp = _mkdtemp
     return module
-
-
 
 
 class ZipArchive:
@@ -365,8 +359,6 @@ def safe_zipfile_module() -> types.ModuleType:
     for name in ("ZipInfo", "BadZipFile", "LargeZipFile", "ZIP_STORED", "ZIP_DEFLATED", "ZIP_BZIP2", "ZIP_LZMA"):
         setattr(module, name, getattr(_zipfile, name))
     return module
-
-
 
 
 _PureNative = _pathlib.PureWindowsPath if IS_WINDOWS else _pathlib.PurePosixPath

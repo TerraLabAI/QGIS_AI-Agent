@@ -42,8 +42,6 @@ CLOSE_OVERHANG = 6
 
 
 
-
-
 _QUIET_HOVER_QSS = (
     'QFrame#attachCard[clickable="true"]:hover { background: ' + HOVER + ";"
     " border: 1px solid " + HAIRLINE_STRONG + "; }"
@@ -137,9 +135,6 @@ class AttachCard(QWidget):
         lines.setSpacing(1)
 
 
-
-
-
         self._name_label = ElidedLabel(self._name, self._frame,
                                        Qt.TextElideMode.ElideMiddle)
         self._name_label.setObjectName("attachName")
@@ -207,8 +202,6 @@ class AttachCard(QWidget):
 
         self._frame.setStyleSheet(_QUIET_HOVER_QSS if quiet else "")
 
-
-
     def sizeHint(self) -> QSize:  # noqa: N802
         hint = self._frame.sizeHint()
         overhang = CLOSE_OVERHANG if self._closable else 0
@@ -222,8 +215,6 @@ class AttachCard(QWidget):
         if self._close is not None:
             self._close.move(self.width() - CLOSE_SIZE, 0)
             self._close.raise_()
-
-
 
     def set_kind(self, kind: str) -> None:
         self._kind_label.setText(str(kind or ""))

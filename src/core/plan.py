@@ -15,7 +15,6 @@
 
 
 
-
 from __future__ import annotations
 
 
@@ -141,7 +140,6 @@ def effort_allowed(effort: str) -> bool:
 
 
 def effort_default() -> str:
-
 
 
 

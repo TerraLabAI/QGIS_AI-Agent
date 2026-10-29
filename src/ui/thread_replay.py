@@ -176,7 +176,6 @@ def _agent_steps(panel, m: dict, run_id: str) -> list:
 
 
     steers = [s for s in m.get("steers") or [] if isinstance(s, dict) and str(s.get("text") or "").strip()]
-
     steps.append(lambda: setattr(panel, "_replay_round", None))
     for index, call in enumerate(calls):
         steps.extend(lambda s=s: _replay_steer(panel, s) for s in steers if _steer_after(s) == index)
@@ -209,7 +208,6 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
         text, summary = summary, ""
     usage = m.get("usage") if isinstance(m.get("usage"), dict) else {}
     seconds = usage.get("duration_s", usage.get("elapsed_s"))
-
     blocks = panel.message_list.traces_of(run_id) if run_id else []
     for block in blocks:
         if not block.is_empty():
@@ -220,14 +218,12 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
     if text:
         bubble = AgentBubble(text)
         bubble.run_id = run_id
-
         bubble.link_activated.connect(panel._on_bubble_link)
         if run_id:
             panel._run(run_id).bubble = bubble
-
             panel._wire_answer(bubble, run_id)
             bubble.finish_streaming()
-
+            bubble.set_rating(str(m.get("rating") or ""))
         sources = m.get("sources")
         if isinstance(sources, list):
             bubble.set_sources([x for x in sources[:50] if isinstance(x, dict)])
@@ -247,7 +243,6 @@ def _agent_answer(panel, m: dict, run_id: str) -> None:
             bubble.finish_streaming()
         if changes and run_id:
             panel.add_run_changes(run_id, changes, animate=False)
-
         panel._mark_compaction(usage, animate=False)
 
 

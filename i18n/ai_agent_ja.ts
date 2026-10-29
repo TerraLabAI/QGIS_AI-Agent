@@ -2482,6 +2482,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>changed</source>
             <translation>変更</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>ファイル {path} を確認</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>印刷レイアウト[ {layout_name}][、ページ {page}]を確認</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>マップの一部を確認</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>表示中のマップを確認</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>マップ上の {layer_names} レイヤを確認</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>マップ上の {layer_names} を確認</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>送信できませんでした。接続を確認してもう一度お試しいただくか、{email} までご連絡ください。</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>例：バッファがメートルではなく度で出力された。</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>不具合の報告、アイデアの提案、うまくいっている点の共有ができます。</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送信</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>フィードバックを送信</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>送信中...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>ここからフィードバックを送るにはサインインしてください。または {email} までご連絡ください。</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>メッセージ、この会話、技術情報（プラグインと QGIS のバージョン、システム、最近のログ）が届きます。パスワードやファイルの内容は送信されません。</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>短時間に複数のレポートが送信されました。数分後にもう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>このレポートには、あなたの説明と現在の会話が含まれます。問題の修正とAI Agentの改善に使用します。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{size}をダウンロード中</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>{host} の応答を待っています</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>場所を検索中</translation>
         </message>
@@ -3387,6 +3459,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo changes</source>
             <translation>変更を元に戻す</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>良くない回答</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>良い回答</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>レポートを作成</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>この分析の地図とグラフを含むHTMLレポートの依頼文を作成します</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>{layer}の未保存の編集を保存できなかったため、何も復元されませんでした。QGISで保存するか破棄してから、もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer}の未保存の編集を保存する前にコピーできなかったため、何も復元されませんでした。QGISで編集を保存するか破棄してから、もう一度お試しください。</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>変更を元に戻しますか?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>変更をやり直しますか?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>{n} 件のリクエストを元に戻しますか?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>手動での編集は、先に履歴に保存されます。</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>この時点以降の編集は、先にマップ履歴に保存されます。</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Drawing the map</source>
             <translation>マップを描画中</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>ありがとうございます。フィードバックを送信しました。</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>この分析について、地図、グラフ、手法を含むHTMLレポートを作成してください。</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Map history ({key})</source>
             <translation>地図の履歴 ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>フィードバックを送信</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Click to open its page.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>今すぐプランを開始</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>無料のタスク：残り1回</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>無料のタスク：残り{n}回</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Click to open its page.</source>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · 無料トライアル</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>フィードバックを送信</translation>
         </message>
     </context>
     <context>
@@ -9857,6 +9977,72 @@ This file is no longer where the run wrote it.</source>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>一時レイヤ</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent は処理中です</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>ファイルに保存</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>プロジェクトを保存しました</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>一時レイヤは保存されていません</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI エージェントはまだリクエストを処理中です。QGIS を終了して処理を停止しますか?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} 個の一時レイヤ ({names}) はディスクに保存されていません。プロジェクトを閉じると内容は失われます。</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>ラベルの位置が保存されませんでした</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>プロジェクトを開いている間に QGIS の一時フォルダーが削除されました。前回の保存以降に移動したラベルまたはダイアグラムは保存できませんでした。以前に保存した位置はそのまま残っています。もう一度移動してから保存してください。</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agentはまだレイヤを保存中です</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n}個のレイヤが、プロジェクトと同じ場所のGeoPackageにまだ書き込まれています。今QGISを終了すると失われます。それでも終了しますか？</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>送信できませんでした。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送信</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>この会話と最近のログが一緒に送信され、問題の修正と AI Agent の改善に使われます。</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>詳しく教えてください</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>フィードバックありがとうございます</translation>
         </message>
     </context>
 </TS>

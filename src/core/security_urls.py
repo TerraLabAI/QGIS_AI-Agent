@@ -142,21 +142,6 @@ _URL_IN_TEXT_RE = re.compile(r"(?i)https?://[^\s\"'<>|\\]+")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 _DNS_TTL_S = 30.0
 _DNS_TIMEOUT_S = 2.0
 _DNS_CACHE_MAX = 256
@@ -218,7 +203,6 @@ def look_up_ahead(host: str) -> bool:
 
 
 def resolve_host(host: str) -> tuple[str, ...]:
-
 
 
 
@@ -454,13 +438,6 @@ def vetted_addresses(url: str):
 
 
 
-
-
-
-
-
-
-
     try:
         host = _host_of(url)
     except ValueError:
@@ -577,7 +554,6 @@ def validate_url(url: str) -> str | None:
         return "The URL cannot be parsed."
     if port in _NON_HTTP_PORTS:
         return f"Port {port} answers a protocol other than HTTP and is not fetched."
-
 
 
 

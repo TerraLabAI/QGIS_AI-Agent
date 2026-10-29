@@ -175,9 +175,6 @@ def register_earthengine_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _ensure_initialized(project: str | None = None):
 
 
@@ -214,9 +211,6 @@ def _today_iso() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
-
-
-
 def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
 
 
@@ -251,9 +245,6 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
     return created
 
 
-
-
-
 def _add_gee_dataset(args: dict) -> dict:
     ee_id = (args.get("ee_id") or "").strip()
     if not ee_id:
@@ -285,7 +276,6 @@ def _add_gee_dataset(args: dict) -> dict:
 
     if collection is not None:
         try:
-
 
 
 
@@ -359,9 +349,6 @@ def _acquired(ee, image, reduced: bool, date_start, date_end) -> str:
         return from_range(image.date().format("YYYY-MM-dd").getInfo())
     except Exception:  # noqa: BLE001
         return ""
-
-
-
 
 
 def _resolve_source_image(args: dict, ee):

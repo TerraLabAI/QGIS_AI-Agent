@@ -7,12 +7,6 @@
 
 
 
-
-
-
-
-
-
 from __future__ import annotations
 
 from qgis.core import QgsProject
@@ -29,33 +23,6 @@ def _layout_named(args, key: str) -> str:
 def built_layout(name: str, args) -> str:
 
     return _layout_named(args, getattr(spec(name), "builds_layout_at", ""))
-
-
-def removed_layout(name: str, args) -> str:
-
-
-
-
-    if isinstance(args, dict) and str(args.get("item_id") or "").strip():
-        return ""
-    return _layout_named(args, getattr(spec(name), "removes_layout_at", ""))
-
-
-def code_layout(result, current: str) -> str:
-
-
-
-
-
-    changed = result.get("changed") if isinstance(result, dict) else None
-    if not isinstance(changed, dict):
-        return current
-    for key in ("layouts_added", "layouts_changed"):
-        names = changed.get(key)
-        if isinstance(names, dict) and names:
-            return str(list(names)[-1])
-    gone = changed.get("layouts_removed")
-    return "" if isinstance(gone, list) and current in gone else current
 
 
 def _master_name(designer) -> str:

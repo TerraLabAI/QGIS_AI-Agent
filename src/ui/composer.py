@@ -23,7 +23,6 @@
 
 
 
-
 from __future__ import annotations
 
 import html
@@ -123,7 +122,6 @@ _ATTACH_BTN_QSS = (
 )
 
 
-
 _DRAFT_SAVE_MS = 500
 
 
@@ -176,7 +174,6 @@ class Composer(QFrame):
 
 
     queue_clicked = pyqtSignal()
-
     queue_recall_requested = pyqtSignal()
     files_attached = pyqtSignal(object)
     files_dropped = pyqtSignal(object)
@@ -187,12 +184,9 @@ class Composer(QFrame):
     layer_card_clicked = pyqtSignal(str)
     permission_mode_changed = pyqtSignal(str)
     effort_changed = pyqtSignal(str)
-
     upsell_shown = pyqtSignal(str)
-
     upgrade_requested = pyqtSignal(str)
     example_chosen = pyqtSignal(str)
-
     reconnect_requested = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -211,7 +205,6 @@ class Composer(QFrame):
 
         self._empty_chat = True
         self._blocked_placeholder = ""
-
         self._reply_placeholder = ""
 
 
@@ -277,7 +270,6 @@ class Composer(QFrame):
         col.setContentsMargins(_ROW_PAD_X + 2, SPACE_OUTER, _ROW_PAD_X, _ROW_PAD_X)
         col.setSpacing(SPACE_CARD)
 
-
         self._attach_host = QWidget(self)
         self._attach_flow = FlowLayout(self._attach_host, SPACE_CARD, SPACE_TIGHT)
         self._attach_host.hide()
@@ -298,8 +290,6 @@ class Composer(QFrame):
 
         self._attach_btn.clicked.connect(self.open_attach)
         row.addWidget(self._attach_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-
-
 
 
         row.addSpacing(_CHIP_GAP - SPACE_OUTER)
@@ -347,8 +337,6 @@ class Composer(QFrame):
         self._send_btn.clicked.connect(self._on_send_or_stop)
         row.addWidget(self._send_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
-
-
         self._hint = QLabel(self)
         self._hint.setStyleSheet(_HINT_QSS)
         self._hint.setWordWrap(True)
@@ -366,8 +354,6 @@ class Composer(QFrame):
         self._paint_send()
         self._sync_send_enabled()
         self._sync_controls()
-
-
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
@@ -445,15 +431,11 @@ class Composer(QFrame):
             if callable(setter):
                 setter(compact)
 
-
-
     def text(self) -> str:
         return self._input.text()
 
     def set_text(self, text: str) -> None:
         self._input.set_text(text)
-
-
 
     def _on_draft_edit(self) -> None:
         if self._draft_busy:
@@ -463,7 +445,6 @@ class Composer(QFrame):
         if text.strip():
             self._draft_timer.start()
         else:
-
             self._draft_timer.stop()
             self._save_draft()
 
@@ -730,10 +711,7 @@ class Composer(QFrame):
             self._hint.hide()
             self._apply_placeholder()
 
-
-
     def examples_dialog(self, place: str = "", opened_from: str = "composer") -> ExamplesDialog:
-
 
 
 
@@ -750,7 +728,6 @@ class Composer(QFrame):
         return dialog
 
     def open_examples(self, connector: str = "") -> None:
-
 
 
 
@@ -803,7 +780,6 @@ class Composer(QFrame):
 
 
 
-
         mention = dict(chip) if isinstance(chip, dict) and chip.get("value") else None
         draft = self.text().strip()
         if mention is None:
@@ -820,8 +796,6 @@ class Composer(QFrame):
             self.append_text(text)
         self.focus_input()
 
-
-
     def attach_popover(self) -> AttachPopover:
 
         if self._attach is None:
@@ -833,14 +807,11 @@ class Composer(QFrame):
         return self._attach
 
     def open_attach(self) -> None:
-
         if self._blocked:
             return
         self._attach_btn.set_active(True)
         self.attach_popover().set_layers_available(self._input.has_layers())
         self.attach_popover().show_above(self._attach_btn, self.window())
-
-
 
     def attachments(self) -> list:
 
@@ -877,7 +848,6 @@ class Composer(QFrame):
         path = item.get("path")
 
 
-
         if path and any(_same_attachment(i.get("path"), path) for i in self._items):
             return False
         tag = AttachmentTag(item, self._attach_host)
@@ -906,7 +876,6 @@ class Composer(QFrame):
         return self.add_attachment(item) if item else False
 
     def add_paths(self, paths) -> list:
-
 
 
 
@@ -987,8 +956,6 @@ class Composer(QFrame):
     def _sync_row(self) -> None:
         self._attach_host.setVisible(bool(self._items) or bool(len(self._chips)))
         self._attach_host.updateGeometry()
-
-
 
     def chips(self) -> list:
 
@@ -1093,8 +1060,6 @@ class Composer(QFrame):
         if accepted:
             self.files_attached.emit(accepted)
             self.focus_input()
-
-
 
     def set_running(self, running: bool) -> None:
         self._running = bool(running)
@@ -1251,7 +1216,6 @@ class Composer(QFrame):
             self._send_btn.setProperty("queue", queue)
             repolish(self._send_btn)
         if queue:
-
             self._send_btn.setIcon(icon_for(self._send_btn, "lu.corner-down-left", _DISC_GLYPH, qcolor(INK)))
             self._send_btn.setToolTip(
                 self.tr("The queue holds 5 messages. Send or remove one first.") if self._queue_full else
@@ -1318,7 +1282,6 @@ class Composer(QFrame):
 
     def _submit(self, *, check_quality: bool) -> None:
         if self._running:
-
             if self.queues() and not self._queue_full:
                 too_large = self._too_large()
                 if too_large:
@@ -1375,15 +1338,12 @@ class Composer(QFrame):
                 first_run_funnel.note_banner(f"prompt_{reason}")
                 self.show_warning(self._refusal(reason), offer_send_anyway=True)
                 return
-
-
         self._last_sent = self.text()
         self._last_sent_items = [dict(item) for item in self._items]
         self.send_clicked.emit()
 
     def _recall_last(self) -> None:
         if self._queued and not self._input.isReadOnly() and not self.text():
-
             self.queue_recall_requested.emit()
             return
 
@@ -1451,8 +1411,6 @@ class Composer(QFrame):
         else:
             self._on_submit()
 
-
-
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._input:
             if event.type() == QEvent.Type.FocusIn:
@@ -1471,8 +1429,6 @@ class Composer(QFrame):
             return
         self.setProperty(name, value)
         repolish(self)
-
-
 
     @staticmethod
     def local_paths(mime) -> list:

@@ -25,12 +25,6 @@
 
 
 
-
-
-
-
-
-
 from __future__ import annotations
 
 from itertools import islice
@@ -70,12 +64,9 @@ from .style import (
 from .trace_rows import Chevron, HoverRow
 from .widgets import ChatLabel, ElidedLabel
 
-
-
 _MARK_PX = 16
 _MARK_SLOT_PX = 20
 _MARK_TOP_PX = 3
-
 _TURN_MS = 900
 _MAX_STEPS = 100
 
@@ -134,8 +125,6 @@ class _StepMark(QWidget):
         self.first, self.last = first, last
         self.update()
 
-
-
     def _start_turn(self) -> None:
         if self._turn is not None or not self.isVisible():
             return
@@ -169,14 +158,11 @@ class _StepMark(QWidget):
             self._start_turn()
 
     def hideEvent(self, event):  # noqa: N802
-
         self._stop_turn()
         super().hideEvent(event)
 
     def cleanup(self) -> None:
         self._stop_turn()
-
-
 
     def paintEvent(self, event):  # noqa: N802
         try:
@@ -247,10 +233,8 @@ class _StepRow(QWidget):
         row.addWidget(self.mark)
         self._label = ChatLabel(label, self, wrap=True)
         self._label.setObjectName("planStep")
-
         self._label.setContentsMargins(0, 2, 0, 12)
         row.addWidget(self._label, 1, Qt.AlignmentFlag.AlignTop)
-
         self._count = QLabel(count or "", self)
         self._count.setObjectName("planStepCount")
         self._count.setStyleSheet(_HINT_QSS)
@@ -290,7 +274,6 @@ class PlanCard(QWidget):
         self._rows: dict[str, _StepRow] = {}
         self._reduced_motion = reduced_motion
         self._expanded = True
-
         self._manual: bool | None = None
         self.setObjectName("planCard")
         outer = QVBoxLayout(self)
@@ -318,7 +301,6 @@ class PlanCard(QWidget):
         self._title.setObjectName("planTitle")
         self._title.setStyleSheet(_TITLE_QSS)
         head.addWidget(self._title, 0, Qt.AlignmentFlag.AlignVCenter)
-
         self._current = ElidedLabel("", self._head)
         self._current.setObjectName("planCurrent")
         self._current.setStyleSheet(_HINT_QSS)
@@ -344,8 +326,6 @@ class PlanCard(QWidget):
         col.addWidget(self._body)
         self._chevron.set_open(True)
 
-
-
     def set_steps(self, steps) -> None:
 
 
@@ -360,7 +340,6 @@ class PlanCard(QWidget):
         kept: dict[str, _StepRow] = {}
         for i, step in enumerate(steps):
             step_id = str(step.get("id") or i)
-
             if step_id in kept:
                 continue
             label = str(step.get("label") or "")[:240]
@@ -425,8 +404,6 @@ class PlanCard(QWidget):
     def _still(self) -> bool:
         return callable(self._reduced_motion) and bool(self._reduced_motion())
 
-
-
     def finish(self, status: str) -> None:
 
 
@@ -443,8 +420,6 @@ class PlanCard(QWidget):
         self._sync()
         if self._manual is not True:
             self.set_expanded(False)
-
-
 
     def _on_head_clicked(self) -> None:
         self._manual = not self._expanded

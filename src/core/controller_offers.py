@@ -53,7 +53,6 @@ def _has_change(rows) -> bool:
 
 class _ControllerOffers:
 
-
     def _on_proposal(self, call: dict) -> None:
 
 
@@ -173,7 +172,6 @@ class _ControllerOffers:
         for tool_call_id, call in list(self._proposals.items()):
             if str(call.get("run_id") or "") == run_id:
                 self._answer_proposal(tool_call_id, None, "cancelled")
-
 
 
     def _offer_cleanup(self, run_id: str, status: str) -> None:

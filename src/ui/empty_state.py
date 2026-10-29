@@ -12,7 +12,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
@@ -26,6 +25,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .font_scale import scale_qss_font_px
 from .icons import icon_for
+from .shared import tr
 from .style import (
     ACCENT_TINT,
     ACCENT_TINT_ON,
@@ -65,14 +65,35 @@ _ROW_QSS = scale_qss_font_px(
 _ROW_GLYPH = 18
 
 
+_FOOT_QSS = scale_qss_font_px(
+    f"QPushButton {{ background: transparent; color: {MUTED}; border: none;"
+    f" border-radius: 6px; padding: 4px 8px; font-size: {FONT_HINT}px; text-align: left; }}"
+    f"QPushButton:hover {{ background: {ACCENT_TINT}; color: {INK}; }}"
+    f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
+)
+_FOOT_GLYPH = 14
+
+
 def _row(parent: QWidget, glyph: str, text: str) -> QPushButton:
     button = QPushButton(text, parent)
     button.setStyleSheet(_ROW_QSS)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setAutoDefault(False)
-
     button.setIcon(icon_for(button, glyph, _ROW_GLYPH, QColor(MUTED)))
     button.setIconSize(QSize(_ROW_GLYPH, _ROW_GLYPH))
+    return button
+
+
+def feedback_foot(parent: QWidget) -> QPushButton:
+
+    button = QPushButton(tr("Send feedback"), parent)
+    button.setObjectName("feedbackFoot")
+    button.setStyleSheet(_FOOT_QSS)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setAutoDefault(False)
+    button.setIcon(icon_for(button, "lu.bug", _FOOT_GLYPH, QColor(MUTED)))
+    button.setIconSize(QSize(_FOOT_GLYPH, _FOOT_GLYPH))
+    button.setToolTip(tr("Report a bug, suggest an idea, or share what's working well."))
     return button
 
 

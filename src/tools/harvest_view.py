@@ -33,7 +33,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import background, layer_order, limits
+from ..core import background, canvas_glide, layer_order, limits
 from ..core.follow import hold_view
 from ..core.logger import log, log_warning
 from ..core.policy import create_managed_temp_dir
@@ -133,9 +133,6 @@ def register_harvest_view_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _feature_count(layer) -> int:
 
     count = layer.featureCount()
@@ -164,9 +161,6 @@ def _extent_dict(extent) -> dict:
         "xmax": extent.xMaximum(),
         "ymax": extent.yMaximum(),
     }
-
-
-
 
 
 def _set_layer_filter(args: dict) -> dict:
@@ -431,9 +425,6 @@ def _tie_again(project, layer, ties: dict) -> None:
                 log_warning(f"set_layer_filter: {kind} of {layer.name()!r} not put back: {exc}")
 
 
-
-
-
 def _zoom_to_selected(args: dict) -> dict:
     name = args.get("layer_name")
     if name:
@@ -458,8 +449,9 @@ def _zoom_to_selected(args: dict) -> dict:
             hint="no_selection", layer=layer.name(),
         )
     canvas = iface.mapCanvas()
-    canvas.zoomToSelected(layer)
-    canvas.refresh()
+    with canvas_glide.gliding(canvas):
+        canvas.zoomToSelected(layer)
+        canvas.refresh()
     reprojected = hold_view(canvas, prefer=layer.crs(), target=(layer.boundingBoxOfSelected(), layer.crs()))
     return {
         **({"project_crs_changed": reprojected} if reprojected else {}),
@@ -470,9 +462,6 @@ def _zoom_to_selected(args: dict) -> dict:
         "crs": canvas.mapSettings().destinationCrs().authid(),
         "scale": round(canvas.scale()),
     }
-
-
-
 
 
 def _open_attribute_table(args: dict) -> dict:
@@ -502,9 +491,6 @@ def _open_attribute_table(args: dict) -> dict:
     if subset:
         out["layer_filter"] = subset
     return out
-
-
-
 
 
 def _stretch_algorithm():
@@ -737,9 +723,6 @@ def _release_path(path: str):
 
     if security.validate_path(path, write=True, overwrite=True):
         return
-
-
-
 
 
 

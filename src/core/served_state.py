@@ -34,18 +34,13 @@ UPGRADE_URL = build_utm_url(f"/dashboard/{PRODUCT_ID}", "upgrade")
 
 
 
-
 PRICING_URL = build_utm_url(f"/{PRODUCT_ID}#pricing", "pricing")
 PRODUCT_URL = build_utm_url(f"/{PRODUCT_ID}", "dock_branding")
 TERMS_URL = build_utm_url("/terms-of-sale", "settings_terms")
 PRIVACY_URL = build_utm_url("/privacy-policy", "settings_privacy")
 
-
-
 TUTORIAL_URL = build_utm_url("/blog/ai-agent-complete-guide", "tutorial")
 TERRALAB_MORE_URL = build_utm_url("", "menu_more")
-
-
 
 
 SITE_HOME_URL = build_utm_url("", "settings_site")
@@ -53,8 +48,6 @@ SUPPORT_EMAIL = "yvann.barbot@terra-lab.ai"
 
 
 BOOK_A_CALL_URL = ""
-
-
 
 
 
@@ -109,13 +102,6 @@ def set_server_config(payload: dict | None) -> None:
 _connectors: list = []
 
 _connectors_version = 0
-
-
-
-
-
-
-
 
 
 
@@ -247,8 +233,6 @@ _CONNECTOR_ARG_KEYS = ("url", "provider", "source", "collection", "portal",
 
 
 
-
-
 def _theme_source(args) -> str:
 
 
@@ -329,7 +313,6 @@ def _url_within(value: str, host: str, path: str) -> bool:
 
 
 
-
     if "/" not in value and "." not in value:
         return False
     got_host, got_path = _host_and_path(value)
@@ -376,8 +359,6 @@ def _match_connector(connectors, tool: str, values: list) -> dict | None:
             if cname and len(cname) >= 3 and cname in value:
                 return dict(connector)
     return None
-
-
 
 
 _qgis_plugins: list = []
@@ -445,8 +426,6 @@ def known_plugins_by_folder() -> dict:
 
 
 
-
-
     out: dict = {}
     for row in get_qgis_plugins() or []:
         names = [str(n) for n in (row.get("folders") or ()) if n]
@@ -480,8 +459,6 @@ def set_hidden_plugins(folders) -> None:
     cleaned = sorted({str(f).strip() for f in (folders or []) if str(f or "").strip()})
     _hidden_plugins = cleaned
     _hidden_state["received"] = True
-
-
 
 
     store = _connector_store()
@@ -775,7 +752,6 @@ def get_invoice_url() -> str:
     return _served_url("invoice_url", INVOICE_URL)
 
 
-
 def _served_points(key: str, fallback: tuple) -> list:
     pricing = _served_config.get("pricing")
     plan = pricing.get(key) if isinstance(pricing, dict) else None
@@ -814,9 +790,6 @@ def get_served_pro_points() -> list:
 
 
 
-
-
-
 _MAX_PLAN_NAME_CHARS = 40
 
 
@@ -828,7 +801,6 @@ def get_plan_name(key: str, shipped: str, field: str = "name") -> str:
     if isinstance(value, str) and value.strip():
         return value.strip()[:_MAX_PLAN_NAME_CHARS]
     return shipped
-
 
 
 
@@ -866,7 +838,6 @@ def served_label_map(key: str, max_rows: int = _MAX_LABEL_ROWS) -> dict:
 
 
 
-
 _MAX_EFFORT_NAME_CHARS = 24
 _MAX_EFFORT_NOTE_CHARS = 200
 
@@ -880,7 +851,6 @@ def get_effort_text(level: str, name: str, note: str) -> tuple:
     served_name = str(row.get("name") or "").strip()[:_MAX_EFFORT_NAME_CHARS]
     served_note = str(row.get("note") or "").strip()[:_MAX_EFFORT_NOTE_CHARS]
     return (served_name or name, served_note or note)
-
 
 
 

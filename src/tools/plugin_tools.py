@@ -253,9 +253,6 @@ def register_plugin_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _paths_to(root_menu, label: str, key, limit: int = 3) -> list:
 
 

@@ -103,8 +103,6 @@ def register_integration_tools(registry: ToolRegistry):
 
 
 
-
-
     registry.register(Tool(
         name="ai_segment_status",
         danger="read",
@@ -186,7 +184,6 @@ def _register_aiedit_actions(registry: ToolRegistry):
 
 
 def _register_aiedit_generate(registry: ToolRegistry):
-
 
 
 
@@ -353,7 +350,6 @@ def _aiedit_status(args: dict) -> dict:
 
 
 def _aiedit_generate(args: dict) -> dict:
-
 
 
 

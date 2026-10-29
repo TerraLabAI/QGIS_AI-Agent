@@ -499,9 +499,6 @@ def _finalise(gdal, stage: str, gpkg: str, tables: list, is_canceled):
     return added
 
 
-
-
-
 def _safe_stem(value: str) -> str:
     stem = re.sub(r"[^A-Za-z0-9_-]+", "_", str(value or "merged"))[:60].strip("._-") or "merged"
     return f"merged_{stem}" if stem.upper() in {"CON", "PRN", "AUX", "NUL"} else stem

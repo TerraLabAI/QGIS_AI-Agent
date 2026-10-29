@@ -606,7 +606,6 @@ def _address_of(holders, url: str) -> str:
 
 
 
-
     for holder in holders:
         for key in ("url", "source"):
             value = str(holder.get(key) or "").strip()
@@ -753,7 +752,6 @@ def credit_added(layers, result, tool: str = "", args=None, facts=None) -> None:
 
 
 
-
                 url = _address_of([*holders, args] if isinstance(args, dict) else holders, url)
                 sublayer = next((str(h["typename"]) for h in holders if h.get("typename")), sublayer)
             row = catalog.source_licence(url, sublayer) if url else None
@@ -800,7 +798,6 @@ def credit_added(layers, result, tool: str = "", args=None, facts=None) -> None:
                     entry.setdefault("attribution", credit["attribution"])
             if failed and result is not None:
                 continue
-
 
 
 

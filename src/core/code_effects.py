@@ -51,7 +51,6 @@
 
 
 
-
 from __future__ import annotations
 
 import ast
@@ -88,12 +87,9 @@ _R_MODULES = frozenset({
 
 
 
-
-
     "shapely", "shapely.geometry", "shapely.ops", "shapely.affinity", "shapely.prepared",
     "shapely.strtree", "shapely.validation", "shapely.wkt", "shapely.wkb",
     "PyQt5.QtCore", "PyQt5.QtGui", "PyQt6.QtCore", "PyQt6.QtGui",
-
 
     "pyproj",
 })
@@ -207,12 +203,10 @@ _UNPROVABLE = frozenset({
 })
 
 
-
 _APP_PATH_READS = frozenset({"svgPaths", "defaultSvgPaths"})
 
 _DEFERRED_ATTRS = frozenset({"connect", "singleShot", "start", "exec", "exec_", "processEvents",
                              "addTask", "setInterval", "callLater"})
-
 
 
 
@@ -296,12 +290,15 @@ class Verdict:
 
 
 
+    drops_user: bool = False
+
+
+
     layers: frozenset | None = None
 
     @property
     def danger(self) -> str:
         return DANGER[self.cls]
-
 
 
 def _words(name: str) -> str:
@@ -322,8 +319,6 @@ def _callee(node: ast.Call) -> tuple[str, str]:
 
 
 def _library_names(tree: ast.AST, libraries: frozenset) -> set:
-
-
 
 
 
@@ -496,7 +491,6 @@ def _local_instances(tree: ast.AST, classes: set[str]) -> set[str]:
 
 
 
-
 _REACH_ALL = frozenset({"activeLayer", "selectedLayers", "mapLayers", "findLayers", "checkedLayers", "children",
                         "layers", "visibleLayers", "layerTreeLayers", "orderedLayers"})
 
@@ -518,6 +512,8 @@ _VIEW_ATTRS = frozenset({"triggerRepaint", "setItemVisibilityChecked", "setItemV
                          "invertSelection", "selectAll", "setDestinationCrs", "zoomToFullExtent", "flashFeatureIds",
                          "flashGeometries", "setMapTool", "setRotation", "setMagnificationFactor"})
 
+_USER_DROPS = frozenset({"removeMapLayer", "removeMapLayers", "removeChildNode", "removeChildren",
+                         "removeAllChildren", "takeChild"})
 _PROJECT_ROOTS = frozenset({"project", "QgsProject", "iface", "canvas"})
 _SNIPPET_NAMES = frozenset({"iface", "project", "canvas", "processing", "tools", "edit", "exports", "qgis",
                             "layer", "layers", "read_text", "validate_path", "print", "math", "json",
@@ -763,6 +759,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             | _stored_names(tree))
     owner = _Owner(tree, user_layer, safe, frozenset(t["p_modules"]), frozenset(own_names or ()))
     user = False
+    drops = False
     commits = False
 
 
@@ -780,10 +777,10 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
 
 
-        nonlocal commits, deletes, doors, user
+        nonlocal commits, deletes, doors, user, drops
         if on_user and not handed_on and name not in t["r_attrs"] and name not in _VIEW_ATTRS:
-
             user = True
+            drops = drops or name in _USER_DROPS
         if root == "QgsApplication" and name in _APP_PATH_READS and not handed_on:
             pass
         elif root == "tools":
@@ -937,10 +934,10 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
 
         return Verdict(ASK, [UNSEEN], seen, level, doors, user,
-                       layers=None if owner.unresolved else frozenset(owner.named))
+                       layers=None if owner.unresolved else frozenset(owner.named), drops_user=drops)
 
     return Verdict(level, [reason for cls, reason in found if cls == level], user=user and level != R,
-                   layers=None if owner.unresolved else frozenset(owner.named))
+                   layers=None if owner.unresolved else frozenset(owner.named), drops_user=drops and level != R)
 
 
 def _flatten(targets) -> list:

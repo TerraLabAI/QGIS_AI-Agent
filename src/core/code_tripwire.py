@@ -49,10 +49,12 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import threading
 
 from . import code_effects as ce
 from . import security
+from .host_platform import resolved
 
 _STATE_ATTR = "_terralab_code_tripwire"
 
@@ -120,8 +122,6 @@ def install() -> bool:
         return False
     state.installed = True
     return True
-
-
 
 
 def _plugin_dirs() -> tuple[str, ...]:
@@ -275,8 +275,7 @@ def _software_roots() -> tuple:
 def _spellings(full: str) -> tuple:
 
 
-
-    return tuple(dict.fromkeys((full, os.path.realpath(full))))
+    return tuple(dict.fromkeys((full, resolved(full))))
 
 
 def is_own(full: str, own) -> bool:
@@ -289,8 +288,6 @@ def is_own(full: str, own) -> bool:
 def _under_software(full: str) -> bool:
     spellings = _spellings(full)
     return any(security._under(spelling, root) for root in _software_roots() for spelling in spellings)
-
-
 
 
 
@@ -515,8 +512,6 @@ def _bytecode_cache_write(event: str, args) -> bool:
     return True
 
 
-
-
 class _Arm:
     def __init__(self, granted: str, own=()) -> None:
         self.granted = granted
@@ -539,7 +534,9 @@ class _Arm:
 
         cls, reason = file_class(path, creating, self.own, folder)
         self.need(cls, reason)
-        if cls == ce.FP and "replaces" not in reason:
+
+
+        if creating and cls != ce.P and "replaces" not in reason:
             _note_created(path)
 
     def refuse(self, reason: str, hint: str = "") -> None:
@@ -736,7 +733,6 @@ _SETTINGS_EVENTS = frozenset({"os.putenv", "os.unsetenv"})
 
 
 
-
 _IMPORT_SETUP_EVENTS = frozenset({"os.add_dll_directory", "socket.gethostname", "ctypes.dlopen", "ctypes.dlsym",
                                   "ctypes.dlsym/handle"})
 _FILE_EVENTS = (frozenset({"open", "shutil.make_archive"}) | _DELETE_EVENTS | _COPY_EVENTS | _MOVE_EVENTS
@@ -763,8 +759,6 @@ def _event_kind(event: str) -> str:
     if module == "winreg" or event in _SETTINGS_EVENTS:
         return "setting"
     return "file" if event in _FILE_EVENTS else ""
-
-
 
 
 def _layer_name(layer) -> str:
@@ -859,7 +853,6 @@ def _layers_in(project, value) -> list:
 
 
 def _open_project(project) -> bool:
-
 
 
 
@@ -1044,7 +1037,6 @@ def _written(target) -> None:
 
 
 
-
     text = str(target or "").split("|", 1)[0].strip()
     if not text or text.startswith(("memory:", "TEMPORARY_OUTPUT", "/vsi")) or "://" in text:
         return
@@ -1060,7 +1052,6 @@ def _deletes(reason: str):
 
 
 def _page_removal(arm, layout, *args, **kwargs):
-
 
 
 
@@ -1262,6 +1253,23 @@ def _read_traps() -> list:
     return out
 
 
+def _temp_roots_read() -> None:
+
+
+
+
+
+
+
+
+
+    try:
+        tempfile.gettempdir()
+        security.temp_roots()
+    except Exception:  # nosec B110
+        pass
+
+
 def guard_child(granted: str = ce.D, own=()) -> _Arm | None:
 
 
@@ -1283,6 +1291,7 @@ def guard_child(granted: str = ce.D, own=()) -> _Arm | None:
     security.read_scope_enabled()
     security.validate_read(os.getcwd())
     _software_roots()
+    _temp_roots_read()
     arm = _Arm(granted if granted in ce.RANK else ce.D, own)
     state.thread = threading.get_ident()
     arm.patch(_read_traps() + _child_write_traps() + _credential_traps())
@@ -1372,6 +1381,7 @@ class armed:  # noqa: N801
     def __enter__(self) -> _Arm:
         state = _state()
         install()
+        _temp_roots_read()
         self.modules = set(sys.modules)
         state.thread = threading.get_ident()
         self.arm.patch()

@@ -44,6 +44,7 @@ from qgis.core import (
 from ..core import tuning
 from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
+from ..core.layer_order import is_remote_vector
 from ._layers import loaded_feature_count
 from .layer_lookup import _find_layer
 
@@ -101,7 +102,6 @@ _NEVER_GROWS = frozenset()
 
 
 _FIELD_TO_A_COPY = frozenset()
-
 
 
 
@@ -615,6 +615,11 @@ def _invalid_geometries(layer) -> dict | None:
     reported = _REPORTED.get(layer.id())
     if reported is not None:
         return dict(reported)
+
+
+
+    if is_remote_vector(layer):
+        return None
     try:
         return _geometry_sample((feature.id(), feature.geometry()) for feature in layer.getFeatures(_request()))
     except Exception:

@@ -30,9 +30,6 @@
 
 
 
-
-
-
 from __future__ import annotations
 
 import os
@@ -68,10 +65,7 @@ ACTION_GLYPH = 14
 
 
 NAME_MIN_WIDTH = 60
-
 FOLD_AT = 3
-
-
 
 
 
@@ -109,9 +103,7 @@ _FAMILY = {
     "html": "web", "htm": "web",
 }
 
-
 _LOADABLE = frozenset(("vector", "raster", "table"))
-
 _LOADABLE_TABLES = frozenset(("csv", "tsv", "dbf", "parquet"))
 
 
@@ -280,8 +272,6 @@ class FileOutputCard(QWidget):
         self._reveal = _ActionReveal(self, self._actions)
         self._actions.setEnabled(self.on_disk)
 
-
-
     def _add_action(self, layout, glyph: str, action: str, tooltip: str) -> None:
         button = IconButton(self._actions, None, ACTION_GLYPH, tooltip)
         button.set_icon(glyph, ACTION_GLYPH, QColor(INK_2))
@@ -341,8 +331,6 @@ class FileOutputCard(QWidget):
         self.setAccessibleDescription(tip)
         for widget in (self, self._frame, self._name_label, self._badge):
             widget.setToolTip(tip)
-
-
 
     def follow_disk(self) -> None:
 
@@ -582,7 +570,6 @@ class FileCardStack(QWidget):
         self._cards: list[FileOutputCard] = []
         for entry in listed:
             self._add_card(rows, entry)
-
         self._rows: list = list(self._cards)
         for entry in (x for x in (objects or ()) if isinstance(x, dict) and x.get("name")):
             card = ObjectRow(entry, self._group)

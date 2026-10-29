@@ -441,6 +441,9 @@ def register_layout_tools(registry: ToolRegistry):
             "type": "object",
             "properties": {"layout_name": {"type": "string"}},
             "required": ["layout_name"],
+
+
+            "x-map-facts": True,
         },
         handler=_get_layout_info,
     ))
@@ -448,7 +451,6 @@ def register_layout_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="remove_print_layout",
         danger="destructive",
-        removes_layout_at="layout_name",
         label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Remove one item from the layout {layout_name}")),
         input_schema={
             "type": "object",
@@ -457,10 +459,6 @@ def register_layout_tools(registry: ToolRegistry):
         },
         handler=_remove_print_layout,
     ))
-
-
-
-
 
 
 def _resolve_layout(name: str, allow_report: bool = False):
@@ -1804,10 +1802,6 @@ def _find_north_arrow_svg():
     return None
 
 
-
-
-
-
 def _page_orientation(orientation: str):
 
     wanted = "Landscape" if str(orientation or "").lower() == "landscape" else "Portrait"
@@ -2050,7 +2044,6 @@ def _add_layout_map_in(layout, args: dict) -> dict:
     rect, source, error = _subject(args)
     if error:
         return error
-
 
 
 
@@ -2798,8 +2791,6 @@ def _add_layout_scalebar(args: dict) -> dict:
 
 
 
-
-
     label = args.get("units_label")
     unit = _scalebar_unit(label) if label else None
     units_note = None
@@ -3264,6 +3255,8 @@ def _get_layout_info(args: dict) -> dict:
 
         return report_summary(layout)
     result = _layout_summary(layout)
+    from .layout_reads import layout_reads
+    result.update(layout_reads(layout))
     result["edit_in_place"] = coded_fact(hint="layout_edit_in_place")
     from ..core.layout_quality import assess_layout
     result["layout_checks"] = assess_layout(layout)

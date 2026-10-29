@@ -101,7 +101,6 @@ def _glyph(widget, kind: str, color: str) -> QPixmap:
     n = GLYPH_PX
 
     if kind == "place":
-
         painter.drawEllipse(QRectF(2.2, 2.2, n - 4.4, n - 4.4))
         painter.drawLine(int(2.2), int(n / 2), int(n - 2.2), int(n / 2))
         painter.drawEllipse(QRectF(n / 2 - 3.4, 2.2, 6.8, n - 4.4))
@@ -110,7 +109,6 @@ def _glyph(widget, kind: str, color: str) -> QPixmap:
         painter.drawLine(int(n / 2), int(n / 2), int(n / 2), int(n / 2 - 4))
         painter.drawLine(int(n / 2), int(n / 2), int(n / 2 + 3), int(n / 2 + 2))
     else:
-
         painter.drawLine(int(2.5), int(n / 2 - 3.5), int(n - 2.5), int(n / 2 - 3.5))
         painter.drawLine(int(2.5), int(n / 2 + 3.5), int(n - 2.5), int(n / 2 + 3.5))
         painter.setBrush(QColor(color))
@@ -128,9 +126,6 @@ class PrivacyNoticeDialog(QDialog):
         self.setObjectName("privacyNoticeDialog")
         self.setWindowTitle(tr("Before you start"))
         self.setModal(True)
-
-
-
 
 
 
@@ -180,8 +175,6 @@ class PrivacyNoticeDialog(QDialog):
         self._fill_footer(footer)
         layout.addLayout(footer)
 
-
-
     def _build_header(self) -> QHBoxLayout:
 
 
@@ -226,8 +219,6 @@ class PrivacyNoticeDialog(QDialog):
         return (
             (
                 "place",
-
-
 
 
 

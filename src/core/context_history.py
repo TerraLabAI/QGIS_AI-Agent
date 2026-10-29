@@ -291,9 +291,6 @@ def _file_name(text: str) -> str:
         return ""
 
 
-
-
-
     if " " in text.strip() and not _ABSOLUTE_PATH.match(text.strip()):
         return ""
     if any(text.startswith(prefix) for prefix in _NOT_A_PATH):

@@ -49,10 +49,6 @@ _edit_sessions: dict[str, dict] = {}
 _layer_tokens: dict[str, str] = {}
 
 
-
-
-
-
 def _validity(layer: QgsVectorLayer, fid) -> dict:
 
 
@@ -349,10 +345,6 @@ def _release_aids(layer) -> bool:
     return True
 
 
-
-
-
-
 def _edit_begin(args: dict) -> dict:
     layer, err = require_vector(args["layer_name"])
     if err:
@@ -371,7 +363,6 @@ def _edit_begin(args: dict) -> dict:
     prior = _edit_sessions[existing_token] if reused_session else _snapshot_aids(proj)
 
     if not layer.isEditable():
-
 
 
 
@@ -751,10 +742,6 @@ def _redo(args: dict) -> dict:
     layer.triggerRepaint()
     return {"redone": True, "layer": layer.name(), "command": label,
             "can_undo": stack.canUndo(), "can_redo": stack.canRedo()}
-
-
-
-
 
 
 def register_edit_tools(registry: ToolRegistry):

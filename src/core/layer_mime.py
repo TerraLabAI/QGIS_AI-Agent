@@ -146,10 +146,6 @@ def layer_ids_from_mime(mime) -> list[str]:
     return ids
 
 
-
-
-
-
 def layer_chip(layer) -> dict | None:
 
     if layer is None:

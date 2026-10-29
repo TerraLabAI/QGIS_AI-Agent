@@ -35,7 +35,6 @@ MAX_STEPS = 6
 MAX_COLS = 6
 MAX_ROWS = 12
 TONES = ("neutral", "info", "success", "alert", "danger", "purple")
-
 _MAX_SOURCE = 20_000
 _MAX_DEPTH = 12
 _MAX_NODES = 20_000
@@ -420,8 +419,6 @@ def to_text(block: Block) -> str:
         return "\n".join(f"{i}. {s['title']}" + (f": {s['detail']}" if s["detail"] else "")
                          for i, s in enumerate(block.items, 1))
     return ""
-
-
 
 
 _FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})[ \t]*" + FENCE_TAG + r"[ \t]*$")

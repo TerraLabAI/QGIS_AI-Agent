@@ -60,7 +60,6 @@ def layer_name(layer_id) -> str | None:
     try:
         return layer.name()
     except RuntimeError:
-
         return None
 
 

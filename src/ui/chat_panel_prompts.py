@@ -47,9 +47,6 @@ class _ChatPanelPrompts:
         name = tool.name if tool is not None else ""
 
 
-
-
-
         if tool is not None:
             self._reopened_tools[tool_call_id] = tool.is_expanded()
             tool.set_expanded(True)
@@ -196,11 +193,6 @@ class _ChatPanelPrompts:
         run = self._live_run(run_id)
         if run is None:
 
-
-
-
-
-
             self.question_answered.emit(tool_call_id, "")
             return
         open_card = next((c for c in reversed(run.permissions)
@@ -247,11 +239,6 @@ class _ChatPanelPrompts:
 
         run = self._live_run(run_id)
         if run is None:
-
-
-
-
-
 
             self.recommendation_decided.emit(tool_call_id, "dismiss")
             return
@@ -308,7 +295,6 @@ class _ChatPanelPrompts:
         if hasattr(card, "is_answered"):
             if not card.is_answered(tool_call_id):
                 card.collapse(answer, tool_call_id)
-
             if card.is_open():
                 return
         elif getattr(card, "answer", None) is None:
@@ -332,7 +318,6 @@ class _ChatPanelPrompts:
 
         said = card.sentence_for(tool_call_id) if hasattr(card, "sentence_for") else card.sentence
         if hasattr(card, "resolve") and not card.resolve(tool_call_id):
-
             self.message_list.permission_cards.pop(tool_call_id, None)
             self._resolved_one_of_many(card, tool_call_id, decision, reason, said)
             return
@@ -447,7 +432,9 @@ class _ChatPanelPrompts:
         self.header.open_checkpoints()
 
     def show_restore_warning(self, checkpoint_id: str, discard: bool = False, edits: bool = False,
-                             whole: bool = True, requests: int = 0, layers=None, hand_files=None) -> None:
+                             whole: bool = True, requests: int = 0, layers=None, hand_files=None,
+                             forward: bool = False) -> None:
+
 
 
 
@@ -467,13 +454,14 @@ class _ChatPanelPrompts:
                 pass
         requests = max(0, int(requests or 0))
         hand = [str(name) for name in (hand_files or []) if name]
-
         if hand:
 
             title = (self.tr("You changed {file} by hand").format(file=hand[0]) if len(hand) == 1
                      else self.tr("You changed {n} files by hand").format(n=len(hand)))
         elif discard:
             title = self.tr("Go back to the start of the chat?")
+        elif forward:
+            title = self.tr("Redo changes?")
         elif requests > 1:
             title = self.tr("Undo {n} requests?").format(n=requests)
         else:
@@ -491,15 +479,15 @@ class _ChatPanelPrompts:
                            if later == 1 else
                            self.tr("This also removes the changes from {n} later requests.").format(n=later)))
         if edits and not hand:
-            points.append(("pencil", self.tr("Your manual edits are saved in the history first.")))
+            points.append(("pencil", self.tr("Edits made since this point are kept in Map history first.")))
         dialog = ConfirmDialog(self.window(), title=title,
-                               confirm_text=self.tr("Undo anyway") if hand else self.tr("Undo"),
+                               confirm_text=(self.tr("Undo anyway") if hand else
+                                             self.tr("Redo") if forward else self.tr("Undo")),
                                cancel_text=self.tr("Keep my edits") if hand else "",
                                note=", ".join(hand) if len(hand) > 1 else "",
                                points=points, object_name="restoreConfirm")
         items = [item for item in (layers or []) if isinstance(item, dict) and item.get("name")]
         if items:
-
             dialog.layout().insertWidget(2, _LayerList(items, dialog))
         dialog.checkpoint_id, dialog.discard = checkpoint_id, bool(discard)
         dialog.accepted.connect(lambda: self._on_restore_confirmed(checkpoint_id, discard))

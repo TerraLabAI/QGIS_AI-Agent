@@ -162,7 +162,6 @@ class ScratchLedger:
         self.last_report: list[dict] = []
 
 
-
     def begin(self) -> None:
         self.end()
         self._order, self._names = [], {}
@@ -197,7 +196,6 @@ class ScratchLedger:
         return len(self._order)
 
 
-
     def _on_layers_added(self, layers) -> None:
         if reading_back():
 
@@ -217,7 +215,6 @@ class ScratchLedger:
                 continue
             self._order.append(layer_id)
             self._names[layer_id] = name
-
 
 
     def note_call(self, name: str, args, mark, result=None) -> None:
@@ -404,7 +401,6 @@ class ScratchLedger:
             if layer_id in wanted or any(name and name in wanted for name in names):
                 found.add(layer_id)
         return found
-
 
 
     def report(self) -> list[dict]:

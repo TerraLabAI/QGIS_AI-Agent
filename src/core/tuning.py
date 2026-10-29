@@ -103,10 +103,8 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
     },
 
 
-
     "follow": {
         "settle_ms": (0, 2_000),
-        "flash_ms": (0, 5_000),
     },
 
 
@@ -132,8 +130,6 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
 
         "hosted_timeout_s": (20, 300),
         "footprints_timeout_s": (20, 300),
-
-
 
 
         "geocode_timeout_s": (10, 120),
@@ -183,11 +179,8 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
 _FLOAT_LIMITS: dict[str, dict[str, tuple[float, float]]] = {
     "follow": {
         "pad_share": (0.0, 1.0),
-        "pan_share": (0.1, 1.0),
         "contained_share": (0.01, 1.0),
         "point_share": (0.01, 0.5),
-        "approach_span_m": (50.0, 5_000.0),
-        "approach_keep_ratio": (1.0, 100_000.0),
     },
 
 
@@ -313,10 +306,6 @@ _BOOL_KEYS: dict[str, set[str]] = {
 
 
     "results": {"match_image", "match_image_url", "layer_facts"},
-
-
-
-
 }
 
 
@@ -340,7 +329,6 @@ _OFF_ONLY: dict[str, set[str]] = {
 _HOST_RATE = (0.05, 60.0)
 _HOST_BURST = (1, 100)
 _HOST_CONCURRENCY = (1, 8)
-
 
 
 

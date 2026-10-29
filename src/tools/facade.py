@@ -52,7 +52,6 @@ from .layer_io_tools import NO_CRS_WARNING, _add_point_cloud_layer, _add_raster_
 
 
 
-
 AI_EDIT_ACTIONS = ("status", "generate", "generation_status", "select_version", "vectorize", "cancel", "presets",
                    "setup", "credits", "prepare")
 AI_SEGMENT_ACTIONS = (
@@ -174,6 +173,7 @@ def register_facade_tools(registry: ToolRegistry):
         },
         handler=_add_data,
         background=_add_data_off_main,
+        hands_back=True,
     ))
 
     registry.register(Tool(
@@ -354,9 +354,6 @@ def register_facade_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _ask_user_direct(args: dict) -> dict:
 
     return tool_error("ask_user needs the chat panel to show the question.", hint="ask_user_direct")
@@ -377,7 +374,36 @@ def _pmtiles_url(source: str) -> bool:
     return ".pmtiles" in source.lower()
 
 
-def deduce_kind(source: str, kind: str | None = None) -> str:
+def _raster_tiles_only(path: str, ext: str) -> bool:
+
+
+
+    import pathlib
+    import sqlite3
+
+    if path.startswith(("\\\\", "//")):
+        return False
+    query = ("SELECT group_concat(DISTINCT data_type) FROM gpkg_contents" if ext == ".gpkg"
+             else "SELECT value FROM metadata WHERE name = 'format'")
+    try:
+        connection = sqlite3.connect(pathlib.Path(os.path.abspath(path)).as_uri() + "?mode=ro", uri=True, timeout=1)
+        try:
+            found = (connection.execute(query).fetchone() or [""])[0] or ""
+        finally:
+            connection.close()
+    except (OSError, ValueError, sqlite3.Error):
+        return False
+    kinds = {kind.strip().lower() for kind in found.split(",") if kind.strip()}
+    if ext == ".gpkg":
+        return bool(kinds) and kinds <= {"tiles", "2d-gridded-coverage"}
+
+    return not kinds & {"pbf", "mvt"}
+
+
+def deduce_kind(source: str, kind: str | None = None, open_file: bool = True) -> str:
+
+
+
 
     kind = (kind or "auto").strip().lower()
     if kind in ("csv", "geojson", "gpkg"):
@@ -435,6 +461,8 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
         return "pointcloud"
     if ext in _RASTER_EXT:
         return "raster"
+    if open_file and ext in (".gpkg", ".mbtiles") and path == text and _raster_tiles_only(path, ext):
+        return "raster"
     if ext in _VECTOR_EXT:
         return "vector"
 
@@ -443,6 +471,8 @@ def deduce_kind(source: str, kind: str | None = None) -> str:
     if os.path.exists(path):
 
 
+        if not open_file:
+            return "vector"
         from .data_inspect import _gdal_reads_raster, _gdal_reads_vector
         return "raster" if not _gdal_reads_vector(path) and _gdal_reads_raster(path) else "vector"
 
@@ -732,7 +762,7 @@ def _add_data_off_main(args: dict) -> bool:
     if _add_data_is_remote(args):
         return True
     source = str(args.get("source") or "").strip()
-    return bool(source) and deduce_kind(source, args.get("kind")) in _LOCAL_FILE_KINDS
+    return bool(source) and deduce_kind(source, args.get("kind"), open_file=False) in _LOCAL_FILE_KINDS
 
 
 
@@ -754,7 +784,7 @@ def _add_data_is_remote(args: dict) -> bool:
         return False
     if _remote_zip_member(source):
         return True
-    kind = deduce_kind(source, args.get("kind"))
+    kind = deduce_kind(source, args.get("kind"), open_file=False)
     if kind in _REMOTE_KINDS:
         return True
 
@@ -892,9 +922,6 @@ def _add_data(args: dict) -> dict:
     return run_on_main_thread(_finish, timeout=120)
 
 
-
-
-
 def _plugin_missing(label: str, tool: str) -> dict:
     return tool_error(
         f"{label} is not installed in this QGIS.",
@@ -999,9 +1026,6 @@ def _setup_label(tool: str):
     return label
 
 
-
-
-
 def _ai_segment(args: dict) -> dict:
     action = args.get("action")
     if action == "status":
@@ -1034,8 +1058,6 @@ def _ai_segment(args: dict) -> dict:
         return _integration._aiseg_auto_cancel(args)
     return tool_error(f"Unknown action: {action}", "INVALID_ARGS", hint="facade_action_unknown",
                       actions=list(AI_SEGMENT_ACTIONS))
-
-
 
 
 _LAYER_EXT = _VECTOR_EXT | _RASTER_EXT

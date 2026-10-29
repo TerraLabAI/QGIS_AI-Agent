@@ -37,9 +37,6 @@ except ImportError:
 
 
 
-
-
-
 CODE_CALL_CLOCK_S = 160.0
 
 CODE_MIN_RUN_S = 20.0
@@ -56,7 +53,6 @@ def _phase(call: dict, key: str, since: float) -> None:
 
 
 class _ExecutorExecute:
-
 
     def _execute(self, call: dict) -> None:
         tool_call_id = str(call.get("tool_call_id"))
@@ -286,9 +282,6 @@ class _ExecutorExecute:
 
 
 
-
-
-
         if danger != Danger.READ:
             with stalls.probe("follow.approach"):
                 self.follower.approach(name, args)
@@ -394,13 +387,19 @@ class _ExecutorExecute:
 
 
             now = time.monotonic()
+            if stage.startswith("wait:"):
+                self._heard[tool_call_id] = (0, None, stage[5:])
+            elif not stage and done:
+                self._heard[tool_call_id] = (done, total, self._heard.get(tool_call_id, (0, None, ""))[2])
+                if tool_call_id in self._handed_back:
+                    from ..tools import processing_run
+                    processing_run.note_adopted_bytes(self._handed_back[tool_call_id], done, total)
             if stage:
                 if (stage, done, total) != heard.get("stage"):
                     heard["stage"] = (stage, done, total)
                     self.call_progress.emit(tool_call_id, done, total, stage)
             elif done >= _PROGRESS_MIN_BYTES and (now - heard["at"] >= _PROGRESS_EVERY_S
                                                   or (total and done >= total)):
-
 
                 heard["at"] = now
                 self.call_progress.emit(tool_call_id, done, total, "")
@@ -416,6 +415,15 @@ class _ExecutorExecute:
 
         def done(result, error_text: str):
             self._background.pop(tool_call_id, None)
+            self._heard.pop(tool_call_id, None)
+            task_id = self._handed_back.pop(tool_call_id, None)
+            if task_id is not None:
+
+                from ..tools import processing_run
+                if isinstance(result, dict) and not error_text:
+                    self._settle_late_layers(call, result)
+                processing_run.settle_adopted(task_id, result, error_text)
+                return
             _phase(call, "handler_ms", started)
             if error_text:
                 result = {"_error": error_text.split("\n", 1)[0], "traceback": error_text}

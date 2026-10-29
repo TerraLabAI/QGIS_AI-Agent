@@ -2482,6 +2482,70 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>changed</source>
             <translation>modificato</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Controlla il file {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Controlla il layout di stampa[ {layout_name}][, pagina {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Guarda una parte della mappa</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Guarda la mappa così come la vedi</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Guarda i layer {layer_names} sulla mappa</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Guarda {layer_names} sulla mappa</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Invio non riuscito. Controlla la connessione e riprova, oppure scrivici a {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Esempio: il buffer è risultato in gradi invece che in metri.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Segnala un bug, proponi un'idea o racconta cosa funziona bene.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Invia</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Invia feedback</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Invio in corso...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Accedi per inviare un feedback da qui, oppure scrivici a {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Riceveremo il tuo messaggio, questa conversazione e alcuni dettagli tecnici (versione del plugin e di QGIS, sistema, log recenti). Mai le tue password né il contenuto dei tuoi file.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Hai inviato diverse segnalazioni in poco tempo. Riprova tra qualche minuto.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Questa segnalazione include la tua descrizione e la conversazione attuale. La usiamo per risolvere i problemi e migliorare AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Download di {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>In attesa di {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Mostra meno</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Ricerca del luogo</translation>
         </message>
@@ -3387,6 +3459,22 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Undo changes</source>
             <translation>Annulla le modifiche</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Risposta sbagliata</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Risposta corretta</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Crea un report</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Scrivi la richiesta di un report HTML di questa analisi, con le sue mappe e i suoi grafici</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Non è stato possibile salvare le modifiche in sospeso su {layer}, quindi non è stato ripristinato nulla. Salvale o scartale in QGIS, poi riprova.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>Non è stato possibile copiare {layer} prima di salvare le sue modifiche in sospeso, quindi non è stato ripristinato nulla. Salva o scarta le modifiche in QGIS, poi riprova.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Annullare le modifiche?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Ripetere le modifiche?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>Annullare {n} richieste?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Prima le tue modifiche manuali vengono salvate nella cronologia.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Le modifiche fatte da questo punto vengono prima salvate nella cronologia della mappa.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Drawing the map</source>
             <translation>Disegno della mappa</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Grazie, il tuo feedback è stato inviato.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Crea un report HTML di questa analisi, con le sue mappe, i suoi grafici e il metodo.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Map history ({key})</source>
             <translation>Cronologia della mappa ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Invia feedback</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Inizia ora il mio piano</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>1 attività gratuita rimasta</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>{n} attività gratuite rimaste</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Prova gratuita</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Invia feedback</translation>
         </message>
     </context>
     <context>
@@ -9865,6 +9985,72 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>un livello temporaneo</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent è ancora in esecuzione</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Salvali in un file</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Progetto salvato</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Layer temporanei non salvati</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>L'agente AI non ha ancora terminato la richiesta. Chiudere QGIS e interromperlo?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} layer temporanei ({names}) non sono salvati su disco: il loro contenuto andrà perso alla chiusura del progetto.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Posizioni delle etichette non salvate</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>La cartella temporanea di QGIS è stata eliminata mentre il progetto era aperto: le etichette o i diagrammi spostati dopo il salvataggio precedente non hanno potuto essere salvati. Le posizioni salvate prima sono state mantenute. Spostali di nuovo, poi salva.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent sta ancora salvando i layer</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} layer sono ancora in scrittura nel GeoPackage accanto al progetto. Se QGIS si chiude ora, andranno persi. Uscire comunque?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Invio non riuscito. Riprova.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Invia</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Inviato insieme a questa conversazione e ai tuoi log recenti, per correggere i problemi e migliorare AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Raccontaci di più</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Grazie per il feedback</translation>
         </message>
     </context>
 </TS>

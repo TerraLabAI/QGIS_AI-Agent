@@ -351,8 +351,6 @@ def colour_from_2d(layer) -> dict | None:
     return facts
 
 
-
-
 def _roof(layer):
 
     from qgis._3d import QgsPolygon3DSymbol

@@ -42,7 +42,6 @@ _ATLAS_FORMATS = ["pdf", "png", "jpg", "tif", "svg"]
 
 
 
-
 _LAYOUT_TABLE_ROWS = 20
 
 
@@ -162,10 +161,6 @@ def register_harvest_layout_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
-
 def _layout_success():
     return enum_value((QgsLayoutExporter, "Success"), (QgsLayoutExporter, "ExportResult.Success"))
 
@@ -195,10 +190,6 @@ def _layout_or_error(name: str):
     if error and not error.get("hint"):
         error["hint"] = "layout_not_found"
     return layout, error
-
-
-
-
 
 
 
@@ -320,8 +311,6 @@ def _configure_atlas(args: dict) -> dict:
     layer, error = require_vector(args["coverage_layer"])
     if error:
         return error
-
-
 
 
 

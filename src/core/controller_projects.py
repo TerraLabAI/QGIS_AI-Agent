@@ -93,6 +93,7 @@ class _ControllerProjects:
             self._executor.project_replaced(run_id)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run {run_id[:8]}: a step of ending it on project close failed: {exc}")
+        self._note_stop("PROJECT_CLOSED")
         self._finish_run(run_id, RunStatus.CANCELLED,
                          tr("Stopped: the project this run worked on was closed."), {}, None)
         self.notice.emit("warning", tr("The AI Agent run stopped because its project was closed."))
@@ -123,22 +124,22 @@ class _ControllerProjects:
 
 
 
+
         from qgis.core import QgsProject
 
         from ..tools.layer_tools import _agent_layers_made_durable
 
         self._storing_layers = True
         try:
-            stored = _agent_layers_made_durable(QgsProject.instance(), save=save)
+            stored = _agent_layers_made_durable(QgsProject.instance(), save=save, busy=self._runs.busy)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Agent layers not stored beside the project: {exc}")
             stored = {}
         finally:
             self._storing_layers = False
         if stored:
-            log(f"Stored {len(stored.get('layers') or [])} agent layers in {stored.get('gpkg_path')}")
+            log(f"Storing {len(stored.get('layers') or [])} agent layers in {stored.get('gpkg_path')}")
         self._schedule_scratch_marks()
-
 
 
     def _schedule_scratch_marks(self, *_args) -> None:

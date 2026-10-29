@@ -30,7 +30,6 @@ from .data_common import _canvas_viewbox_4326, _http_get, _viewbox_bounds, built
 
 
 
-
 def _qms_catalog():
 
     if not quickmapservices_started():
@@ -900,8 +899,6 @@ def _add_vector_tile_layer(args: dict) -> dict:
         elif style_note:
             out["_note"] = style_note
         elif style_url == "":
-
-
 
 
             out.update(coded_fact(hint="vector_tiles_no_style"))

@@ -331,8 +331,6 @@ def set_source_licences(rows) -> None:
 
 
 
-
-
 _MAX_ROSTER_ROWS = 12
 _roster: list = []
 

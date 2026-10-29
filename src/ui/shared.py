@@ -103,8 +103,6 @@ PLUGIN_FOLDERS = ("AI_Agent", "QGIS_AI-Agent-Team", "QGIS_AI-Agent", "QGIS_AI_Ag
 
 TR_CONTEXT = "AIAgent"
 
-
-
 TOGGLE_PANEL_KEYS = "Ctrl+Shift+K"
 
 
@@ -113,7 +111,6 @@ STEP_BACK_KEYS = "Ctrl+Shift+Backspace"
 
 STEP_FORWARD_KEYS = "Meta+Shift+Y" if sys.platform == "darwin" else "Ctrl+Shift+Y"
 CHECKPOINTS_KEYS = "Ctrl+Shift+X"
-
 
 
 def toggle_panel_key_text() -> str:
@@ -220,16 +217,11 @@ def paint_styled_ground(widget) -> None:
         painter.end()
 
 
-
 UI_DIR = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_DIR = os.path.dirname(os.path.dirname(UI_DIR))
 ICONS_DIR = os.path.join(PLUGIN_DIR, "icons")
 PLUGIN_ICON_PATH = os.path.join(ICONS_DIR, "icon.png")
 TERRALAB_LOGO_PATH = os.path.join(ICONS_DIR, "terralab-logo.png")
-
-
-
-
 
 
 
@@ -262,8 +254,6 @@ def drop_legacy_cache_dir() -> bool:
     failed = []
 
     def _retry(func, target, _exc):
-
-
 
         try:
             os.chmod(target, stat.S_IWRITE)
@@ -354,8 +344,6 @@ def plugin_version() -> str:
     except OSError:
         pass
     return ""
-
-
 
 
 

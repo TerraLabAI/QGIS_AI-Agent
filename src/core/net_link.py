@@ -28,14 +28,6 @@ from .net_failure import _NO_ROUTE_ERRNOS
 
 
 
-
-
-
-
-
-
-
-
 OFFLINE_STRIKES = 3
 OFFLINE_HOSTS = 2
 OFFLINE_HOLD_S = 20.0
@@ -136,9 +128,6 @@ def forget_link_state() -> None:
 
 
 
-
-
-
 LINK_SAMPLE_MIN_BYTES = 64 * 1024
 
 
@@ -185,10 +174,6 @@ def link_kbps() -> float | None:
         try:
 
 
-
-
-
-
             rate = float(override)
             if rate > 0.0:
                 return rate
@@ -199,7 +184,6 @@ def link_kbps() -> float | None:
 
 
 def link_factor() -> float:
-
 
 
 

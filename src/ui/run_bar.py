@@ -34,7 +34,6 @@ from .style import (
     TINT_HOVER,
 )
 
-
 ACTION_SHOW = "show"
 ACTION_ZOOM = "zoom"
 

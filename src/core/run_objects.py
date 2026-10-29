@@ -66,8 +66,6 @@ def merge(kept: list, found: list) -> None:
             kept.append(entry)
 
 
-
-
 def _iface():
     try:
         from qgis.utils import iface

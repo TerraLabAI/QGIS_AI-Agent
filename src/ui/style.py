@@ -52,12 +52,6 @@ def is_dark() -> bool:
 
 
 
-
-
-
-
-
-
 _SITE_NAMES = {
     "page": "surface_page", "canvas": "surface_canvas", "surface": "surface_raised",
     "inset": "surface_sunk", "hover": "surface_hover", "hover_2": "surface_pressed",
@@ -76,7 +70,6 @@ _DARK = {name: tokens.DARK[role] for name, role in _SITE_NAMES.items()}
 DARK = is_dark()
 T = _DARK if DARK else _LIGHT
 
-
 PAGE = T["page"]
 CANVAS = T["canvas"]
 SURFACE = T["surface"]
@@ -84,18 +77,15 @@ INSET = T["inset"]
 HOVER = T["hover"]
 HOVER_ON = T["hover_2"]
 FIELD = T["field"]
-
 INK = T["ink"]
 INK_2 = T["ink_2"]
 INK_3 = T["ink_3"]
 
 
 INK_HOVER = T["ink_hover"]
-
 LINE = T["line"]
 LINE_STRONG = T["line_strong"]
 LINE_SOFT = T["line_soft"]
-
 GREEN = T["green"]
 GREEN_TINT = T["green_tint"]
 ORANGE = T["orange"]
@@ -201,7 +191,6 @@ ACCENT = BTN_GREEN
 ACCENT_DARK = BTN_GREEN_HOVER
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
-
 ACCENT_TINT_STRONG = T["accent_tint_on"]
 ACCENT_BORDER_SOFT = "rgba(67, 160, 71, 0.24)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
@@ -287,8 +276,6 @@ USER_PILL_LINE = LINE_STRONG if not DARK else "rgba(255, 255, 255, 0.05)"
 
 
 
-
-
 _BTN_ICON = (
     "QToolButton { background: transparent; border: none; padding: 3px;"
     f" border-radius: {RADIUS_CONTROL}px; }}"
@@ -298,7 +285,6 @@ _BTN_ICON = (
     "QToolButton:disabled { background: transparent; }"
     "QToolButton::menu-indicator { image: none; width: 0; }"
 )
-
 
 
 
@@ -345,7 +331,6 @@ _BTN_MODE = (
 
 
 
-
 _BTN_SCROLL_PILL = (
     f"QToolButton#scrollPill {{ background: {SURFACE}; border: 1px solid {LINE_STRONG};"
     " border-radius: 14px; padding: 0; }"
@@ -353,14 +338,11 @@ _BTN_SCROLL_PILL = (
     f"QToolButton#scrollPill:pressed {{ background: {HOVER_ON}; }}"
 )
 
-
 _BTN_CHIP_CLOSE = (
     "QToolButton { background: transparent; border: none; padding: 0;"
     " border-radius: 7px; }"
     f"QToolButton:hover {{ background: {HOVER_ON}; }}"
 )
-
-
 
 _BTN_THUMB_CLOSE = (
     "QToolButton { background: rgba(0, 0, 0, 0.62); border: 1px solid rgba(255, 255, 255, 0.75);"
@@ -368,14 +350,11 @@ _BTN_THUMB_CLOSE = (
     "QToolButton:hover { background: rgba(0, 0, 0, 0.88); }"
 )
 
-
 _BTN_AVATAR = (
     "QToolButton { background: transparent; border: none; padding: 2px;"
     " border-radius: 13px; }"
     f"QToolButton:hover {{ background: {HOVER}; }}"
 )
-
-
 
 
 
@@ -418,7 +397,6 @@ _BTN_DANGER_GHOST = (
     f" padding: 0 10px; font-size: {FONT_BODY}px; font-weight: 500; }}"
     f"QPushButton:hover {{ background: {RED_TINT}; border-color: {RED}; }}"
 )
-
 _BTN_QUIET = (
     "QPushButton { background: transparent; border: none;"
     f" color: {INK_2}; font-size: {FONT_BODY}px; font-weight: 500; padding: 4px 6px;"
@@ -427,8 +405,6 @@ _BTN_QUIET = (
 )
 
 PRO_PILL_PX = 24
-
-
 
 
 
@@ -497,8 +473,6 @@ def panel_qss() -> str:
 
 
 
-
-
         f"QFrame#userBubble {{ background: {FIELD};"
         f" border: 1px solid {USER_PILL_LINE}; border-radius: 18px; }}"
         f"QFrame#userBubble QLabel#tag {{ background: {HOVER_ON}; border: none;"
@@ -514,7 +488,6 @@ def panel_qss() -> str:
         "QTextBrowser#chatText { background: transparent; border: none;"
         f" font-size: {FONT_BASE}px; color: {INK}; }}"
         + bubble
-
         + f"QTextBrowser#monoText {{ background: {FIELD};"
         f" border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
         f" font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px;"
@@ -561,10 +534,8 @@ def panel_qss() -> str:
         f'QLabel#fileName[gone="true"] {{ color: {INK_3}; }}'
         f"QLabel#fileKind {{ font-size: {FONT_HINT}px; color: {INK_3};"
         " background: transparent; border: none; }"
-
         f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; }}"
-
         f"QLabel#cardTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; border: none; }}"
         f"QLabel#cardText {{ font-size: {FONT_BODY}px; color: {INK};"
@@ -586,7 +557,6 @@ def panel_qss() -> str:
         f'QLabel#toolLine[failed="true"] {{ color: {INK_2}; }}'
         f"QLabel#traceHead {{ font-size: {FONT_BASE}px; color: {INK_2};"
         " background: transparent; border: none; }"
-
         f"QFrame#turnDivider {{ background: {LINE_SOFT}; border: none; }}"
 
 
@@ -594,7 +564,6 @@ def panel_qss() -> str:
         f"QFrame#compactionRule {{ background: {LINE}; border: none; }}"
         f"QLabel#compactionLabel {{ font-size: {FONT_HINT}px; color: {INK_2};"
         " background: transparent; border: none; }"
-
         f"QLabel#decisionLine {{ font-size: {FONT_HINT}px; color: {INK_2};"
         " background: transparent; border: none; }"
         + _MENU_QSS
@@ -645,7 +614,6 @@ _COMPLETER_POPUP_QSS = scale_qss_font_px(
     f" padding: 6px; font-size: {FONT_BASE}px; outline: none; }}"
     "QListView#mentionPopup::item { border: none; background: transparent; }"
     "QListView#mentionPopup::item:selected { background: transparent; }"
-
     "QListView#mentionPopup QScrollBar:vertical { background: transparent;"
     " width: 8px; margin: 2px 2px 2px 0; border: none; }"
     "QListView#mentionPopup QScrollBar::handle:vertical {"
@@ -695,8 +663,6 @@ def accent_color():
 
 
 
-
-
 def qcolor(token: str):
 
 
@@ -734,7 +700,6 @@ def _shadow_level(level: str) -> tuple:
     }.get(level, (28, 8, 0.34 if DARK else 0.10))
 
 
-
 _SHADOW_PIXMAPS: dict = {}
 _SHADOW_PIXMAPS_KEPT = 8
 
@@ -764,7 +729,6 @@ def _shadow_pixmap(width: int, height: int, radius: float, level: str, ratio: fl
                                     radius * ratio, radius * ratio)
         finally:
             painter.end()
-
         scene = QGraphicsScene()
         scene.setSceneRect(0, 0, size_w, size_h)
         item = QGraphicsPixmapItem(QPixmap.fromImage(shape))

@@ -365,7 +365,6 @@ def show_shortcuts_dialog(parent=None) -> None:
 
 
 
-
     dlg = QDialog(parent)
     dlg.setObjectName("shortcutsDialog")
     dlg.setWindowTitle(tr("Keyboard shortcuts"))

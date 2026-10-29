@@ -38,6 +38,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import output_paths, security
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from ..core.save_guard import temp_folder_ready
 from ..core.snapshot_files import sqlite_read_only_uri
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .layer_lookup import _find_layer
@@ -326,6 +327,8 @@ def _make_layers_permanent(args: dict) -> dict:
             layer = _find_layer(str(ref))
             if layer is None:
                 skipped.append({"name": str(ref), "skipped": "no layer by that name"})
+            elif layer.id() in _WRITING:
+                skipped.append({"name": layer.name(), "skipped": "it is being written to a GeoPackage now"})
             elif layer.id() not in kinds:
                 skipped.append({"name": layer.name(), "skipped": "already stored in a lasting file"})
             elif layer not in chosen:
@@ -353,6 +356,7 @@ def _make_layers_permanent(args: dict) -> dict:
             return tool_error(f"The tables of {gpkg} cannot be read, so nothing was written into it.",
                               "INVALID_ARGS", hint="persist_gpkg_unreadable", path=gpkg)
         moved_from, gpkg, taken = gpkg, fresh, set()
+    taken |= _reserved_tables(gpkg)
     files_taken: set[str] = set()
     moved: list[dict] = []
     for layer in chosen:
@@ -376,6 +380,7 @@ def _make_layers_permanent(args: dict) -> dict:
         out["skipped"] = skipped
     if moved and args.get("save", True) is not False:
         if project.fileName():
+            temp_folder_ready("agent")
             if project.write():
                 out["project_saved"] = project.fileName()
             else:
@@ -400,13 +405,55 @@ def _make_layers_permanent(args: dict) -> dict:
 
 
 
+
+
+
+
 _COPY_GROUP = 5000
 
 _IDLE_WAIT_MS = 2000
 _IDLE_TRIES = 900
 
 
+
+_WRITING: dict[str, tuple[str, str]] = {}
+
+
+def writing() -> dict:
+
+    return dict(_WRITING)
+
+
+def _reserved_tables(gpkg: str) -> set[str]:
+    key = os.path.normcase(os.path.abspath(gpkg))
+    return {table.casefold() for path, table in list(_WRITING.values())
+            if os.path.normcase(os.path.abspath(path)) == key}
+
+
+def _release(items) -> None:
+    for item in items:
+        _WRITING.pop(item["id"], None)
+
+
 def save_run_layers(layer_ids, busy=None) -> int:
+
+
+    project = QgsProject.instance()
+    layers = [project.mapLayer(str(layer_id)) for layer_id in dict.fromkeys(layer_ids or ())]
+    layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory"]
+    return len(store_in_background(layers, busy).get("layers") or ())
+
+
+def _run_open() -> bool:
+    from ..core import layer_order
+
+    return layer_order.current_run() is not None
+
+
+def store_in_background(layers, busy=None, save: bool = True) -> dict:
+
+
+
 
 
 
@@ -416,23 +463,20 @@ def save_run_layers(layer_ids, busy=None) -> int:
     from ..core.background import start_kept_thread
 
     project = QgsProject.instance()
-    layers = []
-    for layer_id in dict.fromkeys(layer_ids or ()):
-        layer = project.mapLayer(str(layer_id))
-        if (isinstance(layer, QgsVectorLayer) and layer.isValid() and layer.providerType() == "memory"
-                and not layer.isEditable()):
-            layers.append(layer)
+    layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer) and layer.isValid()
+              and not layer.isEditable() and layer.id() not in _WRITING]
     if not layers:
-        return 0
+        return {}
     gpkg, refused = _target({}, project)
     if refused:
-        log_warning(f"Run layers not saved: {refused.get('message') or refused}")
-        return 0
+        log_warning(f"Layers not written to a GeoPackage: {refused.get('_error') or refused}")
+        return {}
     taken = _gpkg_tables(gpkg)
     if taken is None:
         gpkg, taken = _fresh_gpkg(gpkg), set()
         if not gpkg:
-            return 0
+            return {}
+    taken |= _reserved_tables(gpkg)
     plan = []
     for layer in layers:
         subset = layer.subsetString() or ""
@@ -451,13 +495,20 @@ def save_run_layers(layer_ids, busy=None) -> int:
             fields.append(layer.fields().at(index))
         plan.append({"id": layer.id(), "name": layer.name(), "source": source, "count": count,
                      "shown": layer.featureCount(), "subset": subset, "fields": fields, "indexes": indexes,
-                     "wkb": layer.wkbType(), "crs": layer.crs(),
+                     "wkb": layer.wkbType(), "crs": layer.crs(), "provider": layer.providerType(),
+                     "uri": layer.source(),
                      "table": _unique(output_paths.safe_file_name(layer.name(), "layer").replace(" ", "_"), taken)})
     if not plan:
-        return 0
-    context = project.transformContext()
-    start_kept_thread(_write_run_layers, plan, gpkg, context, busy, name="ai-agent-run-save")
-    return len(plan)
+        return {}
+    for item in plan:
+        _WRITING[item["id"]] = (gpkg, item["table"])
+    try:
+        start_kept_thread(_write_run_layers, plan, gpkg, project.transformContext(), busy or _run_open, save,
+                          name="ai-agent-layer-save")
+    except Exception:
+        _release(plan)
+        raise
+    return {"gpkg_path": gpkg, "layers": [item["name"] for item in plan]}
 
 
 def _staged(item: dict, stage: str, context) -> str:
@@ -489,9 +540,13 @@ def _staged(item: dict, stage: str, context) -> str:
 
 
 def _written_count(gpkg: str, table: str) -> int:
+
     from osgeo import ogr
 
-    dataset = ogr.Open(gpkg, 0)
+    try:
+        dataset = ogr.Open(gpkg, 0)
+    except RuntimeError:
+        return -1
     if dataset is None:
         return -1
     try:
@@ -501,7 +556,60 @@ def _written_count(gpkg: str, table: str) -> int:
         dataset.Close()
 
 
-def _write_run_layers(plan: list, gpkg: str, context, busy) -> None:
+def _drop_table(gpkg: str, table: str) -> None:
+
+
+    from osgeo import ogr
+
+    try:
+        dataset = ogr.Open(gpkg, 1)
+        if dataset is None:
+            return
+        try:
+            for index in range(dataset.GetLayerCount()):
+                if dataset.GetLayer(index).GetName().casefold() == table.casefold():
+                    dataset.DeleteLayer(index)
+                    break
+        finally:
+            dataset.Close()
+    except RuntimeError as exc:
+        log_warning(f"The partial table {table} stays in {gpkg}: {exc}")
+
+
+def _write_one(item: dict, gpkg: str, folder: str, context) -> bool:
+
+    from osgeo import gdal
+
+    stage = os.path.join(folder, f"{item['table'][:40]}.gpkg")
+    why = _staged(item, stage, context)
+    item["source"] = None
+    if why:
+        log_warning(f"Layer {item['name']} not saved: {why}")
+        return False
+    if _written_count(gpkg, item["table"]) >= 0:
+
+        log_warning(f"Layer {item['name']} not saved: {gpkg} already holds a table {item['table']}")
+        return False
+    try:
+        options = gdal.VectorTranslateOptions(
+            accessMode="update" if os.path.exists(gpkg) else None, layers=[item["table"]],
+            options=["-gt", str(_COPY_GROUP)])
+        copied = gdal.VectorTranslate(gpkg, stage, options=options)
+        if copied is None:
+            raise RuntimeError("GDAL wrote nothing")
+        copied = None
+    except RuntimeError as exc:
+        log_warning(f"Layer {item['name']} not saved in {gpkg}: {exc}")
+        _drop_table(gpkg, item["table"])
+        return False
+    if _written_count(gpkg, item["table"]) != item["count"]:
+        log_warning(f"Layer {item['name']}: {gpkg} holds another count than the layer; it stays as it was")
+        _drop_table(gpkg, item["table"])
+        return False
+    return True
+
+
+def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True) -> None:
 
 
     from osgeo import gdal
@@ -510,39 +618,32 @@ def _write_run_layers(plan: list, gpkg: str, context, busy) -> None:
     from ..core.background import run_on_main_thread
     from ..core.host_platform import remove_tree
 
-    gdal.UseExceptions()
-    folder = policy.create_managed_temp_dir("runsave")
     done = []
     try:
-        for item in plan:
-            stage = os.path.join(folder, f"{item['table'][:40]}.gpkg")
-            why = _staged(item, stage, context)
-            item["source"] = None
-            if why:
-                log_warning(f"Run layer {item['name']} not saved: {why}")
-                continue
-            try:
-                options = gdal.VectorTranslateOptions(
-                    accessMode="update" if os.path.exists(gpkg) else None, layers=[item["table"]],
-                    options=["-gt", str(_COPY_GROUP)])
-                copied = gdal.VectorTranslate(gpkg, stage, options=options)
-                if copied is None:
-                    raise RuntimeError("GDAL wrote nothing")
-                copied = None
-            except RuntimeError as exc:
-                log_warning(f"Run layer {item['name']} not saved in {gpkg}: {exc}")
-                continue
-            if _written_count(gpkg, item["table"]) != item["count"]:
-                log_warning(f"Run layer {item['name']}: {gpkg} holds another count than the layer; it stays in memory")
-                continue
-            done.append(item)
+        gdal.UseExceptions()
+        os.makedirs(os.path.dirname(gpkg), exist_ok=True)
+        folder = policy.create_managed_temp_dir("runsave")
+        try:
+            done = [item for item in plan if _write_one(item, gpkg, folder, context)]
+        finally:
+            remove_tree(folder)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Layers not written to {gpkg}: {exc}")
     finally:
-        remove_tree(folder)
-    if done:
-        run_on_main_thread(_repoint_when_idle, done, gpkg, busy, 0, timeout=30)
+        written = {item["id"] for item in done}
+        for item in plan:
+            item["source"] = None
+        _release([item for item in plan if item["id"] not in written])
+    if not done:
+        return
+    try:
+        run_on_main_thread(_repoint_when_idle, done, gpkg, busy, 0, save, timeout=30)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Layers written to {gpkg} not repointed: {exc}")
+        _release(done)
 
 
-def _repoint_when_idle(done: list, gpkg: str, busy, tries: int) -> None:
+def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = True) -> None:
 
     from qgis.PyQt.QtCore import QTimer
 
@@ -550,30 +651,40 @@ def _repoint_when_idle(done: list, gpkg: str, busy, tries: int) -> None:
 
     if busy is not None and busy():
         if tries < _IDLE_TRIES:
-            QTimer.singleShot(_IDLE_WAIT_MS, lambda: _repoint_when_idle(done, gpkg, busy, tries + 1))
+            QTimer.singleShot(_IDLE_WAIT_MS, lambda: _repoint_when_idle(done, gpkg, busy, tries + 1, save))
+        else:
+            _release(done)
+            log_warning(f"Layers written to {gpkg} not repointed: a run stayed open")
         return
     project = QgsProject.instance()
     moved = []
-    for item in done:
-        layer = project.mapLayer(item["id"])
+    try:
+        for item in done:
+            layer = project.mapLayer(item["id"])
 
-        if (not isinstance(layer, QgsVectorLayer) or layer.providerType() != "memory" or layer.isEditable()
-                or layer.featureCount() != item["shown"]):
-            continue
-        uri = f"{gpkg}|layername={item['table']}"
-        _repoint(layer, uri, "ogr")
-        if not layer.isValid():
-            log_warning(f"Run layer {item['name']} does not open from {uri}")
-            continue
-        if item["subset"] and not layer.setSubsetString(item["subset"]):
-            layer.setSubsetString("")
-        _save_style_inside(layer)
-        moved.append(item["name"])
+            if (not isinstance(layer, QgsVectorLayer) or layer.providerType() != item["provider"]
+                    or layer.source() != item["uri"] or layer.isEditable()
+                    or layer.featureCount() != item["shown"]):
+                continue
+            uri = f"{gpkg}|layername={item['table']}"
+            _repoint(layer, uri, "ogr")
+            if not layer.isValid():
+                log_warning(f"Layer {item['name']} does not open from {uri}")
+                continue
+            if item["subset"] and not layer.setSubsetString(item["subset"]):
+                layer.setSubsetString("")
+            _save_style_inside(layer)
+            moved.append(item["name"])
+    finally:
+        _release(done)
     if not moved:
         return
-    saved = bool(project.fileName()) and project.write()
-    log(f"Run layers saved to {gpkg}: {', '.join(moved)}"
+    saved = False
+    if save and project.fileName():
+        temp_folder_ready("agent")
+        saved = project.write()
+    log(f"Layers saved to {gpkg}: {', '.join(moved)}"
         + (f"; project written to {project.fileName()}" if saved else ""))
 
 
-__all__ = ["register_persist_tools", "save_run_layers"]
+__all__ = ["register_persist_tools", "save_run_layers", "store_in_background", "writing"]

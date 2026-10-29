@@ -147,7 +147,6 @@ def _canvas_held():
 
 
 
-
     canvas = _map_canvas()
     rendering = True
     view = None
@@ -208,7 +207,6 @@ def _view_back(canvas, view) -> None:
 
 
 def _stamp(path: str) -> tuple[int, ...] | None:
-
 
 
 

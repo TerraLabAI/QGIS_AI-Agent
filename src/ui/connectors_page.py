@@ -70,9 +70,7 @@ from .library.parts import Breadcrumb, EmptyState, PageHeader, SectionHead, labe
 from .library.pictures import watch_scroll
 from .library.pressable import Pressable, labels_through, mouse_through
 
-
 POPULAR_KEY = "__popular__"
-
 NATIONAL_KEY = "national"
 
 
@@ -90,22 +88,16 @@ _DEFAULT_ACCENT = "#3E86D6"
 
 _CATEGORY_ORDER = ("worldwide", "national", "imagery", "terrain", "nature", "people", "catalogs")
 
-
 _BOX_PX = 36
 
 
 _CARD_H = 64
 _ROW_GAP = 8
 _COLUMNS = 2
-
 _COLUMN_MIN_W = 260
-
 _SECTION_COUNT = 6
-
 REGIONS = ("europe", "americas", "asia_pacific", "africa_middle_east")
-
 OTHER_KEY = source_rows.OTHER
-
 _SEARCH_WAIT_MS = 300
 
 
@@ -375,11 +367,8 @@ class ConnectorsPage(QWidget):
 
 
     connector_opened = pyqtSignal(str)
-
     section_opened = pyqtSignal(str)
-
     crumb_requested = pyqtSignal(int)
-
     ask_requested = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -388,11 +377,9 @@ class ConnectorsPage(QWidget):
         self._cases: list = []
         self._section = ""
         self._cards: list = []
-
         self._grids: list = []
         self._cols = _COLUMNS
         self._painted = False
-
         self._hits_query = ""
         self._hits: list = []
         self._hits_reply = None
@@ -421,7 +408,6 @@ class ConnectorsPage(QWidget):
         self._search = search_pill(body, "connectorSearch", self.tr("Search data sources"))
         self._search.textChanged.connect(self._on_search)
         self._header = PageHeader(body, self.tr("Data sources"), "", self._search)
-
         self._stats = QWidget(body)
         self._stats_row = QHBoxLayout(self._stats)
         self._stats_row.setContentsMargins(0, 0, 0, 0)
@@ -441,8 +427,6 @@ class ConnectorsPage(QWidget):
         outer.addWidget(self._scroll, 1)
         self._scroll.viewport().installEventFilter(self)
         watch_scroll(self, self._scroll.verticalScrollBar())
-
-
 
     def set_data(self, sources, cases=(), section: str = "") -> None:
 
@@ -514,8 +498,6 @@ class ConnectorsPage(QWidget):
             word.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             col.addWidget(word)
             self._stats_row.addWidget(block)
-
-
 
     def _on_search(self, _text: str) -> None:
         self._paint()
@@ -604,8 +586,6 @@ class ConnectorsPage(QWidget):
     def cards(self) -> list:
         return list(self._cards)
 
-
-
     def _paint(self) -> None:
 
         self._list.setUpdatesEnabled(False)
@@ -674,7 +654,6 @@ class ConnectorsPage(QWidget):
         head.setToolTip(self.tr("See all"))
         head.setObjectName("sourcesSection")
         head.clicked.connect(lambda k=key: self.section_opened.emit(k))
-
         holder.layout().addWidget(head, 0, Qt.AlignmentFlag.AlignLeft)
         holder.layout().addWidget(self._grid(rows, holder))
 
@@ -769,8 +748,6 @@ class ConnectorsPage(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
-
-
 
     def _fit(self) -> None:
         viewport = self._scroll.viewport().width()

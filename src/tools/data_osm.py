@@ -176,6 +176,21 @@ _OVERPASS_UNREACHABLE = ("502", "503", "504", "timed out", "timeout", "refused",
 _OVERPASS_INSTANCE_FAULTS = ("invalid response from overpass api", "open64", "file_blocks_index", "dispatcher")
 
 
+_OVERPASS_NO_HISTORY = "no museum files"
+
+
+def _own_has_no_history(errors) -> bool:
+    return any(_OVERPASS_NO_HISTORY in str(item).lower() for item in errors or [])
+
+
+def _no_history_over_cap(area_km2: float, public_cap: float) -> dict:
+    return tool_error(f"TerraLab's own Overpass instance holds current data only, no history, so a dated "
+                      f"query goes to the public mirrors, and {area_km2:,.0f} square kilometres is more than "
+                      "a public mirror is sent in one call.", limits.CEILING_CODE,
+                      hint="overpass_no_history_over_cap",
+                      box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
+
+
 def _own_overpass_unreachable(errors) -> bool:
 
 
@@ -859,7 +874,6 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
 
 
 
-
     cached = _osm_recent(final_query)
     errors: list = []
     fallback_note = ""
@@ -891,6 +905,8 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
         if raw is None and fell_back and area_km2 > public_cap:
 
 
+            if _own_has_no_history(errors):
+                return _no_history_over_cap(area_km2, public_cap)
             if own_failed:
                 volume_guard.note_own_overpass_down()
             return tool_error(f"TerraLab's own Overpass instance did not answer{_overpass_why(errors)}, and "
@@ -903,8 +919,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
 
 
 
-
-            if own_failed:
+            if own_failed and not _own_has_no_history(errors):
                 volume_guard.note_own_overpass_down()
             fallen: list = []
             for url in _osm_public_mirrors(endpoints):
@@ -955,7 +970,6 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
         elif any("Invalid response from Overpass API" in str(error) for error in errors):
             return tool_error(f"{down_prefix}Invalid response from Overpass API; no mirror returned usable data.")
         else:
-
 
 
 
@@ -1287,6 +1301,8 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
     if path is None and own_failed and area_km2 > public_cap:
 
 
+        if _own_has_no_history(errors):
+            return _no_history_over_cap(area_km2, public_cap)
         volume_guard.note_own_overpass_down()
         if links and all(links):
             return link_failure()
@@ -1296,7 +1312,7 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
                           box_km2=round(area_km2, 1), cap_km2=round(public_cap, 1))
     warning = ""
     if path is None and fell_back:
-        if own_failed:
+        if own_failed and not _own_has_no_history(errors):
             volume_guard.note_own_overpass_down()
         endpoint_used, path, fallen = sweep(_osm_public_mirrors(endpoints))
         errors = fallen if (fallen and _overpass_rejection(fallen)) else errors + fallen

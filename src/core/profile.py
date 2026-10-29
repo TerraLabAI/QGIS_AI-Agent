@@ -32,7 +32,6 @@
 
 
 
-
 from __future__ import annotations
 
 import contextlib
@@ -65,10 +64,8 @@ DEFAULT_LAYER_NAMING = "human"
 MEMORY_SOURCES = ("user", "ai")
 
 
-
 MEMORY_KINDS = ("preference", "fact", "convention")
 DEFAULT_MEMORY_KIND = "fact"
-
 
 
 
@@ -147,9 +144,6 @@ def normalize_reply_language(value: object) -> str:
     return value if any(code == value for code, _name in REPLY_LANGUAGES) else ""
 
 
-
-
-
 def _note_key(text: str) -> str:
     return clean_note_text(text).casefold()
 
@@ -205,7 +199,6 @@ def normalize_note(raw: object) -> dict | None:
 
 
 
-
         project = ""
     return {
         "id": str(raw.get("id") or "").strip()[:16] or _note_id(text, created),
@@ -220,7 +213,6 @@ def normalize_note(raw: object) -> dict | None:
 
 
 def _scoped_key(note: dict) -> tuple:
-
 
 
 
@@ -264,7 +256,6 @@ _NOTE_STOPWORDS = frozenset({
     "utilisateur", "son", "sa", "ses", "est", "sont",
 })
 _WORD_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
-
 
 
 
@@ -383,8 +374,6 @@ def add_memory_note(settings, text: str, source: str = "ai", kind: str = "",
 
 
 
-
-
                 wrote = notes[index]
                 stored = load_memory_notes(settings)
                 kept = next((n for n in stored if n["id"] == wrote["id"]), None)
@@ -397,7 +386,6 @@ def add_memory_note(settings, text: str, source: str = "ai", kind: str = "",
 
     scope_now = scope if scope in MEMORY_SCOPES else DEFAULT_MEMORY_SCOPE
     project_now = "" if scope_now == "user" else str(project or "").strip()[:32]
-
 
 
     key = _note_key(clean)
@@ -487,9 +475,6 @@ def clear_memory_notes(settings) -> None:
         _remember_removed(settings, _dedup(settings.memory_notes), [])
     settings.memory_notes = []
     memory_store.write_notes([])
-
-
-
 
 
 def notes_for_project(settings, project_path: str = "") -> list:

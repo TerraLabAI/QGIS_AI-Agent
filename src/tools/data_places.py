@@ -92,8 +92,6 @@ def _outline_of_layer(name: str):
 
 
     def _read():
-
-
         from qgis.core import QgsGeometry, QgsWkbTypes
 
         polygon_type = enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")

@@ -70,42 +70,30 @@ from .widgets import ChatLabel
 
 
 
-
-
-
-
 _ASK_CARD_QSS = (
     "QWidget#{name} { background: " + SURFACE + "; border: 1px solid " + LINE + ";"
     f" border-radius: {RADIUS_CARD}px; }}"
 )
-
 _ASK_MARGINS = (16, 14, 16, 14)
-
 _PROPOSAL_MAX_PX = 380
-
 _ASK_DONE_QSS = "QWidget#{name} { background: transparent; border: none; }"
-
 
 _ASK_TEXT_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BASE}px; font-weight: 500; color: {INK};"
     " background: transparent; border: none; }"
 )
-
 _ASK_LABEL_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; border: none; }}"
 )
-
 _ASK_DONE_LINE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
 )
-
 _ASK_INPUT_QSS = scale_qss_font_px(
     f"QLineEdit {{ background: {FIELD}; border: 1px solid {LINE_STRONG};"
     f" border-radius: {RADIUS_CONTROL}px; padding: 0 8px;"
     f" color: {INK}; font-size: {FONT_BODY}px; }}"
     f"QLineEdit:focus {{ border: 1px solid {ACCENT}; }}"
 )
-
 _PAGER_QSS = scale_qss_font_px(
     f"QLabel {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px; color: {INK_3};"
     " background: transparent; border: none; }"
@@ -146,7 +134,6 @@ _GLYPH_BTN_QSS = (
     f'QToolButton[ring="true"] {{ border-color: {LINE_STRONG}; }}'
     f"QToolButton:focus {{ border-color: {ACCENT}; }}"
 )
-
 
 _MARK_PX = 16
 _MARK_DOT_PX = 6
@@ -331,8 +318,6 @@ def done_row(parent: QWidget, glyph: str, colour, text: str) -> QWidget:
     row.line_label = label
     row.icon_label = icon
     return row
-
-
 
 
 

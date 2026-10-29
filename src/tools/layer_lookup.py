@@ -112,19 +112,6 @@ def _field_not_found_error(layer, field_name: str) -> dict:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     all_fields = [f.name() for f in layer.fields()]
     suggestions = difflib.get_close_matches(field_name, all_fields, n=3, cutoff=0.5)
     msg = f"The layer {layer.name()!r} has no field {field_name!r}."

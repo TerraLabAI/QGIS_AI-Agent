@@ -177,10 +177,6 @@ def register_harvest_models_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
-
 class _SpecError(ValueError):
 
 
@@ -461,7 +457,6 @@ class _ModelBuilder:
         return {output.name() for output in self.registry.algorithmById(algorithm_id).outputDefinitions()}
 
 
-
     def set_help(self, inputs: list) -> None:
 
         lines = {"ALG_DESC": self.description} if self.description else {}
@@ -507,7 +502,6 @@ class _ModelBuilder:
             placed.setPosition(QPointF(_LAYOUT_X0 + column * _LAYOUT_DX, _LAYOUT_Y0))
             self.model.addModelParameter(_input_parameter(spec), placed)
             self.input_names.add(spec["name"])
-
 
 
     def resolve_steps(self, steps: list) -> list:
@@ -564,7 +558,6 @@ class _ModelBuilder:
                                  f"Valid outputs: {sorted(offered)}")
             grouped.setdefault(step_id, {})[name] = out
         return grouped
-
 
 
     def note_source(self, value, step_id: str, parameter: str) -> None:
@@ -660,10 +653,6 @@ def _build_model(name: str, steps: list, inputs: list, outputs: list, descriptio
         raise _SpecError("Model validation failed: " + "; ".join(str(issue) for issue in issues))
     output_count = sum(len(model.childAlgorithm(step_id).modelOutputs()) for step_id in added)
     return model, resolved, len(builder.input_names), output_count
-
-
-
-
 
 
 def _get_processing_providers(args: dict) -> dict:

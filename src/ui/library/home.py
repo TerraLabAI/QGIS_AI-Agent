@@ -83,7 +83,6 @@ class Carousel(QWidget):
         col.setSpacing(C.px(C.SPACE_2))
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
-
         head.setContentsMargins(0, 0, C.px(C.EDGE), 0)
         head.setSpacing(C.px(8))
         title_head = SectionHead(title, self)
@@ -117,7 +116,6 @@ class Carousel(QWidget):
             self.tiles.append(tile)
         self._scroll.setWidget(self._strip)
         self._scroll.viewport().setStyleSheet("background: transparent;")
-
         holder = QWidget(self)
         lay = QVBoxLayout(holder)
         lay.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
@@ -170,9 +168,7 @@ class ExamplesHome(QWidget):
 
     case_opened = pyqtSignal(object)
     query_changed = pyqtSignal(str)
-
     ask_requested = pyqtSignal(str)
-
     group_requested = pyqtSignal(str)
 
     def __init__(self, cases: list, groups: list, parent=None, looks: dict | None = None):
@@ -198,7 +194,6 @@ class ExamplesHome(QWidget):
         self._body = QWidget(self._scroll)
         self._page = QVBoxLayout(self._body)
         self._page.setSpacing(0)
-
         self._crumbs = Breadcrumb(self._body)
         self._crumbs.crumb.connect(lambda _i: self.group_requested.emit(""))
         self._crumbs.hide()
@@ -226,8 +221,6 @@ class ExamplesHome(QWidget):
         self._debounce.timeout.connect(self.repaint_tiles)
         self._search.textChanged.connect(self._debounce.start)
         self._built_width = 0
-
-
 
     def search_field(self):
         return self._search
@@ -263,8 +256,6 @@ class ExamplesHome(QWidget):
 
     def reveal(self, tile) -> None:
         keys.reveal(tile)
-
-
 
     def _label_of(self, key: str) -> str:
         return next((text for k, text in self._groups if k == key), key)
@@ -303,7 +294,6 @@ class ExamplesHome(QWidget):
                 self._content_col.addWidget(carousel)
                 self._carousels.append(carousel)
             if not self._carousels:
-
                 empty = QLabel(tr("No examples match"), self._content)
                 empty.setObjectName("libEmpty")
                 empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -362,8 +352,6 @@ class ExamplesHome(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
-
-
     def column_width(self) -> int:
         room = self._scroll.viewport().width() - 2 * C.px(C.SPACE_4)
         return max(C.px(C.TILE_MIN_W), min(room, C.px(C.COLUMN_W)))
@@ -373,7 +361,6 @@ class ExamplesHome(QWidget):
         viewport = self._scroll.viewport().width()
         width = self.column_width()
         side = max(C.px(C.SPACE_4), (viewport - width) // 2) - C.px(C.EDGE)
-
         top = 0 if self._crumbs.isVisibleTo(self) else C.px(C.TOP_BAR_H)
         self._page.setContentsMargins(side, top, side, C.px(C.SPACE_5))
         if width == self._built_width:

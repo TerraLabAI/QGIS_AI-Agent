@@ -154,8 +154,6 @@ def run_change_items(report, touched=None, answer: str = "") -> dict:
 
 
 
-
-
     try:
         return _run_change_items(report if isinstance(report, dict) else {},
                                  [x for x in touched if isinstance(x, dict)]

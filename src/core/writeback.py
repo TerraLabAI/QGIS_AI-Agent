@@ -90,7 +90,6 @@ class WriteBehind:
         self._closed = False
 
 
-
     def schedule(self, path: str, produce: Callable[[], str | None]) -> None:
 
 
@@ -135,7 +134,6 @@ class WriteBehind:
             self._timer = None
             return False
         return True
-
 
 
     def flush(self, wait: bool = False) -> None:
@@ -200,7 +198,6 @@ class WriteBehind:
             job()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"State file not written{' (' + os.path.basename(path) + ')' if path else ''}: {exc}")
-
 
 
     def _start_thread(self) -> bool:

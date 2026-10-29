@@ -109,7 +109,6 @@ def safe_call(obj: Any, method: str) -> str:
         value = fn()
     except Exception as err:
 
-
         return f"<error: {err.__class__.__name__}: {err}>"
     if value is None:
         return ""

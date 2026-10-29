@@ -42,8 +42,6 @@ def _check(index: int, cancelled) -> None:
         raise InterruptedError("Stopped while the statistics were computed")
 
 
-
-
 def contiguity(features: list, rook: bool, tolerance: float, cancelled=None) -> list:
 
 
@@ -174,8 +172,6 @@ def distance_band(points: list, distance: float, max_links: int, cancelled=None)
     return neighbours
 
 
-
-
 def gi_star(values: list, neighbours: list) -> list:
 
 
@@ -238,8 +234,6 @@ def gi_bin(z: float | None, p: float | None, thresholds: dict | None = None) -> 
         if significant:
             return level if z > 0 else -level
     return 0
-
-
 
 
 def standardise(values: list) -> list:
@@ -371,8 +365,6 @@ def quadrant(z: float, lag: float | None) -> str | None:
     if z > 0:
         return "HH" if lag > 0 else "HL"
     return "LH" if lag > 0 else "LL"
-
-
 
 
 def ellipse(points: list, weights: list | None = None) -> dict | None:

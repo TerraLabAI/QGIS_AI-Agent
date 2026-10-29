@@ -140,8 +140,6 @@ def _unique(values) -> list:
 
 
 
-
-
 _NAMED_CRS = {
     "urn:ogc:def:crs:ogc:1.3:crs84": "OGC:CRS84",
     "urn:ogc:def:crs:ogc::crs84": "OGC:CRS84",
@@ -175,8 +173,6 @@ def _pick_crs(crs_list: list) -> str:
         if wanted in crs_list:
             return wanted
     return next((crs for crs in crs_list if crs.startswith("EPSG:")), "")
-
-
 
 
 def service_base(url: str) -> str:
@@ -399,8 +395,6 @@ def arcgis_json_url(url: str) -> str:
 
 
 
-
-
 _WMTS_LAYER_RE = re.compile(rb"<(?:wmts:)?Layer>(.*?)</(?:wmts:)?Layer>", re.DOTALL)
 _WMTS_IDENTIFIER_RE = re.compile(rb"<ows:Identifier>\s*([^<\s][^<]*?)\s*</ows:Identifier>")
 _WMTS_TITLE_RE = re.compile(rb"<ows:Title[^>]*>\s*([^<]*?)\s*</ows:Title>")
@@ -606,8 +600,6 @@ def _wmts(final_url: str, root, text: str) -> dict:
                            "picture_only": coded_fact(hint="ogc_picture_only")})
 
 
-
-
 def _wms(final_url: str, root) -> dict:
     capability = _child(root, "Capability")
     formats = [_text(f) for f in _children(_find(capability, "Request", "GetMap"), "Format")]
@@ -693,8 +685,6 @@ def _wms(final_url: str, root) -> dict:
     return out
 
 
-
-
 def _wfs(final_url: str, root) -> dict:
     endpoint = _endpoint(final_url, root)
     types = _children(_child(root, "FeatureTypeList"), "FeatureType")
@@ -737,8 +727,6 @@ def _wfs_page_size(root) -> int:
             except (TypeError, ValueError):
                 return 0
     return 0
-
-
 
 
 def _envelope(element) -> list | None:
@@ -854,8 +842,6 @@ def _local_copy(entries: list) -> dict | None:
         return None
     args = dict(entries[0]["add"]["args"], bbox="{BBOX_4326}")
     return {"tool": "add_data", "args": args}
-
-
 
 
 def _service_title(root) -> str:
@@ -985,8 +971,6 @@ def strip_doctype(text: str) -> str:
 
 
     return _DOCTYPE_RE.sub("", text, count=1)
-
-
 
 
 _ARCGIS_SERVICE_RE = re.compile(r"^(?P<url>.*?/(?P<type>MapServer|FeatureServer|ImageServer))(?:/(?P<layer>\d+))?/?$",

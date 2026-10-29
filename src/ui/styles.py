@@ -48,8 +48,6 @@ DARK_UI = _dark_ui()
 MUTED_TEXT = "#a5a8ad" if DARK_UI else "#5b5f66"
 
 
-
-
 INK_HOVER_FILL = "#d7dade" if DARK_UI else "#33363b"
 INK_PRESSED_FILL = "#c2c6cb" if DARK_UI else "#43464c"
 ERROR_TEXT = "#ef5350"
@@ -74,9 +72,6 @@ _CARD_MARGINS = (12, 10, 12, 10)
 
 
 _CARD_CHILD_BTN_RESET_QSS = "QPushButton { border: none; }"
-
-
-
 
 
 
@@ -142,7 +137,6 @@ def _msg_card_qss(name: str, kind: str) -> str:
 
 
 _BTN_LABEL_WEIGHT = "font-weight: 600;"
-
 
 _UPDATE_CARD_STYLE = (
     "QWidget#updateCard { background-color: palette(base);"

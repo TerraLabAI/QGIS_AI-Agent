@@ -17,7 +17,6 @@ class AiSegmentationAdapter(PluginAdapter):
         return "AI Segmentation"
 
 
-
     def current_zone(self) -> tuple[Any, Any] | None:
 
 

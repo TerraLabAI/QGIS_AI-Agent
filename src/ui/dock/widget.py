@@ -40,8 +40,6 @@ class AIAgentDock(QgsDockWidget):
         self.setTitleBarWidget(header)
         self.setAcceptDrops(True)
 
-
-
     def dragEnterEvent(self, event):  # noqa: N802
         self.panel.dragEnterEvent(event)
 

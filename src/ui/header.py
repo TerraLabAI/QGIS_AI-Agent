@@ -115,6 +115,7 @@ class Header(QWidget):
     new_thread_requested = pyqtSignal()
     thread_delete_requested = pyqtSignal(str)
     settings_clicked = pyqtSignal()
+    feedback_clicked = pyqtSignal()
 
 
 
@@ -123,7 +124,6 @@ class Header(QWidget):
     discard_all_requested = pyqtSignal()
     stop_and_restore_requested = pyqtSignal()
     pro_pill_clicked = pyqtSignal()
-
     pro_pill_shown = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -173,7 +173,6 @@ class Header(QWidget):
         self._brand = brand_host
         row.addStretch(1)
 
-
         self._pro_pill = QPushButton(self.tr("Get Pro"), self)
         self._pro_pill.setObjectName("hdrProPill")
         self._pro_pill.installEventFilter(self)
@@ -209,7 +208,6 @@ class Header(QWidget):
         self._sheet.stop_and_restore_requested.connect(self.stop_and_restore_requested.emit)
         self._sheet.installEventFilter(self)
         self._restore_btn.clicked.connect(self.open_checkpoints)
-
         self._restore_btn.hide()
         row.addWidget(self._restore_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
@@ -229,6 +227,13 @@ class Header(QWidget):
         self._new_btn.setFixedSize(26, 26)
         self._new_btn.clicked.connect(self.new_thread_requested.emit)
         row.addWidget(self._new_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+        self._feedback_btn = IconButton(self, "lu.bug", 18, self.tr("Send feedback"))
+        self._feedback_btn.setObjectName("agentFeedback")
+        self._feedback_btn.setFixedSize(26, 26)
+        self._feedback_btn.clicked.connect(self.feedback_clicked.emit)
+        row.addWidget(self._feedback_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._settings_btn = IconButton(self, "gear", 18, self.tr("Settings"))
         self._settings_btn.setFixedSize(26, 26)
@@ -251,14 +256,19 @@ class Header(QWidget):
 
 
 
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(super().sizeHint().width(), HEADER_HEIGHT)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(super().minimumSizeHint().width(), HEADER_HEIGHT)
+
     def set_dock(self, dock) -> None:
 
         self._dock = dock
         self._float_btn.setVisible(dock is not None)
         self._close_btn.setVisible(dock is not None)
         self._fit_pro_pill()
-
-
 
     def set_pro_pill_visible(self, visible: bool) -> None:
 
@@ -362,8 +372,6 @@ class Header(QWidget):
 
         self._history_popup.set_thread_text_provider(provider)
 
-
-
     def set_checkpoints(self, entries: list) -> None:
 
 
@@ -402,6 +410,10 @@ class Header(QWidget):
     def checkpoint_sheet(self) -> CheckpointSheet:
 
         return self._sheet
+
+    def set_feedback_available(self, available: bool) -> None:
+
+        self._feedback_btn.setVisible(bool(available))
 
     def set_history_available(self, available: bool) -> None:
 
@@ -447,8 +459,6 @@ class Header(QWidget):
                     button.set_hovered(False)
                     button.set_active(False)
         return super().eventFilter(watched, event)
-
-
 
     def set_account(self, email: str, avatar_url: str = "") -> None:
 

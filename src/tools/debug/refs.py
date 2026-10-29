@@ -89,7 +89,6 @@ class SessionRefStore:
 
 
 
-
         for existing_ref in list(self._by_ref.keys()):
             if not is_alive(self._by_ref.get(existing_ref)):
                 self._by_ref.pop(existing_ref, None)
@@ -119,7 +118,6 @@ class SessionRefStore:
             self._by_ref[ref] = widget
             current[ref] = widget
         return dict(current)
-
 
 
     def _prune_items(self):

@@ -18,8 +18,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
@@ -70,9 +68,7 @@ from .shared import (
 )
 from .widgets import ElidedLabel
 
-
 _AVATAR_D = 36
-
 _SETTINGS_UPSELL_SEEN = [False]
 
 
@@ -95,13 +91,7 @@ def _note_settings_upsell() -> None:
 class AccountPageMixin:
 
 
-
-
     def _build_account(self) -> Page:
-
-
-
-
 
 
 
@@ -227,7 +217,6 @@ class AccountPageMixin:
         if code in ("SIGNED_OUT", "INVALID_KEY"):
 
 
-
             title = (self.tr("This computer was signed out") if code == "INVALID_KEY"
                      else self.tr("Sign in to see your account"))
             note = self.tr("Your plan, tasks and settings appear here once you sign in.")
@@ -287,7 +276,6 @@ class AccountPageMixin:
         id_col = QVBoxLayout()
         id_col.setContentsMargins(0, 0, 0, 0)
         id_col.setSpacing(1)
-
         email_lbl = ElidedLabel(email, chip, Qt.TextElideMode.ElideMiddle)
         email_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: palette(text); background: transparent;")
         id_col.addWidget(email_lbl)
@@ -332,7 +320,6 @@ class AccountPageMixin:
             runs = ""
         reset_str = format_reset_date(plan.reset_iso or "")
         reset = self.tr("Resets {date}").format(date=reset_str) if reset_str else ""
-
         title = plan_name if plan.is_subscriber else self.tr(
             "{plan} · Personal, non-commercial use").format(plan=plan_name)
 
@@ -476,8 +463,6 @@ class AccountPageMixin:
 
 
 
-
-
         if self.receivers(self.upgrade_requested) > 0:
             self.upgrade_requested.emit()
             return
@@ -503,8 +488,6 @@ class AccountPageMixin:
         self.sign_out_requested.emit()
         self.accept()
 
-
-
     def _add_advanced(self, page: Page) -> None:
 
 
@@ -514,9 +497,6 @@ class AccountPageMixin:
 
 
         page.add_group_title(self.tr("Advanced"))
-
-
-
 
         group = SettingGroup(page)
         self._telemetry_switch = Switch(group, self._telemetry_enabled)
@@ -564,10 +544,6 @@ class AccountPageMixin:
         self._add_danger_zone(page)
 
     def _add_danger_zone(self, page: Page) -> None:
-
-
-
-
 
         page.add_group_title(self.tr("Danger zone"))
         group = SettingGroup(page)

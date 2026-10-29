@@ -71,7 +71,6 @@ def _expand_home(arguments: dict) -> dict:
 
 
 
-
     def walk(value):
         if isinstance(value, str):
             if value == "~" or value.startswith(("~/", "~\\")):
@@ -159,7 +158,6 @@ def coded_fact(hint: str, **facts) -> dict:
 
 
 def _network_failure(exc: BaseException) -> str | None:
-
 
 
 
@@ -357,6 +355,9 @@ class Tool:
     catalog: bool = False
 
 
+    hands_back: bool = False
+
+
 
     label_for: Callable[[dict], str] | None = None
 
@@ -377,9 +378,7 @@ class Tool:
     sets_view: bool = False
 
 
-
     builds_layout_at: str = ""
-    removes_layout_at: str = ""
 
 
 
@@ -488,8 +487,6 @@ class ToolRegistry:
         self._tools: dict[str, Tool] = {}
 
     def register(self, tool: Tool, replace: bool = False):
-
-
 
 
 
@@ -721,11 +718,7 @@ class ToolRegistry:
 
 
 
-
-
-
         if isinstance(value, float) and not math.isfinite(value):
-
 
 
 
@@ -773,14 +766,10 @@ class ToolRegistry:
 
 
 
-
                     for key in unknown:
                         del value[key]
                     unknown = []
                 if unknown:
-
-
-
 
 
 

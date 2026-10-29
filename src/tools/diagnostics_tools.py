@@ -157,8 +157,6 @@ def _diagnose_project(args: dict) -> dict:
     if wanted:
 
 
-
-
         found = _find_layer(wanted)
         if found is None:
             return _layer_not_found_error(wanted)

@@ -56,7 +56,6 @@ _ID_TAIL = re.compile(r"_(?:[0-9a-f]{8}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9a-f]{4}_[0-9
 
 
 
-
 _NAME_SUFFIX = re.compile(
     r"(?:\s+\d+\s*/\s*\d+"
     r"|\s*\[\s*\d+\s*\]"
@@ -679,7 +678,6 @@ def pin_layer_names(args: dict, tool: str = "", pins: dict | None = None) -> dic
         if stage == "none":
             continue
         if stage == "exact":
-
 
 
 

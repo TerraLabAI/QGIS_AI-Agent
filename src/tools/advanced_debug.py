@@ -222,9 +222,6 @@ def _get_debug_info(args: dict) -> dict:
 
 
 
-
-
-
     try:
         from ..core import machine, net
 
@@ -289,7 +286,6 @@ def _get_debug_info(args: dict) -> dict:
         result["memory_peak_mb"] = peak
 
     _connect_message_log()
-
 
 
     seen = set()

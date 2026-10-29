@@ -61,12 +61,6 @@ def listen_finished(callback, on: bool) -> None:
 
 
 
-
-
-
-
-
-
 _TASKS_LOCK = threading.Lock()
 _TASKS: dict[int, dict] = {}
 _CURRENT = threading.local()
@@ -109,9 +103,6 @@ def running_tasks() -> list:
             "quiet_s": round(now - e["beat"], 1)} for e in entries]
     out.sort(key=lambda item: item["running_s"])
     return out
-
-
-
 
 
 class _MainThreadInvoker(QObject):
@@ -164,7 +155,6 @@ def main_thread_invoker():
                     invoker.moveToThread(target)
             _INVOKER = invoker
         return _INVOKER
-
 
 
 
@@ -370,7 +360,6 @@ def main_qthread():
 if _APP is not None and on_main_thread():
     with contextlib.suppress(Exception):
         main_thread_invoker()
-
 
 
 

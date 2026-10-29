@@ -88,9 +88,6 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
 
 
 
-
-
-
         log_warning(f"The plugin repository only offers {available}, below the "
                     f"{get_min_supported_version()} the service requires; no update is offered.")
         if hasattr(panel, "clear_update"):

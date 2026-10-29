@@ -29,7 +29,6 @@ _GROUND_ALPHA = 225
 _FIELD_ALPHA = 26
 _BORDER_ALPHA = 150
 _MUTED_ALPHA = 165
-
 _FADE_MS = 110
 
 
@@ -50,8 +49,6 @@ class DropOverlay(QWidget):
         self._fade.setOpacity(1.0)
         self.setGraphicsEffect(self._fade)
         self.hide()
-
-
 
     def show_over(self, host: QWidget, glyph: str = "layers") -> None:
 
@@ -92,8 +89,6 @@ class DropOverlay(QWidget):
     def sync_geometry(self, host: QWidget) -> None:
         if self.isVisible():
             self.setGeometry(host.rect())
-
-
 
     def paintEvent(self, event):  # noqa: N802
         painter = QPainter(self)

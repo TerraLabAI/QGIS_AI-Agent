@@ -42,7 +42,6 @@ from .widgets import ChatLabel
 
 
 _HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;")
-
 _GLYPH_SLOT_PX = 14
 _GLYPH_PX = 12
 
@@ -251,10 +250,6 @@ class _Card(QWidget):
         button.setAutoDefault(False)
         button.clicked.connect(slot)
         return button
-
-
-
-
 
 
 

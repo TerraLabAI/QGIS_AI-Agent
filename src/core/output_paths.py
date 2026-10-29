@@ -138,7 +138,6 @@ def exports_folder(make: bool = True) -> str:
 
 
 
-
     import tempfile
 
     chosen = os.environ.get("QGIS_AI_AGENT_EXPORTS", "").strip()
@@ -377,8 +376,6 @@ def make_exports_folder(path) -> bool:
     except OSError:
         return False
     return True
-
-
 
 
 _MAX_SIBLINGS = 5000

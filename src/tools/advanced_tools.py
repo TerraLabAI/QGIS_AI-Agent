@@ -47,6 +47,23 @@ def _export_layout_label(args: dict) -> str:
     return ""
 
 
+def _render_label(args: dict) -> str:
+
+    target = str(args.get("target") or "canvas")
+    if target == "layout":
+        return QT_TRANSLATE_NOOP("AIAgent", "Check the print layout[ {layout_name}][, page {page}]")
+    if target == "file":
+        return QT_TRANSLATE_NOOP("AIAgent", "Check the file {path}")
+    names = args.get("layer_names")
+    if isinstance(names, list) and len(names) == 1:
+        return QT_TRANSLATE_NOOP("AIAgent", "Look at {layer_names} on the map")
+    if isinstance(names, list) and names:
+        return QT_TRANSLATE_NOOP("AIAgent", "Look at {layer_names} layers on the map")
+    if args.get("extent"):
+        return QT_TRANSLATE_NOOP("AIAgent", "Look at part of the map")
+    return ""
+
+
 def register_advanced_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="execute_code",
@@ -71,6 +88,10 @@ def register_advanced_tools(registry: ToolRegistry):
 
 
             "x-own-files": True,
+
+
+
+            "x-user-layer-no-card": True,
 
 
 
@@ -99,7 +120,8 @@ def register_advanced_tools(registry: ToolRegistry):
         name="render_map",
         danger="read",
         visible=8,
-        label=QT_TRANSLATE_NOOP("AIAgent", "Render the map"),
+        label=QT_TRANSLATE_NOOP("AIAgent", "Look at the map as you see it"),
+        label_for=_render_label,
         input_schema={
             "type": "object",
 
@@ -176,12 +198,6 @@ def register_advanced_tools(registry: ToolRegistry):
 
         prepare=raster_overviews.prepare_render,
     ))
-
-
-
-
-
-
     registry.register(Tool(
         name="list_layouts",
         danger="read",

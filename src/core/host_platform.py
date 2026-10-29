@@ -33,6 +33,68 @@ def _is_transient(exc: OSError) -> bool:
     return getattr(exc, "winerror", None) in _TRANSIENT_WINERRORS
 
 
+def is_transient_refusal(exc: BaseException) -> bool:
+
+
+
+    return IS_WINDOWS and getattr(exc, "winerror", None) in (32, 33, 1224)
+
+
+def file_error_kind(exc: BaseException, path: str = "") -> tuple[str, int | None]:
+
+
+
+
+
+
+    import errno
+    import sqlite3
+
+    winerror = getattr(exc, "winerror", None)
+    code = winerror if isinstance(winerror, int) else getattr(exc, "errno", None)
+    code = code if isinstance(code, int) else None
+    if isinstance(exc, TimeoutError):
+        return "timeout", code
+    if isinstance(exc, InterruptedError):
+        return "stopped", code
+    if isinstance(exc, sqlite3.Error):
+        text = str(exc).lower()
+
+        return ("sqlite_locked" if "locked" in text or "busy" in text else "sqlite_error"), None
+    if winerror in (32, 33):
+        return "held_open", code
+    if winerror == 1224:
+        return "mapped_open", code
+    if isinstance(exc, PermissionError) or winerror == 5:
+        try:
+            read_only = bool(path) and os.path.exists(path) and not os.access(path, os.W_OK)
+        except (OSError, ValueError):
+            read_only = False
+        return ("read_only" if read_only else "access_denied"), code
+    if isinstance(exc, FileNotFoundError):
+        return "not_found", code
+    if getattr(exc, "errno", None) == errno.ENOSPC:
+        return "disk_full", code
+    if getattr(exc, "errno", None) == errno.EROFS:
+        return "read_only", code
+    if winerror == 3 or getattr(exc, "errno", None) == errno.ENAMETOOLONG:
+        return "path_too_long", code
+    return type(exc).__name__.lower()[:32], code
+
+
+
+_SYNCED_FOLDERS = ("onedrive", "dropbox", "google drive", "googledrive", "my drive", "mon drive", "meu drive",
+                   "mi unidad", "meine ablage", "il mio drive", "mój dysk", "icloud drive", "iclouddrive",
+                   "com~apple~clouddocs")
+
+
+def in_synced_folder(path: str) -> bool:
+
+    parts = str(path or "").replace("\\", "/").lower().split("/")
+    return any(part == name or part.startswith(name + " -") or part.startswith(name + "-")
+               for part in parts for name in _SYNCED_FOLDERS)
+
+
 def retry_file_op(op, *args):
 
 
@@ -90,7 +152,10 @@ def resolved(path: str) -> str:
         return os.path.abspath(path)
 
 
-def release_pooled_handles(layer) -> None:
+def release_pooled_handles(layer, rasters: bool = False) -> None:
+
+
+
 
 
 
@@ -103,7 +168,7 @@ def release_pooled_handles(layer) -> None:
     if not IS_WINDOWS:
         return
     try:
-        if layer.providerType() != "ogr":
+        if layer.providerType() not in (("ogr", "gdal") if rasters else ("ogr",)):
             return
         provider = layer.dataProvider()
         if provider is not None:

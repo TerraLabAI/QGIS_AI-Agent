@@ -85,8 +85,6 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentContext", text)
 
 
-
-
 def _plugin_dirs() -> list[str]:
     dirs = []
     try:
@@ -134,7 +132,6 @@ def ai_segmentation_panel() -> dict | None:
 
 
 
-
     plugins = getattr(qgis.utils, "plugins", {}) or {}
     plugin = next((plugins[name] for name in AI_SEGMENTATION_FOLDERS if name in plugins), None)
     reader = getattr(getattr(plugin, "mcp_api", None), "get_interactive_state", None)
@@ -156,8 +153,6 @@ def ai_segmentation_panel() -> dict | None:
     if state.get("zone_wkt"):
         out["zone_set"] = True
     return out or None
-
-
 
 
 def clean_chips(chips) -> list[dict]:
@@ -211,7 +206,6 @@ def _home_relative_dir(text: str) -> str:
     if not text:
         return ""
     home = os.path.expanduser("~")
-
 
 
     here, root = _slash_case(text), _slash_case(home)
@@ -298,8 +292,6 @@ def _chip_layer_ids(chips: list) -> set:
 
 
 def _tree_selected_ids(iface) -> set:
-
-
 
 
 
@@ -480,7 +472,7 @@ def _detailed_records(detailed_ids: list, by_id: dict, rich_ids: set, active, ca
         record = dict(it["record"])
         if lid in rich_ids and it["layer"] is not None:
             is_active = active is not None and lid == active.id()
-            record.update(rich_card(it["layer"], canvas_crs, project, is_active, it["extent"]))
+            record.update(rich_card(it["layer"], project, is_active))
         if it["by_agent"]:
             record["by_agent"] = True
         if record.get("source_kind") not in _NO_VIEW_KINDS:
@@ -499,10 +491,6 @@ def _add_machine(context: dict) -> None:
 
 
 
-
-
-
-
     try:
         from . import limits, machine
 
@@ -513,14 +501,7 @@ def _add_machine(context: dict) -> None:
 
 
 
-
-
-
-
-
-
             caps = {}
-
 
 
 
@@ -568,9 +549,6 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
 
     places = tree_positions(root)
     tree_ids = _tree_selected_ids(iface)
-
-
-
 
 
     all_layers = _capped_layers(all_layers_full, places,
@@ -637,8 +615,6 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
     return context
 
 
-
-
 def layer_geometry_label(layer) -> str:
 
 
@@ -693,8 +669,6 @@ def mention_candidates() -> list[dict]:
 
 
 def source_candidates() -> list[dict]:
-
-
 
 
 

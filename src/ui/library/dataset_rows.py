@@ -38,7 +38,6 @@ class DatasetHit(Pressable):
         mark = QLabel(self)
         from .pictures import wear_square_mark
 
-
         look = dict(family)
         if row.get("logo_url"):
             look["logo_url"] = row["logo_url"]

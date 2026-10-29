@@ -129,8 +129,6 @@ def register_gtfs_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _check_args(args: dict) -> dict | None:
     source = str(args.get("source") or "").strip()
     if not source:
@@ -147,8 +145,6 @@ def _check_args(args: dict) -> dict | None:
             return tool_error("merge_distance_m must be a positive number of metres.", "INVALID_ARGS",
                               hint="gtfs_merge_distance")
     return None
-
-
 
 
 class _GtfsSource:
@@ -316,8 +312,6 @@ def _human_bytes(n: int) -> str:
     return f"{n} B"
 
 
-
-
 def _feed_validity(calendar_rows: list, calendar_dates_rows: list) -> tuple[str | None, str | None]:
     starts = [r["start_date"] for r in calendar_rows if r.get("start_date")]
     ends = [r["end_date"] for r in calendar_rows if r.get("end_date")]
@@ -406,8 +400,6 @@ def _active_services(date_compact: str, calendar_rows: list, calendar_dates_rows
     return active
 
 
-
-
 def _gtfs_seconds(text: str) -> int | None:
 
     parts = (text or "").strip().split(":")
@@ -426,8 +418,6 @@ def _clock(seconds: int) -> str:
     h, rest = divmod(seconds, 3600)
     m, s = divmod(rest, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
-
-
 
 
 def _stream_stop_times(gtfs: _GtfsSource, active_trip_route: dict, want_sequence_for: set,
@@ -502,8 +492,6 @@ def _stream_stop_times(gtfs: _GtfsSource, active_trip_route: dict, want_sequence
     }
 
 
-
-
 def _frequency_windows(freq_rows: list, active_trip_route: dict) -> dict:
 
 
@@ -573,8 +561,6 @@ def _apply_frequencies(windows_by_trip: dict, stream: dict, active_trip_route: d
             if route_id:
                 route_extra[route_id] += trip_added - 1
     return added, route_extra, matched, unmatched
-
-
 
 
 def _merge_stops(stop_rows: list, stream: dict, merge_distance_m: float | None) -> tuple[list, int, bool]:
@@ -687,8 +673,6 @@ def _cluster_by_distance(records: list, distance_m: float) -> tuple[list, int]:
     return merged, extra
 
 
-
-
 def _stream_shapes(gtfs: _GtfsSource, used_shape_ids: set, cancel, max_rows: int) -> tuple[dict, bool, int]:
 
 
@@ -739,8 +723,6 @@ def _stream_shapes(gtfs: _GtfsSource, used_shape_ids: set, cancel, max_rows: int
         if len(ordered) >= 2:
             shape_points[shape_id] = ordered
     return shape_points, cut, kept
-
-
 
 
 def _route_lines(route_rows: list, trip_rows: list, shape_points: dict, stop_coords: dict,
@@ -796,8 +778,6 @@ def _route_lines(route_rows: list, trip_rows: list, shape_points: dict, stop_coo
             "line": line, "geometry_source": source,
         })
     return routes, without_geometry
-
-
 
 
 def _write_geopackage(path: str, stops: list, routes: list) -> None:
@@ -856,8 +836,6 @@ def _write_geopackage(path: str, stops: list, routes: list) -> None:
         target.CommitTransaction()
     finally:
         del target
-
-
 
 
 def _quantile_breaks(values: list, classes: int) -> list:
@@ -920,8 +898,6 @@ def _style_routes(layer) -> None:
     symbol.symbolLayer(0).setDataDefinedProperty(
         enum_member(QgsSymbolLayer, "Property", "PropertyStrokeColor"), QgsProperty.fromExpression(expression))
     layer.setRenderer(QgsSingleSymbolRenderer(symbol))
-
-
 
 
 def _stopped() -> dict:
@@ -988,7 +964,6 @@ def _load_gtfs(args: dict) -> dict:
 
         if net.is_cancelled(cancel):
             return _stopped()
-
 
 
 

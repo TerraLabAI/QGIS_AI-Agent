@@ -303,11 +303,6 @@ class _SharedTls:
             self._sock.close()
 
 
-
-
-
-
-
 def _drop_kind(exc: BaseException) -> str:
 
 
@@ -386,7 +381,6 @@ class WsConnection:
         self._in_flight_until = 0.0
         self._ping_sent_at: float | None = None
         self.open = False
-
 
 
     def connect(self) -> None:
@@ -746,7 +740,6 @@ class WsConnection:
                 f"server enabled sec-websocket-protocol that was not offered: {headers['sec-websocket-protocol']}")
 
 
-
     def _enqueue(self, opcode: int, payload: bytes) -> None:
         if self._send_error is not None:
             raise self._send_error
@@ -1041,7 +1034,6 @@ class WsConnection:
             pass
 
 
-
     def _on_idle(self) -> None:
 
         now = time.monotonic()
@@ -1166,10 +1158,6 @@ class WsConnection:
         finally:
             self.abort()
         return code, reason
-
-
-
-
 
 
 try:

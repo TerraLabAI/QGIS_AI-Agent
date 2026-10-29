@@ -33,6 +33,7 @@ from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QFileInfo
 
 from ..core import background, ground, invalid_geometry, layer_order
+from ..core.context_layers import count_is_cheap
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log_warning
@@ -101,8 +102,6 @@ from .processing_guards import (
 from .processing_paths import alias_fragile_paths, safe_output_name
 from .processing_stamp import _stamp_provenance
 from .stac_tools import normalise_crs
-
-
 
 _PROCESSING_TASKS: dict[str, dict] = {}
 
@@ -983,7 +982,6 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-
 def _report_empty_outputs(out: dict) -> None:
 
     empty = [
@@ -1427,7 +1425,8 @@ def _layer_summary(layer, path: str | None = None, in_project: bool = True) -> d
     else:
         out.update(coded_fact(hint="output_not_in_project"))
     if isinstance(layer, QgsVectorLayer):
-        out["feature_count"] = layer.featureCount()
+        if count_is_cheap(layer):
+            out["feature_count"] = layer.featureCount()
         out["geometry_type"] = QgsWkbTypes.displayString(layer.wkbType())
     elif isinstance(layer, QgsRasterLayer):
         out["raster_size"] = [int(layer.width()), int(layer.height())]
@@ -1734,6 +1733,43 @@ def register_task(task, label: str, connect=None) -> tuple:
     return task_id, entry
 
 
+def adopt_running_call(task, label: str) -> tuple:
+
+
+
+
+    _sweep_consumed_tasks()
+    task_id = "task-" + uuid.uuid4().hex[:12]
+    entry = {"status": "running", "progress": 0, "algorithm": label,
+             "started_at": time.strftime("%H:%M:%S"), "task": task}
+    _PROCESSING_TASKS[task_id] = entry
+    return task_id, entry
+
+
+def note_adopted_bytes(task_id: str, done, total) -> None:
+
+    entry = _PROCESSING_TASKS.get(task_id)
+    if entry is not None and entry.get("status") == "running":
+        entry["received_bytes"] = int(done or 0)
+        if total:
+            entry["total_bytes"] = int(total)
+
+
+def settle_adopted(task_id: str, result, error_text: str) -> None:
+
+    entry = _PROCESSING_TASKS.get(task_id)
+    if entry is None or entry.get("status") == "canceled":
+        return
+    entry["task"] = None
+    if error_text or not isinstance(result, dict):
+        entry.update(status="error", error=(error_text or "No result").split("\n", 1)[0])
+    elif result.get("_error"):
+        entry.update(status="error", error=result.get("_error"), code=result.get("_code") or result.get("code"),
+                     hint=result.get("hint"))
+    else:
+        entry.update(status="complete", progress=100, outputs=result)
+
+
 def _cleanup_canceled_destination(entry: dict) -> None:
 
 
@@ -1928,8 +1964,6 @@ def _let_go(entry: dict) -> None:
         entry.pop(heavy, None)
     _release_held(entry)
     unwatch_if_idle()
-
-
 
 
 def remove_layers(layers) -> list:
@@ -2374,7 +2408,7 @@ def _get_task_status(args: dict) -> dict:
         out.update(entry["sequence"].report())
     elif entry["status"] == "running":
 
-        for key in ("features_written", "features_per_s", "eta_s"):
+        for key in ("features_written", "features_per_s", "eta_s", "received_bytes", "total_bytes", "source"):
             if entry.get(key) is not None:
                 out[key] = entry[key]
     elif entry["status"] == "complete":

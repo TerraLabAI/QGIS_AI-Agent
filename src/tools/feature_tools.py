@@ -356,7 +356,6 @@ def _write_refused(layer, action: str, count: int) -> dict:
 
 
 
-
     error = vector_write.cannot_edit_error(layer, action)
     name = error.get("layer") or "the layer"
     head = f"The layer {name!r} refused to {action} ({count} asked for)."
@@ -394,7 +393,6 @@ def _update_features(args: dict) -> dict:
 
 
 
-
     empty_updates = [u for u in updates if not u.get("attributes")]
     updates = [u for u in updates if u.get("attributes")]
     if not updates:
@@ -428,12 +426,9 @@ def _update_features(args: dict) -> dict:
         feat = layer.getFeature(fid)
         if not feat.isValid():
 
-
             not_found.append(fid)
             continue
         attrs = update.get("attributes", {})
-
-
 
 
         wrote = 0
@@ -450,7 +445,6 @@ def _update_features(args: dict) -> dict:
                 wrote += 1
             else:
                 refused.append({"fid": fid, "field": field_name})
-
 
 
         if wrote == len(attrs):
@@ -519,7 +513,6 @@ def _delete_features(args: dict) -> dict:
             .setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
         )
     }
-
 
     wanted = list(dict.fromkeys(fids))
     duplicates = len(fids) - len(wanted)
@@ -650,7 +643,6 @@ def _select_features(args: dict) -> dict:
     if fids is not None:
 
 
-
         _select_ids(layer, list(fids), behavior)
     elif expression:
         expr = QgsExpression(expression)
@@ -747,7 +739,6 @@ def _select_by_attribute(args: dict) -> dict:
     field_is_text = _field_is_text(layer, field_index)
 
 
-
     field_ref = QgsExpression.quotedColumnRef(field_name)
     if operator in ("contains", "starts_with", "ends_with"):
 
@@ -764,8 +755,6 @@ def _select_by_attribute(args: dict) -> dict:
         else:
             expr_str = f"right({field_ref}, length({literal})) = {literal}"
     elif field_is_text:
-
-
 
 
 
@@ -799,7 +788,6 @@ def _select_by_attribute(args: dict) -> dict:
     previously = layer.selectedFeatureCount()
     _select_expression(layer, expr_str, behavior)
 
-
     field = layer.fields().at(field_index)
     if field_is_text:
         field_kind = "text"
@@ -832,7 +820,6 @@ def _select_by_geometry(args: dict) -> dict:
         geom_type = layer.geometryType()
         if geom_type == enum_member(QgsWkbTypes, "GeometryType", "PointGeometry"):
 
-
             return tool_error(f"{mode!r} ranks features by area or length, and a point layer has neither.",
                               "INVALID_ARGS", hint="rank_mode_on_points", mode=mode)
         best_fid = None
@@ -851,7 +838,6 @@ def _select_by_geometry(args: dict) -> dict:
             calculator.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
             ellipsoid = str(QgsProject.instance().ellipsoid() or "")
             calculator.setEllipsoid(ellipsoid if ellipsoid.upper() not in ("", "NONE") else "WGS84")
-
 
         for feat in layer.getFeatures(QgsFeatureRequest().setSubsetOfAttributes([])):
             geom = feat.geometry()

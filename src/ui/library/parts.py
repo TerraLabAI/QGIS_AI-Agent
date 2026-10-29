@@ -244,7 +244,6 @@ class PageHeader(QWidget):
             self._fit_hero_line()
 
 
-
 _CRUMB_W = 200
 
 

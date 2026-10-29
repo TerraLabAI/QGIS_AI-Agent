@@ -37,8 +37,6 @@ from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .data_tools import _avoid_reserved_name
 
 
-
-
 _FETCH_TIMEOUT_S = 60
 _TOTAL_TIMEOUT_FACTOR = 3
 
@@ -121,8 +119,6 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
         return tool_error(message, "INVALID_ARGS", hint="statistics_value_field_names", fields=names)
     if layer.featureCount() == 0:
         return tool_error("The statistics layer is empty, so nothing was added.")
-
-
 
     domain_error = _numeric_domain_error(layer, field)
     if domain_error:
@@ -207,7 +203,6 @@ def _map_statistic(args: dict) -> dict:
     path = Path(create_managed_temp_dir("statistics")) / f"{_slug(name)}.geojson"
     path.write_bytes(body)
     credit = ", ".join(part for part in (source, year, licence) if part)
-
 
 
     joined_here = _is_backend_url(url)

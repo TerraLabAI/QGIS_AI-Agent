@@ -267,8 +267,6 @@ def _bbox_around(lon: float, lat: float, side_km: float) -> dict:
             "xmax": round(min(180.0, lon + dlon), 5), "ymax": round(min(90.0, lat + dlat), 5)}
 
 
-
-
 def _open_water(dem, invalid, cell_x_m, cell_y_m, gdal, np):
 
     zero = (dem == _WATER_LEVEL) & ~invalid

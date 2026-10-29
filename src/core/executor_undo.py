@@ -19,11 +19,12 @@
 from __future__ import annotations
 
 import os
+import time
 
 from . import restore_guard
 from .checkpoints import KIND_BEFORE
 from .logger import log
-from .snapshot import diff_changed
+from .snapshot import diff_changed, unsaved_edit_layers
 from .tool_registry import tool_error
 
 
@@ -79,14 +80,34 @@ class _ExecutorUndo:
                               "going back would write an older copy over it. Nothing was restored. The chat's "
                               "Undo button asks the user and keeps their version first.",
                               hint="undo_hand_changed")
+
+
+        editing = [str(layer.name()) for layer in unsaved_edit_layers()]
+        if editing:
+            return tool_error(f"{', '.join(editing[:5])} has unsaved edits in QGIS; going back would discard "
+                              "them. Nothing was restored. The user can save or discard them, or use the "
+                              "chat's Undo button, which saves them in the history first.",
+                              hint="undo_unsaved_edits")
+        started = time.monotonic()
         result = entry.snapshot.restore(file_name=entry.file_to_keep(),
                                         extra_copies=history.file_versions(thread_id, entry))
         history.project_restored()
+        from . import telemetry
+        from . import telemetry_events as ev
+
+        telemetry.track(ev.AGENT_UNDO_USED, {
+            "ok": bool(result.get("ok")), "kind": "typed", "steps_back": 1, "run_id": entry.run_id,
+            "duration_ms": int((time.monotonic() - started) * 1000), "refused": bool(result.get("refused")),
+            "files_not_restored": len(result.get("file_restore_errors") or []),
+            "memory_incomplete": len(result.get("memory_layers_incomplete") or [])})
         log(f"qgis_undo restored {entry.kind} run {entry.run_index}: {result.get('message') or result}")
         if result.get("project_read"):
 
             history.mark_current(entry)
         if not result.get("ok"):
+            if not result.get("refused"):
+                from .telemetry_errors import track_restore_failure
+                track_restore_failure(result, "typed")
             return tool_error(str(result.get("message") or "The earlier state could not be fully restored."),
                               hint="undo_partly_restored")
         return {"undone": True, "restored_to": f"before request {entry.run_index}",

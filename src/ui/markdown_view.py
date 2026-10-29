@@ -171,7 +171,6 @@ SOURCE_SCHEME = f"source-{secrets.token_hex(6)}:"
 
 GONE_SCHEME = "gone:"
 _CHIP_PAD = "\u00a0"
-
 _PLAIN_URL = re.compile(r"https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
 
 
@@ -216,8 +215,6 @@ class MarkdownView(QTextBrowser):
 
 
     link_activated = pyqtSignal(str)
-
-
     passage_selected = pyqtSignal(str, object)
     passage_cleared = pyqtSignal()
 
@@ -269,7 +266,6 @@ class MarkdownView(QTextBrowser):
 
         doc.setUndoRedoEnabled(False)
         doc.setDocumentMargin(6 if mono else 2)
-
         doc.setIndentWidth(_LIST_INDENT)
 
 
@@ -286,8 +282,6 @@ class MarkdownView(QTextBrowser):
         doc.contentsChanged.connect(self._sync_height)
         self.selectionChanged.connect(self._on_selection_changed)
         self._sync_height()
-
-
 
     def set_markdown(self, text: str) -> None:
         cursor_state = self._cursor_state()
@@ -374,7 +368,6 @@ class MarkdownView(QTextBrowser):
             self._holding = True
             try:
                 if state.stable <= 0:
-
                     _import_markdown(doc, text[:closed])
                     self._decorate()
                     state.close_at(closed, doc)
@@ -573,7 +566,6 @@ class MarkdownView(QTextBrowser):
             fmt.setBottomMargin(0)
             cursor.setPosition(position)
             cursor.mergeBlockFormat(fmt)
-
         for position in rules:
             fmt = QTextBlockFormat()
             fmt.setLineHeight(_RULE_HEIGHT, _fixed_height())
@@ -713,8 +705,6 @@ class MarkdownView(QTextBrowser):
             frame.setFormat(fmt)
             _style_table(frame)
 
-
-
     def _body_px(self) -> int:
         px = self.document().defaultFont().pixelSize()
         if px <= 0:
@@ -744,8 +734,6 @@ class MarkdownView(QTextBrowser):
 
             self._stream = None
 
-
-
     def paintEvent(self, event):  # noqa: N802
 
 
@@ -772,8 +760,6 @@ class MarkdownView(QTextBrowser):
                 finally:
                     painter.end()
         super().paintEvent(event)
-
-
 
     def _cursor_state(self) -> tuple[int, int, int, int]:
 
@@ -810,7 +796,6 @@ class MarkdownView(QTextBrowser):
         end.setPosition(cursor.selectionEnd())
         rect = self.cursorRect(start).united(self.cursorRect(end))
         if rect.height() > self.cursorRect(start).height():
-
             rect.setLeft(0)
             rect.setRight(self.viewport().width())
         return QRect(self.viewport().mapToGlobal(rect.topLeft()), rect.size())
@@ -876,8 +861,6 @@ class MarkdownView(QTextBrowser):
         self._panels_key = key
         return self._panels
 
-
-
     def _on_document_size(self, _size) -> None:
         self._sync_height()
 
@@ -904,10 +887,7 @@ class MarkdownView(QTextBrowser):
         return QSize(super().sizeHint().width(), self.height())
 
     def wheelEvent(self, event):  # noqa: N802
-
         event.ignore()
-
-
 
     def event(self, event):  # noqa: N802
 
@@ -957,7 +937,6 @@ class MarkdownView(QTextBrowser):
         href = url.toString()[:4096]
         self.link_activated.emit(href)
         if href.startswith(SOURCE_SCHEME):
-
             url = QUrl(href[len(SOURCE_SCHEME):])
         if url.scheme() in ("http", "https", "mailto") and not url.userInfo():
 

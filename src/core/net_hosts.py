@@ -49,9 +49,6 @@ from .net_state import is_cancelled
 
 
 
-
-
-
 PROJECT_URL = "https://terra-lab.ai/ai-agent"
 _UA_CACHE: str | None = None
 
@@ -83,17 +80,9 @@ def user_agent() -> str:
 
 
 
-
 USER_AGENT = user_agent()
 
 _Policy = namedtuple("_Policy", "rate burst concurrency")
-
-
-
-
-
-
-
 
 
 
@@ -268,9 +257,6 @@ class _HostGate:
 
 
 
-
-
-
         numbers = retry_numbers()
         with self._lock:
             self._stats["throttled"] += 1
@@ -285,9 +271,6 @@ class _HostGate:
             self._stats["retries"] += 1
 
     def recovered(self) -> None:
-
-
-
 
 
 
@@ -316,10 +299,7 @@ _GATES_LOCK = threading.Lock()
 
 
 
-
-
 GATES_KEEP = 512
-
 
 
 
@@ -329,8 +309,6 @@ _last_gates_prune = {"at": 0.0}
 
 
 def _gate(host: str) -> _HostGate:
-
-
 
 
 
@@ -345,8 +323,6 @@ def _gate(host: str) -> _HostGate:
         if gate is None:
             gate = _GATES[host] = _HostGate(policy)
             now = time.monotonic()
-
-
 
 
             if len(_GATES) > GATES_KEEP and now - _last_gates_prune["at"] >= _GATES_PRUNE_EVERY_S:

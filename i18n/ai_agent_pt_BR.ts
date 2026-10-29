@@ -2482,6 +2482,70 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>changed</source>
             <translation>alterada</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Verificar o arquivo {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Verificar o layout de impressão[ {layout_name}][, página {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Olhar uma parte do mapa</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Olhar o mapa como você o vê</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Olhar as camadas {layer_names} no mapa</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Olhar {layer_names} no mapa</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Não foi possível enviar. Verifique sua conexão e tente novamente, ou escreva para {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Exemplo: o buffer saiu em graus em vez de metros.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Relate um bug, sugira uma ideia ou conte o que está funcionando bem.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Enviar</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Enviar feedback</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Enviando...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Entre na sua conta para enviar feedback por aqui, ou escreva para {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Receberemos sua mensagem, esta conversa e detalhes técnicos (versão do plugin e do QGIS, sistema, logs recentes). Nunca suas senhas nem o conteúdo dos seus arquivos.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Você enviou vários relatos em pouco tempo. Tente novamente em alguns minutos.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Este relatório inclui sua descrição e a conversa atual. Nós o usamos para corrigir problemas e melhorar o AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <translation>Baixando {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Aguardando {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Mostrar menos</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Localizando o lugar</translation>
         </message>
@@ -3387,6 +3459,22 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Undo changes</source>
             <translation>Desfazer alterações</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Resposta ruim</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Resposta boa</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Criar um relatório</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Escrever o pedido de um relatório HTML desta análise, com seus mapas e gráficos</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Suas edições não salvas em {layer} não puderam ser salvas, então nada foi restaurado. Salve-as ou descarte-as no QGIS e tente novamente.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>Não foi possível copiar {layer} antes de salvar suas edições não salvas, então nada foi restaurado. Salve ou descarte as edições no QGIS e tente novamente.</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <translation>Desfazer alterações?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Refazer alterações?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>Desfazer {n} pedidos?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Suas edições manuais são salvas antes no histórico.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>As edições feitas desde este ponto são salvas antes no histórico do mapa.</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
         <message>
             <source>Drawing the map</source>
             <translation>Desenhando o mapa</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Obrigado, seu feedback foi enviado.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Crie um relatório HTML desta análise, com seus mapas, gráficos e método.</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ A exclusão será definitiva quando o período de carência terminar. Até lá, 
             <source>Map history ({key})</source>
             <translation>Histórico do mapa ({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Enviar feedback</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Clique para abrir sua página.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Iniciar meu plano agora</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>1 tarefa grátis restante</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>{n} tarefas grátis restantes</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Clique para abrir sua página.</translation>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · Teste gratuito</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Enviar feedback</translation>
         </message>
     </context>
     <context>
@@ -9865,6 +9985,72 @@ Este arquivo não está mais onde a execução o gravou.</translation>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>uma camada temporária</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>O AI Agent ainda está trabalhando</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Manter em um arquivo</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Projeto salvo</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Camadas temporárias não mantidas</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>O AI agent ainda não concluiu sua solicitação. Sair do QGIS e interrompê-lo?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} camada(s) temporária(s) ({names}) não estão salvas no disco: o conteúdo será perdido quando o projeto for fechado.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Posições dos rótulos não salvas</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>A pasta temporária do QGIS foi excluída enquanto o projeto estava aberto: os rótulos ou diagramas movidos desde o último salvamento não puderam ser salvos. As posições salvas antes foram mantidas. Mova-os novamente e salve.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>O AI Agent ainda está salvando camadas</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} camada(s) ainda estão sendo gravadas no GeoPackage ao lado do projeto. Se o QGIS fechar agora, elas serão perdidas. Sair mesmo assim?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Não foi possível enviar. Tente novamente.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Enviar</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Enviado junto com esta conversa e seus logs recentes, para corrigir problemas e melhorar o AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Conte mais</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Obrigado pelo feedback</translation>
         </message>
     </context>
 </TS>

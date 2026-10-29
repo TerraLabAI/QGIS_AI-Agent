@@ -16,7 +16,7 @@ from collections import deque
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from . import background, code_guard, executor_guards, security, stalls
+from . import background, code_guard, executor_guards, same_page, security, stalls
 from .executor_guards import CODE_TOOL
 from .log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
 from .logger import log, log_warning
@@ -89,7 +89,6 @@ def _shown_value(value):
 
 class _ExecutorCalls:
 
-
     def handle_tool_call(self, call: dict, looked_up: bool = False, in_turn: bool = False) -> None:
         if self._closed or not isinstance(call, dict):
             return
@@ -137,9 +136,6 @@ class _ExecutorCalls:
                        "The user stopped the run.")
             return
         if run_id not in self._run_mode:
-
-
-
 
 
             self._fail(call, Err.CANCELLED,
@@ -219,12 +215,6 @@ class _ExecutorCalls:
         if name == CODE_TOOL:
 
 
-
-
-
-
-
-
             refused = code_guard.refusal_for(str(args.get("code") or ""))
             if refused:
                 self._fail(call, refused["code"], refused["error"], refused["suggestion"], details=_coded(refused))
@@ -250,10 +240,6 @@ class _ExecutorCalls:
         if costly.get("error"):
 
 
-
-
-
-
             self._fail(call, costly.get("code") or Err.EXECUTION_FAILED,
                        costly["error"], costly.get("suggestion", ""), details=_coded(costly))
             return
@@ -267,9 +253,6 @@ class _ExecutorCalls:
                        details=error_details(coded_fact(hint="costly_run_refused_again", label=costly["label"])))
             return
         if costly and approval == Approval.AUTO and costly.get("slow_only") and not unvouched:
-
-
-
 
 
             costly = {}
@@ -287,25 +270,14 @@ class _ExecutorCalls:
         asks = always or self._asks(approval, danger)
 
 
-
-
-
-
         per_answer = not always
         if asks and per_answer and name in self._run_denied.get(run_id, ()):
-
-
 
             self._fail(call, Err.PERMISSION_DENIED,
                        f"The user declined {name} for this answer.",
                        "Further calls of it in this answer are refused the same way.")
             return
         if asks and per_answer and self._allowed_for_answer(run_id, name, danger):
-
-
-
-
-
 
 
             log(f"ALLOW {name} (the user allowed it for this answer)")
@@ -327,16 +299,11 @@ class _ExecutorCalls:
             sentence = str(call.get("sentence") or tr("Run {tool}").format(tool=name))
 
 
-
-
-
-
-            call["per_answer"] = per_answer
+            call["per_answer"] = per_answer or (name == CODE_TOOL and self._code_grantable(call))
             self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
             self.permission_needed.emit(tool_call_id, run_id, sentence, args)
             return
         self._execute(call)
-
 
 
     def _waits_its_turn(self, call: dict, name: str, args: dict) -> bool:
@@ -413,7 +380,6 @@ class _ExecutorCalls:
 
         for call, _arrived in (self._queued.pop(run_id, None) or {}).values():
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."), "The user stopped the run.")
-
 
 
     @contextlib.contextmanager
@@ -709,7 +675,6 @@ class _ExecutorCalls:
         return True
 
 
-
     def _ask_user(self, call: dict) -> None:
 
         tool_call_id, run_id, args = str(call.get("tool_call_id")), str(call.get("run_id") or ""), call["args"]
@@ -727,7 +692,6 @@ class _ExecutorCalls:
 
         args["details"] = [detail for _, detail in pairs]
         args["header"] = " ".join(str(args.get("header") or "").split())[:12].strip()
-
         free_text = True
         recommended = recommended_index(args.get("recommended"), options)
         why = " ".join(str(args.get("why") or "").split())[:120]
@@ -828,6 +792,17 @@ class _ExecutorCalls:
         chat = self._chat_files.get(self._threads.get(run_id, ""), ())
         return frozenset(self._own_files.get(run_id, ())) | frozenset(chat)
 
+    def _keep_one_page(self, run_id: str, created) -> dict:
+
+
+        own = self._own_files_of(run_id)
+        if not created or not own:
+            return {}
+        folded = same_page.fold_pages(created, own)
+        if folded:
+            log(f"PAGE_KEPT {run_id[:8]}: {len(folded)} page(s) moved over the earlier page of the same title")
+        return folded
+
     def _note_own_files(self, run_id: str, paths) -> None:
 
         paths = [path for path in paths or () if path]
@@ -893,8 +868,6 @@ class _ExecutorCalls:
         run_id = str(call.get("run_id") or "")
         name = str(call.get("name") or "")
         if decision not in (Decision.ALLOW, Decision.DENY):
-
-
 
 
             log_warning(f"Permission decision {decision!r} for {name} is not one of "
@@ -1047,13 +1020,10 @@ class _ExecutorCalls:
         log(f"EDITED {name}: {', '.join(sorted(taken))}")
 
 
-
         changed = {key: {"before": _shown_value(asked.get(key)), "after": _shown_value(args.get(key))}
                    for key in taken if asked.get(key) != args.get(key)}
         if changed:
             call["user_edits"] = changed
-
-
 
 
         loose = self._pin_loose_names(call, str(call.get("danger") or Danger.READ))
@@ -1068,9 +1038,6 @@ class _ExecutorCalls:
                                                       else "The guards refuse this value.")))
 
 
-
-
-
         call["overwrites"] = verdict.get("overwrites") or []
         call["creates"] = verdict.get("creates") or []
         if verdict.get("destructive"):
@@ -1079,10 +1046,6 @@ class _ExecutorCalls:
         if crs:
             call["refusal_facts"] = crs[2]
             return (Err.CRS_GUARD, crs[0], crs[1])
-
-
-
-
 
 
         costly = self._costly_check(name, args)

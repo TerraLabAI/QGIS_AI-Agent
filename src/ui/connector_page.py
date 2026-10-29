@@ -59,11 +59,8 @@ from .library.pictures import watch_scroll
 from .library.pressable import Pressable, labels_through
 from .widgets import ElidedLabel
 
-
 _BOX_PX, _BOX_RADIUS = 64, 14
-
 _DATASET_H = 40
-
 _PROMPTS = 3
 _FACT_W = 140
 
@@ -76,9 +73,7 @@ _EXAMPLES = 3
 class ConnectorPage(QWidget):
 
 
-
     crumb_requested = pyqtSignal(int)
-
     prompt_chosen = pyqtSignal(str, object)
     example_opened = pyqtSignal(object)
 
@@ -174,8 +169,6 @@ class ConnectorPage(QWidget):
             if last is not None and last.spacerItem() is not None:
                 words.removeItem(last)
             row.addWidget(button, 0, Qt.AlignmentFlag.AlignTop)
-
-
 
     def _clear(self) -> None:
         self._tiles = []
@@ -563,8 +556,6 @@ class ConnectorPage(QWidget):
                                  "stricter about how much you can ask for."),
         }.get(status, "")
 
-
-
     def tiles(self) -> list:
 
         return list(self._prompt_rows) + [t for t in self._tiles if not t.isHidden()]
@@ -674,7 +665,6 @@ class _DatasetRow(Pressable):
         note = " · ".join(f for f in facts if f)
         publisher = str(row.get("publisher") or "").strip()
         if publisher:
-
             line.addWidget(label(self, publisher, C.BODY_PX, C.T.text_2), 0,
                            Qt.AlignmentFlag.AlignVCenter)
         elif note:

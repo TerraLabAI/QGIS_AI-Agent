@@ -124,8 +124,6 @@ def register_decoration_tools(registry: ToolRegistry) -> None:
 
 
 
-
-
 def _project():
     return QgsProject.instance()
 
@@ -242,10 +240,6 @@ def _enum_int(value) -> int:
     return int(getattr(value, "value", value))
 
 
-
-
-
-
 def _margins(scope: str, decoration: str) -> dict:
     placement = _read_int(scope, "/Placement", PLACEMENTS.index(_DEFAULT_PLACEMENT[decoration]))
     unit = _read_str(scope, "/MarginUnit", "MM")
@@ -303,10 +297,6 @@ def _active() -> list:
     return [name for name in DECORATIONS if _read_bool(_ITEMS[name][0], "/Enabled", False)]
 
 
-
-
-
-
 def _main_window():
     try:
         from qgis.utils import iface
@@ -342,10 +332,6 @@ def _apply(decoration: str, item) -> bool:
     if canvas is not None:
         canvas.refresh()
     return True
-
-
-
-
 
 
 def _invalid(message: str, *, hint: str, **facts) -> dict:

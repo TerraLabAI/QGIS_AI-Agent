@@ -79,8 +79,6 @@ _STOP_POLL_EVERY = 1
 _FRAME_NUMBER_RE = re.compile(r"(\d+)(?=\.[Pp][Nn][Gg]$)")
 
 
-
-
 def register_animation_tools(registry: ToolRegistry):
 
 
@@ -174,8 +172,6 @@ def _scaled_size(width: int, height: int, target_width: int | None) -> tuple[int
         return width, height
     new_height = max(1, round(height * target_width / width))
     return target_width, new_height
-
-
 
 
 def _gdal_open(gdal, path: str):
@@ -390,8 +386,6 @@ def _write_gif(part_path: str, frame_blocks: list, table: bytes, canvas_w: int, 
     return written
 
 
-
-
 _WINDOWS_FFMPEG_CANDIDATES = (
     r"%ProgramFiles%\ffmpeg\bin\ffmpeg.exe",
     r"%ProgramFiles(x86)%\ffmpeg\bin\ffmpeg.exe",
@@ -483,8 +477,6 @@ def _encode_mp4(ffmpeg: str, frames: list[str], fps: float, width: int | None, h
     return {"path": mp4_target, "size_bytes": os.path.getsize(mp4_target)}
 
 
-
-
 def _targets(args: dict, frames_folder: str):
 
 
@@ -536,12 +528,8 @@ def _targets(args: dict, frames_folder: str):
     return gif_path, mp4_path, None
 
 
-
-
 def _stopped() -> dict:
     return tool_error("Stopped before the animation was written.", "CANCELLED", hint="georef_stopped_nothing_written")
-
-
 
 
 def _make_animation(args: dict) -> dict:

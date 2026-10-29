@@ -115,8 +115,6 @@ def register_chart_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _check_args(args: dict) -> dict | None:
 
     kind = str(args.get("kind") or "")
@@ -328,8 +326,6 @@ def _output_target(args: dict, plan: dict):
                             hint="chart_name_space_full", folder=folder, stem=stem)
 
 
-
-
 def _open(plan: dict, state: dict) -> dict | None:
 
     layer = QgsProject.instance().mapLayer(plan["layer_id"])
@@ -453,8 +449,6 @@ def _seconds(value):
     if isinstance(value, _dt.time):
         return value.hour * 3600 + value.minute * 60 + value.second + value.microsecond / 1e6
     return None
-
-
 
 
 class _Values:
@@ -684,8 +678,6 @@ def _chart(plan: dict, values: _Values) -> dict:
     return _no_values(plan) if not values.xs else _pairs(plan, values)
 
 
-
-
 def _nice_step(span: float, target: int) -> float:
     raw = span / max(1, target)
     magnitude = 10 ** math.floor(math.log10(raw))
@@ -789,7 +781,6 @@ def _render(plan: dict, chart: dict, note: str):
         kind, pad = plan["kind"], 48
         title_font, axis_font, tick_font, note_font = font(34, True), font(24), font(20), font(18)
 
-
         x_kind = plan["x"]["kind"]
         if kind == "histogram":
             rows = chart["rows"]
@@ -818,7 +809,6 @@ def _render(plan: dict, chart: dict, note: str):
         y_start, y_end, y_ticks = _number_ticks(y_lo, y_hi)
         if kind != "bar":
             x_start, x_end, x_ticks = _axis_ticks(x_lo, x_hi, "number" if kind == "histogram" else x_kind)
-
 
         painter.setFont(title_font)
         title_height = painter.fontMetrics().height()
@@ -853,7 +843,6 @@ def _render(plan: dict, chart: dict, note: str):
         def x_at(value: float) -> float:
             return plot_left + (value - x_start) / ((x_end - x_start) or 1.0) * plot_width
 
-
         painter.setFont(tick_font)
         for value, text in y_ticks:
             y = y_at(value)
@@ -870,7 +859,6 @@ def _render(plan: dict, chart: dict, note: str):
                 painter.setPen(QColor(_MUTED))
                 width = ticks_metrics.horizontalAdvance(text) + 8
                 painter.drawText(QRectF(x - width / 2, plot_bottom + 8, width, tick_height), center_top, text)
-
 
         if kind == "histogram":
             show_counts = len(rows) <= 20
@@ -932,7 +920,6 @@ def _render(plan: dict, chart: dict, note: str):
                 for point in line:
                     painter.drawEllipse(point, 4.5, 4.5)
 
-
         painter.setPen(QPen(QColor(_INK), 2))
         painter.drawLine(QPointF(plot_left, plot_bottom), QPointF(plot_right, plot_bottom))
         painter.drawLine(QPointF(plot_left, plot_top), QPointF(plot_left, plot_bottom))
@@ -952,8 +939,6 @@ def _render(plan: dict, chart: dict, note: str):
     finally:
         painter.end()
     return image
-
-
 
 
 def _stopped() -> dict:

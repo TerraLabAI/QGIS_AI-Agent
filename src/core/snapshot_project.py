@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 
 
 @contextlib.contextmanager
@@ -120,6 +121,10 @@ def _core_sections(project) -> bytes:
 
 _CORE_SECTIONS = ("relations", "polymorphicRelations")
 SECTIONS_FILE = "sections.xml"
+
+
+COPY_FILE = "project.qgs"
+
 
 RESTORE_FILE = "restore.qgz"
 
@@ -261,30 +266,61 @@ def _merged_copy(project_path: str, target: str, captured: bytes | None, current
     layer_sections = _layer_sections_by_id(layers) if layers else {}
     if not additions and not layer_sections:
         return False
+    if not project_path.lower().endswith(".qgz"):
+        return _merged_document(project_path, target, additions, layer_sections)
     with zipfile.ZipFile(project_path) as archive:
         members = archive.namelist()
         name = next((m for m in members if m.lower().endswith(".qgs")), "")
         if not name:
             raise ValueError("no project document in the snapshot")
         doc = _dom(archive.read(name))
-        root = doc.documentElement()
-        present = {node.nodeName() for node in _children(root)}
-        added = False
-        for node, replace in additions:
-            section = node.nodeName()
-            if replace:
-                for old in _children(root):
-                    if old.nodeName() == section:
-                        root.removeChild(old)
-            elif section in present:
-                continue
-            root.appendChild(doc.importNode(node, True))
-            added = True
-        if layer_sections and _put_layer_sections(doc, root, layer_sections):
-            added = True
-        if not added:
+        if not _merge_into(doc, additions, layer_sections):
             return False
         with zipfile.ZipFile(target, "w", zipfile.ZIP_STORED) as out:
             for member in members:
                 out.writestr(member, bytes(doc.toByteArray()) if member == name else archive.read(member))
     return True
+
+
+def _merged_document(project_path: str, target: str, additions: list, layer_sections: dict) -> bool:
+
+
+
+    import zipfile
+
+    with open(project_path, "rb") as fh:
+        doc = _dom(fh.read())
+    if not _merge_into(doc, additions, layer_sections):
+        return False
+    stem = os.path.splitext(project_path)[0]
+    name = os.path.basename(project_path)
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_STORED) as out:
+        out.writestr(name, bytes(doc.toByteArray()))
+        if os.path.isfile(stem + ".qgd"):
+            out.write(stem + ".qgd", os.path.splitext(name)[0] + ".qgd")
+        attachments = stem + "_attachments.zip"
+        if os.path.isfile(attachments):
+            with zipfile.ZipFile(attachments) as attached:
+                for member in attached.namelist():
+                    out.writestr(member, attached.read(member))
+    return True
+
+
+def _merge_into(doc, additions: list, layer_sections: dict) -> bool:
+
+    root = doc.documentElement()
+    present = {node.nodeName() for node in _children(root)}
+    added = False
+    for node, replace in additions:
+        section = node.nodeName()
+        if replace:
+            for old in _children(root):
+                if old.nodeName() == section:
+                    root.removeChild(old)
+        elif section in present:
+            continue
+        root.appendChild(doc.importNode(node, True))
+        added = True
+    if layer_sections and _put_layer_sections(doc, root, layer_sections):
+        added = True
+    return added

@@ -1750,6 +1750,70 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{tool} on {layer}</source>
             <translation>{tool} trên {layer}</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Kiểm tra tệp {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Kiểm tra bố cục in[ {layout_name}][, trang {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Xem một phần bản đồ</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Xem bản đồ như bạn đang thấy</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Xem các lớp {layer_names} trên bản đồ</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Xem {layer_names} trên bản đồ</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Không thể gửi. Hãy kiểm tra kết nối và thử lại, hoặc viết cho chúng tôi tại {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Ví dụ: vùng đệm ra theo độ thay vì mét.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Báo lỗi, đề xuất ý tưởng hoặc chia sẻ điều bạn thấy hiệu quả.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gửi</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Gửi phản hồi</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Đang gửi...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Đăng nhập để gửi phản hồi từ đây, hoặc viết cho chúng tôi tại {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Chúng tôi sẽ nhận tin nhắn của bạn, cuộc trò chuyện này và các thông tin kỹ thuật (phiên bản plugin và QGIS, hệ thống, nhật ký gần đây). Không bao giờ nhận mật khẩu hay nội dung tệp của bạn.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Bạn đã gửi nhiều báo cáo trong thời gian ngắn. Hãy thử lại sau vài phút.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Báo cáo này gồm mô tả của bạn và cuộc trò chuyện hiện tại. Chúng tôi dùng nó để khắc phục sự cố và cải thiện AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2302,6 +2366,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đang tải {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Đang chờ {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Thu gọn</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Đang tìm địa điểm</translation>
         </message>
@@ -2335,6 +2407,22 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Undo changes</source>
             <translation>Hoàn tác thay đổi</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Câu trả lời chưa tốt</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Câu trả lời tốt</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Tạo báo cáo</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Soạn yêu cầu tạo báo cáo HTML cho phân tích này, kèm bản đồ và biểu đồ</translation>
         </message>
     </context>
     <context>
@@ -2622,6 +2710,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Không thể lưu các chỉnh sửa chưa lưu của bạn trên {layer}, nên chưa có gì được khôi phục. Hãy lưu hoặc bỏ chúng trong QGIS, rồi thử lại.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>Không thể sao chép {layer} trước khi lưu các chỉnh sửa chưa lưu của nó, nên chưa có gì được khôi phục. Hãy lưu hoặc bỏ các chỉnh sửa đó trong QGIS, rồi thử lại.</translation>
         </message>
         <message>
             <source>layer names</source>
@@ -2970,6 +3062,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Hoàn tác các thay đổi?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Làm lại các thay đổi?</translation>
+        </message>
+        <message>
             <source>Undo takes these changes off the map.</source>
             <translation>Hoàn tác sẽ gỡ các thay đổi này khỏi bản đồ.</translation>
         </message>
@@ -2990,8 +3086,8 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đang chờ bạn chấp thuận</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Các chỉnh sửa thủ công của bạn được lưu vào lịch sử trước.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Các chỉnh sửa được thực hiện từ thời điểm này được lưu vào lịch sử bản đồ trước.</translation>
         </message>
         <message>
             <source>{layer} couldn't be restored</source>
@@ -3040,6 +3136,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Drawing the map</source>
             <translation>Đang vẽ bản đồ</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Cảm ơn, phản hồi của bạn đã được gửi.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Tạo một báo cáo HTML cho phân tích này, kèm bản đồ, biểu đồ và phương pháp.</translation>
         </message>
     </context>
     <context>
@@ -3782,6 +3886,10 @@ Tập tin này không còn ở nơi lần chạy đã ghi.</translation>
         <message>
             <source>by TerraLab</source>
             <translation>bởi TerraLab</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Gửi phản hồi</translation>
         </message>
     </context>
     <context>
@@ -4560,6 +4668,14 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Bắt đầu gói của tôi ngay</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>Còn 1 tác vụ miễn phí</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>Còn {n} tác vụ miễn phí</translation>
         </message>
     </context>
     <context>
@@ -5394,6 +5510,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{used} tasks this month</source>
             <translation>{used} tác vụ trong tháng này</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Gửi phản hồi</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6122,6 +6242,72 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Restore</source>
             <translation>Khôi phục</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent vẫn đang làm việc</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Lưu chúng vào tệp</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Đã lưu dự án</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Lớp tạm thời chưa được giữ lại</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI agent chưa hoàn thành yêu cầu của bạn. Thoát QGIS và dừng nó?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} lớp tạm thời ({names}) chưa được lưu vào đĩa: nội dung của chúng sẽ bị mất khi dự án đóng.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Chưa lưu vị trí nhãn</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>Thư mục tạm của QGIS đã bị xóa khi dự án đang mở: các nhãn hoặc biểu đồ được di chuyển kể từ lần lưu trước không thể được lưu. Các vị trí đã lưu trước đó vẫn được giữ lại. Hãy di chuyển lại chúng, rồi lưu.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent vẫn đang lưu các lớp</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>{n} lớp vẫn đang được ghi vào GeoPackage bên cạnh dự án. Nếu thoát QGIS bây giờ, các lớp này sẽ bị mất. Vẫn thoát?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Không gửi được. Hãy thử lại.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gửi</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Được gửi kèm cuộc trò chuyện này và nhật ký gần đây của bạn, để khắc phục sự cố và cải thiện AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Cho chúng tôi biết thêm</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Cảm ơn bạn đã phản hồi</translation>
         </message>
     </context>
 </TS>

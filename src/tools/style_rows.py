@@ -264,8 +264,6 @@ def _fetch(spec: dict, source, request, halted) -> dict:
                 features.close()
 
 
-
-
 class _Job:
     rows: int | None = None
 

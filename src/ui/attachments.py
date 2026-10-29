@@ -122,7 +122,6 @@ TILE_HEIGHT = CARD_HEIGHT
 TILE_MAX_ASPECT = 2.0
 TILE_RADIUS = CARD_RADIUS
 
-
 FILE_TYPES = {
     ".gpkg": "GeoPackage", ".geojson": "GeoJSON", ".json": "JSON",
     ".shp": "Shapefile", ".csv": "CSV", ".tif": "GeoTIFF", ".tiff": "GeoTIFF",
@@ -161,7 +160,6 @@ def classify(path: str) -> str | None:
         return "image"
     if ext in DATA_EXTS:
         return "file"
-
     return "document"
 
 
@@ -194,8 +192,6 @@ def image_to_png_base64(image: QImage) -> str:
 
 
 def image_attachment(image: QImage, name: str, path: str = "") -> dict | None:
-
-
 
     image = reduced_image(image) if image is not None else image
     encoded = image_to_png_base64(image)

@@ -289,7 +289,6 @@ class EffortSlider(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(True)
         self._value = _index(DEFAULT_EFFORT)
-
         self._pos = float(self._value)
         self._preview = self._value
         self._locked_from = len(EFFORTS)
@@ -341,8 +340,6 @@ class EffortSlider(QWidget):
         self._heat_anim.setEasingCurve(QEasingCurve.Type.InOutSine)
         self._heat_anim.valueChanged.connect(self._on_heat)
 
-
-
     def value(self) -> str:
         return EFFORTS[self._value]
 
@@ -367,8 +364,6 @@ class EffortSlider(QWidget):
     def is_locked(self, effort: str) -> bool:
         return _index(effort) >= self._locked_from
 
-
-
     def _track(self) -> QRectF:
         top = (self.height() - _TRACK_PX) / 2
         return QRectF(_SLIDER_PAD, top, self.width() - 2 * _SLIDER_PAD, _TRACK_PX)
@@ -385,8 +380,6 @@ class EffortSlider(QWidget):
     def _pos_at(self, x: float) -> float:
         left, span = self._span()
         return max(0.0, min(float(len(EFFORTS) - 1), (x - left) / span * (len(EFFORTS) - 1)))
-
-
 
     def _on_anim(self, value) -> None:
         try:
@@ -512,8 +505,6 @@ class EffortSlider(QWidget):
             self._preview = index
             self.previewed.emit(EFFORTS[index])
 
-
-
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
         self._twinkle.start()
@@ -599,8 +590,6 @@ class EffortSlider(QWidget):
         if changed:
             self.changed.emit(EFFORTS[target])
 
-
-
     def _draw_arc(self, painter: QPainter, track: QRectF, handle_x: float) -> None:
 
 
@@ -651,7 +640,6 @@ class EffortSlider(QWidget):
         radius = _TRACK_PX / 2
         handle_x = self._stop_x(self._pos)
         centre = QPointF(handle_x, track.center().y())
-
         painter.setPen(QPen(qcolor(LINE), 1))
         painter.setBrush(qcolor(FIELD))
         painter.drawRoundedRect(track.adjusted(0.5, 0.5, -0.5, -0.5), radius, radius)
@@ -812,7 +800,6 @@ class EffortPopover(QFrame):
 
     changed = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
-
     upsell_shown = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -958,7 +945,6 @@ class EffortPopover(QFrame):
         self._sync_run_note(effort)
         name, note = self._texts.get(normalize_effort(effort), ("", ""))
         if self.isVisible() and (name != self._title.text() or note != self._note.text()):
-
             self._pending = (name, note, effort)
             if self._dip.state() != QVariantAnimation.State.Running:
                 self._dip.setStartValue(0.0)
@@ -1053,12 +1039,8 @@ class EffortChip(QToolButton):
         self.setAccessibleName(self.tr("Effort"))
         self._effort = DEFAULT_EFFORT
         self._paid = False
-
-
         self._running = False
         self._live: tuple = ()
-
-
         self._compact = False
         self._popover: EffortPopover | None = None
 
@@ -1067,8 +1049,6 @@ class EffortChip(QToolButton):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.clicked.connect(self._open)
         self._paint()
-
-
 
     def effort(self) -> str:
 
@@ -1259,8 +1239,6 @@ class EffortChip(QToolButton):
         if event.type() in (QEvent.Type.PaletteChange, QEvent.Type.FontChange):
             self.updateGeometry()
             self.update()
-
-
 
     def popover(self) -> EffortPopover:
         if self._popover is None:

@@ -115,8 +115,6 @@ def register_layer_elevation_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _member(owner, scope: str, name: str):
     return enum_member(owner, scope, name, None)
 
@@ -164,8 +162,6 @@ def _level_ranges(levels: list) -> dict:
 def _levels_out(ranges: dict) -> list:
     return [{"index": int(index), "lower": _num(r.lower()), "upper": _num(r.upper())}
             for index, r in sorted(ranges.items())]
-
-
 
 
 def _plan(args: dict) -> dict:
@@ -229,8 +225,6 @@ def _plan(args: dict) -> dict:
         return tool_error("extrusion is false but a height was given.", "INVALID_ARGS",
                           hint="elevation_extrusion_off")
     return plan
-
-
 
 
 def _source(layer, text: str, context) -> dict:
@@ -432,8 +426,6 @@ def _close(state: dict) -> None:
         source.pop("expression", None)
 
 
-
-
 def _decide(state: dict) -> dict:
 
     plan, decided = state["plan"], {"notes": []}
@@ -468,8 +460,6 @@ def _decide(state: dict) -> dict:
 
 def _literal(value: float) -> str:
     return repr(float(value)) if not float(value).is_integer() else str(int(value))
-
-
 
 
 def _apply(state: dict, decided: dict) -> dict:
@@ -795,8 +785,6 @@ def _read_back(layer) -> dict:
         elif word == "range_per_group":
             out["level_ranges"] = _levels_out(props.fixedRangePerGroup())
     return out
-
-
 
 
 def _stopped() -> dict:

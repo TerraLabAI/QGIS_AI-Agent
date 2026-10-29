@@ -60,10 +60,6 @@ class PairingPollTask(QgsTask):
     EXPIRY_HINT_LEAD_S = 30.0
 
 
-
-
-
-
     DEFAULT_TIMEOUT_S = CODE_TTL_S
 
 

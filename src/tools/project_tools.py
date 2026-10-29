@@ -10,7 +10,7 @@ import os
 from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
-from ..core import ground, tuning
+from ..core import canvas_glide, ground, tuning
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.follow import hold_view
@@ -29,8 +29,6 @@ from .layer_lookup import (
     _layer_not_found_error,
     extent_block,
 )
-
-
 
 
 
@@ -67,10 +65,6 @@ def _layer_kind(layer) -> str:
     from ..core.context import layer_kind
 
     return layer_kind(layer)
-
-
-
-
 
 
 
@@ -149,7 +143,6 @@ def _get_project_context(args: dict) -> dict:
     context["layer_count"] = len(all_layers)
     if len(all_layers) > len(layers_info):
         context["layers_omitted"] = len(all_layers) - len(layers_info)
-
 
     active = iface.activeLayer()
     context["active_layer"] = active.name() if active else None
@@ -512,13 +505,18 @@ def _unfiltered_count(layer) -> int | None:
 
 
 _VERTEX_SAMPLE = 5
+_VERTEX_WAIT_MS = 1000
 
 
 def _sampled_vertices(layer) -> dict | None:
 
     counts = []
+    request = feature_request(attributes=[], limit=_VERTEX_SAMPLE)
+
+
+    request.setTimeout(_VERTEX_WAIT_MS)
     try:
-        for feature in layer.getFeatures(feature_request(attributes=[], limit=_VERTEX_SAMPLE)):
+        for feature in layer.getFeatures(request):
             geometry = feature.geometry()
             if geometry is not None and not geometry.isNull():
                 counts.append(geometry.constGet().nCoordinates())
@@ -599,11 +597,6 @@ def _get_layer_info(args: dict) -> dict:
     if ground.distorted(scale):
         info["ground_metres_per_unit"] = round(scale, 4)
         info["crs_note"] = coded_fact(hint="layer_unit_distorted", crs=layer.crs().authid(), metres=scale)
-
-
-
-
-
 
 
 
@@ -723,8 +716,9 @@ def _zoom_to_layer(args: dict) -> dict:
 
             framed = False
     if framed:
-        canvas.setExtent(extent)
-        canvas.refresh()
+        with canvas_glide.gliding(canvas):
+            canvas.setExtent(extent)
+            canvas.refresh()
     reprojected = hold_view(canvas, prefer=layer_crs, target=(layer.extent(), layer_crs))
     if not framed and not reprojected:
         return tool_error(f"Layer {layer.name()!r} cannot be drawn in the canvas CRS "

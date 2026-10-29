@@ -50,8 +50,6 @@ def _gdal_service_source(source: str) -> bool:
 
 
 
-
-
     driver, colon, rest = source.partition(":")
     return bool(colon) and driver.isalnum() and rest.startswith(("http://", "https://"))
 
@@ -168,8 +166,6 @@ def _ancestors_visible(node) -> bool:
 
 
 def drawn_nodes(root) -> list:
-
-
 
 
 
@@ -372,7 +368,6 @@ def _backdrop_covers(backdrop, layer) -> bool:
 
 
 
-
     box = coverage(backdrop)
     if box is None:
         return True
@@ -446,12 +441,6 @@ def _root():
         return project.layerTreeRoot() if project is not None else None
     except Exception:  # noqa: BLE001
         return None
-
-
-
-
-
-
 
 
 
@@ -557,9 +546,6 @@ def stack_slot(rank: int, area: float | None, others: list[tuple]) -> int:
 
 
 
-
-
-
 _SERIES_NUMBER = re.compile(r"(?<![0-9A-Za-z.])(19\d\d|20\d\d|2100)(?![0-9A-Za-z.])")
 
 SERIES_GROUP_MIN = 3
@@ -639,7 +625,6 @@ def keeps_place(layer) -> bool:
         return bool(layer.customProperty(KEEP_PLACE_PROPERTY, False))
     except Exception:  # noqa: BLE001
         return False
-
 
 
 
@@ -956,9 +941,6 @@ def read_back():
 
 
 
-
-
-
     _ADOPTING.append(_READ_BACK)
     try:
         yield
@@ -1087,8 +1069,6 @@ class Stacker:
                 self._pending.append(layer)
 
     def _on_project_read(self, *_document) -> None:
-
-
 
 
 

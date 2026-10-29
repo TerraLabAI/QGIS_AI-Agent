@@ -164,8 +164,6 @@ def _export_animation_frames(args: dict) -> dict:
 
 
 
-
-
 def _to_date(moment: int) -> datetime.date:
     return datetime.date.fromordinal(moment // _DAY_MS - _JD_TO_ORDINAL)
 
@@ -257,8 +255,6 @@ def _plural(count: float, unit: str) -> str:
     return f"{shown} {unit[:-1] if shown == '1' else unit}"
 
 
-
-
 def _plan(args: dict) -> dict:
 
     def text(key):
@@ -335,8 +331,6 @@ def _step_arg(args: dict):
         return tool_error(f"A step in {unit} must be a whole number.", "INVALID_ARGS",
                           hint="temporal_whole_number_unit", unit=unit)
     return (int(count) if float(count).is_integer() else float(count), unit)
-
-
 
 
 def _iso():
@@ -619,8 +613,6 @@ def _close(state: dict) -> None:
             source.pop("cache", None)
 
 
-
-
 def _refuse_values(source: dict, total: int) -> dict | None:
     label = source["label"]
     if source["bad"]:
@@ -737,8 +729,6 @@ def _decide(state: dict) -> dict:
                    range={"begin": _fmt(first, with_time), "end": _fmt(max(shown_last, first), with_time)},
                    with_time=with_time)
     return setting
-
-
 
 
 def _set_vector(props, setting: dict) -> None:
@@ -878,8 +868,6 @@ def _apply(state: dict, setting: dict) -> dict:
     if setting["notes"]:
         result["note"] = " ".join(setting["notes"])
     return result
-
-
 
 
 def _stopped() -> dict:

@@ -256,6 +256,7 @@ class Account(QObject):
     account_failed = pyqtSignal(str, str)
     notice = pyqtSignal(str, str)
     checkout_not_finished = pyqtSignal()
+    checkout_return_paid = pyqtSignal()
 
     SIGNED_OUT, PAIRING, ACTIVATED, LOCKED, EXPIRED = "signed_out", "pairing", "activated", "locked", "expired"
 
@@ -289,8 +290,6 @@ class Account(QObject):
 
         self.signed_in_from: tuple[str, str] | None = None
         self._state = self._stored_state()
-
-
 
     def _stored_state(self) -> str:
         if self._settings.activation_key_is_locked():
@@ -339,8 +338,6 @@ class Account(QObject):
         except Exception:  # nosec B110
             pass
         return headers
-
-
 
     def connect_url(self, code: str) -> str:
 
@@ -564,8 +561,6 @@ class Account(QObject):
             self._set_state(self._stored_state(), "")
         log("Pairing cancelled")
 
-
-
     def refresh_activation_async(self, force: bool = False) -> None:
 
 
@@ -682,8 +677,6 @@ class Account(QObject):
             self.signed_out.emit()
         self.account_failed.emit(message, code)
 
-
-
     def delete_account_async(self, confirm: str) -> None:
 
 
@@ -792,6 +785,8 @@ class Account(QObject):
             return
         if usage.get("is_subscriber") is not False:
 
+            if usage.get("is_subscriber") is True:
+                self.checkout_return_paid.emit()
             self._reset_return_check()
             return
         if not self._return_confirming:
@@ -853,8 +848,6 @@ class Account(QObject):
         self.notice.emit("warning", tr("Could not check your AI Agent account. If this lasts, "
                                        "sign out and sign in again."))
 
-
-
     def _clear_local_session(self) -> None:
 
 
@@ -897,8 +890,6 @@ class Account(QObject):
     def sign_out(self) -> None:
         self._clear_local_session()
         log("Signed out")
-
-
 
     def watch_for_upgrade(self) -> None:
 

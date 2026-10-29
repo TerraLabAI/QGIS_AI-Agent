@@ -42,10 +42,6 @@ from .logger import log, log_warning
 
 
 
-
-
-
-
 _now = time.perf_counter
 
 
@@ -65,9 +61,6 @@ _LOCK = threading.Lock()
 
 
 _PENDING_PROVIDERS: list = []
-
-
-
 
 
 class _ProbeStats:
@@ -161,9 +154,6 @@ def timed(name: str):
     return wrap
 
 
-
-
-
 class Stall:
     __slots__ = ("wall", "started", "ms", "context", "probes", "samples", "culprit", "marks", "holders")
 
@@ -227,9 +217,6 @@ def _short(frame) -> str:
     return f"{filename}:{line} {func}"
 
 
-
-
-
 class StallProfiler:
     def __init__(self, threshold_ms: float = DEFAULT_THRESHOLD_MS, sample_ms: float = DEFAULT_SAMPLE_MS,
                  keep: int = MAX_STALLS_KEPT, log_path: str = ""):
@@ -256,7 +243,6 @@ class StallProfiler:
         self._timer = None
         self._file = None
         self._dropped = 0
-
 
 
     def start(self) -> bool:
@@ -326,7 +312,6 @@ class StallProfiler:
         self.marks.append((_now(), str(text)[:80]))
 
 
-
     def _hook_timer(self) -> bool:
         try:
             from qgis.PyQt.QtCore import Qt, QTimer
@@ -373,7 +358,6 @@ class StallProfiler:
         if stats is None:
             stats = self.probes[name] = _ProbeStats()
         stats.add(ms, self.threshold_ms)
-
 
 
     def _loop(self) -> None:
@@ -503,8 +487,6 @@ class StallProfiler:
                       samples, culprit, marks, holders)
 
 
-
-
         with _LOCK:
             self.stalls.append(stall)
         if self._file is not None:
@@ -542,12 +524,9 @@ class StallProfiler:
         return "(no sample: the GIL was held by a native call for the whole span)"
 
 
-
     def summary(self, min_ms: float | None = None) -> dict:
 
         min_ms = self.threshold_ms if min_ms is None else float(min_ms)
-
-
 
 
 
@@ -633,11 +612,7 @@ def _percentile(values: list, q: float) -> float:
     return float(ordered[index])
 
 
-
-
-
 def retire_stale_samplers() -> int:
-
 
 
 
@@ -653,8 +628,6 @@ def retire_stale_samplers() -> int:
             stop.set()
             retired += 1
     return retired
-
-
 
 
 

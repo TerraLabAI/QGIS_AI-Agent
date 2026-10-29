@@ -158,6 +158,10 @@ class AIAgentPlugin:
     def initGui(self):
         i18n.install()
         start_log_capture()
+        with contextlib.suppress(Exception):
+            from .core.telemetry_errors import install_excepthooks
+
+            install_excepthooks()
 
 
         try:
@@ -166,6 +170,12 @@ class AIAgentPlugin:
             stalls.start_from_environment()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Stall profiler not started: {exc}")
+        try:
+            from .core import vsi
+
+            vsi.size_block_cache()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Remote block cache not sized: {exc}")
         icon_path = os.path.join(self.plugin_dir, "icons", "icon.png")
         try:
             icon = QIcon(icon_path) if os.path.exists(icon_path) else QgsApplication.getThemeIcon("/mActionOptions.svg")
@@ -203,6 +213,15 @@ class AIAgentPlugin:
             designer_guard.install()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Layout designer guard not installed: {exc}")
+        try:
+            from .core.save_guard import SaveGuard
+
+            self._save_guard = SaveGuard(self.iface, busy=self._run_open, keep_layers=self._keep_layers,
+                                         writing=self._layers_writing)
+            self._save_guard.install()
+        except Exception as exc:  # noqa: BLE001
+            self._save_guard = None
+            log_warning(f"Save and quit guard not installed: {exc}")
         try:
             from .core import stream_fallback
 
@@ -278,6 +297,18 @@ class AIAgentPlugin:
                 prewarm_tls(settings.server_url)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"TLS context not prepared ahead: {exc}")
+
+
+
+
+        try:
+            import threading
+
+            from .core.security import temp_roots
+
+            threading.Thread(target=temp_roots, name="ai-agent-temp-roots", daemon=True).start()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Temp roots not read ahead: {exc}")
 
 
 
@@ -672,6 +703,26 @@ class AIAgentPlugin:
 
         settings.stop_watching_project()
 
+    def _stop_save_guard(self) -> None:
+        guard, self._save_guard = getattr(self, "_save_guard", None), None
+        if guard is not None:
+            guard.uninstall()
+
+    def _run_open(self) -> bool:
+        runs = getattr(self.controller, "_runs", None)
+        return bool(runs is not None and runs.busy())
+
+    @staticmethod
+    def _layers_writing() -> int:
+        persist = sys.modules.get(f"{__package__}.tools.persist_tools")
+        return len(persist.writing()) if persist is not None else 0
+
+    @staticmethod
+    def _keep_layers() -> dict:
+        from .tools.persist_tools import _make_layers_permanent
+
+        return _make_layers_permanent({})
+
     @staticmethod
     def _stop_3d_view_guard() -> None:
         from .core import view3d_guard
@@ -801,6 +852,7 @@ class AIAgentPlugin:
         ("snapshot jobs", "_stop_snapshot_jobs"),
         ("style watch", "_stop_style_watch"),
         ("3D view and layout designer guards", "_stop_3d_view_guard"),
+        ("save and quit guard", "_stop_save_guard"),
         ("dependency installs", "_stop_dependency_installs"),
         ("background algorithms", "_stop_processing_tasks"),
         ("report bridge", "_stop_report_bridge"),
@@ -814,12 +866,20 @@ class AIAgentPlugin:
             crash_note.stop()
         with contextlib.suppress(Exception):
             first_run_funnel.shutdown()
+        with contextlib.suppress(Exception):
+
+            from .core import canvas_glide
+            canvas_glide.stop()
         try:
             telemetry.track(ev.PLUGIN_UNLOADED, {"session_ms": int((time.monotonic() - self._loaded_at) * 1000)})
             telemetry.flush(final=True)
         except Exception:  # nosec B110
             pass
         stop_log_capture()
+        with contextlib.suppress(Exception):
+            from .core.telemetry_errors import restore_excepthooks
+
+            restore_excepthooks()
         with contextlib.suppress(Exception):
             self._on_approval_waiting(False)
         with contextlib.suppress(Exception):

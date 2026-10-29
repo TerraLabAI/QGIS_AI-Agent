@@ -68,7 +68,6 @@ class _MonoChip(QLabel):
         super().setText(self._full)
 
 
-
         self.setToolTip(self._full)
         self.updateGeometry()
         self.update()

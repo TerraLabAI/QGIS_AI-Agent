@@ -80,10 +80,14 @@ class FrameType:
     FUNNEL = "funnel"
 
 
+
+    PROJECT_STATE = "project_state"
+
+
     SEND_MANIFEST = "send_manifest"
 
     CLIENT = frozenset({HELLO, USER_MESSAGE, TOOL_RESULT, TOOL_ERROR, PERMISSION_RESPONSE, CANCEL, PING, FEEDBACK,
-                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, FUNNEL, MANIFEST})
+                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, FUNNEL, MANIFEST, PROJECT_STATE})
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
          POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST}
@@ -104,7 +108,6 @@ class ClientErrorCode:
 
 
     NETWORK_ERROR = "NETWORK_ERROR"
-
 
 
 
@@ -203,10 +206,6 @@ class ProtocolError(ValueError):
     pass
 
 
-
-
-
-
 def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_version: str,
           os_label: str, locale: str, tool_manifest_hash: str,
           tool_manifest: list | None = None, resume_session_id: str | None = None,
@@ -228,11 +227,7 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
-
-
-
         "telemetry": bool(telemetry),
-
 
 
 
@@ -356,7 +351,8 @@ def normalize_attachment(item: Any) -> dict | None:
 
 def user_message(run_id: str, thread_id: str, text: str, attachments: list | None,
                  context: dict, mode: str, approval: str, effort: str = Effort.LOW, example: str = "",
-                 replaces_run_id: str = "", earlier_turns: list | None = None) -> dict:
+                 replaces_run_id: str = "", earlier_turns: list | None = None,
+                 analytics_session: str = "") -> dict:
     clean = [a for a in (normalize_attachment(x) for x in (attachments or [])) if a]
     effort = effort if effort in Effort.ALL else Effort.LOW
     frame = {
@@ -365,8 +361,6 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
         "thread_id": thread_id,
         "text": text,
         "attachments": clean,
-
-
 
 
 
@@ -387,6 +381,12 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
 
 
         frame["earlier_turns"] = earlier_turns
+    if analytics_session:
+
+
+
+
+        frame["analytics_session"] = str(analytics_session)
     return frame
 
 
@@ -520,6 +520,11 @@ def cancel(run_id: str, reason: str = "") -> dict:
     return frame
 
 
+def feedback(run_id: str, up: bool) -> dict:
+
+    return {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
+
+
 def unsteer(run_id: str, steer_id: str) -> dict:
 
     return {"type": FrameType.UNSTEER, "run_id": run_id, "steer_id": steer_id}
@@ -540,6 +545,12 @@ def funnel(snapshot: dict) -> dict:
 
 
     return {"type": FrameType.FUNNEL, "snapshot": snapshot}
+
+
+def project_state(run_id: str, before: dict, after: dict) -> dict:
+
+
+    return {"type": FrameType.PROJECT_STATE, "run_id": run_id, "before": before, "after": after}
 
 
 def ping() -> dict:
@@ -566,10 +577,6 @@ def busy(seconds: float, where: str, calls: str, ended: bool = False) -> dict:
     return frame
 
 
-
-
-
-
 def encode(frame: dict) -> str:
     if not isinstance(frame, dict) or not isinstance(frame.get("type"), str):
         raise ProtocolError("a frame is a dict with a string 'type'")
@@ -577,7 +584,6 @@ def encode(frame: dict) -> str:
 
 
 def _reject_constant(name: str):
-
 
 
 

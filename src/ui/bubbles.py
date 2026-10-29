@@ -16,6 +16,7 @@ import time
 
 from qgis.PyQt.QtCore import (
     QAbstractAnimation,
+    QCoreApplication,
     QEasingCurve,
     QPropertyAnimation,
     QSize,
@@ -29,6 +30,7 @@ from qgis.PyQt.QtWidgets import (
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -49,14 +51,22 @@ from .loader import GAP_PX, LINE_PX, DotsLoader, ElapsedClock, ShimmerLabel
 from .markdown_view import MarkdownView
 from .source_marks import SourcesButton
 from .style import (
+    _BTN_PRIMARY,
     _BTN_QUIET,
+    FONT_BODY,
+    FONT_HINT,
+    GREEN,
+    INK,
     INK_2,
+    INK_3,
+    LINE,
+    LINE_STRONG,
     MOTION_FADE_UP_MS,
+    RED,
     SPACE_OUTER,
     SPACE_TIGHT,
 )
-from .widgets import FlowLayout
-
+from .widgets import FlowLayout, IconButton
 
 _USER_BUBBLE_SHARE = 0.85
 
@@ -139,7 +149,6 @@ class UserBubble(QWidget):
                                   art, self._tags_host, glyph=glyph, tile_color=color,
                                   clickable=clickable, tooltip=attachment_caption(item))
                 if clickable:
-
                     card.set_quiet_hover()
                     card.clicked.connect(lambda item=item, host=self: open_file_preview(item, host))
                 self._tags_flow.addWidget(card)
@@ -173,7 +182,6 @@ class UserBubble(QWidget):
         self._view.height_changed.connect(self._on_text_height)
         col.addWidget(self._view)
         self._pin_floor(self._view.height())
-
         self._frame.setVisible(bool(self._text.strip()) or self._tags_host is None)
         text_row = QHBoxLayout()
         text_row.setContentsMargins(0, 0, 0, 0)
@@ -346,7 +354,111 @@ def _set_layout_visible(layout, visible: bool) -> None:
             _set_layout_visible(item.layout(), visible)
 
 
+class _Thumb(IconButton):
+
+
+
+    def __init__(self, parent, name: str, tooltip: str, tone: str):
+        super().__init__(parent, None, 14, tooltip)
+        self.setFixedSize(22, 22)
+        self._name, self._tone = name, tone
+        self.set_icon(self._name, 14, QColor(INK_3))
+
+    def lock_chosen(self) -> None:
+        self.set_icon(self._name + "-solid", 14, QColor(self._tone))
+
+        self.setToolTip(QCoreApplication.translate("RatingWords", "Thanks for the feedback"))
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+
+
+_MORE_FIELD = (
+    "QLineEdit { background: transparent; border: none;"
+    f" border-bottom: 1px solid {LINE}; color: {INK}; font-size: {FONT_BODY}px; padding: 4px 2px; }}"
+    f"QLineEdit:focus {{ border-bottom-color: {LINE_STRONG}; }}"
+)
+
+
+class RatingWords(QWidget):
+
+
+
+
+
+
+    sent = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, SPACE_TIGHT, 0, 0)
+        col.setSpacing(SPACE_TIGHT)
+        line = QHBoxLayout()
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(8)
+        self._field = QLineEdit(self)
+        self._field.setMaxLength(1500)
+        self._field.setPlaceholderText(self.tr("Tell us more"))
+        self._field.setStyleSheet(_MORE_FIELD)
+        self._field.textChanged.connect(self._sync)
+        self._field.returnPressed.connect(self._on_send)
+        line.addWidget(self._field, 1)
+        self._send = QPushButton(self.tr("Send"), self)
+        self._send.setStyleSheet(_BTN_PRIMARY)
+        self._send.setFixedHeight(28)
+        self._send.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._send.setProperty("agentAction", "rating_send")
+        self._send.clicked.connect(self._on_send)
+        line.addWidget(self._send)
+        col.addLayout(line)
+        self._line = line
+
+        self._hint = QLabel(
+            self.tr("Sent with this conversation and your recent logs, to fix issues and improve AI Agent."), self)
+        self._hint.setWordWrap(True)
+        self._hint.setStyleSheet(f"color: {INK_3}; font-size: {FONT_HINT}px;")
+        col.addWidget(self._hint)
+        self._note = QLabel(self)
+        self._note.setStyleSheet(f"color: {INK_3}; font-size: {FONT_HINT}px;")
+        self._note.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self._note.hide()
+        col.addWidget(self._note)
+        self._sync()
+
+    def focus(self) -> None:
+        self._field.setFocus()
+
+    def is_done(self) -> bool:
+        return self._line is None
+
+    def _sync(self) -> None:
+        self._send.setEnabled(bool(self._field.text().strip()) and self._field.isEnabled())
+
+    def _on_send(self) -> None:
+        text = self._field.text().strip()
+        if not text or not self._field.isEnabled():
+            return
+        self._field.setEnabled(False)
+        self._sync()
+        self.sent.emit(text)
+
+    def done(self, ok: bool) -> None:
+        try:
+            if ok:
+                _set_layout_visible(self._line, False)
+                self._line = None
+                self._hint.hide()
+                self._note.setText(self.tr("Thanks for the feedback"))
+            else:
+                self._field.setEnabled(True)
+                self._sync()
+                self._note.setText(self.tr("Could not send. Try again."))
+            self._note.show()
+        except RuntimeError:
+            pass
+
+
 class AgentBubble(QWidget):
+
 
 
 
@@ -368,6 +480,12 @@ class AgentBubble(QWidget):
 
     restore_clicked = pyqtSignal()
 
+
+    rated = pyqtSignal(str)
+    rating_words = pyqtSignal(str, str)
+
+    report_clicked = pyqtSignal()
+
     def __init__(self, text: str = "", parent=None):
         super().__init__(parent)
         self._col = QVBoxLayout(self)
@@ -386,7 +504,6 @@ class AgentBubble(QWidget):
         self._parts.hide()
         self._part_widgets: list = []
         self._col.addWidget(self._parts)
-
         self._actions = QWidget(self)
         actions = QHBoxLayout(self._actions)
         actions.setContentsMargins(0, SPACE_OUTER, 0, 0)
@@ -394,6 +511,22 @@ class AgentBubble(QWidget):
         self._sources = SourcesButton(self._actions)
         self._sources.hide()
         actions.addWidget(self._sources, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+
+        self._report = QPushButton(self.tr("Make a report"), self._actions)
+        self._report.setObjectName("answerReport")
+        self._report.setProperty("agentAction", "report")
+        self._report.setStyleSheet(_BTN_QUIET)
+        self._report.setIcon(icon_for(self._report, "lu.file-text", 14, QColor(INK_2)))
+        self._report.setIconSize(QSize(14, 14))
+        self._report.setToolTip(
+            self.tr("Write the request for an HTML report of this analysis, with its maps and charts"))
+        self._report.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._report.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self._report.clicked.connect(self._on_report)
+        self._report.hide()
+        actions.addWidget(self._report, 0, Qt.AlignmentFlag.AlignVCenter)
         actions.addStretch(1)
 
 
@@ -410,6 +543,19 @@ class AgentBubble(QWidget):
         self._undone = False
         self._later = 0
         actions.addWidget(self._restore, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+        self._thumbs = {
+            "up": _Thumb(self._actions, "lu.thumbs-up", self.tr("Good answer"), GREEN),
+            "down": _Thumb(self._actions, "lu.thumbs-down", self.tr("Bad answer"), RED),
+        }
+        for rating, thumb in self._thumbs.items():
+            thumb.setProperty("agentAction", "rate_" + rating)
+            thumb.clicked.connect(lambda _=False, r=rating: self._on_thumb(r))
+            thumb.hide()
+            actions.addWidget(thumb, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._rating = ""
+        self._words: RatingWords | None = None
         self._actions.hide()
         follows_layers(self)
         self._col.addWidget(self._actions)
@@ -427,8 +573,6 @@ class AgentBubble(QWidget):
         self._timer.timeout.connect(self._flush_pending)
         if text:
             self.set_text(text)
-
-
 
     def append_token(self, text: str) -> None:
 
@@ -551,7 +695,6 @@ class AgentBubble(QWidget):
         block = openui.parse(part[1])
         if block is not None:
             return BlockView(block, self._parts)
-
         view = MarkdownView(self._parts)
         view.set_plain_text(part[1])
         view.height_changed.connect(self._on_text_height)
@@ -593,8 +736,6 @@ class AgentBubble(QWidget):
             return
         self._render(streaming=not final and not self._finished)
 
-
-
     def set_sources(self, items) -> None:
 
         self._sources.set_sources(items)
@@ -633,6 +774,19 @@ class AgentBubble(QWidget):
         self._undone = mode == "redo"
         self._sync_actions()
 
+    def set_report_offer(self, shown: bool) -> None:
+        if bool(shown) == (not self._report.isHidden()):
+            return
+        self._report.setVisible(bool(shown))
+        self._sync_actions()
+
+    def report_offered(self) -> bool:
+        return not self._report.isHidden()
+
+    def _on_report(self) -> None:
+        self.set_report_offer(False)
+        self.report_clicked.emit()
+
     def restore_mode(self) -> str:
         if self._restore.isHidden():
             return ""
@@ -657,9 +811,39 @@ class AgentBubble(QWidget):
     def _sync_actions(self) -> None:
 
         has_sources = bool(self._sources.sources())
-        shown = has_sources or not self._restore.isHidden()
+        rateable = self._finished and bool(self._text.strip()) and bool(self.run_id)
+        for name, thumb in self._thumbs.items():
+            thumb.setVisible(rateable and self._rating in ("", name))
+        shown = has_sources or not self._restore.isHidden() or not self._report.isHidden() or rateable
         if shown != (not self._actions.isHidden()):
             self._actions.setVisible(shown)
+            self._on_text_height(0)
+
+    def set_rating(self, rating: str) -> None:
+
+        if rating not in ("up", "down") or self._rating:
+            return
+        self._rating = rating
+        self._thumbs[rating].lock_chosen()
+        self._sync_actions()
+
+    def _on_thumb(self, rating: str) -> None:
+
+        if self._rating:
+            return
+        self.set_rating(rating)
+        self.rated.emit(rating)
+        if self._words is None:
+            self._words = RatingWords(self)
+            self._words.sent.connect(lambda text: self.rating_words.emit(self._rating, text))
+            self._col.addWidget(self._words)
+            self._words.show()
+            self._words.focus()
+            self._on_text_height(0)
+
+    def words_done(self, ok: bool) -> None:
+        if self._words is not None:
+            self._words.done(ok)
             self._on_text_height(0)
 
     def _fade_up(self, widget: QWidget) -> None:

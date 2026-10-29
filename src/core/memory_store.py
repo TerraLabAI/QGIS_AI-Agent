@@ -25,12 +25,6 @@
 
 
 
-
-
-
-
-
-
 from __future__ import annotations
 
 import hashlib
@@ -231,8 +225,6 @@ def _read(path: str, *, required: bool = False) -> str:
 
 
 
-
-
     try:
         with open(path, "rb") as handle:
             raw = handle.read(NOTE_FILE_MAX_BYTES + int(required))
@@ -258,7 +250,6 @@ def _read(path: str, *, required: bool = False) -> str:
 
 
 def _write(path: str, body: str) -> None:
-
 
 
 

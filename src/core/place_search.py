@@ -98,8 +98,6 @@ def _latin_script(text: str) -> bool:
     return all(unicodedata.name(ch, "").startswith("LATIN") for ch in text if ch.isalpha())
 
 
-
-
 class _Search:
 
 
@@ -151,8 +149,6 @@ class _Layer:
 
     def features(self, answers: dict) -> list:
         return _features(answers.get(self.url))
-
-
 
 
 def _set(text: str) -> frozenset:
@@ -381,8 +377,6 @@ def _without_kind(text: str, category) -> str:
     return category["words"].sub(" ", fold(text), count=1)
 
 
-
-
 def _names_text(feature: dict, text: str) -> bool:
 
     t = _bare_name(text)
@@ -463,8 +457,6 @@ def _kind_name(subject: str, category, anchor: dict) -> str:
     town = set(re.split(r"[^a-z0-9]+", fold(anchor["name"])))
     words = re.split(r"[^a-z0-9]+", TRANSIT_WORDS.sub(" ", _without_kind(subject, category)))
     return " ".join(w for w in words if w and w not in town)
-
-
 
 
 def _round(*groups):

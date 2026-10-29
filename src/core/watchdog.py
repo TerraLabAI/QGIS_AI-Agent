@@ -142,7 +142,6 @@ class MainThreadWatchdog:
         return self._seconds(self._blocked_given, "WATCHDOG_BLOCKED_S")
 
 
-
     def start(self) -> bool:
 
         if self._timer is not None:
@@ -222,7 +221,6 @@ class MainThreadWatchdog:
             pass
 
 
-
     def tick(self, now: float | None = None) -> float:
 
 
@@ -295,7 +293,6 @@ class MainThreadWatchdog:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Watchdog report failed: {exc}")
         return gap
-
 
 
     def is_blocked(self) -> bool:

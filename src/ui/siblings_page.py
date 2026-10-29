@@ -18,24 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, Qt, pyqtSignal
@@ -254,9 +236,6 @@ class SiblingsPage(Page):
         self._grid = QGridLayout(self._host)
         self._grid.setContentsMargins(0, 0, 0, 0)
         self._grid.setSpacing(12)
-
-
-
 
         self._cards = [
             SiblingCard(

@@ -17,12 +17,12 @@ from . import code_effects as ce
 from . import (
     code_tripwire,
     layer_egress,
-    layout_show,
     licence,
     limits,
     postcondition,
     protocol,
     run_objects,
+    same_page,
     scratch,
     security,
     stalls,
@@ -91,13 +91,9 @@ def _resolved_layer_note(name: str, args: dict, result) -> str:
 
 
 
-
-
-
     if not isinstance(result, dict) or "_error" in result:
         return ""
     if result.get("empty") is True and not result.get("layer_id"):
-
 
 
         return ""
@@ -136,7 +132,6 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
 
-
 _CHECK_NOTE_CHARS = 90
 
 _DEFAULT_HINTS = {
@@ -146,8 +141,6 @@ _DEFAULT_HINTS = {
 
 
 def _first_check_warning(result) -> str:
-
-
 
 
 
@@ -171,6 +164,26 @@ def _first_check_warning(result) -> str:
 
 
 class _ExecutorDeliver:
+    def _settle_late_layers(self, call: dict, result: dict) -> None:
+
+
+
+
+
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+        added = [lay for lay in self.stacker.take_added(tool_call_id, self._inflight) if lay is not None]
+        if not added:
+            return
+        mine = [lay for lay in added if self.stacker.added_by(lay) == tool_call_id]
+        licence.credit_added(mine, result, tool=str(call.get("name")), args=call.get("args") or {},
+                             facts=call.get("source_facts"))
+        layer_egress.note_run_layers(added)
+        licence.credit_added([lay for lay in added if lay not in mine], None)
+        stamp_thread(added, self._threads.get(run_id, ""))
+        stacked = self.stacker.place_pending()
+        if stacked and "_error" not in result:
+            result["drawn_under"] = stacked
+
     def _deliver(self, call: dict, result, started: float, held: bool = False) -> None:
 
 
@@ -187,12 +200,9 @@ class _ExecutorDeliver:
         looped, on_dialog, dialog_title, datum_pressed = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, "", ()))
 
 
-
-
         started_task_ids = _task_ids_started(name, result)
         if started_task_ids:
             if run_id in self._cancelled:
-
 
 
 
@@ -230,7 +240,12 @@ class _ExecutorDeliver:
 
             created = result.pop(code_tripwire.CREATED_KEY, None)
             if isinstance(created, list) and run_id not in self._cancelled:
-                self._note_own_files(run_id, [str(path) for path in created if isinstance(path, str)])
+                created = [str(path) for path in created if isinstance(path, str)]
+                folded = self._keep_one_page(run_id, created)
+                if folded:
+                    result = same_page.rewrite_paths(result, folded)
+                    result["page_kept"] = same_page.kept_fact(folded)
+                self._note_own_files(run_id, [path for path in created if path not in folded])
             if result.get("needs_permission") and run_id not in self._cancelled:
                 self._code_tripped(call, result)
                 return
@@ -238,8 +253,6 @@ class _ExecutorDeliver:
 
             self._code_release(call)
         if run_id in self._cancelled:
-
-
 
 
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
@@ -250,13 +263,8 @@ class _ExecutorDeliver:
             return
 
 
-
-
-
         name = str(call.get("name") or "")
         registered = self._registry.get_tool(name)
-
-
 
         declared = getattr(registered, "open_world", None)
         outside = reads_the_outside_world(name) if declared is None else bool(declared)
@@ -268,15 +276,8 @@ class _ExecutorDeliver:
             result["layer_count"] = counted
 
 
-
-
-
         with stalls.probe("licence.credit"):
             added = [lay for lay in self.stacker.take_added(tool_call_id, self._inflight) if lay is not None]
-
-
-
-
 
 
             late = getattr(self.stacker, "from_task", set())
@@ -286,7 +287,6 @@ class _ExecutorDeliver:
 
             layer_egress.note_run_layers(added)
             licence.credit_added([lay for lay in added if lay not in mine], None)
-
             stamp_thread(added, self._threads.get(run_id, ""))
 
 
@@ -302,15 +302,11 @@ class _ExecutorDeliver:
         with stalls.probe("result.scrub"):
             result = neutralise_result(scrub_result(result), name, open_world=outside)
 
-
-
         with stalls.probe("layer_order.place"):
             stacked = self.stacker.place_pending()
             grouped = self.stacker.take_grouped()
         if stacked and isinstance(result, dict) and "_error" not in result:
             result["drawn_under"] = stacked
-
-
 
         if grouped and isinstance(result, dict) and "_error" not in result:
             result["grouped_into"] = grouped
@@ -328,7 +324,6 @@ class _ExecutorDeliver:
                 "note": "The user changed these values on the permission card before the call ran.",
                 "note_hint": "edited_by_user",
             }
-
 
 
         with stalls.probe("layer.note"):
@@ -352,9 +347,6 @@ class _ExecutorDeliver:
                 self._journal_note(run_id, call, result, False)
             return
 
-
-
-
         if danger != Danger.READ and isinstance(result, dict):
             with stalls.probe("postcondition.verify"):
                 verified = postcondition.verify(name, args, result)
@@ -377,7 +369,12 @@ class _ExecutorDeliver:
                 kept = self._call_warnings.setdefault(run_id, [])
                 most = tuning.ceiling("run_report_max_call_warnings", MAX_CALL_WARNINGS, 5)
                 kept.extend(found[:max(0, most - len(kept))])
-
+        if name != CODE_TOOL and isinstance(result, dict):
+            folded = self._keep_one_page(run_id, [path for path in call.get("creates") or () if os.path.isfile(path)])
+            if folded:
+                result = same_page.rewrite_paths(result, folded)
+                result["page_kept"] = same_page.kept_fact(folded)
+                args = same_page.rewrite_paths(args, folded)
 
         shown = result
         with stalls.probe("result.serialise"):
@@ -392,10 +389,8 @@ class _ExecutorDeliver:
         self.tool_finished.emit(tool_call_id, True, self._summary(name, result), duration, detail, shown)
 
 
-
         with stalls.probe("scratch.note"):
             self.scratch.note_call(name, args, call.get("scratch_mark"), shown)
-
 
 
 
@@ -409,8 +404,6 @@ class _ExecutorDeliver:
 
 
         security.note_own_paths(list(written or ()) + created)
-
-
 
 
         declared = result_files(shown)
@@ -432,14 +425,6 @@ class _ExecutorDeliver:
             if getattr(spec(name), "sets_view", False):
                 self.follower.chose_view()
 
-            if layout_show.removed_layout(name, args) == self._layouts.get(run_id):
-                self._layouts.pop(run_id, None)
-            built = layout_show.built_layout(name, args)
-            if name == CODE_TOOL:
-                built = layout_show.code_layout(shown, self._layouts.pop(run_id, ""))
-            if built:
-                self._layouts[run_id] = built
-
     def _prepare_snapshot(self, run_id: str, name: str, args: dict, danger: str, overwrites: list,
                           code_grant: str = ce.ASK):
         snapshot = self._snapshots.get(run_id)
@@ -457,7 +442,6 @@ class _ExecutorDeliver:
                 self._run_index[run_id] = index
 
 
-
                 self.history.add(thread_id, KIND_BEFORE, run_id, index, snapshot,
                                  prompt=self._prompts.get(run_id, ""), fork=False)
         with stalls.probe("snapshot.backups"):
@@ -473,6 +457,10 @@ class _ExecutorDeliver:
                 snapshot.backup_project_files()
             if overwrites:
                 snapshot.backup_files(overwrites)
+            declared = spec(name)
+            if declared is not None and declared.saves_open_project and QgsProject.instance().fileName():
+
+                snapshot.backup_files([QgsProject.instance().fileName()])
         return snapshot
 
     @staticmethod
@@ -485,11 +473,6 @@ class _ExecutorDeliver:
         if message is None:
             return None
         message = str(message)
-
-
-
-
-
 
 
         code = str(result.get("code") or result.get("_code") or "")
@@ -531,10 +514,6 @@ class _ExecutorDeliver:
                     n=int(result.get("total_chars", 0)) - int(result.get("cut_chars", 0)))
             parts = []
 
-
-
-
-
             warning = _first_check_warning(result)
             if warning:
                 parts.append(f"check: {warning}")
@@ -552,7 +531,6 @@ class _ExecutorDeliver:
 
     @staticmethod
     def _call_key(name: str, args: dict) -> str:
-
 
 
 

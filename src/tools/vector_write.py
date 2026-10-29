@@ -71,10 +71,6 @@ def _fold(text: str) -> str:
     return "".join(ch for ch in stripped if not unicodedata.combining(ch)).lower()
 
 
-
-
-
-
 def storage_facts(layer) -> dict:
 
     facts = {"provider": "", "storage": "", "path": "", "read_only": False}
@@ -220,10 +216,6 @@ def _capability_names(layer) -> set:
             _log(f"_capability_names: checking {name!r} failed: {exc}")
             continue
     return names
-
-
-
-
 
 
 def kmz_in_place_error(layer, action: str = "edit") -> dict | None:
@@ -403,10 +395,6 @@ def force_out_of_edit(layer) -> bool:
     return not still
 
 
-
-
-
-
 def _field_names_in(text: str) -> list[str]:
 
     return re.findall(r"name=([^\s;,]+)", str(text or ""))
@@ -519,10 +507,6 @@ def abort_edit(layer, started_here: bool) -> None:
 
     if started_here:
         force_out_of_edit(layer)
-
-
-
-
 
 
 def ascii_field_name(name: str) -> str:
@@ -694,10 +678,6 @@ def _fallback_chain(qtype) -> list:
     return [kind for kind in (_kind("String"),) if kind is not None]
 
 
-
-
-
-
 def value_warnings(layer, attributes: dict) -> list:
 
 
@@ -730,10 +710,6 @@ def value_warnings(layer, attributes: dict) -> list:
                              "kept": text[:limit],
                              "note": f"{name!r} holds {limit} characters on this layer; the rest is dropped."})
     return warnings
-
-
-
-
 
 
 def geometry_problem(layer, geom, check_crs: bool = True) -> dict | None:

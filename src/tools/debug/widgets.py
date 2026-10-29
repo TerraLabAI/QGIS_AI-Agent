@@ -168,8 +168,6 @@ def interactive_kind(widget: QWidget) -> str | None:
     return None
 
 
-
-
 def tab_state(widget: QWidget) -> tuple[list[str], int]:
 
 
@@ -192,8 +190,6 @@ def tab_state(widget: QWidget) -> tuple[list[str], int]:
 
 def _clean_tab_text(text) -> str:
     return (str(text or "")).replace("&", "").strip()
-
-
 
 
 def nearest_scroll_area(widget: QWidget) -> QAbstractScrollArea | None:
@@ -227,8 +223,6 @@ def scroll_state(area: QWidget) -> dict | None:
         }
     except Exception:
         return None
-
-
 
 
 _ITEM_ROLES = {"tree": "treeitem", "list": "listitem", "table": "row", "itemview": "item"}
@@ -370,7 +364,6 @@ def widget_value(widget: QWidget) -> Any:
     if isinstance(widget, QLineEdit):
         raw = widget.text()
         if _is_password_field(widget):
-
 
 
             return fingerprint_marker(raw) if raw else ""

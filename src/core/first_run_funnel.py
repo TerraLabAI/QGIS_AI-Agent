@@ -110,9 +110,6 @@ def _on_timer() -> None:
     send("timer")
 
 
-
-
-
 def note_panel(visible: bool) -> None:
     global _visible_since
     if not _active():
@@ -191,9 +188,6 @@ def note_connection(state: str) -> None:
     elif state == "online":
         _state["signed_in"] = True
     _touch()
-
-
-
 
 
 def snapshot(why: str) -> dict:

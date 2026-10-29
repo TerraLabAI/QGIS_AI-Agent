@@ -20,7 +20,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEasingCurve, QEvent, QRect, Qt, QVariantAnimation, pyqtSignal
@@ -64,8 +63,6 @@ COLLAPSED_WIDTH = 36
 
 WIDE_PANEL_PX = 640
 ROW_PX = 32
-
-
 
 
 MAX_RECENT_ROWS = 24
@@ -131,7 +128,6 @@ class _Row(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
 
-
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(text)
         row = QHBoxLayout(self)
@@ -141,8 +137,6 @@ class _Row(QWidget):
         self._glyph.setFixedSize(_GLYPH_SLOT, _GLYPH_SLOT)
         self._glyph.setAlignment(Qt.AlignmentFlag.AlignCenter)
         row.addWidget(self._glyph, 0, Qt.AlignmentFlag.AlignVCenter)
-
-
 
 
         self._text = ElidedLabel(text, self)
@@ -312,7 +306,6 @@ class ChatSidebar(QWidget):
         self._col = col
 
 
-
         top = QWidget(self)
         top.setFixedHeight(_TOP_PX)
         head = QHBoxLayout(top)
@@ -339,7 +332,6 @@ class ChatSidebar(QWidget):
         col.addWidget(top)
         col.addSpacing(_PAD)
 
-
         self._scroll = QScrollArea(self)
         self._scroll.setObjectName("sidebarScroll")
         self._scroll.setWidgetResizable(True)
@@ -363,7 +355,6 @@ class ChatSidebar(QWidget):
         self._scroll.setWidget(self._host)
         col.addWidget(self._scroll, 1)
 
-
         self._rule = QFrame(self)
         self._rule.setObjectName("sidebarRule")
         self._rule.setFrameShape(QFrame.Shape.NoFrame)
@@ -374,8 +365,6 @@ class ChatSidebar(QWidget):
         self._copy.append(self._upgrade_row)
         col.addWidget(self._upgrade_row)
         self.set_paid(True)
-
-
 
     def _icon_button(self, parent, glyph: str, tooltip: str) -> QToolButton:
         button = QToolButton(parent)
@@ -410,8 +399,6 @@ class ChatSidebar(QWidget):
         self._rows.addWidget(row)
         self._copy.append(row)
         return row
-
-
 
     def set_project(self, path: str) -> None:
 
@@ -488,8 +475,6 @@ class ChatSidebar(QWidget):
             at += 1
         self._recents_label.setVisible(bool(self._threads) and not self._collapsed)
 
-
-
     def host_is_wide(self) -> bool:
 
         host = self.parentWidget()
@@ -547,7 +532,6 @@ class ChatSidebar(QWidget):
                 widget.set_copy_visible(show_copy)
             else:
                 widget.setVisible(show_copy and bool(self._threads))
-
         for row in self._recent_rows:
             row.set_copy_visible(show_copy)
             row.setVisible(show_copy)

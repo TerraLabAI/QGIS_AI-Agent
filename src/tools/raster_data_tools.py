@@ -151,8 +151,6 @@ def _sample_rasters_at_points(args: dict) -> dict:
         fields.append(field)
     output.updateFields()
 
-
-
     transforms = {
         raster.id(): (QgsCoordinateTransform(points.crs(), raster.crs(), QgsProject.instance())
                       if points.crs() != raster.crs() else None)

@@ -31,17 +31,11 @@ from .style import MUTED
 from .thread_replay import replay_steps
 from .trace import RunFootnote
 
-
 REPLAY_SLICE_MS = 24
-
 UNDONE_OPACITY = 0.45
 
 
 class _ChatPanelThreads:
-
-
-
-
 
     def _show_thread_surface(self) -> None:
 
@@ -54,12 +48,11 @@ class _ChatPanelThreads:
         self.message_list.setVisible(signed_in and not empty and not gated)
         self.empty_state.setVisible(signed_in and empty and not gated)
         self._empty_rows.setVisible(signed_in and empty and not gated)
+        self._feedback_foot.setVisible(signed_in and empty and not gated)
         self._composer_host.setVisible(signed_in and not gated)
         self.notice_bar.setVisible(not gated and bool(self.notice_bar.notice_id()))
-
-
         self.header.set_history_available(signed_in and empty and not gated)
-
+        self.header.set_feedback_available(signed_in and not empty and not gated)
         self.header.set_new_chat_available(signed_in and not gated)
         if gated:
             self._quota_host.hide()
@@ -92,7 +85,6 @@ class _ChatPanelThreads:
         self.composer.set_placeholder(self.tr("Give the AI agent a task in QGIS..."))
         self.composer.set_empty_chat(empty)
         self._apply_quota()
-
         centred = signed_in and empty
         self.empty_state.set_centred(centred)
         self._centre_composer(centred, animate=signed_in)
@@ -370,7 +362,6 @@ class _ChatPanelThreads:
         divider.target = target
         divider.set_link_enabled(self._current_run is None)
         bubble = widgets[index]
-
         above = widgets[index - 1] if index > 0 else None
         if above is not None and above.objectName() == "turnDivider":
             above.hide()
@@ -502,10 +493,6 @@ class _ChatPanelThreads:
         if follow:
             self.message_list.scroll_to_bottom()
 
-
-
-
-
     def clear_draft(self) -> None:
 
         self.composer.clear()
@@ -518,7 +505,6 @@ class _ChatPanelThreads:
         self._replay_generation += 1
         self.message_list.clear()
         self._replay_boundary = None
-
         self._restore_divider = None
         self._restore_hidden_rule = None
         self._runs = {}
@@ -531,7 +517,6 @@ class _ChatPanelThreads:
         self.set_queue_thread(None)
         self._error_cards = {}
         self.composer.set_running(False)
-
         self.composer.clear_chips()
         self._changed_count = 0
         self._changed_layers = []
@@ -550,7 +535,6 @@ class _ChatPanelThreads:
 
 
         self.clear_thread()
-
         self._replay_boundary = QWidget()
         self._replay_boundary.hide()
         self.message_list.add_widget(self._replay_boundary, animate=False)
@@ -567,7 +551,6 @@ class _ChatPanelThreads:
         from ..core.background import gc_paused
 
         self.message_list.setUpdatesEnabled(False)
-
         status = self._status
         self._status = None
         try:

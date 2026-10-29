@@ -115,9 +115,6 @@ def register_web_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _local_url_error(url: str) -> dict:
 
     refusal = local_url_refusal(url)
@@ -236,8 +233,6 @@ def _fetch_json(args: dict) -> dict:
     else:
         out["json"] = part
     return out
-
-
 
 
 _ACCEPT_TEXT = "text/html, text/plain;q=0.9, text/markdown;q=0.9, */*;q=0.5"
@@ -406,7 +401,6 @@ def _embedded_json(body: str) -> str:
         if found and len(found.group(1).strip()) > 40:
             return found.group(1).strip()
     return ""
-
 
 
 _PDF_STREAM_RE = re.compile(rb"stream(?:\r\n|\n|\r)(.*?)(?:\r\n|\n|\r)?endstream", re.DOTALL)
@@ -612,9 +606,6 @@ def _cut(out: dict, text: str, max_chars: int) -> dict:
     else:
         out["text"] = text
     return out
-
-
-
 
 
 def _number(value) -> float | None:

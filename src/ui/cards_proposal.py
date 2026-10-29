@@ -77,7 +77,6 @@ from .style import (
 )
 from .widgets import ElidedLabel, FlowLayout
 
-
 _UNBOUNDED_PX = 16777215
 
 
@@ -85,7 +84,6 @@ _UNBOUNDED_PX = 16777215
 _PROPOSAL_WORD_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none; }}"
 )
-
 _ENTITY_CHIP_QSS = (
     "QWidget#{name} { background: " + FIELD + "; border: 1px solid " + LINE_STRONG + ";"
     f" border-radius: {RADIUS_CHIP}px; }}"
@@ -95,12 +93,10 @@ _ENTITY_NAME_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
     " background: transparent; border: none; }"
 )
-
 _CONFIDENCE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK_2};"
     " background: transparent; border: none; }"
 )
-
 _ALTERNATIVES_QSS = scale_qss_font_px(
     _MENU_QSS + "QMenu::item { min-height: 32px; padding: 0 10px; }"
 )
@@ -273,8 +269,6 @@ class RecommendationCard(_Card, FoldMixin):
         self._decision_row.hide()
         self._col.addWidget(self._decision_row)
 
-
-
     def _build_proposal(self) -> QWidget:
 
         host = QWidget(self._body)
@@ -340,8 +334,6 @@ class RecommendationCard(_Card, FoldMixin):
             "low": self.tr("Low confidence"),
         }[self.confidence]
 
-
-
     def _show_alternatives(self) -> None:
 
         button = self._alternatives_btn
@@ -400,8 +392,6 @@ class RecommendationCard(_Card, FoldMixin):
 
 
 
-
-
 _DIFF_HEAD_QSS = (
     "QWidget#{name} { background: transparent; border: none;"
     " border-bottom: 1px solid " + LINE + "; }"
@@ -425,7 +415,6 @@ _DIFF_ROW_BACK_QSS = (
 _DIFF_FOOTER_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
 )
-
 _DIFF_PILL_QSS = (
     "QWidget#{name} { background: " + FIELD + "; border: 1px solid " + LINE_STRONG + ";"
     f" border-radius: {RADIUS_CHIP}px; }}"
@@ -635,8 +624,6 @@ class DiffTableCard(_Card, FoldMixin):
         self._col.addWidget(self._decision_row)
         self._refresh()
 
-
-
     def _build_head(self) -> QWidget:
         head = QWidget(self._body)
         head.setObjectName("diffHead")
@@ -665,7 +652,6 @@ class DiffTableCard(_Card, FoldMixin):
         grid.setHorizontalSpacing(_DIFF_GAP_PX)
         grid.setVerticalSpacing(0)
         ncols = max(1, len(self.columns))
-
         back = QWidget(table)
         back.setObjectName("diffHeader")
         back.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -718,8 +704,6 @@ class DiffTableCard(_Card, FoldMixin):
         footer.set_widgets(self._count_label, [self._apply_btn])
         return footer
 
-
-
     def selected_ids(self) -> list:
         return [row.id for row in self._table.rows if row.changed and row.active]
 
@@ -742,8 +726,6 @@ class DiffTableCard(_Card, FoldMixin):
         self._apply_btn.setText(self.tr("Apply {n} change").format(n=total) if total == 1
                                 else self.tr("Apply {n} changes").format(n=total))
         self._apply_btn.setEnabled(total > 0)
-
-
 
     def _apply(self) -> None:
         if self.applied_ids is not None:

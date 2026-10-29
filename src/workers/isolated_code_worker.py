@@ -492,7 +492,6 @@ def _start_qgis() -> None:
 def _run(job: dict, status_path: str) -> int:
     plugin_root = str(job["plugin_root"])
     guard, security, code_split, helpers = _load_guard(plugin_root)
-
     security.set_workspace(str(job.get("workspace") or ""))
 
     security.set_read_roots(job.get("read_roots"))
@@ -547,7 +546,6 @@ def _run(job: dict, status_path: str) -> int:
     bound = set(namespace)
     missing = _load_names(job, namespace)
     if missing:
-
         _write(status_path, {"phase": "done", "names_failed": missing})
         return 0
 
@@ -629,7 +627,6 @@ def _run(job: dict, status_path: str) -> int:
         made = guard.take_written()
         if made:
             status["files"] = [{"path": path} for path in made]
-
         shown = helpers.shown_files(namespace)
         if shown:
             status["show_files"] = shown

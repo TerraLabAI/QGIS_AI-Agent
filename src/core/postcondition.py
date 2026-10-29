@@ -30,8 +30,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from .layer_order import feature_count_of
@@ -47,7 +45,6 @@ _FIELD_SAMPLE = 20
 
 
 _SHAPES: dict[str, str] = {
-
     "add_vector_layer": "arrives",
     "add_data": "arrives",
     "add_cog_layer": "arrives",
@@ -71,7 +68,6 @@ _SHAPES: dict[str, str] = {
     "save_layer_to_gpkg": "arrives",
     "import_csv": "arrives",
     "load_csv": "arrives",
-
     "set_layer_crs": "layer",
     "set_layer_style": "layer",
     "set_layer_symbology": "layer",
@@ -85,12 +81,10 @@ _SHAPES: dict[str, str] = {
     "add_table_join": "layer",
     "qgis_edit_commit": "layer",
     "repair_layer_paths": "layer",
-
     "add_field": "field",
     "field_calculator": "field",
     "rename_field": "field",
     "update_features": "field",
-
     "remove_layer": "removed",
     "delete_features": "layer",
 }
@@ -105,7 +99,6 @@ _ARG_KEYS = ("layer_name", "layer", "layer_id", "target_layer", "output_name", "
 
 
 _STRONG_KEYS = frozenset({"output_layer", "layer_id", "layer_name", "layer", "target_layer", "INPUT", "input"})
-
 _FIELD_KEYS = ("field", "field_name", "new_name", "column", "attribute")
 
 

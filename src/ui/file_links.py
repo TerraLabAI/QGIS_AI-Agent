@@ -25,7 +25,6 @@
 
 
 
-
 from __future__ import annotations
 
 import os
@@ -57,7 +56,6 @@ _WINDOWS = r"[A-Za-z]:[\\/][^\n\x00<>\"'`|*?]*"
 
 _UNC = r"\\\\[^\s\\/\x00<>\"'`|*?]+\\[^\n\x00<>\"'`|*?]*"
 _CANDIDATE = re.compile(rf"(?<![\w~\\]){_UNC}|(?<![\w~]){_WINDOWS}|(?<![\w~]){_POSIX}")
-
 _TRAILING = ".,;:!?"
 
 
@@ -72,8 +70,6 @@ _MAX_EXISTS_CHECKS = 40
 
 
 _UNC_PREFIX = re.compile(r"^[\\/]{2}")
-
-
 
 
 
@@ -104,7 +100,6 @@ SAFE_TO_OPEN = frozenset((
     "xlsx", "xls", "ods", "docx", "odt", "odp", "pptx",
     "zip", "gz", "tar", "7z",
 ))
-
 
 PAGE_SUFFIXES = frozenset(("html", "htm", "svg"))
 
@@ -146,7 +141,6 @@ GIS_SUFFIXES = frozenset((
     "tif", "tiff", "img", "jp2", "asc", "vrt", "nc", "hdf", "hgt", "dem",
     "ecw", "sid", "las", "laz", "copc",
 ))
-
 _SHAPE_SIDECARS = frozenset(("shx", "prj", "cpg", "qix", "sbn", "sbx", "qmd"))
 _TEXT_TABLES = frozenset(("csv", "tsv"))
 
@@ -414,7 +408,6 @@ def _plain(text: str) -> str:
 _URL = re.compile(r"(?<![\w</])https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
 _URL_TRAILING = _TRAILING + "*_~"
 _URL_PAIRS = {")": "(", "]": "["}
-
 _URL_FILE = re.compile(r"^[^/?#]+\.[A-Za-z0-9]{2,5}$")
 
 

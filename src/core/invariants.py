@@ -57,7 +57,6 @@ ZONE_TOLERANCE = 0.1
 ZONE_MIN_PIXELS = 50
 
 
-
 _AREA_UNITS = {
     "km2": 1e6, "sqkm": 1e6, "kmsq": 1e6, "skm": 1e6,
     "ha": 1e4, "hectare": 1e4, "hectares": 1e4,
@@ -326,7 +325,6 @@ def unit_still_wrong(layer_id: str, field_name: str) -> bool | None:
 
 
 
-
 _SLOPE = frozenset()
 _ASPECT = frozenset()
 
@@ -420,7 +418,6 @@ def index_range(layer, expected: tuple[float, float, str] | None) -> dict | None
         out["warning"] = (f"values run from {low:.4g} to {high:.4g}, outside the {floor:g} to {ceiling:g} of "
                           f"{what}: check the bands and compute in floating point.")
     return out
-
 
 
 _CLIPS_TO_OVERLAY = frozenset()
@@ -567,7 +564,6 @@ def _raster_of(value):
         return None
 
 
-
 _CLIP_VECTOR = frozenset()
 _CLIP_RASTER = frozenset()
 
@@ -612,7 +608,6 @@ def clip_extent(algorithm_id: str, parameters: dict, output_layer, overlay_layer
         out["warning"] = (f"it extends beyond {name!r}, so it was not clipped: run the clip again for this "
                           "layer alone.")
     return out
-
 
 
 

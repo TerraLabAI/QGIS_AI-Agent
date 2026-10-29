@@ -77,19 +77,14 @@ from .style import (
     qcolor,
 )
 
-
 _CHIP_PX = scale_px_length(CHIP_PX)
 _CHIP_PAD_PX = 6
-
 _PART_GAP_PX = SPACE_TIGHT
 _GLYPH_PX = 12
 _TRAILING_PX = 10
-
 _ROW_GAP_PX = SPACE_CARD
 _LINE_GAP_PX = SPACE_TIGHT
-
 _FOLDED_LINES = 1
-
 _MIN_FIRST_PX = 72
 
 
@@ -371,8 +366,6 @@ class _LayerChip(_Chip):
         self.setToolTip(self._tooltip_with_name())
         self.set_parts(self._build_parts())
 
-
-
     def _build_parts(self) -> list:
 
         parts = [(self.layer_name, INK, self._font)]
@@ -503,8 +496,6 @@ class _LayerChip(_Chip):
             act = sub.addAction(self.tr("Open the source page"))
             act.triggered.connect(lambda _=False, url=page: open_external_url(url, self))
 
-
-
     def contextMenuEvent(self, event):  # noqa: N802
         if self.isEnabled():
             self._open_menu()
@@ -522,7 +513,6 @@ class _LayerChip(_Chip):
         for action, glyph, label in entries:
             act = menu.addAction(icon_for(menu, glyph, 16), label)
             act.triggered.connect(lambda _=False, a=action: self.action_requested.emit(self.layer_id, a))
-
         self._add_source_menu(menu)
         exec_menu(menu, self.mapToGlobal(QPoint(0, self.height() + 2)))
         menu.deleteLater()
@@ -601,8 +591,6 @@ class RunChangesRow(QWidget):
         if self._chips:
             follows_layers(self)
 
-
-
     def is_empty(self) -> bool:
         return not self._chips
 
@@ -630,8 +618,6 @@ class RunChangesRow(QWidget):
             chip.follow_project(gone)
         if widths != [chip.sizeHint().width() for chip in self._chips]:
             self._relayout()
-
-
 
     def _relayout(self) -> None:
         self._arrange(self.width(), place=True)

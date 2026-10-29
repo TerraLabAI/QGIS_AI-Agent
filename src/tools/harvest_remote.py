@@ -48,8 +48,6 @@ _ARCGIS_URL_RE = re.compile(
 _ARCGIS_TIMEOUT = 15
 
 
-
-
 _USER_AGENT = net.user_agent()
 _RASTER_MEDIA = ("geotiff", "image/tiff", "image/jp2", "jpeg2000", "x-hdf", "netcdf", "zarr")
 _PREVIEW_MEDIA = ("image/png", "image/jpeg", "image/jpg", "image/webp")
@@ -113,9 +111,6 @@ def register_harvest_remote_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
 def _describe_added(layer, kind: str, url: str) -> dict:
 
     out = {
@@ -138,9 +133,6 @@ def _describe_added(layer, kind: str, url: str) -> dict:
     elif isinstance(layer, QgsRasterLayer):
         out["band_count"] = layer.bandCount()
     return out
-
-
-
 
 
 def _arcgis_parse(url: str):
@@ -251,7 +243,6 @@ def _arcgis_describe(url: str, token: str | None):
                         cache_ttl=_CACHE_ARCGIS_S).body
         payload = json.loads(raw)
     except net.FetchCancelled:
-
 
 
 
@@ -468,14 +459,30 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
                 layer.setCrs(own)
         return layer
 
-    built = built_here(lambda: _feature_layer(worker_options())) if kind == "feature" else None
+    counted: dict = {}
+
+    def _built_and_counted():
+        layer = _feature_layer(worker_options())
+
+
+        if layer.isValid():
+            try:
+                counted["features"] = int(layer.featureCount())
+            except Exception:  # nosec B110
+                pass
+        return layer
+
+    built = built_here(_built_and_counted) if kind == "feature" else None
 
     def _create():
         uri = QgsDataSourceUri()
+        count = None
         if kind == "feature":
             layer = take(built)
             if layer is None:
                 layer = _feature_layer(QgsVectorLayer.LayerOptions())
+            else:
+                count = counted.get("features")
         else:
             uri.setParam("url", root)
             if layer_id is not None:
@@ -512,7 +519,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             what = ("The ArcGIS layer" + (" inside the box" if box is not None else "")
                     + (" under that where" if where else ""))
 
-        refused = volume_guard.too_many_features(layer, args, what, held="add_arcgis_rest_layer")
+        refused = (volume_guard.too_many(count, args, what, held="add_arcgis_rest_layer") if count is not None
+                   else volume_guard.too_many_features(layer, args, what, held="add_arcgis_rest_layer"))
         if refused:
             return refused
         QgsProject.instance().addMapLayer(layer)
@@ -540,9 +548,6 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     if info:
         out["service_info"] = _arcgis_summary(info)
     return out
-
-
-
 
 
 def _asset_row(key: str, asset: dict) -> dict:

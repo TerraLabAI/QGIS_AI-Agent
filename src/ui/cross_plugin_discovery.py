@@ -27,8 +27,6 @@ from .shared import PRODUCT_ID, SITE_URL
 
 
 
-
-
 _SIBLINGS_LOCAL: dict[str, dict] = {
     "ai-edit": {"keys": ("AI_Edit", "QGIS_AI-Edit"), "folder": "AI_Edit"},
     "ai-segmentation": {"keys": ("AI_Segmentation", "QGIS_AI-Segmentation"), "folder": "AI_Segmentation"},

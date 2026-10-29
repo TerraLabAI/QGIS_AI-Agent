@@ -91,7 +91,6 @@ class LayerWatch(QObject):
                     continue
                 widget.follow_project(gone)
             except RuntimeError:
-
                 continue
             read += 1
         return read
@@ -109,7 +108,6 @@ class LayerWatch(QObject):
         try:
             self._later.start()
         except RuntimeError:
-
             return
 
     def close(self) -> None:

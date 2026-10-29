@@ -54,7 +54,6 @@ def _drop_style(removed) -> None:
 
 
 
-
     for item in removed or ():
         layer_id = item if isinstance(item, str) else ""
         if not layer_id:
@@ -196,7 +195,6 @@ def same_style(layer, then, now) -> bool:
 
 
 def _style_digest(layer) -> str | None:
-
 
 
 

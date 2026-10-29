@@ -1778,6 +1778,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} files the request wrote stay on disk</source>
             <translation>файлів, записаних запитом, залишається на диску: {n}</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>Перевір файл {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>Перевір макет друку[ {layout_name}][, сторінка {page}]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>Подивись на частину карти</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>Подивись на карту так, як ти її бачиш</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>Подивись на шари {layer_names} на карті</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>Подивись на {layer_names} на карті</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>Не вдалося надіслати. Перевірте з'єднання й спробуйте ще раз або напишіть нам на {email}.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>Приклад: буфер вийшов у градусах замість метрів.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>Повідомте про помилку, запропонуйте ідею або розкажіть, що працює добре.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Надіслати</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Надіслати відгук</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>Надсилання...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>Увійдіть, щоб надсилати відгуки звідси, або напишіть нам на {email}.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>Ми отримаємо ваше повідомлення, цю розмову та технічні дані (версії плагіна й QGIS, систему, останні журнали). Ніколи не ваші паролі чи вміст ваших файлів.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>Ви надіслали кілька звітів за короткий час. Спробуйте ще раз за кілька хвилин.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>Звіт містить ваш опис і поточну розмову. Ми використовуємо його, щоб виправляти помилки та вдосконалювати AI Agent.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2330,6 +2394,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Завантаження {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>Очікування відповіді від {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Показати менше</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>Пошук місця</translation>
         </message>
@@ -2363,6 +2435,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo changes</source>
             <translation>Скасувати зміни</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>Погана відповідь</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>Хороша відповідь</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>Створити звіт</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>Написати запит на HTML-звіт про цей аналіз із його картами та діаграмами</translation>
         </message>
     </context>
     <context>
@@ -2650,6 +2738,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>Не вдалося зберегти ваші незбережені редагування шару {layer}, тому нічого не відновлено. Збережіть або відхиліть їх у QGIS і спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>Не вдалося скопіювати шар {layer} перед збереженням його незбережених редагувань, тому нічого не відновлено. Збережіть або відхиліть редагування в QGIS і спробуйте ще раз.</translation>
         </message>
         <message>
             <source>layer names</source>
@@ -3006,6 +3098,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Скасувати зміни?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>Повторити зміни?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>Скасувати запити: {n}?</translation>
         </message>
@@ -3022,8 +3118,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Очікуємо вашого схвалення</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>Ваші ручні редагування спершу зберігаються в історії.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>Редагування, зроблені після цього моменту, спершу зберігаються в історії карти.</translation>
         </message>
         <message>
             <source>{layer} couldn't be restored</source>
@@ -3084,6 +3180,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Drawing the map</source>
             <translation>Малювання карти</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>Дякуємо, ваш відгук надіслано.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>Створи HTML-звіт про цей аналіз із його картами, діаграмами та методом.</translation>
         </message>
     </context>
     <context>
@@ -3826,6 +3930,10 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>by TerraLab</source>
             <translation>від TerraLab</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Надіслати відгук</translation>
         </message>
     </context>
     <context>
@@ -4604,6 +4712,14 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>Почати мій тариф зараз</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>Залишилось 1 безкоштовне завдання</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>Залишилось безкоштовних завдань: {n}</translation>
         </message>
     </context>
     <context>
@@ -5438,6 +5554,10 @@ Click to show it in the Layers panel.</source>
             <source>{used} tasks this month</source>
             <translation>Завдань за цей місяць: {used}</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>Надіслати відгук</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6184,6 +6304,72 @@ Click to show it in the Layers panel.</source>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>тимчасовий шар</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent ще працює</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>Зберегти їх у файл</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>Проєкт збережено</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>Тимчасові шари не збережено</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI Agent ще не завершив ваш запит. Вийти з QGIS і зупинити його?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>Тимчасових шарів: {n} ({names}). Їх не збережено на диск, тому їхній вміст буде втрачено після закриття проєкту.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>Позиції підписів не збережено</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>Тимчасову теку QGIS було видалено, поки проєкт був відкритий: підписи або діаграми, переміщені після попереднього збереження, не вдалося зберегти. Раніше збережені позиції залишено. Перемістіть їх ще раз, а потім збережіть.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent ще зберігає шари</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>Шарів, які ще записуються в GeoPackage поруч із проєктом: {n}. Якщо QGIS закриється зараз, вони будуть втрачені. Усе одно вийти?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Не вдалося надіслати. Спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Надіслати</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>Надсилається разом із цією розмовою та вашими останніми журналами, щоб виправляти проблеми та покращувати AI Agent.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>Розкажіть детальніше</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Дякуємо за відгук</translation>
         </message>
     </context>
 </TS>

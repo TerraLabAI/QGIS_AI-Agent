@@ -43,6 +43,7 @@ from urllib.parse import parse_qs, urlsplit
 from qgis.PyQt.QtCore import QObject
 from qgis.PyQt.QtNetwork import QHostAddress, QTcpServer
 
+from . import canvas_glide
 from .logger import log, log_warning
 from .policy import AGENT_HOME, ensure_agent_directories
 from .qt_compat import enum_member
@@ -92,7 +93,6 @@ class ReportBridge(QObject):
         self.for_pairing_only = False
 
 
-
     def start(self) -> bool:
         if self._server is not None:
             return True
@@ -119,7 +119,6 @@ class ReportBridge(QObject):
     @property
     def token(self) -> str:
         return self._token or ""
-
 
 
     def _on_connection(self) -> None:
@@ -186,7 +185,6 @@ class ReportBridge(QObject):
         socket.write(head + payload)
         socket.flush()
         socket.disconnectFromHost()
-
 
 
     def _act(self, query: dict) -> tuple[int, dict]:
@@ -314,7 +312,8 @@ def _reveal(layer, fids: list[int], zoom: bool) -> None:
     if is_vector and fids:
         layer.selectByIds(fids)
         if zoom:
-            canvas.zoomToSelected(layer)
+            with canvas_glide.gliding(canvas):
+                canvas.zoomToSelected(layer)
         try:
             canvas.flashFeatureIds(layer, fids)
         except Exception:  # nosec B110
@@ -327,8 +326,9 @@ def _reveal(layer, fids: list[int], zoom: bool) -> None:
                 extent = transform.transformBoundingBox(extent)
             except Exception:  # nosec B110
                 pass
-            canvas.setExtent(extent)
-            canvas.zoomByFactor(1.05)
+            with canvas_glide.gliding(canvas):
+                canvas.setExtent(extent)
+                canvas.zoomByFactor(1.05)
     if iface is not None:
         try:
             iface.setActiveLayer(layer)

@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import math
+import os
 import threading
 
 from qgis.core import (
@@ -57,8 +58,6 @@ MAX_SAMPLE_VALUE_CHARS = 80
 
 
 MAX_CARD_FIELDS = 24
-
-
 
 
 def crs_units(crs) -> str:
@@ -143,6 +142,38 @@ def source_kind(layer) -> str:
     return "other"
 
 
+
+
+
+
+_FAST_COUNT_DRIVERS = frozenset({"GPKG", "ESRI Shapefile", "FlatGeobuf", "GeoJSON", "SQLite", "Parquet",
+                                 "Arrow", "MapInfo File", "OpenFileGDB"})
+_SCAN_COUNT_BYTES = 50_000_000
+
+
+def count_is_cheap(layer) -> bool:
+
+    if not isinstance(layer, QgsVectorLayer):
+        return False
+    kind = source_kind(layer)
+    if kind == "memory":
+        return True
+    if kind != "file":
+        return False
+    provider = (layer.providerType() or "").lower()
+    if provider in ("delimitedtext", "spatialite"):
+        return True
+    if provider != "ogr":
+        return False
+    try:
+
+        if not layer.subsetString() and layer.dataProvider().storageType() in _FAST_COUNT_DRIVERS:
+            return True
+        return os.path.getsize((layer.source() or "").split("|", 1)[0]) < _SCAN_COUNT_BYTES
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def feature_count(layer, kind: str) -> int | None:
 
 
@@ -153,7 +184,7 @@ def feature_count(layer, kind: str) -> int | None:
 
 
 
-    if not isinstance(layer, QgsVectorLayer) or kind not in ("memory", "file"):
+    if not isinstance(layer, QgsVectorLayer) or kind not in ("memory", "file") or not count_is_cheap(layer):
         return None
     try:
         n = layer.featureCount()
@@ -206,8 +237,6 @@ def layer_record(layer, node=None, ambiguous: set[str] | None = None) -> dict:
     if ambiguous is None or name in ambiguous or tuning.flag("context", "always_send_layer_id", False):
         record["id"] = layer.id()
     return record
-
-
 
 
 _FILTER_CHARS = 200
@@ -442,7 +471,7 @@ def _sample_off_thread(layer, request, chosen) -> dict | None:
     return kept[1] if kept is not None and kept[0] == key else None
 
 
-def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
+def extent_size(layer, project) -> dict | None:
 
 
 
@@ -458,12 +487,14 @@ def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
 
 
 
-    if rect is None:
-        rect = layer_extent_rect(layer, canvas_crs, project)
-    if not rect:
+
+
+    if not extent_is_cheap(layer):
         return None
     try:
         extent = layer.extent()
+        if extent is None or extent.isNull():
+            return None
         layer_crs = layer.crs()
         width, height = extent.width(), extent.height()
 
@@ -471,6 +502,12 @@ def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
         digits = 6 if layer_crs.isGeographic() else 2
         out = {"width": round(width, digits), "height": round(height, digits),
                "crs": crs_ref(layer_crs), "units": crs_units(layer_crs)}
+        box = _box_digits(extent)
+        if box:
+            out["box"] = box
+        degrees_box = view_bbox_4326(extent, layer_crs, project) if layer_crs.isValid() else None
+        if degrees_box:
+            out["box_4326"] = degrees_box
         centre = extent.center()
         scale = ground.metres_per_unit(layer_crs, centre.x(), centre.y())
     except Exception:  # noqa: BLE001
@@ -484,6 +521,16 @@ def extent_size(layer, canvas_crs, project, rect=None) -> dict | None:
     if degrees:
         out["degree_values"] = degrees
     return out
+
+
+def _box_digits(extent) -> list | None:
+
+    values = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+    if not all(math.isfinite(v) for v in values):
+        return None
+    span = max(extent.width(), extent.height())
+    digits = 6 if span <= 0 else min(6, max(0, 3 - math.floor(math.log10(span))))
+    return [round(v, digits) for v in values]
 
 
 
@@ -614,6 +661,10 @@ def raster_card(layer) -> dict:
         provider = layer.dataProvider() if layer.bandCount() >= 1 else None
     except Exception:  # nosec B110
         return card
+    try:
+        card["size_px"] = [int(layer.width()), int(layer.height())]
+    except Exception:  # nosec B110
+        pass
     if provider is None:
         return card
     try:
@@ -719,7 +770,7 @@ def style_summary(layer) -> str | None:
     return ", ".join(parts) if parts else None
 
 
-def rich_card(layer, canvas_crs, project, is_active: bool, rect=None) -> dict:
+def rich_card(layer, project, is_active: bool) -> dict:
 
     card: dict = {}
     if isinstance(layer, QgsVectorLayer):
@@ -730,7 +781,7 @@ def rich_card(layer, canvas_crs, project, is_active: bool, rect=None) -> dict:
                 card["fields_more"] = more
         if is_editing(layer):
             card["editing"] = True
-        size = extent_size(layer, canvas_crs, project, rect)
+        size = extent_size(layer, project)
         if size:
             card["extent_size"] = size
         if is_active:
@@ -739,6 +790,10 @@ def rich_card(layer, canvas_crs, project, is_active: bool, rect=None) -> dict:
                 card["sample"] = sample
     elif isinstance(layer, QgsRasterLayer):
         card.update(raster_card(layer))
+
+        size = None if source_kind(layer) in ("wms", "xyz") else extent_size(layer, project)
+        if size:
+            card["extent_size"] = size
     style = style_summary(layer)
     if style:
         card["style"] = style

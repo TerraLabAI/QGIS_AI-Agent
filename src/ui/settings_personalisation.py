@@ -65,7 +65,6 @@ from .settings_pages import (
     set_section_locked,
 )
 
-
 _TEXTAREA_H = 118
 
 
@@ -85,13 +84,7 @@ class _NoteField(QLineEdit):
 class PersonalisationPageMixin:
 
 
-
-
     def _build_answers(self, page: Page) -> SettingGroup:
-
-
-
-
 
         group = SettingGroup(page)
 
@@ -117,8 +110,6 @@ class PersonalisationPageMixin:
 
 
 
-
-
         self._questions_segments = Segmented(
             [("minimal", self.tr("Rarely")), ("balanced", self.tr("When needed")),
              ("confirm", self.tr("Often"))], self._store.question_policy, group)
@@ -126,7 +117,6 @@ class PersonalisationPageMixin:
         group.add_row(SettingRow(self.tr("Questions"),
                                  self.tr("How often the AI asks before acting."),
                                  self._questions_segments, group))
-
 
 
 
@@ -144,8 +134,6 @@ class PersonalisationPageMixin:
 
         self._tools_switch = Switch(group, self._store.show_tool_details)
         self._tools_switch.toggled.connect(self._on_tools_toggled)
-
-
 
         group.add_row(SettingRow(self.tr("Show the steps it takes"),
                                  self.tr("The list of steps above each answer."),
@@ -208,23 +196,12 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-
-
     def _build_personalisation(self) -> Page:
-
-
-
-
-
-
 
 
         page = Page(self.tr("Personalisation"),
                     self.tr("Context the AI reads at the start of every conversation, "
                             "and the notes it keeps between them."), self)
-
-
-
 
 
         page.add_group_title(self.tr("Who you are"))
@@ -252,7 +229,6 @@ class PersonalisationPageMixin:
         locked = self._memory_locked()
 
 
-
         self._about_edit, self._about_count = self._text_block(
             page, self.tr("About you"),
             self.tr("Who you are and what you work on. Example: urban planner at the city of Lyon, "
@@ -268,9 +244,6 @@ class PersonalisationPageMixin:
             self._store.profile_instructions, "instructions", pro_only=locked)
         page.add_group_title(self.tr("How you work"))
         page.add(self._build_work_preferences(page))
-
-
-
         page.add_group_title(self.tr("Answers"))
         page.add(self._build_answers(page))
         self._sync_language_combo()
@@ -287,11 +260,6 @@ class PersonalisationPageMixin:
         group.add_row(SettingRow(self.tr("GIS experience"),
                                  self.tr("How much the AI explains."),
                                  self._expertise_segments, group))
-
-
-
-
-
 
 
 
@@ -361,12 +329,6 @@ class PersonalisationPageMixin:
 
 
 
-
-
-
-
-
-
         card = ProCard(title or self.tr("Your profile and instructions, read before every run"),
                        note, host)
         card.upgrade_requested.connect(self._on_upgrade)
@@ -376,7 +338,6 @@ class PersonalisationPageMixin:
     def _text_block(self, page: Page, title: str, placeholder: str, text: str, key: str,
                     pro_only: bool = False, pro_note: str = ""):
         page.add_group_title(title)
-
 
 
 
@@ -439,13 +400,7 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-
-
     def _build_memory(self, page: Page) -> None:
-
-
-
-
 
 
 
@@ -489,8 +444,6 @@ class PersonalisationPageMixin:
         self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_note_btn.setAutoDefault(False)
         self._add_note_btn.clicked.connect(self._open_add_note)
-
-
         note_actions = QHBoxLayout()
         note_actions.setContentsMargins(0, 0, 0, 0)
         note_actions.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
@@ -611,8 +564,6 @@ class PersonalisationPageMixin:
 
 
 
-
-
         who = self.tr("Added by the AI") if note.get("source") == "ai" else self.tr("Added by you")
         parts = [who]
         if note.get("scope") == "project":
@@ -631,7 +582,6 @@ class PersonalisationPageMixin:
         if not text:
             return
         if add_memory_note(self._store, text, "user") is None:
-
             self._note_edit.selectAll()
             return
         self._close_add_note()

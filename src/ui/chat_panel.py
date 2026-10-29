@@ -12,11 +12,9 @@
 
 
 
-
-
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEasingCurve, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
 
 from .bubbles import StatusLine
@@ -30,7 +28,7 @@ from .composer import Composer
 from .dock.about import UpdateBanner
 from .dock.activation_state import ActivationCard
 from .drop_overlay import DropOverlay
-from .empty_state import EmptyState
+from .empty_state import EmptyState, feedback_foot
 from .header import Header
 from .layer_watch import LayerWatch
 from .message_list import MessageList
@@ -46,7 +44,6 @@ _CENTER_MS = 260
 
 
 class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanelLayout, QWidget):
-
 
 
     send_requested = pyqtSignal(str, str, str, object, object)
@@ -66,6 +63,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     question_reply = pyqtSignal(str, str, object)
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
+    answer_rated = pyqtSignal(str, str)
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal(str, bool)
 
@@ -84,7 +82,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     files_dropped = pyqtSignal(object)
     open_settings_requested = pyqtSignal()
     sign_in_requested = pyqtSignal()
-
     sign_out_requested = pyqtSignal()
     context_add_requested = pyqtSignal(str)
     mode_changed = pyqtSignal(str, str)
@@ -104,12 +101,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     upsell_shown = pyqtSignal(str)
     limit_reached = pyqtSignal(bool, int)
-
     pro_pill_requested = pyqtSignal()
-
     start_now_requested = pyqtSignal(str)
     reconnect_requested = pyqtSignal()
-
     memory_undo_requested = pyqtSignal(str)
     help_requested = pyqtSignal(str)
     update_clicked = pyqtSignal(str)
@@ -133,7 +127,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._reopened_tools: dict[str, bool] = {}
         self._compaction_marked = False
         self._current_run: str | None = None
-
         self._error_cards: dict = {}
         self._explain_runs = True
         self._show_tool_details = True
@@ -143,16 +136,13 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
 
         self._low_balance_visible = False
-
         self._upsell_seen: set = set()
-
         self._checkout_return = False
         self._return_view_pending = False
 
         self._pro_welcome = None
         self._limit_said = False
         self._attachment_count = 0
-
         self._privacy_dialog = None
         self._privacy_on_accept = None
         self._status: StatusLine | None = None
@@ -174,7 +164,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._col.addWidget(self.header)
         self.update_banner = UpdateBanner(self)
         self._col.addWidget(self.update_banner)
-
         self.update_gate = UpdateGate(self)
         self._col.addWidget(self.update_gate, 1)
         self.activation = ActivationCard(self)
@@ -182,7 +171,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._col.addWidget(self.activation, 1)
         self.message_list = MessageList(self)
         self._col.addWidget(self.message_list, 1)
-
         self.toast = Toast(self.message_list)
 
 
@@ -190,7 +178,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._layer_watch = LayerWatch(self, self)
         self.empty_state = EmptyState(self)
         self._col.addWidget(self.empty_state, 1)
-
 
         self.notice_bar = NoticeBar(self)
         self._col.addWidget(self.notice_bar)
@@ -211,7 +198,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         host.setSpacing(-TRAY_TUCK)
         self.composer.raise_()
         self._col.addWidget(self._composer_host)
-
         self.runs_line = RunsLeftLine(self)
         self._runs_host = _wrap(self.runs_line, (12, 0, 12, SPACE_TIGHT), self)
         self._runs_host.hide()
@@ -233,6 +219,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
                                           QSizePolicy.Policy.Ignored)
         self._center_spacer.setFixedHeight(0)
         self._col.addWidget(self._center_spacer)
+        self._feedback_foot = _wrap(feedback_foot(self), (8, 0, 12, 6), self)
+        self._feedback_foot.layout().setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._feedback_foot.layout().itemAt(0).widget().clicked.connect(lambda: self.open_feedback("home"))
+        self._col.addWidget(self._feedback_foot)
         self._center_anim = QVariantAnimation(self)
         self._center_anim.setDuration(_CENTER_MS)
         self._center_anim.setEasingCurve(QEasingCurve.Type.OutCubic)

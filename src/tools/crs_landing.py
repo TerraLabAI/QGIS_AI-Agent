@@ -25,7 +25,7 @@ import sqlite3
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsProject, QgsRectangle
 
-from ..core.context_layers import box_to_4326
+from ..core.context_layers import box_to_4326, extent_is_cheap
 from ..core.tool_registry import coded_fact
 
 
@@ -80,9 +80,13 @@ def _transforms_here(crs) -> bool:
 
 def anchors(exclude_ids: tuple = ()) -> list:
 
+
+
+
+
     found = []
     for layer in QgsProject.instance().mapLayers().values():
-        if layer.id() in exclude_ids:
+        if layer.id() in exclude_ids or not extent_is_cheap(layer):
             continue
         try:
             crs, extent = layer.crs(), layer.extent()

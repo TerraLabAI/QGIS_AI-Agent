@@ -80,8 +80,6 @@ from .trace_rows import (
 )
 from .widgets import ElidedLabel, Spinner
 
-
-
 _RESULT_MARK_PX = 14
 _RESULTS_SHOWN = 5
 _CHEVRON_PX = 12
@@ -97,16 +95,13 @@ _SOURCE_MIN_PX = 56
 
 
 _PERCENT_RE = re.compile(r"(\d{1,3}(?:[.,]\d)?)\s?%")
-
 _JOB_LOOK_MS = 2000
-
 
 
 _CALL_CLOCK_FROM_S = 3
 _CALL_TICK_MS = 1000
 _CALL_BAR_PX = 2
 _CALL_BAR_W = 44
-
 _SERVER_FRESH_S = 5.0
 
 
@@ -189,6 +184,7 @@ SEARCH_TOOLS = frozenset({
 _LIST_KEYS = ("results", "items", "datasets", "collections", "granules", "matches",
               "sections", "plugins", "sources", "hits")
 _NAME_KEYS = ("title", "name", "display_name", "label", "id")
+_LINK_KEYS = ("url", "page_url", "href", "link", "landing_page", "homepage")
 _SOURCE_KEYS = ("provider", "source", "portal", "publisher", "domain", "host", "organisation",
                 "organization", "collection", "url", "href", "link")
 
@@ -199,7 +195,9 @@ def is_search_tool(name: str, args=None) -> bool:
     return name in SEARCH_TOOLS or name.startswith(("search_", "find_"))
 
 
-def search_results(detail: str) -> list[tuple[str, str, dict]]:
+def search_results(detail: str) -> list[tuple[str, str, dict, str]]:
+
+
 
 
 
@@ -223,7 +221,7 @@ def search_results(detail: str) -> list[tuple[str, str, dict]]:
     rows = []
     for item in items:
         if isinstance(item, str):
-            rows.append((item.strip(), "", {}))
+            rows.append((item.strip(), "", {}, ""))
             continue
         if not isinstance(item, dict):
             continue
@@ -238,9 +236,10 @@ def search_results(detail: str) -> list[tuple[str, str, dict]]:
             family = connector_row(str(item.get("connector_id") or item.get("family") or ""), source, provider)
             logo = str(item.get("logo_url") or "")
             if not family and logo.startswith("https://"):
-
                 family = {"logo_url": logo}
-            rows.append((" ".join(name.split()), source, family))
+            link = next((str(item.get(k) or props.get(k)) for k in _LINK_KEYS
+                         if str(item.get(k) or props.get(k) or "").startswith(("https://", "http://"))), "")
+            rows.append((" ".join(name.split()), source, family, link))
     return rows
 
 
@@ -326,12 +325,33 @@ class _RowSpinner(Spinner):
             return
 
 
+class _MoreRow(QLabel):
+
+
+    def __init__(self, text: str, on_click, parent=None):
+        super().__init__(text, parent)
+        self._on_click = on_click
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event):  # noqa: N802
+        event.accept()
+
+    def mouseReleaseEvent(self, event):  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+            self._on_click()
+        event.accept()
+
+
 class _ResultRow(QWidget):
 
 
 
-    def __init__(self, name: str, host: str, family: dict | None = None, parent=None):
+    def __init__(self, name: str, host: str, family: dict | None = None, parent=None, link: str = ""):
         super().__init__(parent)
+        self._link = link
+        if link:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setToolTip(link)
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
@@ -361,6 +381,10 @@ class _ResultRow(QWidget):
             row.addWidget(domain, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
         self.setFixedHeight(24)
+        if link:
+
+            for child in self.findChildren(QLabel):
+                child.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
     def _paint_mark(self) -> None:
         ratio = widget_pixel_ratio(self)
@@ -385,6 +409,21 @@ class _ResultRow(QWidget):
         if url == self._logo_url:
             self._paint_mark()
 
+    def mousePressEvent(self, event) -> None:
+        if self._link and event.button() == Qt.MouseButton.LeftButton:
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if self._link and event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
+            from .external_links import open_external_url
+
+            open_external_url(self._link, parent=self.window())
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
 
 class ActivityRow(QWidget):
 
@@ -395,7 +434,8 @@ class ActivityRow(QWidget):
         self.key = card.stack_key()
         self._open = False
         self._opens = False
-        self._results: list[tuple[str, str, str]] = []
+        self._results: list[tuple[str, str, dict, str]] = []
+        self._results_open = False
         self._icon_logo = ""
         self._logo_hooked = False
 
@@ -411,8 +451,8 @@ class ActivityRow(QWidget):
         self._job_timer = QTimer(self)
         self._job_timer.setInterval(_JOB_LOOK_MS)
         self._job_timer.timeout.connect(self._look_at_job)
-
         self._call_stage = ""
+        self._call_source = ""
         self._call_count = (None, None, False)
         self._call_started = 0.0
         self._call_tick = QTimer(self)
@@ -493,8 +533,6 @@ class ActivityRow(QWidget):
 
 
 
-
-
         self._body = QWidget(self)
         self._body_col = QVBoxLayout(self._body)
         self._body_col.setContentsMargins(0, 0, 0, SPACE_TIGHT)
@@ -521,8 +559,6 @@ class ActivityRow(QWidget):
         self._body.hide()
         col.addWidget(self._body)
         self.add(card)
-
-
 
     def add(self, card: ToolCard) -> None:
 
@@ -714,8 +750,6 @@ class ActivityRow(QWidget):
             return second
         return " ".join(part for part in (label, second) if part).strip()
 
-
-
     def job_live(self) -> bool:
 
 
@@ -745,7 +779,10 @@ class ActivityRow(QWidget):
 
         if not self._calling():
             return
-        if stage:
+        if stage.startswith("wait:"):
+
+            self._call_source = stage[5:]
+        elif stage:
             self._call_stage = stage
             self._call_count = (done, total, False)
         else:
@@ -767,6 +804,8 @@ class ActivityRow(QWidget):
             words = stage_words(self._call_stage, done, total)
         spent = time.monotonic() - self._call_started if self._call_started else 0.0
         clock = seconds_words(spent) if spent >= _CALL_CLOCK_FROM_S else ""
+        if not words and clock and self._call_source:
+            words = self.tr("Waiting for {host}").format(host=self._call_source)
         return " \u00b7 ".join(part for part in (words, clock) if part)
 
     def _show_call(self) -> None:
@@ -852,6 +891,7 @@ class ActivityRow(QWidget):
         elif not calling and self._call_started:
             self._call_started = 0.0
             self._call_stage = ""
+            self._call_source = ""
             self._call_count = (None, None, False)
             self._call_tick.stop()
         if job and not self._job_timer.isActive() and not self._job_looked and _task_id_of(last):
@@ -955,12 +995,23 @@ class ActivityRow(QWidget):
 
     @staticmethod
     def _search_results(card: ToolCard) -> list:
+        if card.name == "fetch_text" and card.ok:
+
+            link = str((card.args or {}).get("url") or "") if isinstance(card.args, dict) else ""
+            if not link.startswith(("https://", "http://")):
+                return []
+            try:
+                title = str((json.loads(card.detail or "{}") or {}).get("title") or "")
+            except (ValueError, AttributeError):
+                title = ""
+            host = source_host(link)
+            return [(" ".join(title.split()) or host, host if title else "", {}, link)]
         if not is_search_tool(card.name) or not card.ok:
             return []
 
         connector = getattr(card, "connector", None)
         own = connector if isinstance(connector, dict) and connector.get("id") else {}
-        return [(name, host, family or own) for name, host, family in search_results(card.detail)]
+        return [(name, host, family or own, link) for name, host, family, link in search_results(card.detail)]
 
     def _sync_results(self) -> None:
         while self._results_col.count():
@@ -970,16 +1021,23 @@ class ActivityRow(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
-        for name, host, family in self._results[:_RESULTS_SHOWN]:
-            self._results_col.addWidget(_ResultRow(name, host, family, self._results_host))
+        shown = self._results if self._results_open else self._results[:_RESULTS_SHOWN]
+        for name, host, family, link in shown:
+            self._results_col.addWidget(_ResultRow(name, host, family, self._results_host, link))
         more = len(self._results) - _RESULTS_SHOWN
         if more > 0:
-            label = QLabel(self.tr("+{n} more").format(n=more), self._results_host)
+            text = self.tr("Show less") if self._results_open else self.tr("+{n} more").format(n=more)
+            label = _MoreRow(text, self._toggle_results, self._results_host)
             label.setObjectName("resultMore")
             label.setStyleSheet(_HINT_QSS)
             label.setFixedHeight(22)
             self._results_col.addWidget(label)
         self._results_host.setVisible(bool(self._results))
+
+    def _toggle_results(self) -> None:
+        self._results_open = not self._results_open
+
+        QTimer.singleShot(0, self._sync_results)
 
     def _sync_outcome(self, running: bool, failed: bool, ended: str = "", some_failed: int = 0) -> None:
 
@@ -997,7 +1055,7 @@ class ActivityRow(QWidget):
         elif some_failed:
             text = self.tr("{failed} of {total} did not work").format(
                 failed=some_failed, total=self.repeats)
-        elif self._results:
+        elif self._results and is_search_tool(self.cards[-1].name):
             count = len(self._results)
             text = self.tr("1 result") if count == 1 else self.tr("{n} results").format(n=count)
         else:
@@ -1020,7 +1078,6 @@ class ActivityRow(QWidget):
 
     @staticmethod
     def _made_layer(card: ToolCard, layer: str) -> bool:
-
 
 
 
@@ -1048,8 +1105,6 @@ class ActivityRow(QWidget):
                     and getattr(card, "ended", "") not in ("denied", "stopped") else 0
             total += count
         return total
-
-
 
     def _on_hover(self, hot: bool) -> None:
         self._chevron.set_hot(hot)

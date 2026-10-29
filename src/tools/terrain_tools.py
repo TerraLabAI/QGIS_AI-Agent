@@ -191,8 +191,6 @@ def register_terrain_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _raster_facts(name: str, extent) -> dict:
     layer = _find_layer(name)
     if layer is None:
@@ -384,8 +382,6 @@ def _add_candidates(crs_wkt: str, name: str, rows: list) -> dict:
     return {"layer_id": layer.id(), "layer_name": layer.name()}
 
 
-
-
 def _libs():
     try:
         import numpy as np
@@ -493,8 +489,6 @@ def _read_padded(grid: dict, bx: int, by: int, bw: int, bh: int, pad: int, np, b
             values[raw == nodata] = np.nan
         out[y_lo - top:y_hi - top, x_lo - left:x_hi - left] = values
     return out
-
-
 
 
 def local_relief(padded, pad: int, bw: int, bh: int, rx: int, ry: int, np):
@@ -615,8 +609,6 @@ def horizon_scan(padded, pad: int, bw: int, bh: int, offsets: list, np, svf=True
     return results
 
 
-
-
 def _create_tiff(gdal, path: str, grid: dict, dtype, options, nodata):
     dataset = gdal.GetDriverByName("GTiff").Create(path, grid["width"], grid["height"], 1, dtype, options)
     dataset.SetGeoTransform(grid["geotransform"])
@@ -711,8 +703,6 @@ def _numpy_products(np, gdal, grid: dict, wanted: set, paths: dict, lrm_r: tuple
 
 def _radius_px(radius_m: float, grid: dict) -> tuple:
     return (max(1, int(round(radius_m / grid["cell_x_m"]))), max(1, int(round(radius_m / grid["cell_y_m"]))))
-
-
 
 
 def _terrain_visualisation(args: dict) -> dict:
@@ -854,8 +844,6 @@ def _terrain_visualisation(args: dict) -> dict:
     if facts.get("window"):
         result["window_cells"] = [grid["width"], grid["height"]]
     return result
-
-
 
 
 def _metric_transform(grid: dict, osr):

@@ -119,8 +119,6 @@ def register_flow_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _normalize_key(text) -> str:
 
 
@@ -134,8 +132,6 @@ def _normalize_key(text) -> str:
 
 def _stopped() -> dict:
     return tool_error("Stopped before the flow lines were written.", "CANCELLED", hint="georef_stopped_nothing_written")
-
-
 
 
 def _plan(args: dict) -> dict:
@@ -269,8 +265,6 @@ def _output_target(args: dict, layer_name: str):
                                   hint="chart_name_space_full", folder=folder, stem=stem)
 
 
-
-
 def _representative_point(geometry):
     from qgis.core import Qgis
 
@@ -365,8 +359,6 @@ def _fetch_places(source, request, plan: dict, index: dict, halted) -> None:
         features.close()
 
 
-
-
 def _open_table(plan: dict, state: dict):
     layer = QgsProject.instance().mapLayer(plan["table_id"])
     if not isinstance(layer, QgsVectorLayer):
@@ -459,8 +451,6 @@ def _text(value) -> str:
     if value is None or _is_qgis_null(value):
         return ""
     return str(value)
-
-
 
 
 def _lookup(key: str, index: dict) -> tuple:
@@ -572,8 +562,6 @@ def _match_rows(rows: list, plan: dict, places_index: dict | None) -> tuple:
     return matched, report
 
 
-
-
 def _haversine_km(a: tuple, b: tuple) -> float:
     lon1, lat1, lon2, lat2 = math.radians(a[0]), math.radians(a[1]), math.radians(b[0]), math.radians(b[1])
     dlon, dlat = lon2 - lon1, lat2 - lat1
@@ -591,8 +579,6 @@ def _decide_shape(plan: dict, matched: list) -> tuple:
         if longest > _GEODESIC_SPAN_KM:
             return "geodesic", True
     return "straight", True
-
-
 
 
 def _curve_parts(origin: tuple, destination: tuple, origin_key: str, destination_key: str) -> list:
@@ -747,8 +733,6 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
         "antimeridian_split": antimeridian_split,
         "styled": not style_result.get("_error"),
     }
-
-
 
 
 def _create_flow_lines(args: dict) -> dict:

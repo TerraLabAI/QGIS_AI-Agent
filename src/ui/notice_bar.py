@@ -146,8 +146,6 @@ class NoticeBar(QWidget):
         outer.addWidget(self._bar)
         self.hide()
 
-
-
     def show_notice(self, notice: dict) -> bool:
 
         if not isinstance(notice, dict):
@@ -197,8 +195,6 @@ class NoticeBar(QWidget):
 
     def notice_id(self) -> str:
         return self._notice.get("id", "")
-
-
 
     def _on_close(self) -> None:
         ident = self.notice_id()

@@ -116,9 +116,6 @@ DENIED_ATTRS = frozenset({
 
 
 
-
-
-
     "setValue", "activation_key", "clear_activation_key", "set_activation_key",
     "load_module", "import_module", "startDetached", "excepthook", "displayhook", "gi_frame", "f_globals",
     "f_locals", "f_back", "tb_frame", "cr_frame", "ag_frame", "os", "genericpath",
@@ -241,14 +238,12 @@ _DENIED_LITERAL_RE = re.compile(
 
     r"|169\.254\.\d"
 )
-
 _OS_ALLOWED = (
     "path", "sep", "altsep", "linesep", "pathsep", "name", "curdir", "pardir", "extsep", "devnull", "getcwd",
     "fspath", "fsencode", "fsdecode", "getpid", "cpu_count",
     "urandom", "PathLike", "strerror", "SEEK_SET", "SEEK_CUR", "SEEK_END", "DirEntry", "stat_result", "error",
 )
 _SHUTIL_ALLOWED = ("disk_usage", "which", "copyfileobj", "get_terminal_size")
-
 _NO_FILE_CHANGE = "a snippet never removes, renames or overwrites a file, and writes a new file name instead."
 
 
@@ -264,8 +259,6 @@ _SYS_ALLOWED = (
 
 _IO_ALLOWED = ("StringIO", "BytesIO", "TextIOWrapper", "TextIOBase", "IOBase", "RawIOBase", "BufferedIOBase",
                "DEFAULT_BUFFER_SIZE")
-
-
 
 
 def _processing_refusal(algorithm: object) -> str | None:
@@ -362,8 +355,6 @@ def _module_denied(name: str) -> bool:
 
         return not hasattr(GUARDED_MODULES[parts[0]](), parts[1])
     return any(".".join(parts[:i]) in DENIED_MODULES for i in range(1, len(parts) + 1))
-
-
 
 
 def _trimmed_module(name: str, source: types.ModuleType, allowed: tuple, extra: dict | None = None,
@@ -714,14 +705,6 @@ def _safe_io() -> types.ModuleType:
 
 
 
-
-
-
-
-
-
-
-
 _BASE64_ALLOWED = frozenset({"b64encode", "standard_b64encode", "urlsafe_b64encode", "b32encode",
                               "b16encode", "a85encode", "b85encode", "encodebytes"})
 
@@ -730,7 +713,6 @@ def _safe_base64() -> types.ModuleType:
     import base64 as _base64
 
     return _trimmed_module("base64", _base64, _BASE64_ALLOWED)
-
 
 
 
@@ -1087,8 +1069,6 @@ def _safe_osgeo(name: str, fromlist) -> types.ModuleType:
 
 
 
-
-
 _ATTR_GUARD_REASON = "{name} is not reachable from execute_code."
 
 
@@ -1149,8 +1129,6 @@ def _safe_processing() -> types.ModuleType:
     if module is None:
         raise ImportError("processing is not available in this QGIS")
     return module
-
-
 
 
 

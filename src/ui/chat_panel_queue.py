@@ -47,14 +47,11 @@ from .style import (
 from .widgets import IconButton
 
 QUEUE_MAX = 5
-
 _FOLDED = 3
 _MOTION_MS = 150
 _QWIDGETSIZE_MAX = 16777215
 _ids = itertools.count(1)
-
 TRAY_TUCK = 10
-
 TRAY_INSET = 6
 
 
@@ -492,8 +489,6 @@ class _ChatPanelQueue:
     def queue_paused(self) -> bool:
         return self._queue_key is not None and bool(self._queue()["paused"])
 
-
-
     def set_queue_thread(self, thread_id) -> None:
 
 
@@ -534,8 +529,6 @@ class _ChatPanelQueue:
                     item["held"] = item.get("run_id", "")
                     item["steer_id"] = ""
         self._sync_queue()
-
-
 
     def _park_queue(self) -> None:
         if self._queue_key is not None:
@@ -670,7 +663,6 @@ class _ChatPanelQueue:
         entry = self._queue()
         item = self._find(item_id)
         if item is None or self._current_run:
-
             return
         if self._send_item(item):
             entry["items"].remove(item)

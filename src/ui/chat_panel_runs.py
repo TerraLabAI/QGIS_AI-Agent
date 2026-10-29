@@ -11,6 +11,8 @@ import time
 
 from qgis.PyQt.QtCore import QTimer, QUrl
 
+from ..core import openui, telemetry
+from ..core import telemetry_events as ev
 from ..core.snapshot_report import run_change_items
 from .bubbles import AgentBubble, StatusLine, UserBubble
 from .cards import RunSummaryCard, ToolCard
@@ -23,6 +25,24 @@ from .loader import user_waiting, waited_between
 from .markdown_view import SOURCE_SCHEME
 from .plan_card import PlanCard
 from .trace import RunTrace
+
+
+def _worth_a_report(run: _Run) -> bool:
+
+
+
+    text = run.bubble.text().strip() if run.bubble is not None else ""
+    if not text or text.endswith("?") or not run.tools or run.wrote_page:
+        return False
+    figures = sum(1 for line in text.splitlines() if any(ch.isdigit() for ch in line))
+    return openui.FENCE_TAG in text or figures >= 3
+
+
+def _track(event: str, run_id: str) -> None:
+    try:
+        telemetry.track(event, {"run_id": run_id})
+    except Exception:  # nosec B110
+        pass
 
 
 class _ChatPanelRuns:
@@ -105,8 +125,6 @@ class _ChatPanelRuns:
             if run.trace is not None:
                 run.trace.close()
             if run.bubble is not None and last is run.bubble:
-
-
                 run.bubble.end_text()
             run.trace = RunTrace(run_id, started=time.monotonic(),
                                  reduced_motion=self._reduced_motion)
@@ -138,10 +156,6 @@ class _ChatPanelRuns:
             self.message_list.remove_widget(self._status)
             self._status = None
 
-
-
-
-
     def begin_run(self, run_id: str) -> None:
         run_id = str(run_id or "").strip()
         if not run_id:
@@ -162,6 +176,9 @@ class _ChatPanelRuns:
 
         self._changed_count = 0
 
+        for widget in self.message_list.widgets():
+            if isinstance(widget, AgentBubble):
+                widget.set_report_offer(False)
         self._sync_answer_restores()
         self._show_thread_surface()
         self._sync_queue()
@@ -216,7 +233,6 @@ class _ChatPanelRuns:
         if run_id == self._current_run:
             self._sync_answer_restores()
         self._show_thread_surface()
-
         QTimer.singleShot(0, self.message_list.scroll_to_bottom)
 
     def drop_turn(self, run_id: str) -> None:
@@ -260,8 +276,6 @@ class _ChatPanelRuns:
         if self.message_list.last_widget(ignore=self._status) is not run.bubble:
 
 
-
-
             return
         run.bubble.set_text("")
         run.segment_break = False
@@ -276,13 +290,10 @@ class _ChatPanelRuns:
                 ignore=self._status) is not run.bubble):
 
 
-
-
             return
         before = run.bubble
         bubble = self._bubble_for(run_id)
         if bubble is not before:
-
 
 
             self._wire_answer(bubble, run_id)
@@ -290,7 +301,6 @@ class _ChatPanelRuns:
             run.segment_break = False
             current = bubble.text()
             if current and not current.endswith("\n"):
-
                 text = "\n\n" + text.lstrip()
         bubble.append_token(text)
 
@@ -403,20 +413,15 @@ class _ChatPanelRuns:
 
 
 
-
-
-
-
-
-
-
-
-
         try:
             duration_s = max(0.0, float(duration_s or 0.0))
         except (TypeError, ValueError, OverflowError):
             duration_s = 0.0
         card = self.message_list.tool_card(str(tool_call_id or ""))
+        running = isinstance(result, dict) and result.get("status") == "running"
+        if card is not None and running and result.get("task_id"):
+
+            return
         if card is not None:
             hint = str(result.get("hint") or "") if isinstance(result, dict) and not ok else ""
             card.finish(bool(ok), str(summary or "")[:1000], duration_s, str(detail or "")[:2000], hint)
@@ -432,7 +437,6 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
-
         self._schedule_queue_after_run(status)
         if run is not None and run.bubble is not None:
             run.bubble.flush()
@@ -445,17 +449,14 @@ class _ChatPanelRuns:
         except (TypeError, ValueError, OverflowError):
             seconds = time.monotonic() - run.started if run is not None else 0.0
         if run is not None and seconds is not None:
-
             user_waiting(False)
             seconds = max(0.0, float(seconds) - waited_between(run.started))
         blocks = self.message_list.traces_of(run_id)
         streamed = run.bubble.text().strip() if run is not None and run.bubble is not None else ""
         summary = (summary or "").strip()
         if streamed:
-
             summary = ""
         elif summary and status == "done":
-
             bubble = self._bubble_for(run_id)
             self._wire_answer(bubble, run_id)
             bubble.set_text(summary)
@@ -522,6 +523,10 @@ class _ChatPanelRuns:
         if run is not None and run.bubble is not None:
             run.bubble.finish_streaming()
         self._add_layer_links(run_id)
+        if status == "done" and run.bubble is not None and _worth_a_report(run):
+            self._wire_answer(run.bubble, run_id)
+            run.bubble.set_report_offer(True)
+            _track(ev.AGENT_REPORT_OFFER_SHOWN, run_id)
         self._mark_compaction(usage)
         self._drop_status()
         if self._current_run == run_id or self._current_run is None:
@@ -541,7 +546,6 @@ class _ChatPanelRuns:
 
 
         if href.startswith(SOURCE_SCHEME):
-
             return
         layer_id = layer_id_from_url(href)
         if layer_id:
@@ -558,7 +562,7 @@ class _ChatPanelRuns:
         if self._open_in_qgis(path, layername):
             return
         if is_safe_to_open(path):
-            open_local_path(path, self)
+            open_local_path(path, self, where="link")
             return
         open_local_path(reveal_target(path), self)
 
@@ -578,6 +582,22 @@ class _ChatPanelRuns:
             return
         bubble.setProperty("wired", True)
         bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
+        bubble.rated.connect(lambda rating: self.answer_rated.emit(run_id, str(rating)))
+        bubble.rating_words.connect(lambda rating, text: self._send_rating_words(bubble, run_id, rating, text))
+        bubble.report_clicked.connect(lambda: self._on_report_offer(run_id))
+
+    def _on_report_offer(self, run_id: str) -> None:
+
+        self.composer.set_text(self.tr("Make an HTML report of this analysis, with its maps, charts and method."))
+        self.composer.focus_input()
+        _track(ev.AGENT_REPORT_OFFER_CLICKED, run_id)
+
+    def _send_rating_words(self, bubble: AgentBubble, run_id: str, rating: str, text: str) -> None:
+
+        from .feedback_dialog import send_answer_words
+
+        if not send_answer_words(self, run_id, rating, text, bubble.words_done):
+            bubble.words_done(False)
 
     def set_sources(self, run_id: str, items) -> None:
 
@@ -610,7 +630,6 @@ class _ChatPanelRuns:
 
         data = changes if isinstance(changes, dict) else {}
         for entry in data.get("files") or ():
-
             if isinstance(entry, dict) and entry.get("written") is True:
                 note_written_page(str(entry.get("path") or ""))
         stack = FileCardStack(data.get("files"), objects=data.get("objects"))
@@ -624,6 +643,10 @@ class _ChatPanelRuns:
         if run is not None:
             run.produced = True
         on_disk = [card.path for card in stack.cards() if getattr(card, "on_disk", False)]
+        if run is not None and any(str(path).lower().endswith((".html", ".htm")) for path in on_disk):
+            run.wrote_page = True
+            if bubble is not None:
+                bubble.set_report_offer(False)
         if row.layers() or on_disk:
 
 
@@ -640,7 +663,6 @@ class _ChatPanelRuns:
                 widget.deleteLater()
                 continue
             if bubble is not None:
-
                 bubble.set_changes(widget, animate=animate)
             else:
                 self._add(widget, animate=animate)
@@ -665,7 +687,7 @@ class _ChatPanelRuns:
 
 
         target = path if action == "open" and is_safe_to_open(path) else reveal_target(path)
-        open_local_path(target, self)
+        open_local_path(target, self, where="row")
 
     def _open_in_qgis(self, path: str, layername: str = "") -> bool:
 

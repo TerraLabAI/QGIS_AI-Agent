@@ -23,6 +23,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
+from ..core import canvas_glide
 from ..core.follow import hold_view
 from ..core.layer_order import is_remote_vector
 from ..core.qt_compat import enum_member
@@ -94,10 +95,6 @@ def register_harvest_canvas_tools(registry: ToolRegistry):
         },
         handler=_update_feature_geometry,
     ))
-
-
-
-
 
 
 def _enum_name(value) -> str:
@@ -343,7 +340,8 @@ def _set_canvas_scale(args: dict) -> dict:
                           hint="layout_scale_invalid")
     canvas = iface.mapCanvas()
     if wanted_scale is not None:
-        canvas.zoomScale(float(wanted_scale))
+        with canvas_glide.gliding(canvas):
+            canvas.zoomScale(float(wanted_scale))
     if wanted_rotation is not None:
 
         canvas.setRotation(float(wanted_rotation) % 360.0)

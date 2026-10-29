@@ -57,7 +57,6 @@ def open_settings_dialog(plugin):
 
 
 
-
     dialog.improve_toggled.connect(
         lambda on, d=dialog: improve_choice(d, on))
     dialog.values_changed.connect(lambda values: apply_settings_values(plugin, values))

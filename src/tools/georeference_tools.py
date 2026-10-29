@@ -127,8 +127,6 @@ def register_georeference_tools(registry: ToolRegistry):
     ))
 
 
-
-
 def _parse_crs(text):
     raw = str(text or "").strip()
     if not raw:
@@ -212,8 +210,6 @@ def _add_raster(path: str, name: str) -> dict:
     rect = layer.extent()
     return {"layer_id": layer.id(), "layer_name": layer.name(),
             "extent": [rect.xMinimum(), rect.yMinimum(), rect.xMaximum(), rect.yMaximum()]}
-
-
 
 
 def _too_few(transform: str, given: int) -> dict:

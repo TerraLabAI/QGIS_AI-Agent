@@ -231,8 +231,6 @@ def register_core_tools(registry: ToolRegistry):
                 "layer": {"type": "string"},
 
 
-
-
                 "crs": {"type": "string"},
             },
             "required": ["path"],
@@ -310,6 +308,9 @@ def register_core_tools(registry: ToolRegistry):
                 },
             },
             "required": ["layer_name"],
+
+
+            "x-field-expressions": True,
         },
         handler=_get_features,
 
@@ -634,11 +635,6 @@ def register_core_tools(registry: ToolRegistry):
             "required": ["layer_name", "legend_image"], "additionalProperties": False},
         handler=lambda args: _set_layer_legend_image(_find_layer(args.get("layer_name")), args),
     ))
-
-
-
-
-
 
     registry.register(Tool(
         name="list_algorithms",

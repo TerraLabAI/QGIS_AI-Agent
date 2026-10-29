@@ -50,10 +50,6 @@ def register_layout_elevation_tools(registry: ToolRegistry):
     ))
 
 
-
-
-
-
 def snapshot_3d_view(args: dict):
 
 
@@ -158,10 +154,3 @@ def _add_layout_3d_map(args: dict) -> dict:
     result.update({"view_index": view["index"], "open_3d_views": view["count"],
                    "camera": camera_facts(view["pose"])})
     return result
-
-
-
-
-
-
-

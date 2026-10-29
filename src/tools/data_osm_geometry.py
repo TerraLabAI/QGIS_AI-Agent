@@ -23,7 +23,6 @@ from .data_common import _is_number, _overpass_timeout
 
 
 
-
 _LIFTED_CHECK_EVERY = 2000
 _LIFTED_FAMILIES = ("points", "lines", "polygons")
 
@@ -41,7 +40,6 @@ def _overpass_timeout_remark(answer) -> str:
     if isinstance(remark, str) and any(marker in remark.lower() for marker in _OVERPASS_TIMEOUT_MARKERS):
         return remark
     return ""
-
 
 
 
@@ -510,9 +508,6 @@ def _osm_to_geojson_inner(elements: list, query: str = "") -> dict:
 
 
     for index, el in enumerate(elements):
-
-
-
 
 
         if el["type"] == "node" and "lon" in el and "lat" in el:

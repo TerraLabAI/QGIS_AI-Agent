@@ -78,8 +78,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
 
-
-
         self._set_report_provider(self.session_report)
         self._thread_id: str | None = None
 
@@ -116,12 +114,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
         self._panel_queue: list[tuple] = []
-
         self._proposals: dict[str, dict] = {}
-
         self._question_args: dict[str, dict] = {}
-
-
 
 
 
@@ -159,7 +153,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._wire_session()
         self._wire_executor()
         self._wire_account()
-
 
 
     def start(self) -> None:
@@ -228,6 +221,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def _set_report_provider(self, provider) -> None:
         try:
             self._panel.diagnostics_provider = provider
+            self._panel.auth_header_provider = self._account.get_auth_header if provider else None
         except (AttributeError, RuntimeError):
             pass
 
@@ -242,12 +236,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
 
-
-
         for timer in (self._end_timer, self._watchdog, self._resend_timer, self._lost_timer, self._diff_timer,
                       self._conn_lost_timer):
             timer.stop()
-
         self._panel_queue.clear()
 
 
@@ -256,7 +247,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._executor.watchdog.stop()
 
         self._executor.cancel_background()
-
 
         if getattr(self._account, "state", None) == getattr(Account, "PAIRING", object()):
             try:
@@ -272,8 +262,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
                 self._session.send_cancel(run["run_id"], CANCEL_QGIS_CLOSED)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Run {run['run_id'][:8]}: no cancel sent on unload: {exc}")
-
-
 
 
             self._store_ending(run["run_id"], RunStatus.CANCELLED, tr("Stopped: QGIS closed during this run."), {})
@@ -302,11 +290,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         return self._runs.current
 
 
-
     def _identity(self) -> dict:
-
-
-
 
 
 
@@ -359,7 +343,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._session.connect_to_server()
 
 
-
     def _connect(self, name: str, slot) -> None:
         signal = getattr(self._panel, name, None)
         if signal is None or not hasattr(signal, "connect"):
@@ -403,7 +386,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             method(*args)
         except Exception as exc:  # noqa: BLE001
 
-
             if name in self._failed_slots:
                 return
             self._failed_slots.add(name)
@@ -422,6 +404,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def _wire_panel(self) -> None:
         self._connect("send_requested", self._on_send)
         self._connect("stop_requested", self._on_stop)
+        self._connect_optional("answer_rated", self._on_answer_rated)
         self._connect_optional("steer_requested", self._on_steer)
         self._connect_optional("unsteer_requested", self._on_unsteer)
         self._connect_optional("queue_send_requested", self._on_queue_send)
@@ -520,14 +503,12 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         a.session_expired.connect(self._on_session_expired)
 
 
-
         a.pairing_started.connect(lambda url: self._panel_call("set_pairing_state", True, "", url))
         a.pairing_browser_seen.connect(lambda: self._panel_call(
             "set_pairing_status", tr("Sign-in page open, waiting for you...")))
         a.pairing_address.connect(lambda message, tone: self._panel_call("set_pairing_note", message, tone))
         a.pairing_stalled.connect(
             lambda _reason, message: self._panel_call("set_pairing_note", message, "info"))
-
         a.pairing_link_back.connect(lambda: self._panel_call("set_pairing_note", "", "info"))
         a.pairing_code_needed.connect(lambda: self._panel_call("show_pairing_code_input"))
         a.pairing_failed.connect(self._on_pairing_failed)
@@ -536,6 +517,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         a.state_changed.connect(self._on_account_state)
         a.usage_refreshed.connect(self._on_website_usage)
         a.checkout_not_finished.connect(lambda: self._panel_optional("show_checkout_return"))
+        a.checkout_not_finished.connect(lambda: telemetry.track(
+            ev.CHECKOUT_RETURN_CHECKED, {"outcome": "not_finished", **telemetry.upsell_context()}))
+        a.checkout_return_paid.connect(lambda: telemetry.track(
+            ev.CHECKOUT_RETURN_CHECKED, {"outcome": "paid", **telemetry.upsell_context()}))
         self._session.session_started.connect(self._bind_unlocked_account)
 
     def _approval(self, approval: str = "") -> str:
@@ -560,9 +545,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         return self._effort()
 
 
-
     def _on_reconnect_requested(self) -> None:
-
 
 
 

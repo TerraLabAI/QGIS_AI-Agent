@@ -105,7 +105,6 @@ class _ControllerRuns:
         allow_attached_paths([a.get("path") for a in attachments if a.get("path")])
 
 
-
         asked_chips = [dict(c) for c in chips]
         chips += (self._load_file_attachments(attachments, reuse=True) if reuse_layers
                   else self._load_file_attachments(attachments))
@@ -192,6 +191,7 @@ class _ControllerRuns:
             self._panel_call("append_user_message", run_id, text, chips, attachments)
             self._store.append_message(self._thread_id, record)
             self._store.update_agent_message(self._thread_id, run_id, {"status": "running"})
+            self._note_project_before(run_id)
             sent = self._session.send_user_message(
                 run_id, self._thread_id, text, attachments, context, mode, approval, effort, example, replaces,
                 self._earlier_turns(self._thread_id, run_id, replaces))
@@ -206,6 +206,7 @@ class _ControllerRuns:
             self._panel_call("show_error", run_id, "OFFLINE",
                              tr("The message could not be sent: the connection to TerraLab is down."),
                              True, "")
+            self._note_stop("UNSENT")
             self._finish_run(run_id, RunStatus.FAILED,
                              tr("Not connected to TerraLab. Retry once the connection is back."), {}, None)
         else:
@@ -246,7 +247,6 @@ class _ControllerRuns:
 
 
 
-
         report_exception(exc, "send", module=__name__, run_id=run_id)
 
 
@@ -255,6 +255,7 @@ class _ControllerRuns:
         message = tr("The message could not be sent. Retry, or reload the plugin if it keeps failing.")
         self._panel_call("show_error", run_id if began else None, "SEND_FAILED", message, True, "",
                          "" if began else key)
+        self._note_stop("SEND_FAILED")
         self._finish_run(run_id, RunStatus.FAILED, message, {}, None)
 
     def _retry_input(self, run_id: str) -> dict | None:
@@ -276,10 +277,28 @@ class _ControllerRuns:
                 return message
         return None
 
+    def _note_stop(self, code: str) -> None:
+
+        if self._run is not None:
+            self._run.setdefault("stop_code", code)
+
+    def _remember_end(self, run_id: str, status: str, stop_code: str) -> None:
+
+        ends = self.__dict__.setdefault("_ends", {})
+        ends[run_id] = (status, stop_code, time.monotonic())
+        while len(ends) > 16:
+            ends.pop(next(iter(ends)))
+
+    def _run_phase(self, run: dict) -> str:
+
+
+        if run.get("first_event_ms") is None:
+            return "no_reply"
+        if self.__dict__.get("_approvals_waiting"):
+            return "card"
+        return "model" if self._runs.server_owes_frame() else "tool"
+
     def _on_retry(self, run_id: str, replaces: str = "") -> None:
-
-
-
 
 
 
@@ -288,6 +307,11 @@ class _ControllerRuns:
         if asked is None:
             self.notice.emit("info", tr("This message can no longer be sent again."))
             return
+        status, stop_code, ended_at = self.__dict__.get("_ends", {}).get(run_id, ("", "", 0.0))
+        telemetry.track(ev.AGENT_RUN_RETRIED, {
+            "via": "undo_retry" if replaces else "retry", "prior_status": status or None,
+            "prior_stop_code": stop_code or None,
+            "waited_s": int(time.monotonic() - ended_at) if ended_at else None})
         mode = asked.get("mode") if asked.get("mode") in (Mode.ASK, Mode.AGENT) else self._settings.mode
         approval = self._settings.approval
         if asked.get("approval") in Approval.ALL and approval in Approval.ALL:
@@ -347,6 +371,15 @@ class _ControllerRuns:
             approval = min(asked["approval"], approval, key=Approval.ALL.index)
         self._on_send(CONTINUE_TEXT, mode, approval, [], [], replaces="")
 
+    def _on_answer_rated(self, run_id: str, rating: str) -> None:
+
+        if not run_id or rating not in ("up", "down"):
+            return
+        telemetry.track(ev.AGENT_ANSWER_RATED, {"run_id": run_id, "rating": rating})
+        self._session.send_feedback(run_id, rating == "up")
+        if self._thread_id:
+            self._store.update_agent_message(self._thread_id, run_id, {"rating": rating}, create=False)
+
     def _on_steer(self, run_id: str, steer_id: str, text: str) -> None:
 
 
@@ -400,17 +433,18 @@ class _ControllerRuns:
         run = self._runs.stop(run_id)
         if run is None:
             return
+        telemetry.track(ev.AGENT_RUN_STOPPED, {
+            "run_id": run["run_id"], "phase": self._run_phase(run), "again": again,
+            "ms_since_start": self._run_age_ms(run)})
         if again:
 
 
             self._end_run_locally()
             return
-
         self._resend_timer.stop()
         self._lost_timer.stop()
         heard = False
         try:
-
 
 
             heard = self._session.send_cancel(run["run_id"], CANCEL_STOP) and self._session.is_online
@@ -433,11 +467,9 @@ class _ControllerRuns:
         status = RunStatus.CANCELLED if cancelled else RunStatus.FAILED
 
 
-
-
         summary = str(run.get("error_message") or "")
+        self._note_stop("STOPPED" if cancelled else "NO_RUN_END")
         if not summary:
-
 
 
             summary = (tr("Stopped before the AI agent answered.") if cancelled
@@ -459,7 +491,6 @@ class _ControllerRuns:
             self._runs.resend_later()
 
 
-
             self._touch_watchdog()
             return
         attachments, context = run.get("sent") or ([], {})
@@ -478,7 +509,6 @@ class _ControllerRuns:
             self._touch_watchdog(grace)
         else:
             self._runs.resend_later()
-
 
 
     def _touch_watchdog(self, seconds: int = RUN_SILENCE_S) -> None:
@@ -525,6 +555,7 @@ class _ControllerRuns:
         try:
             log_warning(f"Run {run_id[:8]}: no outcome after the refused resume, ending the run locally")
             self._panel_call("show_error", run_id, "LOST", message, True, "")
+            self._note_stop("LOST")
             track_plugin_error("resume", "LOST", run_id)
             telemetry.track(ev.CONNECTION_FAILED, {"stage": "resume", "error_code": "LOST",
                                                    "duration_ms": self._run_age_ms(run),
@@ -565,6 +596,7 @@ class _ControllerRuns:
             log_warning(f"Run {run['run_id'][:8]}: nothing from the server for too long, ending it locally")
             self._session.send_cancel(run["run_id"], CANCEL_SERVER_SILENT)
             self._panel_call("show_error", run["run_id"], code, message, True, "")
+            self._note_stop(code)
             track_plugin_error("watchdog", code, run["run_id"])
             telemetry.track(
                 ev.CONNECTION_FAILED, {"stage": "run", "error_code": code, "duration_ms": self._run_age_ms(run),

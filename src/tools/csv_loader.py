@@ -91,9 +91,18 @@ def sniff(path: str) -> dict:
         projected = bool(xs and ys) and not lonlat_fits(min(xs), max(xs), min(ys), max(ys))
         if xs and ys:
             box = (min(xs), min(ys), max(xs), max(ys))
+
+    kinds = []
+    if wkt and body:
+        i_wkt = header.index(wkt)
+        kinds = list(dict.fromkeys(_WKT_TYPE.match(r[i_wkt]).group(1).upper() for r in body
+                                   if i_wkt < len(r) and _WKT_TYPE.match(r[i_wkt])))
     return {"delimiter": delimiter, "header": header, "headerless": headerless, "rows": len(body),
-            "lat": lat, "lon": lon, "wkt": wkt, "decimal": decimal, "projected": projected,
+            "lat": lat, "lon": lon, "wkt": wkt, "wkt_types": kinds, "decimal": decimal, "projected": projected,
             "encoding": encoding, "box": box}
+
+
+_WKT_TYPE = re.compile(r"\s*(?:SRID=\d+;\s*)?([A-Za-z]+(?:\s+(?:Z|M|ZM))?)\s*(?:\(|EMPTY)", re.IGNORECASE)
 
 
 
@@ -541,7 +550,6 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
             return tool_error(f"Failed to load the table from: {path}")
 
 
-
         geometry = _geometry_kind_of(layer)
     elif geometry != "none":
 
@@ -571,8 +579,6 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
         if info["decimal"] == ",":
             out["decimal_separator"] = ","
     elif geometry == "wkt":
-
-
 
         out["wkt_field"] = info.get("wkt")
         out["_note"] = f"Geometry read from the WKT column {info.get('wkt')!r}."

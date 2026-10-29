@@ -20,7 +20,7 @@ import urllib.request
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsDistanceArea, QgsPointXY, QgsProject
 
-from ..core import net, place_search, tuning
+from ..core import canvas_glide, net, place_search, tuning
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
 from ..core.tool_registry import tool_error
@@ -46,7 +46,6 @@ from .data_common import (
     _viewbox_bounds,
     _viewbox_centre,
 )
-
 
 
 
@@ -420,8 +419,6 @@ def _geojson_features(payload) -> list:
     return [f for f in features if isinstance(f, dict)] if isinstance(features, list) else []
 
 
-
-
 def _nominatim_forward_url(base, query, limit, country_codes, viewbox) -> str:
     params: dict = {"q": query, "format": "json", "limit": limit, "addressdetails": 1}
     if viewbox:
@@ -453,7 +450,6 @@ def _parse_nominatim_forward(payload, verbose: bool) -> list | None:
         }
         if verbose:
 
-
             hit["boundingbox"] = r.get("boundingbox")
             hit["osm_id"] = r.get("osm_id")
             hit["osm_type"] = r.get("osm_type")
@@ -474,8 +470,6 @@ def _parse_nominatim_reverse(payload) -> dict | None:
         "address": payload.get("address", {}),
         "osm_id": payload.get("osm_id"),
     }
-
-
 
 
 def _photon_query(query: str) -> str:
@@ -589,8 +583,6 @@ def _parse_photon_reverse(payload) -> dict | None:
 
 
 
-
-
 _BAN_COUNTRY_WORDS = ("france", "fr", "francia", "frankreich")
 
 
@@ -689,8 +681,6 @@ def _parse_ban_reverse(payload) -> dict | None:
         "address": {k: v for k, v in props.items() if k not in ("x", "y", "score", "distance", "_type")},
         "osm_id": None,
     }
-
-
 
 
 def _cartociudad_forward_url(base, query, limit, country_codes, viewbox) -> str:
@@ -819,8 +809,6 @@ def _parse_cartociudad_reverse(payload) -> dict | None:
         "address": {key: payload[key] for key in _CARTOCIUDAD_ADDRESS_KEYS if _text(payload.get(key))},
         "osm_id": None,
     }
-
-
 
 
 def _pelias_forward_url(base, query, limit, country_codes, viewbox) -> str:
@@ -975,7 +963,6 @@ def _resolve_geocode_provider(args: dict) -> tuple:
     if not base:
         raise _NoEndpoint(provider["name"])
     return provider_id, provider, base
-
 
 
 
@@ -1151,7 +1138,6 @@ def _place_search(query: str, limit: int, base: str, verbose: bool):
 
 
 def _geocode(args: dict) -> dict:
-
 
 
 
@@ -1383,9 +1369,10 @@ def _add_geocode_layer(name: str, query: str, hit: dict) -> dict:
     try:
         from qgis.utils import iface
         canvas = iface.mapCanvas()
-        canvas.setExtent(canvas.mapSettings().layerExtentToOutputExtent(layer, layer.extent()).buffered(0))
-        canvas.zoomScale(5000)
-        canvas.refresh()
+        with canvas_glide.gliding(canvas):
+            canvas.setExtent(canvas.mapSettings().layerExtentToOutputExtent(layer, layer.extent()).buffered(0))
+            canvas.zoomScale(5000)
+            canvas.refresh()
     except Exception:  # nosec B110
         pass
     return {"layer_id": layer.id(), "layer_name": name, "feature_count": 1, "crs": "EPSG:4326",
@@ -1415,9 +1402,6 @@ def _reverse_geocode(args: dict) -> dict:
 
     out = provider["parse_reverse"](payload) if payload is not None else None
     if out is None:
-
-
-
 
 
         answer = _backend_geo("/geo/reverse", {"lat": lat, "lon": lon}, cache_ttl=_CACHE_GEOCODE_S)
@@ -1530,7 +1514,6 @@ def _get_route(args: dict) -> dict:
         QgsProject.instance().addMapLayer(layer)
         return {
             "layer_name": layer.name(),
-
 
             "layer_id": layer.id(),
             "distance_km": distance_km,

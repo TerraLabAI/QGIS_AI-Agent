@@ -98,7 +98,6 @@ def _execute_code(args: dict) -> dict:
 
 
 
-
 _SIP_LAYER_CONTAINERS_WARM = [False]
 
 
@@ -342,7 +341,6 @@ def _run_in_qgis(args: dict) -> dict:
     if shown:
         out["files"] = [{"path": path} for path in shown]
     return out
-
 
 
 
@@ -670,7 +668,6 @@ def _api_help(exc: Exception) -> dict | str:
 
 
 
-
                 return _api_family(match.group(1), match.group(2), public)
             return f"{match.group(1)} has no {match.group(2)}. Nearest: " + ", ".join(near) + "."
         if isinstance(exc, NameError):
@@ -700,8 +697,6 @@ def _api_help(exc: Exception) -> dict | str:
             if not doc:
                 return ""
             lines = [line.strip() for line in doc.splitlines() if line.strip()][:6]
-
-
 
             return cut_string("\n".join(lines), _API_HELP_CHARS)
     except Exception:  # noqa: BLE001

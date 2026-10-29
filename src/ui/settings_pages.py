@@ -49,14 +49,11 @@ from .widgets import IconButton
 
 
 
-
-
 MUTED = INK_2
 HAIRLINE = LINE
 TINT = FIELD
 TINT_HOVER = HOVER_ON
 TINT_ON = LINE_STRONG
-
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
@@ -70,14 +67,11 @@ GROUP_TITLE_QSS = "font-size: 12px; font-weight: 600; color: palette(text); back
 
 
 
-
-
 GROUP_QSS = (
     f"QFrame#settingsGroup {{ background: {SURFACE};"
     f" border: 1px solid {LINE}; border-radius: {RADIUS_CARD}px; }}"
     "QFrame#settingsGroup > QFrame#settingsRow { border: none; background: transparent; }"
 )
-
 GROUP_FLAT_QSS = (
     "QFrame#settingsGroup { background: transparent; border: none; }"
     "QFrame#settingsGroup > QFrame#settingsRow { border: none; background: transparent; }"
@@ -108,7 +102,6 @@ def sidebar_qss(name: str) -> str:
 
 ROW_DIVIDER_QSS = (f"QFrame {{ background: {HAIRLINE}; border: none;"
                    " max-height: 1px; min-height: 1px; }")
-
 
 PRIMARY_BTN_QSS = (
     "QPushButton { background: palette(text); color: palette(base); border: none;"
@@ -234,8 +227,6 @@ class Switch(QAbstractButton):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
-
-
         self.setFixedSize(38, 22)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 
@@ -305,7 +296,6 @@ class SettingRow(QFrame):
 
 
 
-
         if control is None:
             return
         try:
@@ -356,11 +346,6 @@ class SettingGroup(QFrame):
 
 
 class SectionCard(QFrame):
-
-
-
-
-
 
 
     def __init__(self, parent=None):
@@ -421,9 +406,6 @@ class Segmented(QFrame):
 
 
 class NoteRow(QFrame):
-
-
-
 
 
 
@@ -511,11 +493,6 @@ class NoteRow(QFrame):
 
 
 
-
-
-
-
-
 PRO_CARD_QSS = (
     f"QFrame#proCard {{ background: {ACCENT_TINT}; border: 1px solid {ACCENT_BORDER};"
     " border-radius: 10px; }"
@@ -564,7 +541,6 @@ def set_section_locked(*widgets, locked: bool = True) -> None:
 
 
 class Disclosure(QWidget):
-
 
 
 
@@ -690,8 +666,6 @@ class Page(QWidget):
         label.setStyleSheet(GROUP_TITLE_QSS)
         label.setContentsMargins(2, 4, 0, 0)
         return self.add(label)
-
-
 
 
 

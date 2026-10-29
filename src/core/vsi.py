@@ -177,7 +177,6 @@ SCOPED_OPTIONS: dict[str, str] = {
     "CPL_VSIL_CURL_AUTHORIZATION_HEADER_ALLOWED_IF_REDIRECT": "NO",
 }
 
-
 _state = {"applied": False}
 
 
@@ -374,6 +373,37 @@ def _apply_chain_bundle(gdal, per_path) -> None:
                 per_path(f"{prefix}https://{host}/", key, bundle)
 
 
+
+
+
+
+
+
+
+BLOCK_CACHE_SHARE = 32
+BLOCK_CACHE_MIN_MB = 128
+BLOCK_CACHE_MAX_MB = 512
+
+
+def size_block_cache() -> None:
+
+
+
+
+
+    try:
+        from osgeo import gdal
+    except ImportError:
+        return
+    if gdal.GetConfigOption("CPL_VSIL_CURL_CACHE_SIZE"):
+        return
+    from . import machine
+
+    total = machine.total_memory_mb() or machine.REFERENCE_RAM_MB
+    mb = min(BLOCK_CACHE_MAX_MB, max(BLOCK_CACHE_MIN_MB, total // BLOCK_CACHE_SHARE))
+    gdal.SetConfigOption("CPL_VSIL_CURL_CACHE_SIZE", str(mb * 1024 * 1024))
+
+
 def apply_persistent() -> bool:
 
     if _state["applied"]:
@@ -382,6 +412,7 @@ def apply_persistent() -> bool:
         from osgeo import gdal
     except ImportError:
         return False
+    size_block_cache()
     per_path = getattr(gdal, "SetPathSpecificOption", None)
     for key, value in PERSISTENT_OPTIONS.items():
         if key in REMOTE_ONLY_OPTIONS and per_path is not None:
@@ -501,8 +532,6 @@ def scoped_read(gdal=None, **overrides: str):
     finally:
         for key, value in previous.items():
             gdal.SetConfigOption(key, value)
-
-
 
 
 

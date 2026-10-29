@@ -41,7 +41,6 @@ def _list_layouts(args: dict) -> dict:
 
 _EXPORT_EXTS = {".pdf": "pdf", ".png": "png", ".jpg": "jpg", ".jpeg": "jpg", ".svg": "svg",
                 ".tif": "tif", ".tiff": "tif", ".qpt": "qpt"}
-
 _IMAGE_FORMATS = frozenset({"png", "jpg", "tif"})
 
 

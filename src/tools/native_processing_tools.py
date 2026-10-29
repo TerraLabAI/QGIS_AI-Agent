@@ -94,9 +94,6 @@ def _excluded() -> frozenset:
 
 
 
-
-
-
 _CATALOG_MAX_BYTES = 3_000_000
 
 

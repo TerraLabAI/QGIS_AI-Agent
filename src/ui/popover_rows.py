@@ -9,9 +9,6 @@
 
 
 
-
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
@@ -44,7 +41,6 @@ _TILE = 26
 
 
 _POPOVER_QSS = scale_qss_font_px(
-
     f"QFrame#examplesPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
     f"QLabel#examplesSection {{ font-size: {FONT_HINT}px; color: {INK_3};"

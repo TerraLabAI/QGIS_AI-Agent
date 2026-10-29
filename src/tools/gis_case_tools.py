@@ -250,9 +250,6 @@ def _enable_add_data_subdatasets() -> None:
 
 
 
-
-
-
         if kind == "raster" and not facade._is_url(str(args.get("source") or "")):
             return _add_raster_layer({"path": args["source"], "name": args.get("name"), "layer": args.get("layer")})
         return original(kind, args)
@@ -1723,10 +1720,6 @@ class _GeocodeLayerTask(QgsTask):
 
 
 
-
-
-
-
         from .data_tools import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
 
         own_host, through_backend = True, 0
@@ -1902,7 +1895,6 @@ def _geocode_layer(args: dict) -> dict:
             old, new, seen, rows_by_address, over_cap = fixed
             encoding_fixed = {"from": old, "to": new}
         else:
-
 
 
 

@@ -464,8 +464,6 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
     if not isinstance(payload, dict):
         return {**tool_error("The Overture service answered no object."),
                 **_overture_trace(getattr(answer, "headers", None))}
-
-
     payload.setdefault("_trace", _overture_trace(getattr(answer, "headers", None)))
     return payload
 
@@ -578,8 +576,6 @@ def _overture_layer(features: list, name: str, args: dict, uri: str = "") -> dic
         if not layer.isValid():
             return tool_error(f"Could not build a layer from the Overture answer for {name}.")
         QgsProject.instance().addMapLayer(layer)
-
-
 
         return {"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": layer.featureCount()}
 
@@ -697,7 +693,6 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
         if made.get("_error"):
 
 
-
             reason = _tile_miss_reason(made)
             missing.append({"tile": label, "reason": reason})
             if reason == "network":
@@ -792,8 +787,6 @@ def _subset_string(wanted: dict, keys: set) -> str:
                       for v in equals]
             clauses.append(f'"{key}" = {quoted[0]}' if len(quoted) == 1 else f'"{key}" IN ({", ".join(quoted)})')
     return " AND ".join(clauses)
-
-
 
 
 
@@ -1037,8 +1030,6 @@ def _divisions_subtypes_asked(wanted) -> tuple:
 
     known = tuning.service_list("division_subtypes", ())
     if not names:
-
-
 
 
 

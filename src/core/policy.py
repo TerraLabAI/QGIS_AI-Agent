@@ -105,14 +105,6 @@ def create_managed_temp_dir(prefix: str = "job") -> str:
 
 
 
-
-
-
-
-
-
-
-
 PRUNE_MAX_AGE_DAYS = 7
 PRUNE_MAX_TOTAL_BYTES = 5 * 1024 ** 3
 
@@ -345,8 +337,6 @@ def _referenced_names(names: set[str], project_paths: list[str], stop=None) -> f
 
 def prune_agent_scratch_dirs(max_age_days: float = PRUNE_MAX_AGE_DAYS,
                              max_total_bytes: int = PRUNE_MAX_TOTAL_BYTES) -> None:
-
-
 
 
 

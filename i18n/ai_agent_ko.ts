@@ -1778,6 +1778,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} files the request wrote stay on disk</source>
             <translation>이 요청이 만든 파일 {n}개는 디스크에 남아 있습니다</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>파일 {path} 확인</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>인쇄 레이아웃[ {layout_name}][, {page}페이지] 확인</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>지도 일부 보기</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>보이는 그대로 지도 보기</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>지도에서 {layer_names} 레이어 보기</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>지도에서 {layer_names} 보기</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>보내지 못했습니다. 연결을 확인하고 다시 시도하거나 {email}(으)로 문의해 주세요.</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>예: 버퍼가 미터 대신 도 단위로 만들어졌습니다.</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>버그를 신고하거나, 아이디어를 제안하거나, 잘 되는 점을 알려 주세요.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>보내기</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>피드백 보내기</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>보내는 중...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>여기서 피드백을 보내려면 로그인하거나 {email}(으)로 문의해 주세요.</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>메시지, 이 대화, 기술 정보(플러그인 및 QGIS 버전, 시스템, 최근 로그)를 받습니다. 비밀번호나 파일 내용은 절대 받지 않습니다.</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>짧은 시간에 여러 건을 보내셨습니다. 몇 분 후에 다시 시도해 주세요.</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>이 보고서에는 작성하신 설명과 현재 대화가 포함됩니다. 문제를 해결하고 AI Agent를 개선하는 데 사용합니다.</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2330,6 +2394,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{size} 다운로드 중</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>{host} 응답 대기 중</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>간단히 보기</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>장소 찾는 중</translation>
         </message>
@@ -2363,6 +2435,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo changes</source>
             <translation>변경 되돌리기</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>좋지 않은 답변</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>좋은 답변</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>보고서 만들기</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>이 분석의 지도와 차트를 담은 HTML 보고서 요청 작성</translation>
         </message>
     </context>
     <context>
@@ -2650,6 +2738,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>{layer}의 저장되지 않은 편집 내용을 저장하지 못해 아무것도 복원되지 않았습니다. QGIS에서 저장하거나 버린 뒤 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>{layer}의 저장되지 않은 편집 내용을 저장하기 전에 레이어를 복사하지 못해 아무것도 복원되지 않았습니다. QGIS에서 편집 내용을 저장하거나 버린 뒤 다시 시도하세요.</translation>
         </message>
         <message>
             <source>layer names</source>
@@ -3006,6 +3098,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>변경 사항을 되돌릴까요?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>변경 사항을 다시 적용할까요?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>요청 {n}개를 되돌릴까요?</translation>
         </message>
@@ -3022,8 +3118,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>승인을 기다리는 중</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>직접 편집한 내용은 먼저 기록에 저장됩니다.</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>이 시점 이후의 편집 내용은 먼저 지도 기록에 저장됩니다.</translation>
         </message>
         <message>
             <source>{layer} couldn't be restored</source>
@@ -3084,6 +3180,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Drawing the map</source>
             <translation>지도 그리는 중</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>감사합니다. 피드백을 보냈습니다.</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>이 분석의 지도, 차트, 방법을 담은 HTML 보고서를 만들어 주세요.</translation>
         </message>
     </context>
     <context>
@@ -3826,6 +3930,10 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>by TerraLab</source>
             <translation>by TerraLab</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>피드백 보내기</translation>
         </message>
     </context>
     <context>
@@ -4604,6 +4712,14 @@ Click to show it in the Layers panel.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>지금 내 요금제 시작</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>무료 작업 1개 남음</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>무료 작업 {n}개 남음</translation>
         </message>
     </context>
     <context>
@@ -5438,6 +5554,10 @@ Click to show it in the Layers panel.</source>
             <source>{used} tasks this month</source>
             <translation>이번 달 작업 {used}개</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>피드백 보내기</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6184,6 +6304,72 @@ Click to show it in the Layers panel.</source>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>임시 레이어</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent가 아직 작업 중입니다</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>파일로 저장하여 유지</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>프로젝트가 저장되었습니다</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>임시 레이어가 유지되지 않았습니다</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI 에이전트가 요청을 아직 끝내지 못했습니다. QGIS를 종료하고 작업을 중단하시겠습니까?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>임시 레이어 {n}개({names})가 디스크에 저장되지 않았습니다. 프로젝트를 닫으면 내용이 사라집니다.</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>라벨 위치가 저장되지 않았습니다</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>프로젝트가 열려 있는 동안 QGIS의 임시 폴더가 삭제되었습니다. 이전 저장 이후에 옮긴 라벨이나 다이어그램은 저장할 수 없었습니다. 그 전에 저장된 위치는 그대로 유지됩니다. 다시 옮긴 다음 저장하세요.</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent가 아직 레이어를 저장하는 중입니다</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>레이어 {n}개가 아직 프로젝트 옆의 GeoPackage에 기록되는 중입니다. 지금 QGIS를 종료하면 사라집니다. 그래도 종료할까요?</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>보내지 못했습니다. 다시 시도해 주세요.</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>보내기</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>이 대화와 최근 로그가 함께 전송되며, 문제를 해결하고 AI Agent를 개선하는 데 사용됩니다.</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>자세히 알려 주세요</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>피드백 감사합니다</translation>
         </message>
     </context>
 </TS>

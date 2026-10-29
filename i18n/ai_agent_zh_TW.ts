@@ -2482,6 +2482,70 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>changed</source>
             <translation>已變更</translation>
         </message>
+        <message>
+            <source>Check the file {path}</source>
+            <translation>查看檔案 {path}</translation>
+        </message>
+        <message>
+            <source>Check the print layout[ {layout_name}][, page {page}]</source>
+            <translation>查看列印版面[ {layout_name}][，第 {page} 頁]</translation>
+        </message>
+        <message>
+            <source>Look at part of the map</source>
+            <translation>查看地圖的一部分</translation>
+        </message>
+        <message>
+            <source>Look at the map as you see it</source>
+            <translation>查看你目前看到的地圖</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} layers on the map</source>
+            <translation>查看地圖上的 {layer_names} 個圖層</translation>
+        </message>
+        <message>
+            <source>Look at {layer_names} on the map</source>
+            <translation>查看地圖上的 {layer_names}</translation>
+        </message>
+        <message>
+            <source>Could not send. Check your connection and try again, or write to us at {email}.</source>
+            <translation>無法傳送。請檢查網路連線後再試一次，或寄信給我們：{email}。</translation>
+        </message>
+        <message>
+            <source>Example: the buffer came out in degrees instead of metres.</source>
+            <translation>例如：緩衝區的單位變成了度，而不是公尺。</translation>
+        </message>
+        <message>
+            <source>Report a bug, suggest an idea, or share what's working well.</source>
+            <translation>回報錯誤、提出想法，或分享好用的地方。</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>傳送</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>傳送意見回饋</translation>
+        </message>
+        <message>
+            <source>Sending...</source>
+            <translation>傳送中...</translation>
+        </message>
+        <message>
+            <source>Sign in to send feedback from here, or write to us at {email}.</source>
+            <translation>請登入以便在這裡傳送意見回饋，或寄信給我們：{email}。</translation>
+        </message>
+        <message>
+            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
+            <translation>我們會收到您的訊息、這段對話和技術資訊（外掛程式與 QGIS 版本、系統、最近的記錄）。絕不包含您的密碼或檔案內容。</translation>
+        </message>
+        <message>
+            <source>You sent several reports in a short time. Try again in a few minutes.</source>
+            <translation>您在短時間內傳送了多則回報。請幾分鐘後再試。</translation>
+        </message>
+        <message>
+            <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
+            <translation>此回報包含您的描述和目前的對話。我們會用它來修正問題並改進 AI Agent。</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3321,6 +3385,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>下載中 {size}</translation>
         </message>
         <message>
+            <source>Waiting for {host}</source>
+            <translation>正在等待 {host}</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>顯示較少</translation>
+        </message>
+        <message>
             <source>Finding the place</source>
             <translation>尋找地點</translation>
         </message>
@@ -3387,6 +3459,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Undo changes</source>
             <translation>復原變更</translation>
+        </message>
+        <message>
+            <source>Bad answer</source>
+            <translation>回答不佳</translation>
+        </message>
+        <message>
+            <source>Good answer</source>
+            <translation>回答很好</translation>
+        </message>
+        <message>
+            <source>Make a report</source>
+            <translation>製作報告</translation>
+        </message>
+        <message>
+            <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
+            <translation>寫下請求，為這項分析製作含地圖與圖表的 HTML 報告</translation>
         </message>
     </context>
     <context>
@@ -3856,6 +3944,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your unsaved edits on {layer} could not be saved, so nothing was restored. Save or discard them in QGIS, then try again.</source>
             <translation>您在 {layer} 上未儲存的編輯無法儲存，因此未還原任何內容。請在 QGIS 中儲存或捨棄這些編輯後再試一次。</translation>
+        </message>
+        <message>
+            <source>{layer} could not be copied before its unsaved edits were saved, so nothing was restored. Save or discard the edits in QGIS, then try again.</source>
+            <translation>在儲存 {layer} 上未儲存的編輯之前，無法複製該圖層，因此未還原任何內容。請在 QGIS 中儲存或捨棄這些編輯後再試一次。</translation>
         </message>
         <message>
             <source>request {n}</source>
@@ -4467,12 +4559,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>要復原變更嗎?</translation>
         </message>
         <message>
+            <source>Redo changes?</source>
+            <translation>要重做變更嗎?</translation>
+        </message>
+        <message>
             <source>Undo {n} requests?</source>
             <translation>要復原 {n} 個請求嗎?</translation>
         </message>
         <message>
-            <source>Your manual edits are saved in the history first.</source>
-            <translation>您的手動編輯會先儲存到歷史記錄中。</translation>
+            <source>Edits made since this point are kept in Map history first.</source>
+            <translation>自此之後所做的編輯會先儲存到地圖歷史記錄中。</translation>
         </message>
         <message>
             <source>{layer}: {reason}</source>
@@ -4529,6 +4625,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Drawing the map</source>
             <translation>繪製地圖</translation>
+        </message>
+        <message>
+            <source>Thanks, your feedback was sent.</source>
+            <translation>謝謝，您的意見回饋已傳送。</translation>
+        </message>
+        <message>
+            <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
+            <translation>為這項分析製作 HTML 報告，包含地圖、圖表與方法。</translation>
         </message>
     </context>
     <context>
@@ -5882,6 +5986,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Map history ({key})</source>
             <translation>地圖歷史記錄({key})</translation>
         </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>傳送意見回饋</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -6832,6 +6940,14 @@ Click to open its page.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Start my plan now</source>
             <translation>立即開始我的方案</translation>
+        </message>
+        <message>
+            <source>1 free task left</source>
+            <translation>剩餘 1 項免費任務</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left</source>
+            <translation>剩餘 {n} 項免費任務</translation>
         </message>
     </context>
     <context>
@@ -8039,6 +8155,10 @@ Click to open its page.</source>
         <message>
             <source>{plan} · Free trial</source>
             <translation>{plan} · 免費試用</translation>
+        </message>
+        <message>
+            <source>Send feedback</source>
+            <translation>傳送意見回饋</translation>
         </message>
     </context>
     <context>
@@ -9857,6 +9977,72 @@ This file is no longer where the run wrote it.</source>
             <location filename="src/core/controller_actions.py" />
             <source>a temporary layer</source>
             <translation>一個暫存圖層</translation>
+        </message>
+    </context>
+    <context>
+        <name>SaveGuard</name>
+        <message>
+            <source>AI Agent is still working</source>
+            <translation>AI Agent 仍在處理中</translation>
+        </message>
+        <message>
+            <source>Keep them in a file</source>
+            <translation>儲存到檔案</translation>
+        </message>
+        <message>
+            <source>Project saved</source>
+            <translation>專案已儲存</translation>
+        </message>
+        <message>
+            <source>Temporary layers not kept</source>
+            <translation>暫存圖層未保留</translation>
+        </message>
+        <message>
+            <source>The AI agent has not finished your request. Quit QGIS and stop it?</source>
+            <translation>AI Agent 尚未完成您的請求。要結束 QGIS 並停止它嗎?</translation>
+        </message>
+        <message>
+            <source>{n} temporary layer(s) ({names}) are not saved to disk: their contents will be lost when the project closes.</source>
+            <translation>{n} 個暫存圖層({names})尚未儲存到磁碟,專案關閉後其內容將會遺失。</translation>
+        </message>
+        <message>
+            <source>Label positions not saved</source>
+            <translation>標籤位置未儲存</translation>
+        </message>
+        <message>
+            <source>QGIS's temporary folder was deleted while the project was open: labels or diagrams moved since the previous save could not be saved. The positions saved before are kept. Move them again, then save.</source>
+            <translation>專案開啟期間，QGIS 的暫存資料夾被刪除：自上次儲存後移動的標籤或圖表無法儲存。先前儲存的位置會保留。請重新移動，然後儲存。</translation>
+        </message>
+        <message>
+            <source>AI Agent is still saving layers</source>
+            <translation>AI Agent 仍在儲存圖層</translation>
+        </message>
+        <message>
+            <source>{n} layer(s) are still being written to the GeoPackage beside the project. If QGIS quits now, they are lost. Quit anyway?</source>
+            <translation>仍有 {n} 個圖層正在寫入專案旁的 GeoPackage。若現在結束 QGIS，這些圖層將會遺失。仍要結束嗎？</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingWords</name>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>無法傳送，請再試一次。</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>傳送</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
+            <translation>將與此對話及您最近的記錄檔一併傳送，用於修復問題並改進 AI Agent。</translation>
+        </message>
+        <message>
+            <source>Tell us more</source>
+            <translation>告訴我們更多</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>感謝您的意見回饋</translation>
         </message>
     </context>
 </TS>
